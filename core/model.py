@@ -47,10 +47,10 @@ class FlatpakManager:
                     pak_data = None
 
                 if not pak_data:
-                    pak['latest_release'] = None
+                    pak['latest_version'] = None
                     pak['icon'] = None
                 else:
-                    pak['latest_release'] = pak_data['currentReleaseVersion']
+                    pak['latest_version'] = pak_data['currentReleaseVersion']
                     pak['icon'] = pak_data['iconDesktopUrl']
 
                     if pak['icon'].startswith('/'):

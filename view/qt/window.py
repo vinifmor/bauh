@@ -40,7 +40,7 @@ class UpdateToggleButton(QToolButton):
 
 class MainWindow(QWidget):
 
-    __COLUMNS__ = ['Package', 'Version', 'Branch', 'Arch', 'Ref', 'Latest Release', 'Origin', 'Update ?']
+    __COLUMNS__ = ['Package', 'Version', 'Branch', 'Arch', 'Ref', 'Latest Version', 'Origin', 'Update ?']
     __BASE_HEIGHT__ = 400
 
     def __init__(self, controller: FlatpakController):
@@ -239,7 +239,7 @@ class MainWindow(QWidget):
                 self.table_apps.setItem(idx, 4, col_package)
 
                 col_release = QTableWidgetItem()
-                col_release.setText(app['latest_release'])
+                col_release.setText(app['latest_version'])
                 col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.table_apps.setItem(idx, 5, col_release)
 

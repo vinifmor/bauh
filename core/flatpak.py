@@ -40,9 +40,9 @@ def _package_str_to_json(line: str, version: str) -> dict:
     return app
 
 
-def _run_cmd(cmd: str, expected_code: int = 0) -> str:
+def _run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False) -> str:
     res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
-    return res.stdout.decode() if res.returncode == expected_code else None
+    return res.stdout.decode() if ignore_return_code or res.returncode == expected_code else None
 
 
 def get_version():
@@ -75,4 +75,4 @@ def update(ref: str):
 
 
 def list_updates():
-    return _run_cmd('flatpak update', expected_code=1)
+    return _run_cmd('flatpak update', ignore_return_code=True)
