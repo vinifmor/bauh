@@ -37,21 +37,26 @@ class FlatpakManager:
         if packages:
             packages.sort(key=lambda p: p['name'].lower())
 
+            available_updates = flatpak.list_updates()
+
             for pak in packages:
 
                 if self.packages_db:
-                    package_data = self.packages_db.get(pak['id'], None)
+                    pak_data = self.packages_db.get(pak['id'], None)
                 else:
-                    package_data = None
+                    pak_data = None
 
-                if not package_data:
+                if not pak_data:
                     pak['latest_release'] = None
                     pak['icon'] = None
                 else:
-                    pak['latest_release'] = package_data['currentReleaseVersion']
-                    pak['icon'] = __FLATHUB_URL__ + package_data['iconDesktopUrl']
+                    pak['latest_release'] = pak_data['currentReleaseVersion']
+                    pak['icon'] = pak_data['iconDesktopUrl']
 
-                pak['update'] = flatpak.check_update(pak['ref'])
+                    if pak['icon'].startswith('/'):
+                        pak['icon'] = __FLATHUB_URL__ + pak['icon']
+
+                pak['update'] = pak['id'] in available_updates
 
         self.packages = packages
         return [*self.packages]

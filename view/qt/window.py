@@ -40,7 +40,7 @@ class UpdateToggleButton(QToolButton):
 
 class MainWindow(QWidget):
 
-    __COLUMNS__ = ['Package', 'Branch', 'Arch', 'Ref', 'Latest Release', 'Update ?']
+    __COLUMNS__ = ['Package', 'Version', 'Branch', 'Arch', 'Ref', 'Latest Release', 'Origin', 'Update ?']
     __BASE_HEIGHT__ = 400
 
     def __init__(self, controller: FlatpakController):
@@ -170,6 +170,8 @@ class MainWindow(QWidget):
                 self.table_apps.setRowHidden(idx, hidden)
                 app['visible'] = not hidden
 
+            self.change_update_button_state()
+
     def change_update_button_state(self):
 
         enable_bt_update = False
@@ -217,35 +219,44 @@ class MainWindow(QWidget):
                 self.table_apps.setItem(idx, 0, col_name)
 
                 col_version = QTableWidgetItem()
-                col_version.setText(app['branch'])
+                col_version.setText(app['version'])
                 col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.table_apps.setItem(idx, 1, col_version)
+
+                col_branch = QTableWidgetItem()
+                col_branch.setText(app['branch'])
+                col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.table_apps.setItem(idx, 2, col_branch)
 
                 col_arch = QTableWidgetItem()
                 col_arch.setText(app['arch'])
                 col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 2, col_arch)
+                self.table_apps.setItem(idx, 3, col_arch)
 
                 col_package = QTableWidgetItem()
                 col_package.setText(app['ref'])
                 col_package.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 3, col_package)
+                self.table_apps.setItem(idx, 4, col_package)
 
                 col_release = QTableWidgetItem()
                 col_release.setText(app['latest_release'])
                 col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 4, col_release)
+                self.table_apps.setItem(idx, 5, col_release)
 
                 if app['update']:
                     col_release.setForeground(QColor('yellow'))
 
-                app_model = {'model': app, 'update_checked': app['update'], 'visible': True}
+                col_origin = QTableWidgetItem()
+                col_origin.setText(app['origin'])
+                col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.table_apps.setItem(idx, 6, col_origin)
 
-                if app['update']:
-                    col_update = UpdateToggleButton(app_model, self, app['update'])
-                    self.table_apps.setCellWidget(idx, 5, col_update)
-                else:
-                    self.table_apps.setCellWidget(idx, 5, None)
+                app_model = {'model': app,
+                             'update_checked': app['update'],
+                             'visible': not app['runtime'] or not self.checkbox_only_apps.isChecked()}
+
+                col_update = UpdateToggleButton(app_model, self, app['update']) if app['update'] else None
+                self.table_apps.setCellWidget(idx, 7, col_update)
 
                 self.apps.append(app_model)
 
@@ -254,7 +265,7 @@ class MainWindow(QWidget):
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(MainWindow.__COLUMNS__))]) * 1.03
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(MainWindow.__COLUMNS__))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
