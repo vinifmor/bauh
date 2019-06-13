@@ -1,6 +1,7 @@
 import re
-import subprocess
 from typing import List
+
+from core import system
 
 
 def app_str_to_json(line: str, version: str) -> dict:
@@ -40,22 +41,17 @@ def app_str_to_json(line: str, version: str) -> dict:
     return app
 
 
-def _run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False) -> str:
-    res = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
-    return res.stdout.decode() if ignore_return_code or res.returncode == expected_code else None
-
-
 def get_version():
-    res = _run_cmd('flatpak --version')
+    res = system.run_cmd('flatpak --version')
     return res.split(' ')[1].strip() if res else None
 
 
 def get_app_info(app_id: str):
-    return _run_cmd('flatpak info ' + app_id)
+    return system.run_cmd('flatpak info ' + app_id)
 
 
 def list_installed() -> List[dict]:
-    apps_str = _run_cmd('flatpak list')
+    apps_str = system.run_cmd('flatpak list')
 
     if apps_str:
         version = get_version()
@@ -66,8 +62,8 @@ def list_installed() -> List[dict]:
 
 
 def update(ref: str):
-    return bool(_run_cmd('flatpak update -y ' + ref))
+    return bool(system.run_cmd('flatpak update -y ' + ref))
 
 
 def list_updates_as_str():
-    return _run_cmd('flatpak update', ignore_return_code=True)
+    return system.run_cmd('flatpak update', ignore_return_code=True)
