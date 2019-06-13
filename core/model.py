@@ -1,3 +1,4 @@
+from threading import Lock, Thread
 from typing import List
 
 import requests
@@ -17,15 +18,23 @@ class FlatpakManager:
         self.apps = []
         self.apps_db = {}
         self.http_session = requests.Session()
-        self._load_database()
+        self.lock_db_read = Lock()
 
-    def _load_database(self):
+    def load_database_async(self):
+        Thread(target=self.load_database).start()
 
-        res = self.http_session.get(__FLATHUB_API_URL__ + '/apps')
+    def load_database(self):
 
-        if res.status_code == 200:
-            for app in res.json():
-                self.apps_db[app['flatpakAppId']] = app
+        self.lock_db_read.acquire()
+
+        try:
+            res = self.http_session.get(__FLATHUB_API_URL__ + '/apps')
+
+            if res.status_code == 200:
+                for app in res.json():
+                    self.apps_db[app['flatpakAppId']] = app
+        finally:
+            self.lock_db_read.release()
 
     def get_version(self):
         return flatpak.get_version()
@@ -40,6 +49,9 @@ class FlatpakManager:
             available_updates = flatpak.list_updates_as_str()
 
             for app in installed:
+
+                if not self.apps_db:
+                    self.load_database()
 
                 if self.apps_db:
                     app_data = self.apps_db.get(app['id'], None)

@@ -3,8 +3,8 @@ from functools import reduce
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl
-from PyQt5.QtGui import QIcon, QColor, QPixmap
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl, QEvent
+from PyQt5.QtGui import QIcon, QColor, QPixmap, QWindowStateChangeEvent
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
     QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
@@ -105,9 +105,7 @@ class ManageWindow(QWidget):
         self.table_apps.setHorizontalHeaderLabels(ManageWindow.__COLUMNS__)
         self.table_apps.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        header_horizontal = self.table_apps.horizontalHeader()
-        for i in range(0, len(ManageWindow.__COLUMNS__)):
-            header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch + QHeaderView.AdjustToContents)
+        self._change_table_headers_policy()
 
         self.layout.addWidget(self.table_apps)
 
@@ -129,6 +127,16 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_bottom)
 
         self.centralize()
+
+    def _change_table_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
+        header_horizontal = self.table_apps.horizontalHeader()
+        for i in range(0, len(ManageWindow.__COLUMNS__)):
+            header_horizontal.setSectionResizeMode(i, policy)
+
+    def changeEvent(self, e: QEvent):
+
+        if isinstance(e, QWindowStateChangeEvent):
+            self._change_table_headers_policy(QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents)
 
     def closeEvent(self, event):
 
