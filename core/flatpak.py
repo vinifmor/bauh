@@ -8,7 +8,7 @@ def app_str_to_json(line: str, version: str) -> dict:
 
     app_array = line.split('\t')
 
-    if version >= '1.4.0':
+    if version >= '1.2.0':
         app = {'name': app_array[0],
                'id': app_array[1],
                'version': app_array[2],
