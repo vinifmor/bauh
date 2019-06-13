@@ -1,29 +1,76 @@
 import sys
+import time
 
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QApplication, QWidget
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
 from core import resource
 
 
 # to update
-#apps = flatpak.list_installed()
-#print(apps)
+from core.controller import FlatpakController
+from view.qt.window import ManageWindow
 
 
-class SystemTrayIcon(QSystemTrayIcon):
+class UpdateCheck(QThread):
 
-    def __init__(self, parent=None):
-        QSystemTrayIcon.__init__(self, QIcon(resource.get_path('img/flathub_logo.svg')), parent)
+    signal = pyqtSignal(int)
+
+    def __init__(self, check_interval: int, controller: FlatpakController, parent=None):
+        super(UpdateCheck, self).__init__(parent)
+        self.controller = controller
+        self.check_interval = check_interval
+
+    def run(self):
+
+        while True:
+
+            apps = self.controller.refresh()
+
+            updates = len([app for app in apps if app['update']])
+
+            self.signal.emit(updates)
+
+            time.sleep(self.check_interval)
+
+
+class TrayIcon(QSystemTrayIcon):
+
+    def __init__(self, controller: FlatpakController, check_interval: int = 60, parent=None):
+        self.icon_default = QIcon(resource.get_path('img/flathub_logo.svg'))
+        self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
+        QSystemTrayIcon.__init__(self, self.icon_default, parent)
         self.menu = QMenu(parent)
-        exitAction = self.menu.addAction("Exit")
+
+        self.action_manage = self.menu.addAction("Manage applications")
+        self.action_manage.triggered.connect(self.show_manage_window)
+
+        self.action_exit = self.menu.addAction("Exit")
+        self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
         self.setContextMenu(self.menu)
+        self.controller = controller
+        self.check_thread = UpdateCheck(check_interval=check_interval, controller=self.controller)
+        self.check_thread.signal.connect(self.notify_update)
+        self.check_thread.start()
+        self.manage_window = ManageWindow(controller=controller, tray_icon=self)
 
+    def notify_update(self, updates: int):
+        if updates > 0:
+            if self.icon() != self.icon_update:
+                self.setIcon(self.icon_update)
+                self.setToolTip('Updates found: {}'.format(updates))
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    w = QWidget()
-    trayIcon = SystemTrayIcon(w)
-    trayIcon.show()
+                if self.manage_window:
+                    self.manage_window.refresh()
+        else:
+            self.setIcon(self.icon_default)
+            self.setToolTip(None)
 
-    sys.exit(app.exec_())
+    def show_manage_window(self):
+
+        if not self.manage_window:
+            self.manage_window = ManageWindow(controller=self.controller)
+
+        self.manage_window.refresh()
+        self.manage_window.show()

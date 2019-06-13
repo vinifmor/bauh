@@ -1,18 +1,16 @@
 import operator
 from functools import reduce
-
-from PyQt5 import QtCore
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-
-from core import resource, __version__
+from threading import Lock
 from typing import List
 
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl
 from PyQt5.QtGui import QIcon, QColor, QPixmap
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
     QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QMessageBox
 
+from core import resource, __version__
 from core.controller import FlatpakController
 
 
@@ -38,23 +36,24 @@ class UpdateToggleButton(QToolButton):
         self.root.change_update_button_state()
 
 
-class MainWindow(QWidget):
+class ManageWindow(QWidget):
 
-    __COLUMNS__ = ['Package', 'Version', 'Branch', 'Arch', 'Ref', 'Latest Version', 'Origin', 'Update ?']
+    __COLUMNS__ = ['Package', 'Version', 'Latest Version', 'Branch', 'Arch', 'Ref', 'Origin', 'Update ?']
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, controller: FlatpakController):
-        super(MainWindow, self).__init__()
+    def __init__(self, controller: FlatpakController, tray_icon = None):
+        super(ManageWindow, self).__init__()
         self.controller = controller
         self.icon_cache = {}
+        self.tray_icon = tray_icon
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)
 
         self.icon_flathub = QIcon(resource.get_path('img/flathub_logo.svg'))
         self._check_flatpak_installed()
-        self.resize(MainWindow.__BASE_HEIGHT__, MainWindow.__BASE_HEIGHT__)
-        self.setWindowTitle('flatman ({})'.format(__version__))
+        self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
+        self.setWindowTitle('fpakman ({})'.format(__version__))
         self.setWindowIcon(self.icon_flathub)
 
         self.layout = QVBoxLayout()
@@ -94,17 +93,17 @@ class MainWindow(QWidget):
         self.layout.addWidget(toolbar)
 
         self.table_apps = QTableWidget()
-        self.table_apps.setColumnCount(len(MainWindow.__COLUMNS__))
+        self.table_apps.setColumnCount(len(ManageWindow.__COLUMNS__))
         self.table_apps.setFocusPolicy(Qt.NoFocus)
         self.table_apps.setShowGrid(False)
         self.table_apps.verticalHeader().setVisible(False)
         self.table_apps.setSelectionBehavior(QTableView.SelectRows)
-        self.table_apps.setHorizontalHeaderLabels(MainWindow.__COLUMNS__)
+        self.table_apps.setHorizontalHeaderLabels(ManageWindow.__COLUMNS__)
         self.table_apps.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         header_horizontal = self.table_apps.horizontalHeader()
-        for i in range(0, len(MainWindow.__COLUMNS__)):
-            header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+        for i in range(0, len(ManageWindow.__COLUMNS__)):
+            header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch + QHeaderView.AdjustToContents)
 
         self.layout.addWidget(self.table_apps)
 
@@ -117,7 +116,24 @@ class MainWindow(QWidget):
         self.refresh_thread = RefreshPackages(self.controller)
         self.refresh_thread.signal.connect(self._finish_refresh)
 
-        self.layout.addWidget(QLabel('flatpak: ' + self.controller.get_version()), alignment=Qt.AlignRight)
+        self.toolbar_bottom = QToolBar()
+        self.label_updates = QLabel('')
+        self.toolbar_bottom.addWidget(self.label_updates)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar_bottom.addWidget(spacer)
+
+        self.toolbar_bottom.addWidget(QLabel('flatpak: ' + self.controller.get_version()))
+        self.layout.addWidget(self.toolbar_bottom)
+
+        self.thread_lock = Lock()
+        self.working = False  # restrict the number of threaded actions
+
+    def closeEvent(self, event):
+
+        if self.tray_icon:
+            event.ignore()
+            self.hide()
 
     def _load_icon(self, http_response):
         icon_url = http_response.url().toString()
@@ -143,22 +159,37 @@ class MainWindow(QWidget):
             error_msg.exec_()
             exit(1)
 
-    def refresh(self, threaded: bool = False):
+    def _acquire_lock(self):
 
-        self._check_flatpak_installed()
+        self.thread_lock.acquire()
 
-        self._begin_action('Refreshing...')
+        if not self.working:
+            self.working = True
 
-        if threaded:
+        self.thread_lock.release()
+        return self.working
+
+    def _release_lock(self):
+
+        self.thread_lock.acquire()
+
+        if self.working:
+            self.working = False
+
+        self.thread_lock.release()
+
+    def refresh(self):
+
+        if self._acquire_lock():
+            self._check_flatpak_installed()
+            self._begin_action('Refreshing...')
             self.refresh_thread.start()
-        else:
-            apps = self.controller.refresh()
-            self.update_packages(apps)
-            self.finish_action()
 
     def _finish_refresh(self):
+
         self.update_packages(self.refresh_thread.apps)
         self.finish_action()
+        self._release_lock()
 
     def filter_only_apps(self, only_apps: int):
 
@@ -170,11 +201,18 @@ class MainWindow(QWidget):
                 self.table_apps.setRowHidden(idx, hidden)
                 app['visible'] = not hidden
 
-            self.change_update_button_state()
+            self.change_update_state()
 
-    def change_update_button_state(self):
+    def change_update_state(self):
 
         enable_bt_update = False
+
+        updates = len([app for app in self.apps if app['model']['update']])
+
+        if updates > 0:
+            self.label_updates.setText('Updates: {}'.format(updates))
+        else:
+            self.label_updates.setText('')
 
         for app in self.apps:
             if app['visible'] and app['update_checked']:
@@ -223,28 +261,28 @@ class MainWindow(QWidget):
                 col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.table_apps.setItem(idx, 1, col_version)
 
+                col_release = QTableWidgetItem()
+                col_release.setText(app['latest_version'])
+                col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.table_apps.setItem(idx, 2, col_release)
+
+                if app['update']:
+                    col_release.setForeground(QColor('orange'))
+
                 col_branch = QTableWidgetItem()
                 col_branch.setText(app['branch'])
                 col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 2, col_branch)
+                self.table_apps.setItem(idx, 3, col_branch)
 
                 col_arch = QTableWidgetItem()
                 col_arch.setText(app['arch'])
                 col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 3, col_arch)
+                self.table_apps.setItem(idx, 4, col_arch)
 
                 col_package = QTableWidgetItem()
                 col_package.setText(app['ref'])
                 col_package.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 4, col_package)
-
-                col_release = QTableWidgetItem()
-                col_release.setText(app['latest_version'])
-                col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 5, col_release)
-
-                if app['update']:
-                    col_release.setForeground(QColor('yellow'))
+                self.table_apps.setItem(idx, 5, col_package)
 
                 col_origin = QTableWidgetItem()
                 col_origin.setText(app['origin'])
@@ -260,27 +298,34 @@ class MainWindow(QWidget):
 
                 self.apps.append(app_model)
 
-        self.change_update_button_state()
+        self.change_update_state()
         self.filter_only_apps(2 if self.checkbox_only_apps.isChecked() else 0)
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(MainWindow.__COLUMNS__))]) * 1.05
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(ManageWindow.__COLUMNS__))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
     def update_selected(self):
-        if self.apps:
-            to_update = [pak['model']['ref'] for pak in self.apps if pak['visible'] and pak['update_checked']]
 
-            if to_update:
-                self._begin_action('Updating...')
-                self.update_thread.refs_to_update = to_update
-                self.update_thread.start()
+        if self._acquire_lock():
+            if self.apps:
+                to_update = [pak['model']['ref'] for pak in self.apps if pak['visible'] and pak['update_checked']]
+
+                if to_update:
+                    self._begin_action('Updating...')
+                    self.update_thread.refs_to_update = to_update
+                    self.update_thread.start()
 
     def _finish_update_selected(self):
         self.update_packages(self.update_thread.updated_apps)
         self.finish_action()
+
+        if self.tray_icon and self.update_thread.updated_apps:
+            self.tray_icon.notify_update(len([app for app in self.update_thread.updated_apps if app['update']]))
+
+        self._release_lock()
 
     def _begin_action(self, action_label: str):
         self.label_status.setText(action_label)
