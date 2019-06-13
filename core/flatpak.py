@@ -58,7 +58,7 @@ def list_installed() -> List[dict]:
         app_lines = apps_str.split('\n')
         return [app_str_to_json(line, version) for line in app_lines if line]
 
-    return None
+    return []
 
 
 def update(ref: str):
