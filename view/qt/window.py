@@ -84,8 +84,8 @@ class ManageWindow(QWidget):
         toolbar.addWidget(spacer)
 
         self.bt_refresh = QToolButton()
-        self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh_orange.svg')))
-        self.bt_refresh.clicked.connect(lambda: self.refresh(threaded=True))
+        self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
+        self.bt_refresh.clicked.connect(self.refresh)
         toolbar.addWidget(self.bt_refresh)
 
         self.bt_update = QToolButton()
