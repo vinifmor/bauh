@@ -21,7 +21,7 @@ class FlatpakManager:
         self.lock_db_read = Lock()
 
     def load_database_async(self):
-        Thread(target=self.load_database).start()
+        Thread(target=self.load_database, daemon=True).start()
 
     def load_database(self):
 

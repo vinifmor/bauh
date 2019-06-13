@@ -1,5 +1,6 @@
 #!env/bin/python
 import argparse
+import os
 import sys
 
 from PyQt5.QtWidgets import QApplication, QWidget
@@ -18,7 +19,7 @@ manager = FlatpakManager()
 manager.load_database_async()
 controller = FlatpakController(manager)
 hidden_widget = QWidget()
-trayIcon = TrayIcon(parent=hidden_widget, controller=controller, check_interval=30)
+trayIcon = TrayIcon(parent=hidden_widget, controller=controller, check_interval=int(os.getenv('FPAKMAN_CHECK_INTERVAL', 30)))
 trayIcon.show()
 
 sys.exit(app.exec_())

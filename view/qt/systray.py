@@ -1,3 +1,4 @@
+import os
 import time
 
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
@@ -5,7 +6,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
 from core import resource
-
 
 # to update
 from core.controller import FlatpakController
@@ -57,12 +57,18 @@ class TrayIcon(QSystemTrayIcon):
 
     def notify_updates(self, updates: int):
         if updates > 0:
-            if self.icon() != self.icon_update:
+            if self.icon().cacheKey() != self.icon_update.cacheKey():
                 self.setIcon(self.icon_update)
-                self.setToolTip('Updates found: {}'.format(updates))
 
-                if self.manage_window:
+                msg = 'Updates found: {}'.format(updates)
+                self.setToolTip(msg)
+
+                if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
+                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_10.svg'), msg))
+
+                if self.manage_window and not self.manage_window.isHidden():
                     self.manage_window.refresh()
+
         else:
             self.setIcon(self.icon_default)
             self.setToolTip(None)
