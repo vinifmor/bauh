@@ -13,7 +13,7 @@ def app_str_to_json(line: str, version: str) -> dict:
                'id': app_array[1],
                'version': app_array[2],
                'branch': app_array[3]}
-    elif '1.0' <= version < '1.3':
+    elif '1.0' <= version < '1.1':
         app = {'ref': app_array[0], 'options': app_array[1]}
 
         ref_data = app['ref'].split('/')
@@ -22,6 +22,13 @@ def app_str_to_json(line: str, version: str) -> dict:
         app['branch'] = ref_data[2]
         app['name'] = ref_data[0].split('.')[-1]
         app['version'] = None
+    elif '1.2' <= version < '1.3':
+        app = {'name': app_array[0][1].split('.')[-1],
+               'id': app_array[1],
+               'version': app_array[2],
+               'branch': app_array[3],
+               'arch': app_array[4],
+               'origin': app_array[5]}
     else:
         raise Exception('Unsupported version')
 
