@@ -14,8 +14,8 @@ __FLATHUB_API_URL__ = __FLATHUB_URL__ + '/api/v1'
 class FlatpakManager:
 
     def __init__(self):
-        self.packages = []
-        self.packages_db = {}
+        self.apps = []
+        self.apps_db = {}
         self.http_session = requests.Session()
         self._load_database()
 
@@ -25,48 +25,48 @@ class FlatpakManager:
 
         if res.status_code == 200:
             for app in res.json():
-                self.packages_db[app['flatpakAppId']] = app
+                self.apps_db[app['flatpakAppId']] = app
 
     def get_version(self):
         return flatpak.get_version()
 
     def read_installed(self) -> List[dict]:
 
-        packages = flatpak.list_installed()
+        installed = flatpak.list_installed()
 
-        if packages:
-            packages.sort(key=lambda p: p['name'].lower())
+        if installed:
+            installed.sort(key=lambda p: p['name'].lower())
 
-            available_updates = flatpak.list_updates()
+            available_updates = flatpak.list_updates_as_str()
 
-            for pak in packages:
+            for app in installed:
 
-                if self.packages_db:
-                    pak_data = self.packages_db.get(pak['id'], None)
+                if self.apps_db:
+                    app_data = self.apps_db.get(app['id'], None)
                 else:
-                    pak_data = None
+                    app_data = None
 
-                if not pak_data:
-                    pak['latest_version'] = None
-                    pak['icon'] = None
+                if not app_data:
+                    app['latest_version'] = None
+                    app['icon'] = None
                 else:
-                    pak['latest_version'] = pak_data['currentReleaseVersion']
-                    pak['icon'] = pak_data['iconDesktopUrl']
+                    app['latest_version'] = app_data['currentReleaseVersion']
+                    app['icon'] = app_data['iconMobileUrl']
 
-                    if pak['icon'].startswith('/'):
-                        pak['icon'] = __FLATHUB_URL__ + pak['icon']
+                    if app['icon'].startswith('/'):
+                        app['icon'] = __FLATHUB_URL__ + app['icon']
 
-                pak['update'] = pak['id'] in available_updates
+                app['update'] = app['id'] in available_updates
 
-        self.packages = packages
-        return [*self.packages]
+        self.apps = installed
+        return [*self.apps]
 
-    def update_packages(self, refs: List[str]) -> List[dict]:
+    def update_apps(self, refs: List[str]) -> List[dict]:
 
-        if self.packages:
+        if self.apps:
 
             for ref in refs:
-                package_found = [pak for pak in self.packages if pak['ref'] == ref]
+                package_found = [app for app in self.apps if app['ref'] == ref]
 
                 if package_found:
                     package_found = package_found[0]
@@ -75,6 +75,6 @@ class FlatpakManager:
                     if updated:
                         package_found['update'] = not updated
 
-            return [*self.packages]
+            return [*self.apps]
 
         return []

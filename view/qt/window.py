@@ -38,7 +38,7 @@ class UpdateToggleButton(QToolButton):
 
 class ManageWindow(QWidget):
 
-    __COLUMNS__ = ['Package', 'Version', 'Latest Version', 'Branch', 'Arch', 'Ref', 'Origin', 'Update ?']
+    __COLUMNS__ = ['Name', 'Version', 'Latest Version', 'Branch', 'Arch', 'Ref', 'Origin', 'Update ?']
     __BASE_HEIGHT__ = 400
 
     def __init__(self, controller: FlatpakController, tray_icon = None):
@@ -46,11 +46,15 @@ class ManageWindow(QWidget):
         self.controller = controller
         self.icon_cache = {}
         self.tray_icon = tray_icon
+        self.thread_lock = Lock()
+        self.working = False  # restrict the number of threaded actions
+        self.apps = []
+        self.label_flatpak = None
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)
 
-        self.icon_flathub = QIcon(resource.get_path('img/flathub_logo.svg'))
+        self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
         self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
         self.setWindowTitle('fpakman ({})'.format(__version__))
@@ -67,17 +71,17 @@ class ManageWindow(QWidget):
         toolbar = QToolBar()
         toolbar.addWidget(self.checkbox_only_apps)
 
-        spacer_1 = QWidget()
-        spacer_1.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        toolbar.addWidget(spacer_1)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toolbar.addWidget(spacer)
 
         self.label_status = QLabel()
         self.label_status.setText('')
         toolbar.addWidget(self.label_status)
 
-        spacer_2 = QWidget()
-        spacer_2.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        toolbar.addWidget(spacer_2)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toolbar.addWidget(spacer)
 
         self.bt_refresh = QToolButton()
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh_orange.svg')))
@@ -107,14 +111,11 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.table_apps)
 
-        self.apps = []
-        self.centralize()
+        self.thread_update = UpdateSelectedApps(self.controller)
+        self.thread_update.signal.connect(self._finish_update_selected)
 
-        self.update_thread = UpdateSelectedPackages(self.controller)
-        self.update_thread.signal.connect(self._finish_update_selected)
-
-        self.refresh_thread = RefreshPackages(self.controller)
-        self.refresh_thread.signal.connect(self._finish_refresh)
+        self.thread_refresh = RefreshApps(self.controller)
+        self.thread_refresh.signal.connect(self._finish_refresh)
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
@@ -123,11 +124,11 @@ class ManageWindow(QWidget):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.toolbar_bottom.addWidget(spacer)
 
-        self.toolbar_bottom.addWidget(QLabel('flatpak: ' + self.controller.get_version()))
+        self.label_flatpak = QLabel(self._get_flatpak_label())
+        self.toolbar_bottom.addWidget(self.label_flatpak)
         self.layout.addWidget(self.toolbar_bottom)
 
-        self.thread_lock = Lock()
-        self.working = False  # restrict the number of threaded actions
+        self.centralize()
 
     def closeEvent(self, event):
 
@@ -159,6 +160,12 @@ class ManageWindow(QWidget):
             error_msg.exec_()
             exit(1)
 
+        if self.label_flatpak:
+            self.label_flatpak.setText(self._get_flatpak_label())
+
+    def _get_flatpak_label(self):
+        return 'flatpak: ' + self.controller.get_version()
+
     def _acquire_lock(self):
 
         self.thread_lock.acquire()
@@ -183,11 +190,11 @@ class ManageWindow(QWidget):
         if self._acquire_lock():
             self._check_flatpak_installed()
             self._begin_action('Refreshing...')
-            self.refresh_thread.start()
+            self.thread_refresh.start()
 
     def _finish_refresh(self):
 
-        self.update_packages(self.refresh_thread.apps)
+        self.update_apps(self.thread_refresh.apps)
         self.finish_action()
         self._release_lock()
 
@@ -228,7 +235,7 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def update_packages(self, apps: List[dict]):
+    def update_apps(self, apps: List[dict]):
         self._check_flatpak_installed()
 
         self.table_apps.setEnabled(True)
@@ -315,15 +322,15 @@ class ManageWindow(QWidget):
 
                 if to_update:
                     self._begin_action('Updating...')
-                    self.update_thread.refs_to_update = to_update
-                    self.update_thread.start()
+                    self.thread_update.refs_to_update = to_update
+                    self.thread_update.start()
 
     def _finish_update_selected(self):
-        self.update_packages(self.update_thread.updated_apps)
+        self.update_apps(self.thread_update.updated_apps)
         self.finish_action()
 
-        if self.tray_icon and self.update_thread.updated_apps:
-            self.tray_icon.notify_update(len([app for app in self.update_thread.updated_apps if app['update']]))
+        if self.tray_icon and self.thread_update.updated_apps:
+            self.tray_icon.notify_updates(len([app for app in self.thread_update.updated_apps if app['update']]))
 
         self._release_lock()
 
@@ -343,12 +350,12 @@ class ManageWindow(QWidget):
 
 # Threaded actions
 
-class UpdateSelectedPackages(QThread):
+class UpdateSelectedApps(QThread):
 
     signal = pyqtSignal()
 
     def __init__(self, controller: FlatpakController):
-        super(UpdateSelectedPackages, self).__init__()
+        super(UpdateSelectedApps, self).__init__()
         self.controller = controller
         self.refs_to_update = []
         self.updated_apps = None
@@ -358,12 +365,12 @@ class UpdateSelectedPackages(QThread):
         self.signal.emit()
 
 
-class RefreshPackages(QThread):
+class RefreshApps(QThread):
 
     signal = pyqtSignal()
 
     def __init__(self, controller: FlatpakController):
-        super(RefreshPackages, self).__init__()
+        super(RefreshApps, self).__init__()
         self.controller = controller
         self.apps = None
 

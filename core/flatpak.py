@@ -3,7 +3,7 @@ import subprocess
 from typing import List
 
 
-def _package_str_to_json(line: str, version: str) -> dict:
+def app_str_to_json(line: str, version: str) -> dict:
 
     app_array = line.split('\t')
 
@@ -24,7 +24,7 @@ def _package_str_to_json(line: str, version: str) -> dict:
     else:
         raise Exception('Unsupported version')
 
-    info = re.findall('\w+:\s.+', get_info(app['id']))
+    info = re.findall('\w+:\s.+', get_app_info(app['id']))
     fields_to_get = ['origin', 'arch', 'ref']
 
     for field in info:
@@ -50,29 +50,24 @@ def get_version():
     return res.split(' ')[1].strip() if res else None
 
 
-def get_info(app_id: str):
+def get_app_info(app_id: str):
     return _run_cmd('flatpak info ' + app_id)
 
 
-def list_installed() -> List[str]:
+def list_installed() -> List[dict]:
     apps_str = _run_cmd('flatpak list')
 
     if apps_str:
         version = get_version()
         app_lines = apps_str.split('\n')
-        return [_package_str_to_json(line, version) for line in app_lines if line]
+        return [app_str_to_json(line, version) for line in app_lines if line]
 
     return None
-
-
-def check_update(pak_id: dict) -> bool:
-    res = _run_cmd('flatpak update ' + pak_id)
-    return 'Updating in system' in res
 
 
 def update(ref: str):
     return bool(_run_cmd('flatpak update -y ' + ref))
 
 
-def list_updates():
+def list_updates_as_str():
     return _run_cmd('flatpak update', ignore_return_code=True)
