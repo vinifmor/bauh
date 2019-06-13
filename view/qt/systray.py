@@ -36,7 +36,8 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, controller: FlatpakController, check_interval: int = 60, parent=None):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, check_interval: int = 60, parent=None):
+        self.locale_keys = locale_keys
         self.controller = controller
 
         self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
@@ -44,13 +45,13 @@ class TrayIcon(QSystemTrayIcon):
         QSystemTrayIcon.__init__(self, self.icon_default, parent)
 
         self.menu = QMenu(parent)
-        self.action_manage = self.menu.addAction("Manage applications")
+        self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
-        self.action_exit = self.menu.addAction("Exit")
+        self.action_exit = self.menu.addAction(self.locale_keys['tray.action.exit'])
         self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
         self.setContextMenu(self.menu)
 
-        self.manage_window = ManageWindow(controller=controller, tray_icon=self)
+        self.manage_window = ManageWindow(locale_keys=self.locale_keys, controller=controller, tray_icon=self)
         self.check_thread = UpdateCheck(check_interval=check_interval, controller=self.controller)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
@@ -60,7 +61,7 @@ class TrayIcon(QSystemTrayIcon):
             if self.icon().cacheKey() != self.icon_update.cacheKey():
                 self.setIcon(self.icon_update)
 
-                msg = 'Updates found: {}'.format(updates)
+                msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], updates)
                 self.setToolTip(msg)
 
                 if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):

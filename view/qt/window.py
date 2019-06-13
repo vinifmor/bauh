@@ -38,11 +38,19 @@ class UpdateToggleButton(QToolButton):
 
 class ManageWindow(QWidget):
 
-    __COLUMNS__ = ['Name', 'Version', 'Latest Version', 'Branch', 'Arch', 'Ref', 'Origin', 'Update ?']
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, controller: FlatpakController, tray_icon = None):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, tray_icon = None):
         super(ManageWindow, self).__init__()
+        self.locale_keys = locale_keys
+        self.column_names = [locale_keys['manage_window.columns.name'],
+                             locale_keys['manage_window.columns.version'],
+                             locale_keys['manage_window.columns.latest_version'],
+                             locale_keys['manage_window.columns.branch'],
+                             locale_keys['manage_window.columns.arch'],
+                             locale_keys['manage_window.columns.ref'],
+                             locale_keys['manage_window.columns.origin'],
+                             locale_keys['manage_window.columns.update']]
         self.controller = controller
         self.icon_cache = {}
         self.tray_icon = tray_icon
@@ -64,7 +72,7 @@ class ManageWindow(QWidget):
         self.setLayout(self.layout)
 
         self.checkbox_only_apps = QCheckBox()
-        self.checkbox_only_apps.setText('Only apps')
+        self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self.filter_only_apps)
 
@@ -97,12 +105,12 @@ class ManageWindow(QWidget):
         self.layout.addWidget(toolbar)
 
         self.table_apps = QTableWidget()
-        self.table_apps.setColumnCount(len(ManageWindow.__COLUMNS__))
+        self.table_apps.setColumnCount(len(self.column_names))
         self.table_apps.setFocusPolicy(Qt.NoFocus)
         self.table_apps.setShowGrid(False)
         self.table_apps.verticalHeader().setVisible(False)
         self.table_apps.setSelectionBehavior(QTableView.SelectRows)
-        self.table_apps.setHorizontalHeaderLabels(ManageWindow.__COLUMNS__)
+        self.table_apps.setHorizontalHeaderLabels(self.column_names)
         self.table_apps.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         self._change_table_headers_policy()
@@ -130,7 +138,7 @@ class ManageWindow(QWidget):
 
     def _change_table_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.table_apps.horizontalHeader()
-        for i in range(0, len(ManageWindow.__COLUMNS__)):
+        for i in range(0, len(self.column_names)):
             header_horizontal.setSectionResizeMode(i, policy)
 
     def changeEvent(self, e: QEvent):
@@ -162,8 +170,8 @@ class ManageWindow(QWidget):
         if not self.controller.check_installed():
             error_msg = QMessageBox()
             error_msg.setIcon(QMessageBox.Critical)
-            error_msg.setText('flatpak seems not to be installed. Exiting...')
-            error_msg.setWindowTitle('Error')
+            error_msg.setWindowTitle(self.locale_keys['popup.flatpak_not_installed.title'])
+            error_msg.setText(self.locale_keys['popup.flatpak_not_installed.msg'] + '...')
             error_msg.setWindowIcon(self.icon_flathub)
             error_msg.exec_()
             exit(1)
@@ -197,7 +205,7 @@ class ManageWindow(QWidget):
 
         if self._acquire_lock():
             self._check_flatpak_installed()
-            self._begin_action('Refreshing...')
+            self._begin_action(self.locale_keys['manage_window.status.refreshing'] + '...')
             self.thread_refresh.start()
 
     def _finish_refresh(self):
@@ -225,7 +233,7 @@ class ManageWindow(QWidget):
         updates = len([app for app in self.apps if app['model']['update']])
 
         if updates > 0:
-            self.label_updates.setText('Updates: {}'.format(updates))
+            self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], updates))
         else:
             self.label_updates.setText('')
 
@@ -318,7 +326,7 @@ class ManageWindow(QWidget):
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(ManageWindow.__COLUMNS__))]) * 1.05
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.column_names))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
@@ -329,7 +337,7 @@ class ManageWindow(QWidget):
                 to_update = [pak['model']['ref'] for pak in self.apps if pak['visible'] and pak['update_checked']]
 
                 if to_update:
-                    self._begin_action('Updating...')
+                    self._begin_action(self.locale_keys['manage_window.status.updating'] + '...')
                     self.thread_update.refs_to_update = to_update
                     self.thread_update.start()
 

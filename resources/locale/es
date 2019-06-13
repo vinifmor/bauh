@@ -1,0 +1,17 @@
+manage_window.columns.name=Nombre
+manage_window.columns.version=Versión
+manage_window.columns.latest_version=Ultima Versión
+manage_window.columns.branch=Branch
+manage_window.columns.arch=Arch
+manage_window.columns.ref=Ref
+manage_window.columns.origin=Origen
+manage_window.columns.update=¿Actualizar?
+manage_window.checkbox.only_apps=Apps
+manage_window.label.updates=Actualizaciones
+manage_window.status.refreshing=Recargando
+manage_window.status.updating=Actualizando
+popup.flatpak_not_installed.title=Error
+popup.flatpak_not_installed.msg=flatpak no parece estar instalado. Saliendo
+tray.action.manage=Administrar aplicativos
+tray.action.exit=Salir
+notification.new_updates=Actualizaciones encontradas

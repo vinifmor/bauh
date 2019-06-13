@@ -16,5 +16,5 @@ Type in the terminal: sudo python3 sandbox_installer.py. If you want to uninstal
 
 ### Roadmap
 - Test installer for Ubuntu
-- Locales
+- Show update commands
 - Search and install applications.
