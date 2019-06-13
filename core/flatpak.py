@@ -8,12 +8,12 @@ def app_str_to_json(line: str, version: str) -> dict:
 
     app_array = line.split('\t')
 
-    if version >= '1.2.0':
+    if version >= '1.3.0':
         app = {'name': app_array[0],
                'id': app_array[1],
                'version': app_array[2],
                'branch': app_array[3]}
-    elif '1.0' <= version < '1.1':
+    elif '1.0' <= version < '1.3':
         app = {'ref': app_array[0], 'options': app_array[1]}
 
         ref_data = app['ref'].split('/')
