@@ -1,19 +1,46 @@
 ## fpakman
-Graphical interface for Flatpak application management. It is a tray icon to let the user known when new updates are available.
-It has also a management window allowing the user to see all installed apllications and update them.
+Graphical user interface for Flatpak application management. It is a tray icon to let the user known when new updates are available.
+It has also a management window allowing the user to see all installed applications and update them.
 
 ### Developed with:
 - Python3 and QT 5.
 
 ### Requirements
-- Python >= 3.5
-- qt5 packages
+#### Debian-based distros
 - libappindicator3 (for GTK3 desktop environments)
-- python3-venv (for Debian based distros -> Ubuntu, Linux Mint, ...)
+- python3-venv
+#### Arch-based distros
+- python
+- python-requests
+- python-pip
+- python-pyqt5
 
-## Installation script
-You can install the application without compromising your system via the provided installation script called 'sandbox_installer.py'.
-Type in the terminal: sudo python3 sandbox_installer.py. If you want to uninstall the application, just call the script the same way.
+
+### Installation script
+You can install the application without compromising your system via the provided installation script called 'install.py'.
+Type in the terminal:
+```
+sudo python3 install.py.
+```
+If you want to uninstall the application, just call the script the same way.
+
+To start the application, type in the terminal:
+```
+fpakman
+```
+
+### Manual installation:
+Inside the project directory type the following commands:
+```
+python3 -m venv env
+env/bin/pip install -r requirements.txt
+chmod +x app.py
+./app.py
+```
+
+### Autostart
+In order to autostart the application, use your Desktop Environment settings to register it as startup script ("fpakman").
+(P.S: the installation script currently does not do that)
 
 ### Settings
 You can change some application settings via environment variables:
@@ -21,5 +48,6 @@ You can change some application settings via environment variables:
 - **FPAKMAN_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
 
 ### Roadmap
-- Show update commands
+- Show updates being applied.
 - Search and install applications.
+- Uninstall applications.
