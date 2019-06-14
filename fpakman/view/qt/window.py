@@ -226,6 +226,9 @@ class ManageWindow(QWidget):
                 app['visible'] = not hidden
 
             self.change_update_state()
+            self._change_table_headers_policy(QHeaderView.Stretch)
+            self._change_table_headers_policy()
+            self.resize_and_center()
 
     def change_update_state(self):
 
