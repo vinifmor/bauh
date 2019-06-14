@@ -1,6 +1,6 @@
 from typing import List
 
-from core.model import FlatpakManager
+from fpakman.core.model import FlatpakManager
 
 
 class FlatpakController:

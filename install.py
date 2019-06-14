@@ -8,7 +8,7 @@ import os
 import sys
 from shutil import rmtree
 
-from core import system, flatpak
+from fpakman.core import system, flatpak
 
 if not os.geteuid() == 0:
     sys.exit("\nOnly root can run this script\n")
@@ -64,12 +64,12 @@ else:
             log('Aborting...')
             exit(1)
 
-    res = system.run_cmd('env/bin/pip install -r requirements.txt')
+    res = system.run_cmd('env/bin/pip install .')
 
     if res:
         log("Creating runner as '{}'".format(runner_file))
         with open(runner_file, 'w+') as f:
-            f.write('#!/bin/bash\n{d}/env/bin/python {d}/app.py'.format(d=os.getcwd()))
+            f.write('#!/bin/bash\n{d}/env/bin/fpakman'.format(d=os.getcwd()))
 
         system.run_cmd('chmod +x ' + runner_file)
 

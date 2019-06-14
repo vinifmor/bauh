@@ -5,10 +5,11 @@ import sys
 
 from PyQt5.QtWidgets import QApplication, QWidget
 
-from core.controller import FlatpakController
-from core.model import FlatpakManager
-from view.qt.systray import TrayIcon
-from core import __version__, util
+from fpakman.core.controller import FlatpakController
+from fpakman.core.model import FlatpakManager
+from fpakman.view.qt.systray import TrayIcon
+from fpakman.core import __version__
+from fpakman.core import util
 
 parser = argparse.ArgumentParser(prog='fpakman', description="GUI for Flatpak applications management")
 parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))

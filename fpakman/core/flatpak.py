@@ -1,7 +1,7 @@
 import re
 from typing import List
 
-from core import system
+from fpakman.core import system
 
 
 def app_str_to_json(line: str, version: str) -> dict:

@@ -10,8 +10,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
     QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QMessageBox
 
-from core import resource, __version__
-from core.controller import FlatpakController
+from fpakman.core import __version__
+from fpakman.core import resource
+from fpakman.core.controller import FlatpakController
 
 
 class UpdateToggleButton(QToolButton):

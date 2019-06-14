@@ -1,6 +1,6 @@
 import locale
 
-from core import resource
+from fpakman.core import resource
 import glob
 
 

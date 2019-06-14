@@ -6,7 +6,7 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-from core import flatpak
+from fpakman.core import flatpak
 
 __FLATHUB_URL__ = 'https://flathub.org'
 __FLATHUB_API_URL__ = __FLATHUB_URL__ + '/api/v1'

@@ -5,11 +5,9 @@ from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
-from core import resource
-
-# to update
-from core.controller import FlatpakController
-from view.qt.window import ManageWindow
+from fpakman.core import resource
+from fpakman.core.controller import FlatpakController
+from fpakman.view.qt.window import ManageWindow
 
 
 class UpdateCheck(QThread):
