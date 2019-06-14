@@ -34,7 +34,7 @@ class UpdateToggleButton(QToolButton):
     def change_state(self, not_checked: bool):
         self.model['update_checked'] = not not_checked
         self.setIcon(self.icon_on if not not_checked else self.icon_off)
-        self.root.change_update_button_state()
+        self.root.change_update_state()
 
 
 class ManageWindow(QWidget):
