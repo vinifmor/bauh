@@ -30,12 +30,12 @@ fpakman
 ```
 
 ### Manual installation:
-Inside the project directory type the following commands:
+The following script shows how to install the application in a separate python environment in order to not mess up with your
+system's python libraries. Inside the project directory type:
 ```
 python3 -m venv env
-env/bin/pip install -r requirements.txt
-chmod +x app.py
-./app.py
+env/bin/pip install .
+env/bin/fpakman
 ```
 
 ### Autostart
