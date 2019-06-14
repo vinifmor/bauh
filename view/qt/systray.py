@@ -67,7 +67,7 @@ class TrayIcon(QSystemTrayIcon):
                 if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
                     os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_10.svg'), msg))
 
-                if self.manage_window and not self.manage_window.isHidden():
+                if self.manage_window:
                     self.manage_window.refresh()
 
         else:
