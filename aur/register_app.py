@@ -22,12 +22,15 @@ Exec = /usr/bin/fpakman
 Icon = {resource_path}/resources/img/flathub_45.svg
 """.format(resource_path=local_resources_path)
 
-apps_path = '{}/.local/share/applications'.format(str(Path.home()))
+apps_path = share_path + '/applications'
 
 if not os.path.exists(apps_path):
     os.mkdir(apps_path)
 
 file_path = apps_path + '/fpakman.desktop'
+
+if os.path.exists(file_path):
+    os.remove(file_path)
 
 with open(file_path, 'w+') as f:
     f.write(desktop_file)
