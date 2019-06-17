@@ -2,12 +2,13 @@ import argparse
 import os
 import sys
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from fpakman.core.controller import FlatpakController
 from fpakman.core.model import FlatpakManager
 from fpakman.view.qt.systray import TrayIcon
-from fpakman.core import __version__
+from fpakman.core import __version__, resource
 from fpakman.core import util
 
 parser = argparse.ArgumentParser(prog='fpakman', description="GUI for Flatpak applications management")
@@ -17,6 +18,7 @@ args = parser.parse_args()
 locale_keys = util.get_locale_keys()
 
 app = QApplication(sys.argv)
+app.setWindowIcon(QIcon(resource.get_path('img/flathub_45.svg')))
 manager = FlatpakManager()
 manager.load_database_async()
 controller = FlatpakController(manager)
