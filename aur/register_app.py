@@ -1,17 +1,26 @@
 # used for AUR installation
 import os
+import shutil
 import subprocess
-import sys
 from pathlib import Path
+
+share_path = str(Path.home()) + '/.local/share'
+local_resources_path = share_path + '/fpakman'
+
+if os.path.exists(local_resources_path):
+    shutil.rmtree(local_resources_path)
+
+os.mkdir(local_resources_path)
 
 desktop_file = """
 [Desktop Entry]
 Type = Application
 Name = fpakman
+Categories=System;
 Comment = Manage your Flatpak applications
 Exec = /usr/bin/fpakman
-Icon = /usr/lib/python{version}/site-packages/fpakman/resources/img/flathub_45.svg
-""".format(version="{}.{}".format(sys.version_info.major, sys.version_info.minor))
+Icon = {resource_path}/resources/img/flathub_45.svg
+""".format(resource_path=local_resources_path)
 
 apps_path = '{}/.local/share/applications'.format(str(Path.home()))
 
