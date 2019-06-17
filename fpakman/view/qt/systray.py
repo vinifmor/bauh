@@ -39,8 +39,8 @@ class TrayIcon(QSystemTrayIcon):
         self.locale_keys = locale_keys
         self.controller = controller
 
-        self.icon_default = QIcon.fromTheme(resource.get_path('img/flathub_45.svg'))
-        self.icon_update = QIcon.fromTheme(resource.get_path('img/update_logo.svg'))
+        self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
+        self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
@@ -48,12 +48,12 @@ class TrayIcon(QSystemTrayIcon):
         self.action_manage.triggered.connect(self.show_manage_window)
         self.action_exit = self.menu.addAction(self.locale_keys['tray.action.exit'])
         self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
+        self.setContextMenu(self.menu)
 
         self.manage_window = ManageWindow(locale_keys=self.locale_keys, controller=controller, tray_icon=self)
         self.check_thread = UpdateCheck(check_interval=check_interval, controller=self.controller)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
-        self.setContextMenu(self.menu)
 
     def notify_updates(self, updates: int):
         if updates > 0:
