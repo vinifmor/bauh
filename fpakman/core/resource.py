@@ -8,6 +8,9 @@ app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def get_path(resource_path):
 
     if os.path.exists(local_resource_path):
-        return local_resource_path + '/' + resource_path
+        final_path = local_resource_path + '/' + resource_path
     else:
-        return app_dir + '/resources/' + resource_path
+        final_path = app_dir + '/resources/' + resource_path
+
+    print(final_path)
+    return final_path
