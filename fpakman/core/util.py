@@ -12,7 +12,7 @@ def get_locale_keys():
     if current_locale:
         current_locale = current_locale[0]
 
-        locale_dir = resource.get_path('/locale')
+        locale_dir = resource.get_path('locale')
 
         for locale_file in glob.glob(locale_dir + '/*'):
             name = locale_file.split('/')[-1]
