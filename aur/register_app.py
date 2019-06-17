@@ -11,6 +11,7 @@ if os.path.exists(local_resources_path):
     shutil.rmtree(local_resources_path)
 
 os.mkdir(local_resources_path)
+os.mkdir(local_resources_path + '/resources')
 
 desktop_file = """
 [Desktop Entry]
