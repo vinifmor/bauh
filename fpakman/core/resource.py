@@ -1,7 +1,7 @@
 import os
-import getpass
+from pathlib import Path
 
-local_resource_path = '/home/{}/.local/share/fpakman/resources'.format(getpass.getuser())
+local_resource_path = '{}/.local/share/fpakman/resources'.format(str(Path.home()))
 app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
