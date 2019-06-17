@@ -20,10 +20,8 @@ app = QApplication(sys.argv)
 manager = FlatpakManager()
 manager.load_database_async()
 controller = FlatpakController(manager)
-hidden_widget = QWidget()
 
 trayIcon = TrayIcon(locale_keys=locale_keys,
-                    parent=hidden_widget,
                     controller=controller,
                     check_interval=int(os.getenv('FPAKMAN_CHECK_INTERVAL', 60)))
 trayIcon.show()
