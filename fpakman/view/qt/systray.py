@@ -38,9 +38,9 @@ class TrayIcon(QSystemTrayIcon):
         self.locale_keys = locale_keys
         self.controller = controller
 
-        self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
-        self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
-        super(TrayIcon, self).__init__(icon=self.icon_default)
+        self.icon_default = QIcon.fromTheme(resource.get_path('img/flathub_45.svg'))
+        self.icon_update = QIcon.fromTheme(resource.get_path('img/update_logo.svg'))
+        super(TrayIcon, self).__init__(self.icon_default, parent)
 
         self.menu = QMenu(parent)
         self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
