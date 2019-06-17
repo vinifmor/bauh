@@ -63,7 +63,7 @@ class TrayIcon(QSystemTrayIcon):
                 self.setToolTip(msg)
 
                 if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
-                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_10.svg'), msg))
+                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_45.svg'), msg))
 
                 if self.manage_window:
                     self.manage_window.refresh()
