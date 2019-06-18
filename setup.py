@@ -30,7 +30,6 @@ setup(
     url=URL,
     packages=find_packages(),
     package_data={"fpakman": ["resources/locale/*", "resources/img/*"]},
-    data_files=[('', ['requirements.txt'])],
     install_requires=requirements,
     entry_points={
         "console_scripts": [
