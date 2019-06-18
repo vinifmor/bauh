@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
     QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
 
-from fpakman.core import __version__
+from fpakman import __version__
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
 
