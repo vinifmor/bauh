@@ -17,7 +17,7 @@ It has also a management window allowing the user to see all installed applicati
 - python-pyqt5
 
 ### Distribution
-Currently available via **PyPi** (sudo pip3 install fpakman) or **AUR** (for Arch Linux users)
+Currently available via **PyPi** (sudo pip3 install fpakman) or **AUR** (for Arch Linux users. **fpakman-staging** is just for testing, do not install it.)
 
 
 ### Manual installation:
