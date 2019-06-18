@@ -90,3 +90,19 @@ class FlatpakManager:
             return [*self.apps]
 
         return []
+
+    def update_app(self, ref: str):
+
+        """
+        :param ref:
+        :return: the update command stream
+        """
+
+        if self.apps:
+
+            package_found = [app for app in self.apps if app['ref'] == ref]
+
+            if package_found:
+                return flatpak.update_and_stream(ref)
+
+        return None

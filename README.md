@@ -17,7 +17,13 @@ It has also a management window allowing the user to see all installed applicati
 - python-pyqt5
 
 ### Distribution
-Currently available via **PyPi** (sudo pip3 install fpakman) or **AUR** (for Arch Linux users. **fpakman-staging** is just for testing, do not install it.)
+**PyPi**
+```
+sudo pip3 install fpakman
+```
+
+**AUR**
+As **fpakman** package. There is also a staging version (**fpakman-staging**) but is intended for testing and it may not work properly.
 
 
 ### Manual installation:
@@ -38,6 +44,5 @@ You can change some application settings via environment variables:
 - **FPAKMAN_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
 
 ### Roadmap
-- Show updates being applied
 - Search and install applications
 - Uninstall applications
