@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Management panel status label is "orange" now
 
 ### Fixes
-- Application name not properly showing for Flatpak  1.2.X
+- Application name is not properly showing for Flatpak 1.2.X
 
 ## [0.1.0] - 2019-06-14
 ### Features
