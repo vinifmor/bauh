@@ -23,7 +23,7 @@ def app_str_to_json(line: str, version: str) -> dict:
         app['name'] = ref_data[0].split('.')[-1]
         app['version'] = None
     elif '1.2' <= version < '1.3':
-        app = {'name': app_array[0][1].split('.')[-1],
+        app = {'name': app_array[1].strip().split('.')[-1],
                'id': app_array[1],
                'version': app_array[2],
                'branch': app_array[3],
