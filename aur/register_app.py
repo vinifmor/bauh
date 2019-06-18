@@ -1,6 +1,5 @@
 # used for AUR installation
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -23,7 +22,3 @@ file_path = '{}/fpakman.desktop'.format(apps_path)
 
 with open(file_path, 'w+') as f:
     f.write(desktop_file)
-
-res = subprocess.run('desktop-file-install {}'.format(file_path), shell=True)
-
-exit(res.returncode)
