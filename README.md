@@ -6,35 +6,22 @@ It has also a management window allowing the user to see all installed applicati
 - Python3 and QT 5.
 
 ### Requirements
-#### Debian-based distros
 - libappindicator3 (for GTK3 desktop environments)
+#### Debian-based distros
 - python3-venv
 #### Arch-based distros
 - python
 - python-requests
+- python-virtualenv
 - python-pip
 - python-pyqt5
 
 ### Distribution
-Currently only available for Arch Linux users via **AUR**. Other distros can install it manually (described bellow).
+Currently available via **PyPi** (sudo pip3 install fpakman) or **AUR** (for Arch Linux users)
 
-
-### Installation script
-You can install the application without compromising your system via the provided installation script called 'install.py'.
-Type in the terminal:
-```
-sudo python3 install.py
-```
-If you want to uninstall the application, just call the script the same way.
-
-To start the application, type in the terminal:
-```
-fpakman
-```
 
 ### Manual installation:
-The following script shows how to install the application in a separate python environment to not mess up with your
-system's python libraries. Inside the project directory type:
+If you prefer a manual and isolated installation, type the following commands within the cloned project folder:
 ```
 python3 -m venv env
 env/bin/pip install .

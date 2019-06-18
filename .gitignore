@@ -3,3 +3,5 @@ env
 .idea
 __pycache__
 *.orig
+dist
+*.egg-info
