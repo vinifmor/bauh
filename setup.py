@@ -15,7 +15,7 @@ with open(file_dir + '/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines() if line]
 
 
-with open(file_dir + '/fpakman/core/__init__.py', 'r') as f:
+with open(file_dir + '/fpakman/__init__.py', 'r') as f:
     exec(f.readlines()[0])
 
 

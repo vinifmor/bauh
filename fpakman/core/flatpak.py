@@ -23,7 +23,7 @@ def app_str_to_json(line: str, version: str) -> dict:
         app['name'] = ref_data[0].split('.')[-1]
         app['version'] = None
     elif '1.2' <= version < '1.3':
-        app = {'name': app_array[0][1].split('.')[-1],
+        app = {'name': app_array[1].strip().split('.')[-1],
                'id': app_array[1],
                'version': app_array[2],
                'branch': app_array[3],
@@ -68,8 +68,17 @@ def list_installed() -> List[dict]:
     return []
 
 
-def update(ref: str):
-    return bool(system.run_cmd('flatpak update -y ' + ref))
+def update(app_ref: str) -> bool:
+    return bool(system.run_cmd('flatpak update -y ' + app_ref))
+
+
+def update_and_stream(app_ref: str):
+    """
+    Updates the app reference and streams Flatpak output,
+    :param app_ref:
+    :return:
+    """
+    return system.stream_cmd(['flatpak', 'update', '-y', app_ref])
 
 
 def list_updates_as_str():

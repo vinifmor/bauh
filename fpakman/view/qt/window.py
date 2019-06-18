@@ -8,9 +8,9 @@ from PyQt5.QtGui import QIcon, QColor, QPixmap, QWindowStateChangeEvent
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
     QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QMessageBox
+    QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
 
-from fpakman.core import __version__
+from fpakman import __version__
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
 
@@ -86,6 +86,7 @@ class ManageWindow(QWidget):
 
         self.label_status = QLabel()
         self.label_status.setText('')
+        self.label_status.setStyleSheet("color: orange")
         toolbar.addWidget(self.label_status)
 
         spacer = QWidget()
@@ -94,7 +95,7 @@ class ManageWindow(QWidget):
 
         self.bt_refresh = QToolButton()
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
-        self.bt_refresh.clicked.connect(self.refresh)
+        self.bt_refresh.clicked.connect(lambda: self.refresh(clear_output=True))
         toolbar.addWidget(self.bt_refresh)
 
         self.bt_update = QToolButton()
@@ -118,8 +119,16 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.table_apps)
 
+        self.textarea_output = QPlainTextEdit(self)
+        self.textarea_output.resize(self.table_apps.size())
+        self.textarea_output.setStyleSheet("background: black; color: white;")
+        self.layout.addWidget(self.textarea_output)
+        self.textarea_output.setVisible(False)
+        self.textarea_output.setReadOnly(True)
+
         self.thread_update = UpdateSelectedApps(self.controller)
-        self.thread_update.signal.connect(self._finish_update_selected)
+        self.thread_update.signal_output.connect(self._update_action_output)
+        self.thread_update.signal_finished.connect(self._finish_update_selected)
 
         self.thread_refresh = RefreshApps(self.controller)
         self.thread_refresh.signal.connect(self._finish_refresh)
@@ -202,11 +211,16 @@ class ManageWindow(QWidget):
 
         self.thread_lock.release()
 
-    def refresh(self):
+    def refresh(self, clear_output: bool = True):
 
         if self._acquire_lock():
             self._check_flatpak_installed()
             self._begin_action(self.locale_keys['manage_window.status.refreshing'] + '...')
+
+            if clear_output:
+                self.textarea_output.clear()
+                self.textarea_output.hide()
+
             self.thread_refresh.start()
 
     def _finish_refresh(self):
@@ -247,6 +261,8 @@ class ManageWindow(QWidget):
                 break
 
         self.bt_update.setEnabled(enable_bt_update)
+
+        self.tray_icon.notify_updates(updates)
 
     def centralize(self):
         geo = self.frameGeometry()
@@ -338,21 +354,24 @@ class ManageWindow(QWidget):
 
         if self._acquire_lock():
             if self.apps:
+
                 to_update = [pak['model']['ref'] for pak in self.apps if pak['visible'] and pak['update_checked']]
 
                 if to_update:
+                    self.textarea_output.clear()
+                    self.textarea_output.setVisible(True)
+
                     self._begin_action(self.locale_keys['manage_window.status.updating'] + '...')
                     self.thread_update.refs_to_update = to_update
                     self.thread_update.start()
 
     def _finish_update_selected(self):
-        self.update_apps(self.thread_update.updated_apps)
         self.finish_action()
-
-        if self.tray_icon and self.thread_update.updated_apps:
-            self.tray_icon.notify_updates(len([app for app in self.thread_update.updated_apps if app['update']]))
-
         self._release_lock()
+        self.refresh(clear_output=False)
+
+    def _update_action_output(self, output: str):
+        self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str):
         self.label_status.setText(action_label)
@@ -369,20 +388,25 @@ class ManageWindow(QWidget):
 
 
 # Threaded actions
-
 class UpdateSelectedApps(QThread):
 
-    signal = pyqtSignal()
+    signal_finished = pyqtSignal()
+    signal_output = pyqtSignal(str)
 
     def __init__(self, controller: FlatpakController):
         super(UpdateSelectedApps, self).__init__()
         self.controller = controller
         self.refs_to_update = []
-        self.updated_apps = None
 
     def run(self):
-        self.updated_apps = self.controller.update(self.refs_to_update)
-        self.signal.emit()
+
+        for app_ref in self.refs_to_update:
+            for output in self.controller.update(app_ref):
+                line = output.decode().strip()
+                if line:
+                    self.signal_output.emit(line)
+
+        self.signal_finished.emit()
 
 
 class RefreshApps(QThread):

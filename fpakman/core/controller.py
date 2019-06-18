@@ -11,8 +11,8 @@ class FlatpakController:
     def refresh(self) -> List[dict]:
         return self.model.read_installed()
 
-    def update(self, package_refs: List[str]) -> List[dict]:
-        return self.model.update_apps(package_refs)
+    def update(self, app_ref: str):
+        return self.model.update_app(app_ref)
 
     def check_installed(self) -> bool:
         version = self.model.get_version()

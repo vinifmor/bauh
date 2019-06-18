@@ -8,10 +8,11 @@ def get_locale_keys():
 
     current_locale = locale.getdefaultlocale()
     locale_path = None
+
     if current_locale:
         current_locale = current_locale[0]
 
-        locale_dir = '{}/resources/locale'.format(resource.get_app_dir())
+        locale_dir = resource.get_path('locale')
 
         for locale_file in glob.glob(locale_dir + '/*'):
             name = locale_file.split('/')[-1]
@@ -21,7 +22,7 @@ def get_locale_keys():
                 break
 
     if not locale_path:
-        locale_path = '{}/resources/locale/en'.format(resource.get_app_dir())
+        locale_path = resource.get_path('locale/en')
 
     with open(locale_path, 'r') as f:
         locale_keys = f.readlines()

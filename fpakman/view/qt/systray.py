@@ -34,15 +34,16 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, check_interval: int = 60, parent=None):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, check_interval: int = 60):
+        super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.controller = controller
 
         self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
         self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
-        QSystemTrayIcon.__init__(self, self.icon_default, parent)
+        self.setIcon(self.icon_default)
 
-        self.menu = QMenu(parent)
+        self.menu = QMenu()
         self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
         self.action_exit = self.menu.addAction(self.locale_keys['tray.action.exit'])
@@ -63,7 +64,7 @@ class TrayIcon(QSystemTrayIcon):
                 self.setToolTip(msg)
 
                 if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
-                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_10.svg'), msg))
+                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_45.svg'), msg))
 
                 if self.manage_window:
                     self.manage_window.refresh()
