@@ -5,7 +5,8 @@ import sys
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
-from fpakman.core import __version__, resource
+from fpakman import __version__
+from fpakman.core import resource
 from fpakman.core import util
 from fpakman.core.controller import FlatpakController
 from fpakman.core.model import FlatpakManager
