@@ -23,7 +23,7 @@ sudo pip3 install fpakman
 ```
 
 **AUR**
-As **fpakman** package. There is also a staging version (**fpakman-staging**) but is intended for testing and it may not work properly.
+As **fpakman** package. There is also a staging version (**fpakman-staging**) but is intended for testing and may not work properly.
 
 
 ### Manual installation:
@@ -46,3 +46,4 @@ You can change some application settings via environment variables:
 ### Roadmap
 - Search and install applications
 - Uninstall applications
+- Downgrade applications
