@@ -66,7 +66,7 @@ class ManageWindow(QWidget):
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
         self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
-        self.setWindowTitle('fpakman ({})'.format(__version__))
+        self.setWindowTitle('{} ({})'.format(locale_keys['manage_window.title'], __version__))
         self.setWindowIcon(self.icon_flathub)
 
         self.layout = QVBoxLayout()

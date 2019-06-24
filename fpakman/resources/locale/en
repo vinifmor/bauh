@@ -1,3 +1,4 @@
+manage_window.title=Flatpak Application Manager
 manage_window.columns.name=Name
 manage_window.columns.version=Version
 manage_window.columns.latest_version=Latest Version

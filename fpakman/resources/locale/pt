@@ -1,3 +1,4 @@
+manage_window.title=Gerenciador de Aplicativos Flatpak
 manage_window.columns.name=Nome
 manage_window.columns.version=Versão
 manage_window.columns.latest_version=Última Versão
