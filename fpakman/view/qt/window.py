@@ -248,10 +248,18 @@ class ManageWindow(QWidget):
 
         enable_bt_update = False
 
-        updates = len([app for app in self.apps if app['model']['update']])
+        app_updates, runtime_updates = 0, 0
 
-        if updates > 0:
-            self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], updates))
+        for app in self.apps:
+            if app['model']['update']:
+                if app['model']['runtime']:
+                    runtime_updates += 1
+                else:
+                    app_updates += 1
+
+        total_updates = app_updates + runtime_updates
+        if total_updates > 0:
+            self.label_updates.setText('{}: {} ( {} apps | {} runtimes )'.format(self.locale_keys['manage_window.label.updates'], total_updates, app_updates, runtime_updates))
         else:
             self.label_updates.setText('')
 
@@ -262,7 +270,7 @@ class ManageWindow(QWidget):
 
         self.bt_update.setEnabled(enable_bt_update)
 
-        self.tray_icon.notify_updates(updates)
+        self.tray_icon.notify_updates(total_updates)
 
     def centralize(self):
         geo = self.frameGeometry()
