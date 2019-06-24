@@ -94,15 +94,17 @@ class ManageWindow(QWidget):
         toolbar.addWidget(spacer)
 
         self.bt_refresh = QToolButton()
+        self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.clicked.connect(lambda: self.refresh(clear_output=True))
         toolbar.addWidget(self.bt_refresh)
 
-        self.bt_update = QToolButton()
-        self.bt_update.setIcon(QIcon(resource.get_path('img/update_green.svg')))
-        self.bt_update.setEnabled(False)
-        self.bt_update.clicked.connect(self.update_selected)
-        toolbar.addWidget(self.bt_update)
+        self.bt_upgrade = QToolButton()
+        self.bt_upgrade.setToolTip(locale_keys['manage_window.bt.upgrade.tooltip'])
+        self.bt_upgrade.setIcon(QIcon(resource.get_path('img/update_green.svg')))
+        self.bt_upgrade.setEnabled(False)
+        self.bt_upgrade.clicked.connect(self.update_selected)
+        toolbar.addWidget(self.bt_upgrade)
 
         self.layout.addWidget(toolbar)
 
@@ -268,7 +270,7 @@ class ManageWindow(QWidget):
                 enable_bt_update = True
                 break
 
-        self.bt_update.setEnabled(enable_bt_update)
+        self.bt_upgrade.setEnabled(enable_bt_update)
 
         self.tray_icon.notify_updates(total_updates)
 
@@ -383,7 +385,7 @@ class ManageWindow(QWidget):
 
     def _begin_action(self, action_label: str):
         self.label_status.setText(action_label)
-        self.bt_update.setEnabled(False)
+        self.bt_upgrade.setEnabled(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)

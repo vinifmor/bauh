@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.2]
+### Improvements
+- Adding tooltips to toolbar buttons
+- "Update ?" column renamed to "Upgrade ?"
+
 ## [0.2.1] - 2019-06-24
 ### Features
 - Showing the number of apps and runtime updates available
