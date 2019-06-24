@@ -1,6 +1,6 @@
 ## fpakman
-Graphical user interface for Flatpak application management. It is a tray icon to let the user known when new updates are available.
-It has also a management window allowing the user to see all installed applications and update them.
+Non-official graphical user interface for Flatpak application management. It is a tray icon that let the user known when new updates are available and
+an application management panel.
 
 ### Developed with:
 - Python3 and QT 5.
