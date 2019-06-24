@@ -32,7 +32,7 @@ def app_str_to_json(line: str, version: str) -> dict:
     else:
         raise Exception('Unsupported version')
 
-    info = re.findall('\w+:\s.+', get_app_info(app['id']))
+    info = re.findall(r'\w+:\s.+', get_app_info(app['id'], app['branch']))
     fields_to_get = ['origin', 'arch', 'ref']
 
     for field in info:
@@ -53,8 +53,8 @@ def get_version():
     return res.split(' ')[1].strip() if res else None
 
 
-def get_app_info(app_id: str):
-    return system.run_cmd('flatpak info ' + app_id)
+def get_app_info(app_id: str, branch: str):
+    return system.run_cmd('flatpak info {} {}'.format(app_id, branch))
 
 
 def list_installed() -> List[dict]:
