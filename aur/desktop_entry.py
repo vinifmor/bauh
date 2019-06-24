@@ -18,7 +18,7 @@ apps_path = '{}/.local/share/applications'.format(str(Path.home()))
 if not os.path.exists(apps_path):
     os.mkdir(apps_path)
 
-file_path = '{}/fpakman.desktop'.format(apps_path)
+file_path = 'fpakman.desktop'.format(apps_path)
 
 with open(file_path, 'w+') as f:
     f.write(desktop_file)
