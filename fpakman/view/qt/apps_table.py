@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
+from fpakman.view.qt import dialog
 
 
 class UpdateToggleButton(QToolButton):
@@ -48,6 +49,7 @@ class AppsTable(QTableWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
         self.icon_uninstall = QIcon(resource.get_path('img/uninstall.svg'))
+        self.icon_downgrade = QIcon(resource.get_path('img/downgrade.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)
@@ -60,20 +62,38 @@ class AppsTable(QTableWidget):
         action_uninstall = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.uninstall"])
         action_uninstall.setIcon(self.icon_uninstall)
         action_uninstall.triggered.connect(self._uninstall_app)
-
         menu_row.addAction(action_uninstall)
+
+        app = self._get_selected_app()
+
+        if not app['model']['runtime']:  # downgrade only allowed for apps
+            action_downgrade = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.downgrade"])
+            action_downgrade.triggered.connect(self._downgrade_app)
+            action_downgrade.setIcon(self.icon_downgrade)
+            menu_row.addAction(action_downgrade)
+
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
         menu_row.exec_()
 
-    def _uninstall_app(self):
-        selected_app = self.parent.apps[self.currentRow()]
+    def _get_selected_app(self):
+        return self.parent.apps[self.currentRow()]
 
-        confirmation = QMessageBox.question(self, self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                            self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app['model']['name']),
-                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if confirmation == QMessageBox.Yes:
+    def _uninstall_app(self):
+        selected_app = self._get_selected_app()
+
+        if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
+                                   body=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app['model']['name']),
+                                   locale_keys=self.parent.locale_keys):
             self.parent.uninstall_app(selected_app['model']['ref'])
+
+    def _downgrade_app(self):
+        selected_app = self._get_selected_app()
+
+        if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade'],
+                                   body=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app['model']['name']),
+                                   locale_keys=self.parent.locale_keys):
+            self.parent.downgrade_app(selected_app['model']['ref'])
 
     def _load_icon(self, http_response):
         icon_url = http_response.url().toString()
@@ -122,7 +142,7 @@ class AppsTable(QTableWidget):
                 col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.setItem(idx, 2, col_release)
 
-                if app['model']['update']:
+                if app['model']['version'] and app['model']['latest_version'] and app['model']['version'] < app['model']['latest_version']:
                     col_release.setForeground(QColor('orange'))
 
                 col_branch = QTableWidgetItem()

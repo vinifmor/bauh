@@ -2,14 +2,15 @@ from threading import Lock, Thread
 from typing import List
 
 import requests
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from fpakman.core import flatpak
 
 __FLATHUB_URL__ = 'https://flathub.org'
 __FLATHUB_API_URL__ = __FLATHUB_URL__ + '/api/v1'
+
+
+class ImpossibleDowngradeException(Exception):
+    pass
 
 
 class FlatpakManager:
@@ -122,3 +123,20 @@ class FlatpakManager:
 
             if app_found:
                 return flatpak.uninstall_and_stream(ref)
+
+    def downgrade_app(self, ref: str, root_password: str):
+
+        if self.apps:
+
+            app_found = self._find_by_ref(ref)
+
+            if app_found:
+                commits = flatpak.get_app_commits(app_found['ref'], app_found['origin'])
+
+                commit_idx = commits.index(app_found['commit'])
+
+                # downgrade is not possible if the app current commit in the first one:
+                if commit_idx == len(commits) - 1:
+                    raise ImpossibleDowngradeException()
+
+                return flatpak.downgrade_and_stream(app_found['ref'], commits[commit_idx + 1], root_password)

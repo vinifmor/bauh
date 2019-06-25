@@ -4,6 +4,7 @@ import time
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
+from fpakman.core.model import FlatpakManager
 
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
@@ -34,10 +35,11 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, check_interval: int = 60):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, manager: FlatpakManager, check_interval: int = 60):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.controller = controller
+        self.manager = manager
 
         self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
         self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
@@ -50,7 +52,7 @@ class TrayIcon(QSystemTrayIcon):
         self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
         self.setContextMenu(self.menu)
 
-        self.manage_window = ManageWindow(locale_keys=self.locale_keys, controller=controller, tray_icon=self)
+        self.manage_window = ManageWindow(locale_keys=self.locale_keys, controller=controller, manager=self.manager, tray_icon=self)
         self.check_thread = UpdateCheck(check_interval=check_interval, controller=self.controller)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()

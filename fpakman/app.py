@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(prog='fpakman', description="GUI for Flatpak ap
 parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
 args = parser.parse_args()
 
-locale_keys = util.get_locale_keys()
+locale_keys = util.get_locale_keys(os.getenv('FPAKMAN_LOCALE', None))
 
 app = QApplication(sys.argv)
 app.setWindowIcon(QIcon(resource.get_path('img/flathub_45.svg')))
@@ -26,6 +26,7 @@ controller = FlatpakController(manager)
 
 trayIcon = TrayIcon(locale_keys=locale_keys,
                     controller=controller,
+                    manager=manager,
                     check_interval=int(os.getenv('FPAKMAN_CHECK_INTERVAL', 60)))
 trayIcon.show()
 

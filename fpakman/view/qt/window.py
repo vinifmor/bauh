@@ -7,18 +7,21 @@ from PyQt5.QtCore import QThread, pyqtSignal, QEvent
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
+from fpakman.core.model import FlatpakManager, ImpossibleDowngradeException
 
 from fpakman import __version__
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
+from fpakman.view.qt import dialog
 from fpakman.view.qt.apps_table import AppsTable
+from fpakman.view.qt.root import is_root, ask_root_password
 
 
 class ManageWindow(QWidget):
 
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, tray_icon = None):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, manager: FlatpakManager, tray_icon = None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.column_names = [locale_keys['manage_window.columns.name'],
@@ -30,6 +33,7 @@ class ManageWindow(QWidget):
                              locale_keys['manage_window.columns.origin'],
                              locale_keys['manage_window.columns.update']]
         self.controller = controller
+        self.manager = manager
         self.tray_icon = tray_icon
         self.thread_lock = Lock()
         self.working = False  # restrict the number of threaded actions
@@ -104,6 +108,10 @@ class ManageWindow(QWidget):
         self.thread_uninstall.signal_output.connect(self._update_action_output)
         self.thread_uninstall.signal_finished.connect(self._finish_uninstall)
 
+        self.thread_downgrade = DowngradeApp(self.manager)
+        self.thread_downgrade.signal_output.connect(self._update_action_output)
+        self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
+
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
         self.toolbar_bottom.addWidget(self.label_updates)
@@ -132,12 +140,9 @@ class ManageWindow(QWidget):
     def _check_flatpak_installed(self):
 
         if not self.controller.check_installed():
-            error_msg = QMessageBox()
-            error_msg.setIcon(QMessageBox.Critical)
-            error_msg.setWindowTitle(self.locale_keys['popup.flatpak_not_installed.title'])
-            error_msg.setText(self.locale_keys['popup.flatpak_not_installed.msg'] + '...')
-            error_msg.setWindowIcon(self.icon_flathub)
-            error_msg.exec_()
+            dialog.show_error(title=self.locale_keys['popup.flatpak_not_installed.title'],
+                              body=self.locale_keys['popup.flatpak_not_installed.msg'] + '...',
+                              icon=self.icon_flathub)
             exit(1)
 
         if self.label_flatpak:
@@ -195,6 +200,11 @@ class ManageWindow(QWidget):
             self.thread_uninstall.start()
 
     def _finish_uninstall(self):
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
+
+    def _finish_downgrade(self):
         self.finish_action()
         self._release_lock()
         self.refresh(clear_output=False)
@@ -318,6 +328,29 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(True)
         self.label_status.setText('')
 
+    def downgrade_app(self, app_ref: str):
+
+        self._check_flatpak_installed()
+
+        if self._acquire_lock():
+
+            pwd = None
+
+            if not is_root():
+                pwd, ok = ask_root_password(self.locale_keys)
+
+                if not ok:
+                    self._release_lock()
+                    return
+
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(True)
+            self._begin_action(self.locale_keys['manage_window.status.downgrading'] + '...')
+
+            self.thread_downgrade.app_ref = app_ref
+            self.thread_downgrade.root_password = pwd
+            self.thread_downgrade.start()
+
 
 # Threaded actions
 class UpdateSelectedApps(QThread):
@@ -371,4 +404,32 @@ class UninstallApp(QThread):
                 if line:
                     self.signal_output.emit(line)
 
+            self.signal_finished.emit()
+
+
+class DowngradeApp(QThread):
+    signal_finished = pyqtSignal()
+    signal_output = pyqtSignal(str)
+
+    def __init__(self, manager: FlatpakManager):
+        super(DowngradeApp, self).__init__()
+        self.manager = manager
+        self.app_ref = None
+        self.root_password = None
+
+    def run(self):
+        if self.app_ref:
+            try:
+                for output in self.manager.downgrade_app(self.app_ref, self.root_password):
+                    line = output.decode().strip()
+                    if line:
+                        self.signal_output.emit(line)
+
+            except ImpossibleDowngradeException:
+                dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
+                                  body=self.locale_keys['popup.downgrade.impossible.body'],
+                                  icon=self.icon_flathub)
+
+            self.app_ref = None
+            self.root_password = None
             self.signal_finished.emit()

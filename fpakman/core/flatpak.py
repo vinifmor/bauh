@@ -1,4 +1,5 @@
 import re
+import subprocess
 from typing import List
 
 from fpakman.core import system
@@ -32,20 +33,33 @@ def app_str_to_json(line: str, version: str) -> dict:
     else:
         raise Exception('Unsupported version')
 
-    info = re.findall(r'\w+:\s.+', get_app_info(app['id'], app['branch']))
-    fields_to_get = ['origin', 'arch', 'ref']
+    extra_fields = get_app_info_fields(app['id'], app['branch'], ['origin', 'arch', 'ref', 'commit'], check_runtime=True)
+    app.update(extra_fields)
+
+    return app
+
+
+def get_app_info_fields(app_id: str, branch: str, fields: List[str], check_runtime: bool = False):
+    info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch))
+    data = {}
+    fields_to_retrieve = len(fields) + (1 if check_runtime and 'ref' not in fields else 0)
 
     for field in info:
+
+        if fields_to_retrieve == 0:
+            break
+
         field_val = field.split(':')
         field_name = field_val[0].lower()
 
-        if field_name in fields_to_get:
-            app[field_name] = field_val[1].strip()
+        if field_name in fields or (check_runtime and field_name == 'ref'):
+            data[field_name] = field_val[1].strip()
+            fields_to_retrieve -= 1
 
-        if field_name == 'ref':
-            app['runtime'] = app['ref'].startswith('runtime/')
+        if check_runtime and field_name == 'ref':
+            data['runtime'] = data['ref'].startswith('runtime/')
 
-    return app
+    return data
 
 
 def get_version():
@@ -92,3 +106,20 @@ def uninstall_and_stream(app_ref: str):
 
 def list_updates_as_str():
     return system.run_cmd('flatpak update', ignore_return_code=True)
+
+
+def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
+
+    pwdin, downgrade_cmd = None, []
+
+    if root_password is not None:
+        downgrade_cmd.extend(['sudo', '-S'])
+        pwdin = subprocess.Popen(['echo', root_password], stdout=subprocess.PIPE).stdout
+
+    downgrade_cmd.extend(['flatpak', 'update', '--commit={}'.format(commit), app_ref, '-y'])
+    return subprocess.Popen(downgrade_cmd, stdin=pwdin, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+
+
+def get_app_commits(app_ref: str, origin: str) -> List[str]:
+    log = system.run_cmd('flatpak remote-info --log {} {}'.format(origin, app_ref))
+    return re.findall(r'Commit+:\s(.+)', log)

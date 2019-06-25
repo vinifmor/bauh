@@ -42,6 +42,7 @@ In order to autostart the application, use your Desktop Environment settings to 
 You can change some application settings via environment variables:
 - **FPAKMAN_UPDATE_NOTIFICATION**: enable or disable system updates notifications. Use **0** (disable) or **1** (enable, default).
 - **FPAKMAN_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
+- **FPAKMAN_LOCALE**: define a custom app translation for a given locale key (e.g: 'pt', 'en', 'es', ...). Default: system locale.
 
 ### Roadmap
 - Search and install applications
