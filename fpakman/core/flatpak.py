@@ -81,5 +81,14 @@ def update_and_stream(app_ref: str):
     return system.stream_cmd(['flatpak', 'update', '-y', app_ref])
 
 
+def uninstall_and_stream(app_ref: str):
+    """
+    Removes the app by its reference
+    :param app_ref:
+    :return:
+    """
+    return system.stream_cmd(['flatpak', 'uninstall', app_ref, '-y'])
+
+
 def list_updates_as_str():
     return system.run_cmd('flatpak update', ignore_return_code=True)

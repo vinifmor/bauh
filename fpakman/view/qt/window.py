@@ -3,38 +3,15 @@ from functools import reduce
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl, QEvent
-from PyQt5.QtGui import QIcon, QColor, QPixmap, QWindowStateChangeEvent
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
-    QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
+from PyQt5.QtCore import QThread, pyqtSignal, QEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
 
 from fpakman import __version__
 from fpakman.core import resource
 from fpakman.core.controller import FlatpakController
-
-
-class UpdateToggleButton(QToolButton):
-
-    def __init__(self, model: dict, root: QWidget, checked: bool = True):
-        super(UpdateToggleButton, self).__init__()
-        self.model = model
-        self.root = root
-        self.setCheckable(True)
-        self.clicked.connect(self.change_state)
-        self.icon_on = QIcon(resource.get_path('img/toggle_on.svg'))
-        self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
-        self.setIcon(self.icon_on)
-        self.setStyleSheet('border: 0px;')
-
-        if not checked:
-            self.click()
-
-    def change_state(self, not_checked: bool):
-        self.model['update_checked'] = not not_checked
-        self.setIcon(self.icon_on if not not_checked else self.icon_off)
-        self.root.change_update_state()
+from fpakman.view.qt.apps_table import AppsTable
 
 
 class ManageWindow(QWidget):
@@ -53,15 +30,11 @@ class ManageWindow(QWidget):
                              locale_keys['manage_window.columns.origin'],
                              locale_keys['manage_window.columns.update']]
         self.controller = controller
-        self.icon_cache = {}
         self.tray_icon = tray_icon
         self.thread_lock = Lock()
         self.working = False  # restrict the number of threaded actions
         self.apps = []
         self.label_flatpak = None
-
-        self.network_man = QNetworkAccessManager()
-        self.network_man.finished.connect(self._load_icon)
 
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
         self._check_flatpak_installed()
@@ -108,16 +81,8 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(toolbar)
 
-        self.table_apps = QTableWidget()
-        self.table_apps.setColumnCount(len(self.column_names))
-        self.table_apps.setFocusPolicy(Qt.NoFocus)
-        self.table_apps.setShowGrid(False)
-        self.table_apps.verticalHeader().setVisible(False)
-        self.table_apps.setSelectionBehavior(QTableView.SelectRows)
-        self.table_apps.setHorizontalHeaderLabels(self.column_names)
-        self.table_apps.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self._change_table_headers_policy()
+        self.table_apps = AppsTable(self, self.controller, self.column_names)
+        self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
 
@@ -135,6 +100,10 @@ class ManageWindow(QWidget):
         self.thread_refresh = RefreshApps(self.controller)
         self.thread_refresh.signal.connect(self._finish_refresh)
 
+        self.thread_uninstall = UninstallApp(self.controller)
+        self.thread_uninstall.signal_output.connect(self._update_action_output)
+        self.thread_uninstall.signal_finished.connect(self._finish_uninstall)
+
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
         self.toolbar_bottom.addWidget(self.label_updates)
@@ -148,34 +117,17 @@ class ManageWindow(QWidget):
 
         self.centralize()
 
-    def _change_table_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
-        header_horizontal = self.table_apps.horizontalHeader()
-        for i in range(0, len(self.column_names)):
-            header_horizontal.setSectionResizeMode(i, policy)
-
     def changeEvent(self, e: QEvent):
 
         if isinstance(e, QWindowStateChangeEvent):
-            self._change_table_headers_policy(QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents)
+            policy = QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents
+            self.table_apps.adjust_header_policy(policy)
 
     def closeEvent(self, event):
 
         if self.tray_icon:
             event.ignore()
             self.hide()
-
-    def _load_icon(self, http_response):
-        icon_url = http_response.url().toString()
-        pixmap = QPixmap()
-        pixmap.loadFromData(http_response.readAll())
-        icon = QIcon(pixmap)
-        self.icon_cache[icon_url] = icon
-
-        for idx, app in enumerate(self.apps):
-            if app['model']['icon'] == icon_url:
-                self.table_apps.item(idx, 0).setIcon(icon)
-                self.resize_and_center()
-                break
 
     def _check_flatpak_installed(self):
 
@@ -231,6 +183,22 @@ class ManageWindow(QWidget):
         self.finish_action()
         self._release_lock()
 
+    def uninstall_app(self, app_ref: str):
+        self._check_flatpak_installed()
+
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(True)
+            self._begin_action(self.locale_keys['manage_window.status.uninstalling'] + '...')
+
+            self.thread_uninstall.app_ref = app_ref
+            self.thread_uninstall.start()
+
+    def _finish_uninstall(self):
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
+
     def filter_only_apps(self, only_apps: int):
 
         if self.apps:
@@ -242,8 +210,8 @@ class ManageWindow(QWidget):
                 app['visible'] = not hidden
 
             self.change_update_state()
-            self._change_table_headers_policy(QHeaderView.Stretch)
-            self._change_table_headers_policy()
+            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy()
             self.resize_and_center()
 
     def change_update_state(self):
@@ -284,72 +252,15 @@ class ManageWindow(QWidget):
     def update_apps(self, apps: List[dict]):
         self._check_flatpak_installed()
 
-        self.table_apps.setEnabled(True)
         self.apps = []
-
-        self.table_apps.setRowCount(len(apps) if apps else 0)
-
         if apps:
-            for idx, app in enumerate(apps):
-
-                col_name = QTableWidgetItem()
-                col_name.setText(app['name'])
-                col_name.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-
-                if not app['icon']:
-                    col_name.setIcon(self.icon_flathub)
-                else:
-                    cached_icon = self.icon_cache.get(app['icon'])
-
-                    if cached_icon:
-                        col_name.setIcon(cached_icon)
-                    else:
-                        col_name.setIcon(self.icon_flathub)
-                        self.network_man.get(QNetworkRequest(QUrl(app['icon'])))
-
-                self.table_apps.setItem(idx, 0, col_name)
-
-                col_version = QTableWidgetItem()
-                col_version.setText(app['version'])
-                col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 1, col_version)
-
-                col_release = QTableWidgetItem()
-                col_release.setText(app['latest_version'])
-                col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 2, col_release)
-
-                if app['update']:
-                    col_release.setForeground(QColor('orange'))
-
-                col_branch = QTableWidgetItem()
-                col_branch.setText(app['branch'])
-                col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 3, col_branch)
-
-                col_arch = QTableWidgetItem()
-                col_arch.setText(app['arch'])
-                col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 4, col_arch)
-
-                col_package = QTableWidgetItem()
-                col_package.setText(app['ref'])
-                col_package.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 5, col_package)
-
-                col_origin = QTableWidgetItem()
-                col_origin.setText(app['origin'])
-                col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 6, col_origin)
-
+            for app in apps:
                 app_model = {'model': app,
                              'update_checked': app['update'],
                              'visible': not app['runtime'] or not self.checkbox_only_apps.isChecked()}
-
-                col_update = UpdateToggleButton(app_model, self, app['update']) if app['update'] else None
-                self.table_apps.setCellWidget(idx, 7, col_update)
-
                 self.apps.append(app_model)
+
+        self.table_apps.update_apps(self.apps)
 
         self.change_update_state()
         self.filter_only_apps(2 if self.checkbox_only_apps.isChecked() else 0)
@@ -431,3 +342,22 @@ class RefreshApps(QThread):
     def run(self):
         self.apps = self.controller.refresh()
         self.signal.emit()
+
+
+class UninstallApp(QThread):
+    signal_finished = pyqtSignal()
+    signal_output = pyqtSignal(str)
+
+    def __init__(self, controller: FlatpakController):
+        super(UninstallApp, self).__init__()
+        self.controller = controller
+        self.app_ref = None
+
+    def run(self):
+        if self.app_ref:
+            for output in self.controller.uninstall(self.app_ref):
+                line = output.decode().strip()
+                if line:
+                    self.signal_output.emit(line)
+
+            self.signal_finished.emit()

@@ -20,3 +20,6 @@ class FlatpakController:
 
     def get_version(self) -> str:
         return self.model.get_version()
+
+    def uninstall(self, app_ref: str):
+        return self.model.remove_app(app_ref)

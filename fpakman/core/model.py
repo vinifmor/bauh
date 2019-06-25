@@ -91,6 +91,12 @@ class FlatpakManager:
 
         return []
 
+    def _find_by_ref(self, ref: str):
+        package_found = [app for app in self.apps if app['ref'] == ref]
+
+        if package_found:
+            return package_found[0]
+
     def update_app(self, ref: str):
 
         """
@@ -100,9 +106,19 @@ class FlatpakManager:
 
         if self.apps:
 
-            package_found = [app for app in self.apps if app['ref'] == ref]
+            app_found = self._find_by_ref(ref)
 
-            if package_found:
+            if app_found:
                 return flatpak.update_and_stream(ref)
 
-        return None
+    def remove_app(self, ref: str):
+        """
+        :param ref:
+        :return: the uninstall command stream
+        """
+        if self.apps:
+
+            app_found = self._find_by_ref(ref)
+
+            if app_found:
+                return flatpak.uninstall_and_stream(ref)
