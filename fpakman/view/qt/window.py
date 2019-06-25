@@ -121,7 +121,7 @@ class ManageWindow(QWidget):
 
         if isinstance(e, QWindowStateChangeEvent):
             policy = QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents
-            self.table_apps.adjust_header_policy(policy)
+            self.table_apps.change_headers_policy(policy)
 
     def closeEvent(self, event):
 
@@ -253,15 +253,26 @@ class ManageWindow(QWidget):
         self._check_flatpak_installed()
 
         self.apps = []
+
+        napps = 0  # number of apps (not runtimes)
+
         if apps:
             for app in apps:
                 app_model = {'model': app,
                              'update_checked': app['update'],
                              'visible': not app['runtime'] or not self.checkbox_only_apps.isChecked()}
+
+                napps += 1 if not app['runtime'] else 0
                 self.apps.append(app_model)
 
-        self.table_apps.update_apps(self.apps)
+        if napps == 0:
+            self.checkbox_only_apps.setChecked(False)
+            self.checkbox_only_apps.setCheckable(False)
+        else:
+            self.checkbox_only_apps.setCheckable(True)
+            self.checkbox_only_apps.setChecked(True)
 
+        self.table_apps.update_apps(self.apps)
         self.change_update_state()
         self.filter_only_apps(2 if self.checkbox_only_apps.isChecked() else 0)
         self.resize_and_center()
