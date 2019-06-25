@@ -293,7 +293,7 @@ class ManageWindow(QWidget):
                     self.textarea_output.clear()
                     self.textarea_output.setVisible(True)
 
-                    self._begin_action(self.locale_keys['manage_window.status.updating'] + '...')
+                    self._begin_action(self.locale_keys['manage_window.status.upgrading'] + '...')
                     self.thread_update.refs_to_update = to_update
                     self.thread_update.start()
 
