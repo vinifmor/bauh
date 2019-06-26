@@ -1,12 +1,13 @@
+import json
 from typing import List
 
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap, QIcon, QColor, QCursor
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QMessageBox, QHeaderView
+    QMessageBox, QHeaderView, QDialog, QLineEdit, QVBoxLayout, QPlainTextEdit
 
-from fpakman.core import resource
+from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakController
 from fpakman.view.qt import dialog
 
@@ -48,8 +49,6 @@ class AppsTable(QTableWidget):
         self.setHorizontalHeaderLabels(columns)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
-        self.icon_uninstall = QIcon(resource.get_path('img/uninstall.svg'))
-        self.icon_downgrade = QIcon(resource.get_path('img/downgrade.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)
@@ -59,28 +58,41 @@ class AppsTable(QTableWidget):
     def contextMenuEvent(self, QContextMenuEvent):  # selected row right click event
         menu_row = QMenu()
 
+        action_info = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.info"])
+        action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
+        action_info.triggered.connect(self._get_app_info)
+        menu_row.addAction(action_info)
+
+        action_history = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.history"])
+        action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
+        action_history.triggered.connect(self._get_app_history)
+        menu_row.addAction(action_history)
+
         action_uninstall = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.uninstall"])
-        action_uninstall.setIcon(self.icon_uninstall)
+        action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
         action_uninstall.triggered.connect(self._uninstall_app)
         menu_row.addAction(action_uninstall)
 
-        app = self._get_selected_app()
+        app = self.get_selected_app()
 
         if not app['model']['runtime']:  # downgrade only allowed for apps
             action_downgrade = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.downgrade"])
             action_downgrade.triggered.connect(self._downgrade_app)
-            action_downgrade.setIcon(self.icon_downgrade)
+            action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
             menu_row.addAction(action_downgrade)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
         menu_row.exec_()
 
-    def _get_selected_app(self):
+    def get_selected_app(self):
         return self.parent.apps[self.currentRow()]
 
+    def get_selected_app_icon(self):
+        return self.item(self.currentRow(), 0).icon()
+
     def _uninstall_app(self):
-        selected_app = self._get_selected_app()
+        selected_app = self.get_selected_app()
 
         if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
                                    body=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app['model']['name']),
@@ -88,12 +100,18 @@ class AppsTable(QTableWidget):
             self.parent.uninstall_app(selected_app['model']['ref'])
 
     def _downgrade_app(self):
-        selected_app = self._get_selected_app()
+        selected_app = self.get_selected_app()
 
         if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade'],
                                    body=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app['model']['name']),
                                    locale_keys=self.parent.locale_keys):
             self.parent.downgrade_app(selected_app['model']['ref'])
+
+    def _get_app_info(self):
+        self.parent.get_app_info(self.get_selected_app())
+
+    def _get_app_history(self):
+        self.parent.get_app_history(self.get_selected_app())
 
     def _load_icon(self, http_response):
         icon_url = http_response.url().toString()

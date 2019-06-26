@@ -1,19 +1,22 @@
+import json
 import operator
 from functools import reduce
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QEvent
+from PyQt5.QtCore import QThread, pyqtSignal, QEvent, Qt
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
-from fpakman.core.model import FlatpakManager, ImpossibleDowngradeException
+    QSizePolicy, QLabel, QPlainTextEdit, QDialog, QGroupBox, QFormLayout, QLineEdit, QTableWidget, QTableWidgetItem
 
 from fpakman import __version__
-from fpakman.core import resource
+from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakController
+from fpakman.core.model import FlatpakManager, ImpossibleDowngradeException
 from fpakman.view.qt import dialog
 from fpakman.view.qt.apps_table import AppsTable
+from fpakman.view.qt.history import HistoryDialog
+from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 
 
@@ -21,17 +24,17 @@ class ManageWindow(QWidget):
 
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, manager: FlatpakManager, tray_icon = None):
+    def __init__(self, locale_keys: dict, controller: FlatpakController, manager: FlatpakManager, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
-        self.column_names = [locale_keys['manage_window.columns.name'],
-                             locale_keys['manage_window.columns.version'],
-                             locale_keys['manage_window.columns.latest_version'],
-                             locale_keys['manage_window.columns.branch'],
-                             locale_keys['manage_window.columns.arch'],
-                             locale_keys['manage_window.columns.ref'],
-                             locale_keys['manage_window.columns.origin'],
-                             locale_keys['manage_window.columns.update']]
+        self.column_names = [locale_keys[key].capitalize() for key in ['flatpak.info.name',
+                                                                       'flatpak.info.version',
+                                                                       'manage_window.columns.latest_version',
+                                                                       'flatpak.info.branch',
+                                                                       'flatpak.info.arch',
+                                                                       'flatpak.info.ref',
+                                                                       'flatpak.info.origin',
+                                                                       'manage_window.columns.update']]
         self.controller = controller
         self.manager = manager
         self.tray_icon = tray_icon
@@ -112,6 +115,12 @@ class ManageWindow(QWidget):
         self.thread_downgrade.signal_output.connect(self._update_action_output)
         self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
 
+        self.thread_get_info = GetAppInfo()
+        self.thread_get_info.signal_finished.connect(self._finish_get_info)
+
+        self.thread_get_history = GetAppHistory()
+        self.thread_get_history.signal_finished.connect(self._finish_get_history)
+
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
         self.toolbar_bottom.addWidget(self.label_updates)
@@ -174,7 +183,7 @@ class ManageWindow(QWidget):
 
         if self._acquire_lock():
             self._check_flatpak_installed()
-            self._begin_action(self.locale_keys['manage_window.status.refreshing'] + '...')
+            self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             if clear_output:
                 self.textarea_output.clear()
@@ -194,7 +203,7 @@ class ManageWindow(QWidget):
         if self._acquire_lock():
             self.textarea_output.clear()
             self.textarea_output.setVisible(True)
-            self._begin_action(self.locale_keys['manage_window.status.uninstalling'] + '...')
+            self._begin_action(self.locale_keys['manage_window.status.uninstalling'])
 
             self.thread_uninstall.app_ref = app_ref
             self.thread_uninstall.start()
@@ -303,7 +312,7 @@ class ManageWindow(QWidget):
                     self.textarea_output.clear()
                     self.textarea_output.setVisible(True)
 
-                    self._begin_action(self.locale_keys['manage_window.status.upgrading'] + '...')
+                    self._begin_action(self.locale_keys['manage_window.status.upgrading'])
                     self.thread_update.refs_to_update = to_update
                     self.thread_update.start()
 
@@ -316,7 +325,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str):
-        self.label_status.setText(action_label)
+        self.label_status.setText(action_label + "...")
         self.bt_upgrade.setEnabled(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
@@ -345,11 +354,43 @@ class ManageWindow(QWidget):
 
             self.textarea_output.clear()
             self.textarea_output.setVisible(True)
-            self._begin_action(self.locale_keys['manage_window.status.downgrading'] + '...')
+            self._begin_action(self.locale_keys['manage_window.status.downgrading'])
 
             self.thread_downgrade.app_ref = app_ref
             self.thread_downgrade.root_password = pwd
             self.thread_downgrade.start()
+
+    def get_app_info(self, app: dict):
+
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.info'])
+
+            self.thread_get_info.app = app
+            self.thread_get_info.start()
+
+    def get_app_history(self, app: dict):
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.history'])
+
+            self.thread_get_history.app = app
+            self.thread_get_history.start()
+
+    def _finish_get_info(self, app_info: dict):
+        self._release_lock()
+        self.finish_action()
+        dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys)
+        dialog_info.exec_()
+
+    def _finish_get_history(self, app: dict):
+        self._release_lock()
+        self.finish_action()
+
+        dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
+        dialog_history.exec_()
 
 
 # Threaded actions
@@ -433,3 +474,33 @@ class DowngradeApp(QThread):
             self.app_ref = None
             self.root_password = None
             self.signal_finished.emit()
+
+
+class GetAppInfo(QThread):
+    signal_finished = pyqtSignal(dict)
+
+    def __init__(self):
+        super(GetAppInfo, self).__init__()
+        self.app = None
+
+    def run(self):
+        if self.app:
+            app_info = flatpak.get_app_info_fields(self.app['model']['id'], self.app['model']['branch'])
+            app_info['name'] = self.app['model']['name']
+            app_info['type'] = 'runtime' if self.app['model']['runtime'] else 'app'
+            self.signal_finished.emit(app_info)
+            self.app = None
+
+
+class GetAppHistory(QThread):
+    signal_finished = pyqtSignal(dict)
+
+    def __init__(self):
+        super(GetAppHistory, self).__init__()
+        self.app = None
+
+    def run(self):
+        if self.app:
+            commits = flatpak.get_app_commits_data(self.app['model']['ref'], self.app['model']['origin'])
+            self.signal_finished.emit({'model': self.app['model'], 'commits': commits})
+            self.app = None

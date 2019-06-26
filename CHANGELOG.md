@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.3.0]
 ### Features
+- Allows to retrieve app information and history by right clicking it.
 - Allows app uninstall and downgrade by right clicking it.
 
 ### Improvements

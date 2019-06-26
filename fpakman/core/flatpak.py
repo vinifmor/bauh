@@ -4,6 +4,8 @@ from typing import List
 
 from fpakman.core import system
 
+BASE_CMD = 'flatpak'
+
 
 def app_str_to_json(line: str, version: str) -> dict:
 
@@ -39,22 +41,24 @@ def app_str_to_json(line: str, version: str) -> dict:
     return app
 
 
-def get_app_info_fields(app_id: str, branch: str, fields: List[str], check_runtime: bool = False):
+def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_runtime: bool = False):
     info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch))
     data = {}
     fields_to_retrieve = len(fields) + (1 if check_runtime and 'ref' not in fields else 0)
 
     for field in info:
 
-        if fields_to_retrieve == 0:
+        if fields and fields_to_retrieve == 0:
             break
 
         field_val = field.split(':')
         field_name = field_val[0].lower()
 
-        if field_name in fields or (check_runtime and field_name == 'ref'):
+        if not fields or field_name in fields or (check_runtime and field_name == 'ref'):
             data[field_name] = field_val[1].strip()
-            fields_to_retrieve -= 1
+
+            if fields:
+                fields_to_retrieve -= 1
 
         if check_runtime and field_name == 'ref':
             data['runtime'] = data['ref'].startswith('runtime/')
@@ -63,16 +67,16 @@ def get_app_info_fields(app_id: str, branch: str, fields: List[str], check_runti
 
 
 def get_version():
-    res = system.run_cmd('flatpak --version')
+    res = system.run_cmd('{} --version'.format(BASE_CMD))
     return res.split(' ')[1].strip() if res else None
 
 
 def get_app_info(app_id: str, branch: str):
-    return system.run_cmd('flatpak info {} {}'.format(app_id, branch))
+    return system.run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch))
 
 
 def list_installed() -> List[dict]:
-    apps_str = system.run_cmd('flatpak list')
+    apps_str = system.run_cmd('{} list'.format(BASE_CMD))
 
     if apps_str:
         version = get_version()
@@ -83,7 +87,7 @@ def list_installed() -> List[dict]:
 
 
 def update(app_ref: str) -> bool:
-    return bool(system.run_cmd('flatpak update -y ' + app_ref))
+    return bool(system.run_cmd('{} update -y {}'.format(BASE_CMD, app_ref)))
 
 
 def update_and_stream(app_ref: str):
@@ -92,7 +96,7 @@ def update_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd(['flatpak', 'update', '-y', app_ref])
+    return system.stream_cmd([BASE_CMD, 'update', '-y', app_ref])
 
 
 def uninstall_and_stream(app_ref: str):
@@ -101,11 +105,11 @@ def uninstall_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd(['flatpak', 'uninstall', app_ref, '-y'])
+    return system.stream_cmd([BASE_CMD, 'uninstall', app_ref, '-y'])
 
 
 def list_updates_as_str():
-    return system.run_cmd('flatpak update', ignore_return_code=True)
+    return system.run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
 
 
 def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
@@ -114,12 +118,31 @@ def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
 
     if root_password is not None:
         downgrade_cmd.extend(['sudo', '-S'])
-        pwdin = subprocess.Popen(['echo', root_password], stdout=subprocess.PIPE).stdout
+        pwdin = system.stream_cmd(['echo', root_password])
 
-    downgrade_cmd.extend(['flatpak', 'update', '--commit={}'.format(commit), app_ref, '-y'])
+    downgrade_cmd.extend([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'])
     return subprocess.Popen(downgrade_cmd, stdin=pwdin, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
 
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:
-    log = system.run_cmd('flatpak remote-info --log {} {}'.format(origin, app_ref))
+    log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
     return re.findall(r'Commit+:\s(.+)', log)
+
+
+def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
+    log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+
+    res = re.findall(r'(Commit|Subject|Date):\s(.+)', log)
+
+    commits = []
+
+    commit = {}
+
+    for idx, data in enumerate(res):
+        commit[data[0].strip().lower()] = data[1].strip()
+
+        if (idx + 1) % 3 == 0:
+            commits.append(commit)
+            commit = {}
+
+    return commits
