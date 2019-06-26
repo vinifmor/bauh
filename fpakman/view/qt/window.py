@@ -1,30 +1,30 @@
-import json
 import operator
 from functools import reduce
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QEvent, Qt
+from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QPlainTextEdit, QDialog, QGroupBox, QFormLayout, QLineEdit, QTableWidget, QTableWidgetItem
+    QSizePolicy, QLabel, QPlainTextEdit
 
 from fpakman import __version__
 from fpakman.core import resource, flatpak
-from fpakman.core.controller import FlatpakController
-from fpakman.core.model import FlatpakManager, ImpossibleDowngradeException
+from fpakman.core.controller import FlatpakManager
 from fpakman.view.qt import dialog
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
+from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+    GetAppHistory
 
 
 class ManageWindow(QWidget):
 
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, manager: FlatpakManager, tray_icon=None):
+    def __init__(self, locale_keys: dict, manager: FlatpakManager, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.column_names = [locale_keys[key].capitalize() for key in ['flatpak.info.name',
@@ -35,7 +35,6 @@ class ManageWindow(QWidget):
                                                                        'flatpak.info.ref',
                                                                        'flatpak.info.origin',
                                                                        'manage_window.columns.update']]
-        self.controller = controller
         self.manager = manager
         self.tray_icon = tray_icon
         self.thread_lock = Lock()
@@ -88,7 +87,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(toolbar)
 
-        self.table_apps = AppsTable(self, self.controller, self.column_names)
+        self.table_apps = AppsTable(self, self.column_names)
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -100,18 +99,18 @@ class ManageWindow(QWidget):
         self.textarea_output.setVisible(False)
         self.textarea_output.setReadOnly(True)
 
-        self.thread_update = UpdateSelectedApps(self.controller)
+        self.thread_update = UpdateSelectedApps()
         self.thread_update.signal_output.connect(self._update_action_output)
         self.thread_update.signal_finished.connect(self._finish_update_selected)
 
-        self.thread_refresh = RefreshApps(self.controller)
+        self.thread_refresh = RefreshApps(self.manager)
         self.thread_refresh.signal.connect(self._finish_refresh)
 
-        self.thread_uninstall = UninstallApp(self.controller)
+        self.thread_uninstall = UninstallApp()
         self.thread_uninstall.signal_output.connect(self._update_action_output)
         self.thread_uninstall.signal_finished.connect(self._finish_uninstall)
 
-        self.thread_downgrade = DowngradeApp(self.manager)
+        self.thread_downgrade = DowngradeApp(self.manager, self.locale_keys)
         self.thread_downgrade.signal_output.connect(self._update_action_output)
         self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
 
@@ -148,7 +147,7 @@ class ManageWindow(QWidget):
 
     def _check_flatpak_installed(self):
 
-        if not self.controller.check_installed():
+        if not flatpak.is_installed():
             dialog.show_error(title=self.locale_keys['popup.flatpak_not_installed.title'],
                               body=self.locale_keys['popup.flatpak_not_installed.msg'] + '...',
                               icon=self.icon_flathub)
@@ -158,7 +157,7 @@ class ManageWindow(QWidget):
             self.label_flatpak.setText(self._get_flatpak_label())
 
     def _get_flatpak_label(self):
-        return 'flatpak: ' + self.controller.get_version()
+        return 'flatpak: ' + flatpak.get_version()
 
     def _acquire_lock(self):
 
@@ -191,9 +190,9 @@ class ManageWindow(QWidget):
 
             self.thread_refresh.start()
 
-    def _finish_refresh(self):
+    def _finish_refresh(self, apps: List[dict]):
 
-        self.update_apps(self.thread_refresh.apps)
+        self.update_apps(apps)
         self.finish_action()
         self._release_lock()
 
@@ -337,7 +336,7 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(True)
         self.label_status.setText('')
 
-    def downgrade_app(self, app_ref: str):
+    def downgrade_app(self, app: dict):
 
         self._check_flatpak_installed()
 
@@ -356,7 +355,7 @@ class ManageWindow(QWidget):
             self.textarea_output.setVisible(True)
             self._begin_action(self.locale_keys['manage_window.status.downgrading'])
 
-            self.thread_downgrade.app_ref = app_ref
+            self.thread_downgrade.app = app
             self.thread_downgrade.root_password = pwd
             self.thread_downgrade.start()
 
@@ -391,116 +390,3 @@ class ManageWindow(QWidget):
 
         dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
         dialog_history.exec_()
-
-
-# Threaded actions
-class UpdateSelectedApps(QThread):
-
-    signal_finished = pyqtSignal()
-    signal_output = pyqtSignal(str)
-
-    def __init__(self, controller: FlatpakController):
-        super(UpdateSelectedApps, self).__init__()
-        self.controller = controller
-        self.refs_to_update = []
-
-    def run(self):
-
-        for app_ref in self.refs_to_update:
-            for output in self.controller.update(app_ref):
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
-
-        self.signal_finished.emit()
-
-
-class RefreshApps(QThread):
-
-    signal = pyqtSignal()
-
-    def __init__(self, controller: FlatpakController):
-        super(RefreshApps, self).__init__()
-        self.controller = controller
-        self.apps = None
-
-    def run(self):
-        self.apps = self.controller.refresh()
-        self.signal.emit()
-
-
-class UninstallApp(QThread):
-    signal_finished = pyqtSignal()
-    signal_output = pyqtSignal(str)
-
-    def __init__(self, controller: FlatpakController):
-        super(UninstallApp, self).__init__()
-        self.controller = controller
-        self.app_ref = None
-
-    def run(self):
-        if self.app_ref:
-            for output in self.controller.uninstall(self.app_ref):
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
-
-            self.signal_finished.emit()
-
-
-class DowngradeApp(QThread):
-    signal_finished = pyqtSignal()
-    signal_output = pyqtSignal(str)
-
-    def __init__(self, manager: FlatpakManager):
-        super(DowngradeApp, self).__init__()
-        self.manager = manager
-        self.app_ref = None
-        self.root_password = None
-
-    def run(self):
-        if self.app_ref:
-            try:
-                for output in self.manager.downgrade_app(self.app_ref, self.root_password):
-                    line = output.decode().strip()
-                    if line:
-                        self.signal_output.emit(line)
-
-            except ImpossibleDowngradeException:
-                dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
-                                  body=self.locale_keys['popup.downgrade.impossible.body'],
-                                  icon=self.icon_flathub)
-
-            self.app_ref = None
-            self.root_password = None
-            self.signal_finished.emit()
-
-
-class GetAppInfo(QThread):
-    signal_finished = pyqtSignal(dict)
-
-    def __init__(self):
-        super(GetAppInfo, self).__init__()
-        self.app = None
-
-    def run(self):
-        if self.app:
-            app_info = flatpak.get_app_info_fields(self.app['model']['id'], self.app['model']['branch'])
-            app_info['name'] = self.app['model']['name']
-            app_info['type'] = 'runtime' if self.app['model']['runtime'] else 'app'
-            self.signal_finished.emit(app_info)
-            self.app = None
-
-
-class GetAppHistory(QThread):
-    signal_finished = pyqtSignal(dict)
-
-    def __init__(self):
-        super(GetAppHistory, self).__init__()
-        self.app = None
-
-    def run(self):
-        if self.app:
-            commits = flatpak.get_app_commits_data(self.app['model']['ref'], self.app['model']['origin'])
-            self.signal_finished.emit({'model': self.app['model'], 'commits': commits})
-            self.app = None

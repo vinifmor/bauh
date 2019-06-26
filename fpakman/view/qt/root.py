@@ -1,3 +1,4 @@
+import io
 import os
 import subprocess
 
@@ -32,8 +33,13 @@ def ask_root_password(locale_keys: dict):
 
 
 def validate_password(password: str) -> bool:
-    f = os.popen('echo {} | sudo -S whoami'.format(password))
-    res = f.read()
-    f.close()
+    proc = subprocess.Popen('echo {} | sudo -S whoami'.format(password),
+                            shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL,
+                            bufsize=-1)
+    stream = os._wrap_close(io.TextIOWrapper(proc.stdout), proc)
+    res = stream.read()
+    stream.close()
 
     return bool(res.strip())

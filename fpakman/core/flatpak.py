@@ -66,6 +66,11 @@ def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_
     return data
 
 
+def is_installed():
+    version = get_version()
+    return False if version is None else True
+
+
 def get_version():
     res = system.run_cmd('{} --version'.format(BASE_CMD))
     return res.split(' ')[1].strip() if res else None
@@ -84,10 +89,6 @@ def list_installed() -> List[dict]:
         return [app_str_to_json(line, version) for line in app_lines if line]
 
     return []
-
-
-def update(app_ref: str) -> bool:
-    return bool(system.run_cmd('{} update -y {}'.format(BASE_CMD, app_ref)))
 
 
 def update_and_stream(app_ref: str):

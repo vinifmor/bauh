@@ -1,14 +1,12 @@
-import json
 from typing import List
 
-from PyQt5.QtCore import Qt, QUrl, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QColor, QCursor
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QMessageBox, QHeaderView, QDialog, QLineEdit, QVBoxLayout, QPlainTextEdit
+    QHeaderView
 
-from fpakman.core import resource, flatpak
-from fpakman.core.controller import FlatpakController
+from fpakman.core import resource
 from fpakman.view.qt import dialog
 
 
@@ -36,10 +34,9 @@ class UpdateToggleButton(QToolButton):
 
 class AppsTable(QTableWidget):
 
-    def __init__(self, parent: QWidget, controller: FlatpakController, columns: List[str]):
+    def __init__(self, parent: QWidget, columns: List[str]):
         super(AppsTable, self).__init__()
         self.parent = parent
-        self.controller = controller
         self.columns = columns
         self.setColumnCount(len(columns))
         self.setFocusPolicy(Qt.NoFocus)
@@ -105,7 +102,7 @@ class AppsTable(QTableWidget):
         if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade'],
                                    body=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app['model']['name']),
                                    locale_keys=self.parent.locale_keys):
-            self.parent.downgrade_app(selected_app['model']['ref'])
+            self.parent.downgrade_app(selected_app)
 
     def _get_app_info(self):
         self.parent.get_app_info(self.get_selected_app())

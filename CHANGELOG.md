@@ -10,11 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Allows app uninstall and downgrade by right clicking it.
 
 ### Improvements
+- Performance and memory usage
 - Adding tooltips to toolbar buttons
 - "Update ?" column renamed to "Upgrade ?"
 - Management panel title renamed
 - Showing runtime apps when no app is available
-- Allowing to specify a custom app translation with the environment variable FPAKMAN_LOCALE
+- Allowing to specify a custom app translation with the environment variable **FPAKMAN_LOCALE**
+- Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
+- Retrieving only the installed applications data from the origin API.
 
 ## [0.2.1] - 2019-06-24
 ### Features
