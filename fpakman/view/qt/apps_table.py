@@ -53,6 +53,8 @@ class AppsTable(QTableWidget):
         self.icon_cache = {}
 
     def contextMenuEvent(self, QContextMenuEvent):  # selected row right click event
+        napps = len([app for app in self.parent.apps if not app['model']['runtime']])
+
         menu_row = QMenu()
 
         action_info = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.info"])
@@ -65,14 +67,15 @@ class AppsTable(QTableWidget):
         action_history.triggered.connect(self._get_app_history)
         menu_row.addAction(action_history)
 
+        app = self.get_selected_app()
+
         action_uninstall = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.uninstall"])
         action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
         action_uninstall.triggered.connect(self._uninstall_app)
+        action_uninstall.setEnabled(not napps or not app['model']['runtime'])  # only enabled for runtimes when no apps are available
         menu_row.addAction(action_uninstall)
 
-        app = self.get_selected_app()
-
-        if not app['model']['runtime']:  # downgrade only allowed for apps
+        if not app['model']['runtime']:  # not available for runtimes
             action_downgrade = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.downgrade"])
             action_downgrade.triggered.connect(self._downgrade_app)
             action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
