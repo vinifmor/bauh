@@ -121,7 +121,7 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
-        self.label_updates.setStyleSheet("color: red; font-weight: bold")
+        self.label_updates.setStyleSheet("color: red;")
         self.toolbar_bottom.addWidget(self.label_updates)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)

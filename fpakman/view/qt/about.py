@@ -71,6 +71,7 @@ class AboutDialog(QDialog):
         layout.addWidget(QLabel(''))
 
         self.adjustSize()
+        self.setFixedSize(self.size())
 
     def closeEvent(self, event):
         event.ignore()
