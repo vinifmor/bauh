@@ -3,10 +3,10 @@ Non-official graphical user interface for Flatpak application management. It is 
 an application management panel.
 
 ### Developed with:
-- Python3 and QT 5.
+- Python3 and Qt5.
 
 ### Requirements
-- libappindicator3 (for GTK3 desktop environments)
+- libappindicator3 ( for GTK3 desktop environments )
 #### Debian-based distros
 - python3-venv
 #### Arch-based distros
@@ -36,7 +36,7 @@ env/bin/fpakman
 ```
 
 ### Autostart
-In order to autostart the application, use your Desktop Environment settings to register it as startup script ("fpakman").
+In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script ("fpakman").
 (P.S: the installation script currently does not do that)
 
 ### Settings
