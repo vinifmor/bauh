@@ -14,7 +14,7 @@ class UpdateToggleButton(QToolButton):
 
     def __init__(self, model: dict, root: QWidget, locale_keys: dict, checked: bool = True):
         super(UpdateToggleButton, self).__init__()
-        self.model = model
+        self.app = model
         self.root = root
         self.setCheckable(True)
         self.clicked.connect(self.change_state)
@@ -28,7 +28,7 @@ class UpdateToggleButton(QToolButton):
             self.click()
 
     def change_state(self, not_checked: bool):
-        self.model['update_checked'] = not not_checked
+        self.app['update_checked'] = not not_checked
         self.setIcon(self.icon_on if not not_checked else self.icon_off)
         self.root.change_update_state()
 
@@ -184,7 +184,7 @@ class AppsTable(QTableWidget):
                 col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.setItem(idx, 6, col_origin)
 
-                col_update = UpdateToggleButton(app['model'], self.parent, self.parent.locale_keys, app['model']['update']) if app['model']['update'] else None
+                col_update = UpdateToggleButton(app, self.parent, self.parent.locale_keys, app['model']['update']) if app['model']['update'] else None
                 self.setCellWidget(idx, 7, col_update)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):

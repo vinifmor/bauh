@@ -385,12 +385,13 @@ class ManageWindow(QWidget):
     def _finish_get_info(self, app_info: dict):
         self._release_lock()
         self.finish_action()
+        self.change_update_state()
         dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys)
         dialog_info.exec_()
 
     def _finish_get_history(self, app: dict):
         self._release_lock()
         self.finish_action()
-
+        self.change_update_state()
         dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
         dialog_history.exec_()
