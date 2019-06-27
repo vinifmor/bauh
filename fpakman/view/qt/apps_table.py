@@ -35,16 +35,24 @@ class UpdateToggleButton(QToolButton):
 
 class AppsTable(QTableWidget):
 
-    def __init__(self, parent: QWidget, columns: List[str]):
+    def __init__(self, parent: QWidget):
         super(AppsTable, self).__init__()
-        self.parent = parent
-        self.columns = columns
-        self.setColumnCount(len(columns))
+        self.setParent(parent)
+        self.window = parent
+        self.column_names = [parent.locale_keys[key].capitalize() for key in ['flatpak.info.name',
+                                                                              'flatpak.info.version',
+                                                                              'manage_window.columns.latest_version',
+                                                                              'flatpak.info.branch',
+                                                                              'flatpak.info.arch',
+                                                                              'flatpak.info.ref',
+                                                                              'flatpak.info.origin',
+                                                                              'manage_window.columns.update']]
+        self.setColumnCount(len(self.column_names))
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.setSelectionBehavior(QTableView.SelectRows)
-        self.setHorizontalHeaderLabels(columns)
+        self.setHorizontalHeaderLabels(self.column_names)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
 
@@ -54,30 +62,30 @@ class AppsTable(QTableWidget):
         self.icon_cache = {}
 
     def contextMenuEvent(self, QContextMenuEvent):  # selected row right click event
-        napps = len([app for app in self.parent.apps if not app['model']['runtime']])
+        napps = len([app for app in self.window.apps if not app['model']['runtime']])
 
         menu_row = QMenu()
 
-        action_info = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.info"])
+        action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
         action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
         action_info.triggered.connect(self._get_app_info)
         menu_row.addAction(action_info)
 
-        action_history = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.history"])
+        action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
         action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
         action_history.triggered.connect(self._get_app_history)
         menu_row.addAction(action_history)
 
         app = self.get_selected_app()
 
-        action_uninstall = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.uninstall"])
+        action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
         action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
         action_uninstall.triggered.connect(self._uninstall_app)
         action_uninstall.setEnabled(not napps or not app['model']['runtime'])  # only enabled for runtimes when no apps are available
         menu_row.addAction(action_uninstall)
 
         if not app['model']['runtime']:  # not available for runtimes
-            action_downgrade = QAction(self.parent.locale_keys["manage_window.apps_table.row.actions.downgrade"])
+            action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
             action_downgrade.triggered.connect(self._downgrade_app)
             action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
             menu_row.addAction(action_downgrade)
@@ -87,7 +95,7 @@ class AppsTable(QTableWidget):
         menu_row.exec_()
 
     def get_selected_app(self):
-        return self.parent.apps[self.currentRow()]
+        return self.window.apps[self.currentRow()]
 
     def get_selected_app_icon(self):
         return self.item(self.currentRow(), 0).icon()
@@ -95,24 +103,24 @@ class AppsTable(QTableWidget):
     def _uninstall_app(self):
         selected_app = self.get_selected_app()
 
-        if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self.parent.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app['model']['name']),
-                                   locale_keys=self.parent.locale_keys):
-            self.parent.uninstall_app(selected_app['model']['ref'])
+        if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
+                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app['model']['name']),
+                                   locale_keys=self.window.locale_keys):
+            self.window.uninstall_app(selected_app['model']['ref'])
 
     def _downgrade_app(self):
         selected_app = self.get_selected_app()
 
-        if dialog.ask_confirmation(title=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade'],
-                                   body=self.parent.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app['model']['name']),
-                                   locale_keys=self.parent.locale_keys):
-            self.parent.downgrade_app(selected_app)
+        if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade'],
+                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app['model']['name']),
+                                   locale_keys=self.window.locale_keys):
+            self.window.downgrade_app(selected_app)
 
     def _get_app_info(self):
-        self.parent.get_app_info(self.get_selected_app())
+        self.window.get_app_info(self.get_selected_app())
 
     def _get_app_history(self):
-        self.parent.get_app_history(self.get_selected_app())
+        self.window.get_app_history(self.get_selected_app())
 
     def _load_icon(self, http_response):
         icon_url = http_response.url().toString()
@@ -121,10 +129,10 @@ class AppsTable(QTableWidget):
         icon = QIcon(pixmap)
         self.icon_cache[icon_url] = icon
 
-        for idx, app in enumerate(self.parent.apps):
+        for idx, app in enumerate(self.window.apps):
             if app['model']['icon'] == icon_url:
                 self.item(idx, 0).setIcon(icon)
-                self.parent.resize_and_center()
+                self.window.resize_and_center()
                 break
 
     def update_apps(self, apps: List[dict]):
@@ -184,10 +192,10 @@ class AppsTable(QTableWidget):
                 col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.setItem(idx, 6, col_origin)
 
-                col_update = UpdateToggleButton(app, self.parent, self.parent.locale_keys, app['model']['update']) if app['model']['update'] else None
+                col_update = UpdateToggleButton(app, self.window, self.window.locale_keys, app['model']['update']) if app['model']['update'] else None
                 self.setCellWidget(idx, 7, col_update)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()
-        for i in range(0, len(self.columns)):
+        for i in range(self.columnCount()):
             header_horizontal.setSectionResizeMode(i, policy)

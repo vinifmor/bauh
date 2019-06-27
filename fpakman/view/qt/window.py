@@ -26,14 +26,6 @@ class ManageWindow(QWidget):
     def __init__(self, locale_keys: dict, manager: FlatpakManager, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
-        self.column_names = [locale_keys[key].capitalize() for key in ['flatpak.info.name',
-                                                                       'flatpak.info.version',
-                                                                       'manage_window.columns.latest_version',
-                                                                       'flatpak.info.branch',
-                                                                       'flatpak.info.arch',
-                                                                       'flatpak.info.ref',
-                                                                       'flatpak.info.origin',
-                                                                       'manage_window.columns.update']]
         self.manager = manager
         self.tray_icon = tray_icon
         self.thread_lock = Lock()
@@ -86,7 +78,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(toolbar)
 
-        self.table_apps = AppsTable(self, self.column_names)
+        self.table_apps = AppsTable(self)
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -300,7 +292,7 @@ class ManageWindow(QWidget):
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.column_names))]) * 1.05
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
