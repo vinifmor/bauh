@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from fpakman.core.controller import FlatpakManager
 
 from fpakman.core import resource
+from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 
 
@@ -44,16 +45,24 @@ class TrayIcon(QSystemTrayIcon):
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
+
         self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
+
+        self.action_about = self.menu.addAction(self.locale_keys['tray.action.about'])
+        self.action_about.triggered.connect(self.show_about)
+
         self.action_exit = self.menu.addAction(self.locale_keys['tray.action.exit'])
         self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
+
         self.setContextMenu(self.menu)
 
         self.manage_window = ManageWindow(locale_keys=self.locale_keys, manager=self.manager, tray_icon=self)
         self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
+
+        self.dialog_about = AboutDialog(self.locale_keys)
 
     def notify_updates(self, updates: int):
         if updates > 0:
@@ -82,3 +91,8 @@ class TrayIcon(QSystemTrayIcon):
 
         self.manage_window.refresh()
         self.manage_window.show()
+
+    def show_about(self):
+
+        if self.dialog_about.isHidden():
+            self.dialog_about.show()

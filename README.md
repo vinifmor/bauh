@@ -23,6 +23,7 @@ sudo pip3 install fpakman
 ```
 
 **AUR**
+
 As **fpakman** package. There is also a staging version (**fpakman-staging**) but is intended for testing and may not work properly.
 
 

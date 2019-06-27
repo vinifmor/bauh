@@ -12,7 +12,7 @@ from fpakman.view.qt import dialog
 
 class UpdateToggleButton(QToolButton):
 
-    def __init__(self, model: dict, root: QWidget, checked: bool = True):
+    def __init__(self, model: dict, root: QWidget, locale_keys: dict, checked: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.model = model
         self.root = root
@@ -22,6 +22,7 @@ class UpdateToggleButton(QToolButton):
         self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
         self.setIcon(self.icon_on)
         self.setStyleSheet('border: 0px;')
+        self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
 
         if not checked:
             self.click()
@@ -183,7 +184,7 @@ class AppsTable(QTableWidget):
                 col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.setItem(idx, 6, col_origin)
 
-                col_update = UpdateToggleButton(app['model'], self.parent, app['model']['update']) if app['model']['update'] else None
+                col_update = UpdateToggleButton(app['model'], self.parent, self.parent.locale_keys, app['model']['update']) if app['model']['update'] else None
                 self.setCellWidget(idx, 7, col_update)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):

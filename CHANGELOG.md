@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - Allows to retrieve app information and history by right clicking it.
 - Allows app uninstall and downgrade by right clicking it.
+- "About" window available when right-clicking the tray icon.
 
 ### Improvements
 - Performance and memory usage
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Allowing to specify a custom app translation with the environment variable **FPAKMAN_LOCALE**
 - Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
 - Retrieving only the installed applications data from the origin API.
+- Minor GUI improvements
 
 ## [0.2.1] - 2019-06-24
 ### Features

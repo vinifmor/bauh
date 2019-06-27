@@ -8,7 +8,6 @@ from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit
 
-from fpakman import __version__
 from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakManager
 from fpakman.view.qt import dialog
@@ -45,7 +44,7 @@ class ManageWindow(QWidget):
         self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
         self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
-        self.setWindowTitle('{} ({})'.format(locale_keys['manage_window.title'], __version__))
+        self.setWindowTitle(locale_keys['manage_window.title'])
         self.setWindowIcon(self.icon_flathub)
 
         self.layout = QVBoxLayout()
@@ -122,6 +121,7 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
+        self.label_updates.setStyleSheet("color: red; font-weight: bold")
         self.toolbar_bottom.addWidget(self.label_updates)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -247,7 +247,11 @@ class ManageWindow(QWidget):
 
         total_updates = app_updates + runtime_updates
         if total_updates > 0:
-            self.label_updates.setText('{}: {} ( {} apps | {} runtimes )'.format(self.locale_keys['manage_window.label.updates'], total_updates, app_updates, runtime_updates))
+            self.label_updates.setText('{}: {} ( {} {} | {} runtimes )'.format(self.locale_keys['manage_window.label.updates'],
+                                                                               total_updates,
+                                                                               app_updates,
+                                                                               self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                               runtime_updates))
         else:
             self.label_updates.setText('')
 
