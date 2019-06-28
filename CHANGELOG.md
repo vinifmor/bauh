@@ -6,8 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.3.0] - 2019-06-XX
 ### Features
-- Allows to retrieve app information and history by right clicking it.
-- Allows app uninstall and downgrade by right clicking it.
+- Applications search
+- Now when you right-click a selected application you can:
+    - retrieve its information
+    - retrieve its commit history
+    - downgrade
+    - install it
 - "About" window available when right-clicking the tray icon.
 
 ### Improvements
@@ -18,7 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Showing runtime apps when no app is available
 - Allowing to specify a custom app translation with the environment variable **FPAKMAN_LOCALE**
 - Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
-- Retrieving only the installed applications data from the origin API.
 - Minor GUI improvements
 
 ## [0.2.1] - 2019-06-24

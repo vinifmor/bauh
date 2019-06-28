@@ -6,7 +6,7 @@ from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView
 
-from fpakman.core import resource
+from fpakman.core import resource, util
 from fpakman.view.qt import dialog
 
 
@@ -44,8 +44,9 @@ class AppsTable(QTableWidget):
                                                                               'manage_window.columns.latest_version',
                                                                               'flatpak.info.branch',
                                                                               'flatpak.info.arch',
-                                                                              'flatpak.info.ref',
+                                                                              'flatpak.info.id',
                                                                               'flatpak.info.origin',
+                                                                              'manage_window.columns.installed',
                                                                               'manage_window.columns.update']]
         self.setColumnCount(len(self.column_names))
         self.setFocusPolicy(Qt.NoFocus)
@@ -62,33 +63,40 @@ class AppsTable(QTableWidget):
         self.icon_cache = {}
 
     def contextMenuEvent(self, QContextMenuEvent):  # selected row right click event
-        napps = len([app for app in self.window.apps if not app['model']['runtime']])
-
-        menu_row = QMenu()
-
-        action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
-        action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
-        action_info.triggered.connect(self._get_app_info)
-        menu_row.addAction(action_info)
-
-        action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
-        action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
-        action_history.triggered.connect(self._get_app_history)
-        menu_row.addAction(action_history)
 
         app = self.get_selected_app()
 
-        action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
-        action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
-        action_uninstall.triggered.connect(self._uninstall_app)
-        action_uninstall.setEnabled(not napps or not app['model']['runtime'])  # only enabled for runtimes when no apps are available
-        menu_row.addAction(action_uninstall)
+        menu_row = QMenu()
 
-        if not app['model']['runtime']:  # not available for runtimes
-            action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
-            action_downgrade.triggered.connect(self._downgrade_app)
-            action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
-            menu_row.addAction(action_downgrade)
+        if app['model']['installed']:
+            napps = len([app for app in self.window.apps if not app['model']['runtime']])
+
+            action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
+            action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
+            action_info.triggered.connect(self._get_app_info)
+            menu_row.addAction(action_info)
+
+            action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
+            action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
+            action_history.triggered.connect(self._get_app_history)
+            menu_row.addAction(action_history)
+
+            action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
+            action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
+            action_uninstall.triggered.connect(self._uninstall_app)
+            action_uninstall.setEnabled(not napps or not app['model']['runtime'])  # only enabled for runtimes when no apps are available
+            menu_row.addAction(action_uninstall)
+
+            if not app['model']['runtime']:  # not available for runtimes
+                action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
+                action_downgrade.triggered.connect(self._downgrade_app)
+                action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
+                menu_row.addAction(action_downgrade)
+        else:
+            action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
+            action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
+            action_install.triggered.connect(self._install_app)
+            menu_row.addAction(action_install)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
@@ -122,6 +130,9 @@ class AppsTable(QTableWidget):
     def _get_app_history(self):
         self.window.get_app_history(self.get_selected_app())
 
+    def _install_app(self):
+        self.window.install_app(self.get_selected_app())
+
     def _load_icon(self, http_response):
         icon_url = http_response.url().toString()
         pixmap = QPixmap()
@@ -142,9 +153,12 @@ class AppsTable(QTableWidget):
         if apps:
             for idx, app in enumerate(apps):
 
+                tooltip = util.strip_html(app['model']['description']) if app['model']['description'] else None
+
                 col_name = QTableWidgetItem()
                 col_name.setText(app['model']['name'])
                 col_name.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_name.setToolTip(tooltip)
 
                 if not app['model']['icon']:
                     col_name.setIcon(self.icon_flathub)
@@ -162,11 +176,13 @@ class AppsTable(QTableWidget):
                 col_version = QTableWidgetItem()
                 col_version.setText(app['model']['version'])
                 col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_version.setToolTip(tooltip)
                 self.setItem(idx, 1, col_version)
 
                 col_release = QTableWidgetItem()
                 col_release.setText(app['model']['latest_version'])
                 col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_release.setToolTip(tooltip)
                 self.setItem(idx, 2, col_release)
 
                 if app['model']['version'] and app['model']['latest_version'] and app['model']['version'] < app['model']['latest_version']:
@@ -175,25 +191,38 @@ class AppsTable(QTableWidget):
                 col_branch = QTableWidgetItem()
                 col_branch.setText(app['model']['branch'])
                 col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_branch.setToolTip(tooltip)
                 self.setItem(idx, 3, col_branch)
 
                 col_arch = QTableWidgetItem()
                 col_arch.setText(app['model']['arch'])
                 col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_arch.setToolTip(tooltip)
                 self.setItem(idx, 4, col_arch)
 
-                col_package = QTableWidgetItem()
-                col_package.setText(app['model']['ref'])
-                col_package.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 5, col_package)
+                col_id = QTableWidgetItem()
+                col_id.setText(app['model']['id'])
+                col_id.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_id.setToolTip(tooltip)
+                self.setItem(idx, 5, col_id)
 
                 col_origin = QTableWidgetItem()
                 col_origin.setText(app['model']['origin'])
                 col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_origin.setToolTip(tooltip)
                 self.setItem(idx, 6, col_origin)
 
+                col_installed = QTableWidgetItem()
+                col_installed.setText(self.parent().locale_keys['yes'] if app['model']['installed'] else self.parent().locale_keys['no'])
+                col_installed.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                col_installed.setTextAlignment(Qt.AlignCenter)
+                col_installed.setToolTip(tooltip)
+                col_installed.setForeground(Qt.blue if app['model']['installed'] else Qt.red)
+
+                self.setItem(idx, 7, col_installed)
+
                 col_update = UpdateToggleButton(app, self.window, self.window.locale_keys, app['model']['update']) if app['model']['update'] else None
-                self.setCellWidget(idx, 7, col_update)
+                self.setCellWidget(idx, 8, col_update)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()

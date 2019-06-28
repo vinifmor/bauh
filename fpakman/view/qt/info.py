@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QGroupBox, \
-    QLineEdit, QLabel
+    QLineEdit, QLabel, QPlainTextEdit
 
 
 class InfoDialog(QDialog):
@@ -19,12 +19,17 @@ class InfoDialog(QDialog):
 
         for attr in sorted(app.keys()):
 
-            if attr != 'name':
-                text = QLineEdit()
-                text.setText(app[attr])
-                text.setStyleSheet("width: 400px")
+            if attr != 'name' and app[attr]:
+                if attr == 'description':
+                    text = QPlainTextEdit()
+                    text.appendHtml(app[attr])
+                else:
+                    text = QLineEdit()
+                    text.setText(app[attr])
+                    text.setCursorPosition(0)
+                    text.setStyleSheet("width: 400px")
+
                 text.setReadOnly(True)
-                text.setCursorPosition(0)
 
                 label = QLabel("{}: ".format(locale_keys.get('flatpak.info.' + attr, attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")

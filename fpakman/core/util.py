@@ -2,6 +2,9 @@ import locale
 
 from fpakman.core import resource
 import glob
+import re
+
+HTML_RE = re.compile(r'<[^>]+>')
 
 
 def get_locale_keys(key: str = None):
@@ -38,3 +41,7 @@ def get_locale_keys(key: str = None):
             locale_obj[keyval[0].strip()] = keyval[1].strip()
 
     return locale_obj
+
+
+def strip_html(string: str):
+    return HTML_RE.sub('', string)

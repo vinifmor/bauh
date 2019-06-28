@@ -97,6 +97,7 @@ class GetAppInfo(QThread):
             app_info = flatpak.get_app_info_fields(self.app['model']['id'], self.app['model']['branch'])
             app_info['name'] = self.app['model']['name']
             app_info['type'] = 'runtime' if self.app['model']['runtime'] else 'app'
+            app_info['description'] = self.app['model']['description']
             self.signal_finished.emit(app_info)
             self.app = None
 
@@ -113,3 +114,42 @@ class GetAppHistory(QThread):
             commits = flatpak.get_app_commits_data(self.app['model']['ref'], self.app['model']['origin'])
             self.signal_finished.emit({'model': self.app['model'], 'commits': commits})
             self.app = None
+
+
+class SearchApps(QThread):
+    signal_finished = pyqtSignal(list)
+
+    def __init__(self, manager: FlatpakManager):
+        super(SearchApps, self).__init__()
+        self.word = None
+        self.manager = manager
+
+    def run(self):
+        apps_found = []
+
+        if self.word:
+            apps_found = self.manager.search(self.word)
+
+        self.signal_finished.emit(apps_found)
+        self.word = None
+
+
+class InstallApp(QThread):
+
+    signal_finished = pyqtSignal()
+    signal_output = pyqtSignal(str)
+
+    def __init__(self):
+        super(InstallApp, self).__init__()
+        self.app = None
+
+    def run(self):
+
+        if self.app:
+            for output in flatpak.install_and_stream(self.app['model']['id'], self.app['model']['origin']):
+                line = output.decode().strip()
+                if line:
+                    self.signal_output.emit(line)
+
+        self.app = None
+        self.signal_finished.emit()

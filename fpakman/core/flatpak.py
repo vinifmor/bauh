@@ -147,3 +147,67 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
             commit = {}
 
     return commits
+
+
+def search(word: str) -> List[dict]:
+    cli_version = get_version()
+
+    res = system.run_cmd('{} search {}'.format(BASE_CMD, word))
+
+    found = []
+
+    split_res = res.split('\n')
+
+    if split_res and split_res[0].lower() != 'no matches found':
+        for info in split_res:
+            if info:
+                info_list = info.split('\t')
+
+                if cli_version >= '1.3.0':
+                    version = info_list[3].strip()
+                    found.append({
+                        'name': info_list[0].strip(),
+                        'description': info_list[1].strip(),
+                        'id': info_list[2].strip(),
+                        'version': version,
+                        'latest_version': version,
+                        'branch': info_list[4].strip(),
+                        'origin': info_list[5].strip(),
+                        'runtime': False,
+                        'arch': None,  # unknown at this moment,
+                        'ref': None  # unknown at this moment
+                    })
+                elif cli_version >= '1.2.0':
+                    desc = info_list[0].split('-')
+                    version = info_list[2].strip()
+                    found.append({
+                        'name': desc[0].strip(),
+                        'description': desc[1].strip(),
+                        'id': info_list[1].strip(),
+                        'version': version,
+                        'latest_version': version,
+                        'branch': info_list[3].strip(),
+                        'origin': info_list[4].strip(),
+                        'runtime': False,
+                        'arch': None,  # unknown at this moment,
+                        'ref': None  # unknown at this moment
+                    })
+                else:
+                    version = info_list[1].strip()
+                    found.append({
+                        'name': '',
+                        'description': info_list[4].strip(),
+                        'id': info_list[0].strip(),
+                        'version': version,
+                        'latest_version': version,
+                        'branch': info_list[2].strip(),
+                        'origin': info_list[3].strip(),
+                        'runtime': False,
+                        'arch': None,  # unknown at this moment,
+                        'ref': None  # unknown at this moment
+                    })
+    return found
+
+
+def install_and_stream(app_id: str, origin: str):
+    return system.stream_cmd([BASE_CMD, 'install', origin, app_id, '-y'])

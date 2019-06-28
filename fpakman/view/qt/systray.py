@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from fpakman.core.controller import FlatpakManager
 
-from fpakman.core import resource
+from fpakman.core import resource, system
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 
@@ -33,6 +33,19 @@ class UpdateCheck(QThread):
             time.sleep(self.check_interval)
 
 
+class LoadDatabase(QThread):
+
+    signal_finished = pyqtSignal()
+
+    def __init__(self, manager: FlatpakManager, parent=None):
+        super(LoadDatabase, self).__init__(parent)
+        self.manager = manager
+
+    def run(self):
+        self.manager.load_full_database()
+        self.signal_finished.emit()
+
+
 class TrayIcon(QSystemTrayIcon):
 
     def __init__(self, locale_keys: dict, manager: FlatpakManager, check_interval: int = 60):
@@ -46,8 +59,12 @@ class TrayIcon(QSystemTrayIcon):
 
         self.menu = QMenu()
 
+        self.action_refreshing = self.menu.addAction(self.locale_keys['tray.action.refreshing'] + '...')
+        self.action_refreshing.setEnabled(False)
+
         self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
+        self.action_manage.setVisible(False)
 
         self.action_about = self.menu.addAction(self.locale_keys['tray.action.about'])
         self.action_about.triggered.connect(self.show_about)
@@ -64,6 +81,16 @@ class TrayIcon(QSystemTrayIcon):
 
         self.dialog_about = AboutDialog(self.locale_keys)
 
+        self.thread_database = LoadDatabase(manager)
+        self.thread_database.signal_finished.connect(self._update_menu)
+
+    def load_database(self):
+        self.thread_database.start()
+
+    def _update_menu(self):
+        self.action_refreshing.setVisible(False)
+        self.action_manage.setVisible(True)
+
     def notify_updates(self, updates: int):
         if updates > 0:
             if self.icon().cacheKey() != self.icon_update.cacheKey():
@@ -72,11 +99,7 @@ class TrayIcon(QSystemTrayIcon):
                 msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], updates)
                 self.setToolTip(msg)
 
-                if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
-                    os.system("notify-send -i {} '{}'".format(resource.get_path('img/flathub_45.svg'), msg))
-
-                if self.manage_window:
-                    self.manage_window.refresh()
+                system.notify_user(msg)
 
         else:
             self.setIcon(self.icon_default)

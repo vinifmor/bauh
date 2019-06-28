@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from threading import Lock, Thread
+from threading import Lock
 from typing import List
 
 import requests
@@ -19,17 +19,12 @@ class FlatpakManager:
         self.lock_db_read = Lock()
         self.lock_read = Lock()
 
-    # TODO remove if not necessary for future releases
-    def load_full_database_async(self):
-        Thread(target=self.load_full_database, daemon=True).start()
-
-    # TODO remove if not necessary for future releases
     def load_full_database(self):
 
         self.lock_db_read.acquire()
 
         try:
-            res = self.http_session.get(__FLATHUB_API_URL__ + '/apps')
+            res = self.http_session.get(__FLATHUB_API_URL__ + '/apps', timeout=30)
 
             if res.status_code == 200:
                 for app in res.json():
@@ -40,7 +35,7 @@ class FlatpakManager:
     def _request_app_data(self, app_id: str):
 
         try:
-            res = self.http_session.get('{}/apps/{}'.format(__FLATHUB_API_URL__, app_id), timeout=60)
+            res = self.http_session.get('{}/apps/{}'.format(__FLATHUB_API_URL__, app_id), timeout=30)
 
             if res.status_code == 200:
                 return res.json()
@@ -49,6 +44,58 @@ class FlatpakManager:
         except:
             print("Could not retrieve app data for id '{}'. Timeout".format(app_id))
             return None
+
+    def _fill_api_data(self, app: dict):
+
+        api_data = self.cache_apps.get(app['id'])
+
+        if (not app['runtime'] and not api_data) or (api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()):  # if api data is not cached or expired, tries to retrieve it
+            api_data = self._request_app_data(app['id'])
+
+            if api_data:
+                api_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
+                self.cache_apps[app['id']] = api_data
+
+        if not api_data:
+            for attr in ('latest_version', 'icon', 'description'):
+                if attr not in app:
+                    app[attr] = None
+        else:
+            app['latest_version'] = api_data.get('currentReleaseVersion')
+            app['icon'] = api_data.get('iconMobileUrl')
+
+            for attr in ('name', 'description'):
+                if not app.get(attr):
+                    app[attr] = api_data.get(attr)
+
+            if app['icon'].startswith('/'):
+                app['icon'] = __FLATHUB_URL__ + app['icon']
+
+    def search(self, word: str) -> List[dict]:
+
+        res = []
+        apps_found = flatpak.search(word)
+
+        if apps_found:
+
+            already_read = set()
+            installed_apps = self.read_installed()
+
+            if installed_apps:
+                for app in apps_found:
+                    for installed_app in installed_apps:
+                        if app['id'] == installed_app['id']:
+                            res.append(installed_app)
+                            already_read.add(app['id'])
+
+            for app in apps_found:
+                if app['id'] not in already_read:
+                    app['update'] = False
+                    app['installed'] = False
+                    self._fill_api_data(app)
+                    res.append(app)
+
+        return res
 
     def read_installed(self) -> List[dict]:
 
@@ -63,25 +110,9 @@ class FlatpakManager:
                 available_updates = flatpak.list_updates_as_str()
 
                 for app in installed:
-
-                    app_data = self.cache_apps.get(app['id'])
-
-                    if (not app['runtime'] and not app_data) or (app_data and app_data['expires_at'] <= datetime.utcnow()):  # if data is not cached or expired, tries to retrieve it
-                        app_data = self._request_app_data(app['id'])
-                        app_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
-                        self.cache_apps[app['id']] = app_data
-
-                    if not app_data:
-                        app['latest_version'] = None
-                        app['icon'] = None
-                    else:
-                        app['latest_version'] = app_data['currentReleaseVersion']
-                        app['icon'] = app_data['iconMobileUrl']
-
-                        if app['icon'].startswith('/'):
-                            app['icon'] = __FLATHUB_URL__ + app['icon']
-
+                    self._fill_api_data(app)
                     app['update'] = app['id'] in available_updates
+                    app['installed'] = True
 
             return installed
 

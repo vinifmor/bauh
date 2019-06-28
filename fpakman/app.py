@@ -25,6 +25,7 @@ manager = FlatpakManager(cache_expire=int(os.getenv('FPAKMAN_CACHE_EXPIRATION', 
 trayIcon = TrayIcon(locale_keys=locale_keys,
                     manager=manager,
                     check_interval=int(os.getenv('FPAKMAN_CHECK_INTERVAL', 60)))
+trayIcon.load_database()
 trayIcon.show()
 
 sys.exit(app.exec_())

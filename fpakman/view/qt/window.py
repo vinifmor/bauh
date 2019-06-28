@@ -4,9 +4,9 @@ from threading import Lock
 from typing import List
 
 from PyQt5.QtCore import QEvent
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QPlainTextEdit
+    QSizePolicy, QLabel, QPlainTextEdit, QLineEdit
 
 from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakManager
@@ -16,7 +16,7 @@ from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory
+    GetAppHistory, SearchApps, InstallApp
 
 
 class ManageWindow(QWidget):
@@ -42,12 +42,43 @@ class ManageWindow(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
+        self.toolbar_search = QToolBar()
+        self.toolbar_search.setStyleSheet("spacing: 0px;")
+        self.toolbar_search.setContentsMargins(0, 0, 0, 0)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.toolbar_search.addWidget(spacer)
+
+        label_pre_search = QLabel()
+        label_pre_search.setStyleSheet("background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
+        self.toolbar_search.addWidget(label_pre_search)
+
+        self.input_search = QLineEdit()
+        self.input_search.setFrame(False)
+        self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder']+"...")
+        self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
+        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: grey; spacing: 0;}")
+        self.input_search.returnPressed.connect(self.search)
+        self.toolbar_search.addWidget(self.input_search)
+
+        label_pos_search = QLabel()
+        label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        label_pos_search.setStyleSheet("background: white; padding-right: 10px; border-top-right-radius: 5px; border-bottom-right-radius: 5px;")
+        self.toolbar_search.addWidget(label_pos_search)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar_search.addWidget(spacer)
+        self.layout.addWidget(self.toolbar_search)
+
+        toolbar = QToolBar()
+
         self.checkbox_only_apps = QCheckBox()
         self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self.filter_only_apps)
-
-        toolbar = QToolBar()
         toolbar.addWidget(self.checkbox_only_apps)
 
         spacer = QWidget()
@@ -56,7 +87,7 @@ class ManageWindow(QWidget):
 
         self.label_status = QLabel()
         self.label_status.setText('')
-        self.label_status.setStyleSheet("color: orange")
+        self.label_status.setStyleSheet("color: orange; font-weight: bold")
         toolbar.addWidget(self.label_status)
 
         spacer = QWidget()
@@ -110,6 +141,13 @@ class ManageWindow(QWidget):
 
         self.thread_get_history = GetAppHistory()
         self.thread_get_history.signal_finished.connect(self._finish_get_history)
+
+        self.thread_search = SearchApps(self.manager)
+        self.thread_search.signal_finished.connect(self._finish_search)
+
+        self.thread_install = InstallApp()
+        self.thread_install.signal_output.connect(self._update_action_output)
+        self.thread_install.signal_finished.connect(self._finish_install)
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
@@ -170,6 +208,14 @@ class ManageWindow(QWidget):
 
         self.thread_lock.release()
 
+    def _hide_output(self):
+        self.textarea_output.clear()
+        self.textarea_output.hide()
+
+    def _show_output(self):
+        self.textarea_output.clear()
+        self.textarea_output.show()
+
     def refresh(self, clear_output: bool = True):
 
         if self._acquire_lock():
@@ -177,8 +223,7 @@ class ManageWindow(QWidget):
             self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             if clear_output:
-                self.textarea_output.clear()
-                self.textarea_output.hide()
+                self._hide_output()
 
             self.thread_refresh.start()
 
@@ -321,16 +366,22 @@ class ManageWindow(QWidget):
 
     def _begin_action(self, action_label: str):
         self.label_status.setText(action_label + "...")
+        self.toolbar_search.setVisible(False)
         self.bt_upgrade.setEnabled(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
 
-    def finish_action(self):
+    def finish_action(self, clear_search: bool = True):
         self.bt_refresh.setEnabled(True)
+        self.toolbar_search.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)
+        self.input_search.setEnabled(True)
         self.label_status.setText('')
+
+        if clear_search:
+            self.input_search.setText('')
 
     def downgrade_app(self, app: dict):
 
@@ -387,3 +438,37 @@ class ManageWindow(QWidget):
         self.change_update_state()
         dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
         dialog_history.exec_()
+
+    def search(self):
+
+        word = self.input_search.text().strip()
+
+        if word and self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.searching'])
+            self.thread_search.word = word
+            self.thread_search.start()
+
+    def _finish_search(self, apps_found: List[dict]):
+
+        self._release_lock()
+        self.finish_action(clear_search=False)
+        self.update_apps(apps_found)
+
+    def install_app(self, app: dict):
+
+        self._check_flatpak_installed()
+
+        if self._acquire_lock():
+            self._begin_action(self.locale_keys['manage_window.status.installing'])
+            self._show_output()
+
+            self.thread_install.app = app
+            self.thread_install.start()
+
+    def _finish_install(self):
+        self.input_search.setText('')
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
