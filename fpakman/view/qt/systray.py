@@ -1,19 +1,19 @@
-import os
 import time
+from typing import List
 
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
-from fpakman.core.controller import FlatpakManager
 
 from fpakman.core import resource, system
+from fpakman.core.controller import FlatpakManager
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 
 
 class UpdateCheck(QThread):
 
-    signal = pyqtSignal(int)
+    signal = pyqtSignal(list)
 
     def __init__(self, manager: FlatpakManager, check_interval: int, parent=None):
         super(UpdateCheck, self).__init__(parent)
@@ -26,9 +26,10 @@ class UpdateCheck(QThread):
 
             apps = self.manager.read_installed()
 
-            updates = len([app for app in apps if app['update']])
+            updates = [app for app in apps if app['update']]
 
-            self.signal.emit(updates)
+            if updates:
+                self.signal.emit(updates)
 
             time.sleep(self.check_interval)
 
@@ -83,6 +84,7 @@ class TrayIcon(QSystemTrayIcon):
 
         self.thread_database = LoadDatabase(manager)
         self.thread_database.signal_finished.connect(self._update_menu)
+        self.last_updates = set()
 
     def load_database(self):
         self.thread_database.start()
@@ -91,19 +93,26 @@ class TrayIcon(QSystemTrayIcon):
         self.action_refreshing.setVisible(False)
         self.action_manage.setVisible(True)
 
-    def notify_updates(self, updates: int):
-        if updates > 0:
-            if self.icon().cacheKey() != self.icon_update.cacheKey():
-                self.setIcon(self.icon_update)
+    def notify_updates(self, updates: List[dict]):
 
-                msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], updates)
+        if len(updates) > 0:
+
+            update_keys = {'{}:{}'.format(app['id'], app['latest_version']) for app in updates}
+
+            new_icon = self.icon_update
+
+            if update_keys.difference(self.last_updates):
+                self.last_updates = update_keys
+                msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
                 self.setToolTip(msg)
-
                 system.notify_user(msg)
 
         else:
-            self.setIcon(self.icon_default)
+            new_icon = self.icon_default
             self.setToolTip(None)
+
+        if self.icon().cacheKey() != new_icon.cacheKey():  # changes the icon if needed
+            self.setIcon(new_icon)
 
     def show_manage_window(self):
 

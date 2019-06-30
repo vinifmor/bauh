@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Allowing to specify a custom app translation with the environment variable **FPAKMAN_LOCALE**
 - Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
 - Minor GUI improvements
+- Notifying only new updates
 
 ## [0.2.1] - 2019-06-24
 ### Features

@@ -297,8 +297,7 @@ class ManageWindow(QWidget):
                 break
 
         self.bt_upgrade.setEnabled(enable_bt_update)
-
-        self.tray_icon.notify_updates(total_updates)
+        self.tray_icon.notify_updates([app['model'] for app in self.apps if app['model']['update']])
 
     def centralize(self):
         geo = self.frameGeometry()
