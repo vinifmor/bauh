@@ -7,17 +7,41 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="45"
-   height="45"
-   viewBox="0 0 11.90625 11.90625"
+   width="48"
+   height="48"
+   viewBox="0 0 12.7 12.7"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="pak_update_green.svg">
+   sodipodi:docname="toggle_on_3.svg">
   <defs
-     id="defs2" />
+     id="defs2">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient66">
+      <stop
+         style="stop-color:#55d400;stop-opacity:1;"
+         offset="0"
+         id="stop62" />
+      <stop
+         style="stop-color:#55d400;stop-opacity:0;"
+         offset="1"
+         id="stop64" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient66"
+       id="linearGradient68"
+       x1="-210.35391"
+       y1="112.4323"
+       x2="-215.96657"
+       y2="126.86485"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.0666667,0,0,1.0666667,13.203967,-8.5111104)" />
+  </defs>
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,9 +49,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35"
-     inkscape:cx="802.85709"
-     inkscape:cy="-80.000008"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="367.14222"
+     inkscape:cy="20.785438"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -38,7 +62,7 @@
      fit-margin-right="0"
      fit-margin-bottom="0"
      inkscape:window-width="1366"
-     inkscape:window-height="739"
+     inkscape:window-height="703"
      inkscape:window-x="0"
      inkscape:window-y="260"
      inkscape:window-maximized="1" />
@@ -58,12 +82,12 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(198.05951,-115.76041)">
+     transform="translate(198.0595,-114.96666)">
     <circle
-       style="fill:#66ff00;stroke-width:0.04630494"
+       style="fill:url(#linearGradient68);fill-opacity:1;stroke-width:0.04939194"
        id="path10"
-       cx="-192.10638"
-       cy="121.71353"
-       r="5.953125" />
+       cx="-191.7095"
+       cy="121.31666"
+       r="6.3499999" />
   </g>
 </svg>

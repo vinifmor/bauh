@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QColor, QCursor
 from PyQt5.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView
+    QHeaderView, QLabel
 
 from fpakman.core import resource, util
 from fpakman.view.qt import dialog
@@ -212,14 +212,13 @@ class AppsTable(QTableWidget):
                 col_origin.setToolTip(tooltip)
                 self.setItem(idx, 6, col_origin)
 
-                col_installed = QTableWidgetItem()
+                col_installed = QLabel()
                 col_installed.setText(self.parent().locale_keys['yes'] if app['model']['installed'] else self.parent().locale_keys['no'])
-                col_installed.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                col_installed.setTextAlignment(Qt.AlignCenter)
                 col_installed.setToolTip(tooltip)
-                col_installed.setForeground(Qt.blue if app['model']['installed'] else Qt.red)
+                col_installed.setAlignment(Qt.AlignCenter)
+                col_installed.setStyleSheet("color: {}; font-weight: bold".format('#1E90FF' if app['model']['installed'] else 'red'))
 
-                self.setItem(idx, 7, col_installed)
+                self.setCellWidget(idx, 7, col_installed)
 
                 col_update = UpdateToggleButton(app, self.window, self.window.locale_keys, app['model']['update']) if app['model']['update'] else None
                 self.setCellWidget(idx, 8, col_update)

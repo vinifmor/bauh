@@ -151,7 +151,7 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
-        self.label_updates.setStyleSheet("color: red;")
+        self.label_updates.setStyleSheet("color: #FF4500; font-weight: bold")
         self.toolbar_bottom.addWidget(self.label_updates)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -284,11 +284,10 @@ class ManageWindow(QWidget):
 
         total_updates = app_updates + runtime_updates
         if total_updates > 0:
-            self.label_updates.setText('{}: {} ( {} {} | {} runtimes )'.format(self.locale_keys['manage_window.label.updates'],
-                                                                               total_updates,
-                                                                               app_updates,
-                                                                               self.locale_keys['manage_window.checkbox.only_apps'].lower(),
-                                                                               runtime_updates))
+            self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], total_updates))
+            self.label_updates.setToolTip('{} {} | {} runtimes'.format(app_updates,
+                                                                       self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                       runtime_updates))
         else:
             self.label_updates.setText('')
 
