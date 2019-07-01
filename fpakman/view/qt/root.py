@@ -33,7 +33,7 @@ def ask_root_password(locale_keys: dict):
 
 
 def validate_password(password: str) -> bool:
-    proc = subprocess.Popen('echo {} | sudo -S whoami'.format(password),
+    proc = subprocess.Popen('sudo -k && echo {} | sudo -S whoami'.format(password),
                             shell=True,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL,
