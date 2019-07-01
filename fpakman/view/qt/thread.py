@@ -163,7 +163,7 @@ class AnimateProgress(QThread):
 
     def __init__(self):
         super(AnimateProgress, self).__init__()
-        self.last_value = 0
+        self.progress_value = 0
         self.increment = 5
         self.stop = False
 
@@ -172,13 +172,15 @@ class AnimateProgress(QThread):
         current_increment = self.increment
 
         while not self.stop:
-            self.signal_change.emit(self.last_value)
+            self.signal_change.emit(self.progress_value)
 
-            if self.last_value == 100:
+            if self.progress_value == 100:
                 current_increment = -current_increment
-            if self.last_value == 0:
+            if self.progress_value == 0:
                 current_increment = self.increment
 
-            self.last_value += current_increment
+            self.progress_value += current_increment
 
             time.sleep(0.05)
+
+        self.progress_value = 0
