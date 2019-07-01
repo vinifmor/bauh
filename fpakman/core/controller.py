@@ -53,7 +53,10 @@ class FlatpakManager:
             api_data = self._request_app_data(app['id'])
 
             if api_data:
-                api_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
+
+                if self.cache_expire > 0:
+                    api_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
+
                 self.cache_apps[app['id']] = api_data
 
         if not api_data:

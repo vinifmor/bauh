@@ -4,15 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.3.0] - 2019-06-XX
+## [0.3.0] - 2019-07-XX
 ### Features
 - Applications search
 - Now when you right-click a selected application you can:
     - retrieve its information
     - retrieve its commit history
     - downgrade
-    - install it
+    - install and uninstall it
 - "About" window available when right-clicking the tray icon.
+- Now the application accepts arguments related to environment variables as well. Check 'README.md'.
 
 ### Improvements
 - Performance and memory usage

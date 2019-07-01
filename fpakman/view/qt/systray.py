@@ -49,7 +49,7 @@ class LoadDatabase(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: FlatpakManager, check_interval: int = 60):
+    def __init__(self, locale_keys: dict, manager: FlatpakManager, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -75,7 +75,7 @@ class TrayIcon(QSystemTrayIcon):
 
         self.setContextMenu(self.menu)
 
-        self.manage_window = ManageWindow(locale_keys=self.locale_keys, manager=self.manager, tray_icon=self)
+        self.manage_window = None
         self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
@@ -85,6 +85,7 @@ class TrayIcon(QSystemTrayIcon):
         self.thread_database = LoadDatabase(manager)
         self.thread_database.signal_finished.connect(self._update_menu)
         self.last_updates = set()
+        self.update_notification = update_notification
 
     def load_database(self):
         self.thread_database.start()
@@ -105,7 +106,9 @@ class TrayIcon(QSystemTrayIcon):
                 self.last_updates = update_keys
                 msg = '{}: {}'.format(self.locale_keys['notification.new_updates'].format('Flatpak'), len(updates))
                 self.setToolTip(msg)
-                system.notify_user(msg)
+
+                if self.update_notification:
+                    system.notify_user(msg)
 
         else:
             new_icon = self.icon_default
@@ -116,7 +119,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def show_manage_window(self):
 
-        if not self.manage_window:
+        if self.manage_window is None:
             self.manage_window = ManageWindow(locale_keys=self.locale_keys,
                                               manager=self.manager,
                                               tray_icon=self)

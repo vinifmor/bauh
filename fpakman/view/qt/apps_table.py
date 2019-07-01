@@ -69,8 +69,6 @@ class AppsTable(QTableWidget):
         menu_row = QMenu()
 
         if app['model']['installed']:
-            napps = len([app for app in self.window.apps if not app['model']['runtime']])
-
             action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
             action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
             action_info.triggered.connect(self._get_app_info)
@@ -84,7 +82,6 @@ class AppsTable(QTableWidget):
             action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
             action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
             action_uninstall.triggered.connect(self._uninstall_app)
-            action_uninstall.setEnabled(not napps or not app['model']['runtime'])  # only enabled for runtimes when no apps are available
             menu_row.addAction(action_uninstall)
 
             if not app['model']['runtime']:  # not available for runtimes

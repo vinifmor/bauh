@@ -15,5 +15,4 @@ def stream_cmd(cmd: List[str]):
 
 
 def notify_user(msg: str, icon_path: str = resource.get_path('img/logo.svg')):
-    if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
-        os.system("notify-send {} '{}'".format("-i {}".format(icon_path) if icon_path else '', msg))
+    os.system("notify-send {} '{}'".format("-i {}".format(icon_path) if icon_path else '', msg))

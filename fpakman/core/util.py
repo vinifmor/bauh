@@ -14,7 +14,7 @@ def get_locale_keys(key: str = None):
     if key is None:
         current_locale = locale.getdefaultlocale()
     else:
-        current_locale = [key]
+        current_locale = [key.strip().lower()]
 
     if current_locale:
         current_locale = current_locale[0]
