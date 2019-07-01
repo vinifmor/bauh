@@ -37,7 +37,7 @@ class HistoryDialog(QDialog):
                 item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
                 if current_app_commit:
-                    item.setBackground(Qt.yellow if row != 0 else Qt.green)
+                    item.setBackground(Qt.darkYellow if row != 0 else Qt.green)
                     tip = '{}. {}.'.format(locale_keys['popup.history.selected.tooltip'], locale_keys['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 
                     item.setToolTip(tip)
