@@ -10,13 +10,13 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="48"
-   height="48"
-   viewBox="0 0 12.7 12.7"
+   width="24"
+   height="24"
+   viewBox="0 0 6.35 6.35"
    version="1.1"
    id="svg8"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="toggle_on_3.svg">
+   sodipodi:docname="toggle_on.svg">
   <defs
      id="defs2">
     <linearGradient
@@ -40,7 +40,7 @@
        x2="-215.96657"
        y2="126.86485"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(1.0666667,0,0,1.0666667,13.203967,-8.5111104)" />
+       gradientTransform="matrix(0.53333336,0,0,0.53333336,-92.427766,59.577773)" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -50,8 +50,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="367.14222"
-     inkscape:cy="20.785438"
+     inkscape:cx="185.81986"
+     inkscape:cy="20.785442"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -82,12 +82,12 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(198.0595,-114.96666)">
+     transform="translate(198.05951,-121.31666)">
     <circle
-       style="fill:url(#linearGradient68);fill-opacity:1;stroke-width:0.04939194"
+       style="fill:url(#linearGradient68);fill-opacity:1;stroke-width:0.02469597"
        id="path10"
-       cx="-191.7095"
-       cy="121.31666"
-       r="6.3499999" />
+       cx="-194.88451"
+       cy="124.49166"
+       r="3.175" />
   </g>
 </svg>

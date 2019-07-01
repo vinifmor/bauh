@@ -210,10 +210,9 @@ class AppsTable(QTableWidget):
                 self.setItem(idx, 6, col_origin)
 
                 col_installed = QLabel()
-                col_installed.setText(self.parent().locale_keys['yes'] if app['model']['installed'] else self.parent().locale_keys['no'])
+                col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format('checked' if app['model']['installed'] else 'red_cross')))))
                 col_installed.setToolTip(tooltip)
                 col_installed.setAlignment(Qt.AlignCenter)
-                col_installed.setStyleSheet("color: {}; font-weight: bold".format('#1E90FF' if app['model']['installed'] else 'red'))
 
                 self.setCellWidget(idx, 7, col_installed)
 

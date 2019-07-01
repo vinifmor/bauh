@@ -8,13 +8,13 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.1"
-   viewBox="0 0 48 48"
+   viewBox="0 0 24 24"
    enable-background="new 0 0 26 26"
    id="svg8"
    sodipodi:docname="downgrade.svg"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   width="48"
-   height="48">
+   width="24"
+   height="24">
   <metadata
      id="metadata14">
     <rdf:RDF>
@@ -39,13 +39,13 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1366"
-     inkscape:window-height="739"
+     inkscape:window-height="703"
      id="namedview10"
      showgrid="false"
      showborder="false"
-     inkscape:zoom="9.0769231"
-     inkscape:cx="-0.33050843"
-     inkscape:cy="20.813559"
+     inkscape:zoom="4.5384616"
+     inkscape:cx="-20.270304"
+     inkscape:cy="12.13426"
      inkscape:window-x="0"
      inkscape:window-y="260"
      inkscape:window-maximized="1"
@@ -56,7 +56,7 @@
      fit-margin-bottom="0" />
   <g
      id="g6"
-     transform="matrix(1.8461538,0,0,2,0,-2)"
+     transform="matrix(0.92307692,0,0,1,0,-1)"
      style="fill:#ff0000">
     <path
        d="m 25,17 h -2 c -0.6,0 -1,0.4 -1,1 v 2.5 C 22,20.8 21.8,21 21.5,21 H 4.5 C 4.2,21 4,20.8 4,20.5 V 18 C 4,17.4 3.6,17 3,17 H 1 c -0.6,0 -1,0.4 -1,1 v 6 c 0,0.6 0.4,1 1,1 h 24 c 0.6,0 1,-0.4 1,-1 v -6 c 0,-0.6 -0.4,-1 -1,-1 z"
