@@ -10,7 +10,7 @@ Name = fpakman
 Categories = System;
 Comment = Manage your Flatpak applications
 Exec = /usr/bin/fpakman
-Icon = /usr/lib/python{version}/site-packages/fpakman/resources/img/flathub_45.svg
+Icon = /usr/lib/python{version}/site-packages/fpakman/resources/img/logo.svg
 """.format(version="{}.{}".format(sys.version_info.major, sys.version_info.minor))
 
 with open('fpakman.desktop', 'w+') as f:

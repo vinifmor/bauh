@@ -14,6 +14,6 @@ def stream_cmd(cmd: List[str]):
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, env={'LANG': 'en'}).stdout
 
 
-def notify_user(msg: str, icon_path: str = resource.get_path('img/flathub_45.svg')):
+def notify_user(msg: str, icon_path: str = resource.get_path('img/logo.svg')):
     if bool(os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1)):
         os.system("notify-send {} '{}'".format("-i {}".format(icon_path) if icon_path else '', msg))

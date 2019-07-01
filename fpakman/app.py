@@ -18,7 +18,7 @@ args = parser.parse_args()
 locale_keys = util.get_locale_keys(os.getenv('FPAKMAN_LOCALE', None))
 
 app = QApplication(sys.argv)
-app.setWindowIcon(QIcon(resource.get_path('img/flathub_45.svg')))
+app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
 manager = FlatpakManager(cache_expire=int(os.getenv('FPAKMAN_CACHE_EXPIRATION', 60 * 60)))
 

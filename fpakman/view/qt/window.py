@@ -33,7 +33,7 @@ class ManageWindow(QWidget):
         self.apps = []
         self.label_flatpak = None
 
-        self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
+        self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
         self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
         self.setWindowTitle(locale_keys['manage_window.title'])

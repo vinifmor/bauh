@@ -18,7 +18,7 @@ class AboutDialog(QDialog):
         self.setLayout(layout)
 
         label_logo = QLabel(self)
-        label_logo.setPixmap(QPixmap(resource.get_path('img/flathub_45.svg')))
+        label_logo.setPixmap(QPixmap(resource.get_path('img/logo.svg')))
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
@@ -26,13 +26,6 @@ class AboutDialog(QDialog):
         label_name.setStyleSheet('font-weight: bold;')
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)
-
-        label_flathub = QLabel()
-        label_flathub.setStyleSheet('font-size: 7px; color: red; font-weight: bold;')
-        label_flathub.setText('* logo by Flathub (' + " <a href='{url}'>{url}</a> )".format(url='https://flathub.org'))
-        label_flathub.setOpenExternalLinks(True)
-        label_flathub.setAlignment(Qt.AlignRight)
-        layout.addWidget(label_flathub)
 
         layout.addWidget(QLabel(''))
 

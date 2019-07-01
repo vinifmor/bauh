@@ -54,8 +54,8 @@ class TrayIcon(QSystemTrayIcon):
         self.locale_keys = locale_keys
         self.manager = manager
 
-        self.icon_default = QIcon(resource.get_path('img/flathub_45.svg'))
-        self.icon_update = QIcon(resource.get_path('img/update_logo.svg'))
+        self.icon_default = QIcon(resource.get_path('img/logo.svg'))
+        self.icon_update = QIcon(resource.get_path('img/logo_update.svg'))
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
@@ -103,7 +103,7 @@ class TrayIcon(QSystemTrayIcon):
 
             if update_keys.difference(self.last_updates):
                 self.last_updates = update_keys
-                msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
+                msg = '{}: {}'.format(self.locale_keys['notification.new_updates'].format('Flatpak'), len(updates))
                 self.setToolTip(msg)
                 system.notify_user(msg)
 

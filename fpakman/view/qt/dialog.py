@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMessageBox
 from fpakman.core import resource
 
 
-def show_error(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img/flathub_45.svg'))):
+def show_error(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img/logo.svg'))):
     error_msg = QMessageBox()
     error_msg.setIcon(QMessageBox.Critical)
     error_msg.setWindowTitle(title)
@@ -16,7 +16,7 @@ def show_error(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img
     error_msg.exec_()
 
 
-def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIcon(resource.get_path('img/flathub_45.svg'))):
+def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIcon(resource.get_path('img/logo.svg'))):
     dialog_confirmation = QMessageBox()
     dialog_confirmation.setIcon(QMessageBox.Question)
     dialog_confirmation.setWindowTitle(title)

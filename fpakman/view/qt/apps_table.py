@@ -55,7 +55,7 @@ class AppsTable(QTableWidget):
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(self.column_names)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
+        self.icon_flathub = QIcon(resource.get_path('img/flathub.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)

@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
 - Minor GUI improvements
 - Notifying only new updates
+- New icon
 
 ## [0.2.1] - 2019-06-24
 ### Features
