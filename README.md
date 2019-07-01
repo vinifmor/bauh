@@ -47,4 +47,4 @@ You can change some application settings via environment variables:
 - **FPAKMAN_CACHE_EXPIRATION**: define a custom expiration time in SECONDS for application data retrieved from the origin API. Default: 3600 (1 hour).
 
 ### Roadmap
-- Search and install applications
+- Support for other packaging technologies
