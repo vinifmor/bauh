@@ -1,4 +1,5 @@
 ## fpakman
+
 Non-official graphical user interface for Flatpak application management. It is a tray icon that let the user known when new updates are available and
 an application management panel.
 
@@ -48,3 +49,5 @@ You can change some application settings via environment variables:
 
 ### Roadmap
 - Support for other packaging technologies
+
+![logo](fpakman/resources/img/logo.svg?raw=true "logo")
