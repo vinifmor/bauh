@@ -49,5 +49,3 @@ You can change some application settings via environment variables:
 
 ### Roadmap
 - Support for other packaging technologies
-
-![logo](fpakman/resources/img/logo.svg?raw=true "logo")
