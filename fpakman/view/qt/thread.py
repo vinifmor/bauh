@@ -1,3 +1,5 @@
+import time
+
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from fpakman.core import flatpak
@@ -153,3 +155,30 @@ class InstallApp(QThread):
 
         self.app = None
         self.signal_finished.emit()
+
+
+class AnimateProgress(QThread):
+
+    signal_change = pyqtSignal(int)
+
+    def __init__(self):
+        super(AnimateProgress, self).__init__()
+        self.last_value = 0
+        self.increment = 5
+        self.stop = False
+
+    def run(self):
+
+        current_increment = self.increment
+
+        while not self.stop:
+            self.signal_change.emit(self.last_value)
+
+            if self.last_value == 100:
+                current_increment = -current_increment
+            if self.last_value == 0:
+                current_increment = self.increment
+
+            self.last_value += current_increment
+
+            time.sleep(0.05)

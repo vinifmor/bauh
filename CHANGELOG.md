@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Minor GUI improvements
 - Notifying only new updates
 - New icon
+- Progress bar
 
 ## [0.2.1] - 2019-06-24
 ### Features

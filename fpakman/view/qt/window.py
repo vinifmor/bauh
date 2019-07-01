@@ -6,7 +6,7 @@ from typing import List
 from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QPlainTextEdit, QLineEdit
+    QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar
 
 from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakManager
@@ -16,7 +16,7 @@ from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress
 
 
 class ManageWindow(QWidget):
@@ -149,16 +149,29 @@ class ManageWindow(QWidget):
         self.thread_install.signal_output.connect(self._update_action_output)
         self.thread_install.signal_finished.connect(self._finish_install)
 
+        self.thread_animate_progress = AnimateProgress()
+        self.thread_animate_progress.signal_change.connect(self._update_progress)
+
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
         self.label_updates.setStyleSheet("color: #FF4500; font-weight: bold")
         self.toolbar_bottom.addWidget(self.label_updates)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar_bottom.addWidget(spacer)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(False)
+        self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.toolbar_bottom.addWidget(spacer)
 
         self.label_flatpak = QLabel(self._get_flatpak_label())
         self.toolbar_bottom.addWidget(self.label_flatpak)
+
         self.layout.addWidget(self.toolbar_bottom)
 
         self.centralize()
@@ -363,6 +376,10 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str):
+        self.thread_animate_progress.stop = False
+        self.thread_animate_progress.start()
+        self.ref_progress_bar.setVisible(True)
+        self.progress_bar.setValue(50)
         self.label_status.setText(action_label + "...")
         self.toolbar_search.setVisible(False)
         self.bt_upgrade.setEnabled(False)
@@ -371,6 +388,10 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(False)
 
     def finish_action(self, clear_search: bool = True):
+        self.thread_animate_progress.stop = True
+        self.ref_progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)
         self.bt_refresh.setEnabled(True)
         self.toolbar_search.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
@@ -470,3 +491,6 @@ class ManageWindow(QWidget):
         self.finish_action()
         self._release_lock()
         self.refresh(clear_output=False)
+
+    def _update_progress(self, value: int):
+        self.progress_bar.setValue(value)

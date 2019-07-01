@@ -80,7 +80,7 @@ class TrayIcon(QSystemTrayIcon):
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
-        self.dialog_about = AboutDialog(self.locale_keys)
+        self.dialog_about = None
 
         self.thread_database = LoadDatabase(manager)
         self.thread_database.signal_finished.connect(self._update_menu)
@@ -125,6 +125,9 @@ class TrayIcon(QSystemTrayIcon):
         self.manage_window.show()
 
     def show_about(self):
+
+        if self.dialog_about is None:
+            self.dialog_about = AboutDialog(self.locale_keys)
 
         if self.dialog_about.isHidden():
             self.dialog_about.show()
