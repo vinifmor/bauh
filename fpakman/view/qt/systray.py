@@ -54,8 +54,8 @@ class TrayIcon(QSystemTrayIcon):
         self.locale_keys = locale_keys
         self.manager = manager
 
-        self.icon_default = QIcon(resource.get_path('img/logo.svg'))
-        self.icon_update = QIcon(resource.get_path('img/logo_update.svg'))
+        self.icon_default = QIcon(resource.get_path('img/logo.png'))
+        self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
