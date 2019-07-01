@@ -68,3 +68,5 @@ about.info.license=Licencia gratuita
 about.info.rate=Si esta herramienta es útil para ti, dale una estrella en Github para mantenerla
 yes=sí
 no=no
+version.updated=actualizada
+version.outdated=desactualizada
