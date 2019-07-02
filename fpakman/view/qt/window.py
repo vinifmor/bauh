@@ -18,6 +18,8 @@ from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress
 
+DARK_ORANGE = '#FF4500'
+
 
 class ManageWindow(QWidget):
 
@@ -87,7 +89,7 @@ class ManageWindow(QWidget):
 
         self.label_status = QLabel()
         self.label_status.setText('')
-        self.label_status.setStyleSheet("color: #FF4500; font-weight: bold")
+        self.label_status.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
         toolbar.addWidget(self.label_status)
 
         spacer = QWidget()
@@ -154,7 +156,7 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
-        self.label_updates.setStyleSheet("color: #FF4500; font-weight: bold")
+        self.label_updates.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
         self.toolbar_bottom.addWidget(self.label_updates)
 
         spacer = QWidget()
