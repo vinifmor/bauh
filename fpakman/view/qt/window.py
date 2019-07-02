@@ -87,7 +87,7 @@ class ManageWindow(QWidget):
 
         self.label_status = QLabel()
         self.label_status.setText('')
-        self.label_status.setStyleSheet("color: orange; font-weight: bold")
+        self.label_status.setStyleSheet("color: #FF4500; font-weight: bold")
         toolbar.addWidget(self.label_status)
 
         spacer = QWidget()
