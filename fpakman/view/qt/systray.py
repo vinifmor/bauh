@@ -1,7 +1,7 @@
 import time
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
@@ -124,8 +124,11 @@ class TrayIcon(QSystemTrayIcon):
                                               manager=self.manager,
                                               tray_icon=self)
 
-        self.manage_window.refresh()
-        self.manage_window.show()
+        if self.manage_window.isMinimized():
+            self.manage_window.setWindowState(Qt.WindowNoState)
+        else:
+            self.manage_window.refresh()
+            self.manage_window.show()
 
     def show_about(self):
 
