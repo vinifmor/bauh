@@ -3,81 +3,84 @@ from functools import reduce
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl, QEvent
-from PyQt5.QtGui import QIcon, QColor, QPixmap, QWindowStateChangeEvent
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QTableWidget, \
-    QTableWidgetItem, QTableView, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QMessageBox, QPlainTextEdit
+from PyQt5.QtCore import QEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
+    QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar
 
-from fpakman import __version__
-from fpakman.core import resource
-from fpakman.core.controller import FlatpakController
+from fpakman.core import resource, flatpak
+from fpakman.core.controller import FlatpakManager
+from fpakman.view.qt import dialog
+from fpakman.view.qt.apps_table import AppsTable
+from fpakman.view.qt.history import HistoryDialog
+from fpakman.view.qt.info import InfoDialog
+from fpakman.view.qt.root import is_root, ask_root_password
+from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress
 
-
-class UpdateToggleButton(QToolButton):
-
-    def __init__(self, model: dict, root: QWidget, checked: bool = True):
-        super(UpdateToggleButton, self).__init__()
-        self.model = model
-        self.root = root
-        self.setCheckable(True)
-        self.clicked.connect(self.change_state)
-        self.icon_on = QIcon(resource.get_path('img/toggle_on.svg'))
-        self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
-        self.setIcon(self.icon_on)
-        self.setStyleSheet('border: 0px;')
-
-        if not checked:
-            self.click()
-
-    def change_state(self, not_checked: bool):
-        self.model['update_checked'] = not not_checked
-        self.setIcon(self.icon_on if not not_checked else self.icon_off)
-        self.root.change_update_state()
+DARK_ORANGE = '#FF4500'
 
 
 class ManageWindow(QWidget):
 
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, controller: FlatpakController, tray_icon = None):
+    def __init__(self, locale_keys: dict, manager: FlatpakManager, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
-        self.column_names = [locale_keys['manage_window.columns.name'],
-                             locale_keys['manage_window.columns.version'],
-                             locale_keys['manage_window.columns.latest_version'],
-                             locale_keys['manage_window.columns.branch'],
-                             locale_keys['manage_window.columns.arch'],
-                             locale_keys['manage_window.columns.ref'],
-                             locale_keys['manage_window.columns.origin'],
-                             locale_keys['manage_window.columns.update']]
-        self.controller = controller
-        self.icon_cache = {}
+        self.manager = manager
         self.tray_icon = tray_icon
         self.thread_lock = Lock()
         self.working = False  # restrict the number of threaded actions
         self.apps = []
         self.label_flatpak = None
 
-        self.network_man = QNetworkAccessManager()
-        self.network_man.finished.connect(self._load_icon)
-
-        self.icon_flathub = QIcon(resource.get_path('img/flathub_45.svg'))
+        self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
         self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
-        self.setWindowTitle('fpakman ({})'.format(__version__))
+        self.setWindowTitle(locale_keys['manage_window.title'])
         self.setWindowIcon(self.icon_flathub)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
+        self.toolbar_search = QToolBar()
+        self.toolbar_search.setStyleSheet("spacing: 0px;")
+        self.toolbar_search.setContentsMargins(0, 0, 0, 0)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.toolbar_search.addWidget(spacer)
+
+        label_pre_search = QLabel()
+        label_pre_search.setStyleSheet("background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
+        self.toolbar_search.addWidget(label_pre_search)
+
+        self.input_search = QLineEdit()
+        self.input_search.setFrame(False)
+        self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder']+"...")
+        self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
+        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: grey; spacing: 0;}")
+        self.input_search.returnPressed.connect(self.search)
+        self.toolbar_search.addWidget(self.input_search)
+
+        label_pos_search = QLabel()
+        label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        label_pos_search.setStyleSheet("background: white; padding-right: 10px; border-top-right-radius: 5px; border-bottom-right-radius: 5px;")
+        self.toolbar_search.addWidget(label_pos_search)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar_search.addWidget(spacer)
+        self.layout.addWidget(self.toolbar_search)
+
+        toolbar = QToolBar()
+
         self.checkbox_only_apps = QCheckBox()
         self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self.filter_only_apps)
-
-        toolbar = QToolBar()
         toolbar.addWidget(self.checkbox_only_apps)
 
         spacer = QWidget()
@@ -86,7 +89,7 @@ class ManageWindow(QWidget):
 
         self.label_status = QLabel()
         self.label_status.setText('')
-        self.label_status.setStyleSheet("color: orange")
+        self.label_status.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
         toolbar.addWidget(self.label_status)
 
         spacer = QWidget()
@@ -94,28 +97,22 @@ class ManageWindow(QWidget):
         toolbar.addWidget(spacer)
 
         self.bt_refresh = QToolButton()
+        self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.clicked.connect(lambda: self.refresh(clear_output=True))
         toolbar.addWidget(self.bt_refresh)
 
-        self.bt_update = QToolButton()
-        self.bt_update.setIcon(QIcon(resource.get_path('img/update_green.svg')))
-        self.bt_update.setEnabled(False)
-        self.bt_update.clicked.connect(self.update_selected)
-        toolbar.addWidget(self.bt_update)
+        self.bt_upgrade = QToolButton()
+        self.bt_upgrade.setToolTip(locale_keys['manage_window.bt.upgrade.tooltip'])
+        self.bt_upgrade.setIcon(QIcon(resource.get_path('img/update_green.svg')))
+        self.bt_upgrade.setEnabled(False)
+        self.bt_upgrade.clicked.connect(self.update_selected)
+        toolbar.addWidget(self.bt_upgrade)
 
         self.layout.addWidget(toolbar)
 
-        self.table_apps = QTableWidget()
-        self.table_apps.setColumnCount(len(self.column_names))
-        self.table_apps.setFocusPolicy(Qt.NoFocus)
-        self.table_apps.setShowGrid(False)
-        self.table_apps.verticalHeader().setVisible(False)
-        self.table_apps.setSelectionBehavior(QTableView.SelectRows)
-        self.table_apps.setHorizontalHeaderLabels(self.column_names)
-        self.table_apps.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self._change_table_headers_policy()
+        self.table_apps = AppsTable(self)
+        self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
 
@@ -126,35 +123,66 @@ class ManageWindow(QWidget):
         self.textarea_output.setVisible(False)
         self.textarea_output.setReadOnly(True)
 
-        self.thread_update = UpdateSelectedApps(self.controller)
+        self.thread_update = UpdateSelectedApps()
         self.thread_update.signal_output.connect(self._update_action_output)
         self.thread_update.signal_finished.connect(self._finish_update_selected)
 
-        self.thread_refresh = RefreshApps(self.controller)
+        self.thread_refresh = RefreshApps(self.manager)
         self.thread_refresh.signal.connect(self._finish_refresh)
+
+        self.thread_uninstall = UninstallApp()
+        self.thread_uninstall.signal_output.connect(self._update_action_output)
+        self.thread_uninstall.signal_finished.connect(self._finish_uninstall)
+
+        self.thread_downgrade = DowngradeApp(self.manager, self.locale_keys)
+        self.thread_downgrade.signal_output.connect(self._update_action_output)
+        self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
+
+        self.thread_get_info = GetAppInfo()
+        self.thread_get_info.signal_finished.connect(self._finish_get_info)
+
+        self.thread_get_history = GetAppHistory()
+        self.thread_get_history.signal_finished.connect(self._finish_get_history)
+
+        self.thread_search = SearchApps(self.manager)
+        self.thread_search.signal_finished.connect(self._finish_search)
+
+        self.thread_install = InstallApp()
+        self.thread_install.signal_output.connect(self._update_action_output)
+        self.thread_install.signal_finished.connect(self._finish_install)
+
+        self.thread_animate_progress = AnimateProgress()
+        self.thread_animate_progress.signal_change.connect(self._update_progress)
 
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
+        self.label_updates.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
         self.toolbar_bottom.addWidget(self.label_updates)
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar_bottom.addWidget(spacer)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(False)
+        self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.toolbar_bottom.addWidget(spacer)
 
         self.label_flatpak = QLabel(self._get_flatpak_label())
         self.toolbar_bottom.addWidget(self.label_flatpak)
+
         self.layout.addWidget(self.toolbar_bottom)
 
         self.centralize()
 
-    def _change_table_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
-        header_horizontal = self.table_apps.horizontalHeader()
-        for i in range(0, len(self.column_names)):
-            header_horizontal.setSectionResizeMode(i, policy)
-
     def changeEvent(self, e: QEvent):
 
         if isinstance(e, QWindowStateChangeEvent):
-            self._change_table_headers_policy(QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents)
+            policy = QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents
+            self.table_apps.change_headers_policy(policy)
 
     def closeEvent(self, event):
 
@@ -162,35 +190,19 @@ class ManageWindow(QWidget):
             event.ignore()
             self.hide()
 
-    def _load_icon(self, http_response):
-        icon_url = http_response.url().toString()
-        pixmap = QPixmap()
-        pixmap.loadFromData(http_response.readAll())
-        icon = QIcon(pixmap)
-        self.icon_cache[icon_url] = icon
-
-        for idx, app in enumerate(self.apps):
-            if app['model']['icon'] == icon_url:
-                self.table_apps.item(idx, 0).setIcon(icon)
-                self.resize_and_center()
-                break
-
     def _check_flatpak_installed(self):
 
-        if not self.controller.check_installed():
-            error_msg = QMessageBox()
-            error_msg.setIcon(QMessageBox.Critical)
-            error_msg.setWindowTitle(self.locale_keys['popup.flatpak_not_installed.title'])
-            error_msg.setText(self.locale_keys['popup.flatpak_not_installed.msg'] + '...')
-            error_msg.setWindowIcon(self.icon_flathub)
-            error_msg.exec_()
+        if not flatpak.is_installed():
+            dialog.show_error(title=self.locale_keys['popup.flatpak_not_installed.title'],
+                              body=self.locale_keys['popup.flatpak_not_installed.msg'] + '...',
+                              icon=self.icon_flathub)
             exit(1)
 
         if self.label_flatpak:
             self.label_flatpak.setText(self._get_flatpak_label())
 
     def _get_flatpak_label(self):
-        return 'flatpak: ' + self.controller.get_version()
+        return 'flatpak: ' + flatpak.get_version()
 
     def _acquire_lock(self):
 
@@ -211,23 +223,51 @@ class ManageWindow(QWidget):
 
         self.thread_lock.release()
 
+    def _hide_output(self):
+        self.textarea_output.clear()
+        self.textarea_output.hide()
+
+    def _show_output(self):
+        self.textarea_output.clear()
+        self.textarea_output.show()
+
     def refresh(self, clear_output: bool = True):
 
         if self._acquire_lock():
             self._check_flatpak_installed()
-            self._begin_action(self.locale_keys['manage_window.status.refreshing'] + '...')
+            self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             if clear_output:
-                self.textarea_output.clear()
-                self.textarea_output.hide()
+                self._hide_output()
 
             self.thread_refresh.start()
 
-    def _finish_refresh(self):
+    def _finish_refresh(self, apps: List[dict]):
 
-        self.update_apps(self.thread_refresh.apps)
+        self.update_apps(apps)
         self.finish_action()
         self._release_lock()
+
+    def uninstall_app(self, app_ref: str):
+        self._check_flatpak_installed()
+
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(True)
+            self._begin_action(self.locale_keys['manage_window.status.uninstalling'])
+
+            self.thread_uninstall.app_ref = app_ref
+            self.thread_uninstall.start()
+
+    def _finish_uninstall(self):
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
+
+    def _finish_downgrade(self):
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
 
     def filter_only_apps(self, only_apps: int):
 
@@ -240,8 +280,8 @@ class ManageWindow(QWidget):
                 app['visible'] = not hidden
 
             self.change_update_state()
-            self._change_table_headers_policy(QHeaderView.Stretch)
-            self._change_table_headers_policy()
+            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy()
             self.resize_and_center()
 
     def change_update_state(self):
@@ -259,7 +299,10 @@ class ManageWindow(QWidget):
 
         total_updates = app_updates + runtime_updates
         if total_updates > 0:
-            self.label_updates.setText('{}: {} ( {} apps | {} runtimes )'.format(self.locale_keys['manage_window.label.updates'], total_updates, app_updates, runtime_updates))
+            self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], total_updates))
+            self.label_updates.setToolTip('{} {} | {} runtimes'.format(app_updates,
+                                                                       self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                       runtime_updates))
         else:
             self.label_updates.setText('')
 
@@ -268,9 +311,8 @@ class ManageWindow(QWidget):
                 enable_bt_update = True
                 break
 
-        self.bt_update.setEnabled(enable_bt_update)
-
-        self.tray_icon.notify_updates(total_updates)
+        self.bt_upgrade.setEnabled(enable_bt_update)
+        self.tray_icon.notify_updates([app['model'] for app in self.apps if app['model']['update']])
 
     def centralize(self):
         geo = self.frameGeometry()
@@ -282,79 +324,33 @@ class ManageWindow(QWidget):
     def update_apps(self, apps: List[dict]):
         self._check_flatpak_installed()
 
-        self.table_apps.setEnabled(True)
         self.apps = []
 
-        self.table_apps.setRowCount(len(apps) if apps else 0)
+        napps = 0  # number of apps (not runtimes)
 
         if apps:
-            for idx, app in enumerate(apps):
-
-                col_name = QTableWidgetItem()
-                col_name.setText(app['name'])
-                col_name.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-
-                if not app['icon']:
-                    col_name.setIcon(self.icon_flathub)
-                else:
-                    cached_icon = self.icon_cache.get(app['icon'])
-
-                    if cached_icon:
-                        col_name.setIcon(cached_icon)
-                    else:
-                        col_name.setIcon(self.icon_flathub)
-                        self.network_man.get(QNetworkRequest(QUrl(app['icon'])))
-
-                self.table_apps.setItem(idx, 0, col_name)
-
-                col_version = QTableWidgetItem()
-                col_version.setText(app['version'])
-                col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 1, col_version)
-
-                col_release = QTableWidgetItem()
-                col_release.setText(app['latest_version'])
-                col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 2, col_release)
-
-                if app['update']:
-                    col_release.setForeground(QColor('orange'))
-
-                col_branch = QTableWidgetItem()
-                col_branch.setText(app['branch'])
-                col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 3, col_branch)
-
-                col_arch = QTableWidgetItem()
-                col_arch.setText(app['arch'])
-                col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 4, col_arch)
-
-                col_package = QTableWidgetItem()
-                col_package.setText(app['ref'])
-                col_package.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 5, col_package)
-
-                col_origin = QTableWidgetItem()
-                col_origin.setText(app['origin'])
-                col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table_apps.setItem(idx, 6, col_origin)
-
+            for app in apps:
                 app_model = {'model': app,
                              'update_checked': app['update'],
                              'visible': not app['runtime'] or not self.checkbox_only_apps.isChecked()}
 
-                col_update = UpdateToggleButton(app_model, self, app['update']) if app['update'] else None
-                self.table_apps.setCellWidget(idx, 7, col_update)
-
+                napps += 1 if not app['runtime'] else 0
                 self.apps.append(app_model)
 
+        if napps == 0:
+            self.checkbox_only_apps.setChecked(False)
+            self.checkbox_only_apps.setCheckable(False)
+        else:
+            self.checkbox_only_apps.setCheckable(True)
+            self.checkbox_only_apps.setChecked(True)
+
+        self.table_apps.update_apps(self.apps)
         self.change_update_state()
         self.filter_only_apps(2 if self.checkbox_only_apps.isChecked() else 0)
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.column_names))]) * 1.05
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
@@ -369,7 +365,7 @@ class ManageWindow(QWidget):
                     self.textarea_output.clear()
                     self.textarea_output.setVisible(True)
 
-                    self._begin_action(self.locale_keys['manage_window.status.updating'] + '...')
+                    self._begin_action(self.locale_keys['manage_window.status.upgrading'])
                     self.thread_update.refs_to_update = to_update
                     self.thread_update.start()
 
@@ -382,50 +378,121 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str):
-        self.label_status.setText(action_label)
-        self.bt_update.setEnabled(False)
+        self.thread_animate_progress.stop = False
+        self.thread_animate_progress.start()
+        self.ref_progress_bar.setVisible(True)
+        self.progress_bar.setValue(50)
+        self.label_status.setText(action_label + "...")
+        self.toolbar_search.setVisible(False)
+        self.bt_upgrade.setEnabled(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
 
-    def finish_action(self):
+    def finish_action(self, clear_search: bool = True):
+        self.thread_animate_progress.stop = True
+        self.ref_progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)
         self.bt_refresh.setEnabled(True)
+        self.toolbar_search.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)
+        self.input_search.setEnabled(True)
         self.label_status.setText('')
 
+        if clear_search:
+            self.input_search.setText('')
 
-# Threaded actions
-class UpdateSelectedApps(QThread):
+    def downgrade_app(self, app: dict):
 
-    signal_finished = pyqtSignal()
-    signal_output = pyqtSignal(str)
+        self._check_flatpak_installed()
 
-    def __init__(self, controller: FlatpakController):
-        super(UpdateSelectedApps, self).__init__()
-        self.controller = controller
-        self.refs_to_update = []
+        if self._acquire_lock():
 
-    def run(self):
+            pwd = None
 
-        for app_ref in self.refs_to_update:
-            for output in self.controller.update(app_ref):
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
+            if not is_root():
+                pwd, ok = ask_root_password(self.locale_keys)
 
-        self.signal_finished.emit()
+                if not ok:
+                    self._release_lock()
+                    return
 
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(True)
+            self._begin_action(self.locale_keys['manage_window.status.downgrading'])
 
-class RefreshApps(QThread):
+            self.thread_downgrade.app = app
+            self.thread_downgrade.root_password = pwd
+            self.thread_downgrade.start()
 
-    signal = pyqtSignal()
+    def get_app_info(self, app: dict):
 
-    def __init__(self, controller: FlatpakController):
-        super(RefreshApps, self).__init__()
-        self.controller = controller
-        self.apps = None
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.info'])
 
-    def run(self):
-        self.apps = self.controller.refresh()
-        self.signal.emit()
+            self.thread_get_info.app = app
+            self.thread_get_info.start()
+
+    def get_app_history(self, app: dict):
+        if self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.history'])
+
+            self.thread_get_history.app = app
+            self.thread_get_history.start()
+
+    def _finish_get_info(self, app_info: dict):
+        self._release_lock()
+        self.finish_action()
+        self.change_update_state()
+        dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys)
+        dialog_info.exec_()
+
+    def _finish_get_history(self, app: dict):
+        self._release_lock()
+        self.finish_action()
+        self.change_update_state()
+        dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
+        dialog_history.exec_()
+
+    def search(self):
+
+        word = self.input_search.text().strip()
+
+        if word and self._acquire_lock():
+            self.textarea_output.clear()
+            self.textarea_output.setVisible(False)
+            self._begin_action(self.locale_keys['manage_window.status.searching'])
+            self.thread_search.word = word
+            self.thread_search.start()
+
+    def _finish_search(self, apps_found: List[dict]):
+
+        self._release_lock()
+        self.finish_action(clear_search=False)
+        self.update_apps(apps_found)
+
+    def install_app(self, app: dict):
+
+        self._check_flatpak_installed()
+
+        if self._acquire_lock():
+            self._begin_action(self.locale_keys['manage_window.status.installing'])
+            self._show_output()
+
+            self.thread_install.app = app
+            self.thread_install.start()
+
+    def _finish_install(self):
+        self.input_search.setText('')
+        self.finish_action()
+        self._release_lock()
+        self.refresh(clear_output=False)
+
+    def _update_progress(self, value: int):
+        self.progress_bar.setValue(value)
