@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.3.0] - 2019-07-XX
+## [0.3.0] - 2019-07-02
 ### Features
 - Applications search
 - Now when you right-click a selected application you can:
@@ -13,7 +13,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - downgrade
     - install and uninstall it
 - "About" window available when right-clicking the tray icon.
-- Now the application accepts arguments related to environment variables as well. Check 'README.md'.
 
 ### Improvements
 - Performance and memory usage
@@ -23,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Showing runtime apps when no app is available
 - Allowing to specify a custom app translation with the environment variable **FPAKMAN_LOCALE**
 - Adding expiration time for cached app data. Default to 1 hour. The environment variable **FPAKMAN_CACHE_EXPIRATION** can change this value.
+- Now the application accepts arguments related to environment variables as well. Check 'README.md'.
 - Minor GUI improvements
 - Notifying only new updates
 - New icon

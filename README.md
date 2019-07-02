@@ -1,7 +1,7 @@
 ## fpakman
 
 Non-official graphical user interface for Flatpak application management. It is a tray icon that let the user known when new updates are available and
-an application management panel.
+an application management panel where you can search, update, install and uninstall applications.
 
 ### Developed with:
 - Python3 and Qt5.
@@ -38,7 +38,7 @@ env/bin/fpakman
 
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script ("fpakman").
-(P.S: the installation script currently does not do that)
+
 
 ### Settings
 You can change some application settings via environment variables or arguments (type ```fpakman --help``` to get more information).
