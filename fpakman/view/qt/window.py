@@ -22,7 +22,6 @@ DARK_ORANGE = '#FF4500'
 
 
 class ManageWindow(QWidget):
-
     __BASE_HEIGHT__ = 400
 
     def __init__(self, locale_keys: dict, manager: FlatpakManager, tray_icon=None):
@@ -47,19 +46,16 @@ class ManageWindow(QWidget):
         self.toolbar_search = QToolBar()
         self.toolbar_search.setStyleSheet("spacing: 0px;")
         self.toolbar_search.setContentsMargins(0, 0, 0, 0)
-
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        self.toolbar_search.addWidget(spacer)
+        self.toolbar_search.addWidget(self._new_spacer())
 
         label_pre_search = QLabel()
-        label_pre_search.setStyleSheet("background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
+        label_pre_search.setStyleSheet(
+            "background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
         self.toolbar_search.addWidget(label_pre_search)
 
         self.input_search = QLineEdit()
         self.input_search.setFrame(False)
-        self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder']+"...")
+        self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
         self.input_search.setStyleSheet("QLineEdit { background-color: white; color: grey; spacing: 0;}")
         self.input_search.returnPressed.connect(self.search)
@@ -70,9 +66,7 @@ class ManageWindow(QWidget):
         label_pos_search.setStyleSheet("background: white; padding-right: 10px; border-top-right-radius: 5px; border-bottom-right-radius: 5px;")
         self.toolbar_search.addWidget(label_pos_search)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.toolbar_search.addWidget(spacer)
+        self.toolbar_search.addWidget(self._new_spacer())
         self.layout.addWidget(self.toolbar_search)
 
         toolbar = QToolBar()
@@ -83,23 +77,19 @@ class ManageWindow(QWidget):
         self.checkbox_only_apps.stateChanged.connect(self.filter_only_apps)
         toolbar.addWidget(self.checkbox_only_apps)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        toolbar.addWidget(spacer)
+        toolbar.addWidget(self._new_spacer())
 
         self.label_status = QLabel()
         self.label_status.setText('')
         self.label_status.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
         toolbar.addWidget(self.label_status)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        toolbar.addWidget(spacer)
+        toolbar.addWidget(self._new_spacer())
 
         self.bt_refresh = QToolButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
-        self.bt_refresh.clicked.connect(lambda: self.refresh(clear_output=True))
+        self.bt_refresh.clicked.connect(self.refresh)
         toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QToolButton()
@@ -115,6 +105,17 @@ class ManageWindow(QWidget):
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
+
+        toolbar_console = QToolBar()
+
+        self.checkbox_console = QCheckBox()
+        self.checkbox_console.setText(self.locale_keys['manage_window.checkbox.show_details'])
+        self.checkbox_console.stateChanged.connect(self._handle_console)
+        self.checkbox_console.setVisible(False)
+        self.ref_checkbox_console = toolbar_console.addWidget(self.checkbox_console)
+
+        toolbar_console.addWidget(self._new_spacer())
+        self.layout.addWidget(toolbar_console)
 
         self.textarea_output = QPlainTextEdit(self)
         self.textarea_output.resize(self.table_apps.size())
@@ -157,19 +158,15 @@ class ManageWindow(QWidget):
         self.toolbar_bottom = QToolBar()
         self.label_updates = QLabel('')
         self.label_updates.setStyleSheet("color: {}; font-weight: bold".format(DARK_ORANGE))
-        self.toolbar_bottom.addWidget(self.label_updates)
+        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.toolbar_bottom.addWidget(spacer)
+        self.toolbar_bottom.addWidget(self._new_spacer())
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(False)
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.toolbar_bottom.addWidget(spacer)
+        self.toolbar_bottom.addWidget(self._new_spacer())
 
         self.label_flatpak = QLabel(self._get_flatpak_label())
         self.toolbar_bottom.addWidget(self.label_flatpak)
@@ -177,6 +174,11 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_bottom)
 
         self.centralize()
+
+    def _new_spacer(self):
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        return spacer
 
     def changeEvent(self, e: QEvent):
 
@@ -189,6 +191,7 @@ class ManageWindow(QWidget):
         if self.tray_icon:
             event.ignore()
             self.hide()
+            self._handle_console_option(False)
 
     def _check_flatpak_installed(self):
 
@@ -223,22 +226,27 @@ class ManageWindow(QWidget):
 
         self.thread_lock.release()
 
-    def _hide_output(self):
-        self.textarea_output.clear()
+    def _handle_console(self, checked: bool):
+
+        if checked:
+            self.textarea_output.show()
+        else:
+            self.textarea_output.hide()
+
+    def _handle_console_option(self, enable: bool):
+
+        if enable:
+            self.textarea_output.clear()
+
+        self.ref_checkbox_console.setVisible(enable)
+        self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def _show_output(self):
-        self.textarea_output.clear()
-        self.textarea_output.show()
-
-    def refresh(self, clear_output: bool = True):
+    def refresh(self):
 
         if self._acquire_lock():
             self._check_flatpak_installed()
             self._begin_action(self.locale_keys['manage_window.status.refreshing'])
-
-            if clear_output:
-                self._hide_output()
 
             self.thread_refresh.start()
 
@@ -252,8 +260,7 @@ class ManageWindow(QWidget):
         self._check_flatpak_installed()
 
         if self._acquire_lock():
-            self.textarea_output.clear()
-            self.textarea_output.setVisible(True)
+            self._handle_console_option(True)
             self._begin_action(self.locale_keys['manage_window.status.uninstalling'])
 
             self.thread_uninstall.app_ref = app_ref
@@ -262,12 +269,12 @@ class ManageWindow(QWidget):
     def _finish_uninstall(self):
         self.finish_action()
         self._release_lock()
-        self.refresh(clear_output=False)
+        self.refresh()
 
     def _finish_downgrade(self):
         self.finish_action()
         self._release_lock()
-        self.refresh(clear_output=False)
+        self.refresh()
 
     def filter_only_apps(self, only_apps: int):
 
@@ -301,7 +308,8 @@ class ManageWindow(QWidget):
         if total_updates > 0:
             self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], total_updates))
             self.label_updates.setToolTip('{} {} | {} runtimes'.format(app_updates,
-                                                                       self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                       self.locale_keys[
+                                                                           'manage_window.checkbox.only_apps'].lower(),
                                                                        runtime_updates))
         else:
             self.label_updates.setText('')
@@ -350,7 +358,8 @@ class ManageWindow(QWidget):
         self.resize_and_center()
 
     def resize_and_center(self):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
+        new_width = reduce(operator.add,
+                           [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
         self.resize(new_width, self.height())
         self.centralize()
 
@@ -362,8 +371,7 @@ class ManageWindow(QWidget):
                 to_update = [pak['model']['ref'] for pak in self.apps if pak['visible'] and pak['update_checked']]
 
                 if to_update:
-                    self.textarea_output.clear()
-                    self.textarea_output.setVisible(True)
+                    self._handle_console_option(True)
 
                     self._begin_action(self.locale_keys['manage_window.status.upgrading'])
                     self.thread_update.refs_to_update = to_update
@@ -372,12 +380,13 @@ class ManageWindow(QWidget):
     def _finish_update_selected(self):
         self.finish_action()
         self._release_lock()
-        self.refresh(clear_output=False)
+        self.refresh()
 
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str):
+        self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
@@ -390,6 +399,7 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(False)
 
     def finish_action(self, clear_search: bool = True):
+        self.ref_label_updates.setVisible(True)
         self.thread_animate_progress.stop = True
         self.ref_progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
@@ -419,8 +429,7 @@ class ManageWindow(QWidget):
                     self._release_lock()
                     return
 
-            self.textarea_output.clear()
-            self.textarea_output.setVisible(True)
+            self._handle_console_option(True)
             self._begin_action(self.locale_keys['manage_window.status.downgrading'])
 
             self.thread_downgrade.app = app
@@ -430,8 +439,7 @@ class ManageWindow(QWidget):
     def get_app_info(self, app: dict):
 
         if self._acquire_lock():
-            self.textarea_output.clear()
-            self.textarea_output.setVisible(False)
+            self._handle_console_option(False)
             self._begin_action(self.locale_keys['manage_window.status.info'])
 
             self.thread_get_info.app = app
@@ -439,8 +447,7 @@ class ManageWindow(QWidget):
 
     def get_app_history(self, app: dict):
         if self._acquire_lock():
-            self.textarea_output.clear()
-            self.textarea_output.setVisible(False)
+            self._handle_console_option(False)
             self._begin_action(self.locale_keys['manage_window.status.history'])
 
             self.thread_get_history.app = app
@@ -465,8 +472,7 @@ class ManageWindow(QWidget):
         word = self.input_search.text().strip()
 
         if word and self._acquire_lock():
-            self.textarea_output.clear()
-            self.textarea_output.setVisible(False)
+            self._handle_console_option(False)
             self._begin_action(self.locale_keys['manage_window.status.searching'])
             self.thread_search.word = word
             self.thread_search.start()
@@ -482,8 +488,8 @@ class ManageWindow(QWidget):
         self._check_flatpak_installed()
 
         if self._acquire_lock():
+            self._handle_console_option(True)
             self._begin_action(self.locale_keys['manage_window.status.installing'])
-            self._show_output()
 
             self.thread_install.app = app
             self.thread_install.start()
@@ -492,7 +498,7 @@ class ManageWindow(QWidget):
         self.input_search.setText('')
         self.finish_action()
         self._release_lock()
-        self.refresh(clear_output=False)
+        self.refresh()
 
     def _update_progress(self, value: int):
         self.progress_bar.setValue(value)

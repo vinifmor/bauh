@@ -25,6 +25,7 @@ manage_window.status.searching=Buscando
 manage_window.status.installing=Instalando
 manage_window.bt.refresh.tooltip=Recarrega os dados sobre os aplicativos instalados
 manage_window.bt.upgrade.tooltip=Atualiza todos os aplicativos selecionados
+manage_window.checkbox.show_details=Mostrar detalhes
 popup.flatpak_not_installed.title=Erro
 popup.flatpak_not_installed.msg=flatpak não parece estar instalado. Saindo
 popup.root.title=Requer privilégios de root
