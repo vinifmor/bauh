@@ -45,7 +45,8 @@ You can change some application settings via environment variables or arguments 
 - **FPAKMAN_UPDATE_NOTIFICATION**: enable or disable system updates notifications. Use **0** (disable) or **1** (enable, default).
 - **FPAKMAN_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
 - **FPAKMAN_LOCALE**: define a custom app translation for a given locale key (e.g: 'pt', 'en', 'es', ...). Default: system locale.
-- **FPAKMAN_CACHE_EXPIRATION**: define a custom expiration time in SECONDS for application data retrieved from the origin API. Default: 3600 (1 hour).
+- **FPAKMAN_CACHE_EXPIRATION**: define a custom expiration time in SECONDS for cached API data. Default: 3600 (1 hour).
+- **FPAKMAN_ICON_EXPIRATION**: define a custom expiration time in SECONDS for cached icons. Default: 300 (5 minutes).
 
 
 ### Roadmap

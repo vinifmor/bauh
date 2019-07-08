@@ -1,80 +1,53 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from threading import Lock
 from typing import List
 
 import requests
 
 from fpakman.core import flatpak
-
-__FLATHUB_URL__ = 'https://flathub.org'
-__FLATHUB_API_URL__ = __FLATHUB_URL__ + '/api/v1'
+from fpakman.core.model import FlatpakApplication, ApplicationData, ApplicationStatus
+from fpakman.core.worker import FlatpakAsyncDataLoaderManager
+from fpakman.util.cache import Cache
 
 
 class FlatpakManager:
 
-    def __init__(self, cache_expire: int = 60 * 60):
-        self.cache_apps = {}
-        self.cache_expire = cache_expire
+    def __init__(self, api_cache: Cache):
+        self.api_cache = api_cache
         self.http_session = requests.Session()
-        self.lock_db_read = Lock()
         self.lock_read = Lock()
+        self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache)
 
-    def load_full_database(self):
+    def _map_to_model(self, app: dict) -> FlatpakApplication:
 
-        self.lock_db_read.acquire()
+        model = FlatpakApplication(arch=app.get('arch'),
+                                   branch=app.get('branch'),
+                                   origin=app.get('origin'),
+                                   runtime=app.get('runtime'),
+                                   ref=app.get('ref'),
+                                   commit=app.get('commit'),
+                                   base_data=ApplicationData(id=app.get('id'),
+                                                             name=app.get('name'),
+                                                             version=app.get('version'),
+                                                             latest_version=app.get('latest_version')))
 
-        try:
-            res = self.http_session.get(__FLATHUB_API_URL__ + '/apps', timeout=30)
+        api_data = self.api_cache.get(app['id'])
 
-            if res.status_code == 200:
-                for app in res.json():
-                    self.cache_apps[app['flatpakAppId']] = app
-        finally:
-            self.lock_db_read.release()
+        expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
 
-    def _request_app_data(self, app_id: str):
+        if not api_data or expired_data:
+            if not app['runtime']:
+                model.status = ApplicationStatus.LOADING_DATA
+                self.async_data_loader.load(model)
 
-        try:
-            res = self.http_session.get('{}/apps/{}'.format(__FLATHUB_API_URL__, app_id), timeout=30)
+        else:  # filling cached data
+            for attr, val in api_data.items():
+                if attr != 'expires_at' and val:
+                    setattr(model.base_data, attr, val)
 
-            if res.status_code == 200:
-                return res.json()
-            else:
-                print("Could not retrieve app data for id '{}'. Server response: {}".format(app_id, res.status_code))
-        except:
-            print("Could not retrieve app data for id '{}'. Timeout".format(app_id))
-            return None
+        return model
 
-    def _fill_api_data(self, app: dict):
-
-        api_data = self.cache_apps.get(app['id'])
-
-        if (not app['runtime'] and not api_data) or (api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()):  # if api data is not cached or expired, tries to retrieve it
-            api_data = self._request_app_data(app['id'])
-
-            if api_data:
-
-                if self.cache_expire > 0:
-                    api_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
-
-                self.cache_apps[app['id']] = api_data
-
-        if not api_data:
-            for attr in ('latest_version', 'icon', 'description'):
-                if attr not in app:
-                    app[attr] = None
-        else:
-            app['latest_version'] = api_data.get('currentReleaseVersion')
-            app['icon'] = api_data.get('iconMobileUrl')
-
-            for attr in ('name', 'description'):
-                if not app.get(attr):
-                    app[attr] = api_data.get(attr)
-
-            if app['icon'].startswith('/'):
-                app['icon'] = __FLATHUB_URL__ + app['icon']
-
-    def search(self, word: str) -> List[dict]:
+    def search(self, word: str) -> List[FlatpakApplication]:
 
         res = []
         apps_found = flatpak.search(word)
@@ -82,25 +55,24 @@ class FlatpakManager:
         if apps_found:
 
             already_read = set()
-            installed_apps = self.read_installed()
+            installed_apps = self.read_installed(keep_workers=True)
 
             if installed_apps:
-                for app in apps_found:
+                for app_found in apps_found:
                     for installed_app in installed_apps:
-                        if app['id'] == installed_app['id']:
+                        if app_found['id'] == installed_app.base_data.id:
                             res.append(installed_app)
-                            already_read.add(app['id'])
+                            already_read.add(app_found['id'])
 
-            for app in apps_found:
-                if app['id'] not in already_read:
-                    app['update'] = False
-                    app['installed'] = False
-                    self._fill_api_data(app)
-                    res.append(app)
+            for app_found in apps_found:
+                if app_found['id'] not in already_read:
+                    res.append(self._map_to_model(app_found))
+
+            self.async_data_loader.stop_current_workers()
 
         return res
 
-    def read_installed(self) -> List[dict]:
+    def read_installed(self, keep_workers: bool = False) -> List[FlatpakApplication]:
 
         self.lock_read.acquire()
 
@@ -112,23 +84,34 @@ class FlatpakManager:
 
                 available_updates = flatpak.list_updates_as_str()
 
-                for app in installed:
-                    self._fill_api_data(app)
-                    app['update'] = app['id'] in available_updates
-                    app['installed'] = True
+                models = []
 
-            return installed
+                for app in installed:
+                    model = self._map_to_model(app)
+                    model.installed = True
+                    model.update = app['id'] in available_updates
+                    models.append(model)
+
+                if not keep_workers:
+                    self.async_data_loader.stop_current_workers()
+
+                return models
+
+            return []
 
         finally:
             self.lock_read.release()
 
-    def downgrade_app(self, app: dict, root_password: str):
+    def downgrade_app(self, app: FlatpakApplication, root_password: str):
 
-        commits = flatpak.get_app_commits(app['ref'], app['origin'])
-        commit_idx = commits.index(app['commit'])
+        commits = flatpak.get_app_commits(app.ref, app.origin)
+        commit_idx = commits.index(app.commit)
 
         # downgrade is not possible if the app current commit in the first one:
         if commit_idx == len(commits) - 1:
             return None
 
-        return flatpak.downgrade_and_stream(app['ref'], commits[commit_idx + 1], root_password)
+        return flatpak.downgrade_and_stream(app.ref, commits[commit_idx + 1], root_password)
+
+    def clean_cache_for(self, app_id: str):
+        self.api_cache.delete(app_id)

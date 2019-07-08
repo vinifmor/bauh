@@ -3,6 +3,7 @@ import subprocess
 from typing import List
 
 from fpakman.core import system
+from fpakman.core.model import Application
 
 BASE_CMD = 'flatpak'
 

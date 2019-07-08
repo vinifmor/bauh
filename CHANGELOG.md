@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.3.1]
 ### Improvements
 - Console output now is optional and now shown by default.
+- Full Flatpak database is not loaded during initialization (management panel is quickly available for the user)
+- Applications data that must be retrieved from Flathub API are now retrieved on demand and cached
+- Cache cleaners (for icons and API data) to improve memory usage.
+- New environment variable and argument: FPAKMAN_ICON_EXPIRATION ('--icon-exp')
+- Code was refactored to support other types of packaging
 
 ## [0.3.0] - 2019-07-02
 ### Features

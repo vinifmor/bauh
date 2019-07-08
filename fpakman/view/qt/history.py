@@ -11,7 +11,7 @@ class HistoryDialog(QDialog):
     def __init__(self, app: dict, app_icon: QIcon,  locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
-        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app['model']['name']))
+        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app['model'].base_data.name))
         self.setWindowIcon(app_icon)
 
         layout = QVBoxLayout()
@@ -29,7 +29,7 @@ class HistoryDialog(QDialog):
 
         for row, commit in enumerate(app['commits']):
 
-            current_app_commit = app['model']['commit'] == commit['commit']
+            current_app_commit = app['model'].commit == commit['commit']
 
             for col, key in enumerate(sorted(commit.keys())):
                 item = QTableWidgetItem()
