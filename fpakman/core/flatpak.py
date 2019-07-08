@@ -212,3 +212,8 @@ def search(word: str) -> List[dict]:
 
 def install_and_stream(app_id: str, origin: str):
     return system.stream_cmd([BASE_CMD, 'install', origin, app_id, '-y'])
+
+
+def set_default_remotes():
+    system.run_cmd('flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo')
+

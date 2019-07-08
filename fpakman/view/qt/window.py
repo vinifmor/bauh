@@ -12,7 +12,7 @@ from fpakman.core import resource, flatpak
 from fpakman.core.controller import FlatpakManager
 from fpakman.core.model import Application, FlatpakApplication
 from fpakman.util.cache import Cache
-from fpakman.view.qt import dialog
+from fpakman.view.qt import dialog, common
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -205,11 +205,7 @@ class ManageWindow(QWidget):
 
     def _check_flatpak_installed(self):
 
-        if not flatpak.is_installed():
-            dialog.show_error(title=self.locale_keys['popup.flatpak_not_installed.title'],
-                              body=self.locale_keys['popup.flatpak_not_installed.msg'] + '...',
-                              icon=self.icon_flathub)
-            exit(1)
+        common.check_flatpak_installed(self.locale_keys)
 
         if self.label_flatpak:
             self.label_flatpak.setText(self._get_flatpak_label())

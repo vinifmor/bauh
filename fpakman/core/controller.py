@@ -17,6 +17,7 @@ class FlatpakManager:
         self.http_session = requests.Session()
         self.lock_read = Lock()
         self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache)
+        flatpak.set_default_remotes()
 
     def _map_to_model(self, app: dict) -> FlatpakApplication:
 

@@ -47,7 +47,6 @@ class AppsTable(QTableWidget):
                                                                               'flatpak.info.version',
                                                                               'manage_window.columns.latest_version',
                                                                               'flatpak.info.branch',
-                                                                              'flatpak.info.arch',
                                                                               'flatpak.info.description',
                                                                               'flatpak.info.origin',
                                                                               'manage_window.columns.installed',
@@ -113,11 +112,7 @@ class AppsTable(QTableWidget):
                 if app_v.visible and app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
                     self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
                     self.item(idx, 2).setText(app_v.model.base_data.latest_version)
-
-                    desc = app_v.get_async_attr('description', strip_html=True)
-                    self.item(idx, 5).setText(desc)
-                    self.item(idx, 5).setToolTip(desc)
-                    app_v.status = ApplicationViewStatus.READY
+                    self._set_col_description(self.item(idx, 4), app_v)
 
             visible, ready = 0, 0
 
@@ -219,39 +214,36 @@ class AppsTable(QTableWidget):
                 col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.setItem(idx, 3, col_branch)
 
-                col_arch = QTableWidgetItem()
-                col_arch.setText(app_v.model.arch if isinstance(app_v.model, FlatpakApplication) else '')
-                col_arch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 4, col_arch)
-
-                desc = app_v.get_async_attr('description', strip_html=True)
                 col_description = QTableWidgetItem()
-                col_description.setText(desc)
                 col_description.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self._set_col_description(col_description, app_v)
 
-                if app_v.model.status == ApplicationStatus.READY:
-                    col_description.setToolTip(desc)
-
-                self.setItem(idx, 5, col_description)
+                self.setItem(idx, 4, col_description)
 
                 col_origin = QTableWidgetItem()
                 col_origin.setText(app_v.model.origin if isinstance(app_v.model, FlatpakApplication) else '')
                 col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 6, col_origin)
+                self.setItem(idx, 5, col_origin)
 
                 col_installed = QLabel()
                 col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format('checked' if app_v.model.installed else 'red_cross')))))
                 col_installed.setAlignment(Qt.AlignCenter)
 
-                self.setCellWidget(idx, 7, col_installed)
+                self.setCellWidget(idx, 6, col_installed)
 
                 col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update) if app_v.model.update else None
-                self.setCellWidget(idx, 8, col_update)
+                self.setCellWidget(idx, 7, col_update)
+
+    def _set_col_description(self, col: QTableWidgetItem, app_v: ApplicationView):
+        desc = app_v.get_async_attr('description', strip_html=True)
+
+        if desc:
+            col.setText(desc[0:25] + '...')
+
+        if app_v.model.status == ApplicationStatus.READY:
+            col.setToolTip(desc)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
-            if i == 5:
-                header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)
-            else:
                 header_horizontal.setSectionResizeMode(i, policy)

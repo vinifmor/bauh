@@ -12,6 +12,7 @@ from fpakman.util import util
 from fpakman.core.controller import FlatpakManager
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
+from fpakman.view.qt import common
 from fpakman.view.qt.systray import TrayIcon
 
 app_name = 'fpakman'
@@ -51,14 +52,16 @@ if args.check_interval <= 0:
 if args.update_notification == 0:
     log_msg('updates notifications are disabled', Fore.YELLOW)
 
+locale_keys = util.get_locale_keys(args.locale)
+
+common.check_flatpak_installed(locale_keys)
+
 caches = []
 flatpak_api_cache = Cache(expiration_time=args.cache_exp)
 caches.append(flatpak_api_cache)
 
 icon_cache = Cache(expiration_time=args.icon_exp)
 caches.append(icon_cache)
-
-locale_keys = util.get_locale_keys(args.locale)
 
 app = QApplication(sys.argv)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
