@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
 from threading import Lock
 from typing import List
@@ -5,12 +6,59 @@ from typing import List
 import requests
 
 from fpakman.core import flatpak
-from fpakman.core.model import FlatpakApplication, ApplicationData, ApplicationStatus
+from fpakman.core.model import FlatpakApplication, ApplicationData, ApplicationStatus, Application
 from fpakman.core.worker import FlatpakAsyncDataLoaderManager
 from fpakman.util.cache import Cache
 
 
-class FlatpakManager:
+class ApplicationManager(ABC):
+
+    @abstractmethod
+    def search(self, word: str) -> List[Application]:
+        pass
+
+    @abstractmethod
+    def read_installed(self) -> List[Application]:
+        pass
+
+    @abstractmethod
+    def downgrade_app(self, app: Application, root_password: str):
+        pass
+
+    @abstractmethod
+    def clean_cache_for(self, app: Application):
+        pass
+
+    @abstractmethod
+    def can_downgrade(self):
+        pass
+
+    @abstractmethod
+    def update_and_stream(self, app: Application):
+        pass
+
+    @abstractmethod
+    def uninstall_and_stream(self, app: Application):
+        pass
+
+    @abstractmethod
+    def get_app_type(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_info(self, app: Application) -> dict:
+        pass
+
+    @abstractmethod
+    def get_history(self, app: Application) -> List[dict]:
+        pass
+
+    @abstractmethod
+    def install_and_stream(self, app: Application):
+        pass
+
+
+class FlatpakManager(ApplicationManager):
 
     def __init__(self, api_cache: Cache):
         self.api_cache = api_cache
@@ -18,6 +66,9 @@ class FlatpakManager:
         self.lock_read = Lock()
         self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache)
         flatpak.set_default_remotes()
+
+    def get_app_type(self):
+        return FlatpakApplication
 
     def _map_to_model(self, app: dict) -> FlatpakApplication:
 
@@ -103,6 +154,9 @@ class FlatpakManager:
         finally:
             self.lock_read.release()
 
+    def can_downgrade(self):
+        return True
+
     def downgrade_app(self, app: FlatpakApplication, root_password: str):
 
         commits = flatpak.get_app_commits(app.ref, app.origin)
@@ -114,5 +168,77 @@ class FlatpakManager:
 
         return flatpak.downgrade_and_stream(app.ref, commits[commit_idx + 1], root_password)
 
-    def clean_cache_for(self, app_id: str):
-        self.api_cache.delete(app_id)
+    def clean_cache_for(self, app: FlatpakApplication):
+        self.api_cache.delete(app.base_data.id)
+
+    def update_and_stream(self, app: FlatpakApplication):
+        return flatpak.update_and_stream(app.ref)
+
+    def uninstall_and_stream(self, app: FlatpakApplication):
+        return flatpak.uninstall_and_stream(app.ref)
+
+    def get_info(self, app: FlatpakApplication) -> dict:
+        app_info = flatpak.get_app_info_fields(app.base_data.id, app.branch)
+        app_info['name'] = app.base_data.name
+        app_info['type'] = 'runtime' if app.runtime else 'app'
+        app_info['description'] = app.base_data.description
+        return app_info
+
+    def get_history(self, app: FlatpakApplication) -> List[dict]:
+        return flatpak.get_app_commits_data(app.ref, app.origin)
+
+    def install_and_stream(self, app: FlatpakApplication):
+        return flatpak.install_and_stream(app.base_data.id, app.origin)
+
+
+class GenericApplicationManager(ApplicationManager):
+
+    def __init__(self, managers: List[ApplicationManager]):
+        self.managers = managers
+        self.map = {m.get_app_type(): m for m in self.managers}
+
+    def search(self, word: str) -> List[Application]:
+        apps = []
+        for man in self.managers:
+            apps.extend(man.search(word))
+
+        return apps
+
+    def read_installed(self) -> List[Application]:
+        installed = []
+        for man in self.managers:
+            installed.extend(man.read_installed())
+
+        return installed
+
+    def can_downgrade(self):
+        return True
+
+    def downgrade_app(self, app: Application, root_password: str):
+        manager = self.map.get(app.__class__)
+
+        if manager.can_downgrade():
+            return manager.downgrade_app(app, root_password)
+        else:
+            raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
+
+    def clean_cache_for(self, app: Application):
+        self.map[app.__class__].clean_cache_for(app)
+
+    def update_and_stream(self, app: Application):
+        return self.map[app.__class__].update_and_stream(app)
+
+    def uninstall_and_stream(self, app: Application):
+        return self.map[app.__class__].uninstall_and_stream(app)
+
+    def install_and_stream(self, app: Application):
+        return self.map[app.__class__].install_and_stream(app)
+
+    def get_info(self, app: Application):
+        return self.map[app.__class__].get_info(app)
+
+    def get_history(self, app: Application):
+        return self.map[app.__class__].get_history(app)
+
+    def get_app_type(self):
+        return None

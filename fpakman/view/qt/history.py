@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, app: dict, app_icon: QIcon,  locale_keys: dict):
+    def __init__(self, app: dict, app_icon: QIcon, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
         self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app['model'].base_data.name))
@@ -23,11 +23,11 @@ class HistoryDialog(QDialog):
         table_history.verticalHeader().setVisible(False)
         table_history.setAlternatingRowColors(True)
 
-        table_history.setColumnCount(len(app['commits'][0]))
-        table_history.setRowCount(len(app['commits']))
-        table_history.setHorizontalHeaderLabels([locale_keys['flatpak.info.' + key].capitalize() for key in sorted(app['commits'][0].keys())])
+        table_history.setColumnCount(len(app['history'][0]))
+        table_history.setRowCount(len(app['history']))
+        table_history.setHorizontalHeaderLabels([locale_keys['flatpak.info.' + key].capitalize() for key in sorted(app['history'][0].keys())])
 
-        for row, commit in enumerate(app['commits']):
+        for row, commit in enumerate(app['history']):
 
             current_app_commit = app['model'].commit == commit['commit']
 

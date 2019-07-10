@@ -4,12 +4,11 @@ from typing import List
 
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from fpakman.core import flatpak
-from fpakman.core.controller import FlatpakManager
-from fpakman.core.model import ApplicationStatus, FlatpakApplication
+from fpakman.core.controller import ApplicationManager
+from fpakman.core.model import ApplicationStatus
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
-from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
+from fpakman.view.qt.view_model import ApplicationView
 
 
 class UpdateSelectedApps(QThread):
@@ -17,14 +16,15 @@ class UpdateSelectedApps(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
         super(UpdateSelectedApps, self).__init__()
-        self.refs_to_update = []
+        self.apps_to_update = apps_to_update
+        self.manager = manager
 
     def run(self):
 
-        for app_ref in self.refs_to_update:
-            for output in flatpak.update_and_stream(app_ref):
+        for app in self.apps_to_update:
+            for output in self.manager.update_and_stream(app.model):
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
@@ -36,7 +36,7 @@ class RefreshApps(QThread):
 
     signal = pyqtSignal(list)
 
-    def __init__(self, manager: FlatpakManager):
+    def __init__(self, manager: ApplicationManager):
         super(RefreshApps, self).__init__()
         self.manager = manager
 
@@ -48,21 +48,21 @@ class UninstallApp(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self, manager: FlatpakManager, icon_cache: Cache, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
         super(UninstallApp, self).__init__()
         self.app = app
         self.manager = manager
         self.icon_cache = icon_cache
 
     def run(self):
-        if self.app and isinstance(self.app.model, FlatpakApplication):
-            for output in flatpak.uninstall_and_stream(self.app.model.ref):
+        if self.app:
+            for output in self.manager.uninstall_and_stream(self.app.model):
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
 
             self.icon_cache.delete(self.app.model.base_data.icon_url)
-            self.manager.clean_cache_for(self.app.model.base_data.id)
+            self.manager.clean_cache_for(self.app.model)
             self.signal_finished.emit()
 
 
@@ -70,7 +70,7 @@ class DowngradeApp(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self, manager: FlatpakManager, locale_keys: dict, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(DowngradeApp, self).__init__()
         self.manager = manager
         self.app = app
@@ -78,7 +78,7 @@ class DowngradeApp(QThread):
         self.root_password = None
 
     def run(self):
-        if self.app and isinstance(self.app.model, FlatpakApplication):
+        if self.app:
 
             stream = self.manager.downgrade_app(self.app.model, self.root_password)
 
@@ -99,38 +99,35 @@ class DowngradeApp(QThread):
 class GetAppInfo(QThread):
     signal_finished = pyqtSignal(dict)
 
-    def __init__(self, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(GetAppInfo, self).__init__()
         self.app = app
+        self.manager = manager
 
     def run(self):
-        if self.app and isinstance(self.app.model, FlatpakApplication):
-            app_info = flatpak.get_app_info_fields(self.app.model.base_data.id, self.app.model.branch)
-            app_info['name'] = self.app.model.base_data.name
-            app_info['type'] = 'runtime' if self.app.model.runtime else 'app'
-            app_info['description'] = self.app.model.base_data.description
-            self.signal_finished.emit(app_info)
+        if self.app:
+            self.signal_finished.emit(self.manager.get_info(self.app.model))
             self.app = None
 
 
 class GetAppHistory(QThread):
     signal_finished = pyqtSignal(dict)
 
-    def __init__(self, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(GetAppHistory, self).__init__()
         self.app = app
+        self.manager = manager
 
     def run(self):
-        if self.app and isinstance(self.app.model, FlatpakApplication):
-            commits = flatpak.get_app_commits_data(self.app.model.ref, self.app.model.origin)
-            self.signal_finished.emit({'model': self.app.model, 'commits': commits})
+        if self.app:
+            self.signal_finished.emit({'model': self.app.model, 'history': self.manager.get_history(self.app.model)})
             self.app = None
 
 
 class SearchApps(QThread):
     signal_finished = pyqtSignal(list)
 
-    def __init__(self, manager: FlatpakManager):
+    def __init__(self, manager: ApplicationManager):
         super(SearchApps, self).__init__()
         self.word = None
         self.manager = manager
@@ -150,14 +147,15 @@ class InstallApp(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(InstallApp, self).__init__()
         self.app = app
+        self.manager = manager
 
     def run(self):
 
-        if self.app and isinstance(self.app.model, FlatpakApplication):
-            for output in flatpak.install_and_stream(self.app.model.base_data.id, self.app.model.origin):
+        if self.app:
+            for output in self.manager.install_and_stream(self.app.model):
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)

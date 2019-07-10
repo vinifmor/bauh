@@ -43,13 +43,12 @@ class AppsTable(QTableWidget):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent
-        self.column_names = [parent.locale_keys[key].capitalize() for key in ['flatpak.info.name',
-                                                                              'flatpak.info.version',
-                                                                              'manage_window.columns.latest_version',
-                                                                              'flatpak.info.branch',
+        self.column_names = [parent.locale_keys[key].capitalize() for key in ['name',
+                                                                              'version',
+                                                                              'latest_version',
                                                                               'flatpak.info.description',
-                                                                              'flatpak.info.origin',
-                                                                              'manage_window.columns.installed',
+                                                                              'type',
+                                                                              'installed',
                                                                               'manage_window.columns.update']]
         self.setColumnCount(len(self.column_names))
         self.setFocusPolicy(Qt.NoFocus)
@@ -59,6 +58,7 @@ class AppsTable(QTableWidget):
         self.setHorizontalHeaderLabels(self.column_names)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_flathub = QIcon(resource.get_path('img/flathub.svg'))
+        self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon)
@@ -73,31 +73,36 @@ class AppsTable(QTableWidget):
         menu_row = QMenu()
 
         if app.model.installed:
-            action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
-            action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
-            action_info.triggered.connect(self._get_app_info)
-            menu_row.addAction(action_info)
 
-            action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
-            action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
-            action_history.triggered.connect(self._get_app_history)
-            menu_row.addAction(action_history)
+            if app.model.has_info():
+                action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
+                action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
+                action_info.triggered.connect(self._get_app_info)
+                menu_row.addAction(action_info)
 
-            action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
-            action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
-            action_uninstall.triggered.connect(self._uninstall_app)
-            menu_row.addAction(action_uninstall)
+            if app.model.has_history():
+                action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
+                action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
+                action_history.triggered.connect(self._get_app_history)
+                menu_row.addAction(action_history)
 
-            if isinstance(app.model, FlatpakApplication) and not app.model.runtime:  # not available for runtimes
+            if app.model.can_be_uninstalled():
+                action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
+                action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
+                action_uninstall.triggered.connect(self._uninstall_app)
+                menu_row.addAction(action_uninstall)
+
+            if app.model.can_be_downgraded():
                 action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
                 action_downgrade.triggered.connect(self._downgrade_app)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
         else:
-            action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
-            action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
-            action_install.triggered.connect(self._install_app)
-            menu_row.addAction(action_install)
+            if app.model.can_be_installed():
+                action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
+                action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
+                action_install.triggered.connect(self._install_app)
+                menu_row.addAction(action_install)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
@@ -108,20 +113,21 @@ class AppsTable(QTableWidget):
         self.lock_async_data.acquire()
 
         if self.window.apps:
-            for idx, app_v in enumerate(self.window.apps):
-                if app_v.visible and app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
-                    self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
-                    self.item(idx, 2).setText(app_v.model.base_data.latest_version)
-                    self._set_col_description(self.item(idx, 4), app_v)
 
             visible, ready = 0, 0
+            for idx, app_v in enumerate(self.window.apps):
 
-            for app_v in self.window.apps:
                 if app_v.visible:
                     visible += 1
 
-                if app_v.status == ApplicationViewStatus.READY:
-                    ready += 1
+                    if app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
+                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
+                        self.item(idx, 2).setText(app_v.model.base_data.latest_version)
+                        self._set_col_description(self.item(idx, 3), app_v)
+                        app_v.status = ApplicationViewStatus.READY
+
+                    if app_v.status == ApplicationViewStatus.READY:
+                        ready += 1
 
             if ready == visible:
                 self.window.resize_and_center()
@@ -185,14 +191,14 @@ class AppsTable(QTableWidget):
                 col_name.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
                 if not app_v.model.base_data.icon_url:
-                    col_name.setIcon(self.icon_flathub)
+                    col_name.setIcon(QIcon(app_v.model.get_default_logo_path()))
                 else:
                     cached_icon = self.icon_cache.get(app_v.model.base_data.icon_url)
 
                     if cached_icon:
                         col_name.setIcon(cached_icon)
                     else:
-                        col_name.setIcon(self.icon_flathub)
+                        col_name.setIcon(QIcon(app_v.model.get_default_logo_path()))
 
                 self.setItem(idx, 0, col_name)
 
@@ -209,30 +215,25 @@ class AppsTable(QTableWidget):
                 if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
                     col_release.setForeground(QColor('orange'))
 
-                col_branch = QTableWidgetItem()
-                col_branch.setText(app_v.model.branch if isinstance(app_v.model, FlatpakApplication) else '')
-                col_branch.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 3, col_branch)
-
                 col_description = QTableWidgetItem()
                 col_description.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self._set_col_description(col_description, app_v)
 
-                self.setItem(idx, 4, col_description)
+                self.setItem(idx, 3, col_description)
 
-                col_origin = QTableWidgetItem()
-                col_origin.setText(app_v.model.origin if isinstance(app_v.model, FlatpakApplication) else '')
-                col_origin.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 5, col_origin)
+                col_type = QTableWidgetItem()
+                col_type.setText(app_v.model.get_type())
+                col_type.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.setItem(idx, 4, col_type)
 
                 col_installed = QLabel()
                 col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format('checked' if app_v.model.installed else 'red_cross')))))
                 col_installed.setAlignment(Qt.AlignCenter)
 
-                self.setCellWidget(idx, 6, col_installed)
+                self.setCellWidget(idx, 5, col_installed)
 
                 col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update) if app_v.model.update else None
-                self.setCellWidget(idx, 7, col_update)
+                self.setCellWidget(idx, 6, col_update)
 
     def _set_col_description(self, col: QTableWidgetItem, app_v: ApplicationView):
         desc = app_v.get_async_attr('description', strip_html=True)

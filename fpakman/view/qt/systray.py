@@ -7,7 +7,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
 from fpakman.core import resource, system
-from fpakman.core.controller import FlatpakManager
+from fpakman.core.controller import FlatpakManager, ApplicationManager
 from fpakman.core.model import Application
 from fpakman.util.cache import Cache
 from fpakman.view.qt.about import AboutDialog
@@ -18,7 +18,7 @@ class UpdateCheck(QThread):
 
     signal = pyqtSignal(list)
 
-    def __init__(self, manager: FlatpakManager, check_interval: int, parent=None):
+    def __init__(self, manager: ApplicationManager, check_interval: int, parent=None):
         super(UpdateCheck, self).__init__(parent)
         self.check_interval = check_interval
         self.manager = manager
@@ -39,7 +39,7 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: FlatpakManager, icon_cache: Cache, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -86,7 +86,7 @@ class TrayIcon(QSystemTrayIcon):
 
                 if update_keys.difference(self.last_updates):
                     self.last_updates = update_keys
-                    msg = '{}: {}'.format(self.locale_keys['notification.new_updates'].format('Flatpak'), len(updates))
+                    msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
                     self.setToolTip(msg)
 
                     if self.update_notification:

@@ -8,11 +8,11 @@ from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar
 
-from fpakman.core import resource, flatpak
-from fpakman.core.controller import FlatpakManager
-from fpakman.core.model import Application, FlatpakApplication
+from fpakman.core import resource
+from fpakman.core.controller import ApplicationManager
+from fpakman.core.model import Application
 from fpakman.util.cache import Cache
-from fpakman.view.qt import dialog, common
+from fpakman.view.qt import common
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -27,7 +27,7 @@ DARK_ORANGE = '#FF4500'
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: FlatpakManager, tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -128,7 +128,7 @@ class ManageWindow(QWidget):
         self.textarea_output.setVisible(False)
         self.textarea_output.setReadOnly(True)
 
-        self.thread_update = UpdateSelectedApps()
+        self.thread_update = UpdateSelectedApps(self.manager)
         self.thread_update.signal_output.connect(self._update_action_output)
         self.thread_update.signal_finished.connect(self._finish_update_selected)
 
@@ -143,16 +143,16 @@ class ManageWindow(QWidget):
         self.thread_downgrade.signal_output.connect(self._update_action_output)
         self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
 
-        self.thread_get_info = GetAppInfo()
+        self.thread_get_info = GetAppInfo(self.manager)
         self.thread_get_info.signal_finished.connect(self._finish_get_info)
 
-        self.thread_get_history = GetAppHistory()
+        self.thread_get_history = GetAppHistory(self.manager)
         self.thread_get_history.signal_finished.connect(self._finish_get_history)
 
         self.thread_search = SearchApps(self.manager)
         self.thread_search.signal_finished.connect(self._finish_search)
 
-        self.thread_install = InstallApp()
+        self.thread_install = InstallApp(self.manager)
         self.thread_install.signal_output.connect(self._update_action_output)
         self.thread_install.signal_finished.connect(self._finish_install)
 
@@ -174,9 +174,6 @@ class ManageWindow(QWidget):
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
         self.toolbar_bottom.addWidget(self._new_spacer())
-
-        self.label_flatpak = QLabel(self._get_flatpak_label())
-        self.toolbar_bottom.addWidget(self.label_flatpak)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -204,14 +201,7 @@ class ManageWindow(QWidget):
             self._handle_console_option(False)
 
     def _check_flatpak_installed(self):
-
         common.check_flatpak_installed(self.locale_keys)
-
-        if self.label_flatpak:
-            self.label_flatpak.setText(self._get_flatpak_label())
-
-    def _get_flatpak_label(self):
-        return 'flatpak: ' + flatpak.get_version()
 
     def _acquire_lock(self):
 
@@ -288,7 +278,7 @@ class ManageWindow(QWidget):
             show_only_apps = True if only_apps == 2 else False
 
             for idx, app_v in enumerate(self.apps):
-                hidden = show_only_apps and isinstance(app_v.model, FlatpakApplication) and app_v.model.runtime
+                hidden = show_only_apps and app_v.model.is_library()
                 self.table_apps.setRowHidden(idx, hidden)
                 app_v.visible = not hidden
 
@@ -301,22 +291,22 @@ class ManageWindow(QWidget):
 
         enable_bt_update = False
 
-        app_updates, runtime_updates = 0, 0
+        app_updates, library_updates = 0, 0
 
         for app_v in self.apps:
             if app_v.model.update:
                 if app_v.model.runtime:
-                    runtime_updates += 1
+                    library_updates += 1
                 else:
                     app_updates += 1
 
-        total_updates = app_updates + runtime_updates
+        total_updates = app_updates + library_updates
         if total_updates > 0:
             self.label_updates.setText('{}: {}'.format(self.locale_keys['manage_window.label.updates'], total_updates))
-            self.label_updates.setToolTip('{} {} | {} runtimes'.format(app_updates,
-                                                                       self.locale_keys[
-                                                                           'manage_window.checkbox.only_apps'].lower(),
-                                                                       runtime_updates))
+            self.label_updates.setToolTip('{} {} | {} {}'.format(app_updates,
+                                                                 self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                 library_updates,
+                                                                 self.locale_keys['others'].lower()))
         else:
             self.label_updates.setText('')
 
@@ -340,14 +330,14 @@ class ManageWindow(QWidget):
 
         self.apps = []
 
-        napps = 0  # number of apps (not runtimes)
+        napps = 0  # number of apps (not libraries)
 
         if apps:
             for app in apps:
                 app_model = ApplicationView(model=app,
-                                            visible=(isinstance(app, FlatpakApplication) and not app.runtime) or not self.checkbox_only_apps.isChecked())
+                                            visible=(not app.is_library()) or not self.checkbox_only_apps.isChecked())
 
-                napps += 1 if isinstance(app, FlatpakApplication) and not app.runtime else 0
+                napps += 1 if not app.is_library() else 0
                 self.apps.append(app_model)
 
         if napps == 0:
@@ -375,13 +365,13 @@ class ManageWindow(QWidget):
         if self._acquire_lock():
             if self.apps:
 
-                to_update = [app_v.model.ref for app_v in self.apps if app_v.visible and app_v.update_checked and isinstance(app_v.model, FlatpakApplication)]
+                to_update = [app_v for app_v in self.apps if app_v.visible and app_v.update_checked]
 
                 if to_update:
                     self._handle_console_option(True)
 
                     self._begin_action(self.locale_keys['manage_window.status.upgrading'])
-                    self.thread_update.refs_to_update = to_update
+                    self.thread_update.apps_to_update = to_update
                     self.thread_update.start()
 
     def _finish_update_selected(self):

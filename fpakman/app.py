@@ -9,7 +9,7 @@ from colorama import Fore
 from fpakman import __version__
 from fpakman.core import resource
 from fpakman.util import util
-from fpakman.core.controller import FlatpakManager
+from fpakman.core.controller import FlatpakManager, GenericApplicationManager
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
 from fpakman.view.qt import common
@@ -66,7 +66,8 @@ caches.append(icon_cache)
 app = QApplication(sys.argv)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-manager = FlatpakManager(flatpak_api_cache)
+manager = GenericApplicationManager([FlatpakManager(flatpak_api_cache)])
+
 
 trayIcon = TrayIcon(locale_keys=locale_keys,
                     manager=manager,
