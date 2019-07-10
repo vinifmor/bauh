@@ -91,7 +91,7 @@ class FlatpakAsyncDataLoader(Thread):
 
 class FlatpakAsyncDataLoaderManager:
 
-    def __init__(self, api_cache: Cache, worker_load: int = 3, workers: List[FlatpakAsyncDataLoader] = []):
+    def __init__(self, api_cache: Cache, worker_load: int = 1, workers: List[FlatpakAsyncDataLoader] = []):
         self.worker_load = worker_load
         self.current_workers = workers
         self.http_session = requests.Session()
