@@ -73,7 +73,7 @@ def is_installed():
 
 
 def get_version():
-    res = system.run_cmd('{} --version'.format(BASE_CMD))
+    res = system.run_cmd('{} --version'.format(BASE_CMD), print_error=False)
     return res.split(' ')[1].strip() if res else None
 
 

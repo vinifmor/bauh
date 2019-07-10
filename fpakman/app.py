@@ -12,7 +12,6 @@ from fpakman.util import util
 from fpakman.core.controller import FlatpakManager, GenericApplicationManager
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
-from fpakman.view.qt import common
 from fpakman.view.qt.systray import TrayIcon
 
 app_name = 'fpakman'
@@ -53,8 +52,6 @@ if args.update_notification == 0:
     log_msg('updates notifications are disabled', Fore.YELLOW)
 
 locale_keys = util.get_locale_keys(args.locale)
-
-common.check_flatpak_installed(locale_keys)
 
 caches = []
 flatpak_api_cache = Cache(expiration_time=args.cache_exp)

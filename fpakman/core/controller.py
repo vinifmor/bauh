@@ -57,6 +57,10 @@ class ApplicationManager(ABC):
     def install_and_stream(self, app: Application):
         pass
 
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        pass
+
 
 class FlatpakManager(ApplicationManager):
 
@@ -190,6 +194,9 @@ class FlatpakManager(ApplicationManager):
     def install_and_stream(self, app: FlatpakApplication):
         return flatpak.install_and_stream(app.base_data.id, app.origin)
 
+    def is_enabled(self):
+        return flatpak.is_installed()
+
 
 class GenericApplicationManager(ApplicationManager):
 
@@ -200,14 +207,16 @@ class GenericApplicationManager(ApplicationManager):
     def search(self, word: str) -> List[Application]:
         apps = []
         for man in self.managers:
-            apps.extend(man.search(word))
+            if man.is_enabled():
+                apps.extend(man.search(word))
 
         return apps
 
     def read_installed(self) -> List[Application]:
         installed = []
         for man in self.managers:
-            installed.extend(man.read_installed())
+            if man.is_enabled():
+                installed.extend(man.read_installed())
 
         return installed
 
@@ -215,30 +224,55 @@ class GenericApplicationManager(ApplicationManager):
         return True
 
     def downgrade_app(self, app: Application, root_password: str):
-        manager = self.map.get(app.__class__)
+        man = self._get_manager_for(app)
 
-        if manager.can_downgrade():
-            return manager.downgrade_app(app, root_password)
+        if man and man.can_downgrade():
+            return man.downgrade_app(app, root_password)
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
     def clean_cache_for(self, app: Application):
-        self.map[app.__class__].clean_cache_for(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.clean_cache_for(app)
 
     def update_and_stream(self, app: Application):
-        return self.map[app.__class__].update_and_stream(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.update_and_stream(app)
 
     def uninstall_and_stream(self, app: Application):
-        return self.map[app.__class__].uninstall_and_stream(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.uninstall_and_stream(app)
 
     def install_and_stream(self, app: Application):
-        return self.map[app.__class__].install_and_stream(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.install_and_stream(app)
 
     def get_info(self, app: Application):
-        return self.map[app.__class__].get_info(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.get_info(app)
 
     def get_history(self, app: Application):
-        return self.map[app.__class__].get_history(app)
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.get_history(app)
 
     def get_app_type(self):
         return None
+
+    def is_enabled(self):
+        return True
+
+    def _get_manager_for(self, app: Application):
+        man = self.map[app.__class__]
+        return man if man and man.is_enabled() else None

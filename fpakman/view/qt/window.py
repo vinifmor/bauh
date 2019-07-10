@@ -12,7 +12,6 @@ from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.model import Application
 from fpakman.util.cache import Cache
-from fpakman.view.qt import common
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -39,7 +38,6 @@ class ManageWindow(QWidget):
         self.icon_cache = icon_cache
 
         self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
-        self._check_flatpak_installed()
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
         self.setWindowTitle(locale_keys['manage_window.title'])
         self.setWindowIcon(self.icon_flathub)
@@ -200,9 +198,6 @@ class ManageWindow(QWidget):
             self.hide()
             self._handle_console_option(False)
 
-    def _check_flatpak_installed(self):
-        common.check_flatpak_installed(self.locale_keys)
-
     def _acquire_lock(self):
 
         self.thread_lock.acquire()
@@ -241,20 +236,16 @@ class ManageWindow(QWidget):
     def refresh(self):
 
         if self._acquire_lock():
-            self._check_flatpak_installed()
             self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             self.thread_refresh.start()
 
     def _finish_refresh(self, apps: List[Application]):
-
         self.update_apps(apps)
         self.finish_action()
         self._release_lock()
 
     def uninstall_app(self, app: ApplicationView):
-        self._check_flatpak_installed()
-
         if self._acquire_lock():
             self._handle_console_option(True)
             self._begin_action(self.locale_keys['manage_window.status.uninstalling'])
@@ -326,8 +317,6 @@ class ManageWindow(QWidget):
         self.move(geo.topLeft())
 
     def update_apps(self, apps: List[Application]):
-        self._check_flatpak_installed()
-
         self.apps = []
 
         napps = 0  # number of apps (not libraries)
@@ -408,9 +397,6 @@ class ManageWindow(QWidget):
         self.label_status.setText('')
 
     def downgrade_app(self, app: dict):
-
-        self._check_flatpak_installed()
-
         if self._acquire_lock():
 
             pwd = None
@@ -471,15 +457,11 @@ class ManageWindow(QWidget):
             self.thread_search.start()
 
     def _finish_search(self, apps_found: List[Application]):
-
         self._release_lock()
         self.finish_action()
         self.update_apps(apps_found)
 
     def install_app(self, app: dict):
-
-        self._check_flatpak_installed()
-
         if self._acquire_lock():
             self._handle_console_option(True)
             self._begin_action(self.locale_keys['manage_window.status.installing'])
