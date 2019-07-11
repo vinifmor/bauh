@@ -67,6 +67,7 @@ class ApplicationManager(ABC):
     def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
         pass
 
+
 from fpakman.core.worker import FlatpakAsyncDataLoaderManager
 
 
@@ -173,6 +174,7 @@ class FlatpakManager(ApplicationManager):
     def downgrade_app(self, app: FlatpakApplication, root_password: str):
 
         commits = flatpak.get_app_commits(app.ref, app.origin)
+
         commit_idx = commits.index(app.commit)
 
         # downgrade is not possible if the app current commit in the first one:

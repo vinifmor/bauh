@@ -2,9 +2,11 @@ import time
 from datetime import datetime, timedelta
 from typing import List
 
+import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from fpakman.core.controller import ApplicationManager
+from fpakman.core.exception import NoInternetException
 from fpakman.core.model import ApplicationStatus
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
@@ -92,20 +94,23 @@ class DowngradeApp(QThread):
     def run(self):
         if self.app:
 
-            stream = self.manager.downgrade_app(self.app.model, self.root_password)
+            try:
+                stream = self.manager.downgrade_app(self.app.model, self.root_password)
 
-            if stream is None:
-                dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
-                                  body=self.locale_keys['popup.downgrade.impossible.body'])
-            else:
-                for output in stream:
-                    line = output.decode().strip()
-                    if line:
-                        self.signal_output.emit(line)
-
-            self.app = None
-            self.root_password = None
-            self.signal_finished.emit()
+                if stream is None:
+                    dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
+                                      body=self.locale_keys['popup.downgrade.impossible.body'])
+                else:
+                    for output in stream:
+                        line = output.decode().strip()
+                        if line:
+                            self.signal_output.emit(line)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                self.signal_output.emit(self.locale_keys['internet.required'])
+            finally:
+                self.app = None
+                self.root_password = None
+                self.signal_finished.emit()
 
 
 class GetAppInfo(QThread):
@@ -125,15 +130,21 @@ class GetAppInfo(QThread):
 class GetAppHistory(QThread):
     signal_finished = pyqtSignal(dict)
 
-    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(GetAppHistory, self).__init__()
         self.app = app
         self.manager = manager
+        self.locale_keys = locale_keys
 
     def run(self):
         if self.app:
-            self.signal_finished.emit({'model': self.app.model, 'history': self.manager.get_history(self.app.model)})
-            self.app = None
+            try:
+                res = {'model': self.app.model, 'history': self.manager.get_history(self.app.model)}
+                self.signal_finished.emit(res)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                self.signal_finished.emit({'error': self.locale_keys['internet.required']})
+            finally:
+                self.app = None
 
 
 class SearchApps(QThread):

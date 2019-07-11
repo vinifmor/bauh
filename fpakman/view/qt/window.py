@@ -145,7 +145,7 @@ class ManageWindow(QWidget):
         self.thread_get_info = GetAppInfo(self.manager)
         self.thread_get_info.signal_finished.connect(self._finish_get_info)
 
-        self.thread_get_history = GetAppHistory(self.manager)
+        self.thread_get_history = GetAppHistory(self.manager, self.locale_keys)
         self.thread_get_history.signal_finished.connect(self._finish_get_history)
 
         self.thread_search = SearchApps(self.manager)
@@ -445,8 +445,13 @@ class ManageWindow(QWidget):
         self._release_lock()
         self.finish_action()
         self.change_update_state()
-        dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
-        dialog_history.exec_()
+
+        if app.get('error'):
+            self._handle_console_option(True)
+            self.textarea_output.appendPlainText(app['error'])
+        else:
+            dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
+            dialog_history.exec_()
 
     def search(self):
 

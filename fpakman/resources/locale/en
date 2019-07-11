@@ -75,3 +75,4 @@ description=description
 type=type
 installed=installed
 others=others
+internet.required=Internet connection is required

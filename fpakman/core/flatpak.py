@@ -3,6 +3,7 @@ import subprocess
 from typing import List
 
 from fpakman.core import system
+from fpakman.core.exception import NoInternetException
 from fpakman.core.model import Application
 
 BASE_CMD = 'flatpak'
@@ -128,11 +129,18 @@ def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:
     log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
-    return re.findall(r'Commit+:\s(.+)', log)
+
+    if log:
+        return re.findall(r'Commit+:\s(.+)', log)
+    else:
+        raise NoInternetException()
 
 
 def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+
+    if not log:
+        raise NoInternetException()
 
     res = re.findall(r'(Commit|Subject|Date):\s(.+)', log)
 

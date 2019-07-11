@@ -76,3 +76,4 @@ description=descripción
 type=tipo
 installed=instalado
 others=otros
+internet.required=Se requiere conexión a internet
