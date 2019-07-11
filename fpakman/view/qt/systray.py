@@ -39,11 +39,12 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, disk_cache: bool, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
         self.icon_cache = icon_cache
+        self.disk_cache = disk_cache
 
         self.icon_default = QIcon(resource.get_path('img/logo.png'))
         self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
@@ -108,7 +109,8 @@ class TrayIcon(QSystemTrayIcon):
             self.manage_window = ManageWindow(locale_keys=self.locale_keys,
                                               manager=self.manager,
                                               icon_cache=self.icon_cache,
-                                              tray_icon=self)
+                                              tray_icon=self,
+                                              disk_cache=self.disk_cache)
 
         if self.manage_window.isMinimized():
             self.manage_window.setWindowState(Qt.WindowNoState)

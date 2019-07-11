@@ -1,3 +1,5 @@
+import os
+import shutil
 from abc import ABC, abstractmethod
 from datetime import datetime
 from threading import Lock
@@ -5,20 +7,20 @@ from typing import List
 
 import requests
 
-from fpakman.core import flatpak
+from fpakman.core import flatpak, disk
+from fpakman.core.disk import DiskCacheLoader, DiskCacheLoaderFactory
 from fpakman.core.model import FlatpakApplication, ApplicationData, ApplicationStatus, Application
-from fpakman.core.worker import FlatpakAsyncDataLoaderManager
 from fpakman.util.cache import Cache
 
 
 class ApplicationManager(ABC):
 
     @abstractmethod
-    def search(self, word: str) -> List[Application]:
+    def search(self, word: str, disk_loader: DiskCacheLoader) -> List[Application]:
         pass
 
     @abstractmethod
-    def read_installed(self) -> List[Application]:
+    def read_installed(self, disk_loader: DiskCacheLoader, keep_workers: bool) -> List[Application]:
         pass
 
     @abstractmethod
@@ -61,20 +63,27 @@ class ApplicationManager(ABC):
     def is_enabled(self) -> bool:
         pass
 
+    @abstractmethod
+    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
+        pass
+
+from fpakman.core.worker import FlatpakAsyncDataLoaderManager
+
 
 class FlatpakManager(ApplicationManager):
 
-    def __init__(self, api_cache: Cache):
+    def __init__(self, api_cache: Cache, disk_cache: bool):
         self.api_cache = api_cache
         self.http_session = requests.Session()
         self.lock_read = Lock()
-        self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache)
+        self.disk_cache = disk_cache
+        self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache, manager=self)
         flatpak.set_default_remotes()
 
     def get_app_type(self):
         return FlatpakApplication
 
-    def _map_to_model(self, app: dict) -> FlatpakApplication:
+    def _map_to_model(self, app: dict, installed: bool, disk_loader: DiskCacheLoader) -> FlatpakApplication:
 
         model = FlatpakApplication(arch=app.get('arch'),
                                    branch=app.get('branch'),
@@ -86,6 +95,7 @@ class FlatpakManager(ApplicationManager):
                                                              name=app.get('name'),
                                                              version=app.get('version'),
                                                              latest_version=app.get('latest_version')))
+        model.installed = installed
 
         api_data = self.api_cache.get(app['id'])
 
@@ -93,25 +103,23 @@ class FlatpakManager(ApplicationManager):
 
         if not api_data or expired_data:
             if not app['runtime']:
+                disk_loader.add(model)  # preloading cached disk data
                 model.status = ApplicationStatus.LOADING_DATA
                 self.async_data_loader.load(model)
 
-        else:  # filling cached data
-            for attr, val in api_data.items():
-                if attr != 'expires_at' and val:
-                    setattr(model.base_data, attr, val)
+        else:
+            model.fill_cached_data(api_data)
 
         return model
 
-    def search(self, word: str) -> List[FlatpakApplication]:
+    def search(self, word: str, disk_loader: DiskCacheLoader) -> List[FlatpakApplication]:
 
         res = []
         apps_found = flatpak.search(word)
 
         if apps_found:
-
             already_read = set()
-            installed_apps = self.read_installed(keep_workers=True)
+            installed_apps = self.read_installed(disk_loader=disk_loader, keep_workers=True)
 
             if installed_apps:
                 for app_found in apps_found:
@@ -122,13 +130,15 @@ class FlatpakManager(ApplicationManager):
 
             for app_found in apps_found:
                 if app_found['id'] not in already_read:
-                    res.append(self._map_to_model(app_found))
+                    res.append(self._map_to_model(app_found, False, disk_loader))
 
+            disk_loader.stop = True
+            disk_loader.join()
             self.async_data_loader.stop_current_workers()
 
         return res
 
-    def read_installed(self, keep_workers: bool = False) -> List[FlatpakApplication]:
+    def read_installed(self, disk_loader: DiskCacheLoader, keep_workers: bool = False) -> List[FlatpakApplication]:
 
         self.lock_read.acquire()
 
@@ -143,8 +153,7 @@ class FlatpakManager(ApplicationManager):
                 models = []
 
                 for app in installed:
-                    model = self._map_to_model(app)
-                    model.installed = True
+                    model = self._map_to_model(app, True, disk_loader)
                     model.update = app['id'] in available_updates
                     models.append(model)
 
@@ -175,6 +184,9 @@ class FlatpakManager(ApplicationManager):
     def clean_cache_for(self, app: FlatpakApplication):
         self.api_cache.delete(app.base_data.id)
 
+        if app.supports_disk_cache() and os.path.exists(app.get_disk_cache_path()):
+            shutil.rmtree(app.get_disk_cache_path())
+
     def update_and_stream(self, app: FlatpakApplication):
         return flatpak.update_and_stream(app.ref)
 
@@ -197,26 +209,43 @@ class FlatpakManager(ApplicationManager):
     def is_enabled(self):
         return flatpak.is_installed()
 
+    def cache_to_disk(self, app: FlatpakApplication, icon_bytes: bytes, only_icon: bool):
+        if self.disk_cache and app.supports_disk_cache():
+            disk.save(app, icon_bytes, only_icon)
+
 
 class GenericApplicationManager(ApplicationManager):
 
-    def __init__(self, managers: List[ApplicationManager]):
+    def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory):
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
+        self.disk_loader_factory = disk_loader_factory
 
-    def search(self, word: str) -> List[Application]:
+    def search(self, word: str, disk_loader: DiskCacheLoader = None) -> List[Application]:
         apps = []
+        disk_loader = self.disk_loader_factory.new()
+        disk_loader.start()
+
         for man in self.managers:
             if man.is_enabled():
-                apps.extend(man.search(word))
+                apps.extend(man.search(word, disk_loader))
 
+        disk_loader.stop = True
+        disk_loader.join()
         return apps
 
-    def read_installed(self) -> List[Application]:
+    def read_installed(self, disk_loader: DiskCacheLoader = None, keep_workers: bool = False) -> List[Application]:
         installed = []
+
+        disk_loader = self.disk_loader_factory.new()
+        disk_loader.start()
+
         for man in self.managers:
             if man.is_enabled():
-                installed.extend(man.read_installed())
+                installed.extend(man.read_installed(disk_loader=disk_loader, keep_workers=keep_workers))
+
+        disk_loader.stop = True
+        disk_loader.join()
 
         return installed
 
@@ -273,6 +302,13 @@ class GenericApplicationManager(ApplicationManager):
     def is_enabled(self):
         return True
 
-    def _get_manager_for(self, app: Application):
+    def _get_manager_for(self, app: Application) -> ApplicationManager:
         man = self.map[app.__class__]
         return man if man and man.is_enabled() else None
+
+    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
+        if self.disk_loader_factory.disk_cache and app.supports_disk_cache():
+            man = self._get_manager_for(app)
+
+            if man:
+                return man.cache_to_disk(app, icon_bytes=icon_bytes, only_icon=only_icon)

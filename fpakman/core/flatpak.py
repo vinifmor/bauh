@@ -107,7 +107,7 @@ def uninstall_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd([BASE_CMD, 'uninstall', app_ref, '-y'])
+    return system.cmd_to_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
 
 
 def list_updates_as_str():
@@ -211,7 +211,7 @@ def search(word: str) -> List[dict]:
 
 
 def install_and_stream(app_id: str, origin: str):
-    return system.stream_cmd([BASE_CMD, 'install', origin, app_id, '-y'])
+    return system.cmd_to_subprocess([BASE_CMD, 'install', origin, app_id, '-y'])
 
 
 def set_default_remotes():

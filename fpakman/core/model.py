@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 from fpakman.core import resource
+from fpakman.core.structure import flatpak_cache_path
 
 
 class ApplicationStatus(Enum):
@@ -52,11 +53,35 @@ class Application(ABC):
     def get_type(self):
         pass
 
-    def get_default_logo_path(self):
+    def get_default_icon_path(self):
         return resource.get_path('img/logo.svg')
 
     @abstractmethod
     def is_library(self):
+        pass
+
+    @abstractmethod
+    def supports_disk_cache(self):
+        pass
+
+    @abstractmethod
+    def get_disk_cache_path(self):
+        pass
+
+    @abstractmethod
+    def get_disk_icon_path(self):
+        pass
+
+    @abstractmethod
+    def get_disk_data_path(self):
+        pass
+
+    @abstractmethod
+    def get_data_to_cache(self):
+        pass
+
+    @abstractmethod
+    def fill_cached_data(self, data: dict):
         pass
 
 
@@ -92,8 +117,34 @@ class FlatpakApplication(Application):
     def get_type(self):
         return 'flatpak'
 
-    def get_default_logo_path(self):
+    def get_default_icon_path(self):
         return resource.get_path('img/flathub.svg')
 
     def is_library(self):
         return self.runtime
+
+    def supports_disk_cache(self):
+        return self.installed and not self.is_library()
+
+    def get_disk_cache_path(self):
+        return '{}/{}'.format(flatpak_cache_path, self.base_data.id)
+
+    def get_disk_icon_path(self):
+        return '{}/icon.png'.format(self.get_disk_cache_path())
+
+    def get_disk_data_path(self):
+        return '{}/data.json'.format(self.get_disk_cache_path())
+
+    def get_data_to_cache(self):
+        return {
+            'description': self.base_data.description,
+            'icon_url': self.base_data.icon_url,
+            'latest_version': self.base_data.latest_version,
+            'version': self.base_data.version,
+            'name': self.base_data.name
+        }
+
+    def fill_cached_data(self, data: dict):
+        for attr in self.get_data_to_cache().keys():
+            if not getattr(self.base_data, attr):
+                setattr(self.base_data, attr, data[attr])

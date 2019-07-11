@@ -6,12 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.3.1]
 ### Improvements
-- Console output now is optional and now shown by default.
+- Console output now is optional and not shown by default.
+- Cleaning search bar when 'Refresh' is clicked.
 - Full Flatpak database is not loaded during initialization (management panel is quickly available for the user)
-- Applications data that must be retrieved from Flathub API are now retrieved on demand and cached
-- Cache cleaners (for icons and API data) to improve memory usage.
-- New environment variable and argument: FPAKMAN_ICON_EXPIRATION ('--icon-exp')
-- Code was refactored to support other types of packaging
+- Applications data not available offline are now retrieved from Flathub API on demand and cached in memory and disk (only installed)
+- In-memory cached data have an expiration time and are cleaned overtime to reduce memory usage.
+- Code was refactored to support other types of packaging in the future (e.g: snap)
+
+### Fixes:
+- flatpak 1.0.X: search is now retrieving the application name
 
 ## [0.3.0] - 2019-07-02
 ### Features

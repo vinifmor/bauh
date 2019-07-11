@@ -56,13 +56,25 @@ class UninstallApp(QThread):
 
     def run(self):
         if self.app:
-            for output in self.manager.uninstall_and_stream(self.app.model):
+            subproc = self.manager.uninstall_and_stream(self.app.model)
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
 
-            self.icon_cache.delete(self.app.model.base_data.icon_url)
-            self.manager.clean_cache_for(self.app.model)
+            error = False
+
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            if not error:
+                self.icon_cache.delete(self.app.model.base_data.icon_url)
+                self.manager.clean_cache_for(self.app.model)
+
             self.signal_finished.emit()
 
 
@@ -147,18 +159,38 @@ class InstallApp(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, app: ApplicationView = None):
         super(InstallApp, self).__init__()
         self.app = app
         self.manager = manager
+        self.icon_cache = icon_cache
+        self.disk_cache = disk_cache
 
     def run(self):
 
         if self.app:
-            for output in self.manager.install_and_stream(self.app.model):
+            subproc = self.manager.install_and_stream(self.app.model)
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
+
+            error = False
+
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            if not error and self.disk_cache:
+                self.app.model.installed = True
+
+                if self.app.model.supports_disk_cache():
+                    self.manager.cache_to_disk(app=self.app.model,
+                                               icon_bytes=self.icon_cache.get(self.app.model.base_data.icon_url)['bytes'],
+                                               only_icon=False)
 
         self.app = None
         self.signal_finished.emit()
@@ -224,3 +256,5 @@ class VerifyModels(QThread):
 
                 if stop_at <= datetime.utcnow():
                     break
+
+        self.apps = None

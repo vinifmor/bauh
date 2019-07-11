@@ -16,7 +16,21 @@ class Cache:
 
         if self.is_enabled():
             self.lock.acquire()
-            self._cache[key] = {'val': val, 'expires_at': datetime.utcnow() + timedelta(seconds=self.expiration_time) if self.expiration_time > 0 else None}
+            self._add(key, val)
+            self.lock.release()
+
+    def _add(self, key: str, val: object):
+        self._cache[key] = {'val': val, 'expires_at': datetime.utcnow() + timedelta(seconds=self.expiration_time) if self.expiration_time > 0 else None}
+
+    def add_non_existing(self, key: str, val: object):
+
+        if self. is_enabled():
+            self.lock.acquire()
+            cur_val = self.get(key)
+
+            if cur_val is None:
+                self._add(key, val)
+
             self.lock.release()
 
     def get(self, key: str):

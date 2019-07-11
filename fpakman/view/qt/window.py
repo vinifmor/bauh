@@ -26,7 +26,7 @@ DARK_ORANGE = '#FF4500'
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool,  tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -36,6 +36,7 @@ class ManageWindow(QWidget):
         self.apps = []
         self.label_flatpak = None
         self.icon_cache = icon_cache
+        self.disk_cache = disk_cache
 
         self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
@@ -103,7 +104,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(toolbar)
 
-        self.table_apps = AppsTable(self, self.icon_cache)
+        self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.disk_cache)
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -150,7 +151,7 @@ class ManageWindow(QWidget):
         self.thread_search = SearchApps(self.manager)
         self.thread_search.signal_finished.connect(self._finish_search)
 
-        self.thread_install = InstallApp(self.manager)
+        self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache)
         self.thread_install.signal_output.connect(self._update_action_output)
         self.thread_install.signal_finished.connect(self._finish_install)
 
@@ -236,6 +237,7 @@ class ManageWindow(QWidget):
     def refresh(self):
 
         if self._acquire_lock():
+            self.input_search.clear()
             self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             self.thread_refresh.start()

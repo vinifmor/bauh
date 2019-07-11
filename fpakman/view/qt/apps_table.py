@@ -1,3 +1,4 @@
+import os
 from threading import Lock
 from typing import List
 
@@ -8,7 +9,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
     QHeaderView, QLabel
 
 from fpakman.core import resource
-from fpakman.core.model import FlatpakApplication, ApplicationStatus
+from fpakman.core.model import ApplicationStatus
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
@@ -39,10 +40,11 @@ class UpdateToggleButton(QToolButton):
 
 class AppsTable(QTableWidget):
 
-    def __init__(self, parent: QWidget, icon_cache: Cache):
+    def __init__(self, parent: QWidget, icon_cache: Cache, disk_cache: bool):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent
+        self.disk_cache = disk_cache
         self.column_names = [parent.locale_keys[key].capitalize() for key in ['name',
                                                                               'version',
                                                                               'latest_version',
@@ -61,7 +63,7 @@ class AppsTable(QTableWidget):
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
 
         self.network_man = QNetworkAccessManager()
-        self.network_man.finished.connect(self._load_icon)
+        self.network_man.finished.connect(self._load_icon_and_cache)
 
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
@@ -114,23 +116,21 @@ class AppsTable(QTableWidget):
 
         if self.window.apps:
 
-            visible, ready = 0, 0
             for idx, app_v in enumerate(self.window.apps):
 
-                if app_v.visible:
-                    visible += 1
+                if app_v.visible and app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
+                    self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
 
-                    if app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
-                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
-                        self.item(idx, 2).setText(app_v.model.base_data.latest_version)
-                        self._set_col_description(self.item(idx, 3), app_v)
-                        app_v.status = ApplicationViewStatus.READY
+                    app_name = self.item(idx, 0).text()
 
-                    if app_v.status == ApplicationViewStatus.READY:
-                        ready += 1
+                    if not app_name or app_name == '...':
+                        self.item(idx, 0).setText(app_v.model.base_data.name)
 
-            if ready == visible:
-                self.window.resize_and_center()
+                    self.item(idx, 2).setText(app_v.model.base_data.latest_version)
+                    self._set_col_description(self.item(idx, 3), app_v)
+                    app_v.status = ApplicationViewStatus.READY
+
+            self.window.resize_and_center()
 
         self.lock_async_data.release()
 
@@ -165,19 +165,29 @@ class AppsTable(QTableWidget):
     def _install_app(self):
         self.window.install_app(self.get_selected_app())
 
-    def _load_icon(self, http_response):
+    def _load_icon_and_cache(self, http_response):
         icon_url = http_response.url().toString()
 
-        if not self.icon_cache.get(icon_url):
-            pixmap = QPixmap()
-            pixmap.loadFromData(http_response.readAll())
-            icon = QIcon(pixmap)
-            self.icon_cache.add(icon_url, icon)
+        icon_data = self.icon_cache.get(icon_url)
+        icon_was_cached = True
 
-            for idx, app in enumerate(self.window.apps):
-                if app.model.base_data.icon_url == icon_url:
-                    self.item(idx, 0).setIcon(icon)
-                    break
+        if not icon_data:
+            icon_was_cached = False
+            pixmap = QPixmap()
+            icon_bytes = http_response.readAll()
+            pixmap.loadFromData(icon_bytes)
+            icon = QIcon(pixmap)
+            icon_data = {'icon': icon, 'bytes': icon_bytes}
+            self.icon_cache.add(icon_url, icon_data)
+
+        for idx, app in enumerate(self.window.apps):
+            if app.model.base_data.icon_url == icon_url:
+                col_name = self.item(idx, 0)
+                col_name.setIcon(icon_data['icon'])
+
+                if self.disk_cache and app.model.supports_disk_cache():
+                    if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
+                        self.window.manager.cache_to_disk(app=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
     def update_apps(self, app_views: List[ApplicationView]):
         self.setEnabled(True)
@@ -185,21 +195,7 @@ class AppsTable(QTableWidget):
 
         if app_views:
             for idx, app_v in enumerate(app_views):
-
-                col_name = QTableWidgetItem()
-                col_name.setText(app_v.model.base_data.name)
-                col_name.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-
-                if not app_v.model.base_data.icon_url:
-                    col_name.setIcon(QIcon(app_v.model.get_default_logo_path()))
-                else:
-                    cached_icon = self.icon_cache.get(app_v.model.base_data.icon_url)
-
-                    if cached_icon:
-                        col_name.setIcon(cached_icon)
-                    else:
-                        col_name.setIcon(QIcon(app_v.model.get_default_logo_path()))
-
+                col_name = self._gen_col_name(app_v)
                 self.setItem(idx, 0, col_name)
 
                 col_version = QTableWidgetItem()
@@ -234,6 +230,22 @@ class AppsTable(QTableWidget):
 
                 col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update) if app_v.model.update else None
                 self.setCellWidget(idx, 6, col_update)
+
+    def _gen_col_name(self, app_v: ApplicationView):
+        col = QTableWidgetItem()
+        col.setText(app_v.model.base_data.name if app_v.model.base_data.name else '...')
+        col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+
+        if app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
+            icon = QIcon(app_v.model.get_disk_icon_path())
+        elif not app_v.model.base_data.icon_url:
+            icon = QIcon(app_v.model.get_default_icon_path())
+        else:
+            icon_data = self.icon_cache.get(app_v.model.base_data.icon_url)
+            icon = icon_data['icon'] if icon_data else QIcon(app_v.model.get_default_icon_path())
+
+        col.setIcon(icon)
+        return col
 
     def _set_col_description(self, col: QTableWidgetItem, app_v: ApplicationView):
         desc = app_v.get_async_attr('description', strip_html=True)
