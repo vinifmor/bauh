@@ -1,4 +1,4 @@
-manage_window.title=Application Manager
+manage_window.title=Applications Manager
 manage_window.columns.latest_version=Latest Version
 manage_window.columns.update=Upgrade ?
 manage_window.apps_table.row.actions.info=Information
