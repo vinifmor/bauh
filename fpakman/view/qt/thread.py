@@ -98,7 +98,7 @@ class DowngradeApp(QThread):
                 dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
                                   body=self.locale_keys['popup.downgrade.impossible.body'])
             else:
-                for output in self.manager.downgrade_app(self.app.model, self.root_password):
+                for output in stream:
                     line = output.decode().strip()
                     if line:
                         self.signal_output.emit(line)
