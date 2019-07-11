@@ -6,11 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.3.1]
 ### Improvements
-- Console output now is optional and not shown by default.
-- Cleaning search bar when 'Refresh' is clicked.
-- Full Flatpak database is not loaded during initialization (management panel is quickly available for the user)
+- Console output now is optional and not shown by default
+- Search bar is cleaned when 'Refresh' is clicked
+- Full Flatpak database is not loaded during initialization: speeds up the process and reduces memory usage
 - Applications data not available offline are now retrieved from Flathub API on demand and cached in memory and disk (only installed)
-- In-memory cached data have an expiration time and are cleaned overtime to reduce memory usage.
+- In-memory cached data have an expiration time and are cleaned overtime to reduce memory usage
 - Code was refactored to support other types of packaging in the future (e.g: snap)
 
 ### Fixes:

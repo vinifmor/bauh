@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from colorama import Fore
 
-from fpakman import __version__
+from fpakman import __version__, __app_name__
 from fpakman.core import resource
 from fpakman.core.disk import DiskCacheLoaderFactory
 from fpakman.core.structure import prepare_folder_structure
@@ -16,18 +16,16 @@ from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
 from fpakman.view.qt.systray import TrayIcon
 
-app_name = 'fpakman'
-
 
 def log_msg(msg: str, color: int = None):
 
     if color is None:
-        print('[{}] {}'.format(app_name, msg))
+        print('[{}] {}'.format(__app_name__, msg))
     else:
-        print('{}[{}] {}{}'.format(color, app_name, msg, Fore.RESET))
+        print('{}[{}] {}{}'.format(color, __app_name__, msg, Fore.RESET))
 
 
-parser = argparse.ArgumentParser(prog=app_name, description="GUI for Flatpak applications management")
+parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Flatpak applications management")
 parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
 parser.add_argument('-e', '--cache-exp', action="store", default=int(os.getenv('FPAKMAN_CACHE_EXPIRATION', 60 * 60)), type=int, help='cached API data expiration time in SECONDS. Default: %(default)s')
 parser.add_argument('-ie', '--icon-exp', action="store", default=int(os.getenv('FPAKMAN_ICON_EXPIRATION', 60 * 5)), type=int, help='cached icons expiration time in SECONDS. Default: %(default)s')
