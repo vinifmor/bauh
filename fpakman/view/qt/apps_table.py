@@ -236,9 +236,8 @@ class AppsTable(QTableWidget):
         col.setText(app_v.model.base_data.name if app_v.model.base_data.name else '...')
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        if app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
-
-            with open (app_v.model.get_disk_icon_path(), 'rb') as f:
+        if self.disk_cache and app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
+            with open(app_v.model.get_disk_icon_path(), 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
