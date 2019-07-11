@@ -237,7 +237,13 @@ class AppsTable(QTableWidget):
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
         if app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
-            icon = QIcon(app_v.model.get_disk_icon_path())
+
+            with open (app_v.model.get_disk_icon_path(), 'rb') as f:
+                icon_bytes = f.read()
+                pixmap = QPixmap()
+                pixmap.loadFromData(icon_bytes)
+                icon = QIcon(pixmap)
+                self.icon_cache.add_non_existing(app_v.model.base_data.icon_url, {'icon': icon, 'bytes': icon_bytes})
         elif not app_v.model.base_data.icon_url:
             icon = QIcon(app_v.model.get_default_icon_path())
         else:

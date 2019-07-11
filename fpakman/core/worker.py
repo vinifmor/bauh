@@ -81,9 +81,7 @@ class FlatpakAsyncDataLoader(Thread):
 
                             break
                         else:
-                            self.log_msg(
-                                "Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(
-                                    app.base_data.id, res.status_code, res.content.decode()), Fore.RED)
+                            self.log_msg("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(app.base_data.id, res.status_code, res.content.decode()), Fore.RED)
                     except:
                         self.log_msg("Could not retrieve app data for id '{}'".format(app.base_data.id), Fore.YELLOW)
                         traceback.print_exc()
