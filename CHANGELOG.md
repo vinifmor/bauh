@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes:
 - flatpak 1.0.X: search is now retrieving the application name
+- app crashes when there is no internet connection while downgrading or retrieving app history
 
 ## [0.3.0] - 2019-07-02
 ### Features
