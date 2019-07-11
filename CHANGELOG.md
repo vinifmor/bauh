@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - In-memory cached data have an expiration time and are cleaned overtime to reduce memory usage
 - Code was refactored to support other types of packaging in the future (e.g: snap)
 - flatpak is not a requirement anymore
+- the amount of columns of the applications table was reduced to improve the user experience
 
 ### Fixes:
 - flatpak 1.0.X: search is now retrieving the application name
