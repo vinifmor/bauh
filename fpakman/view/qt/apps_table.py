@@ -126,7 +126,7 @@ class AppsTable(QTableWidget):
                     if not app_name or app_name == '...':
                         self.item(idx, 0).setText(app_v.model.base_data.name)
 
-                    self.item(idx, 2).setText(app_v.model.base_data.latest_version)
+                    self.cellWidget(idx, 2).setText(app_v.model.base_data.latest_version)
                     self._set_col_description(self.item(idx, 3), app_v)
                     app_v.status = ApplicationViewStatus.READY
 
@@ -198,18 +198,16 @@ class AppsTable(QTableWidget):
                 col_name = self._gen_col_name(app_v)
                 self.setItem(idx, 0, col_name)
 
-                col_version = QTableWidgetItem()
-                col_version.setText(app_v.model.base_data.version)
-                col_version.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 1, col_version)
+                col_version = QLabel(app_v.model.base_data.version)
+                col_version.setAlignment(Qt.AlignCenter)
+                self.setCellWidget(idx, 1, col_version)
 
-                col_release = QTableWidgetItem()
-                col_release.setText(app_v.get_async_attr('latest_version'))
-                col_release.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 2, col_release)
+                col_release = QLabel(app_v.get_async_attr('latest_version'))
+                col_release.setAlignment(Qt.AlignCenter)
+                self.setCellWidget(idx, 2, col_release)
 
                 if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
-                    col_release.setForeground(QColor('orange'))
+                    col_release.setStyleSheet("color: orange")
 
                 col_description = QTableWidgetItem()
                 col_description.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
@@ -217,10 +215,9 @@ class AppsTable(QTableWidget):
 
                 self.setItem(idx, 3, col_description)
 
-                col_type = QTableWidgetItem()
-                col_type.setText(app_v.model.get_type())
-                col_type.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.setItem(idx, 4, col_type)
+                col_type = QLabel(app_v.model.get_type())
+                col_type.setAlignment(Qt.AlignCenter)
+                self.setCellWidget(idx, 4, col_type)
 
                 col_installed = QLabel()
                 col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format('checked' if app_v.model.installed else 'red_cross')))))

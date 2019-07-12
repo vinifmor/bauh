@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - flatpak is not a requirement anymore
 - the amount of columns of the applications table was reduced to improve the user experience
 - new environment variables and arguments: FPAKMAN_ICON_EXPIRATION (--icon-exp), FPAKMAN_DISK_CACHE (--disk-cache)
+- minor GUI improvements
 
 ### Fixes:
 - flatpak 1.0.X: search is now retrieving the application name
