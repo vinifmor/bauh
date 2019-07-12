@@ -260,10 +260,14 @@ class ManageWindow(QWidget):
         self._release_lock()
         self.refresh()
 
-    def _finish_downgrade(self):
+    def _finish_downgrade(self, success: bool):
         self.finish_action()
         self._release_lock()
-        self.refresh()
+
+        if success:
+            self.refresh()
+        else:
+            self.checkbox_console.setChecked(True)
 
     def filter_only_apps(self, only_apps: int):
 
@@ -454,6 +458,7 @@ class ManageWindow(QWidget):
         if app.get('error'):
             self._handle_console_option(True)
             self.textarea_output.appendPlainText(app['error'])
+            self.checkbox_console.setChecked(True)
         else:
             dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
             dialog_history.exec_()

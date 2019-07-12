@@ -81,7 +81,7 @@ class UninstallApp(QThread):
 
 
 class DowngradeApp(QThread):
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
@@ -94,6 +94,7 @@ class DowngradeApp(QThread):
     def run(self):
         if self.app:
 
+            success = True
             try:
                 stream = self.manager.downgrade_app(self.app.model, self.root_password)
 
@@ -106,11 +107,12 @@ class DowngradeApp(QThread):
                         if line:
                             self.signal_output.emit(line)
             except (requests.exceptions.ConnectionError, NoInternetException):
+                success = False
                 self.signal_output.emit(self.locale_keys['internet.required'])
             finally:
                 self.app = None
                 self.root_password = None
-                self.signal_finished.emit()
+                self.signal_finished.emit(success)
 
 
 class GetAppInfo(QThread):
