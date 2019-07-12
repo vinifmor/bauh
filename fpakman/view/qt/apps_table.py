@@ -33,7 +33,7 @@ class UpdateToggleButton(QToolButton):
             self.click()
 
     def change_state(self, not_checked: bool):
-        self.app_view.updated_checked = not not_checked
+        self.app_view.update_checked = not not_checked
         self.setIcon(self.icon_on if not not_checked else self.icon_off)
         self.root.change_update_state()
 
