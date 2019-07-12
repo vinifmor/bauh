@@ -99,7 +99,7 @@ def update_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd([BASE_CMD, 'update', '-y', app_ref])
+    return system.cmd_to_subprocess([BASE_CMD, 'update', '-y', app_ref])
 
 
 def uninstall_and_stream(app_ref: str):

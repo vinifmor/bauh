@@ -15,7 +15,7 @@ from fpakman.view.qt.view_model import ApplicationView
 
 class UpdateSelectedApps(QThread):
 
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
@@ -25,13 +25,31 @@ class UpdateSelectedApps(QThread):
 
     def run(self):
 
+        error = False
+
         for app in self.apps_to_update:
-            for output in self.manager.update_and_stream(app.model):
+
+            subproc = self.manager.update_and_stream(app.model)
+
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
 
-        self.signal_finished.emit()
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            self.signal_output.emit('\n')
+
+            if error:
+                break
+
+        self.signal_finished.emit(not error)
 
 
 class RefreshApps(QThread):

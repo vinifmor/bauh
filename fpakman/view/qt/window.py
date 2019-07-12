@@ -373,10 +373,14 @@ class ManageWindow(QWidget):
                     self.thread_update.apps_to_update = to_update
                     self.thread_update.start()
 
-    def _finish_update_selected(self):
+    def _finish_update_selected(self, success: bool):
         self.finish_action()
         self._release_lock()
-        self.refresh()
+
+        if success:
+            self.refresh()
+        else:
+            self.checkbox_console.setChecked(True)
 
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
