@@ -380,6 +380,7 @@ class ManageWindow(QWidget):
         if success:
             self.refresh()
         else:
+            self.bt_upgrade.setEnabled(True)
             self.checkbox_console.setChecked(True)
 
     def _update_action_output(self, output: str):
