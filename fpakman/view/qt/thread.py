@@ -169,7 +169,7 @@ class SearchApps(QThread):
 
 class InstallApp(QThread):
 
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, app: ApplicationView = None):
@@ -205,8 +205,8 @@ class InstallApp(QThread):
                                                icon_bytes=self.icon_cache.get(self.app.model.base_data.icon_url)['bytes'],
                                                only_icon=False)
 
-        self.app = None
-        self.signal_finished.emit()
+            self.app = None
+            self.signal_finished.emit(not error)
 
 
 class AnimateProgress(QThread):

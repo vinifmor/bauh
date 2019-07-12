@@ -92,7 +92,7 @@ class ManageWindow(QWidget):
         self.bt_refresh = QToolButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
-        self.bt_refresh.clicked.connect(self.refresh)
+        self.bt_refresh.clicked.connect(lambda: self.refresh(keep_console=False))
         toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QToolButton()
@@ -234,10 +234,14 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh(self):
+    def refresh(self, keep_console: bool = True):
 
         if self._acquire_lock():
             self.input_search.clear()
+
+            if not keep_console:
+                self._handle_console_option(False)
+
             self._begin_action(self.locale_keys['manage_window.status.refreshing'])
 
             self.thread_refresh.start()
@@ -486,11 +490,15 @@ class ManageWindow(QWidget):
             self.thread_install.app = app
             self.thread_install.start()
 
-    def _finish_install(self):
+    def _finish_install(self, success: bool):
         self.input_search.setText('')
         self.finish_action()
         self._release_lock()
-        self.refresh()
+
+        if success:
+            self.refresh()
+        else:
+            self.checkbox_console.setChecked(True)
 
     def _update_progress(self, value: int):
         self.progress_bar.setValue(value)
