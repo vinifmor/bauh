@@ -250,7 +250,7 @@ class ManageWindow(QWidget):
     def uninstall_app(self, app: ApplicationView):
         if self._acquire_lock():
             self._handle_console_option(True)
-            self._begin_action(self.locale_keys['manage_window.status.uninstalling'])
+            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.uninstalling'], app.model.base_data.name))
 
             self.thread_uninstall.app = app
             self.thread_uninstall.start()
@@ -373,18 +373,22 @@ class ManageWindow(QWidget):
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
 
-    def _begin_action(self, action_label: str):
+    def _begin_action(self, action_label: str, keep_search: bool = False):
         self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
 
         self.label_status.setText(action_label + "...")
-        self.toolbar_search.setVisible(False)
         self.bt_upgrade.setEnabled(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
+
+        if keep_search:
+            self.toolbar_search.setEnabled(False)
+        else:
+            self.toolbar_search.setVisible(False)
 
     def finish_action(self):
         self.ref_progress_bar.setVisible(False)
@@ -392,13 +396,14 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.stop = True
         self.progress_bar.setValue(0)
         self.bt_refresh.setEnabled(True)
-        self.toolbar_search.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)
         self.input_search.setEnabled(True)
         self.label_status.setText('')
+        self.toolbar_search.setVisible(True)
+        self.toolbar_search.setEnabled(True)
 
-    def downgrade_app(self, app: dict):
+    def downgrade_app(self, app: ApplicationView):
         if self._acquire_lock():
 
             pwd = None
@@ -411,7 +416,7 @@ class ManageWindow(QWidget):
                     return
 
             self._handle_console_option(True)
-            self._begin_action(self.locale_keys['manage_window.status.downgrading'])
+            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.downgrading'], app.model.base_data.name))
 
             self.thread_downgrade.app = app
             self.thread_downgrade.root_password = pwd
@@ -459,7 +464,7 @@ class ManageWindow(QWidget):
 
         if word and self._acquire_lock():
             self._handle_console_option(False)
-            self._begin_action(self.locale_keys['manage_window.status.searching'])
+            self._begin_action(self.locale_keys['manage_window.status.searching'], keep_search=True)
             self.thread_search.word = word
             self.thread_search.start()
 
@@ -468,10 +473,10 @@ class ManageWindow(QWidget):
         self.finish_action()
         self.update_apps(apps_found)
 
-    def install_app(self, app: dict):
+    def install_app(self, app: ApplicationView):
         if self._acquire_lock():
             self._handle_console_option(True)
-            self._begin_action(self.locale_keys['manage_window.status.installing'])
+            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], app.model.base_data.name))
 
             self.thread_install.app = app
             self.thread_install.start()
