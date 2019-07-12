@@ -59,6 +59,7 @@ class UninstallApp(QThread):
     def run(self):
         if self.app:
             subproc = self.manager.uninstall_and_stream(self.app.model)
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
 
             for output in subproc.stdout:
                 line = output.decode().strip()
@@ -183,6 +184,7 @@ class InstallApp(QThread):
 
         if self.app:
             subproc = self.manager.install_and_stream(self.app.model)
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
 
             for output in subproc.stdout:
                 line = output.decode().strip()
