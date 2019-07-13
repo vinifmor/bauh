@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.3.1]
+## [0.3.1] - 2019-07-13
 ### Improvements
 - Console output now is optional and not shown by default
 - Search bar is cleaned when 'Refresh' is clicked
