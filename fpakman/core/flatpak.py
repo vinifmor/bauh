@@ -3,6 +3,8 @@ import subprocess
 from typing import List
 
 from fpakman.core import system
+from fpakman.core.exception import NoInternetException
+from fpakman.core.model import Application
 
 BASE_CMD = 'flatpak'
 
@@ -72,7 +74,7 @@ def is_installed():
 
 
 def get_version():
-    res = system.run_cmd('{} --version'.format(BASE_CMD))
+    res = system.run_cmd('{} --version'.format(BASE_CMD), print_error=False)
     return res.split(' ')[1].strip() if res else None
 
 
@@ -97,7 +99,7 @@ def update_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd([BASE_CMD, 'update', '-y', app_ref])
+    return system.cmd_to_subprocess([BASE_CMD, 'update', '-y', app_ref])
 
 
 def uninstall_and_stream(app_ref: str):
@@ -106,7 +108,7 @@ def uninstall_and_stream(app_ref: str):
     :param app_ref:
     :return:
     """
-    return system.stream_cmd([BASE_CMD, 'uninstall', app_ref, '-y'])
+    return system.cmd_to_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
 
 
 def list_updates_as_str():
@@ -127,11 +129,18 @@ def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:
     log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
-    return re.findall(r'Commit+:\s(.+)', log)
+
+    if log:
+        return re.findall(r'Commit+:\s(.+)', log)
+    else:
+        raise NoInternetException()
 
 
 def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     log = system.run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+
+    if not log:
+        raise NoInternetException()
 
     res = re.findall(r'(Commit|Subject|Date):\s(.+)', log)
 
@@ -210,4 +219,9 @@ def search(word: str) -> List[dict]:
 
 
 def install_and_stream(app_id: str, origin: str):
-    return system.stream_cmd([BASE_CMD, 'install', origin, app_id, '-y'])
+    return system.cmd_to_subprocess([BASE_CMD, 'install', origin, app_id, '-y'])
+
+
+def set_default_remotes():
+    system.run_cmd('flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo')
+

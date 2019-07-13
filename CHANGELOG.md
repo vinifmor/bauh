@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.3.1] - 2019-07-13
+### Improvements
+- Console output now is optional and not shown by default
+- Search bar is cleaned when 'Refresh' is clicked
+- Full Flatpak database is not loaded during initialization: speeds up the process and reduces memory usage
+- Applications data not available offline are now retrieved from Flathub API on demand and cached in memory and disk (only installed)
+- In-memory cached data have an expiration time and are cleaned overtime to reduce memory usage
+- Code was refactored to support other types of packaging in the future (e.g: snap)
+- flatpak is not a requirement anymore
+- the amount of columns of the applications table was reduced to improve the user experience
+- new environment variables and arguments: FPAKMAN_ICON_EXPIRATION (--icon-exp), FPAKMAN_DISK_CACHE (--disk-cache)
+- minor GUI improvements
+
+### Fixes:
+- flatpak 1.0.X: search is now retrieving the application name
+- app crashes when there is no internet connection while initializing, downgrading or retrieving app history
+
 ## [0.3.0] - 2019-07-02
 ### Features
 - Applications search

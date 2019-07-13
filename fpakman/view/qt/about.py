@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel
 
-from fpakman import __version__
+from fpakman import __version__, __app_name__
 from fpakman.core import resource
 
 PROJECT_URL = 'https://github.com/vinifmor/fpakman'
@@ -22,7 +22,7 @@ class AboutDialog(QDialog):
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
-        label_name = QLabel('fpakman ( {} {} )'.format(locale_keys['flatpak.info.version'].lower(), __version__))
+        label_name = QLabel('{} ( {} {} )'.format(__app_name__, locale_keys['flatpak.info.version'].lower(), __version__))
         label_name.setStyleSheet('font-weight: bold;')
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)

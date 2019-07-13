@@ -1,106 +1,145 @@
-from datetime import datetime, timedelta
+import os
+import shutil
+from abc import ABC, abstractmethod
+from datetime import datetime
 from threading import Lock
 from typing import List
 
 import requests
 
-from fpakman.core import flatpak
+from fpakman.core import flatpak, disk
+from fpakman.core.disk import DiskCacheLoader, DiskCacheLoaderFactory
+from fpakman.core.model import FlatpakApplication, ApplicationData, ApplicationStatus, Application
+from fpakman.util.cache import Cache
 
-__FLATHUB_URL__ = 'https://flathub.org'
-__FLATHUB_API_URL__ = __FLATHUB_URL__ + '/api/v1'
+
+class ApplicationManager(ABC):
+
+    @abstractmethod
+    def search(self, word: str, disk_loader: DiskCacheLoader) -> List[Application]:
+        pass
+
+    @abstractmethod
+    def read_installed(self, disk_loader: DiskCacheLoader, keep_workers: bool) -> List[Application]:
+        pass
+
+    @abstractmethod
+    def downgrade_app(self, app: Application, root_password: str):
+        pass
+
+    @abstractmethod
+    def clean_cache_for(self, app: Application):
+        pass
+
+    @abstractmethod
+    def can_downgrade(self):
+        pass
+
+    @abstractmethod
+    def update_and_stream(self, app: Application):
+        pass
+
+    @abstractmethod
+    def uninstall_and_stream(self, app: Application):
+        pass
+
+    @abstractmethod
+    def get_app_type(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_info(self, app: Application) -> dict:
+        pass
+
+    @abstractmethod
+    def get_history(self, app: Application) -> List[dict]:
+        pass
+
+    @abstractmethod
+    def install_and_stream(self, app: Application):
+        pass
+
+    @abstractmethod
+    def is_enabled(self) -> bool:
+        pass
+
+    @abstractmethod
+    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
+        pass
 
 
-class FlatpakManager:
+from fpakman.core.worker import FlatpakAsyncDataLoaderManager
 
-    def __init__(self, cache_expire: int = 60 * 60):
-        self.cache_apps = {}
-        self.cache_expire = cache_expire
+
+class FlatpakManager(ApplicationManager):
+
+    def __init__(self, api_cache: Cache, disk_cache: bool):
+        self.api_cache = api_cache
         self.http_session = requests.Session()
-        self.lock_db_read = Lock()
         self.lock_read = Lock()
+        self.disk_cache = disk_cache
+        self.async_data_loader = FlatpakAsyncDataLoaderManager(api_cache=self.api_cache, manager=self)
+        flatpak.set_default_remotes()
 
-    def load_full_database(self):
+    def get_app_type(self):
+        return FlatpakApplication
 
-        self.lock_db_read.acquire()
+    def _map_to_model(self, app: dict, installed: bool, disk_loader: DiskCacheLoader) -> FlatpakApplication:
 
-        try:
-            res = self.http_session.get(__FLATHUB_API_URL__ + '/apps', timeout=30)
+        model = FlatpakApplication(arch=app.get('arch'),
+                                   branch=app.get('branch'),
+                                   origin=app.get('origin'),
+                                   runtime=app.get('runtime'),
+                                   ref=app.get('ref'),
+                                   commit=app.get('commit'),
+                                   base_data=ApplicationData(id=app.get('id'),
+                                                             name=app.get('name'),
+                                                             version=app.get('version'),
+                                                             latest_version=app.get('latest_version')))
+        model.installed = installed
 
-            if res.status_code == 200:
-                for app in res.json():
-                    self.cache_apps[app['flatpakAppId']] = app
-        finally:
-            self.lock_db_read.release()
+        api_data = self.api_cache.get(app['id'])
 
-    def _request_app_data(self, app_id: str):
+        expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
 
-        try:
-            res = self.http_session.get('{}/apps/{}'.format(__FLATHUB_API_URL__, app_id), timeout=30)
+        if not api_data or expired_data:
+            if not app['runtime']:
+                disk_loader.add(model)  # preloading cached disk data
+                model.status = ApplicationStatus.LOADING_DATA
+                self.async_data_loader.load(model)
 
-            if res.status_code == 200:
-                return res.json()
-            else:
-                print("Could not retrieve app data for id '{}'. Server response: {}".format(app_id, res.status_code))
-        except:
-            print("Could not retrieve app data for id '{}'. Timeout".format(app_id))
-            return None
-
-    def _fill_api_data(self, app: dict):
-
-        api_data = self.cache_apps.get(app['id'])
-
-        if (not app['runtime'] and not api_data) or (api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()):  # if api data is not cached or expired, tries to retrieve it
-            api_data = self._request_app_data(app['id'])
-
-            if api_data:
-
-                if self.cache_expire > 0:
-                    api_data['expires_at'] = datetime.utcnow() + timedelta(seconds=self.cache_expire)
-
-                self.cache_apps[app['id']] = api_data
-
-        if not api_data:
-            for attr in ('latest_version', 'icon', 'description'):
-                if attr not in app:
-                    app[attr] = None
         else:
-            app['latest_version'] = api_data.get('currentReleaseVersion')
-            app['icon'] = api_data.get('iconMobileUrl')
+            model.fill_cached_data(api_data)
 
-            for attr in ('name', 'description'):
-                if not app.get(attr):
-                    app[attr] = api_data.get(attr)
+        return model
 
-            if app['icon'].startswith('/'):
-                app['icon'] = __FLATHUB_URL__ + app['icon']
-
-    def search(self, word: str) -> List[dict]:
+    def search(self, word: str, disk_loader: DiskCacheLoader) -> List[FlatpakApplication]:
 
         res = []
         apps_found = flatpak.search(word)
 
         if apps_found:
-
             already_read = set()
-            installed_apps = self.read_installed()
+            installed_apps = self.read_installed(disk_loader=disk_loader, keep_workers=True)
 
             if installed_apps:
-                for app in apps_found:
+                for app_found in apps_found:
                     for installed_app in installed_apps:
-                        if app['id'] == installed_app['id']:
+                        if app_found['id'] == installed_app.base_data.id:
                             res.append(installed_app)
-                            already_read.add(app['id'])
+                            already_read.add(app_found['id'])
 
-            for app in apps_found:
-                if app['id'] not in already_read:
-                    app['update'] = False
-                    app['installed'] = False
-                    self._fill_api_data(app)
-                    res.append(app)
+            for app_found in apps_found:
+                if app_found['id'] not in already_read:
+                    res.append(self._map_to_model(app_found, False, disk_loader))
+
+            disk_loader.stop = True
+            disk_loader.join()
+            self.async_data_loader.stop_current_workers()
 
         return res
 
-    def read_installed(self) -> List[dict]:
+    def read_installed(self, disk_loader: DiskCacheLoader, keep_workers: bool = False) -> List[FlatpakApplication]:
 
         self.lock_read.acquire()
 
@@ -112,23 +151,166 @@ class FlatpakManager:
 
                 available_updates = flatpak.list_updates_as_str()
 
-                for app in installed:
-                    self._fill_api_data(app)
-                    app['update'] = app['id'] in available_updates
-                    app['installed'] = True
+                models = []
 
-            return installed
+                for app in installed:
+                    model = self._map_to_model(app, True, disk_loader)
+                    model.update = app['id'] in available_updates
+                    models.append(model)
+
+                if not keep_workers:
+                    self.async_data_loader.stop_current_workers()
+
+                return models
+
+            return []
 
         finally:
             self.lock_read.release()
 
-    def downgrade_app(self, app: dict, root_password: str):
+    def can_downgrade(self):
+        return True
 
-        commits = flatpak.get_app_commits(app['ref'], app['origin'])
-        commit_idx = commits.index(app['commit'])
+    def downgrade_app(self, app: FlatpakApplication, root_password: str):
+
+        commits = flatpak.get_app_commits(app.ref, app.origin)
+
+        commit_idx = commits.index(app.commit)
 
         # downgrade is not possible if the app current commit in the first one:
         if commit_idx == len(commits) - 1:
             return None
 
-        return flatpak.downgrade_and_stream(app['ref'], commits[commit_idx + 1], root_password)
+        return flatpak.downgrade_and_stream(app.ref, commits[commit_idx + 1], root_password)
+
+    def clean_cache_for(self, app: FlatpakApplication):
+        self.api_cache.delete(app.base_data.id)
+
+        if app.supports_disk_cache() and os.path.exists(app.get_disk_cache_path()):
+            shutil.rmtree(app.get_disk_cache_path())
+
+    def update_and_stream(self, app: FlatpakApplication):
+        return flatpak.update_and_stream(app.ref)
+
+    def uninstall_and_stream(self, app: FlatpakApplication):
+        return flatpak.uninstall_and_stream(app.ref)
+
+    def get_info(self, app: FlatpakApplication) -> dict:
+        app_info = flatpak.get_app_info_fields(app.base_data.id, app.branch)
+        app_info['name'] = app.base_data.name
+        app_info['type'] = 'runtime' if app.runtime else 'app'
+        app_info['description'] = app.base_data.description
+        return app_info
+
+    def get_history(self, app: FlatpakApplication) -> List[dict]:
+        return flatpak.get_app_commits_data(app.ref, app.origin)
+
+    def install_and_stream(self, app: FlatpakApplication):
+        return flatpak.install_and_stream(app.base_data.id, app.origin)
+
+    def is_enabled(self):
+        return flatpak.is_installed()
+
+    def cache_to_disk(self, app: FlatpakApplication, icon_bytes: bytes, only_icon: bool):
+        if self.disk_cache and app.supports_disk_cache():
+            disk.save(app, icon_bytes, only_icon)
+
+
+class GenericApplicationManager(ApplicationManager):
+
+    def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory):
+        self.managers = managers
+        self.map = {m.get_app_type(): m for m in self.managers}
+        self.disk_loader_factory = disk_loader_factory
+
+    def search(self, word: str, disk_loader: DiskCacheLoader = None) -> List[Application]:
+        apps = []
+        disk_loader = self.disk_loader_factory.new()
+        disk_loader.start()
+
+        for man in self.managers:
+            if man.is_enabled():
+                apps.extend(man.search(word, disk_loader))
+
+        disk_loader.stop = True
+        disk_loader.join()
+        return apps
+
+    def read_installed(self, disk_loader: DiskCacheLoader = None, keep_workers: bool = False) -> List[Application]:
+        installed = []
+
+        disk_loader = self.disk_loader_factory.new()
+        disk_loader.start()
+
+        for man in self.managers:
+            if man.is_enabled():
+                installed.extend(man.read_installed(disk_loader=disk_loader, keep_workers=keep_workers))
+
+        disk_loader.stop = True
+        disk_loader.join()
+
+        return installed
+
+    def can_downgrade(self):
+        return True
+
+    def downgrade_app(self, app: Application, root_password: str):
+        man = self._get_manager_for(app)
+
+        if man and man.can_downgrade():
+            return man.downgrade_app(app, root_password)
+        else:
+            raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
+
+    def clean_cache_for(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.clean_cache_for(app)
+
+    def update_and_stream(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.update_and_stream(app)
+
+    def uninstall_and_stream(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.uninstall_and_stream(app)
+
+    def install_and_stream(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.install_and_stream(app)
+
+    def get_info(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.get_info(app)
+
+    def get_history(self, app: Application):
+        man = self._get_manager_for(app)
+
+        if man:
+            return man.get_history(app)
+
+    def get_app_type(self):
+        return None
+
+    def is_enabled(self):
+        return True
+
+    def _get_manager_for(self, app: Application) -> ApplicationManager:
+        man = self.map[app.__class__]
+        return man if man and man.is_enabled() else None
+
+    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
+        if self.disk_loader_factory.disk_cache and app.supports_disk_cache():
+            man = self._get_manager_for(app)
+
+            if man:
+                return man.cache_to_disk(app, icon_bytes=icon_bytes, only_icon=only_icon)

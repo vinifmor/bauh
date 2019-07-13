@@ -1,37 +1,62 @@
 import time
+from datetime import datetime, timedelta
+from typing import List
 
+import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from fpakman.core import flatpak
-from fpakman.core.controller import FlatpakManager
+from fpakman.core.controller import ApplicationManager
+from fpakman.core.exception import NoInternetException
+from fpakman.core.model import ApplicationStatus
+from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
+from fpakman.view.qt.view_model import ApplicationView
 
 
 class UpdateSelectedApps(QThread):
 
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
         super(UpdateSelectedApps, self).__init__()
-        self.refs_to_update = []
+        self.apps_to_update = apps_to_update
+        self.manager = manager
 
     def run(self):
 
-        for app_ref in self.refs_to_update:
-            for output in flatpak.update_and_stream(app_ref):
+        error = False
+
+        for app in self.apps_to_update:
+
+            subproc = self.manager.update_and_stream(app.model)
+
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
 
-        self.signal_finished.emit()
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            self.signal_output.emit('\n')
+
+            if error:
+                break
+
+        self.signal_finished.emit(not error)
 
 
 class RefreshApps(QThread):
 
     signal = pyqtSignal(list)
 
-    def __init__(self, manager: FlatpakManager):
+    def __init__(self, manager: ApplicationManager):
         super(RefreshApps, self).__init__()
         self.manager = manager
 
@@ -43,85 +68,110 @@ class UninstallApp(QThread):
     signal_finished = pyqtSignal()
     signal_output = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
         super(UninstallApp, self).__init__()
-        self.app_ref = None
+        self.app = app
+        self.manager = manager
+        self.icon_cache = icon_cache
 
     def run(self):
-        if self.app_ref:
-            for output in flatpak.uninstall_and_stream(self.app_ref):
+        if self.app:
+            subproc = self.manager.uninstall_and_stream(self.app.model)
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
+
+            error = False
+
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            if not error:
+                self.icon_cache.delete(self.app.model.base_data.icon_url)
+                self.manager.clean_cache_for(self.app.model)
 
             self.signal_finished.emit()
 
 
 class DowngradeApp(QThread):
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
-    def __init__(self, manager: FlatpakManager, locale_keys: dict):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(DowngradeApp, self).__init__()
         self.manager = manager
-        self.app = None
-        self.root_password = None
+        self.app = app
         self.locale_keys = locale_keys
+        self.root_password = None
 
     def run(self):
         if self.app:
 
-            stream = self.manager.downgrade_app(self.app['model'], self.root_password)
+            success = True
+            try:
+                stream = self.manager.downgrade_app(self.app.model, self.root_password)
 
-            if stream is None:
-                dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
-                                  body=self.locale_keys['popup.downgrade.impossible.body'])
-            else:
-                for output in self.manager.downgrade_app(self.app['model'], self.root_password):
-                    line = output.decode().strip()
-                    if line:
-                        self.signal_output.emit(line)
-
-            self.app = None
-            self.root_password = None
-            self.signal_finished.emit()
+                if stream is None:
+                    dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
+                                      body=self.locale_keys['popup.downgrade.impossible.body'])
+                else:
+                    for output in stream:
+                        line = output.decode().strip()
+                        if line:
+                            self.signal_output.emit(line)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                success = False
+                self.signal_output.emit(self.locale_keys['internet.required'])
+            finally:
+                self.app = None
+                self.root_password = None
+                self.signal_finished.emit(success)
 
 
 class GetAppInfo(QThread):
     signal_finished = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(GetAppInfo, self).__init__()
-        self.app = None
+        self.app = app
+        self.manager = manager
 
     def run(self):
         if self.app:
-            app_info = flatpak.get_app_info_fields(self.app['model']['id'], self.app['model']['branch'])
-            app_info['name'] = self.app['model']['name']
-            app_info['type'] = 'runtime' if self.app['model']['runtime'] else 'app'
-            app_info['description'] = self.app['model']['description']
-            self.signal_finished.emit(app_info)
+            self.signal_finished.emit(self.manager.get_info(self.app.model))
             self.app = None
 
 
 class GetAppHistory(QThread):
     signal_finished = pyqtSignal(dict)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(GetAppHistory, self).__init__()
-        self.app = None
+        self.app = app
+        self.manager = manager
+        self.locale_keys = locale_keys
 
     def run(self):
         if self.app:
-            commits = flatpak.get_app_commits_data(self.app['model']['ref'], self.app['model']['origin'])
-            self.signal_finished.emit({'model': self.app['model'], 'commits': commits})
-            self.app = None
+            try:
+                res = {'model': self.app.model, 'history': self.manager.get_history(self.app.model)}
+                self.signal_finished.emit(res)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                self.signal_finished.emit({'error': self.locale_keys['internet.required']})
+            finally:
+                self.app = None
 
 
 class SearchApps(QThread):
     signal_finished = pyqtSignal(list)
 
-    def __init__(self, manager: FlatpakManager):
+    def __init__(self, manager: ApplicationManager):
         super(SearchApps, self).__init__()
         self.word = None
         self.manager = manager
@@ -138,23 +188,46 @@ class SearchApps(QThread):
 
 class InstallApp(QThread):
 
-    signal_finished = pyqtSignal()
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, app: ApplicationView = None):
         super(InstallApp, self).__init__()
-        self.app = None
+        self.app = app
+        self.manager = manager
+        self.icon_cache = icon_cache
+        self.disk_cache = disk_cache
 
     def run(self):
 
         if self.app:
-            for output in flatpak.install_and_stream(self.app['model']['id'], self.app['model']['origin']):
+            subproc = self.manager.install_and_stream(self.app.model)
+            self.signal_output.emit(' '.join(subproc.args) + '\n')
+
+            for output in subproc.stdout:
                 line = output.decode().strip()
                 if line:
                     self.signal_output.emit(line)
 
-        self.app = None
-        self.signal_finished.emit()
+            error = False
+
+            for output in subproc.stderr:
+                line = output.decode().strip()
+                if line:
+                    error = True
+                    self.signal_output.emit(line)
+
+            if not error and self.disk_cache:
+                self.app.model.installed = True
+
+                if self.app.model.supports_disk_cache():
+                    icon_data = self.icon_cache.get(self.app.model.base_data.icon_url)
+                    self.manager.cache_to_disk(app=self.app.model,
+                                               icon_bytes=icon_data.get('bytes') if icon_data else None,
+                                               only_icon=False)
+
+            self.app = None
+            self.signal_finished.emit(not error)
 
 
 class AnimateProgress(QThread):
@@ -184,3 +257,38 @@ class AnimateProgress(QThread):
             time.sleep(0.05)
 
         self.progress_value = 0
+
+
+class VerifyModels(QThread):
+
+    signal_updates = pyqtSignal()
+
+    def __init__(self, apps: List[ApplicationView] = None):
+        super(VerifyModels, self).__init__()
+        self.apps = apps
+
+    def run(self):
+
+        if self.apps:
+
+            stop_at = datetime.utcnow() + timedelta(seconds=30)
+            last_ready = 0
+
+            while True:
+                current_ready = 0
+
+                for app in self.apps:
+                    current_ready += 1 if app.model.status == ApplicationStatus.READY else 0
+
+                if current_ready > last_ready:
+                    last_ready = current_ready
+                    self.signal_updates.emit()
+
+                if current_ready == len(self.apps):
+                    self.signal_updates.emit()
+                    break
+
+                if stop_at <= datetime.utcnow():
+                    break
+
+        self.apps = None
