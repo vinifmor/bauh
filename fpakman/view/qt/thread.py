@@ -221,8 +221,9 @@ class InstallApp(QThread):
                 self.app.model.installed = True
 
                 if self.app.model.supports_disk_cache():
+                    icon_data = self.icon_cache.get(self.app.model.base_data.icon_url)
                     self.manager.cache_to_disk(app=self.app.model,
-                                               icon_bytes=self.icon_cache.get(self.app.model.base_data.icon_url)['bytes'],
+                                               icon_bytes=icon_data.get('bytes') if icon_data else None,
                                                only_icon=False)
 
             self.app = None

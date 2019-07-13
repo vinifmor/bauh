@@ -13,8 +13,7 @@ class Cache:
         return self.expiration_time < 0 or self.expiration_time > 0
 
     def add(self, key: str, val: object):
-
-        if self.is_enabled():
+        if key and self.is_enabled():
             self.lock.acquire()
             self._add(key, val)
             self.lock.release()
@@ -24,7 +23,7 @@ class Cache:
 
     def add_non_existing(self, key: str, val: object):
 
-        if self. is_enabled():
+        if key and self. is_enabled():
             self.lock.acquire()
             cur_val = self.get(key)
 
@@ -34,7 +33,7 @@ class Cache:
             self.lock.release()
 
     def get(self, key: str):
-        if self.is_enabled():
+        if key and self.is_enabled():
             val = self._cache.get(key)
 
             if val:
@@ -49,7 +48,7 @@ class Cache:
                 return val['val']
 
     def delete(self, key):
-        if self.is_enabled():
+        if key and self.is_enabled():
             if key in self._cache:
                 self.lock.acquire()
                 del self._cache[key]
