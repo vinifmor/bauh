@@ -68,7 +68,7 @@ class ManageWindow(QWidget):
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
-        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: grey; spacing: 0;}")
+        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0;}")
         self.input_search.returnPressed.connect(self.search)
         self.toolbar_search.addWidget(self.input_search)
 
