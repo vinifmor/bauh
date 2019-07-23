@@ -10,7 +10,6 @@ from fpakman.core import resource, system
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.model import Application
 from fpakman.util.cache import Cache
-from fpakman.view.qt import dialog
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 
