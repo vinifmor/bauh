@@ -1,7 +1,7 @@
 from enum import Enum
 
+from fpakman.core.model import Application, ApplicationStatus
 from fpakman.util import util
-from fpakman.core.model import Application, ApplicationStatus, FlatpakApplication
 
 
 class ApplicationViewStatus(Enum):
@@ -19,7 +19,7 @@ class ApplicationView:
 
     def get_async_attr(self, attr: str, strip_html: bool = False, default: str = '...'):
 
-        if isinstance(self.model, FlatpakApplication) and self.model.runtime:
+        if self.model.is_library():
             res = getattr(self.model.base_data, attr)
         else:
             res = getattr(self.model.base_data, attr) if self.model.status == ApplicationStatus.READY and getattr(self.model.base_data, attr) else default

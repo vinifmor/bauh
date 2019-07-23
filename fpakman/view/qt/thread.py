@@ -1,3 +1,4 @@
+import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import List
@@ -8,14 +9,51 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.exception import NoInternetException
 from fpakman.core.model import ApplicationStatus
+from fpakman.core.system import FpakmanProcess
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView
 
 
-class UpdateSelectedApps(QThread):
+class AsyncAction(QThread):
 
-    signal_finished = pyqtSignal(bool)
+    def notify_subproc_outputs(self, proc: FpakmanProcess, signal) -> bool:
+        """
+        :param subproc:
+        :param signal:
+        :param success:
+        :return: if the subprocess succeeded
+        """
+        signal.emit(' '.join(proc.subproc.args) + '\n')
+
+        success, already_succeeded = True, False
+
+        for output in proc.subproc.stdout:
+            line = output.decode().strip()
+            if line:
+                signal.emit(line)
+
+                if proc.success_pgrase and proc.success_pgrase in line:
+                    already_succeeded = True
+
+        if already_succeeded:
+            return True
+
+        for output in proc.subproc.stderr:
+            line = output.decode().strip()
+            if line:
+                if proc.wrong_error_phrase and proc.wrong_error_phrase in line:
+                    continue
+                else:
+                    success = False
+                    signal.emit(line)
+
+        return success
+
+
+class UpdateSelectedApps(AsyncAction):
+
+    signal_finished = pyqtSignal(bool, int)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
@@ -25,31 +63,20 @@ class UpdateSelectedApps(QThread):
 
     def run(self):
 
-        error = False
+        success = False
 
         for app in self.apps_to_update:
 
-            subproc = self.manager.update_and_stream(app.model)
+            process = self.manager.update_and_stream(app.model)
+            success = self.notify_subproc_outputs(process, self.signal_output)
 
-            self.signal_output.emit(' '.join(subproc.args) + '\n')
-
-            for output in subproc.stdout:
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
-
-            for output in subproc.stderr:
-                line = output.decode().strip()
-                if line:
-                    error = True
-                    self.signal_output.emit(line)
-
-            self.signal_output.emit('\n')
-
-            if error:
+            if not success:
                 break
+            else:
+                self.signal_output.emit('\n')
 
-        self.signal_finished.emit(not error)
+        self.signal_finished.emit(success, len(self.apps_to_update))
+        self.apps_to_update = None
 
 
 class RefreshApps(QThread):
@@ -64,8 +91,8 @@ class RefreshApps(QThread):
         self.signal.emit(self.manager.read_installed())
 
 
-class UninstallApp(QThread):
-    signal_finished = pyqtSignal()
+class UninstallApp(AsyncAction):
+    signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
@@ -73,33 +100,23 @@ class UninstallApp(QThread):
         self.app = app
         self.manager = manager
         self.icon_cache = icon_cache
+        self.root_password = None
 
     def run(self):
         if self.app:
-            subproc = self.manager.uninstall_and_stream(self.app.model)
-            self.signal_output.emit(' '.join(subproc.args) + '\n')
+            process = self.manager.uninstall_and_stream(self.app.model, self.root_password)
+            success = self.notify_subproc_outputs(process, self.signal_output)
 
-            for output in subproc.stdout:
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
-
-            error = False
-
-            for output in subproc.stderr:
-                line = output.decode().strip()
-                if line:
-                    error = True
-                    self.signal_output.emit(line)
-
-            if not error:
+            if success:
                 self.icon_cache.delete(self.app.model.base_data.icon_url)
                 self.manager.clean_cache_for(self.app.model)
 
-            self.signal_finished.emit()
+            self.signal_finished.emit(success)
+            self.app = None
+            self.root_password = None
 
 
-class DowngradeApp(QThread):
+class DowngradeApp(AsyncAction):
     signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
@@ -113,18 +130,15 @@ class DowngradeApp(QThread):
     def run(self):
         if self.app:
 
-            success = True
+            success = False
             try:
-                stream = self.manager.downgrade_app(self.app.model, self.root_password)
+                process = self.manager.downgrade_app(self.app.model, self.root_password)
 
-                if stream is None:
+                if process is None:
                     dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
                                       body=self.locale_keys['popup.downgrade.impossible.body'])
                 else:
-                    for output in stream:
-                        line = output.decode().strip()
-                        if line:
-                            self.signal_output.emit(line)
+                    success = self.notify_subproc_outputs(process, self.signal_output)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
                 self.signal_output.emit(self.locale_keys['internet.required'])
@@ -180,54 +194,51 @@ class SearchApps(QThread):
         apps_found = []
 
         if self.word:
-            apps_found = self.manager.search(self.word)
+            res = self.manager.search(self.word)
+            apps_found.extend(res['installed'])
+            apps_found.extend(res['new'])
 
         self.signal_finished.emit(apps_found)
         self.word = None
 
 
-class InstallApp(QThread):
+class InstallApp(AsyncAction):
 
     signal_finished = pyqtSignal(bool)
     signal_output = pyqtSignal(str)
 
-    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
         super(InstallApp, self).__init__()
         self.app = app
         self.manager = manager
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
+        self.locale_keys = locale_keys
+        self.root_password = None
 
     def run(self):
 
         if self.app:
-            subproc = self.manager.install_and_stream(self.app.model)
-            self.signal_output.emit(' '.join(subproc.args) + '\n')
+            success = False
 
-            for output in subproc.stdout:
-                line = output.decode().strip()
-                if line:
-                    self.signal_output.emit(line)
+            try:
+                process = self.manager.install_and_stream(self.app.model, self.root_password)
+                success = self.notify_subproc_outputs(process, self.signal_output)
 
-            error = False
+                if success and self.disk_cache:
+                    self.app.model.installed = True
 
-            for output in subproc.stderr:
-                line = output.decode().strip()
-                if line:
-                    error = True
-                    self.signal_output.emit(line)
-
-            if not error and self.disk_cache:
-                self.app.model.installed = True
-
-                if self.app.model.supports_disk_cache():
-                    icon_data = self.icon_cache.get(self.app.model.base_data.icon_url)
-                    self.manager.cache_to_disk(app=self.app.model,
-                                               icon_bytes=icon_data.get('bytes') if icon_data else None,
-                                               only_icon=False)
-
-            self.app = None
-            self.signal_finished.emit(not error)
+                    if self.app.model.supports_disk_cache():
+                        icon_data = self.icon_cache.get(self.app.model.base_data.icon_url)
+                        self.manager.cache_to_disk(app=self.app.model,
+                                                   icon_bytes=icon_data.get('bytes') if icon_data else None,
+                                                   only_icon=False)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                success = False
+                self.signal_output.emit(self.locale_keys['internet.required'])
+            finally:
+                self.app = None
+                self.signal_finished.emit(success)
 
 
 class AnimateProgress(QThread):
@@ -292,3 +303,30 @@ class VerifyModels(QThread):
                     break
 
         self.apps = None
+
+
+class RefreshApp(AsyncAction):
+
+    signal_finished = pyqtSignal(bool)
+    signal_output = pyqtSignal(str)
+
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+        super(RefreshApp, self).__init__()
+        self.app = app
+        self.manager = manager
+        self.root_password = None
+
+    def run(self):
+
+        if self.app:
+            success = False
+
+            try:
+                process = self.manager.refresh(self.app.model, self.root_password)
+                success = self.notify_subproc_outputs(process, self.signal_output)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                success = False
+                self.signal_output.emit(self.locale_keys['internet.required'])
+            finally:
+                self.app = None
+                self.signal_finished.emit(success)

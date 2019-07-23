@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.0]
+### Features
+- supporting snaps
+- search filters by application type and updates
+- "Refresh" option when right-clicking an installed snap application (see **Comments**)
+- snap / flatpak usage can be enabled / disabled via this new environment variables and arguments: FPAKMAN_FLATPAK (--flatpak), FPAKMAN_SNAP (--snap)
+### Improvements
+- automatically shows all updates after refreshing
+- more accurate search results.
+- system notifications when an application is installed, removed or downgraded. Also when an error occurs.
+- showing management panel when right-clicking the tray icon.
+- "Updates" label replaced by an exclamation icon and moved to the right.
+- new environments variables / arguments associated with performance: FPAKMAN_DOWNLOAD_ICONS (--download-icons), FPAKMAN_CHECK_PACKAGING_ONCE (--check-packaging-once)
+- minor GUI improvements
+### Comments
+- currently snap daemon (2.40) automatically upgrades your installed applications in background. Although it's possible to check for new updates
+programmatically, it requires root access and would mess up with the user experience if every 5 minutes the application asked for the password. But not to let the
+user with empty hands, it was added a "Refresh" option when right-clicking an installed snap application. It will update the application if its not already updated by the daemon.
+
 ## [0.3.1] - 2019-07-13
 ### Improvements
 - Console output now is optional and not shown by default

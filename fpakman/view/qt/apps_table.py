@@ -3,10 +3,10 @@ from threading import Lock
 from typing import List
 
 from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QPixmap, QIcon, QColor, QCursor
+from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel
+    QHeaderView, QLabel, QHBoxLayout
 
 from fpakman.core import resource
 from fpakman.core.model import ApplicationStatus
@@ -26,7 +26,7 @@ class UpdateToggleButton(QToolButton):
         self.icon_on = QIcon(resource.get_path('img/toggle_on.svg'))
         self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
         self.setIcon(self.icon_on)
-        self.setStyleSheet('border: 0px;')
+        self.setStyleSheet('QToolButton { border: 0px; }')
         self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
 
         if not checked:
@@ -40,15 +40,15 @@ class UpdateToggleButton(QToolButton):
 
 class AppsTable(QTableWidget):
 
-    def __init__(self, parent: QWidget, icon_cache: Cache, disk_cache: bool):
+    def __init__(self, parent: QWidget, icon_cache: Cache, disk_cache: bool, download_icons: bool):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent
         self.disk_cache = disk_cache
+        self.download_icons = download_icons
         self.column_names = [parent.locale_keys[key].capitalize() for key in ['name',
                                                                               'version',
-                                                                              'latest_version',
-                                                                              'flatpak.info.description',
+                                                                              'description',
                                                                               'type',
                                                                               'installed',
                                                                               'manage_window.columns.update']]
@@ -56,6 +56,7 @@ class AppsTable(QTableWidget):
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setVisible(False)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(self.column_names)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -74,13 +75,19 @@ class AppsTable(QTableWidget):
 
         menu_row = QMenu()
 
+        if app.model.has_info():
+            action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
+            action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
+            action_info.triggered.connect(self._get_app_info)
+            menu_row.addAction(action_info)
+
         if app.model.installed:
 
-            if app.model.has_info():
-                action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
-                action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
-                action_info.triggered.connect(self._get_app_info)
-                menu_row.addAction(action_info)
+            if app.model.can_be_refreshed():
+                action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.refresh"])
+                action_history.setIcon(QIcon(resource.get_path('img/refresh.svg')))
+                action_history.triggered.connect(self._refresh_app)
+                menu_row.addAction(action_history)
 
             if app.model.has_history():
                 action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
@@ -99,6 +106,7 @@ class AppsTable(QTableWidget):
                 action_downgrade.triggered.connect(self._downgrade_app)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
+
         else:
             if app.model.can_be_installed():
                 action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
@@ -119,15 +127,17 @@ class AppsTable(QTableWidget):
             for idx, app_v in enumerate(self.window.apps):
 
                 if app_v.visible and app_v.status == ApplicationViewStatus.LOADING and app_v.model.status == ApplicationStatus.READY:
-                    self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
+
+                    if self.download_icons:
+                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
 
                     app_name = self.item(idx, 0).text()
 
                     if not app_name or app_name == '...':
                         self.item(idx, 0).setText(app_v.model.base_data.name)
 
-                    self.cellWidget(idx, 2).setText(app_v.model.base_data.latest_version)
-                    self._set_col_description(self.item(idx, 3), app_v)
+                    self._set_col_version(idx, app_v)
+                    self._set_col_description(idx, app_v)
                     app_v.status = ApplicationViewStatus.READY
 
             self.window.resize_and_center()
@@ -155,6 +165,9 @@ class AppsTable(QTableWidget):
                                    body=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app.model.base_data.name),
                                    locale_keys=self.window.locale_keys):
             self.window.downgrade_app(selected_app)
+
+    def _refresh_app(self):
+        self.window.refresh(self.get_selected_app())
 
     def _get_app_info(self):
         self.window.get_app_info(self.get_selected_app())
@@ -195,43 +208,67 @@ class AppsTable(QTableWidget):
 
         if app_views:
             for idx, app_v in enumerate(app_views):
-                col_name = self._gen_col_name(app_v)
-                self.setItem(idx, 0, col_name)
-
-                col_version = QLabel(app_v.model.base_data.version)
-                col_version.setAlignment(Qt.AlignCenter)
-                self.setCellWidget(idx, 1, col_version)
-
-                col_release = QLabel(app_v.get_async_attr('latest_version'))
-                col_release.setAlignment(Qt.AlignCenter)
-                self.setCellWidget(idx, 2, col_release)
-
-                if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
-                    col_release.setStyleSheet("color: orange")
-
-                col_description = QTableWidgetItem()
-                col_description.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self._set_col_description(col_description, app_v)
-
-                self.setItem(idx, 3, col_description)
-
-                col_type = QLabel(app_v.model.get_type())
-                col_type.setAlignment(Qt.AlignCenter)
-                self.setCellWidget(idx, 4, col_type)
-
-                col_installed = QLabel()
-                col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format('checked' if app_v.model.installed else 'red_cross')))))
-                col_installed.setAlignment(Qt.AlignCenter)
-
-                self.setCellWidget(idx, 5, col_installed)
+                self._set_col_name(idx, app_v)
+                self._set_col_version(idx, app_v)
+                self._set_col_description(idx, app_v)
+                self._set_col_type(idx, app_v)
+                self._set_col_installed(idx, app_v)
 
                 col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update) if app_v.model.update else None
-                self.setCellWidget(idx, 6, col_update)
+                self.setCellWidget(idx, 5, col_update)
 
-    def _gen_col_name(self, app_v: ApplicationView):
+    def _set_col_installed(self, idx: int, app_v: ApplicationView):
+        col_installed = QLabel()
+
+        if app_v.model.installed:
+            img_name = 'checked'
+            tooltip = self.window.locale_keys['installed']
+        else:
+            img_name = 'red_cross'
+            tooltip = self.window.locale_keys['uninstalled']
+
+        col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format(img_name)))))
+        col_installed.setAlignment(Qt.AlignCenter)
+        col_installed.setToolTip(tooltip)
+
+        self.setCellWidget(idx, 4, col_installed)
+
+    def _set_col_type(self, idx: int, app_v: ApplicationView):
+        col_type = QLabel()
+        pixmap = QPixmap(app_v.model.get_default_icon_path())
+        col_type.setPixmap(pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        col_type.setAlignment(Qt.AlignCenter)
+        col_type.setToolTip('{}: {}'.format(self.window.locale_keys['type'], app_v.model.get_type()))
+        self.setCellWidget(idx, 3, col_type)
+
+    def _set_col_version(self, idx: int, app_v: ApplicationView):
+        label_version = QLabel(app_v.model.base_data.version if app_v.model.base_data.version else '?')
+        label_version.setAlignment(Qt.AlignCenter)
+
+        col_version = QWidget()
+        col_version.setLayout(QHBoxLayout())
+        col_version.layout().addWidget(label_version)
+
+        if app_v.model.base_data.version:
+            tooltip = self.window.locale_keys['version.installed'] if app_v.model.installed else self.window.locale_keys['version']
+        else:
+            tooltip = self.window.locale_keys['version.unknown']
+
+        if app_v.model.update:
+            label_version.setStyleSheet("color: #32CD32")
+            tooltip = self.window.locale_keys['version.installed_outdated']
+
+        if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
+            tooltip = '{}. {}: {}'.format(tooltip, self.window.locale_keys['version.latest'], app_v.model.base_data.latest_version)
+
+        col_version.setToolTip(tooltip)
+        self.setCellWidget(idx, 1, col_version)
+
+    def _set_col_name(self, idx: int, app_v: ApplicationView):
         col = QTableWidgetItem()
         col.setText(app_v.model.base_data.name if app_v.model.base_data.name else '...')
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        col.setToolTip(self.window.locale_keys['app.name'].lower())
 
         if self.disk_cache and app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
             with open(app_v.model.get_disk_icon_path(), 'rb') as f:
@@ -240,6 +277,7 @@ class AppsTable(QTableWidget):
                 pixmap.loadFromData(icon_bytes)
                 icon = QIcon(pixmap)
                 self.icon_cache.add_non_existing(app_v.model.base_data.icon_url, {'icon': icon, 'bytes': icon_bytes})
+
         elif not app_v.model.base_data.icon_url:
             icon = QIcon(app_v.model.get_default_icon_path())
         else:
@@ -247,9 +285,11 @@ class AppsTable(QTableWidget):
             icon = icon_data['icon'] if icon_data else QIcon(app_v.model.get_default_icon_path())
 
         col.setIcon(icon)
-        return col
+        self.setItem(idx, 0, col)
 
-    def _set_col_description(self, col: QTableWidgetItem, app_v: ApplicationView):
+    def _set_col_description(self, idx: int, app_v: ApplicationView):
+        col = QTableWidgetItem()
+        col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         desc = app_v.get_async_attr('description', strip_html=True)
 
         if desc:
@@ -257,6 +297,8 @@ class AppsTable(QTableWidget):
 
         if app_v.model.status == ApplicationStatus.READY:
             col.setToolTip(desc)
+
+        self.setItem(idx, 2, col)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()

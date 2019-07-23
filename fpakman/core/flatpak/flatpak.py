@@ -4,7 +4,6 @@ from typing import List
 
 from fpakman.core import system
 from fpakman.core.exception import NoInternetException
-from fpakman.core.model import Application
 
 BASE_CMD = 'flatpak'
 
@@ -115,16 +114,8 @@ def list_updates_as_str():
     return system.run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
 
 
-def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
-
-    pwdin, downgrade_cmd = None, []
-
-    if root_password is not None:
-        downgrade_cmd.extend(['sudo', '-S'])
-        pwdin = system.stream_cmd(['echo', root_password])
-
-    downgrade_cmd.extend([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'])
-    return subprocess.Popen(downgrade_cmd, stdin=pwdin, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+def downgrade_and_stream(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
+    return system.cmd_as_root([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'], root_password)
 
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:

@@ -2,7 +2,7 @@ import operator
 from functools import reduce
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
 
 
@@ -37,7 +37,7 @@ class HistoryDialog(QDialog):
                 item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
                 if current_app_commit:
-                    item.setBackground(Qt.darkYellow if row != 0 else Qt.darkGreen)
+                    item.setBackground(QColor('#ffbf00' if row != 0 else '#32CD32'))
                     tip = '{}. {}.'.format(locale_keys['popup.history.selected.tooltip'], locale_keys['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 
                     item.setToolTip(tip)
