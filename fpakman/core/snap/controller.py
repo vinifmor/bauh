@@ -7,7 +7,7 @@ from typing import Dict, List
 from fpakman.core import disk
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.disk import DiskCacheLoader
-from fpakman.core.model import ApplicationData, Application
+from fpakman.core.model import ApplicationData, Application, ApplicationUpdate
 from fpakman.core.snap import snap
 from fpakman.core.snap.model import SnapApplication
 from fpakman.core.snap.worker import SnapAsyncDataLoader
@@ -131,3 +131,6 @@ class SnapManager(ApplicationManager):
 
     def prepare(self):
         pass
+
+    def list_updates(self) -> List[ApplicationUpdate]:
+        return []

@@ -6,9 +6,10 @@ from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
+from fpakman import __app_name__
 from fpakman.core import resource, system
 from fpakman.core.controller import ApplicationManager
-from fpakman.core.model import Application
+from fpakman.core.model import ApplicationUpdate
 from fpakman.util.cache import Cache
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
@@ -27,9 +28,7 @@ class UpdateCheck(QThread):
 
         while True:
 
-            apps = self.manager.read_installed()
-
-            updates = [app for app in apps if app.update]
+            updates = self.manager.list_updates()
 
             if updates:
                 self.signal.emit(updates)
@@ -66,30 +65,32 @@ class TrayIcon(QSystemTrayIcon):
         self.setContextMenu(self.menu)
 
         self.manage_window = None
+        self.dialog_about = None
         self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
-
-        self.dialog_about = None
 
         self.last_updates = set()
         self.update_notification = update_notification
         self.lock_notify = Lock()
 
         self.activated.connect(self.handle_click)
+        self.set_default_tooltip()
+
+    def set_default_tooltip(self):
+        self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__))
 
     def handle_click(self, reason):
         if reason == self.Trigger:
             self.show_manage_window()
 
-    def notify_updates(self, updates: List[Application]):
+    def notify_updates(self, updates: List[ApplicationUpdate]):
 
         self.lock_notify.acquire()
 
         try:
             if len(updates) > 0:
-
-                update_keys = {'{}:{}'.format(app.base_data.id, app.base_data.version) for app in updates}
+                update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
 
                 new_icon = self.icon_update
 
@@ -103,7 +104,7 @@ class TrayIcon(QSystemTrayIcon):
 
             else:
                 new_icon = self.icon_default
-                self.setToolTip(None)
+                self.set_default_tooltip()
 
             if self.icon().cacheKey() != new_icon.cacheKey():  # changes the icon if needed
                 self.setIcon(new_icon)

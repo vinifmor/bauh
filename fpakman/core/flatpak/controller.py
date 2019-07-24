@@ -9,8 +9,8 @@ from fpakman.core.controller import ApplicationManager
 from fpakman.core.disk import DiskCacheLoader
 from fpakman.core.flatpak import flatpak
 from fpakman.core.flatpak.model import FlatpakApplication
-from fpakman.core.flatpak.worker import FlatpakAsyncDataLoader
-from fpakman.core.model import ApplicationData
+from fpakman.core.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
+from fpakman.core.model import ApplicationData, ApplicationUpdate
 from fpakman.core.system import FpakmanProcess
 from fpakman.util.cache import Cache
 
@@ -148,3 +148,33 @@ class FlatpakManager(ApplicationManager):
 
     def prepare(self):
         flatpak.set_default_remotes()
+
+    def list_updates(self) -> List[ApplicationUpdate]:
+        updates = []
+        installed = flatpak.list_installed(extra_fields=False)
+
+        if installed:
+            available_updates = flatpak.list_updates_as_str()
+
+            if available_updates:
+                loaders = None
+
+                for app_json in installed:
+                    if app_json['id'] in available_updates:
+                        loader = FlatpakUpdateLoader(app=app_json, http_session=self.http_session)
+                        loader.start()
+
+                        if loaders is None:
+                            loaders = []
+
+                        loaders.append(loader)
+
+                if loaders:
+                    for loader in loaders:
+                        loader.join()
+                        app = loader.app
+                        updates.append(ApplicationUpdate(app_id='{}:{}'.format(app['id'], app['branch']),
+                                                         app_type='flatpak',
+                                                         version=app.get('version')))
+
+        return updates

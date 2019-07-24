@@ -1,6 +1,5 @@
 import operator
 from functools import reduce
-from threading import Lock
 from typing import List, Set
 
 from PyQt5.QtCore import QEvent, Qt
@@ -31,7 +30,6 @@ class ManageWindow(QWidget):
         self.locale_keys = locale_keys
         self.manager = manager
         self.tray_icon = tray_icon
-        self.thread_lock = Lock()
         self.working = False  # restrict the number of threaded actions
         self.apps = []
         self.label_flatpak = None
@@ -42,7 +40,6 @@ class ManageWindow(QWidget):
 
         self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
-        self.setWindowTitle(locale_keys['manage_window.title'])
         self.setWindowIcon(self.icon_flathub)
 
         self.layout = QVBoxLayout()
@@ -111,7 +108,7 @@ class ManageWindow(QWidget):
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/update_green.svg')))
         self.bt_upgrade.setEnabled(False)
         self.bt_upgrade.clicked.connect(self.update_selected)
-        toolbar.addWidget(self.bt_upgrade)
+        self.ref_bt_upgrade = toolbar.addWidget(self.bt_upgrade)
 
         self.layout.addWidget(toolbar)
 
@@ -235,25 +232,6 @@ class ManageWindow(QWidget):
             self.hide()
             self._handle_console_option(False)
 
-    def _acquire_lock(self):
-
-        self.thread_lock.acquire()
-
-        if not self.working:
-            self.working = True
-
-        self.thread_lock.release()
-        return self.working
-
-    def _release_lock(self):
-
-        self.thread_lock.acquire()
-
-        if self.working:
-            self.working = False
-
-        self.thread_lock.release()
-
     def _handle_console(self, checked: bool):
 
         if checked:
@@ -271,69 +249,59 @@ class ManageWindow(QWidget):
         self.textarea_output.hide()
 
     def refresh_apps(self, keep_console: bool = True):
+        self.filter_types.clear()
+        self.input_search.clear()
 
-        if self._acquire_lock():
-            self.filter_types.clear()
-            self.input_search.clear()
+        if not keep_console:
+            self._handle_console_option(False)
 
-            if not keep_console:
-                self._handle_console_option(False)
-
-            self.ref_checkbox_updates.setVisible(False)
-            self.ref_checkbox_only_apps.setVisible(False)
-            self._begin_action(self.locale_keys['manage_window.status.refreshing'], clear_filters=True)
-
-            self.thread_refresh.start()
+        self.ref_checkbox_updates.setVisible(False)
+        self.ref_checkbox_only_apps.setVisible(False)
+        self._begin_action(self.locale_keys['manage_window.status.refreshing'], clear_filters=True)
+        self.thread_refresh.start()
 
     def _finish_refresh_apps(self, apps: List[Application]):
         self.update_apps(apps)
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(True)
-        self._release_lock()
+        self.ref_bt_upgrade.setVisible(True)
 
     def uninstall_app(self, app: ApplicationView):
-        if self._acquire_lock():
+        pwd = None
+        requires_root = self.manager.requires_root('uninstall', self.table_apps.get_selected_app().model)
 
-            pwd = None
-            requires_root = self.manager.requires_root('uninstall', self.table_apps.get_selected_app().model)
+        if not is_root() and requires_root:
+            pwd, ok = ask_root_password(self.locale_keys)
 
-            if not is_root() and requires_root:
-                pwd, ok = ask_root_password(self.locale_keys)
+            if not ok:
+                return
 
-                if not ok:
-                    self._release_lock()
-                    return
+        self._handle_console_option(True)
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.uninstalling'], app.model.base_data.name))
 
-            self._handle_console_option(True)
-            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.uninstalling'], app.model.base_data.name))
-
-            self.thread_uninstall.app = app
-            self.thread_uninstall.root_password = pwd
-            self.thread_uninstall.start()
+        self.thread_uninstall.app = app
+        self.thread_uninstall.root_password = pwd
+        self.thread_uninstall.start()
 
     def refresh(self, app: ApplicationView):
-        if self._acquire_lock():
+        pwd = None
+        requires_root = self.manager.requires_root('refresh', self.table_apps.get_selected_app().model)
 
-            pwd = None
-            requires_root = self.manager.requires_root('refresh', self.table_apps.get_selected_app().model)
+        if not is_root() and requires_root:
+            pwd, ok = ask_root_password(self.locale_keys)
 
-            if not is_root() and requires_root:
-                pwd, ok = ask_root_password(self.locale_keys)
+            if not ok:
+                return
 
-                if not ok:
-                    self._release_lock()
-                    return
+        self._handle_console_option(True)
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.refreshing'], app.model.base_data.name))
 
-            self._handle_console_option(True)
-            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.refreshing'], app.model.base_data.name))
-
-            self.thread_refresh_app.app = app
-            self.thread_refresh_app.root_password = pwd
-            self.thread_refresh_app.start()
+        self.thread_refresh_app.app = app
+        self.thread_refresh_app.root_password = pwd
+        self.thread_refresh_app.start()
 
     def _finish_uninstall(self, success: bool):
         self.finish_action()
-        self._release_lock()
 
         if success:
             if self._can_notify_user():
@@ -353,7 +321,6 @@ class ManageWindow(QWidget):
 
     def _finish_downgrade(self, success: bool):
         self.finish_action()
-        self._release_lock()
 
         if success:
             if self._can_notify_user():
@@ -365,17 +332,16 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 system.notify_user(self.locale_keys['notification.downgrade.failed'])
 
-            self.change_update_state(notify_tray=False)
+            self.change_update_state()
             self.checkbox_console.setChecked(True)
 
     def _finish_refresh(self, success: bool):
         self.finish_action()
-        self._release_lock()
 
         if success:
             self.refresh_apps()
         else:
-            self.change_update_state(notify_tray=False)
+            self.change_update_state()
             self.checkbox_console.setChecked(True)
 
     def apply_filters(self):
@@ -399,11 +365,9 @@ class ManageWindow(QWidget):
             self.table_apps.change_headers_policy()
             self.resize_and_center(accept_lower_width=visible_apps > 0)
 
-    def change_update_state(self, notify_tray: bool = True, change_filters: bool = True):
-
+    def change_update_state(self, change_filters: bool = True):
         enable_bt_update = False
-
-        app_updates, library_updates = 0, 0
+        app_updates, library_updates, not_installed = 0, 0, 0
 
         for app_v in self.apps:
             if app_v.model.update:
@@ -412,28 +376,33 @@ class ManageWindow(QWidget):
                 else:
                     app_updates += 1
 
+            if not app_v.model.installed:
+                not_installed += 1
+
         for app_v in self.apps:
-            if app_v.visible and app_v.update_checked:
+            if not_installed == 0 and app_v.visible and app_v.update_checked:
                 enable_bt_update = True
                 break
 
         self.bt_upgrade.setEnabled(enable_bt_update)
 
         total_updates = app_updates + library_updates
+
         if total_updates > 0:
             self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.label_updates.setToolTip('{}: {} ( {} {} | {} {} )'.format(self.locale_keys['manage_window.label.updates'],
-                                                                          total_updates,
-                                                                          app_updates,
-                                                                          self.locale_keys['manage_window.checkbox.only_apps'].lower(),
-                                                                          library_updates,
-                                                                          self.locale_keys['others'].lower()))
+                                                                            total_updates,
+                                                                            app_updates,
+                                                                            self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                            library_updates,
+                                                                            self.locale_keys['others'].lower()))
 
-            if not self.ref_checkbox_updates.isVisible():
-                self.ref_checkbox_updates.setVisible(True)
+            if not_installed == 0:
+                if not self.ref_checkbox_updates.isVisible():
+                    self.ref_checkbox_updates.setVisible(True)
 
-            if change_filters and not self.checkbox_updates.isChecked():
-                self.checkbox_updates.setChecked(True)
+                if change_filters and not self.checkbox_updates.isChecked():
+                    self.checkbox_updates.setChecked(True)
 
             if change_filters and library_updates > 0 and self.checkbox_only_apps.isChecked():
                 self.checkbox_only_apps.setChecked(False)
@@ -442,9 +411,6 @@ class ManageWindow(QWidget):
             self.ref_checkbox_updates.setVisible(False)
             self.label_updates.setPixmap(QPixmap())
 
-        if notify_tray:
-            self.tray_icon.notify_updates([app.model for app in self.apps if app.model.update])
-
     def centralize(self):
         geo = self.frameGeometry()
         screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
@@ -452,7 +418,7 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def update_apps(self, apps: List[Application]):
+    def update_apps(self, apps: List[Application], update_check_enabled: bool = True):
         self.apps = []
 
         napps = 0  # number of apps (not libraries)
@@ -473,7 +439,7 @@ class ManageWindow(QWidget):
             self.checkbox_only_apps.setChecked(True)
 
         self._update_type_filters(available_types)
-        self.table_apps.update_apps(self.apps)
+        self.table_apps.update_apps(self.apps, update_check_enabled=update_check_enabled)
         self.apply_filters()
         self.change_update_state()
         self.resize_and_center()
@@ -510,22 +476,19 @@ class ManageWindow(QWidget):
         self.centralize()
 
     def update_selected(self):
+        if self.apps:
 
-        if self._acquire_lock():
-            if self.apps:
+            to_update = [app_v for app_v in self.apps if app_v.visible and app_v.update_checked]
 
-                to_update = [app_v for app_v in self.apps if app_v.visible and app_v.update_checked]
+            if to_update:
+                self._handle_console_option(True)
 
-                if to_update:
-                    self._handle_console_option(True)
-
-                    self._begin_action(self.locale_keys['manage_window.status.upgrading'])
-                    self.thread_update.apps_to_update = to_update
-                    self.thread_update.start()
+                self._begin_action(self.locale_keys['manage_window.status.upgrading'])
+                self.thread_update.apps_to_update = to_update
+                self.thread_update.start()
 
     def _finish_update_selected(self, success: bool, updated: int):
         self.finish_action()
-        self._release_lock()
 
         if success:
             if self._can_notify_user():
@@ -581,51 +544,43 @@ class ManageWindow(QWidget):
         self.checkbox_updates.setEnabled(True)
 
     def downgrade_app(self, app: ApplicationView):
-        if self._acquire_lock():
+        pwd = None
+        requires_root = self.manager.requires_root('downgrade', self.table_apps.get_selected_app().model)
 
-            pwd = None
-            requires_root = self.manager.requires_root('downgrade', self.table_apps.get_selected_app().model)
+        if not is_root() and requires_root:
+            pwd, ok = ask_root_password(self.locale_keys)
 
-            if not is_root() and requires_root:
-                pwd, ok = ask_root_password(self.locale_keys)
+            if not ok:
+                return
 
-                if not ok:
-                    self._release_lock()
-                    return
+        self._handle_console_option(True)
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.downgrading'], app.model.base_data.name))
 
-            self._handle_console_option(True)
-            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.downgrading'], app.model.base_data.name))
-
-            self.thread_downgrade.app = app
-            self.thread_downgrade.root_password = pwd
-            self.thread_downgrade.start()
+        self.thread_downgrade.app = app
+        self.thread_downgrade.root_password = pwd
+        self.thread_downgrade.start()
 
     def get_app_info(self, app: dict):
+        self._handle_console_option(False)
+        self._begin_action(self.locale_keys['manage_window.status.info'])
 
-        if self._acquire_lock():
-            self._handle_console_option(False)
-            self._begin_action(self.locale_keys['manage_window.status.info'])
-
-            self.thread_get_info.app = app
-            self.thread_get_info.start()
+        self.thread_get_info.app = app
+        self.thread_get_info.start()
 
     def get_app_history(self, app: dict):
-        if self._acquire_lock():
-            self._handle_console_option(False)
-            self._begin_action(self.locale_keys['manage_window.status.history'])
+        self._handle_console_option(False)
+        self._begin_action(self.locale_keys['manage_window.status.history'])
 
-            self.thread_get_history.app = app
-            self.thread_get_history.start()
+        self.thread_get_history.app = app
+        self.thread_get_history.start()
 
     def _finish_get_info(self, app_info: dict):
-        self._release_lock()
         self.finish_action()
         self.change_update_state()
         dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys, self.table_apps.get_selected_app().model.get_type(), self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, app: dict):
-        self._release_lock()
         self.finish_action()
         self.change_update_state()
 
@@ -641,7 +596,7 @@ class ManageWindow(QWidget):
 
         word = self.input_search.text().strip()
 
-        if word and self._acquire_lock():
+        if word:
             self._handle_console_option(False)
             self.ref_checkbox_only_apps.setVisible(False)
             self.ref_checkbox_updates.setVisible(False)
@@ -651,34 +606,30 @@ class ManageWindow(QWidget):
             self.thread_search.start()
 
     def _finish_search(self, apps_found: List[Application]):
-        self._release_lock()
         self.finish_action()
-        self.update_apps(apps_found)
+        self.ref_bt_upgrade.setVisible(False)
+        self.update_apps(apps_found, update_check_enabled=False)
 
     def install_app(self, app: ApplicationView):
-        if self._acquire_lock():
+        pwd = None
+        requires_root = self.manager.requires_root('install', self.table_apps.get_selected_app().model)
 
-            pwd = None
-            requires_root = self.manager.requires_root('install', self.table_apps.get_selected_app().model)
+        if not is_root() and requires_root:
+            pwd, ok = ask_root_password(self.locale_keys)
 
-            if not is_root() and requires_root:
-                pwd, ok = ask_root_password(self.locale_keys)
+            if not ok:
+                return
 
-                if not ok:
-                    self._release_lock()
-                    return
+        self._handle_console_option(True)
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], app.model.base_data.name))
 
-            self._handle_console_option(True)
-            self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], app.model.base_data.name))
-
-            self.thread_install.app = app
-            self.thread_install.root_password = pwd
-            self.thread_install.start()
+        self.thread_install.app = app
+        self.thread_install.root_password = pwd
+        self.thread_install.start()
 
     def _finish_install(self, success: bool):
         self.input_search.setText('')
         self.finish_action()
-        self._release_lock()
 
         if success:
             if self._can_notify_user():

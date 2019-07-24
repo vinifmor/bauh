@@ -1,11 +1,9 @@
-import time
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from threading import Lock
 from typing import List, Dict
 
 from fpakman.core.disk import DiskCacheLoader, DiskCacheLoaderFactory
-from fpakman.core.model import Application
+from fpakman.core.model import Application, ApplicationUpdate
 from fpakman.core.system import FpakmanProcess
 
 
@@ -82,6 +80,10 @@ class ApplicationManager(ABC):
         """
         pass
 
+    @abstractmethod
+    def list_updates(self) -> List[ApplicationUpdate]:
+        pass
+
 
 class GenericApplicationManager(ApplicationManager):
 
@@ -90,7 +92,6 @@ class GenericApplicationManager(ApplicationManager):
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
-        self.lock_read = Lock()
         self._enabled_map = {} if app_args.check_packaging_once else None
         self.prepare()
 
@@ -131,57 +132,48 @@ class GenericApplicationManager(ApplicationManager):
             return man.is_enabled()
 
     def search(self, word: str, disk_loader: DiskCacheLoader = None) -> Dict[str, List[Application]]:
-        self.lock_read.acquire()
-        try:
-            res = {'installed': [], 'new': []}
+        res = {'installed': [], 'new': []}
 
-            norm_word = word.strip().lower()
-            disk_loader = None
+        norm_word = word.strip().lower()
+        disk_loader = None
 
-            for man in self.managers:
-                if self._is_enabled(man):
-                    if not disk_loader:
-                        disk_loader = self.disk_loader_factory.new()
-                        disk_loader.start()
+        for man in self.managers:
+            if self._is_enabled(man):
+                if not disk_loader:
+                    disk_loader = self.disk_loader_factory.new()
+                    disk_loader.start()
 
-                    apps_found = man.search(word=norm_word, disk_loader=disk_loader)
-                    res['installed'].extend(apps_found['installed'])
-                    res['new'].extend(apps_found['new'])
+                apps_found = man.search(word=norm_word, disk_loader=disk_loader)
+                res['installed'].extend(apps_found['installed'])
+                res['new'].extend(apps_found['new'])
 
-            disk_loader.stop = True
-            disk_loader.join()
+        disk_loader.stop = True
+        disk_loader.join()
 
-            for key in res:
-                res[key] = self._sort(res[key], norm_word)
+        for key in res:
+            res[key] = self._sort(res[key], norm_word)
 
-            return res
-        finally:
-            self.lock_read.release()
+        return res
 
     def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[Application]:
-        self.lock_read.acquire()
+        installed = []
 
-        try:
-            installed = []
+        disk_loader = None
 
-            disk_loader = None
+        for man in self.managers:
+            if self._is_enabled(man):
+                if not disk_loader:
+                    disk_loader = self.disk_loader_factory.new()
+                    disk_loader.start()
 
-            for man in self.managers:
-                if self._is_enabled(man):
-                    if not disk_loader:
-                        disk_loader = self.disk_loader_factory.new()
-                        disk_loader.start()
+                installed.extend(man.read_installed(disk_loader=disk_loader))
 
-                    installed.extend(man.read_installed(disk_loader=disk_loader))
+        disk_loader.stop = True
+        disk_loader.join()
 
-            disk_loader.stop = True
-            disk_loader.join()
+        installed.sort(key=lambda a: a.base_data.name.lower())
 
-            installed.sort(key=lambda a: a.base_data.name.lower())
-
-            return installed
-        finally:
-            self.lock_read.release()
+        return installed
 
     def can_downgrade(self):
         return True
@@ -260,8 +252,17 @@ class GenericApplicationManager(ApplicationManager):
             return man.refresh(app, root_password)
 
     def prepare(self):
-
         if self.managers:
             for man in self.managers:
                 if self._is_enabled(man):
                     man.prepare()
+
+    def list_updates(self) -> List[ApplicationUpdate]:
+        updates = []
+
+        if self.managers:
+            for man in self.managers:
+                if self._is_enabled(man):
+                    updates.extend(man.list_updates())
+
+        return updates

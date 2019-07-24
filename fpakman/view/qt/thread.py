@@ -302,6 +302,8 @@ class VerifyModels(QThread):
                 if stop_at <= datetime.utcnow():
                     break
 
+                time.sleep(0.1)
+
         self.apps = None
 
 

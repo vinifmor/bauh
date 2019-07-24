@@ -119,9 +119,6 @@ class AppsTable(QTableWidget):
         menu_row.exec_()
 
     def fill_async_data(self):
-
-        self.lock_async_data.acquire()
-
         if self.window.apps:
 
             for idx, app_v in enumerate(self.window.apps):
@@ -141,8 +138,6 @@ class AppsTable(QTableWidget):
                     app_v.status = ApplicationViewStatus.READY
 
             self.window.resize_and_center()
-
-        self.lock_async_data.release()
 
     def get_selected_app(self) -> ApplicationView:
         return self.window.apps[self.currentRow()]
@@ -202,9 +197,9 @@ class AppsTable(QTableWidget):
                     if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                         self.window.manager.cache_to_disk(app=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
-    def update_apps(self, app_views: List[ApplicationView]):
-        self.setEnabled(True)
+    def update_apps(self, app_views: List[ApplicationView], update_check_enabled: bool = True):
         self.setRowCount(len(app_views) if app_views else 0)
+        self.setEnabled(True)
 
         if app_views:
             for idx, app_v in enumerate(app_views):
@@ -214,7 +209,11 @@ class AppsTable(QTableWidget):
                 self._set_col_type(idx, app_v)
                 self._set_col_installed(idx, app_v)
 
-                col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update) if app_v.model.update else None
+                col_update = None
+
+                if update_check_enabled and app_v.model.update:
+                    col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update)
+
                 self.setCellWidget(idx, 5, col_update)
 
     def _set_col_installed(self, idx: int, app_v: ApplicationView):

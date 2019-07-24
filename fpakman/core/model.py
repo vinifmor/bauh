@@ -86,3 +86,14 @@ class Application(ABC):
 
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.base_data.id, self.base_data.name)
+
+
+class ApplicationUpdate:
+
+    def __init__(self, app_id: str, version: str, app_type: str):
+        self.id = app_id
+        self.version = version
+        self.type = app_type
+
+    def __str__(self):
+        return '{} (id={}, type={}, new_version={})'.format(self.__class__.__name__, self.id, self.type, self.type)

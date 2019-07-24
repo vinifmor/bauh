@@ -1,9 +1,11 @@
 import time
 import traceback
+from threading import Thread
 
 from colorama import Fore
 
 from fpakman.core.controller import ApplicationManager
+from fpakman.core.flatpak import flatpak
 from fpakman.core.flatpak.constants import FLATHUB_API_URL, FLATHUB_URL
 from fpakman.core.flatpak.model import FlatpakApplication
 from fpakman.core.model import ApplicationStatus
@@ -82,3 +84,41 @@ class FlatpakAsyncDataLoader(AsyncDataLoader):
                                       http_session=self.http_session,
                                       timeout=self.timeout,
                                       app=self.app)
+
+
+class FlatpakUpdateLoader(Thread):
+
+    def __init__(self, app: dict, http_session, attempts: int = 2, timeout: int = 20):
+        super(FlatpakUpdateLoader, self).__init__(daemon=True)
+        self.app = app
+        self.http_session = http_session
+        self.attempts = attempts
+        self.timeout = timeout
+
+    def run(self):
+
+        if self.app.get('ref') is None:
+            self.app.update(flatpak.get_app_info_fields(self.app['id'], self.app['branch'], fields=['ref'], check_runtime=True))
+        else:
+            self.app['runtime'] = self.app['ref'].startswith('runtime/')
+
+        if not self.app['runtime']:
+            current_attempts = 0
+
+            while current_attempts < self.attempts:
+
+                current_attempts += 1
+
+                try:
+                    res = self.http_session.get('{}/apps/{}'.format(FLATHUB_API_URL, self.app['id']), timeout=self.timeout)
+
+                    if res.status_code == 200 and res.text:
+                        data = res.json()
+
+                        if data.get('currentReleaseVersion'):
+                            self.app['version'] = data['currentReleaseVersion']
+                            
+                        break
+                except:
+                    traceback.print_exc()
+                    time.sleep(0.5)
