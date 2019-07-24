@@ -35,7 +35,7 @@ class UpdateToggleButton(QToolButton):
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
         self.setIcon(self.icon_on if not not_checked else self.icon_off)
-        self.root.change_update_state()
+        self.root.change_update_state(change_filters=False)
 
 
 class AppsTable(QTableWidget):
