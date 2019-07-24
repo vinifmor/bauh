@@ -329,6 +329,9 @@ class ManageWindow(QWidget):
                 system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['downgraded']))
 
             self.refresh_apps()
+
+            if self.tray_icon:
+                self.tray_icon.verify_updates(notify_user=False)
         else:
             if self._can_notify_user():
                 system.notify_user(self.locale_keys['notification.downgrade.failed'])

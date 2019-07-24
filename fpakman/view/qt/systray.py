@@ -1,5 +1,5 @@
 import time
-from threading import Lock
+from threading import Lock, Thread
 from typing import List
 
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt, QSize
@@ -80,10 +80,13 @@ class TrayIcon(QSystemTrayIcon):
         if reason == self.Trigger:
             self.show_manage_window()
 
-    def verify_updates(self):
-        self.notify_updates(self.manager.list_updates())
+    def verify_updates(self, notify_user: bool = True):
+        Thread(target=self._verify_updates, args=(notify_user,)).start()
 
-    def notify_updates(self, updates: List[ApplicationUpdate]):
+    def _verify_updates(self, notify_user: bool):
+        self.notify_updates(self.manager.list_updates(), notify_user=notify_user)
+
+    def notify_updates(self, updates: List[ApplicationUpdate], notify_user: bool = True):
 
         self.lock_notify.acquire()
 
@@ -98,7 +101,7 @@ class TrayIcon(QSystemTrayIcon):
                     msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
                     self.setToolTip(msg)
 
-                    if self.update_notification:
+                    if self.update_notification and notify_user:
                         system.notify_user(msg)
 
             else:
