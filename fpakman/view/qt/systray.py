@@ -29,10 +29,7 @@ class UpdateCheck(QThread):
         while True:
 
             updates = self.manager.list_updates()
-
-            if updates:
-                self.signal.emit(updates)
-
+            self.signal.emit(updates)
             time.sleep(self.check_interval)
 
 
@@ -103,6 +100,7 @@ class TrayIcon(QSystemTrayIcon):
                         system.notify_user(msg)
 
             else:
+                self.last_updates.clear()
                 new_icon = self.icon_default
                 self.set_default_tooltip()
 
@@ -113,7 +111,6 @@ class TrayIcon(QSystemTrayIcon):
             self.lock_notify.release()
 
     def show_manage_window(self):
-
         if self.manage_window is None:
             self.manage_window = ManageWindow(locale_keys=self.locale_keys,
                                               manager=self.manager,
