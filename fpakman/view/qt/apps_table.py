@@ -75,6 +75,12 @@ class AppsTable(QTableWidget):
 
         menu_row = QMenu()
 
+        if not app.model.installed and app.model.can_be_installed():
+            action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
+            action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
+            action_install.triggered.connect(self._install_app)
+            menu_row.addAction(action_install)
+
         if app.model.has_info():
             action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
             action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
@@ -106,13 +112,6 @@ class AppsTable(QTableWidget):
                 action_downgrade.triggered.connect(self._downgrade_app)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
-
-        else:
-            if app.model.can_be_installed():
-                action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
-                action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
-                action_install.triggered.connect(self._install_app)
-                menu_row.addAction(action_install)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
