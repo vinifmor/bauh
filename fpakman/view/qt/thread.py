@@ -54,6 +54,7 @@ class AsyncAction(QThread):
 class UpdateSelectedApps(AsyncAction):
 
     signal_finished = pyqtSignal(bool, int)
+    signal_status = pyqtSignal(str)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
@@ -66,7 +67,7 @@ class UpdateSelectedApps(AsyncAction):
         success = False
 
         for app in self.apps_to_update:
-
+            self.signal_status.emit(app.model.base_data.name)
             process = self.manager.update_and_stream(app.model)
             success = self.notify_subproc_outputs(process, self.signal_output)
 

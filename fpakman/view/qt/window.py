@@ -138,6 +138,7 @@ class ManageWindow(QWidget):
         self.thread_update = UpdateSelectedApps(self.manager)
         self.thread_update.signal_output.connect(self._update_action_output)
         self.thread_update.signal_finished.connect(self._finish_update_selected)
+        self.thread_update.signal_status.connect(self._change_updating_app_status)
 
         self.thread_refresh = RefreshApps(self.manager)
         self.thread_refresh.signal.connect(self._finish_refresh_apps)
@@ -343,6 +344,9 @@ class ManageWindow(QWidget):
         else:
             self.change_update_state()
             self.checkbox_console.setChecked(True)
+
+    def _change_updating_app_status(self, app_name: str):
+        self.label_status.setText('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app_name))
 
     def apply_filters(self):
         if self.apps:
