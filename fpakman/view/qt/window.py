@@ -262,10 +262,10 @@ class ManageWindow(QWidget):
         self.thread_refresh.start()
 
     def _finish_refresh_apps(self, apps: List[Application]):
-        self.update_apps(apps)
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(True)
         self.ref_bt_upgrade.setVisible(True)
+        self.update_apps(apps)
 
     def uninstall_app(self, app: ApplicationView):
         pwd = None
