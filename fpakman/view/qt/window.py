@@ -499,6 +499,9 @@ class ManageWindow(QWidget):
                 system.notify_user('{} {}'.format(updated, self.locale_keys['notification.update_selected.success']))
 
             self.refresh_apps()
+
+            if self.tray_icon:
+                self.tray_icon.verify_updates()
         else:
             if self._can_notify_user():
                 system.notify_user(self.locale_keys['notification.update_selected.failed'])

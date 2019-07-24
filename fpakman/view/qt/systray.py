@@ -27,7 +27,6 @@ class UpdateCheck(QThread):
     def run(self):
 
         while True:
-
             updates = self.manager.list_updates()
             self.signal.emit(updates)
             time.sleep(self.check_interval)
@@ -80,6 +79,9 @@ class TrayIcon(QSystemTrayIcon):
     def handle_click(self, reason):
         if reason == self.Trigger:
             self.show_manage_window()
+
+    def verify_updates(self):
+        self.notify_updates(self.manager.list_updates())
 
     def notify_updates(self, updates: List[ApplicationUpdate]):
 
