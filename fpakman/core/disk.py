@@ -2,20 +2,20 @@ import json
 import os
 from pathlib import Path
 from threading import Thread, Lock
-from typing import List
+from typing import List, Dict
 
-from fpakman.core.model import Application, FlatpakApplication
+from fpakman.core.model import Application
 from fpakman.util.cache import Cache
 
 
 class DiskCacheLoader(Thread):
 
-    def __init__(self, enabled: bool, flatpak_api_cache: Cache, apps: List[Application] = []):
+    def __init__(self, enabled: bool, cache_map: Dict[type, Cache], apps: List[Application] = []):
         super(DiskCacheLoader, self).__init__(daemon=True)
         self.apps = apps
         self.stop = False
         self.lock = Lock()
-        self.flatpak_api_cache = flatpak_api_cache
+        self.cache_map = cache_map
         self.enabled = enabled
 
     def run(self):
@@ -44,19 +44,17 @@ class DiskCacheLoader(Thread):
                 with open(app.get_disk_data_path()) as f:
                     cached_data = json.loads(f.read())
                     app.fill_cached_data(cached_data)
-
-                    if isinstance(app, FlatpakApplication):
-                        self.flatpak_api_cache.add_non_existing(app.base_data.id, cached_data)
+                    self.cache_map.get(app.__class__).add_non_existing(app.base_data.id, cached_data)
 
 
 class DiskCacheLoaderFactory:
 
-    def __init__(self, disk_cache: bool, flatpak_api_cache: Cache):
+    def __init__(self, disk_cache: bool, cache_map: Dict[type, Cache]):
         self.disk_cache = disk_cache
-        self.flatpak_api_cache = flatpak_api_cache
+        self.cache_map = cache_map
 
     def new(self):
-        return DiskCacheLoader(enabled=self.disk_cache, flatpak_api_cache=self.flatpak_api_cache)
+        return DiskCacheLoader(enabled=self.disk_cache, cache_map=self.cache_map)
 
 
 def save(app: Application, icon_bytes: bytes = None, only_icon: bool = False):
@@ -65,12 +63,10 @@ def save(app: Application, icon_bytes: bytes = None, only_icon: bool = False):
 
         if not only_icon:
             Path(app.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+            data = app.get_data_to_cache()
 
-            if isinstance(app, FlatpakApplication):
-                data = app.get_data_to_cache()
-
-                with open(app.get_disk_data_path(), 'w+') as f:
-                    f.write(json.dumps(data))
+            with open(app.get_disk_data_path(), 'w+') as f:
+                f.write(json.dumps(data))
 
         if icon_bytes:
             Path(app.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)

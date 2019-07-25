@@ -19,7 +19,8 @@ class Cache:
             self.lock.release()
 
     def _add(self, key: str, val: object):
-        self._cache[key] = {'val': val, 'expires_at': datetime.utcnow() + timedelta(seconds=self.expiration_time) if self.expiration_time > 0 else None}
+        if key:
+            self._cache[key] = {'val': val, 'expires_at': datetime.utcnow() + timedelta(seconds=self.expiration_time) if self.expiration_time > 0 else None}
 
     def add_non_existing(self, key: str, val: object):
 

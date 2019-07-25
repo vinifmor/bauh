@@ -1,15 +1,14 @@
 import re
 import subprocess
-from typing import List
+from typing import List, Set
 
 from fpakman.core import system
 from fpakman.core.exception import NoInternetException
-from fpakman.core.model import Application
 
 BASE_CMD = 'flatpak'
 
 
-def app_str_to_json(line: str, version: str) -> dict:
+def app_str_to_json(line: str, version: str, extra_fields: bool = True) -> dict:
 
     app_array = line.split('\t')
 
@@ -18,18 +17,21 @@ def app_str_to_json(line: str, version: str) -> dict:
                'id': app_array[1],
                'version': app_array[2],
                'branch': app_array[3]}
-    elif '1.0' <= version < '1.1':
-        app = {'ref': app_array[0], 'options': app_array[1]}
 
-        ref_data = app['ref'].split('/')
-        app['id'] = ref_data[0]
-        app['arch'] = ref_data[1]
-        app['branch'] = ref_data[2]
-        app['name'] = ref_data[0].split('.')[-1]
-        app['version'] = None
+    elif '1.0' <= version < '1.1':
+
+        ref_data = app_array[0].split('/')
+
+        app = {'id': ref_data[0],
+               'arch': ref_data[1],
+               'name': ref_data[0].split('.')[-1],
+               'ref': app_array[0],
+               'options': app_array[1],
+               'branch': ref_data[2],
+               'version': None}
     elif '1.2' <= version < '1.3':
-        app = {'name': app_array[1].strip().split('.')[-1],
-               'id': app_array[1],
+        app = {'id': app_array[1],
+               'name': app_array[1].strip().split('.')[-1],
                'version': app_array[2],
                'branch': app_array[3],
                'arch': app_array[4],
@@ -37,8 +39,9 @@ def app_str_to_json(line: str, version: str) -> dict:
     else:
         raise Exception('Unsupported version')
 
-    extra_fields = get_app_info_fields(app['id'], app['branch'], ['origin', 'arch', 'ref', 'commit'], check_runtime=True)
-    app.update(extra_fields)
+    if extra_fields:
+        extra_fields = get_app_info_fields(app['id'], app['branch'], ['origin', 'arch', 'ref', 'commit'], check_runtime=True)
+        app.update(extra_fields)
 
     return app
 
@@ -82,13 +85,13 @@ def get_app_info(app_id: str, branch: str):
     return system.run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch))
 
 
-def list_installed() -> List[dict]:
+def list_installed(extra_fields: bool = True) -> List[dict]:
     apps_str = system.run_cmd('{} list'.format(BASE_CMD))
 
     if apps_str:
         version = get_version()
         app_lines = apps_str.split('\n')
-        return [app_str_to_json(line, version) for line in app_lines if line]
+        return [app_str_to_json(line, version, extra_fields=extra_fields) for line in app_lines if line]
 
     return []
 
@@ -115,16 +118,8 @@ def list_updates_as_str():
     return system.run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
 
 
-def downgrade_and_stream(app_ref: str, commit: str, root_password: str):
-
-    pwdin, downgrade_cmd = None, []
-
-    if root_password is not None:
-        downgrade_cmd.extend(['sudo', '-S'])
-        pwdin = system.stream_cmd(['echo', root_password])
-
-    downgrade_cmd.extend([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'])
-    return subprocess.Popen(downgrade_cmd, stdin=pwdin, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+def downgrade_and_stream(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
+    return system.cmd_as_root([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'], root_password)
 
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:
@@ -224,4 +219,3 @@ def install_and_stream(app_id: str, origin: str):
 
 def set_default_remotes():
     system.run_cmd('flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo')
-

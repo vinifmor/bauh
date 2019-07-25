@@ -1,14 +1,15 @@
 import time
-from threading import Lock
+from threading import Lock, Thread
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
+from fpakman import __app_name__
 from fpakman.core import resource, system
-from fpakman.core.controller import FlatpakManager, ApplicationManager
-from fpakman.core.model import Application
+from fpakman.core.controller import ApplicationManager
+from fpakman.core.model import ApplicationUpdate
 from fpakman.util.cache import Cache
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
@@ -26,25 +27,21 @@ class UpdateCheck(QThread):
     def run(self):
 
         while True:
-
-            apps = self.manager.read_installed()
-
-            updates = [app for app in apps if app.update]
-
-            if updates:
-                self.signal.emit(updates)
-
+            updates = self.manager.list_updates()
+            self.signal.emit(updates)
             time.sleep(self.check_interval)
 
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, disk_cache: bool, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, disk_cache: bool, download_icons: bool, screen_size: QSize, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
+        self.download_icons = download_icons
+        self.screen_size = screen_size
 
         self.icon_default = QIcon(resource.get_path('img/logo.png'))
         self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
@@ -64,24 +61,38 @@ class TrayIcon(QSystemTrayIcon):
         self.setContextMenu(self.menu)
 
         self.manage_window = None
+        self.dialog_about = None
         self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
-
-        self.dialog_about = None
 
         self.last_updates = set()
         self.update_notification = update_notification
         self.lock_notify = Lock()
 
-    def notify_updates(self, updates: List[Application]):
+        self.activated.connect(self.handle_click)
+        self.set_default_tooltip()
+
+    def set_default_tooltip(self):
+        self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__).lower())
+
+    def handle_click(self, reason):
+        if reason == self.Trigger:
+            self.show_manage_window()
+
+    def verify_updates(self, notify_user: bool = True):
+        Thread(target=self._verify_updates, args=(notify_user,)).start()
+
+    def _verify_updates(self, notify_user: bool):
+        self.notify_updates(self.manager.list_updates(), notify_user=notify_user)
+
+    def notify_updates(self, updates: List[ApplicationUpdate], notify_user: bool = True):
 
         self.lock_notify.acquire()
 
         try:
             if len(updates) > 0:
-
-                update_keys = {'{}:{}'.format(app.base_data.id, app.base_data.version) for app in updates}
+                update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
 
                 new_icon = self.icon_update
 
@@ -90,12 +101,13 @@ class TrayIcon(QSystemTrayIcon):
                     msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
                     self.setToolTip(msg)
 
-                    if self.update_notification:
+                    if self.update_notification and notify_user:
                         system.notify_user(msg)
 
             else:
+                self.last_updates.clear()
                 new_icon = self.icon_default
-                self.setToolTip(None)
+                self.set_default_tooltip()
 
             if self.icon().cacheKey() != new_icon.cacheKey():  # changes the icon if needed
                 self.setIcon(new_icon)
@@ -104,18 +116,19 @@ class TrayIcon(QSystemTrayIcon):
             self.lock_notify.release()
 
     def show_manage_window(self):
-
         if self.manage_window is None:
             self.manage_window = ManageWindow(locale_keys=self.locale_keys,
                                               manager=self.manager,
                                               icon_cache=self.icon_cache,
                                               tray_icon=self,
-                                              disk_cache=self.disk_cache)
+                                              disk_cache=self.disk_cache,
+                                              download_icons=self.download_icons,
+                                              screen_size=self.screen_size)
 
         if self.manage_window.isMinimized():
             self.manage_window.setWindowState(Qt.WindowNoState)
-        else:
-            self.manage_window.refresh()
+        elif not self.manage_window.isVisible():
+            self.manage_window.refresh_apps()
             self.manage_window.show()
 
     def show_about(self):

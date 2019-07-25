@@ -1,7 +1,6 @@
-import os
 
-app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from fpakman import ROOT_DIR
 
 
 def get_path(resource_path):
-    return app_dir + '/resources/' + resource_path
+    return ROOT_DIR + '/resources/' + resource_path
