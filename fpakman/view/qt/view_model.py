@@ -19,7 +19,7 @@ class ApplicationView:
 
     def get_async_attr(self, attr: str, strip_html: bool = False, default: str = '...'):
 
-        if self.model.is_library():
+        if getattr(self.model.base_data, attr) is not None or self.model.is_library():
             res = getattr(self.model.base_data, attr)
         else:
             res = getattr(self.model.base_data, attr) if self.model.status == ApplicationStatus.READY and getattr(self.model.base_data, attr) else default

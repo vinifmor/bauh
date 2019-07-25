@@ -74,8 +74,7 @@ class SnapManager(ApplicationManager):
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader) -> List[SnapApplication]:
-        res = [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
-        return res
+        return [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
 
     def downgrade_app(self, app: Application, root_password: str) -> FpakmanProcess:
         return FpakmanProcess(subproc=snap.downgrade_and_stream(app.base_data.name, root_password), wrong_error_phrase=None)
@@ -114,7 +113,7 @@ class SnapManager(ApplicationManager):
         return []
 
     def install_and_stream(self, app: SnapApplication, root_password: str) -> FpakmanProcess:
-        return FpakmanProcess(subproc=snap.install_and_stream(app.base_data.name, app.install_cmd, root_password))
+        return FpakmanProcess(subproc=snap.install_and_stream(app.base_data.name, app.confinement, root_password))
 
     def is_enabled(self) -> bool:
         return snap.is_installed()
