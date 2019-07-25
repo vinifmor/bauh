@@ -114,7 +114,7 @@ class SnapManager(ApplicationManager):
         return []
 
     def install_and_stream(self, app: SnapApplication, root_password: str) -> FpakmanProcess:
-        return FpakmanProcess(subproc=snap.install_and_stream(app.base_data.name, app.install_cmd, root_password))
+        return FpakmanProcess(subproc=snap.install_and_stream(app.base_data.name, app.confinement, root_password))
 
     def is_enabled(self) -> bool:
         return snap.is_installed()

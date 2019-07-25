@@ -5,13 +5,13 @@ from fpakman.core.snap.constants import SNAP_CACHE_PATH
 
 class SnapApplication(Application):
 
-    def __init__(self, base_data: ApplicationData, publisher: str, rev: str, notes: str, app_type: str, install_cmd: str = None):
+    def __init__(self, base_data: ApplicationData, publisher: str, rev: str, notes: str, app_type: str, confinement: str = None):
         super(SnapApplication, self).__init__(base_data=base_data)
         self.publisher = publisher
         self.rev = rev
         self.notes = notes
         self.type = app_type
-        self.install_cmd = install_cmd
+        self.confinement = confinement
 
     def has_history(self):
         return False
@@ -46,7 +46,7 @@ class SnapApplication(Application):
     def get_data_to_cache(self):
         return {
             "icon_url": self.base_data.icon_url,
-            'install_cmd': self.install_cmd,
+            'confinement': self.confinement,
             'description': self.base_data.description
         }
 
@@ -56,5 +56,5 @@ class SnapApplication(Application):
                 if data.get(base_attr):
                     setattr(self.base_data, base_attr, data[base_attr])
 
-            if data.get('install_cmd'):
-                self.install_cmd = data['install_cmd']
+            if data.get('confinement'):
+                self.confinement = data['confinement']

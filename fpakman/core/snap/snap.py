@@ -2,11 +2,7 @@ import re
 import subprocess
 from typing import List
 
-import requests
-from bs4 import BeautifulSoup
-
 from fpakman.core import system
-from fpakman.core.snap.constants import SNAP_STORE_URL
 
 BASE_CMD = 'snap'
 
@@ -120,19 +116,12 @@ def uninstall_and_stream(app_name: str, root_password: str):
     return system.cmd_as_root([BASE_CMD, 'remove', app_name], root_password)
 
 
-def install_and_stream(app_name: str, custom_install_cmd: str, root_password: str) -> subprocess.Popen:
+def install_and_stream(app_name: str, confinement: str, root_password: str) -> subprocess.Popen:
 
     install_cmd = [BASE_CMD, 'install', app_name]  # default
 
-    if custom_install_cmd:
-        install_cmd = custom_install_cmd.split(' ')
-    else:   # tries to retrieve the snapstore proper installation command
-        res = requests.get('{}/{}'.format(SNAP_STORE_URL, app_name))
-
-        if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            input_install_cmd = soup.find("input", {"id": "snap-install"})
-            install_cmd = input_install_cmd.get("value").strip().split(' ')
+    if confinement == 'classic':
+        install_cmd.append('--classic')
 
     return system.cmd_as_root(install_cmd, root_password)
 
