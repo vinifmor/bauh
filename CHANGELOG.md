@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - retrieving some Snaps data (icon, description and confinement) through Ubuntu API instead of Snap Store
 ### Fixes:
 - not showing app disk cached description when listing installed apps
+- not updating disk cached data of installed apps
 
 ## [0.4.0] - 2019-07-25
 ### Features

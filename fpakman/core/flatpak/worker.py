@@ -21,7 +21,7 @@ class FlatpakAsyncDataLoader(AsyncDataLoader):
         self.http_session = http_session
         self.attempts = attempts
         self.api_cache = api_cache
-        self.to_persist = {}  # stores all data loaded by the instance
+        self.persist = False
         self.timeout = timeout
 
     def run(self):
@@ -55,10 +55,7 @@ class FlatpakAsyncDataLoader(AsyncDataLoader):
 
                         self.api_cache.add(self.app.base_data.id, loaded_data)
                         self.app.status = ApplicationStatus.READY
-
-                        if self.app.supports_disk_cache():
-                            self.to_persist[self.app.base_data.id] = self.app
-
+                        self.persist = self.app.supports_disk_cache()
                         break
                     else:
                         self.log_msg("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(
@@ -70,12 +67,8 @@ class FlatpakAsyncDataLoader(AsyncDataLoader):
 
             self.app.status = ApplicationStatus.READY
 
-    def cache_to_disk(self):
-        if self.to_persist:
-            for app in self.to_persist.values():
-                self.manager.cache_to_disk(app=app, icon_bytes=None, only_icon=False)
-
-            self.to_persist = {}
+            if self.persist:
+                self.manager.cache_to_disk(app=self.app, icon_bytes=None, only_icon=False)
 
     def clone(self) -> "FlatpakAsyncDataLoader":
         return FlatpakAsyncDataLoader(manager=self.manager,

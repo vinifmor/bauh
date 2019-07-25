@@ -21,7 +21,7 @@ class SnapAsyncDataLoader(AsyncDataLoader):
         self.attempts = attempts
         self.api_cache = api_cache
         self.timeout = timeout
-        self.to_persist = {}  # stores all data loaded by the instance
+        self.persist = False
         self.download_icons = download_icons
 
     def run(self):
@@ -61,10 +61,7 @@ class SnapAsyncDataLoader(AsyncDataLoader):
                         self.app.base_data.description = api_data['description']
 
                         self.app.status = ApplicationStatus.READY
-
-                        if self.app.supports_disk_cache():
-                            self.to_persist[self.app.base_data.id] = self.app
-
+                        self.persist = self.app.supports_disk_cache()
                         break
                     else:
                         self.log_msg("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(self.app.base_data.id, res.status_code, res.content.decode()), Fore.RED)
@@ -75,6 +72,9 @@ class SnapAsyncDataLoader(AsyncDataLoader):
 
             self.app.status = ApplicationStatus.READY
 
+            if self.persist:
+                self.manager.cache_to_disk(app=self.app, icon_bytes=None, only_icon=False)
+
     def clone(self) -> "SnapAsyncDataLoader":
         return SnapAsyncDataLoader(manager=self.manager,
                                    api_cache=self.api_cache,
@@ -83,9 +83,3 @@ class SnapAsyncDataLoader(AsyncDataLoader):
                                    timeout=self.timeout,
                                    app=self.app)
 
-    def cache_to_disk(self):
-        if self.to_persist:
-            for app in self.to_persist.values():
-                self.manager.cache_to_disk(app=app, icon_bytes=None, only_icon=False)
-
-            self.to_persist = {}
