@@ -62,5 +62,6 @@ with the technology that I don't care every time an action is executed.
 
 ### Roadmap
 - Support for other packaging technologies
+- Separate modules for each packaging technology
 - Memory and performance improvements
-- Design
+- Improve user experience
