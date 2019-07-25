@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.4.1]
+## [0.4.1] - 2019-07-25
 ### Improvements
 - retrieving some Snaps data (icon, description and confinement) through Ubuntu API instead of Snap Store
+### Fixes:
+- not showing app disk cached description when listing installed apps
 
 ## [0.4.0] - 2019-07-25
 ### Features

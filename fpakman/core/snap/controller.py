@@ -74,8 +74,7 @@ class SnapManager(ApplicationManager):
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader) -> List[SnapApplication]:
-        res = [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
-        return res
+        return [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
 
     def downgrade_app(self, app: Application, root_password: str) -> FpakmanProcess:
         return FpakmanProcess(subproc=snap.downgrade_and_stream(app.base_data.name, root_password), wrong_error_phrase=None)
