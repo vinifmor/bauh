@@ -74,7 +74,7 @@ class TrayIcon(QSystemTrayIcon):
         self.set_default_tooltip()
 
     def set_default_tooltip(self):
-        self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__))
+        self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__).lower())
 
     def handle_click(self, reason):
         if reason == self.Trigger:

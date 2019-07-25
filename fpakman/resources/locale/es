@@ -24,6 +24,7 @@ manage_window.status.info=Obteniendo información
 manage_window.status.history=Obteniendo la historia
 manage_window.status.searching=Buscando
 manage_window.status.installing=Instalando
+manage_window.status.refreshing_app=Actualizando
 manage_window.bt.refresh.tooltip=Recarga los datos sobre los aplicativos instalados
 manage_window.bt.upgrade.tooltip=Actualiza todos los aplicativos marcados
 manage_window.checkbox.show_details=Mostrar detalles

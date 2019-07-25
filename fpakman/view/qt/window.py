@@ -80,16 +80,16 @@ class ManageWindow(QWidget):
 
         toolbar = QToolBar()
 
+        self.checkbox_updates = QCheckBox()
+        self.checkbox_updates.setText(self.locale_keys['updates'].capitalize())
+        self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
+        self.ref_checkbox_updates = toolbar.addWidget(self.checkbox_updates)
+
         self.checkbox_only_apps = QCheckBox()
         self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
         self.ref_checkbox_only_apps = toolbar.addWidget(self.checkbox_only_apps)
-
-        self.checkbox_updates = QCheckBox()
-        self.checkbox_updates.setText(self.locale_keys['updates'].capitalize())
-        self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
-        self.ref_checkbox_updates = toolbar.addWidget(self.checkbox_updates)
 
         self.extra_filters = QWidget()
         self.extra_filters.setLayout(QHBoxLayout())
@@ -295,7 +295,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.refreshing'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.refreshing_app'], app.model.base_data.name))
 
         self.thread_refresh_app.app = app
         self.thread_refresh_app.root_password = pwd
@@ -466,7 +466,7 @@ class ManageWindow(QWidget):
             for app_type in sorted(list(available_types)):
                 checkbox_app_type = QCheckBox()
                 checkbox_app_type.setChecked(True)
-                checkbox_app_type.setText(app_type)
+                checkbox_app_type.setText(app_type.capitalize())
 
                 def handle_click(status: int, filter_type: str = app_type):
                     self._handle_type_filter(status, filter_type)

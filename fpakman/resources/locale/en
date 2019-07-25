@@ -23,6 +23,7 @@ manage_window.status.info=Retrieving information
 manage_window.status.history=Retrieving history
 manage_window.status.searching=Searching
 manage_window.status.installing=Installing
+manage_window.status.refreshing_app=Refreshing
 manage_window.bt.refresh.tooltip=Reload the data about installed applications
 manage_window.bt.upgrade.tooltip=Upgrade all checked applications
 manage_window.checkbox.show_details=Show details
