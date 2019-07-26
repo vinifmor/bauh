@@ -11,13 +11,10 @@ from colorama import Fore
 from fpakman import __version__, __app_name__
 from fpakman.core import resource
 from fpakman.core.controller import GenericApplicationManager
-from fpakman.core.disk import DiskCacheLoaderFactory
+from fpakman_api.util.disk import DiskCacheLoaderFactory
 from fpakman.core.flatpak.constants import FLATPAK_CACHE_PATH
 from fpakman.core.flatpak.controller import FlatpakManager
 from fpakman.core.flatpak.model import FlatpakApplication
-from fpakman.core.snap.constants import SNAP_CACHE_PATH
-from fpakman.core.snap.controller import SnapManager
-from fpakman.core.snap.model import SnapApplication
 from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
@@ -42,7 +39,6 @@ parser.add_argument('-n', '--update-notification', action="store", choices=[0, 1
 parser.add_argument('-dc', '--disk-cache', action="store", choices=[0, 1], default=os.getenv('FPAKMAN_DISK_CACHE', 1), type=int, help='Enables / disables disk cache. When disk cache is enabled, the installed applications data are loaded faster. Default: %(default)s')
 parser.add_argument('-di', '--download-icons', action="store", choices=[0, 1], default=os.getenv('FPAKMAN_DOWNLOAD_ICONS', 1), type=int, help='Enables / disables app icons download. It may improve the application speed, depending of how applications data are retrieved by their extensions.')
 parser.add_argument('--flatpak', action="store", default=os.getenv('FPAKMAN_FLATPAK', 1), choices=[0, 1], type=int, help='Enables / disables flatpak usage. Default: %(default)s')
-parser.add_argument('--snap', action="store", default=os.getenv('FPAKMAN_SNAP', 1), choices=[0, 1], type=int, help='Enables / disables snap usage. Default: %(default)s')
 parser.add_argument('-co', '--check-packaging-once', action="store", default=os.getenv('FPAKMAN_CHECK_PACKAGING_ONCE', 0), choices=[0, 1], type=int, help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
 args = parser.parse_args()
 
@@ -92,13 +88,14 @@ if args.flatpak:
         Path(FLATPAK_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 
 if args.snap:
-    snap_api_cache = Cache(expiration_time=args.cache_exp)
-    cache_map[SnapApplication] = snap_api_cache
-    managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session))
-    caches.append(snap_api_cache)
-
-    if args.disk_cache:
-        Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
+    pass
+    # snap_api_cache = Cache(expiration_time=args.cache_exp)
+    # cache_map[SnapApplication] = snap_api_cache
+    # managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session))
+    # caches.append(snap_api_cache)
+    #
+    # if args.disk_cache:
+    #     Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 
 icon_cache = Cache(expiration_time=args.icon_exp)
 caches.append(icon_cache)

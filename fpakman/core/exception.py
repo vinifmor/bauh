@@ -1,3 +1,0 @@
-
-class NoInternetException(Exception):
-    pass

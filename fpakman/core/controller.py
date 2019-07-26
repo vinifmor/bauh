@@ -1,88 +1,11 @@
-from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import List, Dict
 
-from fpakman.core.disk import DiskCacheLoader, DiskCacheLoaderFactory
-from fpakman.core.model import Application, ApplicationUpdate
-from fpakman.core.system import FpakmanProcess
-
-
-class ApplicationManager(ABC):
-
-    def __init__(self, app_args):
-        self.app_args = app_args
-
-    @abstractmethod
-    def search(self, word: str, disk_loader: DiskCacheLoader) -> Dict[str, List[Application]]:
-        pass
-
-    @abstractmethod
-    def read_installed(self, disk_loader: DiskCacheLoader) -> List[Application]:
-        pass
-
-    @abstractmethod
-    def downgrade_app(self, app: Application, root_password: str) -> FpakmanProcess:
-        pass
-
-    @abstractmethod
-    def clean_cache_for(self, app: Application):
-        pass
-
-    @abstractmethod
-    def can_downgrade(self):
-        pass
-
-    @abstractmethod
-    def update_and_stream(self, app: Application) -> FpakmanProcess:
-        pass
-
-    @abstractmethod
-    def uninstall_and_stream(self, app: Application, root_password: str) -> FpakmanProcess:
-        pass
-
-    @abstractmethod
-    def get_app_type(self):
-        pass
-
-    @abstractmethod
-    def get_info(self, app: Application) -> dict:
-        pass
-
-    @abstractmethod
-    def get_history(self, app: Application) -> List[dict]:
-        pass
-
-    @abstractmethod
-    def install_and_stream(self, app: Application, root_password: str) -> FpakmanProcess:
-        pass
-
-    @abstractmethod
-    def is_enabled(self) -> bool:
-        pass
-
-    @abstractmethod
-    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
-        pass
-
-    @abstractmethod
-    def requires_root(self, action: str, app: Application):
-        pass
-
-    @abstractmethod
-    def refresh(self, app: Application, root_password: str) -> FpakmanProcess:
-        pass
-
-    @abstractmethod
-    def prepare(self):
-        """
-        Callback executed before the ApplicationManager starts to work.
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def list_updates(self) -> List[ApplicationUpdate]:
-        pass
+from fpakman_api.abstract.controller import ApplicationManager
+from fpakman_api.abstract.model import Application, ApplicationUpdate
+from fpakman_api.util.disk import DiskCacheLoader
+from fpakman_api.util.disk import DiskCacheLoaderFactory
+from fpakman_api.util.system import FpakmanProcess
 
 
 class GenericApplicationManager(ApplicationManager):
@@ -143,7 +66,7 @@ class GenericApplicationManager(ApplicationManager):
                     disk_loader = self.disk_loader_factory.new()
                     disk_loader.start()
 
-                apps_found = man.search(word=norm_word, disk_loader=disk_loader)
+                apps_found = man.search(words=norm_word, disk_loader=disk_loader)
                 res['installed'].extend(apps_found['installed'])
                 res['new'].extend(apps_found['new'])
 
