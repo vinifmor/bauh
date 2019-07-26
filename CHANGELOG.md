@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.4.2]
+### Fixes:
+- [Snaps read index error](https://github.com/vinifmor/fpakman/issues/30)
+
 ## [0.4.1] - 2019-07-25
 ### Improvements
 - retrieving some Snaps data (icon, description and confinement) through Ubuntu API instead of Snap Store

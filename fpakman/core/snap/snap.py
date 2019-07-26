@@ -39,8 +39,8 @@ def app_str_to_json(app: str) -> dict:
         'version': app_data[1],
         'rev': app_data[2],
         'tracking': app_data[3],
-        'publisher': app_data[4],
-        'notes': app_data[5]
+        'publisher': app_data[4] if len(app_data) >= 5 else None,
+        'notes': app_data[5] if len(app_data) >= 6 else None
     }
 
     app_json.update(get_info(app_json['name'], ('summary', 'type', 'description')))
