@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMessageBox, QSizePolicy
+from PyQt5.QtWidgets import QMessageBox
 
 from fpakman.core import resource
 
@@ -14,6 +14,18 @@ def show_error(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img
         error_msg.setWindowIcon(icon)
 
     error_msg.exec_()
+
+
+def show_warning(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img/logo.svg'))):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Warning)
+    msg.setWindowTitle(title)
+    msg.setText(body)
+
+    if icon:
+        msg.setWindowIcon(icon)
+
+    msg.exec_()
 
 
 def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIcon(resource.get_path('img/logo.svg'))):

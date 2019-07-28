@@ -100,3 +100,5 @@ version.latest=latest version
 version.installed_outdated=the installed version is outdated
 version.unknown=not informed
 app.name=application name
+warning=warning
+snap.notification.snapd_unavailable=snapd seems not to be enabled. snap packages will not be available.

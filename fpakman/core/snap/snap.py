@@ -9,7 +9,7 @@ BASE_CMD = 'snap'
 
 def is_installed():
     version = get_snapd_version()
-    return False if version is None else True
+    return False if version is None or version == 'unavailable' else True
 
 
 def get_version():
@@ -27,7 +27,7 @@ def get_snapd_version():
 
         if lines and len(lines) >= 2:
             version = lines[1].split(' ')[-1].strip()
-            return version if version and version.lower() != 'unavailable' else None
+            return version.lower() if version else None
         else:
             return None
 
@@ -39,8 +39,8 @@ def app_str_to_json(app: str) -> dict:
         'version': app_data[1],
         'rev': app_data[2],
         'tracking': app_data[3],
-        'publisher': app_data[4],
-        'notes': app_data[5]
+        'publisher': app_data[4] if len(app_data) >= 5 else None,
+        'notes': app_data[5] if len(app_data) >= 6 else None
     }
 
     app_json.update(get_info(app_json['name'], ('summary', 'type', 'description')))

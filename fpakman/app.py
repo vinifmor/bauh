@@ -21,6 +21,7 @@ from fpakman.core.snap.model import SnapApplication
 from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
+from fpakman.view.qt import dialog
 from fpakman.view.qt.systray import TrayIcon
 
 
@@ -85,7 +86,7 @@ managers = []
 if args.flatpak:
     flatpak_api_cache = Cache(expiration_time=args.cache_exp)
     cache_map[FlatpakApplication] = flatpak_api_cache
-    managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session))
+    managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session, locale_keys=locale_keys))
     caches.append(flatpak_api_cache)
 
     if args.disk_cache:
@@ -94,7 +95,7 @@ if args.flatpak:
 if args.snap:
     snap_api_cache = Cache(expiration_time=args.cache_exp)
     cache_map[SnapApplication] = snap_api_cache
-    managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session))
+    managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session, locale_keys=locale_keys))
     caches.append(snap_api_cache)
 
     if args.disk_cache:
@@ -123,5 +124,11 @@ trayIcon = TrayIcon(locale_keys=locale_keys,
 trayIcon.show()
 
 CacheCleaner(caches).start()
+
+warnings = manager.list_warnings()
+
+if warnings:
+    for warning in warnings:
+        dialog.show_warning(title=locale_keys['warning'].capitalize(), body=warning)
 
 sys.exit(app.exec_())

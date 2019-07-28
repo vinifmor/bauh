@@ -9,8 +9,9 @@ from fpakman.core.system import FpakmanProcess
 
 class ApplicationManager(ABC):
 
-    def __init__(self, app_args):
+    def __init__(self, app_args, locale_keys: dict):
         self.app_args = app_args
+        self.locale_keys = locale_keys
 
     @abstractmethod
     def search(self, word: str, disk_loader: DiskCacheLoader) -> Dict[str, List[Application]]:
@@ -82,6 +83,10 @@ class ApplicationManager(ABC):
 
     @abstractmethod
     def list_updates(self) -> List[ApplicationUpdate]:
+        pass
+
+    @abstractmethod
+    def list_warnings(self) -> List[str]:
         pass
 
 
@@ -266,3 +271,18 @@ class GenericApplicationManager(ApplicationManager):
                     updates.extend(man.list_updates())
 
         return updates
+
+    def list_warnings(self) -> List[str]:
+        if self.managers:
+            warnings = None
+
+            for man in self.managers:
+                man_warnings = man.list_warnings()
+
+                if man_warnings:
+                    if warnings is None:
+                        warnings = []
+
+                    warnings.extend(man_warnings)
+
+            return warnings
