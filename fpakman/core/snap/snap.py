@@ -9,7 +9,7 @@ BASE_CMD = 'snap'
 
 def is_installed():
     version = get_snapd_version()
-    return False if version is None else True
+    return False if version is None or version == 'unavailable' else True
 
 
 def get_version():
@@ -27,7 +27,7 @@ def get_snapd_version():
 
         if lines and len(lines) >= 2:
             version = lines[1].split(' ')[-1].strip()
-            return version if version and version.lower() != 'unavailable' else None
+            return version.lower() if version else None
         else:
             return None
 

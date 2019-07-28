@@ -17,8 +17,8 @@ from fpakman.util.cache import Cache
 
 class SnapManager(ApplicationManager):
 
-    def __init__(self, app_args: Namespace,  api_cache: Cache, disk_cache: bool, http_session):
-        super(SnapManager, self).__init__(app_args=app_args)
+    def __init__(self, app_args: Namespace,  api_cache: Cache, disk_cache: bool, http_session, locale_keys: dict):
+        super(SnapManager, self).__init__(app_args=app_args, locale_keys=locale_keys)
         self.api_cache = api_cache
         self.http_session = http_session
         self.disk_cache = disk_cache
@@ -133,3 +133,7 @@ class SnapManager(ApplicationManager):
 
     def list_updates(self) -> List[ApplicationUpdate]:
         return []
+
+    def list_warnings(self) -> List[str]:
+        if snap.get_snapd_version() == 'unavailable':
+            return [self.locale_keys['snap.notification.snapd_unavailable']]

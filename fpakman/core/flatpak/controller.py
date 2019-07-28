@@ -17,8 +17,8 @@ from fpakman.util.cache import Cache
 
 class FlatpakManager(ApplicationManager):
 
-    def __init__(self, app_args: Namespace, api_cache: Cache, disk_cache: bool, http_session):
-        super(FlatpakManager, self).__init__(app_args=app_args)
+    def __init__(self, app_args: Namespace, api_cache: Cache, disk_cache: bool, http_session, locale_keys: dict):
+        super(FlatpakManager, self).__init__(app_args=app_args, locale_keys=locale_keys)
         self.api_cache = api_cache
         self.http_session = http_session
         self.disk_cache = disk_cache
@@ -176,5 +176,7 @@ class FlatpakManager(ApplicationManager):
                         updates.append(ApplicationUpdate(app_id='{}:{}'.format(app['id'], app['branch']),
                                                          app_type='flatpak',
                                                          version=app.get('version')))
-
         return updates
+
+    def list_warnings(self) -> List[str]:
+        return None
