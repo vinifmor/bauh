@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 from fpakman_api.abstract.model import ApplicationStatus
 
 from fpakman.core import resource
-from fpakman.util.cache import Cache
+from fpakman_api.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
 

@@ -9,7 +9,7 @@ from fpakman_api.exception import NoInternetException
 from fpakman_api.util.system import FpakmanProcess
 
 from fpakman.core.controller import ApplicationManager
-from fpakman.util.cache import Cache
+from fpakman_api.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView
 

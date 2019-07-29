@@ -7,7 +7,7 @@ import re
 HTML_RE = re.compile(r'<[^>]+>')
 
 
-def get_locale_keys(key: str = None):
+def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')):
 
     locale_path = None
 
@@ -18,8 +18,6 @@ def get_locale_keys(key: str = None):
 
     if current_locale:
         current_locale = current_locale[0]
-
-        locale_dir = resource.get_path('locale')
 
         for locale_file in glob.glob(locale_dir + '/*'):
             name = locale_file.split('/')[-1]

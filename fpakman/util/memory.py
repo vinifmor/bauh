@@ -2,7 +2,7 @@ import time
 from threading import Thread
 from typing import List
 
-from fpakman.util.cache import Cache
+from fpakman_api.util.cache import Cache
 import gc
 
 

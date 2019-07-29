@@ -8,7 +8,6 @@ from fpakman_api.util.disk import DiskCacheLoaderFactory
 from fpakman_api.util.system import FpakmanProcess
 
 from fpakman import ROOT_DIR
-from fpakman.util.cache import Cache
 
 
 class GenericApplicationManager(ApplicationManager):

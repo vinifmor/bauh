@@ -1,5 +1,4 @@
 import argparse
-import inspect
 import os
 import pkgutil
 import sys
@@ -8,13 +7,13 @@ import requests
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from colorama import Fore
+from fpakman_api.util.cache import Cache
+from fpakman_api.util.disk import DiskCacheLoaderFactory
 
 from fpakman import __version__, __app_name__, ROOT_DIR
-from fpakman.core import resource
+from fpakman.core import resource, extensions
 from fpakman.core.controller import GenericApplicationManager
-from fpakman_api.util.disk import DiskCacheLoaderFactory
 from fpakman.util import util
-from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
 from fpakman.view.qt import dialog
 from fpakman.view.qt.systray import TrayIcon
@@ -68,19 +67,6 @@ if args.check_packaging_once == 1:
 locale_keys = util.get_locale_keys(args.locale)
 
 
-manager_classes = None
-
-
-def _find_manager(member):
-    if inspect.isclass(member) and inspect.getmro(member)[1].__name__ == 'ApplicationManager':
-            return member
-    elif inspect.ismodule(member):
-        for name, mod in inspect.getmembers(member):
-            manager_found = _find_manager(mod)
-            if manager_found:
-                return manager_found
-
-
 http_session = requests.Session()
 caches, cache_map = [], {}
 managers = None
@@ -94,9 +80,14 @@ for m in pkgutil.iter_modules():
     if m.ispkg and m.name and m.name != 'fpakman_api' and m.name.startswith('fpakman_'):
         module = pkgutil.find_loader(m.name).load_module()
 
-        manager = _find_manager(module)
+        manager = extensions.find_manager(module)
 
         if manager:
+            locale_path = '{}/resources/locale'.format(module.__path__[0])
+
+            if os.path.exists(locale_path):
+                locale_keys.update(util.get_locale_keys(args.locale, locale_path))
+
             if not managers:
                 managers = []
 
@@ -111,7 +102,7 @@ for m in pkgutil.iter_modules():
             managers.append(man)
 
 
-# if args.snap:
+# if args.snap: TODO
     # if args.disk_cache:
     #    Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 

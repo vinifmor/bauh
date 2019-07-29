@@ -11,7 +11,7 @@ from fpakman_api.util import system
 
 from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
-from fpakman.util.cache import Cache
+from fpakman_api.util.cache import Cache
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
