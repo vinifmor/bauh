@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Comments
 - Env variables / arguments FPAKMAN_SNAP / FPAKMAN_FLATPAK were removed. To disable a supported type, just uninstall its module.
 
-## [0.4.2]
+## [0.4.2] - 2019-07-28
+### Improvements
+- showing a warning dialog when the application starts and **snapd** is unavailable
 ### Fixes:
 - [Snaps read index error](https://github.com/vinifmor/fpakman/issues/30)
 

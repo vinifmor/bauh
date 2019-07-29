@@ -101,3 +101,5 @@ version.latest=versión más reciente
 version.installed_outdated=la versión instalada está desactualizada
 version.unknown=versión no informada
 app.name=nombre del aplicativo
+warning=aviso
+snap.notification.snapd_unavailable=snapd no parece estar habilitado. los paquetes snap estarán indisponibles.

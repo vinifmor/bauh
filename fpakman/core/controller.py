@@ -189,3 +189,18 @@ class GenericApplicationManager(ApplicationManager):
                     updates.extend(man.list_updates())
 
         return updates
+
+    def list_warnings(self) -> List[str]:
+        if self.managers:
+            warnings = None
+
+            for man in self.managers:
+                man_warnings = man.list_warnings()
+
+                if man_warnings:
+                    if warnings is None:
+                        warnings = []
+
+                    warnings.extend(man_warnings)
+
+            return warnings
