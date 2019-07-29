@@ -152,8 +152,9 @@ class GenericApplicationManager(ApplicationManager):
                 res['installed'].extend(apps_found['installed'])
                 res['new'].extend(apps_found['new'])
 
-        disk_loader.stop = True
-        disk_loader.join()
+        if disk_loader:
+            disk_loader.stop = True
+            disk_loader.join()
 
         for key in res:
             res[key] = self._sort(res[key], norm_word)
@@ -173,8 +174,9 @@ class GenericApplicationManager(ApplicationManager):
 
                 installed.extend(man.read_installed(disk_loader=disk_loader))
 
-        disk_loader.stop = True
-        disk_loader.join()
+        if disk_loader:
+            disk_loader.stop = True
+            disk_loader.join()
 
         installed.sort(key=lambda a: a.base_data.name.lower())
 
