@@ -2,7 +2,7 @@ import time
 from threading import Lock, Thread
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt, QSize
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
@@ -10,7 +10,6 @@ from fpakman import __app_name__
 from fpakman.core import resource, system
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.model import ApplicationUpdate
-from fpakman.util.cache import Cache
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 
@@ -34,14 +33,10 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: ApplicationManager, icon_cache: Cache, disk_cache: bool, download_icons: bool, screen_size: QSize, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: ApplicationManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
-        self.icon_cache = icon_cache
-        self.disk_cache = disk_cache
-        self.download_icons = download_icons
-        self.screen_size = screen_size
 
         self.icon_default = QIcon(resource.get_path('img/logo.png'))
         self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
@@ -72,6 +67,8 @@ class TrayIcon(QSystemTrayIcon):
 
         self.activated.connect(self.handle_click)
         self.set_default_tooltip()
+
+        self.manage_window = manage_window
 
     def set_default_tooltip(self):
         self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__).lower())
@@ -116,15 +113,6 @@ class TrayIcon(QSystemTrayIcon):
             self.lock_notify.release()
 
     def show_manage_window(self):
-        if self.manage_window is None:
-            self.manage_window = ManageWindow(locale_keys=self.locale_keys,
-                                              manager=self.manager,
-                                              icon_cache=self.icon_cache,
-                                              tray_icon=self,
-                                              disk_cache=self.disk_cache,
-                                              download_icons=self.download_icons,
-                                              screen_size=self.screen_size)
-
         if self.manage_window.isMinimized():
             self.manage_window.setWindowState(Qt.WindowNoState)
         elif not self.manage_window.isVisible():
