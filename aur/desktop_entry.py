@@ -6,15 +6,20 @@ from pathlib import Path
 desktop_file = """
 [Desktop Entry]
 Type = Application
-Name = fpakman
+Name = fpakman ({desc})
 Categories = System;
 Comment = Manage your Flatpak / Snap applications
-Exec = /usr/bin/fpakman
+Exec = /usr/bin/fpakman{param}
 Icon = /usr/lib/python{version}/site-packages/fpakman/resources/img/logo.svg
-""".format(version="{}.{}".format(sys.version_info.major, sys.version_info.minor))
+"""
+
+py_version = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 with open('fpakman.desktop', 'w+') as f:
-    f.write(desktop_file)
+    f.write(desktop_file.format(desc='panel', version=py_version, param=' --tray 0'))
+
+with open('fpakman_tray.desktop', 'w+') as f:
+    f.write(desktop_file.format(desc='tray', version=py_version, param=''))
 
 
 # cleaning the old fpakman.desktop entry model -> the following lines will be removed for the next releases
