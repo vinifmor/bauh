@@ -1,6 +1,7 @@
 from enum import Enum
 
-from fpakman.core.model import Application, ApplicationStatus
+from fpakman_api.abstract.model import ApplicationStatus, Application
+
 from fpakman.util import util
 
 

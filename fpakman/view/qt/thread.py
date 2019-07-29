@@ -1,15 +1,14 @@
-import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import List
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from fpakman_api.abstract.model import ApplicationStatus
+from fpakman_api.exception import NoInternetException
+from fpakman_api.util.system import FpakmanProcess
 
 from fpakman.core.controller import ApplicationManager
-from fpakman.core.exception import NoInternetException
-from fpakman.core.model import ApplicationStatus
-from fpakman.core.system import FpakmanProcess
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView

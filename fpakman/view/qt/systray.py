@@ -5,11 +5,11 @@ from typing import List
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
+from fpakman_api.abstract.model import ApplicationUpdate
 
 from fpakman import __app_name__
-from fpakman.core import resource, system
+from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
-from fpakman.core.model import ApplicationUpdate
 from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.window import ManageWindow
 

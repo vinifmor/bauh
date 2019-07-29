@@ -7,9 +7,9 @@ from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout
+from fpakman_api.abstract.model import ApplicationStatus
 
 from fpakman.core import resource
-from fpakman.core.model import ApplicationStatus
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus

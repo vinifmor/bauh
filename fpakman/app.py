@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-from pathlib import Path
 
 import requests
 from PyQt5.QtGui import QIcon
@@ -12,9 +11,6 @@ from fpakman import __version__, __app_name__
 from fpakman.core import resource
 from fpakman.core.controller import GenericApplicationManager
 from fpakman_api.util.disk import DiskCacheLoaderFactory
-from fpakman.core.flatpak.constants import FLATPAK_CACHE_PATH
-from fpakman.core.flatpak.controller import FlatpakManager
-from fpakman.core.flatpak.model import FlatpakApplication
 from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
@@ -58,12 +54,6 @@ if args.check_interval <= 0:
     log_msg("'check-interval' set as '{}'. It must be >= 0. Aborting...".format(args.check_interval), Fore.RED)
     exit(1)
 
-if not args.flatpak:
-    log_msg("'flatpak' is disabled.", Fore.YELLOW)
-
-if not args.snap:
-    log_msg("'snap' is disabled.", Fore.YELLOW)
-
 if args.update_notification == 0:
     log_msg('updates notifications are disabled', Fore.YELLOW)
 
@@ -80,8 +70,8 @@ caches = []
 cache_map = {}
 managers = []
 
-if args.flatpak:
-    pass
+# if args.flatpak:
+#     pass
     # flatpak_api_cache = Cache(expiration_time=args.cache_exp)
     # cache_map[FlatpakApplication] = flatpak_api_cache
     # managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session, locale_keys=locale_keys))
@@ -90,8 +80,8 @@ if args.flatpak:
     # if args.disk_cache:
     #     Path(FLATPAK_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 
-if args.snap:
-    pass
+# if args.snap:
+#     pass
     # snap_api_cache = Cache(expiration_time=args.cache_exp)
     # cache_map[SnapApplication] = snap_api_cache
     # managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session, locale_keys=locale_keys))

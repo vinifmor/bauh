@@ -7,13 +7,14 @@ from fpakman_api.util.disk import DiskCacheLoader
 from fpakman_api.util.disk import DiskCacheLoaderFactory
 from fpakman_api.util.system import FpakmanProcess
 
+from fpakman import ROOT_DIR
 from fpakman.util.cache import Cache
 
 
 class GenericApplicationManager(ApplicationManager):
 
     def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace):
-        super(ApplicationManager, self).__init__(cache_factory=None, locale_keys=None)
+        super(GenericApplicationManager, self).__init__(app_args=app_args, cache_factory=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_session=None)
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory

@@ -6,10 +6,11 @@ from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
+from fpakman_api.abstract.model import Application
+from fpakman_api.util import system
 
-from fpakman.core import resource, system
+from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
-from fpakman.core.model import Application
 from fpakman.util.cache import Cache
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
