@@ -39,7 +39,6 @@ parser.add_argument('-i', '--check-interval', action="store", default=int(os.get
 parser.add_argument('-n', '--update-notification', action="store", choices=[0, 1], default=os.getenv('FPAKMAN_UPDATE_NOTIFICATION', 1), type=int, help='Enables / disables system notifications for new updates. Default: %(default)s')
 parser.add_argument('-dc', '--disk-cache', action="store", choices=[0, 1], default=os.getenv('FPAKMAN_DISK_CACHE', 1), type=int, help='Enables / disables disk cache. When disk cache is enabled, the installed applications data are loaded faster. Default: %(default)s')
 parser.add_argument('-di', '--download-icons', action="store", choices=[0, 1], default=os.getenv('FPAKMAN_DOWNLOAD_ICONS', 1), type=int, help='Enables / disables app icons download. It may improve the application speed, depending of how applications data are retrieved by their extensions.')
-parser.add_argument('--flatpak', action="store", default=os.getenv('FPAKMAN_FLATPAK', 1), choices=[0, 1], type=int, help='Enables / disables flatpak usage. Default: %(default)s')
 parser.add_argument('-co', '--check-packaging-once', action="store", default=os.getenv('FPAKMAN_CHECK_PACKAGING_ONCE', 0), choices=[0, 1], type=int, help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
 args = parser.parse_args()
 
@@ -80,15 +79,17 @@ cache_map = {}
 managers = []
 
 if args.flatpak:
-    flatpak_api_cache = Cache(expiration_time=args.cache_exp)
-    cache_map[FlatpakApplication] = flatpak_api_cache
-    managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session, locale_keys=locale_keys))
-    caches.append(flatpak_api_cache)
-
-    if args.disk_cache:
-        Path(FLATPAK_CACHE_PATH).mkdir(parents=True, exist_ok=True)
+    pass
+    # flatpak_api_cache = Cache(expiration_time=args.cache_exp)
+    # cache_map[FlatpakApplication] = flatpak_api_cache
+    # managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session, locale_keys=locale_keys))
+    # caches.append(flatpak_api_cache)
+    #
+    # if args.disk_cache:
+    #     Path(FLATPAK_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 
 if args.snap:
+    pass
     # snap_api_cache = Cache(expiration_time=args.cache_exp)
     # cache_map[SnapApplication] = snap_api_cache
     # managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session, locale_keys=locale_keys))
@@ -102,6 +103,11 @@ caches.append(icon_cache)
 
 disk_loader_factory = DiskCacheLoaderFactory(disk_cache=args.disk_cache, cache_map=cache_map)
 manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args)
+
+managed_caches = manager.get_managed_caches()
+
+if managed_caches:
+    caches.extend(managed_caches)
 
 app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
