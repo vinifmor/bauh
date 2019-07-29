@@ -14,7 +14,7 @@ from fpakman.util.cache import Cache
 class GenericApplicationManager(ApplicationManager):
 
     def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace):
-        super(GenericApplicationManager, self).__init__(app_args=app_args, cache_factory=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_session=None)
+        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_session=None)
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
@@ -209,17 +209,3 @@ class GenericApplicationManager(ApplicationManager):
                     warnings.extend(man_warnings)
 
             return warnings
-
-    def get_managed_caches(self) -> List[Cache]:
-        caches = None
-
-        if self.managers:
-            for man in self.managers:
-                if self._is_enabled(man):
-                    man_caches = man.get_managed_caches()
-                    if man_caches:
-                        if caches is None:
-                            caches = []
-
-                        caches.extend(man_caches)
-        return caches

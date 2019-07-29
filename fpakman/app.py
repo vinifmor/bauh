@@ -1,5 +1,7 @@
 import argparse
+import inspect
 import os
+import pkgutil
 import sys
 
 import requests
@@ -7,7 +9,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from colorama import Fore
 
-from fpakman import __version__, __app_name__
+from fpakman import __version__, __app_name__, ROOT_DIR
 from fpakman.core import resource
 from fpakman.core.controller import GenericApplicationManager
 from fpakman_api.util.disk import DiskCacheLoaderFactory
@@ -65,41 +67,56 @@ if args.check_packaging_once == 1:
 
 locale_keys = util.get_locale_keys(args.locale)
 
+
+manager_classes = None
+
+
+def _find_manager(member):
+    if inspect.isclass(member) and inspect.getmro(member)[1].__name__ == 'ApplicationManager':
+            return member
+    elif inspect.ismodule(member):
+        for name, mod in inspect.getmembers(member):
+            manager_found = _find_manager(mod)
+            if manager_found:
+                return manager_found
+
+
 http_session = requests.Session()
-caches = []
-cache_map = {}
-managers = []
-
-# if args.flatpak:
-#     pass
-    # flatpak_api_cache = Cache(expiration_time=args.cache_exp)
-    # cache_map[FlatpakApplication] = flatpak_api_cache
-    # managers.append(FlatpakManager(app_args=args, api_cache=flatpak_api_cache, disk_cache=args.disk_cache, http_session=http_session, locale_keys=locale_keys))
-    # caches.append(flatpak_api_cache)
-    #
-    # if args.disk_cache:
-    #     Path(FLATPAK_CACHE_PATH).mkdir(parents=True, exist_ok=True)
-
-# if args.snap:
-#     pass
-    # snap_api_cache = Cache(expiration_time=args.cache_exp)
-    # cache_map[SnapApplication] = snap_api_cache
-    # managers.append(SnapManager(app_args=args, disk_cache=args.disk_cache, api_cache=snap_api_cache, http_session=http_session, locale_keys=locale_keys))
-    # caches.append(snap_api_cache)
-    #
-    # if args.disk_cache:
-    #    Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
+caches, cache_map = [], {}
+managers = None
 
 icon_cache = Cache(expiration_time=args.icon_exp)
 caches.append(icon_cache)
 
 disk_loader_factory = DiskCacheLoaderFactory(disk_cache=args.disk_cache, cache_map=cache_map)
+
+for m in pkgutil.iter_modules():
+    if m.ispkg and m.name and m.name != 'fpakman_api' and m.name.startswith('fpakman_'):
+        module = pkgutil.find_loader(m.name).load_module()
+
+        manager = _find_manager(module)
+
+        if manager:
+            if not managers:
+                managers = []
+
+            app_cache = Cache(expiration_time=args.cache_exp)
+            man = manager(app_args=args,
+                          fpakman_root_dir=ROOT_DIR,
+                          http_session=http_session,
+                          locale_keys=locale_keys,
+                          app_cache=app_cache)
+            cache_map[man.get_app_type()] = app_cache
+            caches.append(app_cache)
+            managers.append(man)
+
+
+# if args.snap:
+    # if args.disk_cache:
+    #    Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
+
+
 manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args)
-
-managed_caches = manager.get_managed_caches()
-
-if managed_caches:
-    caches.extend(managed_caches)
 
 app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
