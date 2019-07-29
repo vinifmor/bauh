@@ -23,6 +23,7 @@ from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
 from fpakman.view.qt import dialog
 from fpakman.view.qt.systray import TrayIcon
+from fpakman.view.qt.window import ManageWindow
 
 
 def log_msg(msg: str, color: int = None):
@@ -45,6 +46,7 @@ parser.add_argument('-di', '--download-icons', action="store", choices=[0, 1], d
 parser.add_argument('--flatpak', action="store", default=os.getenv('FPAKMAN_FLATPAK', 1), choices=[0, 1], type=int, help='Enables / disables flatpak usage. Default: %(default)s')
 parser.add_argument('--snap', action="store", default=os.getenv('FPAKMAN_SNAP', 1), choices=[0, 1], type=int, help='Enables / disables snap usage. Default: %(default)s')
 parser.add_argument('-co', '--check-packaging-once', action="store", default=os.getenv('FPAKMAN_CHECK_PACKAGING_ONCE', 0), choices=[0, 1], type=int, help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
+parser.add_argument('--tray', action="store", default=os.getenv('FPAKMAN_TRAY', 1), choices=[0, 1], type=int, help='If the tray icon and update-check daemon should be created. Default: %(default)s')
 args = parser.parse_args()
 
 if args.cache_exp < 0:
@@ -112,16 +114,27 @@ app.setApplicationName(__app_name__)
 app.setApplicationVersion(__version__)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-trayIcon = TrayIcon(locale_keys=locale_keys,
-                    manager=manager,
-                    check_interval=args.check_interval,
-                    icon_cache=icon_cache,
-                    disk_cache=args.disk_cache,
-                    update_notification=bool(args.update_notification),
-                    download_icons=args.download_icons,
-                    screen_size=app.primaryScreen().size())
+screen_size = app.primaryScreen().size()
 
-trayIcon.show()
+manage_window = ManageWindow(locale_keys=locale_keys,
+                             manager=manager,
+                             icon_cache=icon_cache,
+                             disk_cache=args.disk_cache,
+                             download_icons=bool(args.download_icons),
+                             screen_size=screen_size)
+
+if args.tray:
+    trayIcon = TrayIcon(locale_keys=locale_keys,
+                        manager=manager,
+                        manage_window=manage_window,
+                        check_interval=args.check_interval,
+                        update_notification=bool(args.update_notification))
+
+    manage_window.tray_icon = trayIcon
+    trayIcon.show()
+else:
+    manage_window.refresh_apps()
+    manage_window.show()
 
 CacheCleaner(caches).start()
 
