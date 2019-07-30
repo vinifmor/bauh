@@ -6,10 +6,10 @@ import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 from fpakman_api.abstract.model import ApplicationStatus
 from fpakman_api.exception import NoInternetException
+from fpakman_api.util.cache import Cache
 from fpakman_api.util.system import FpakmanProcess
 
 from fpakman.core.controller import ApplicationManager
-from fpakman_api.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView
 
@@ -18,9 +18,8 @@ class AsyncAction(QThread):
 
     def notify_subproc_outputs(self, proc: FpakmanProcess, signal) -> bool:
         """
-        :param subproc:
         :param signal:
-        :param success:
+        :param proc:
         :return: if the subprocess succeeded
         """
         signal.emit(' '.join(proc.subproc.args) + '\n')
@@ -32,7 +31,7 @@ class AsyncAction(QThread):
             if line:
                 signal.emit(line)
 
-                if proc.success_pgrase and proc.success_pgrase in line:
+                if proc.success_phrase and proc.success_phrase in line:
                     already_succeeded = True
 
         if already_succeeded:
@@ -60,6 +59,7 @@ class UpdateSelectedApps(AsyncAction):
         super(UpdateSelectedApps, self).__init__()
         self.apps_to_update = apps_to_update
         self.manager = manager
+        self.root_password = None
 
     def run(self):
 
@@ -67,7 +67,7 @@ class UpdateSelectedApps(AsyncAction):
 
         for app in self.apps_to_update:
             self.signal_status.emit(app.model.base_data.name)
-            process = self.manager.update_and_stream(app.model)
+            process = self.manager.update(app.model, self.root_password)
             success = self.notify_subproc_outputs(process, self.signal_output)
 
             if not success:
@@ -104,7 +104,7 @@ class UninstallApp(AsyncAction):
 
     def run(self):
         if self.app:
-            process = self.manager.uninstall_and_stream(self.app.model, self.root_password)
+            process = self.manager.uninstall(self.app.model, self.root_password)
             success = self.notify_subproc_outputs(process, self.signal_output)
 
             if success:
@@ -222,7 +222,7 @@ class InstallApp(AsyncAction):
             success = False
 
             try:
-                process = self.manager.install_and_stream(self.app.model, self.root_password)
+                process = self.manager.install(self.app.model, self.root_password)
                 success = self.notify_subproc_outputs(process, self.signal_output)
 
                 if success and self.disk_cache:

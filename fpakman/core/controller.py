@@ -106,7 +106,7 @@ class GenericApplicationManager(ApplicationManager):
     def downgrade_app(self, app: Application, root_password: str) -> FpakmanProcess:
         man = self._get_manager_for(app)
 
-        if man and man.can_downgrade():
+        if man and app.can_be_downgraded():
             return man.downgrade_app(app, root_password)
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
@@ -117,23 +117,23 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.clean_cache_for(app)
 
-    def update_and_stream(self, app: Application) -> FpakmanProcess:
+    def update(self, app: Application, root_password: str) -> FpakmanProcess:
         man = self._get_manager_for(app)
 
         if man:
-            return man.update_and_stream(app)
+            return man.update(app, root_password)
 
-    def uninstall_and_stream(self, app: Application, root_password: str) -> FpakmanProcess:
+    def uninstall(self, app: Application, root_password: str) -> FpakmanProcess:
         man = self._get_manager_for(app)
 
         if man:
-            return man.uninstall_and_stream(app, root_password)
+            return man.uninstall(app, root_password)
 
-    def install_and_stream(self, app: Application, root_password: str) -> FpakmanProcess:
+    def install(self, app: Application, root_password: str) -> FpakmanProcess:
         man = self._get_manager_for(app)
 
         if man:
-            return man.install_and_stream(app, root_password)
+            return man.install(app, root_password)
 
     def get_info(self, app: Application):
         man = self._get_manager_for(app)

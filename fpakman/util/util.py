@@ -1,5 +1,9 @@
 import locale
 
+from fpakman_api.util import system
+from fpakman_api.util.resource import get_fpakman_logo_path
+
+from fpakman import ROOT_DIR, __app_name__
 from fpakman.core import resource
 import glob
 import re
@@ -43,3 +47,7 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
 
 def strip_html(string: str):
     return HTML_RE.sub('', string)
+
+
+def notify_user(msg: str, icon_path: str = get_fpakman_logo_path(ROOT_DIR)):
+    system.notify_user(msg=msg, app_name=__app_name__, icon_path=icon_path)

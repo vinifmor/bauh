@@ -7,11 +7,11 @@ from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
 from fpakman_api.abstract.model import Application
-from fpakman_api.util import system
+from fpakman_api.util.cache import Cache
 
 from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
-from fpakman_api.util.cache import Cache
+from fpakman.util import util
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -309,13 +309,13 @@ class ManageWindow(QWidget):
         if success:
             if self._can_notify_user():
                 app = self.table_apps.get_selected_app()
-                system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['uninstalled']))
+                util.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['uninstalled']))
 
             self.refresh_apps()
         else:
             if self._can_notify_user():
                 app = self.table_apps.get_selected_app()
-                system.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
+                util.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
 
@@ -328,7 +328,7 @@ class ManageWindow(QWidget):
         if success:
             if self._can_notify_user():
                 app = self.table_apps.get_selected_app()
-                system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['downgraded']))
+                util.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['downgraded']))
 
             self.refresh_apps()
 
@@ -336,7 +336,7 @@ class ManageWindow(QWidget):
                 self.tray_icon.verify_updates(notify_user=False)
         else:
             if self._can_notify_user():
-                system.notify_user(self.locale_keys['notification.downgrade.failed'])
+                util.notify_user(self.locale_keys['notification.downgrade.failed'])
 
             self.change_update_state()
             self.checkbox_console.setChecked(True)
@@ -486,14 +486,30 @@ class ManageWindow(QWidget):
 
     def update_selected(self):
         if self.apps:
+            requires_root = False
 
-            to_update = [app_v for app_v in self.apps if app_v.visible and app_v.update_checked]
+            to_update = []
+
+            for app_v in self.apps:
+                if app_v.visible and app_v.update_checked:
+                    to_update.append(app_v)
+
+                    if self.manager.requires_root('update', app_v.model):
+                        requires_root = True
 
             if to_update:
-                self._handle_console_option(True)
+                pwd = None
 
+                if not is_root() and requires_root:
+                    pwd, ok = ask_root_password(self.locale_keys)
+
+                    if not ok:
+                        return
+
+                self._handle_console_option(True)
                 self._begin_action(self.locale_keys['manage_window.status.upgrading'])
                 self.thread_update.apps_to_update = to_update
+                self.thread_update.root_password = pwd
                 self.thread_update.start()
 
     def _finish_update_selected(self, success: bool, updated: int):
@@ -501,7 +517,7 @@ class ManageWindow(QWidget):
 
         if success:
             if self._can_notify_user():
-                system.notify_user('{} {}'.format(updated, self.locale_keys['notification.update_selected.success']))
+                util.notify_user('{} {}'.format(updated, self.locale_keys['notification.update_selected.success']))
 
             self.refresh_apps()
 
@@ -509,7 +525,7 @@ class ManageWindow(QWidget):
                 self.tray_icon.verify_updates()
         else:
             if self._can_notify_user():
-                system.notify_user(self.locale_keys['notification.update_selected.failed'])
+                util.notify_user(self.locale_keys['notification.update_selected.failed'])
 
             self.bt_upgrade.setEnabled(True)
             self.checkbox_console.setChecked(True)
@@ -646,13 +662,13 @@ class ManageWindow(QWidget):
         if success:
             if self._can_notify_user():
                 app = self.table_apps.get_selected_app()
-                system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['installed']))
+                util.notify_user(msg='{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['installed']))
 
             self.refresh_apps()
         else:
             if self._can_notify_user():
                 app = self.table_apps.get_selected_app()
-                system.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.install.failed']))
+                util.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)
 

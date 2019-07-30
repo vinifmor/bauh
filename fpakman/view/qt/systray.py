@@ -6,8 +6,10 @@ from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from fpakman_api.abstract.model import ApplicationUpdate
+from fpakman_api.util import system
+from fpakman_api.util.resource import get_fpakman_logo_path
 
-from fpakman import __app_name__
+from fpakman import __app_name__, ROOT_DIR
 from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
 from fpakman.view.qt.about import AboutDialog
@@ -99,7 +101,7 @@ class TrayIcon(QSystemTrayIcon):
                     self.setToolTip(msg)
 
                     if self.update_notification and notify_user:
-                        system.notify_user(msg)
+                        system.notify_user(app_name=__app_name__, msg=msg, icon_path=get_fpakman_logo_path(ROOT_DIR))
 
             else:
                 self.last_updates.clear()
