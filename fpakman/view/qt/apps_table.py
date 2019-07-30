@@ -179,9 +179,13 @@ class AppsTable(QTableWidget):
         icon_was_cached = True
 
         if not icon_data:
+            icon_bytes = http_response.readAll()
+
+            if not icon_bytes:
+                return
+
             icon_was_cached = False
             pixmap = QPixmap()
-            icon_bytes = http_response.readAll()
             pixmap.loadFromData(icon_bytes)
             icon = QIcon(pixmap)
             icon_data = {'icon': icon, 'bytes': icon_bytes}
