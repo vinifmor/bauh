@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
 ### Fixes:
 - replacing default app icons by null icons
+- i18n fixes
 
 ## [0.4.2] - 2019-07-28
 ### Improvements

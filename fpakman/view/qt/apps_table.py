@@ -227,7 +227,7 @@ class AppsTable(QTableWidget):
             tooltip = self.window.locale_keys['installed']
         else:
             img_name = 'red_cross'
-            tooltip = self.window.locale_keys['uninstalled']
+            tooltip = self.window.locale_keys['not_installed']
 
         col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format(img_name)))))
         col_installed.setAlignment(Qt.AlignCenter)
