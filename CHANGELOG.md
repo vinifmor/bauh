@@ -12,10 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - new environment variable / argument to enable / disable the tray icon and update-check daemon: FPAKMAN_TRAY (--tray)
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
+- app boot takes an average of 80% less time
+- showing a warning popup  when no Flatpak remotes are set after initialization.
 ### Fixes:
 - apps table not showing empty descriptions
 - replacing default app icons by null icons
 - i18n fixes
+### Comments:
+- not adding Flatpak default remote (flathub) when initializing. It requires root actions, and will be addressed in a different way in future releases.
 
 ## [0.4.2] - 2019-07-28
 ### Improvements
