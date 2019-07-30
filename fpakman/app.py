@@ -108,6 +108,7 @@ caches.append(icon_cache)
 
 disk_loader_factory = DiskCacheLoaderFactory(disk_cache=args.disk_cache, cache_map=cache_map)
 manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args)
+manager.prepare()
 
 app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
@@ -136,12 +137,11 @@ else:
     manage_window.refresh_apps()
     manage_window.show()
 
-CacheCleaner(caches).start()
-
 warnings = manager.list_warnings()
 
 if warnings:
     for warning in warnings:
         dialog.show_warning(title=locale_keys['warning'].capitalize(), body=warning)
 
+CacheCleaner(caches).start()
 sys.exit(app.exec_())

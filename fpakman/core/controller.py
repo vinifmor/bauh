@@ -99,7 +99,6 @@ class GenericApplicationManager(ApplicationManager):
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if app_args.check_packaging_once else None
-        self.prepare()
 
     def _sort(self, apps: List[Application], word: str) -> List[Application]:
         exact_name_matches, contains_name_matches, others = [], [], []

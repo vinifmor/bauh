@@ -104,3 +104,4 @@ version.unknown=versión no informada
 app.name=nombre del aplicativo
 warning=aviso
 snap.notification.snapd_unavailable=snapd no parece estar habilitado. los paquetes snap estarán indisponibles.
+flatpak.notification.no_remotes=No hay repositorios (remotes) Flatpak configurados. No será posible buscar aplicativos Flatpak.

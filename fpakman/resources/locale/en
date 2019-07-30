@@ -103,3 +103,4 @@ version.unknown=not informed
 app.name=application name
 warning=warning
 snap.notification.snapd_unavailable=snapd seems not to be enabled. snap packages will not be available.
+flatpak.notification.no_remotes=No Flatpak remotes set. It will not be possible to search for Flatpak apps.

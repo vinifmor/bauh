@@ -1,6 +1,6 @@
 import re
 import subprocess
-from typing import List, Set
+from typing import List
 
 from fpakman.core import system
 from fpakman.core.exception import NoInternetException
@@ -219,3 +219,7 @@ def install_and_stream(app_id: str, origin: str):
 
 def set_default_remotes():
     system.run_cmd('flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo')
+
+
+def has_remotes_set() -> bool:
+    return bool(system.run_cmd('{} remotes'.format(BASE_CMD)).strip())

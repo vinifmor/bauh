@@ -147,7 +147,7 @@ class FlatpakManager(ApplicationManager):
         raise Exception("'refresh' is not supported for {}".format(app.__class__.__name__))
 
     def prepare(self):
-        flatpak.set_default_remotes()
+        pass
 
     def list_updates(self) -> List[ApplicationUpdate]:
         updates = []
@@ -179,4 +179,5 @@ class FlatpakManager(ApplicationManager):
         return updates
 
     def list_warnings(self) -> List[str]:
-        return None
+        if not flatpak.has_remotes_set():
+            return [self.locale_keys['flatpak.notification.no_remotes']]
