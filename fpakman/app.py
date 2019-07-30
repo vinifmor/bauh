@@ -102,11 +102,6 @@ for m in pkgutil.iter_modules():
             managers.append(man)
 
 
-# if args.snap: TODO
-    # if args.disk_cache:
-    #    Path(SNAP_CACHE_PATH).mkdir(parents=True, exist_ok=True)
-
-
 manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args)
 
 app = QApplication(sys.argv)
