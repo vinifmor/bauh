@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - new environment variable / argument to enable / disable the tray icon and update-check daemon: FPAKMAN_TRAY (--tray)
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
 ### Fixes:
+- apps table not showing empty descriptions
 - replacing default app icons by null icons
 - i18n fixes
 
