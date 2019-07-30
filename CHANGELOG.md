@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.5.0]
+### Improvements
+- the app is now modularized: **fpakman** (GUI), **fpakman_api** (set of abstraction classes to extend), **fpakman_flatpak** (adds support for Flatpaks), **fpakman_snap** (adds support for Snaps)
 ### Comments
-- Env variables / arguments FPAKMAN_SNAP / FPAKMAN_FLATPAK were removed. To disable a supported type, just uninstall its module.
+- env variables / arguments FPAKMAN_SNAP / FPAKMAN_FLATPAK were removed. To disable a supported type, just uninstall its module.
 
 ## [0.4.3]
 ### Improvements

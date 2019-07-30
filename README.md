@@ -17,15 +17,32 @@ an application management panel where you can search, update, install and uninst
 - python-pip
 - python-pyqt5
 
+### Modularization
+**fpakman** is divided into:
+
+* Base modules:
+**fpakman** -> is the GUI.
+**fpakman_api** -> set of abstraction classes to extend and provide new packaging types support for the **fpakman**.
+
+* Extensions:
+**fpakman_flatpak** -> adds support for Flatpak applications
+**fpakman_snap** -> adds support for Snap applications
+...
+
+The extension modules are optional. You can install only the ones you want **fpakman** to work with.
+
 ### Distribution
 **PyPi**
 ```
 sudo pip3 install fpakman
 ```
+Optional (extensions):
+```
+sudo pip3 install fpakman_snap fpakman_flatpak
+```
 
 **AUR**
-
-As **fpakman** package. There is also a staging version (**fpakman-staging**) but is intended for testing and may not work properly.
+As **fpakman**. There is also a staging version of **fpakman** (**fpakman-staging**) but is intended for testing and may not work properly.
 
 
 ### Manual installation:
