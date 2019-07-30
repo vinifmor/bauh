@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.4.3]
 ### Improvements
 - new environment variable / argument to enable / disable the tray icon and update-check daemon: FPAKMAN_TRAY (--tray)
+### Fixes:
+- replacing default app icons by null icons
 
 ## [0.4.2] - 2019-07-28
 ### Improvements
