@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 
 from fpakman.core import resource
 from fpakman.core.model import ApplicationStatus
+from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
@@ -293,10 +294,16 @@ class AppsTable(QTableWidget):
     def _set_col_description(self, idx: int, app_v: ApplicationView):
         col = QTableWidgetItem()
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-        desc = app_v.get_async_attr('description', strip_html=True)
 
-        if desc:
-            col.setText(desc[0:25] + '...')
+        if app_v.model.base_data.description is not None or app_v.model.is_library() or app_v.model.status == ApplicationStatus.READY:
+            desc = app_v.model.base_data.description
+        else:
+            desc = '...'
+
+        if desc and desc != '...':
+            desc = util.strip_html(desc[0:25]) + '...'
+
+        col.setText(desc)
 
         if app_v.model.status == ApplicationStatus.READY:
             col.setToolTip(desc)
