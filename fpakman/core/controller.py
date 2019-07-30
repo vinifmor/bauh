@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import List, Dict
@@ -101,8 +102,7 @@ class GenericApplicationManager(ApplicationManager):
         self.prepare()
 
     def _sort(self, apps: List[Application], word: str) -> List[Application]:
-
-        exact_name_matches, contains_name_matches, desc_name_matches, others = [], [], [], []
+        exact_name_matches, contains_name_matches, others = [], [], []
 
         for app in apps:
             lower_name = app.base_data.name.lower()
@@ -111,13 +111,11 @@ class GenericApplicationManager(ApplicationManager):
                 exact_name_matches.append(app)
             elif word in lower_name:
                 contains_name_matches.append(app)
-            elif app.base_data.description and word in app.base_data.description.lower():
-                desc_name_matches.append(app)
             else:
                 others.append(app)
 
         res = []
-        for app_list in (exact_name_matches, contains_name_matches, desc_name_matches, others):
+        for app_list in (exact_name_matches, contains_name_matches, others):
             app_list.sort(key=lambda a: a.base_data.name.lower())
             res.extend(app_list)
 
