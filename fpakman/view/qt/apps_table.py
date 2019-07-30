@@ -305,8 +305,8 @@ class AppsTable(QTableWidget):
 
         col.setText(desc)
 
-        if app_v.model.status == ApplicationStatus.READY:
-            col.setToolTip(desc)
+        if app_v.model.base_data.description:
+            col.setToolTip(app_v.model.base_data.description)
 
         self.setItem(idx, 2, col)
 
