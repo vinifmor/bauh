@@ -196,6 +196,7 @@ class ManageWindow(QWidget):
         self.filter_only_apps = True
         self.filter_types = set()
         self.filter_updates = False
+        self._maximized = False
 
     def _handle_updates_filter(self, status: int):
         self.filter_updates = status == 2
@@ -223,9 +224,9 @@ class ManageWindow(QWidget):
         return spacer
 
     def changeEvent(self, e: QEvent):
-
         if isinstance(e, QWindowStateChangeEvent):
-            policy = QHeaderView.Stretch if self.isMaximized() else QHeaderView.ResizeToContents
+            self._maximized = self.isMaximized()
+            policy = QHeaderView.Stretch if self._maximized else QHeaderView.ResizeToContents
             self.table_apps.change_headers_policy(policy)
 
     def closeEvent(self, event):
@@ -370,9 +371,11 @@ class ManageWindow(QWidget):
                 visible_apps -= 1 if hidden else 0
 
             self.change_update_state(change_filters=False)
-            self.table_apps.change_headers_policy(QHeaderView.Stretch)
-            self.table_apps.change_headers_policy()
-            self.resize_and_center(accept_lower_width=visible_apps > 0)
+
+            if not self._maximized:
+                self.table_apps.change_headers_policy(QHeaderView.Stretch)
+                self.table_apps.change_headers_policy()
+                self.resize_and_center(accept_lower_width=visible_apps > 0)
 
     def change_update_state(self, change_filters: bool = True):
         enable_bt_update = False
