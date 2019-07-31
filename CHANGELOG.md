@@ -20,7 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - apps table not showing empty descriptions
 - replacing default app icons by null icons
 - maximized window resize fix when filtering apps
+- changing table state after retrieving app history or information
 - i18n
+
 ### Comments:
 - not adding Flatpak default remote (flathub) when initializing. It requires root actions, and will be addressed in a different way in future releases.
 
