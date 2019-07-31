@@ -187,7 +187,9 @@ class GenericApplicationManager(ApplicationManager):
         if self.managers:
             for man in self.managers:
                 if self._is_enabled(man):
-                    updates.extend(man.list_updates())
+                    man_updates = man.list_updates()
+                    if man_updates:
+                        updates.extend(man_updates)
 
         return updates
 
