@@ -264,6 +264,7 @@ class AppsTable(QTableWidget):
 
         if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
             tooltip = '{}. {}: {}'.format(tooltip, self.window.locale_keys['version.latest'], app_v.model.base_data.latest_version)
+            label_version.setText(label_version.text() + ' > {}'.format(app_v.model.base_data.latest_version))
 
         col_version.setToolTip(tooltip)
         self.setCellWidget(idx, 1, col_version)
@@ -313,4 +314,4 @@ class AppsTable(QTableWidget):
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
-                header_horizontal.setSectionResizeMode(i, policy)
+            header_horizontal.setSectionResizeMode(i, policy)
