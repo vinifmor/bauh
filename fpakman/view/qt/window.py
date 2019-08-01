@@ -339,7 +339,6 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(self.locale_keys['notification.downgrade.failed'])
 
-            self.change_update_state()
             self.checkbox_console.setChecked(True)
 
     def _finish_refresh(self, success: bool):
@@ -348,7 +347,6 @@ class ManageWindow(QWidget):
         if success:
             self.refresh_apps()
         else:
-            self.change_update_state()
             self.checkbox_console.setChecked(True)
 
     def _change_updating_app_status(self, app_name: str):
