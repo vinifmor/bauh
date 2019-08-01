@@ -254,7 +254,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_type(self, idx: int, app_v: ApplicationView):
         col_type = QLabel()
-        pixmap = QPixmap(app_v.model.get_default_icon_path())
+        pixmap = QPixmap(app_v.model.get_type_icon_path())
         col_type.setPixmap(pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         col_type.setAlignment(Qt.AlignCenter)
         col_type.setToolTip('{}: {}'.format(self.window.locale_keys['type'], app_v.model.get_type()))

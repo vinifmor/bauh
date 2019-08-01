@@ -1,8 +1,6 @@
 from enum import Enum
 
-from fpakman_api.abstract.model import ApplicationStatus, Application
-
-from fpakman.util import util
+from fpakman_api.abstract.model import Application
 
 
 class ApplicationViewStatus(Enum):
