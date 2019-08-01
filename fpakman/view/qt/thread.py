@@ -92,7 +92,7 @@ class RefreshApps(QThread):
 
 
 class UninstallApp(AsyncAction):
-    signal_finished = pyqtSignal(ApplicationView)
+    signal_finished = pyqtSignal(object)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
@@ -204,7 +204,7 @@ class SearchApps(QThread):
 
 class InstallApp(AsyncAction):
 
-    signal_finished = pyqtSignal(ApplicationView)
+    signal_finished = pyqtSignal(object)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
