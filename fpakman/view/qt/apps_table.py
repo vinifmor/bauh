@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel, QHBoxLayout
+    QHeaderView, QLabel, QHBoxLayout, QPushButton
 
 from fpakman.core import resource
 from fpakman.core.model import ApplicationStatus
@@ -14,6 +14,8 @@ from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
+
+INSTALL_BT_STYLE = 'background: {back}; color: white; margin-top: 6px; padding: 1px; font-size: 9px; font-weight: bold'
 
 
 class UpdateToggleButton(QToolButton):
@@ -76,12 +78,6 @@ class AppsTable(QTableWidget):
 
         menu_row = QMenu()
 
-        if not app.model.installed and app.model.can_be_installed():
-            action_install = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.install"])
-            action_install.setIcon(QIcon(resource.get_path('img/install.svg')))
-            action_install.triggered.connect(self._install_app)
-            menu_row.addAction(action_install)
-
         if app.model.has_info():
             action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
             action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
@@ -101,12 +97,6 @@ class AppsTable(QTableWidget):
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
                 action_history.triggered.connect(self._get_app_history)
                 menu_row.addAction(action_history)
-
-            if app.model.can_be_uninstalled():
-                action_uninstall = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.uninstall"])
-                action_uninstall.setIcon(QIcon(resource.get_path('img/uninstall.svg')))
-                action_uninstall.triggered.connect(self._uninstall_app)
-                menu_row.addAction(action_uninstall)
 
             if app.model.can_be_downgraded():
                 action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
@@ -149,7 +139,7 @@ class AppsTable(QTableWidget):
         selected_app = self.get_selected_app()
 
         if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app.model.base_data.name),
+                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app),
                                    locale_keys=self.window.locale_keys):
             self.window.uninstall_app(selected_app)
 
@@ -171,7 +161,14 @@ class AppsTable(QTableWidget):
         self.window.get_app_history(self.get_selected_app())
 
     def _install_app(self):
-        self.window.install_app(self.get_selected_app())
+        selected_app = self.get_selected_app()
+
+        if dialog.ask_confirmation(
+                title=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.title'],
+                body=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(selected_app),
+                locale_keys=self.window.locale_keys):
+
+            self.window.install_app(self.get_selected_app())
 
     def _load_icon_and_cache(self, http_response):
         icon_url = http_response.url().toString()
@@ -222,20 +219,29 @@ class AppsTable(QTableWidget):
                 self.setCellWidget(idx, 5, col_update)
 
     def _set_col_installed(self, idx: int, app_v: ApplicationView):
-        col_installed = QLabel()
 
         if app_v.model.installed:
-            img_name = 'checked'
-            tooltip = self.window.locale_keys['installed']
+            if app_v.model.can_be_uninstalled():
+                col = QPushButton()
+                col.setText(self.window.locale_keys['uninstall'].capitalize())
+                col.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='#cc0000') + '}')
+                col.setMaximumHeight(20)
+                col.clicked.connect(self._uninstall_app)
+            else:
+                col = QLabel()
+                col.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
+                col.setAlignment(Qt.AlignCenter)
+                col.setToolTip(self.window.locale_keys['installed'])
+        elif app_v.model.can_be_installed():
+            col = QPushButton()
+            col.setText(self.window.locale_keys['install'].capitalize())
+            col.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='green') + '}')
+            col.setMaximumHeight(20)
+            col.clicked.connect(self._install_app)
         else:
-            img_name = 'red_cross'
-            tooltip = self.window.locale_keys['not_installed']
+            col = None
 
-        col_installed.setPixmap((QPixmap(resource.get_path('img/{}.svg'.format(img_name)))))
-        col_installed.setAlignment(Qt.AlignCenter)
-        col_installed.setToolTip(tooltip)
-
-        self.setCellWidget(idx, 4, col_installed)
+        self.setCellWidget(idx, 4, col)
 
     def _set_col_type(self, idx: int, app_v: ApplicationView):
         col_type = QLabel()

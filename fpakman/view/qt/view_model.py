@@ -15,3 +15,6 @@ class ApplicationView:
         self.update_checked = model.update
         self.visible = visible
         self.status = ApplicationViewStatus.LOADING
+
+    def __repr__(self):
+        return '{} ( {} )'.format(self.model.base_data.name, self.model.get_type())
