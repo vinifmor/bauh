@@ -303,18 +303,16 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.root_password = pwd
         self.thread_refresh_app.start()
 
-    def _finish_uninstall(self, success: bool):
+    def _finish_uninstall(self, app: ApplicationView):
         self.finish_action()
 
-        if success:
+        if app:
             if self._can_notify_user():
-                app = self.table_apps.get_selected_app()
                 system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['uninstalled']))
 
             self.refresh_apps()
         else:
             if self._can_notify_user():
-                app = self.table_apps.get_selected_app()
                 system.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
@@ -637,19 +635,17 @@ class ManageWindow(QWidget):
         self.thread_install.root_password = pwd
         self.thread_install.start()
 
-    def _finish_install(self, success: bool):
+    def _finish_install(self, app: ApplicationView):
         self.input_search.setText('')
         self.finish_action()
 
-        if success:
+        if app:
             if self._can_notify_user():
-                app = self.table_apps.get_selected_app()
                 system.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['installed']))
 
             self.refresh_apps()
         else:
             if self._can_notify_user():
-                app = self.table_apps.get_selected_app()
                 system.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)

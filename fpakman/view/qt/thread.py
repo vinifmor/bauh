@@ -93,7 +93,7 @@ class RefreshApps(QThread):
 
 
 class UninstallApp(AsyncAction):
-    signal_finished = pyqtSignal(bool)
+    signal_finished = pyqtSignal(ApplicationView)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
@@ -112,7 +112,7 @@ class UninstallApp(AsyncAction):
                 self.icon_cache.delete(self.app.model.base_data.icon_url)
                 self.manager.clean_cache_for(self.app.model)
 
-            self.signal_finished.emit(success)
+            self.signal_finished.emit(self.app if success else None)
             self.app = None
             self.root_password = None
 
@@ -205,7 +205,7 @@ class SearchApps(QThread):
 
 class InstallApp(AsyncAction):
 
-    signal_finished = pyqtSignal(bool)
+    signal_finished = pyqtSignal(ApplicationView)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
@@ -238,8 +238,8 @@ class InstallApp(AsyncAction):
                 success = False
                 self.signal_output.emit(self.locale_keys['internet.required'])
             finally:
+                self.signal_finished.emit(self.app if success else None)
                 self.app = None
-                self.signal_finished.emit(success)
 
 
 class AnimateProgress(QThread):
