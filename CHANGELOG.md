@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - apps table not showing empty descriptions
 - replacing default app icons by null icons
 - maximized window resize fix when filtering apps
-- changing table state after retrieving app history or information
+- changing table state after retrieving app history / information or an error happens
 - i18n
 
 ### Comments:
