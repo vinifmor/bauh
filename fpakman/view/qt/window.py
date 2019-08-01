@@ -271,7 +271,7 @@ class ManageWindow(QWidget):
 
     def uninstall_app(self, app: ApplicationView):
         pwd = None
-        requires_root = self.manager.requires_root('uninstall', self.table_apps.get_selected_app().model)
+        requires_root = self.manager.requires_root('uninstall', app.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)
@@ -622,7 +622,7 @@ class ManageWindow(QWidget):
 
     def install_app(self, app: ApplicationView):
         pwd = None
-        requires_root = self.manager.requires_root('install', self.table_apps.get_selected_app().model)
+        requires_root = self.manager.requires_root('install', app.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)
