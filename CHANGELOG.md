@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - app boot takes an average of 80% less time
 - showing a warning popup after initialization when no Flatpak remotes are set
 - installed / uninstalled icons replaced by install / uninstall button
+- minor GUI improvements
 ### Fixes:
 - apps table not showing empty descriptions
 - replacing default app icons by null icons
