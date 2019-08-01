@@ -16,7 +16,7 @@ from fpakman.util import util
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
 
-INSTALL_BT_STYLE = 'background: {back}; color: white; margin-top: 6px; padding: 1px; font-size: 9px; font-weight: bold'
+INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 9px; font-weight: bold'
 
 
 class UpdateToggleButton(QToolButton):
@@ -136,13 +136,11 @@ class AppsTable(QTableWidget):
     def get_selected_app_icon(self) -> QIcon:
         return self.item(self.currentRow(), 0).icon()
 
-    def _uninstall_app(self):
-        selected_app = self.get_selected_app()
-
+    def _uninstall_app(self, app_v: ApplicationView):
         if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(selected_app),
+                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(app_v),
                                    locale_keys=self.window.locale_keys):
-            self.window.uninstall_app(selected_app)
+            self.window.uninstall_app(app_v)
 
     def _downgrade_app(self):
         selected_app = self.get_selected_app()
@@ -161,15 +159,14 @@ class AppsTable(QTableWidget):
     def _get_app_history(self):
         self.window.get_app_history(self.get_selected_app())
 
-    def _install_app(self):
-        selected_app = self.get_selected_app()
+    def _install_app(self, app_v: ApplicationView):
 
         if dialog.ask_confirmation(
                 title=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(selected_app),
+                body=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(app_v),
                 locale_keys=self.window.locale_keys):
 
-            self.window.install_app(self.get_selected_app())
+            self.window.install_app(app_v)
 
     def _load_icon_and_cache(self, http_response):
         icon_url = http_response.url().toString()
@@ -218,26 +215,38 @@ class AppsTable(QTableWidget):
 
                 self.setCellWidget(idx, 5, col_update)
 
+    def _gen_row_button(self, text: str, style: str, callback) -> QWidget:
+        col = QWidget()
+        col_bt = QPushButton()
+        col_bt.setText(text)
+        col_bt.setStyleSheet('QPushButton { ' + style + '}')
+        col_bt.clicked.connect(callback)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(col_bt)
+        col.setLayout(layout)
+
+        return col
+
     def _set_col_installed(self, idx: int, app_v: ApplicationView):
 
         if app_v.model.installed:
             if app_v.model.can_be_uninstalled():
-                col = QPushButton()
-                col.setText(self.window.locale_keys['uninstall'].capitalize())
-                col.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='#cc0000') + '}')
-                col.setMaximumHeight(20)
-                col.clicked.connect(self._uninstall_app)
+                def uninstall():
+                    self._uninstall_app(app_v)
+
+                col = self._gen_row_button(self.window.locale_keys['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
             else:
                 col = QLabel()
                 col.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
                 col.setAlignment(Qt.AlignCenter)
                 col.setToolTip(self.window.locale_keys['installed'])
         elif app_v.model.can_be_installed():
-            col = QPushButton()
-            col.setText(self.window.locale_keys['install'].capitalize())
-            col.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='green') + '}')
-            col.setMaximumHeight(20)
-            col.clicked.connect(self._install_app)
+            def install():
+                self._install_app(app_v)
+            col = self._gen_row_button(self.window.locale_keys['install'].capitalize(), INSTALL_BT_STYLE.format(back='green'), install)
         else:
             col = None
 
