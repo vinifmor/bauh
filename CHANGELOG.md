@@ -10,8 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
 - app boot takes an average of 80% less time
 - showing a warning popup after initialization when no Flatpak remotes are set
-- installed / uninstalled icons replaced by install / uninstall button
-- check update button design improvement
+- installed / uninstalled icons replaced by install / uninstall button for better UX
+- check update button design changed for better UX
 - a confirmation popup is shown when the "install" button is clicked
 - minor GUI improvements
 ### Fixes:
