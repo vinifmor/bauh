@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - app boot takes an average of 80% less time
 - showing a warning popup after initialization when no Flatpak remotes are set
 - installed / uninstalled icons replaced by install / uninstall button
+- check update button design improvement
 - a confirmation popup is shown when the "install" button is clicked
 - minor GUI improvements
 ### Fixes:
