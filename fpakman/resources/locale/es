@@ -109,3 +109,5 @@ snap.notification.snapd_unavailable=snapd no parece estar habilitado. los paquet
 flatpak.notification.no_remotes=No hay repositorios (remotes) Flatpak configurados. No será posible buscar aplicativos Flatpak.
 install=instalar
 uninstall=desinstalar
+bt.app_upgrade=Actualizar
+bt.app_not_upgrade=No actualizar

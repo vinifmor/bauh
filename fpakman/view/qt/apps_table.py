@@ -5,7 +5,7 @@ from typing import List
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
+from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton
 
 from fpakman.core import resource
@@ -15,29 +15,46 @@ from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
 
-INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 9px; font-weight: bold'
+INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
 
-class UpdateToggleButton(QToolButton):
+class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: ApplicationView, root: QWidget, locale_keys: dict, checked: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.app_view = app_view
         self.root = root
-        self.setCheckable(True)
-        self.clicked.connect(self.change_state)
-        self.icon_on = QIcon(resource.get_path('img/toggle_on.svg'))
-        self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
-        self.setIcon(self.icon_on)
-        self.setStyleSheet('QToolButton { border: 0px; }')
-        self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
+        self.locale_keys = locale_keys
+        self.on = {
+            'text': self.locale_keys['bt.app_upgrade'],
+            'style': 'QPushButton { ' + INSTALL_BT_STYLE.format(back='#04B404') + ' }'
+        }
+        self.off = {
+            'text': self.locale_keys['bt.app_not_upgrade'],
+            'style': 'QPushButton { ' + INSTALL_BT_STYLE.format(back='gray') + ' }'
+        }
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setAlignment(Qt.AlignCenter)
+        self.setLayout(layout)
+
+        self.bt = QPushButton()
+        self.bt.setText(self.on['text'])
+        self.bt.setStyleSheet(self.on['style'])
+        self.bt.setCheckable(True)
+        self.bt.clicked.connect(self.change_state)
+        layout.addWidget(self.bt)
 
         if not checked:
-            self.click()
+            self.bt.click()
 
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
-        self.setIcon(self.icon_on if not not_checked else self.icon_off)
+
+        state = self.on if not not_checked else self.off
+        self.bt.setText(state['text'])
+        self.bt.setStyleSheet(state['style'])
         self.root.change_update_state(change_filters=False)
 
 

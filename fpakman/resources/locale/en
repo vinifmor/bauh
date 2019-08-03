@@ -107,3 +107,5 @@ snap.notification.snapd_unavailable=snapd seems not to be enabled. snap packages
 flatpak.notification.no_remotes=No Flatpak remotes set. It will not be possible to search for Flatpak apps.
 install=install
 uninstall=uninstall
+bt.app_upgrade=Upgrade
+bt.app_not_upgrade=Don't upgrade
