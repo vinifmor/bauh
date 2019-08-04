@@ -35,6 +35,7 @@ class UpdateToggleButton(QWidget):
 
         self.bt = QPushButton()
         self.bt.setText(self.unchecked_text)
+        self.bt.setToolTip(self.locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
         self.bt.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='#04B404') + ' } ' +
                               'QPushButton:checked {' + INSTALL_BT_STYLE.format(back='gray') + '}')
         self.bt.setCheckable(True)
