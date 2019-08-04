@@ -25,14 +25,8 @@ class UpdateToggleButton(QWidget):
         self.app_view = app_view
         self.root = root
         self.locale_keys = locale_keys
-        self.on = {
-            'text': self.locale_keys['bt.app_upgrade'],
-            'style': 'QPushButton { ' + INSTALL_BT_STYLE.format(back='#04B404') + ' }'
-        }
-        self.off = {
-            'text': self.locale_keys['bt.app_not_upgrade'],
-            'style': 'QPushButton { ' + INSTALL_BT_STYLE.format(back='gray') + ' }'
-        }
+        self.unchecked_text = self.locale_keys['bt.app_upgrade']
+        self.checked_text = self.locale_keys['bt.app_not_upgrade']
 
         layout = QHBoxLayout()
         layout.setContentsMargins(3, 3, 3, 3)
@@ -40,8 +34,9 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QPushButton()
-        self.bt.setText(self.on['text'])
-        self.bt.setStyleSheet(self.on['style'])
+        self.bt.setText(self.unchecked_text)
+        self.bt.setStyleSheet('QPushButton { ' + INSTALL_BT_STYLE.format(back='#04B404') + ' } ' +
+                              'QPushButton:checked {' + INSTALL_BT_STYLE.format(back='gray') + '}')
         self.bt.setCheckable(True)
         self.bt.clicked.connect(self.change_state)
         layout.addWidget(self.bt)
@@ -50,11 +45,9 @@ class UpdateToggleButton(QWidget):
             self.bt.click()
 
     def change_state(self, not_checked: bool):
+        self.bt.clearFocus()
         self.app_view.update_checked = not not_checked
-
-        state = self.on if not not_checked else self.off
-        self.bt.setText(state['text'])
-        self.bt.setStyleSheet(state['style'])
+        self.bt.setText(self.unchecked_text if not not_checked else self.checked_text)
         self.root.change_update_state(change_filters=False)
 
 
