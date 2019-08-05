@@ -192,7 +192,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(self._new_spacer())
 
         bt_about = QToolButton()
-        bt_about.setStyleSheet('border: 0px;')
+        bt_about.setStyleSheet('QToolButton { border: 0px; }')
         bt_about.setIcon(QIcon(resource.get_path('img/about.svg')))
         bt_about.clicked.connect(self._show_about)
         bt_about.setToolTip(self.locale_keys['manage_window.bt_about.tooltip'])
