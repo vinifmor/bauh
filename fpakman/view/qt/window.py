@@ -586,11 +586,13 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
+        self.change_update_state(change_filters=False)
         dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, app: dict):
         self.finish_action()
+        self.change_update_state(change_filters=False)
 
         if app.get('error'):
             self._handle_console_option(True)
