@@ -285,7 +285,7 @@ class AppsTable(QTableWidget):
             tooltip = self.window.locale_keys['version.unknown']
 
         if app_v.model.update:
-            label_version.setStyleSheet("color: #45ab27")
+            label_version.setStyleSheet("color: gold")
             tooltip = self.window.locale_keys['version.installed_outdated']
 
         if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
