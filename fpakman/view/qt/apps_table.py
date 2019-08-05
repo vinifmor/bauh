@@ -378,7 +378,7 @@ class AppsTable(QTableWidget):
             self.show_app_settings(app_v)
 
         if self.has_any_settings(app_v):
-            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='gray')
+            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#2E68D3')
             tb.addWidget(bt)
 
         self.setCellWidget(idx, 5, tb)
