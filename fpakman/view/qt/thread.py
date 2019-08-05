@@ -159,7 +159,9 @@ class GetAppInfo(QThread):
 
     def run(self):
         if self.app:
-            self.signal_finished.emit(self.manager.get_info(self.app.model))
+            info = {'__app__': self.app}
+            info.update(self.manager.get_info(self.app.model))
+            self.signal_finished.emit(info)
             self.app = None
 
 

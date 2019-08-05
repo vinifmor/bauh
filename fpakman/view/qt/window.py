@@ -288,7 +288,7 @@ class ManageWindow(QWidget):
 
     def refresh(self, app: ApplicationView):
         pwd = None
-        requires_root = self.manager.requires_root('refresh', self.table_apps.get_selected_app().model)
+        requires_root = self.manager.requires_root('refresh', app.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)
@@ -586,7 +586,7 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys, self.table_apps.get_selected_app().model.get_type(), self.screen_size)
+        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, app: dict):
@@ -597,7 +597,7 @@ class ManageWindow(QWidget):
             self.textarea_output.appendPlainText(app['error'])
             self.checkbox_console.setChecked(True)
         else:
-            dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
+            dialog_history = HistoryDialog(app, self.icon_cache, self.locale_keys)
             dialog_history.exec_()
 
     def search(self):

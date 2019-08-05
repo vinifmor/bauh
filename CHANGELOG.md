@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - showing a warning popup after initialization when no Flatpak remotes are set
 - installed / uninstalled icons replaced by install / uninstall button for better UX
 - check update button design changed for better UX
+- app information is now available through an "Info" button
+- app extra actions are now available through a "Settings" button instead of right-click
 - a confirmation popup is shown when the "install" button is clicked
 - minor GUI improvements
 ### Fixes:
