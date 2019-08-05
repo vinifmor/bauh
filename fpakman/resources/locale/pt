@@ -113,3 +113,4 @@ bt.app_upgrade=Atualizar
 bt.app_not_upgrade=Não atualizar
 manage_window.upgrade_all.popup.title=Atualizar
 manage_window.upgrade_all.popup.body=Atualizar todos os aplicativos selecionados ?
+manage_window.bt_about.tooltip=Sobre

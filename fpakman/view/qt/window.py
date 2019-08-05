@@ -2,7 +2,7 @@ import operator
 from functools import reduce
 from typing import List, Set
 
-from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtCore import QEvent, Qt, QSize
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
@@ -12,6 +12,7 @@ from fpakman.core.controller import ApplicationManager
 from fpakman.core.model import Application
 from fpakman.util.cache import Cache
 from fpakman.view.qt import dialog
+from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -177,6 +178,10 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.signal_output.connect(self._update_action_output)
 
         self.toolbar_bottom = QToolBar()
+        self.toolbar_bottom.setIconSize(QSize(16, 16))
+
+        self.label_updates = QLabel()
+        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
 
         self.toolbar_bottom.addWidget(self._new_spacer())
 
@@ -186,8 +191,12 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(self._new_spacer())
 
-        self.label_updates = QLabel()
-        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
+        bt_about = QToolButton()
+        bt_about.setStyleSheet('border: 0px;')
+        bt_about.setIcon(QIcon(resource.get_path('img/about.svg')))
+        bt_about.clicked.connect(self._show_about)
+        bt_about.setToolTip(self.locale_keys['manage_window.bt_about.tooltip'])
+        self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -197,6 +206,14 @@ class ManageWindow(QWidget):
         self.filter_types = set()
         self.filter_updates = False
         self._maximized = False
+
+        self.dialog_about = None
+
+    def _show_about(self):
+        if self.dialog_about is None:
+            self.dialog_about = AboutDialog(self.locale_keys)
+
+        self.dialog_about.show()
 
     def _handle_updates_filter(self, status: int):
         self.filter_updates = status == 2
@@ -521,6 +538,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str, keep_search: bool = False, clear_filters: bool = False):
+        self.ref_bt_about.setVisible(False)
         self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
@@ -544,6 +562,7 @@ class ManageWindow(QWidget):
             self.extra_filters.setEnabled(False)
 
     def finish_action(self):
+        self.ref_bt_about.setVisible(True)
         self.ref_progress_bar.setVisible(False)
         self.ref_label_updates.setVisible(True)
         self.thread_animate_progress.stop = True

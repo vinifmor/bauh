@@ -111,3 +111,4 @@ bt.app_upgrade=Upgrade
 bt.app_not_upgrade=Don't upgrade
 manage_window.upgrade_all.popup.title=Upgrade
 manage_window.upgrade_all.popup.body=Upgrade all selected applications ?
+manage_window.bt_about.tooltip=About
