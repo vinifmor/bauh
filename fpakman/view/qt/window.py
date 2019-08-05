@@ -11,6 +11,7 @@ from fpakman.core import resource, system
 from fpakman.core.controller import ApplicationManager
 from fpakman.core.model import Application
 from fpakman.util.cache import Cache
+from fpakman.view.qt import dialog
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
@@ -488,11 +489,15 @@ class ManageWindow(QWidget):
             to_update = [app_v for app_v in self.apps if app_v.visible and app_v.update_checked]
 
             if to_update:
-                self._handle_console_option(True)
+                if dialog.ask_confirmation(
+                        title=self.locale_keys['manage_window.upgrade_all.popup.title'],
+                        body=self.locale_keys['manage_window.upgrade_all.popup.body'],
+                        locale_keys=self.locale_keys):
+                    self._handle_console_option(True)
 
-                self._begin_action(self.locale_keys['manage_window.status.upgrading'])
-                self.thread_update.apps_to_update = to_update
-                self.thread_update.start()
+                    self._begin_action(self.locale_keys['manage_window.status.upgrading'])
+                    self.thread_update.apps_to_update = to_update
+                    self.thread_update.start()
 
     def _finish_update_selected(self, success: bool, updated: int):
         self.finish_action()
