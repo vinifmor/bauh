@@ -296,7 +296,6 @@ class GenericApplicationManager(ApplicationManager):
             suggestions.extend(man.list_suggestions(6))
 
     def list_suggestions(self, limit: int) -> List[Application]:
-        ti = time.time()
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
@@ -307,6 +306,4 @@ class GenericApplicationManager(ApplicationManager):
             for t in threads:
                 t.join()
 
-            tf = time.time() - ti
-            print(tf)
             return suggestions
