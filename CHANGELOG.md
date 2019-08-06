@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.5.1]
+### Fixes:
+- flatpak dependency
+
 ## [0.5.0] - 2019-08-06
 ### Improvements
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
