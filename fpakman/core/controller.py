@@ -295,5 +295,5 @@ class GenericApplicationManager(ApplicationManager):
             suggestions = []
             for man in self.managers:
                 if self._is_enabled(man):
-                    suggestions.extend(man.list_suggestions(5))
+                    suggestions.extend(man.list_suggestions(6))
             return suggestions

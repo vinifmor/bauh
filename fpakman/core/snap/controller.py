@@ -143,7 +143,7 @@ class SnapManager(ApplicationManager):
         suggestions = []
 
         if limit != 0:
-            for name in ('whatsdesk', 'slack', 'yakyak', 'instagraph', 'eclipse', 'gimp', 'supertuxkart'):
+            for name in ('whatsdesk', 'slack', 'yakyak', 'instagraph', 'pycharm-professional', 'eclipse', 'gimp', 'supertuxkart'):
                 res = snap.search(name, exact_name=True)
                 if res:
                     suggestions.append(self.map_json(res[0], installed=False, disk_loader=None))

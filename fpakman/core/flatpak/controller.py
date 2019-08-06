@@ -190,7 +190,7 @@ class FlatpakManager(ApplicationManager):
 
         if limit != 0:
 
-            for app_id in ('com.spotify.Client', 'com.skype.Client', 'com.dropbox.Client', 'us.zoom.Zoom', 'com.visualstudio.code', 'org.inkscape.Inkscape', 'org.libretro.RetroArch', 'org.kde.kdenlive', 'org.videolan.VLC'):
+            for app_id in ('com.spotify.Client', 'com.skype.Client', 'com.dropbox.Client', 'us.zoom.Zoom', 'com.visualstudio.code', 'org.telegram.desktop', 'org.inkscape.Inkscape', 'org.libretro.RetroArch', 'org.kde.kdenlive', 'org.videolan.VLC'):
 
                 app_json = flatpak.search(app_id, app_id=True)
 
