@@ -18,7 +18,7 @@ from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions
 from fpakman.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
@@ -27,7 +27,7 @@ DARK_ORANGE = '#FF4500'
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size,  tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -177,6 +177,9 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.signal_finished.connect(self._finish_refresh)
         self.thread_refresh_app.signal_output.connect(self._update_action_output)
 
+        self.thread_suggestions = FindSuggestions(man=self.manager)
+        self.thread_suggestions.signal_finished.connect(self._finish_search)
+
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
 
@@ -208,6 +211,7 @@ class ManageWindow(QWidget):
         self._maximized = False
 
         self.dialog_about = None
+        self.first_refresh = suggestions
 
     def _show_about(self):
         if self.dialog_about is None:
@@ -286,6 +290,7 @@ class ManageWindow(QWidget):
         self.ref_checkbox_only_apps.setVisible(True)
         self.ref_bt_upgrade.setVisible(True)
         self.update_apps(apps)
+        self.first_refresh = False
 
     def uninstall_app(self, app: ApplicationView):
         pwd = None
@@ -457,8 +462,14 @@ class ManageWindow(QWidget):
                 self.apps.append(app_model)
 
         if napps == 0:
-            self.checkbox_only_apps.setChecked(False)
-            self.checkbox_only_apps.setCheckable(False)
+
+            if self.first_refresh:
+                self._begin_search('')
+                self.thread_suggestions.start()
+                return
+            else:
+                self.checkbox_only_apps.setChecked(False)
+                self.checkbox_only_apps.setCheckable(False)
         else:
             self.checkbox_only_apps.setCheckable(True)
             self.checkbox_only_apps.setChecked(True)
@@ -626,16 +637,19 @@ class ManageWindow(QWidget):
             dialog_history = HistoryDialog(app, self.icon_cache, self.locale_keys)
             dialog_history.exec_()
 
+    def _begin_search(self, word):
+        self._handle_console_option(False)
+        self.ref_checkbox_only_apps.setVisible(False)
+        self.ref_checkbox_updates.setVisible(False)
+        self.filter_updates = False
+        self._begin_action('{}{}'.format(self.locale_keys['manage_window.status.searching'], '"{}"'.format(word) if word else ''), clear_filters=True)
+
     def search(self):
 
         word = self.input_search.text().strip()
 
         if word:
-            self._handle_console_option(False)
-            self.ref_checkbox_only_apps.setVisible(False)
-            self.ref_checkbox_updates.setVisible(False)
-            self.filter_updates = False
-            self._begin_action('{} "{}"'.format(self.locale_keys['manage_window.status.searching'], word), clear_filters=True)
+            self._begin_search(word)
             self.thread_search.word = word
             self.thread_search.start()
 

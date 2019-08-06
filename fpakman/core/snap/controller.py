@@ -137,3 +137,18 @@ class SnapManager(ApplicationManager):
     def list_warnings(self) -> List[str]:
         if snap.get_snapd_version() == 'unavailable':
             return [self.locale_keys['snap.notification.snapd_unavailable']]
+
+    def list_suggestions(self, limit: int) -> List[SnapApplication]:
+
+        suggestions = []
+
+        if limit != 0:
+            for name in ('whatsdesk', 'slack', 'yakyak', 'instagraph', 'eclipse', 'gimp', 'supertuxkart'):
+                res = snap.search(name, exact_name=True)
+                if res:
+                    suggestions.append(self.map_json(res[0], installed=False, disk_loader=None))
+
+                if len(suggestions) == limit:
+                    break
+
+        return suggestions

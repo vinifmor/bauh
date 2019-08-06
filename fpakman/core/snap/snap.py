@@ -86,7 +86,7 @@ def read_installed() -> List[dict]:
     return apps
 
 
-def search(word: str) -> List[dict]:
+def search(word: str, exact_name: bool = False) -> List[dict]:
     apps = []
 
     res = system.run_cmd('{} find "{}"'.format(BASE_CMD, word), print_error=False)
@@ -98,6 +98,10 @@ def search(word: str) -> List[dict]:
             for idx, app_str in enumerate(res):
                 if idx > 0 and app_str:
                     app_data = [word for word in app_str.split(' ') if word]
+
+                    if exact_name and app_data[0] != word:
+                        continue
+
                     apps.append({
                         'name': app_data[0],
                         'version': app_data[1],
@@ -108,6 +112,9 @@ def search(word: str) -> List[dict]:
                         'tracking': None,
                         'type': None
                     })
+
+                if exact_name and len(apps) > 0:
+                    break
 
     return apps
 

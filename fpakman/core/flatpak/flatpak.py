@@ -153,7 +153,7 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     return commits
 
 
-def search(word: str) -> List[dict]:
+def search(word: str, app_id: bool = False) -> List[dict]:
     cli_version = get_version()
 
     res = system.run_cmd('{} search {}'.format(BASE_CMD, word))
@@ -166,13 +166,17 @@ def search(word: str) -> List[dict]:
         for info in split_res:
             if info:
                 info_list = info.split('\t')
-
                 if cli_version >= '1.3.0':
+                    id_ = info_list[2].strip()
+
+                    if app_id and id_ != word:
+                        continue
+
                     version = info_list[3].strip()
-                    found.append({
+                    app = {
                         'name': info_list[0].strip(),
                         'description': info_list[1].strip(),
-                        'id': info_list[2].strip(),
+                        'id': id_,
                         'version': version,
                         'latest_version': version,
                         'branch': info_list[4].strip(),
@@ -180,14 +184,19 @@ def search(word: str) -> List[dict]:
                         'runtime': False,
                         'arch': None,  # unknown at this moment,
                         'ref': None  # unknown at this moment
-                    })
+                    }
                 elif cli_version >= '1.2.0':
+                    id_ = info_list[1].strip()
+
+                    if app_id and id_ != word:
+                        continue
+
                     desc = info_list[0].split('-')
                     version = info_list[2].strip()
-                    found.append({
+                    app = {
                         'name': desc[0].strip(),
                         'description': desc[1].strip(),
-                        'id': info_list[1].strip(),
+                        'id': id_,
                         'version': version,
                         'latest_version': version,
                         'branch': info_list[3].strip(),
@@ -195,13 +204,18 @@ def search(word: str) -> List[dict]:
                         'runtime': False,
                         'arch': None,  # unknown at this moment,
                         'ref': None  # unknown at this moment
-                    })
+                    }
                 else:
+                    id_ = info_list[0].strip()
+
+                    if app_id and id_ != word:
+                        continue
+
                     version = info_list[1].strip()
-                    found.append({
+                    app = {
                         'name': '',
                         'description': info_list[4].strip(),
-                        'id': info_list[0].strip(),
+                        'id': id_,
                         'version': version,
                         'latest_version': version,
                         'branch': info_list[2].strip(),
@@ -209,7 +223,13 @@ def search(word: str) -> List[dict]:
                         'runtime': False,
                         'arch': None,  # unknown at this moment,
                         'ref': None  # unknown at this moment
-                    })
+                    }
+
+                found.append(app)
+
+                if app_id and len(found) > 0:
+                    break
+
     return found
 
 

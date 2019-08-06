@@ -335,3 +335,16 @@ class RefreshApp(AsyncAction):
             finally:
                 self.app = None
                 self.signal_finished.emit(success)
+
+
+class FindSuggestions(AsyncAction):
+
+    signal_finished = pyqtSignal(list)
+
+    def __init__(self, man: ApplicationManager):
+        super(FindSuggestions, self).__init__()
+        self.man = man
+
+    def run(self):
+        self.signal_finished.emit(self.man.list_suggestions(limit=-1))
+        

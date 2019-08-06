@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - a confirmation popup is shown when the "install" / "upgrade all" button is clicked
 - "About" button added to the manage panel
 - "Updates" icon left-aligned
+- show application suggestions when no app is installed. Can be enabled / disabled through the environment variable / parameter FPAKMAN_SUGGESTIONS (--sugs)
 - minor GUI improvements
 ### Fixes:
 - apps table not showing empty descriptions

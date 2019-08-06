@@ -90,6 +90,10 @@ class ApplicationManager(ABC):
     def list_warnings(self) -> List[str]:
         pass
 
+    @abstractmethod
+    def list_suggestions(self, limit: int) -> List[Application]:
+        pass
+
 
 class GenericApplicationManager(ApplicationManager):
 
@@ -285,3 +289,11 @@ class GenericApplicationManager(ApplicationManager):
                     warnings.extend(man_warnings)
 
             return warnings
+
+    def list_suggestions(self, limit: int) -> List[Application]:
+        if self.managers:
+            suggestions = []
+            for man in self.managers:
+                if self._is_enabled(man):
+                    suggestions.extend(man.list_suggestions(5))
+            return suggestions

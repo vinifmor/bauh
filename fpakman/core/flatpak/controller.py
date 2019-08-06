@@ -46,7 +46,9 @@ class FlatpakManager(ApplicationManager):
 
         if not api_data or expired_data:
             if not app_json['runtime']:
-                disk_loader.add(app)  # preloading cached disk data
+                if disk_loader:
+                    disk_loader.add(app)  # preloading cached disk data
+
                 FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, http_session=self.http_session).start()
 
         else:
@@ -181,3 +183,22 @@ class FlatpakManager(ApplicationManager):
     def list_warnings(self) -> List[str]:
         if not flatpak.has_remotes_set():
             return [self.locale_keys['flatpak.notification.no_remotes']]
+
+    def list_suggestions(self, limit: int) -> List[FlatpakApplication]:
+
+        res = []
+
+        if limit != 0:
+
+            for app_id in ('com.spotify.Client', 'com.skype.Client', 'com.dropbox.Client', 'us.zoom.Zoom', 'com.visualstudio.code', 'org.inkscape.Inkscape', 'org.libretro.RetroArch', 'org.kde.kdenlive', 'org.videolan.VLC'):
+
+                app_json = flatpak.search(app_id, app_id=True)
+
+                if app_json:
+                    res.append(self._map_to_model(app_json[0], False, None))
+
+                if len(res) == limit:
+                    break
+
+        return res
+
