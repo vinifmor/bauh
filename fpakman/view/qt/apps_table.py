@@ -261,7 +261,7 @@ class AppsTable(QTableWidget):
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(2, 3, 2, 0)
+        layout.setContentsMargins(2, 2, 2, 0)
         layout.setAlignment(Qt.AlignCenter)
         layout.addWidget(col_bt)
         col.setLayout(layout)
