@@ -2,17 +2,17 @@ import operator
 from functools import reduce
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
+from fpakman_api.util.cache import Cache
 
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, app: dict, app_icon: QIcon, locale_keys: dict):
+    def __init__(self, app: dict, icon_cache: Cache, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
         self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app['model'].base_data.name))
-        self.setWindowIcon(app_icon)
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -52,3 +52,8 @@ class HistoryDialog(QDialog):
 
         new_width = reduce(operator.add, [table_history.columnWidth(i) for i in range(table_history.columnCount())])
         self.resize(new_width, table_history.height())
+
+        icon_data = icon_cache.get(app['model'].base_data.icon_url)
+
+        if icon_data and icon_data.get('icon'):
+            self.setWindowIcon(icon_data.get('icon'))

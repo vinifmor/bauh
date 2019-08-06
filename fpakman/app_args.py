@@ -41,6 +41,7 @@ def read() -> Namespace:
                         help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
     parser.add_argument('--tray', action="store", default=os.getenv('FPAKMAN_TRAY', 1), choices=[0, 1], type=int,
                         help='If the tray icon and update-check daemon should be created. Default: %(default)s')
+    parser.add_argument('--sugs', action="store", default=os.getenv('FPAKMAN_SUGGESTIONS', 1), choices=[0, 1], type=int, help='If app suggestions should be displayed if no app is installed (runtimes do not count as apps). Default: %(default)s')
     args = parser.parse_args()
 
     if args.cache_exp < 0:
@@ -65,5 +66,8 @@ def read() -> Namespace:
 
     if args.check_packaging_once == 1:
         log_msg("'check-packaging-once' is enabled", Fore.YELLOW)
+
+    if args.sugs == 0:
+        log_msg("suggestions are disabled", Fore.YELLOW)
 
     return args

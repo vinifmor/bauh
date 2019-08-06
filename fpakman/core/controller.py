@@ -9,6 +9,8 @@ from fpakman_api.util.system import FpakmanProcess
 
 from fpakman import ROOT_DIR
 
+SUGGESTIONS_LIMIT = 6
+
 
 class GenericApplicationManager(ApplicationManager):
 
@@ -207,3 +209,14 @@ class GenericApplicationManager(ApplicationManager):
                     warnings.extend(man_warnings)
 
             return warnings
+
+    def list_suggestions(self, limit: int) -> List[Application]:
+        if self.managers:
+            suggestions = []
+            for man in self.managers:
+                if self._is_enabled(man):
+                    man_suggestions = man.list_suggestions(SUGGESTIONS_LIMIT)
+                    if man_suggestions:
+                        man_suggestions = man_suggestions[0:SUGGESTIONS_LIMIT] if len(man_suggestions) > SUGGESTIONS_LIMIT  else man_suggestions
+                        suggestions.extend(man_suggestions)
+            return suggestions

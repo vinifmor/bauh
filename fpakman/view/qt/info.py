@@ -1,17 +1,18 @@
 from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QGroupBox, \
     QLineEdit, QLabel
+from fpakman_api.util.cache import Cache
 
 from fpakman.util import util
+
+IGNORED_ATTRS = {'name', '__app__'}
 
 
 class InfoDialog(QDialog):
 
-    def __init__(self, app: dict, app_icon: QIcon, locale_keys: dict, app_type: str, screen_size: QSize()):
+    def __init__(self, app: dict, icon_cache: Cache, locale_keys: dict, screen_size: QSize()):
         super(InfoDialog, self).__init__()
         self.setWindowTitle(app['name'])
-        self.setWindowIcon(app_icon)
         self.screen_size = screen_size
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -23,8 +24,13 @@ class InfoDialog(QDialog):
 
         layout.addWidget(gbox_info)
 
+        icon_data = icon_cache.get(app['__app__'].model.base_data.icon_url)
+
+        if icon_data and icon_data.get('icon'):
+            self.setWindowIcon(icon_data.get('icon'))
+
         for attr in sorted(app.keys()):
-            if attr != 'name' and app[attr]:
+            if attr not in IGNORED_ATTRS and app[attr]:
                 val = app[attr]
                 text = QLineEdit()
                 text.setToolTip(val)
@@ -41,7 +47,7 @@ class InfoDialog(QDialog):
                 text.setStyleSheet("width: 400px")
                 text.setReadOnly(True)
 
-                label = QLabel("{}: ".format(locale_keys.get(app_type + '.info.' + attr, attr)).capitalize())
+                label = QLabel("{}: ".format(locale_keys.get(app['__app__'].model.get_type() + '.info.' + attr, attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")
 
                 gbox_info_layout.addRow(label, text)

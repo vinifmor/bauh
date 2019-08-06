@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel, QHBoxLayout, QPushButton
+    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
 from fpakman_api.abstract.model import ApplicationStatus
 
 from fpakman.core import resource
@@ -16,29 +16,59 @@ from fpakman.util import util
 from fpakman.view.qt import dialog
 from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
 
-INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 9px; font-weight: bold'
+INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
 
-class UpdateToggleButton(QToolButton):
+class IconButton(QWidget):
+
+    def __init__(self, icon_path: str, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
+        super(IconButton, self).__init__()
+        self.bt = QToolButton()
+        self.bt.setIcon(QIcon(icon_path))
+        self.bt.clicked.connect(action)
+
+        if background:
+            self.bt.setStyleSheet('QToolButton { color: white; background: ' + background + '}')
+
+        if tooltip:
+            self.bt.setToolTip(tooltip)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(align)
+        layout.addWidget(self.bt)
+        self.setLayout(layout)
+
+
+class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: ApplicationView, root: QWidget, locale_keys: dict, checked: bool = True):
         super(UpdateToggleButton, self).__init__()
+
         self.app_view = app_view
         self.root = root
-        self.setCheckable(True)
-        self.clicked.connect(self.change_state)
-        self.icon_on = QIcon(resource.get_path('img/toggle_on.svg'))
-        self.icon_off = QIcon(resource.get_path('img/toggle_off.svg'))
-        self.setIcon(self.icon_on)
-        self.setStyleSheet('QToolButton { border: 0px; }')
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(2, 2, 2, 0)
+        layout.setAlignment(Qt.AlignCenter)
+        self.setLayout(layout)
+
+        self.bt = QToolButton()
+        self.bt.setCheckable(True)
+        self.bt.clicked.connect(self.change_state)
+
+        self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+        self.bt.setStyleSheet('QToolButton { background: #4EC306 } ' +
+                              'QToolButton:checked { background: gray }')
+        layout.addWidget(self.bt)
+
         self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
 
         if not checked:
-            self.click()
+            self.bt.click()
 
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
-        self.setIcon(self.icon_on if not not_checked else self.icon_off)
         self.root.change_update_state(change_filters=False)
 
 
@@ -50,12 +80,7 @@ class AppsTable(QTableWidget):
         self.window = parent
         self.disk_cache = disk_cache
         self.download_icons = download_icons
-        self.column_names = [parent.locale_keys[key].capitalize() for key in ['name',
-                                                                              'version',
-                                                                              'description',
-                                                                              'type',
-                                                                              'installed',
-                                                                              'manage_window.columns.update']]
+        self.column_names = ['' for _ in range(7)]
         self.setColumnCount(len(self.column_names))
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
@@ -73,35 +98,46 @@ class AppsTable(QTableWidget):
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
 
-    def contextMenuEvent(self, QContextMenuEvent):  # selected row right click event
+    def has_any_settings(self, app_v: ApplicationView):
+        return app_v.model.can_be_refreshed() or \
+               app_v.model.has_history() or \
+               app_v.model.can_be_downgraded()
 
-        app = self.get_selected_app()
-
+    def show_app_settings(self, app: ApplicationView):
         menu_row = QMenu()
 
-        if app.model.has_info():
-            action_info = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.info"])
-            action_info.setIcon(QIcon(resource.get_path('img/info.svg')))
-            action_info.triggered.connect(self._get_app_info)
-            menu_row.addAction(action_info)
-
         if app.model.installed:
-
             if app.model.can_be_refreshed():
                 action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.refresh"])
                 action_history.setIcon(QIcon(resource.get_path('img/refresh.svg')))
-                action_history.triggered.connect(self._refresh_app)
+
+                def refresh():
+                    self.window.refresh(app)
+
+                action_history.triggered.connect(refresh)
                 menu_row.addAction(action_history)
 
             if app.model.has_history():
                 action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
-                action_history.triggered.connect(self._get_app_history)
+
+                def show_history():
+                    self.window.get_app_history(app)
+
+                action_history.triggered.connect(show_history)
                 menu_row.addAction(action_history)
 
             if app.model.can_be_downgraded():
                 action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
-                action_downgrade.triggered.connect(self._downgrade_app)
+
+                def downgrade():
+                    if dialog.ask_confirmation(
+                            title=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade'],
+                            body=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(app.model.base_data.name),
+                            locale_keys=self.window.locale_keys):
+                        self.window.downgrade_app(app)
+
+                action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
 
@@ -182,6 +218,7 @@ class AppsTable(QTableWidget):
 
             icon_was_cached = False
             pixmap = QPixmap()
+
             pixmap.loadFromData(icon_bytes)
             icon = QIcon(pixmap)
             icon_data = {'icon': icon, 'bytes': icon_bytes}
@@ -208,12 +245,14 @@ class AppsTable(QTableWidget):
                 self._set_col_type(idx, app_v)
                 self._set_col_installed(idx, app_v)
 
+                self._set_col_settings(idx, app_v)
+
                 col_update = None
 
                 if update_check_enabled and app_v.model.update:
                     col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update)
 
-                self.setCellWidget(idx, 5, col_update)
+                self.setCellWidget(idx, 6, col_update)
 
     def _gen_row_button(self, text: str, style: str, callback) -> QWidget:
         col = QWidget()
@@ -223,7 +262,7 @@ class AppsTable(QTableWidget):
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setContentsMargins(2, 2, 2, 0)
         layout.setAlignment(Qt.AlignCenter)
         layout.addWidget(col_bt)
         col.setLayout(layout)
@@ -246,7 +285,7 @@ class AppsTable(QTableWidget):
         elif app_v.model.can_be_installed():
             def install():
                 self._install_app(app_v)
-            col = self._gen_row_button(self.window.locale_keys['install'].capitalize(), INSTALL_BT_STYLE.format(back='green'), install)
+            col = self._gen_row_button(self.window.locale_keys['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
             col = None
 
@@ -254,7 +293,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_type(self, idx: int, app_v: ApplicationView):
         col_type = QLabel()
-        pixmap = QPixmap(app_v.model.get_type_icon_path())
+        pixmap = QPixmap(app_v.model.get_default_icon_path())
         col_type.setPixmap(pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         col_type.setAlignment(Qt.AlignCenter)
         col_type.setToolTip('{}: {}'.format(self.window.locale_keys['type'], app_v.model.get_type()))
@@ -274,7 +313,7 @@ class AppsTable(QTableWidget):
             tooltip = self.window.locale_keys['version.unknown']
 
         if app_v.model.update:
-            label_version.setStyleSheet("color: #45ab27")
+            label_version.setStyleSheet("color: #4EC306; font-weight: bold")
             tooltip = self.window.locale_keys['version.installed_outdated']
 
         if app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
@@ -325,6 +364,25 @@ class AppsTable(QTableWidget):
             col.setToolTip(app_v.model.base_data.description)
 
         self.setItem(idx, 2, col)
+
+    def _set_col_settings(self, idx: int, app_v: ApplicationView):
+        tb = QToolBar()
+
+        if app_v.model.has_info():
+
+            def get_info():
+                self.window.get_app_info(app_v)
+
+            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3'))
+
+        def handle_click():
+            self.show_app_settings(app_v)
+
+        if self.has_any_settings(app_v):
+            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB')
+            tb.addWidget(bt)
+
+        self.setCellWidget(idx, 5, tb)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()

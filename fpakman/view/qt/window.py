@@ -2,7 +2,7 @@ import operator
 from functools import reduce
 from typing import List, Set
 
-from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtCore import QEvent, Qt, QSize
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
@@ -12,12 +12,14 @@ from fpakman_api.util.cache import Cache
 from fpakman.core import resource
 from fpakman.core.controller import ApplicationManager
 from fpakman.util import util
+from fpakman.view.qt import dialog
+from fpakman.view.qt.about import AboutDialog
 from fpakman.view.qt.apps_table import AppsTable
 from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions
 from fpakman.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
@@ -26,7 +28,7 @@ DARK_ORANGE = '#FF4500'
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
-    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size,  tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
@@ -176,7 +178,14 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.signal_finished.connect(self._finish_refresh)
         self.thread_refresh_app.signal_output.connect(self._update_action_output)
 
+        self.thread_suggestions = FindSuggestions(man=self.manager)
+        self.thread_suggestions.signal_finished.connect(self._finish_search)
+
         self.toolbar_bottom = QToolBar()
+        self.toolbar_bottom.setIconSize(QSize(16, 16))
+
+        self.label_updates = QLabel()
+        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
 
         self.toolbar_bottom.addWidget(self._new_spacer())
 
@@ -186,8 +195,12 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(self._new_spacer())
 
-        self.label_updates = QLabel()
-        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
+        bt_about = QToolButton()
+        bt_about.setStyleSheet('QToolButton { border: 0px; }')
+        bt_about.setIcon(QIcon(resource.get_path('img/about.svg')))
+        bt_about.clicked.connect(self._show_about)
+        bt_about.setToolTip(self.locale_keys['manage_window.bt_about.tooltip'])
+        self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -197,6 +210,15 @@ class ManageWindow(QWidget):
         self.filter_types = set()
         self.filter_updates = False
         self._maximized = False
+
+        self.dialog_about = None
+        self.first_refresh = suggestions
+
+    def _show_about(self):
+        if self.dialog_about is None:
+            self.dialog_about = AboutDialog(self.locale_keys)
+
+        self.dialog_about.show()
 
     def _handle_updates_filter(self, status: int):
         self.filter_updates = status == 2
@@ -269,6 +291,7 @@ class ManageWindow(QWidget):
         self.ref_checkbox_only_apps.setVisible(True)
         self.ref_bt_upgrade.setVisible(True)
         self.update_apps(apps)
+        self.first_refresh = False
 
     def uninstall_app(self, app: ApplicationView):
         pwd = None
@@ -289,7 +312,7 @@ class ManageWindow(QWidget):
 
     def refresh(self, app: ApplicationView):
         pwd = None
-        requires_root = self.manager.requires_root('refresh', self.table_apps.get_selected_app().model)
+        requires_root = self.manager.requires_root('refresh', app.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)
@@ -440,8 +463,14 @@ class ManageWindow(QWidget):
                 self.apps.append(app_model)
 
         if napps == 0:
-            self.checkbox_only_apps.setChecked(False)
-            self.checkbox_only_apps.setCheckable(False)
+
+            if self.first_refresh:
+                self._begin_search('')
+                self.thread_suggestions.start()
+                return
+            else:
+                self.checkbox_only_apps.setChecked(False)
+                self.checkbox_only_apps.setCheckable(False)
         else:
             self.checkbox_only_apps.setCheckable(True)
             self.checkbox_only_apps.setChecked(True)
@@ -496,7 +525,9 @@ class ManageWindow(QWidget):
                     if self.manager.requires_root('update', app_v.model):
                         requires_root = True
 
-            if to_update:
+            if to_update and dialog.ask_confirmation(title=self.locale_keys['manage_window.upgrade_all.popup.title'],
+                                                     body=self.locale_keys['manage_window.upgrade_all.popup.body'],
+                                                     locale_keys=self.locale_keys):
                 pwd = None
 
                 if not is_root() and requires_root:
@@ -533,6 +564,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str, keep_search: bool = False, clear_filters: bool = False):
+        self.ref_bt_about.setVisible(False)
         self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
@@ -556,6 +588,7 @@ class ManageWindow(QWidget):
             self.extra_filters.setEnabled(False)
 
     def finish_action(self):
+        self.ref_bt_about.setVisible(True)
         self.ref_progress_bar.setVisible(False)
         self.ref_label_updates.setVisible(True)
         self.thread_animate_progress.stop = True
@@ -603,30 +636,35 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        dialog_info = InfoDialog(app_info, self.table_apps.get_selected_app_icon(), self.locale_keys, self.table_apps.get_selected_app().model.get_type(), self.screen_size)
+        self.change_update_state(change_filters=False)
+        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, app: dict):
         self.finish_action()
+        self.change_update_state(change_filters=False)
 
         if app.get('error'):
             self._handle_console_option(True)
             self.textarea_output.appendPlainText(app['error'])
             self.checkbox_console.setChecked(True)
         else:
-            dialog_history = HistoryDialog(app, self.table_apps.get_selected_app_icon(), self.locale_keys)
+            dialog_history = HistoryDialog(app, self.icon_cache, self.locale_keys)
             dialog_history.exec_()
+
+    def _begin_search(self, word):
+        self._handle_console_option(False)
+        self.ref_checkbox_only_apps.setVisible(False)
+        self.ref_checkbox_updates.setVisible(False)
+        self.filter_updates = False
+        self._begin_action('{}{}'.format(self.locale_keys['manage_window.status.searching'], '"{}"'.format(word) if word else ''), clear_filters=True)
 
     def search(self):
 
         word = self.input_search.text().strip()
 
         if word:
-            self._handle_console_option(False)
-            self.ref_checkbox_only_apps.setVisible(False)
-            self.ref_checkbox_updates.setVisible(False)
-            self.filter_updates = False
-            self._begin_action('{} "{}"'.format(self.locale_keys['manage_window.status.searching'], word), clear_filters=True)
+            self._begin_search(word)
             self.thread_search.word = word
             self.thread_search.start()
 

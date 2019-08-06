@@ -4,19 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.5.0]
+## [1.0.0]
 ### Improvements
 - the app is now modularized: **fpakman** (GUI), **fpakman_api** (set of abstraction classes to extend), **fpakman_flatpak** (adds support for Flatpaks), **fpakman_snap** (adds support for Snaps)
 ### Comments
 - env variables / arguments FPAKMAN_SNAP / FPAKMAN_FLATPAK were removed. To disable a supported type, just uninstall its module.
 
-## [0.4.3]
+## [0.5.1]
+### Fixes:
+- flatpak dependency
+
+## [0.5.0] - 2019-08-06
 ### Improvements
-- new environment variable / argument to enable / disable the tray icon and update-check daemon: FPAKMAN_TRAY (--tray)
 - search results sorting takes an average of 35% less time, reaching 60% in some scenarios
 - app boot takes an average of 80% less time
-- showing a warning popup after initialization when no Flatpak remotes are set
 - installed / uninstalled icons replaced by install / uninstall button
+- check update button design changed
+- app information is now available through an "Info" button
+- app extra actions are now available through a "Settings" button instead of a right-click
+- a confirmation popup is shown when the "install" / "upgrade all" button is clicked
+- "About" icon added to the manage panel
+- "Updates" icon left-aligned
+- show application suggestions when no app is installed. Can be enabled / disabled through the environment variable / parameter FPAKMAN_SUGGESTIONS (--sugs)
+- showing a warning popup after initialization when no Flatpak remotes are set
+- new environment variable / argument to enable / disable the tray icon and update-check daemon: FPAKMAN_TRAY (--tray)
 - minor GUI improvements
 ### Fixes:
 - apps table not showing empty descriptions
