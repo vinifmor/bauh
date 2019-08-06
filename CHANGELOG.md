@@ -5,8 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.5.1]
+### Improvements:
+- suggestions are now retrieved asynchronously. Response time takes 45% less.
 ### Fixes:
-- flatpak dependency
+- [flatpak dependency](https://github.com/vinifmor/fpakman/issues/36)
 
 ## [0.5.0] - 2019-08-06
 ### Improvements

@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from threading import Thread
 from typing import List, Dict
 
 from fpakman.core.disk import DiskCacheLoader, DiskCacheLoaderFactory
@@ -290,10 +291,22 @@ class GenericApplicationManager(ApplicationManager):
 
             return warnings
 
+    def _fill_suggestions(self, suggestions: list, man: ApplicationManager):
+        if self._is_enabled(man):
+            suggestions.extend(man.list_suggestions(6))
+
     def list_suggestions(self, limit: int) -> List[Application]:
+        ti = time.time()
         if self.managers:
-            suggestions = []
+            suggestions, threads = [], []
             for man in self.managers:
-                if self._is_enabled(man):
-                    suggestions.extend(man.list_suggestions(6))
+                t = Thread(target=self._fill_suggestions, args=(suggestions, man))
+                t.start()
+                threads.append(t)
+
+            for t in threads:
+                t.join()
+
+            tf = time.time() - ti
+            print(tf)
             return suggestions
