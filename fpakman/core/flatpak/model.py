@@ -18,19 +18,19 @@ class FlatpakApplication(Application):
         return self.base_data.description is None and self.base_data.icon_url
 
     def has_history(self):
-        return True
+        return self.installed
 
     def has_info(self):
         return self.installed
 
     def can_be_downgraded(self):
-        return True
+        return self.installed
 
     def can_be_uninstalled(self):
-        return True
+        return self.installed
 
     def can_be_installed(self):
-        return True
+        return not self.installed
 
     def get_type(self):
         return 'flatpak'

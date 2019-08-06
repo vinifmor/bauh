@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from typing import List, Dict
@@ -89,6 +90,10 @@ class ApplicationManager(ABC):
     def list_warnings(self) -> List[str]:
         pass
 
+    @abstractmethod
+    def list_suggestions(self, limit: int) -> List[Application]:
+        pass
+
 
 class GenericApplicationManager(ApplicationManager):
 
@@ -98,11 +103,9 @@ class GenericApplicationManager(ApplicationManager):
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if app_args.check_packaging_once else None
-        self.prepare()
 
     def _sort(self, apps: List[Application], word: str) -> List[Application]:
-
-        exact_name_matches, contains_name_matches, desc_name_matches, others = [], [], [], []
+        exact_name_matches, contains_name_matches, others = [], [], []
 
         for app in apps:
             lower_name = app.base_data.name.lower()
@@ -111,13 +114,11 @@ class GenericApplicationManager(ApplicationManager):
                 exact_name_matches.append(app)
             elif word in lower_name:
                 contains_name_matches.append(app)
-            elif app.base_data.description and word in app.base_data.description.lower():
-                desc_name_matches.append(app)
             else:
                 others.append(app)
 
         res = []
-        for app_list in (exact_name_matches, contains_name_matches, desc_name_matches, others):
+        for app_list in (exact_name_matches, contains_name_matches, others):
             app_list.sort(key=lambda a: a.base_data.name.lower())
             res.extend(app_list)
 
@@ -152,8 +153,9 @@ class GenericApplicationManager(ApplicationManager):
                 res['installed'].extend(apps_found['installed'])
                 res['new'].extend(apps_found['new'])
 
-        disk_loader.stop = True
-        disk_loader.join()
+        if disk_loader:
+            disk_loader.stop = True
+            disk_loader.join()
 
         for key in res:
             res[key] = self._sort(res[key], norm_word)
@@ -173,8 +175,9 @@ class GenericApplicationManager(ApplicationManager):
 
                 installed.extend(man.read_installed(disk_loader=disk_loader))
 
-        disk_loader.stop = True
-        disk_loader.join()
+        if disk_loader:
+            disk_loader.stop = True
+            disk_loader.join()
 
         installed.sort(key=lambda a: a.base_data.name.lower())
 
@@ -286,3 +289,11 @@ class GenericApplicationManager(ApplicationManager):
                     warnings.extend(man_warnings)
 
             return warnings
+
+    def list_suggestions(self, limit: int) -> List[Application]:
+        if self.managers:
+            suggestions = []
+            for man in self.managers:
+                if self._is_enabled(man):
+                    suggestions.extend(man.list_suggestions(6))
+            return suggestions
