@@ -21,6 +21,7 @@ class GenericApplicationManager(ApplicationManager):
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if app_args.check_packaging_once else None
+        self.thread_prepare = None
 
     def _sort(self, apps: List[Application], word: str) -> List[Application]:
 
@@ -89,6 +90,11 @@ class GenericApplicationManager(ApplicationManager):
             res[key] = self._sort(res[key], norm_word)
 
         return res
+
+    def _wait_to_be_ready(self):
+        if self.thread_prepare:
+            self.thread_prepare.join()
+            self.thread_prepare = None
 
     def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[Application]:
         self._wait_to_be_ready()
