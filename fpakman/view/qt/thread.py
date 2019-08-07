@@ -346,4 +346,18 @@ class FindSuggestions(AsyncAction):
 
     def run(self):
         self.signal_finished.emit(self.man.list_suggestions(limit=-1))
-        
+
+
+class ListWarnings(QThread):
+
+    signal_warnings = pyqtSignal(list)
+
+    def __init__(self, man: ApplicationManager, locale_keys: dict):
+        super(QThread, self).__init__()
+        self.locale_keys = locale_keys
+        self.man = man
+
+    def run(self):
+        warnings = self.man.list_warnings()
+        if warnings:
+            self.signal_warnings.emit(warnings)

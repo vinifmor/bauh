@@ -12,8 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.5.1]
 ### Improvements:
-- suggestions are now retrieved asynchronously. Response time takes 45% less.
-- search response time takes an average of 20% less ( reaching 35% for several results )
+- suggestions are now retrieved asynchronously taking 45% less time.
+- search response takes an average of 20% less time ( reaching 35% for several results )
+- app boot takes 98% less time when snapd is installed, but disabled
 ### Fixes:
 - [flatpak dependency](https://github.com/vinifmor/fpakman/issues/36)
 

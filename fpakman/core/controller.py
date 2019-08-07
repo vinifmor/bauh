@@ -63,6 +63,8 @@ class GenericApplicationManager(ApplicationManager):
             res['new'].extend(apps_found['new'])
 
     def search(self, word: str, disk_loader: DiskCacheLoader = None) -> Dict[str, List[Application]]:
+        self._wait_to_be_ready()
+
         res = {'installed': [], 'new': []}
 
         norm_word = word.strip().lower()
@@ -89,6 +91,8 @@ class GenericApplicationManager(ApplicationManager):
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[Application]:
+        self._wait_to_be_ready()
+
         installed = []
 
         disk_loader = None
@@ -180,18 +184,26 @@ class GenericApplicationManager(ApplicationManager):
             return man.requires_root(action, app)
 
     def refresh(self, app: Application, root_password: str) -> FpakmanProcess:
+        self._wait_to_be_ready()
+
         man = self._get_manager_for(app)
 
         if man:
             return man.refresh(app, root_password)
 
-    def prepare(self):
+    def _prepare(self):
         if self.managers:
             for man in self.managers:
                 if self._is_enabled(man):
                     man.prepare()
 
+    def prepare(self):
+        self.thread_prepare = Thread(target=self._prepare)
+        self.thread_prepare.start()
+
     def list_updates(self) -> List[ApplicationUpdate]:
+        self._wait_to_be_ready()
+
         updates = []
 
         if self.managers:
@@ -220,15 +232,16 @@ class GenericApplicationManager(ApplicationManager):
 
     def _fill_suggestions(self, suggestions: list, man: ApplicationManager, limit: int):
         if self._is_enabled(man):
-            man_suges = man.list_suggestions(limit)
-            if man_suges:
-                suggestions.extend(man_suges)
+            man_sugs = man.list_suggestions(limit)
+
+            if man_sugs:
+                suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int) -> List[Application]:
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
-                t = Thread(target=self._fill_suggestions, args=(suggestions, man, limit))
+                t = Thread(target=self._fill_suggestions, args=(suggestions, man, SUGGESTIONS_LIMIT))
                 t.start()
                 threads.append(t)
 
