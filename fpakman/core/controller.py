@@ -1,4 +1,3 @@
-import time
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from threading import Thread
@@ -326,7 +325,7 @@ class GenericApplicationManager(ApplicationManager):
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
-                t = Thread(target=self._fill_suggestions, args=(suggestions, man, limit))
+                t = Thread(target=self._fill_suggestions, args=(suggestions, man, 6))
                 t.start()
                 threads.append(t)
 
