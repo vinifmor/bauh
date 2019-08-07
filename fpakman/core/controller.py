@@ -291,15 +291,18 @@ class GenericApplicationManager(ApplicationManager):
 
             return warnings
 
-    def _fill_suggestions(self, suggestions: list, man: ApplicationManager):
+    def _fill_suggestions(self, suggestions: list, man: ApplicationManager, limit: int):
         if self._is_enabled(man):
-            suggestions.extend(man.list_suggestions(6))
+            man_sugs = man.list_suggestions(limit)
+
+            if man_sugs:
+                suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int) -> List[Application]:
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
-                t = Thread(target=self._fill_suggestions, args=(suggestions, man))
+                t = Thread(target=self._fill_suggestions, args=(suggestions, man, limit))
                 t.start()
                 threads.append(t)
 
