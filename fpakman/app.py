@@ -21,7 +21,6 @@ from fpakman.core.snap.model import SnapApplication
 from fpakman.util import util
 from fpakman.util.cache import Cache
 from fpakman.util.memory import CacheCleaner
-from fpakman.view.qt import dialog
 from fpakman.view.qt.systray import TrayIcon
 from fpakman.view.qt.window import ManageWindow
 
@@ -135,18 +134,11 @@ if args.tray:
                         manage_window=manage_window,
                         check_interval=args.check_interval,
                         update_notification=bool(args.update_notification))
-
     manage_window.tray_icon = trayIcon
     trayIcon.show()
 else:
     manage_window.refresh_apps()
     manage_window.show()
-
-warnings = manager.list_warnings()
-
-if warnings:
-    for warning in warnings:
-        dialog.show_warning(title=locale_keys['warning'].capitalize(), body=warning)
 
 CacheCleaner(caches).start()
 sys.exit(app.exec_())

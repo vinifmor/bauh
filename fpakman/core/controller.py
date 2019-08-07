@@ -104,6 +104,12 @@ class GenericApplicationManager(ApplicationManager):
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if app_args.check_packaging_once else None
+        self.thread_prepare = None
+
+    def _wait_to_be_ready(self):
+        if self.thread_prepare:
+            self.thread_prepare.join()
+            self.thread_prepare = None
 
     def _sort(self, apps: List[Application], word: str) -> List[Application]:
         exact_name_matches, contains_name_matches, others = [], [], []
@@ -126,7 +132,6 @@ class GenericApplicationManager(ApplicationManager):
         return res
 
     def _is_enabled(self, man: ApplicationManager):
-
         if self._enabled_map is not None:
             enabled = self._enabled_map.get(man.get_app_type())
 
@@ -145,6 +150,8 @@ class GenericApplicationManager(ApplicationManager):
             res['new'].extend(apps_found['new'])
 
     def search(self, word: str, disk_loader: DiskCacheLoader = None) -> Dict[str, List[Application]]:
+        self._wait_to_be_ready()
+
         res = {'installed': [], 'new': []}
 
         norm_word = word.strip().lower()
@@ -171,6 +178,8 @@ class GenericApplicationManager(ApplicationManager):
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[Application]:
+        self._wait_to_be_ready()
+
         installed = []
 
         disk_loader = None
@@ -262,18 +271,26 @@ class GenericApplicationManager(ApplicationManager):
             return man.requires_root(action, app)
 
     def refresh(self, app: Application, root_password: str) -> FpakmanProcess:
+        self._wait_to_be_ready()
+
         man = self._get_manager_for(app)
 
         if man:
             return man.refresh(app, root_password)
 
-    def prepare(self):
+    def _prepare(self):
         if self.managers:
             for man in self.managers:
                 if self._is_enabled(man):
                     man.prepare()
 
+    def prepare(self):
+        self.thread_prepare = Thread(target=self._prepare)
+        self.thread_prepare.start()
+
     def list_updates(self) -> List[ApplicationUpdate]:
+        self._wait_to_be_ready()
+
         updates = []
 
         if self.managers:
