@@ -1,4 +1,5 @@
 from argparse import Namespace
+from threading import Thread
 from typing import List, Dict
 
 from fpakman_api.abstract.controller import ApplicationManager
@@ -210,13 +211,21 @@ class GenericApplicationManager(ApplicationManager):
 
             return warnings
 
+    def _fill_suggestions(self, suggestions: list, man: ApplicationManager, limit: int):
+        if self._is_enabled(man):
+            man_suges = man.list_suggestions(limit)
+            if man_suges:
+                suggestions.extend(man_suges)
+
     def list_suggestions(self, limit: int) -> List[Application]:
         if self.managers:
-            suggestions = []
+            suggestions, threads = [], []
             for man in self.managers:
-                if self._is_enabled(man):
-                    man_suggestions = man.list_suggestions(SUGGESTIONS_LIMIT)
-                    if man_suggestions:
-                        man_suggestions = man_suggestions[0:SUGGESTIONS_LIMIT] if len(man_suggestions) > SUGGESTIONS_LIMIT  else man_suggestions
-                        suggestions.extend(man_suggestions)
+                t = Thread(target=self._fill_suggestions, args=(suggestions, man, limit))
+                t.start()
+                threads.append(t)
+
+            for t in threads:
+                t.join()
+
             return suggestions

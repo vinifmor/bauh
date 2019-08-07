@@ -11,8 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - env variables / arguments FPAKMAN_SNAP / FPAKMAN_FLATPAK were removed. To disable a supported type, just uninstall its module.
 
 ## [0.5.1]
+### Improvements:
+- suggestions are now retrieved asynchronously. Response time takes 45% less.
 ### Fixes:
-- flatpak dependency
+- [flatpak dependency](https://github.com/vinifmor/fpakman/issues/36)
 
 ## [0.5.0] - 2019-08-06
 ### Improvements
