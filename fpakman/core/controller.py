@@ -56,21 +56,28 @@ class GenericApplicationManager(ApplicationManager):
         else:
             return man.is_enabled()
 
+    def _search(self, word: str, man: ApplicationManager, disk_loader, res: dict):
+        if self._is_enabled(man):
+            apps_found = man.search(words=word, disk_loader=disk_loader)
+            res['installed'].extend(apps_found['installed'])
+            res['new'].extend(apps_found['new'])
+
     def search(self, word: str, disk_loader: DiskCacheLoader = None) -> Dict[str, List[Application]]:
         res = {'installed': [], 'new': []}
 
         norm_word = word.strip().lower()
-        disk_loader = None
+        disk_loader = self.disk_loader_factory.new()
+        disk_loader.start()
+
+        threads = []
 
         for man in self.managers:
-            if self._is_enabled(man):
-                if not disk_loader:
-                    disk_loader = self.disk_loader_factory.new()
-                    disk_loader.start()
+            t = Thread(target=self._search, args=(norm_word, man, disk_loader, res))
+            t.start()
+            threads.append(t)
 
-                apps_found = man.search(words=norm_word, disk_loader=disk_loader)
-                res['installed'].extend(apps_found['installed'])
-                res['new'].extend(apps_found['new'])
+        for t in threads:
+            t.join()
 
         if disk_loader:
             disk_loader.stop = True

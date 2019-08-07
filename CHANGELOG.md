@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.5.1]
 ### Improvements:
 - suggestions are now retrieved asynchronously. Response time takes 45% less.
+- search response time takes an average of 20% less ( reaching 35% for several results )
 ### Fixes:
 - [flatpak dependency](https://github.com/vinifmor/fpakman/issues/36)
 
