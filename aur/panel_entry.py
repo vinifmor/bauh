@@ -16,7 +16,7 @@ py_version = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
 fpakman_cmd = os.getenv('FPAKMAN_PATH', '/usr/bin/fpakman')
 
-with open('fpakman_desktop.desktop', 'w+') as f:
+with open('fpakman_desktop', 'w+') as f:
     f.write(desktop_file.format(lib_path=os.getenv('FPAKMAN_LIB_PATH', '/usr/lib'),
                                 version=py_version,
                                 path=fpakman_cmd))
