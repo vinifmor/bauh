@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - search response takes an average of 20% less time ( reaching 35% for several results )
 - app boot takes 98% less time when snapd is installed, but disabled
 - FPAKMAN_TRAY (--tray) is not enabled by default (0).
-### Fixes:
+### Fixes
+- not showing correctly the latest flatpak app versions when bringing the search results
 - [flatpak dependency](https://github.com/vinifmor/fpakman/issues/36)
 
 ## [0.5.0] - 2019-08-06
