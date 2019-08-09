@@ -67,7 +67,7 @@ You can change some application settings via environment variables or arguments 
 - **FPAKMAN_DISK_CACHE**: enables / disables disk cache. When disk cache is enabled, the installed applications data are loaded faster. Use **0** (disable) or **1** (enable, default).
 - **FPAKMAN_DOWNLOAD_ICONS**: Enables / disables app icons download. It may improve the application speed depending on how applications data are being retrieved. Use **0** (disable) or **1** (enable, default).
 - **FPAKMAN_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
-- **FPAKMAN_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable) or **1** (enable, default).
+- **FPAKMAN_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
 - **FPAKMAN_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
 
 ### How to improve the application performance
