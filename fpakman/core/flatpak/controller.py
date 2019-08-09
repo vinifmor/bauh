@@ -181,8 +181,9 @@ class FlatpakManager(ApplicationManager):
         return updates
 
     def list_warnings(self) -> List[str]:
-        if not flatpak.has_remotes_set():
-            return [self.locale_keys['flatpak.notification.no_remotes']]
+        if flatpak.is_installed():
+            if not flatpak.has_remotes_set():
+                return [self.locale_keys['flatpak.notification.no_remotes']]
 
     def list_suggestions(self, limit: int) -> List[FlatpakApplication]:
 

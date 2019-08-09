@@ -18,7 +18,7 @@ from fpakman.view.qt.history import HistoryDialog
 from fpakman.view.qt.info import InfoDialog
 from fpakman.view.qt.root import is_root, ask_root_password
 from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings
 from fpakman.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
@@ -212,6 +212,19 @@ class ManageWindow(QWidget):
 
         self.dialog_about = None
         self.first_refresh = suggestions
+
+        self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
+        self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def _show_warnings(self, warnings: List[str]):
+        if warnings:
+            for warning in warnings:
+                dialog.show_warning(title=self.locale_keys['warning'].capitalize(), body=warning)
+
+    def show(self):
+        super(ManageWindow, self).show()
+        if not self.thread_warnings.isFinished():
+            self.thread_warnings.start()
 
     def _show_about(self):
         if self.dialog_about is None:

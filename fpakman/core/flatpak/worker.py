@@ -48,6 +48,9 @@ class FlatpakAsyncDataLoader(AsyncDataLoader):
                         if not self.app.base_data.version and self.app.base_data.latest_version:
                             self.app.base_data.version = self.app.base_data.latest_version
 
+                        if not self.app.installed and self.app.base_data.latest_version:
+                            self.app.base_data.version = self.app.base_data.latest_version
+
                         if self.app.base_data.icon_url and self.app.base_data.icon_url.startswith('/'):
                             self.app.base_data.icon_url = FLATHUB_URL + self.app.base_data.icon_url
 
