@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QGroupBox, \
     QLineEdit, QLabel
 from fpakman_api.util.cache import Cache
@@ -12,7 +13,7 @@ class InfoDialog(QDialog):
 
     def __init__(self, app: dict, icon_cache: Cache, locale_keys: dict, screen_size: QSize()):
         super(InfoDialog, self).__init__()
-        self.setWindowTitle(app['name'])
+        self.setWindowTitle(app['__app__'].model.base_data.name)
         self.screen_size = screen_size
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -28,6 +29,8 @@ class InfoDialog(QDialog):
 
         if icon_data and icon_data.get('icon'):
             self.setWindowIcon(icon_data.get('icon'))
+        else:
+            self.setWindowIcon(QIcon(app['__app__'].model.get_type_icon_path()))
 
         for attr in sorted(app.keys()):
             if attr not in IGNORED_ATTRS and app[attr]:
