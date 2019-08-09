@@ -52,7 +52,7 @@ You can change some application settings via environment variables or arguments 
 - **FPAKMAN_FLATPAK**: enables / disables flatpak usage. Use **0** (disable) or **1** (enabled, default)
 - **FPAKMAN_SNAP**: enables / disables snap usage. Use **0** (disable) or **1** (enabled, default)
 - **FPAKMAN_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
-- **FPAKMAN_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable) or **1** (enable, default).
+- **FPAKMAN_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
 - **FPAKMAN_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
 
 ### How to improve the application performance

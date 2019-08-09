@@ -45,7 +45,7 @@ parser.add_argument('-di', '--download-icons', action="store", choices=[0, 1], d
 parser.add_argument('--flatpak', action="store", default=os.getenv('FPAKMAN_FLATPAK', 1), choices=[0, 1], type=int, help='Enables / disables flatpak usage. Default: %(default)s')
 parser.add_argument('--snap', action="store", default=os.getenv('FPAKMAN_SNAP', 1), choices=[0, 1], type=int, help='Enables / disables snap usage. Default: %(default)s')
 parser.add_argument('-co', '--check-packaging-once', action="store", default=os.getenv('FPAKMAN_CHECK_PACKAGING_ONCE', 0), choices=[0, 1], type=int, help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
-parser.add_argument('--tray', action="store", default=os.getenv('FPAKMAN_TRAY', 1), choices=[0, 1], type=int, help='If the tray icon and update-check daemon should be created. Default: %(default)s')
+parser.add_argument('--tray', action="store", default=os.getenv('FPAKMAN_TRAY', 0), choices=[0, 1], type=int, help='If the tray icon and update-check daemon should be created. Default: %(default)s')
 parser.add_argument('--sugs', action="store", default=os.getenv('FPAKMAN_SUGGESTIONS', 1), choices=[0, 1], type=int, help='If app suggestions should be displayed if no app is installed (runtimes do not count as apps). Default: %(default)s')
 args = parser.parse_args()
 
