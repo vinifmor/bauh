@@ -20,7 +20,3 @@ with open('fpakman_desktop.desktop', 'w+') as f:
     f.write(desktop_file.format(lib_path=os.getenv('FPAKMAN_LIB_PATH', '/usr/lib'),
                                 version=py_version,
                                 path=fpakman_cmd))
-
-
-with open('fpakman', 'w') as f:
-    f.write(fpakman_cmd)
