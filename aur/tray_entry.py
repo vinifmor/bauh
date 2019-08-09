@@ -5,7 +5,7 @@ import sys
 desktop_file = """
 [Desktop Entry]
 Type = Application
-Name = fpakman
+Name = fpakman (tray)
 Categories = System;
 Comment = Manage your Flatpak / Snap applications
 Exec = {path} --tray=1
