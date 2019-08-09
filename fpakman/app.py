@@ -1,10 +1,10 @@
 import sys
 
-import requests
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from fpakman_api.util.cache import Cache
 from fpakman_api.util.disk import DiskCacheLoaderFactory
+from fpakman_api.util.http import HttpClient
 
 from fpakman import __version__, __app_name__, app_args
 from fpakman.core import resource, extensions
@@ -17,13 +17,13 @@ from fpakman.view.qt.window import ManageWindow
 args = app_args.read()
 
 locale_keys = util.get_locale_keys(args.locale)
-http_session = requests.Session()
+http_client = HttpClient()
 caches, cache_map = [], {}
 
 managers = extensions.load_managers(caches=caches,
                                     cache_map=cache_map,
                                     locale_keys=locale_keys,
-                                    http_session=http_session,
+                                    http_client=http_client,
                                     app_args=args)
 
 icon_cache = Cache(expiration_time=args.icon_exp)

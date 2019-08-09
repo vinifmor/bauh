@@ -6,6 +6,7 @@ from typing import List, Dict
 
 from fpakman_api.abstract.controller import ApplicationManager
 from fpakman_api.util.cache import Cache
+from fpakman_api.util.http import HttpClient
 
 from fpakman import ROOT_DIR
 from fpakman.util import util
@@ -23,7 +24,7 @@ def find_manager(member):
                 return manager_found
 
 
-def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_session) -> List[ApplicationManager]:
+def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_client: HttpClient) -> List[ApplicationManager]:
     managers = None
 
     for m in pkgutil.iter_modules():
@@ -44,7 +45,7 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys
                 app_cache = Cache(expiration_time=app_args.cache_exp)
                 man = manager_class(app_args=app_args,
                                     fpakman_root_dir=ROOT_DIR,
-                                    http_session=http_session,
+                                    http_client=http_client,
                                     locale_keys=locale_keys,
                                     app_cache=app_cache)
                 cache_map[man.get_app_type()] = app_cache

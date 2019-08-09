@@ -16,7 +16,7 @@ SUGGESTIONS_LIMIT = 6
 class GenericApplicationManager(ApplicationManager):
 
     def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace):
-        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_session=None)
+        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_client=None)
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
