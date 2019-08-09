@@ -14,7 +14,13 @@ Icon = {lib_path}/python{version}/site-packages/fpakman/resources/img/logo.svg
 
 py_version = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
-with open('fpakman.desktop', 'w+') as f:
+fpakman_cmd = os.getenv('FPAKMAN_PATH', '/usr/bin/fpakman')
+
+with open('fpakman_desktop.desktop', 'w+') as f:
     f.write(desktop_file.format(lib_path=os.getenv('FPAKMAN_LIB_PATH', '/usr/lib'),
                                 version=py_version,
-                                path=os.getenv('FPAKMAN_PATH', '/usr/bin/fpakman')))
+                                path=fpakman_cmd))
+
+
+with open('fpakman', 'w') as f:
+    f.write(fpakman_cmd)
