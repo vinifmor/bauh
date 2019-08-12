@@ -37,7 +37,7 @@ env/bin/bauh
 ```
 
 ### Autostart
-In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh**).
+In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
 
 ### Settings
