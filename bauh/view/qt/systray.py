@@ -5,15 +5,14 @@ from typing import List
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
-from fpakman_api.abstract.model import ApplicationUpdate
-from fpakman_api.util import system
+from bauh_api.abstract.model import ApplicationUpdate
 
-from fpakman import __app_name__, ROOT_DIR
-from fpakman.core import resource
-from fpakman.core.controller import ApplicationManager
-from fpakman.util import util
-from fpakman.view.qt.about import AboutDialog
-from fpakman.view.qt.window import ManageWindow
+from bauh import __app_name__
+from bauh.core import resource
+from bauh_api.abstract.controller import ApplicationManager
+from bauh.util import util
+from bauh.view.qt.about import AboutDialog
+from bauh.view.qt.window import ManageWindow
 
 
 class UpdateCheck(QThread):

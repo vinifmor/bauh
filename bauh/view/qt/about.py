@@ -2,8 +2,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel
 
-from fpakman import __version__, __app_name__
-from fpakman.core import resource
+from bauh import __version__, __app_name__
+from bauh.core import resource
 
 PROJECT_URL = 'https://github.com/vinifmor/fpakman'
 LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/fpakman/master/LICENSE'

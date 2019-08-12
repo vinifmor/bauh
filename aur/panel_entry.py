@@ -5,18 +5,18 @@ import sys
 desktop_file = """
 [Desktop Entry]
 Type = Application
-Name = fpakman
+Name = bauh
 Categories = System;
-Comment = Manage your Flatpak / Snap applications
+Comment = Manage your Snap applications
 Exec = {path}
-Icon = {lib_path}/python{version}/site-packages/fpakman/resources/img/logo.svg
+Icon = {lib_path}/python{version}/site-packages/bauh/resources/img/logo.svg
 """
 
 py_version = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 
-fpakman_cmd = os.getenv('FPAKMAN_PATH', '/usr/bin/fpakman')
+app_cmd = os.getenv('BAUH_PATH', '/usr/bin/bauh')
 
-with open('fpakman.desktop', 'w+') as f:
-    f.write(desktop_file.format(lib_path=os.getenv('FPAKMAN_LIB_PATH', '/usr/lib'),
+with open('bauh.desktop', 'w+') as f:
+    f.write(desktop_file.format(lib_path=os.getenv('BAUH_LIB_PATH', '/usr/lib'),
                                 version=py_version,
-                                path=fpakman_cmd))
+                                path=app_cmd))

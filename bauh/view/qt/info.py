@@ -2,9 +2,9 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QGroupBox, \
     QLineEdit, QLabel
-from fpakman_api.util.cache import Cache
+from bauh_api.util.cache import Cache
 
-from fpakman.util import util
+from bauh.util import util
 
 IGNORED_ATTRS = {'name', '__app__'}
 

@@ -4,7 +4,7 @@ from functools import reduce
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
-from fpakman_api.util.cache import Cache
+from bauh_api.util.cache import Cache
 
 
 class HistoryDialog(QDialog):

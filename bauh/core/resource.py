@@ -1,4 +1,4 @@
-from fpakman import ROOT_DIR
+from bauh import ROOT_DIR
 
 
 def get_path(resource_path):

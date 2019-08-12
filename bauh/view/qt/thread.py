@@ -4,19 +4,19 @@ from typing import List
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
-from fpakman_api.abstract.model import ApplicationStatus
-from fpakman_api.exception import NoInternetException
-from fpakman_api.util.cache import Cache
-from fpakman_api.util.system import FpakmanProcess
+from bauh_api.abstract.model import ApplicationStatus
+from bauh_api.exception import NoInternetException
+from bauh_api.util.cache import Cache
+from bauh_api.util.system import SystemProcess
 
-from fpakman.core.controller import ApplicationManager
-from fpakman.view.qt import dialog
-from fpakman.view.qt.view_model import ApplicationView
+from bauh_api.abstract.controller import ApplicationManager
+from bauh.view.qt import dialog
+from bauh.view.qt.view_model import ApplicationView
 
 
 class AsyncAction(QThread):
 
-    def notify_subproc_outputs(self, proc: FpakmanProcess, signal) -> bool:
+    def notify_subproc_outputs(self, proc: SystemProcess, signal) -> bool:
         """
         :param signal:
         :param proc:
@@ -345,7 +345,8 @@ class FindSuggestions(AsyncAction):
         self.man = man
 
     def run(self):
-        self.signal_finished.emit(self.man.list_suggestions(limit=-1))
+        sugs = self.man.list_suggestions(limit=-1)
+        self.signal_finished.emit(sugs if sugs is not None else [])
 
 
 class ListWarnings(QThread):

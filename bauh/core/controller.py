@@ -2,21 +2,21 @@ from argparse import Namespace
 from threading import Thread
 from typing import List, Dict
 
-from fpakman_api.abstract.controller import ApplicationManager
-from fpakman_api.abstract.model import Application, ApplicationUpdate
-from fpakman_api.util.disk import DiskCacheLoader
-from fpakman_api.util.disk import DiskCacheLoaderFactory
-from fpakman_api.util.system import FpakmanProcess
+from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.model import Application, ApplicationUpdate
+from bauh_api.util.disk import DiskCacheLoader
+from bauh_api.util.disk import DiskCacheLoaderFactory
+from bauh_api.util.system import SystemProcess
 
-from fpakman import ROOT_DIR
+from bauh import ROOT_DIR
 
 SUGGESTIONS_LIMIT = 6
 
 
 class GenericApplicationManager(ApplicationManager):
 
-    def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace):
-        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=None, fpakman_root_dir=ROOT_DIR, http_client=None)
+    def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace, locale_keys: dict):
+        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=locale_keys, fpakman_root_dir=ROOT_DIR, http_client=None)
         self.managers = managers
         self.map = {m.get_app_type(): m for m in self.managers}
         self.disk_loader_factory = disk_loader_factory
@@ -122,7 +122,7 @@ class GenericApplicationManager(ApplicationManager):
     def can_downgrade(self):
         return True
 
-    def downgrade_app(self, app: Application, root_password: str) -> FpakmanProcess:
+    def downgrade_app(self, app: Application, root_password: str) -> SystemProcess:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
@@ -136,19 +136,19 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.clean_cache_for(app)
 
-    def update(self, app: Application, root_password: str) -> FpakmanProcess:
+    def update(self, app: Application, root_password: str) -> SystemProcess:
         man = self._get_manager_for(app)
 
         if man:
             return man.update(app, root_password)
 
-    def uninstall(self, app: Application, root_password: str) -> FpakmanProcess:
+    def uninstall(self, app: Application, root_password: str) -> SystemProcess:
         man = self._get_manager_for(app)
 
         if man:
             return man.uninstall(app, root_password)
 
-    def install(self, app: Application, root_password: str) -> FpakmanProcess:
+    def install(self, app: Application, root_password: str) -> SystemProcess:
         man = self._get_manager_for(app)
 
         if man:
@@ -189,7 +189,7 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.requires_root(action, app)
 
-    def refresh(self, app: Application, root_password: str) -> FpakmanProcess:
+    def refresh(self, app: Application, root_password: str) -> SystemProcess:
         self._wait_to_be_ready()
 
         man = self._get_manager_for(app)
@@ -222,9 +222,9 @@ class GenericApplicationManager(ApplicationManager):
         return updates
 
     def list_warnings(self) -> List[str]:
-        if self.managers:
-            warnings = None
+        warnings = []
 
+        if self.managers:
             for man in self.managers:
                 man_warnings = man.list_warnings()
 
@@ -233,8 +233,10 @@ class GenericApplicationManager(ApplicationManager):
                         warnings = []
 
                     warnings.extend(man_warnings)
+        else:
+            warnings.append(self.locale_keys['warning.no_managers'])
 
-            return warnings
+        return warnings
 
     def _fill_suggestions(self, suggestions: list, man: ApplicationManager, limit: int):
         if self._is_enabled(man):

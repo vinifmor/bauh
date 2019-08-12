@@ -4,12 +4,12 @@ import pkgutil
 from argparse import Namespace
 from typing import List, Dict
 
-from fpakman_api.abstract.controller import ApplicationManager
-from fpakman_api.util.cache import Cache
-from fpakman_api.util.http import HttpClient
+from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.util.cache import Cache
+from bauh_api.util.http import HttpClient
 
-from fpakman import ROOT_DIR
-from fpakman.util import util
+from bauh import ROOT_DIR
+from bauh.util import util
 
 ignore_modules = {'fpakman_api'}
 
@@ -25,7 +25,7 @@ def find_manager(member):
 
 
 def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_client: HttpClient) -> List[ApplicationManager]:
-    managers = None
+    managers = []
 
     for m in pkgutil.iter_modules():
         if m.ispkg and m.name and m.name not in ignore_modules and m.name.startswith('fpakman_'):
@@ -38,9 +38,6 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys
 
                 if os.path.exists(locale_path):
                     locale_keys.update(util.get_locale_keys(app_args.locale, locale_path))
-
-                if not managers:
-                    managers = []
 
                 app_cache = Cache(expiration_time=app_args.cache_exp)
                 man = manager_class(app_args=app_args,

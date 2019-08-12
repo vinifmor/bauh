@@ -6,21 +6,21 @@ from PyQt5.QtCore import QEvent, Qt, QSize
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
-from fpakman_api.abstract.model import Application
-from fpakman_api.util.cache import Cache
+from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.model import Application
+from bauh_api.util.cache import Cache
 
-from fpakman.core import resource
-from fpakman.core.controller import ApplicationManager
-from fpakman.util import util
-from fpakman.view.qt import dialog
-from fpakman.view.qt.about import AboutDialog
-from fpakman.view.qt.apps_table import AppsTable
-from fpakman.view.qt.history import HistoryDialog
-from fpakman.view.qt.info import InfoDialog
-from fpakman.view.qt.root import is_root, ask_root_password
-from fpakman.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+from bauh.core import resource
+from bauh.util import util
+from bauh.view.qt import dialog
+from bauh.view.qt.about import AboutDialog
+from bauh.view.qt.apps_table import AppsTable
+from bauh.view.qt.history import HistoryDialog
+from bauh.view.qt.info import InfoDialog
+from bauh.view.qt.root import is_root, ask_root_password
+from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings
-from fpakman.view.qt.view_model import ApplicationView
+from bauh.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
 

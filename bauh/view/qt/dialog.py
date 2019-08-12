@@ -1,7 +1,7 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox
 
-from fpakman.core import resource
+from bauh.core import resource
 
 
 def show_error(title: str, body: str, icon: QIcon = QIcon(resource.get_path('img/logo.svg'))):

@@ -4,7 +4,7 @@ import subprocess
 
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
-from fpakman.view.qt.dialog import show_error
+from bauh.view.qt.dialog import show_error
 
 
 def is_root():

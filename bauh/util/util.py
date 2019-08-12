@@ -2,11 +2,11 @@ import glob
 import locale
 import re
 
-from fpakman_api.util import system
-from fpakman_api.util.resource import get_path
+from bauh_api.util import system
+from bauh_api.util.resource import get_path
 
-from fpakman import ROOT_DIR, __app_name__
-from fpakman.core import resource
+from bauh import ROOT_DIR, __app_name__
+from bauh.core import resource
 
 HTML_RE = re.compile(r'<[^>]+>')
 

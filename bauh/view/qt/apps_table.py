@@ -7,14 +7,14 @@ from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
-from fpakman_api.abstract.model import ApplicationStatus
+from bauh_api.abstract.model import ApplicationStatus
 
-from fpakman.core import resource
-from fpakman_api.util.cache import Cache
+from bauh.core import resource
+from bauh_api.util.cache import Cache
 
-from fpakman.util import util
-from fpakman.view.qt import dialog
-from fpakman.view.qt.view_model import ApplicationView, ApplicationViewStatus
+from bauh.util import util
+from bauh.view.qt import dialog
+from bauh.view.qt.view_model import ApplicationView, ApplicationViewStatus
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 

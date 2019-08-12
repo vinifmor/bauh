@@ -1,4 +1,2 @@
 pyqt5>=5.12
-requests>=2.22
-colorama>=0.4.1
-fpakman_api==0.1.0
+bauh_api==0.1.0

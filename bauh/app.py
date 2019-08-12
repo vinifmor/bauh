@@ -2,17 +2,17 @@ import sys
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
-from fpakman_api.util.cache import Cache
-from fpakman_api.util.disk import DiskCacheLoaderFactory
-from fpakman_api.util.http import HttpClient
+from bauh_api.util.cache import Cache
+from bauh_api.util.disk import DiskCacheLoaderFactory
+from bauh_api.util.http import HttpClient
 
-from fpakman import __version__, __app_name__, app_args
-from fpakman.core import resource, extensions
-from fpakman.core.controller import GenericApplicationManager
-from fpakman.util import util
-from fpakman.util.memory import CacheCleaner
-from fpakman.view.qt.systray import TrayIcon
-from fpakman.view.qt.window import ManageWindow
+from bauh import __version__, __app_name__, app_args
+from bauh.core import resource, extensions
+from bauh.core.controller import GenericApplicationManager
+from bauh.util import util
+from bauh.util.memory import CacheCleaner
+from bauh.view.qt.systray import TrayIcon
+from bauh.view.qt.window import ManageWindow
 
 args = app_args.read()
 
@@ -31,7 +31,7 @@ caches.append(icon_cache)
 
 disk_loader_factory = DiskCacheLoaderFactory(disk_cache=args.disk_cache, cache_map=cache_map)
 
-manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args)
+manager = GenericApplicationManager(managers, disk_loader_factory=disk_loader_factory, app_args=args, locale_keys=locale_keys)
 manager.prepare()
 
 app = QApplication(sys.argv)

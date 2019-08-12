@@ -2,7 +2,7 @@ import time
 from threading import Thread
 from typing import List
 
-from fpakman_api.util.cache import Cache
+from bauh_api.util.cache import Cache
 
 
 class CacheCleaner(Thread):
