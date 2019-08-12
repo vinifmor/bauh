@@ -1,6 +1,6 @@
 ## bauh
 
-Non-official graphical user interface for Flatpak / Snap application management. It is a tray icon that let the user known when new updates are available and
+Non-official graphical user interface for Flatpak / Snap application management (old **fpakman**). It is a tray icon that let the user known when new updates are available and
 an application management panel where you can search, update, install and uninstall applications.
 
 ### Developed with:
