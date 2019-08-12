@@ -44,7 +44,7 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys
 
                     app_cache = Cache(expiration_time=app_args.cache_exp)
                     man = manager_class(app_args=app_args,
-                                        fpakman_root_dir=ROOT_DIR,
+                                        app_root_dir=ROOT_DIR,
                                         http_client=http_client,
                                         locale_keys=locale_keys,
                                         app_cache=app_cache)
