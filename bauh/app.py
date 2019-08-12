@@ -33,7 +33,7 @@ def log_msg(msg: str, color: int = None):
         print('{}[{}] {}{}'.format(color, __app_name__, msg, Fore.RESET))
 
 
-parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Flatpak applications management")
+parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Flatpak / Snap applications management")
 parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
 parser.add_argument('-e', '--cache-exp', action="store", default=int(os.getenv('BAUH_CACHE_EXPIRATION', 60 * 60)), type=int, help='cached API data expiration time in SECONDS. Default: %(default)s')
 parser.add_argument('-ie', '--icon-exp', action="store", default=int(os.getenv('BAUH_ICON_EXPIRATION', 60 * 5)), type=int, help='cached icons expiration time in SECONDS. Default: %(default)s')
