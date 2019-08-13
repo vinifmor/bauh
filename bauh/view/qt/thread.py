@@ -95,7 +95,7 @@ class RefreshApps(QThread):
         self.signal.emit(self.manager.read_installed())
 
 
-class UninstallApp(AsyncAction):
+class UninstallApp(AsyncAction, ProcessHandler):
     signal_finished = pyqtSignal(object)
     signal_output = pyqtSignal(str)
 
@@ -108,8 +108,7 @@ class UninstallApp(AsyncAction):
 
     def run(self):
         if self.app:
-            process = self.manager.uninstall(self.app.model, self.root_password)
-            success = self.notify_subproc_outputs(process, self.signal_output)
+            success = self.manager.uninstall(self.app.model, self.root_password, self)
 
             if success:
                 self.icon_cache.delete(self.app.model.base_data.icon_url)
@@ -118,6 +117,13 @@ class UninstallApp(AsyncAction):
             self.signal_finished.emit(self.app if success else None)
             self.app = None
             self.root_password = None
+
+    def handle(self, proc: SystemProcess) -> bool:
+        return self.notify_subproc_outputs(proc, self.signal_output)
+
+    def notify(self, msg: str):
+        if msg:
+            self.signal_output.emit(msg)
 
 
 class DowngradeApp(AsyncAction):

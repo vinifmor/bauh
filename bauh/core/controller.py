@@ -140,11 +140,11 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.update(app, root_password)
 
-    def uninstall(self, app: Application, root_password: str) -> SystemProcess:
+    def uninstall(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
         man = self._get_manager_for(app)
 
         if man:
-            return man.uninstall(app, root_password)
+            return man.uninstall(app, root_password, handler)
 
     def install(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
         man = self._get_manager_for(app)
