@@ -3,6 +3,7 @@ from threading import Thread
 from typing import List, Dict
 
 from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.handler import ProcessHandler
 from bauh_api.abstract.model import Application, ApplicationUpdate
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
@@ -119,9 +120,6 @@ class GenericApplicationManager(ApplicationManager):
 
         return installed
 
-    def can_downgrade(self):
-        return True
-
     def downgrade_app(self, app: Application, root_password: str) -> SystemProcess:
         man = self._get_manager_for(app)
 
@@ -148,11 +146,11 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.uninstall(app, root_password)
 
-    def install(self, app: Application, root_password: str) -> SystemProcess:
+    def install(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
         man = self._get_manager_for(app)
 
         if man:
-            return man.install(app, root_password)
+            return man.install(app, root_password, handler)
 
     def get_info(self, app: Application):
         man = self._get_manager_for(app)

@@ -4,17 +4,18 @@ from typing import List
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.handler import ProcessHandler
 from bauh_api.abstract.model import ApplicationStatus
 from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
 from bauh_api.util.system import SystemProcess
 
-from bauh_api.abstract.controller import ApplicationManager
 from bauh.view.qt import dialog
 from bauh.view.qt.view_model import ApplicationView
 
 
-class AsyncAction(QThread):
+class AsyncAction(QThread, ProcessHandler):
 
     def notify_subproc_outputs(self, proc: SystemProcess, signal) -> bool:
         """
@@ -25,6 +26,8 @@ class AsyncAction(QThread):
         signal.emit(' '.join(proc.subproc.args) + '\n')
 
         success, already_succeeded = True, False
+
+        proc.subproc.wait()
 
         for output in proc.subproc.stdout:
             line = output.decode().strip()
@@ -46,7 +49,8 @@ class AsyncAction(QThread):
                     success = False
                     signal.emit(line)
 
-        return success
+        proc.subproc.communicate()
+        return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
 
 class UpdateSelectedApps(AsyncAction):
@@ -224,8 +228,7 @@ class InstallApp(AsyncAction):
             success = False
 
             try:
-                process = self.manager.install(self.app.model, self.root_password)
-                success = self.notify_subproc_outputs(process, self.signal_output)
+                success = self.manager.install(self.app.model, self.root_password, self)
 
                 if success and self.disk_cache:
                     self.app.model.installed = True
@@ -241,6 +244,13 @@ class InstallApp(AsyncAction):
             finally:
                 self.signal_finished.emit(self.app if success else None)
                 self.app = None
+
+    def handle(self, proc: SystemProcess) -> bool:
+        return self.notify_subproc_outputs(proc, self.signal_output)
+
+    def notify(self, msg: str):
+        if msg:
+            self.signal_output.emit(msg)
 
 
 class AnimateProgress(QThread):
