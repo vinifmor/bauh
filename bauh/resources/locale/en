@@ -68,7 +68,6 @@ not_installed=not installed
 downgraded=downgraded
 others=others
 internet.required=Internet connection is required
-license.unset=unset
 updates=updates
 version.installed=installed version
 version.latest=latest version

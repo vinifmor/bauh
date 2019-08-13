@@ -34,14 +34,18 @@ class InfoDialog(QDialog):
 
         for attr in sorted(app.keys()):
             if attr not in IGNORED_ATTRS and app[attr]:
-                val = app[attr]
+                i18n_key = app['__app__'].model.get_type() + '.info.' + attr.lower()
+                val = app[attr].strip()
+
+                i18n_val = locale_keys.get('{}.{}'.format(i18n_key, val.lower()))
+
+                if i18n_val:
+                    val = i18n_val
+
                 text = QLineEdit()
                 text.setToolTip(val)
 
-                if attr == 'license' and val.strip() == 'unset':
-                    val = locale_keys['license.unset']
-
-                if attr == 'description':
+                if len(val) > 40:
                     val = util.strip_html(val)
                     val = val[0:40] + '...'
 
@@ -50,7 +54,7 @@ class InfoDialog(QDialog):
                 text.setStyleSheet("width: 400px")
                 text.setReadOnly(True)
 
-                label = QLabel("{}: ".format(locale_keys.get(app['__app__'].model.get_type() + '.info.' + attr, attr)).capitalize())
+                label = QLabel("{}: ".format(locale_keys.get(i18n_key, attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")
 
                 gbox_info_layout.addRow(label, text)

@@ -70,7 +70,6 @@ not_installed=no instalado
 downgraded=versión revertida
 others=otros
 internet.required=Se requiere conexión a internet
-license.unset=No está definida
 updates=actualizaciones
 version.installed=versión instalada
 version.latest=versión más reciente
