@@ -52,8 +52,11 @@ class AsyncAction(QThread, ProcessHandler):
         proc.subproc.communicate()
         return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
+    def show_error(self, title: str, body: str):
+        dialog.show_error(title, body)
 
-class UpdateSelectedApps(AsyncAction, ProcessHandler):
+
+class UpdateSelectedApps(AsyncAction):
 
     signal_finished = pyqtSignal(bool, int)
     signal_status = pyqtSignal(str)
@@ -101,7 +104,7 @@ class RefreshApps(QThread):
         self.signal.emit(self.manager.read_installed())
 
 
-class UninstallApp(AsyncAction, ProcessHandler):
+class UninstallApp(AsyncAction):
     signal_finished = pyqtSignal(object)
     signal_output = pyqtSignal(str)
 
@@ -145,16 +148,9 @@ class DowngradeApp(AsyncAction):
 
     def run(self):
         if self.app:
-
             success = False
             try:
-                process = self.manager.downgrade_app(self.app.model, self.root_password)
-
-                if process is None:
-                    dialog.show_error(title=self.locale_keys['popup.downgrade.impossible.title'],
-                                      body=self.locale_keys['popup.downgrade.impossible.body'])
-                else:
-                    success = self.notify_subproc_outputs(process, self.signal_output)
+                success = self.manager.downgrade_app(self.app.model, self.root_password, self)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
                 self.signal_output.emit(self.locale_keys['internet.required'])
@@ -162,6 +158,13 @@ class DowngradeApp(AsyncAction):
                 self.app = None
                 self.root_password = None
                 self.signal_finished.emit(success)
+
+    def handle(self, proc: SystemProcess) -> bool:
+        return self.notify_subproc_outputs(proc, self.signal_output)
+
+    def notify(self, msg: str):
+        if msg:
+            self.signal_output.emit(msg)
 
 
 class GetAppInfo(QThread):

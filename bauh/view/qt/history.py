@@ -25,7 +25,7 @@ class HistoryDialog(QDialog):
 
         table_history.setColumnCount(len(app['history'][0]))
         table_history.setRowCount(len(app['history']))
-        table_history.setHorizontalHeaderLabels([locale_keys['flatpak.info.' + key].capitalize() for key in sorted(app['history'][0].keys())])
+        table_history.setHorizontalHeaderLabels([locale_keys.get(app['model'].get_type() + '.info.' + key, key).capitalize() for key in sorted(app['history'][0].keys())])
 
         for row, commit in enumerate(app['history']):
 

@@ -120,11 +120,11 @@ class GenericApplicationManager(ApplicationManager):
 
         return installed
 
-    def downgrade_app(self, app: Application, root_password: str) -> SystemProcess:
+    def downgrade_app(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
-            return man.downgrade_app(app, root_password)
+            return man.downgrade_app(app, root_password, handler)
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
