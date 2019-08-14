@@ -618,7 +618,7 @@ class ManageWindow(QWidget):
 
     def downgrade_app(self, app: ApplicationView):
         pwd = None
-        requires_root = self.manager.requires_root('downgrade', self.table_apps.get_selected_app().model)
+        requires_root = self.manager.requires_root('downgrade', app.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)

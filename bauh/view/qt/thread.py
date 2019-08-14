@@ -53,7 +53,7 @@ class AsyncAction(QThread, ProcessHandler):
         return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
 
-class UpdateSelectedApps(AsyncAction):
+class UpdateSelectedApps(AsyncAction, ProcessHandler):
 
     signal_finished = pyqtSignal(bool, int)
     signal_status = pyqtSignal(str)
@@ -71,8 +71,7 @@ class UpdateSelectedApps(AsyncAction):
 
         for app in self.apps_to_update:
             self.signal_status.emit(app.model.base_data.name)
-            process = self.manager.update(app.model, self.root_password)
-            success = self.notify_subproc_outputs(process, self.signal_output)
+            success = self.manager.update(app.model, self.root_password, self)
 
             if not success:
                 break
@@ -81,6 +80,13 @@ class UpdateSelectedApps(AsyncAction):
 
         self.signal_finished.emit(success, len(self.apps_to_update))
         self.apps_to_update = None
+
+    def handle(self, proc: SystemProcess) -> bool:
+        return self.notify_subproc_outputs(proc, self.signal_output)
+
+    def notify(self, msg: str):
+        if msg:
+            self.signal_output.emit(msg)
 
 
 class RefreshApps(QThread):
