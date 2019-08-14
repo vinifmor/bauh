@@ -82,4 +82,5 @@ bt.app_not_upgrade=No actualizar
 manage_window.upgrade_all.popup.title=Actualizar
 manage_window.upgrade_all.popup.body=¿Actualizar todos los aplicativos seleccionados?
 manage_window.bt_about.tooltip=Sobre
-warning.no_managers=Não há nenhuma extensão instalada. Não será possível instalar e gerenciar aplicações.
+warning.no_managers=No hay extensiones instaladas. No será posible instalar y administrar aplicaciones.
+confirmation=confirmación
