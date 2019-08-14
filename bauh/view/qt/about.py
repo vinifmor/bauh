@@ -22,7 +22,7 @@ class AboutDialog(QDialog):
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
-        label_name = QLabel('{} ( {} {} )'.format(__app_name__, locale_keys['flatpak.info.version'].lower(), __version__))
+        label_name = QLabel('{} ( {} {} )'.format(__app_name__, locale_keys['version'].lower(), __version__))
         label_name.setStyleSheet('font-weight: bold;')
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)
