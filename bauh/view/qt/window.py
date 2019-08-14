@@ -415,7 +415,7 @@ class ManageWindow(QWidget):
 
         for app_v in self.apps:
             if app_v.model.update:
-                if app_v.model.runtime:
+                if app_v.model.is_library():
                     library_updates += 1
                 else:
                     app_updates += 1
