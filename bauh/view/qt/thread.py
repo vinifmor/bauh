@@ -52,9 +52,6 @@ class AsyncAction(QThread, ProcessHandler):
         proc.subproc.communicate()
         return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
-    def show_error(self, title: str, body: str):
-        dialog.show_error(title, body)
-
 
 class UpdateSelectedApps(AsyncAction):
 
@@ -137,6 +134,7 @@ class UninstallApp(AsyncAction):
 
 class DowngradeApp(AsyncAction):
     signal_finished = pyqtSignal(bool)
+    signal_error = pyqtSignal(dict)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
@@ -165,6 +163,9 @@ class DowngradeApp(AsyncAction):
     def notify(self, msg: str):
         if msg:
             self.signal_output.emit(msg)
+
+    def show_error(self, title: str, body: str):
+        self.signal_error.emit({'title': title, 'body': body})
 
 
 class GetAppInfo(QThread):
@@ -226,6 +227,7 @@ class SearchApps(QThread):
 class InstallApp(AsyncAction):
 
     signal_finished = pyqtSignal(object)
+    signal_error = pyqtSignal(dict)
     signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
@@ -266,6 +268,9 @@ class InstallApp(AsyncAction):
     def notify(self, msg: str):
         if msg:
             self.signal_output.emit(msg)
+
+    def show_error(self, title: str, body: str):
+        self.signal_error.emit({'title': title, 'body': body})
 
 
 class AnimateProgress(QThread):

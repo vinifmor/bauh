@@ -154,6 +154,7 @@ class ManageWindow(QWidget):
         self.thread_downgrade = DowngradeApp(self.manager, self.locale_keys)
         self.thread_downgrade.signal_output.connect(self._update_action_output)
         self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
+        self.thread_downgrade.signal_error.connect(self._show_error)
 
         self.thread_get_info = GetAppInfo(self.manager)
         self.thread_get_info.signal_finished.connect(self._finish_get_info)
@@ -166,6 +167,7 @@ class ManageWindow(QWidget):
 
         self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
         self.thread_install.signal_output.connect(self._update_action_output)
+        self.thread_install.signal_error.connect(self._show_error)
         self.thread_install.signal_finished.connect(self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -216,6 +218,9 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def _show_error(self, msg: dict):
+        dialog.show_error(title=msg['title'], body=msg['body'])
 
     def _show_warnings(self, warnings: List[str]):
         if warnings:
