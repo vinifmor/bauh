@@ -11,7 +11,6 @@ from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
 from bauh_api.util.system import SystemProcess
 
-from bauh.view.qt import dialog
 from bauh.view.qt.view_model import ApplicationView
 
 
@@ -27,7 +26,7 @@ class AsyncAction(QThread, ProcessHandler):
 
         success, already_succeeded = True, False
 
-        proc.subproc.wait()
+        proc.wait()
 
         for output in proc.subproc.stdout:
             line = output.decode().strip()
@@ -43,13 +42,14 @@ class AsyncAction(QThread, ProcessHandler):
         for output in proc.subproc.stderr:
             line = output.decode().strip()
             if line:
-                if proc.wrong_error_phrase and proc.wrong_error_phrase in line:
-                    continue
-                else:
-                    success = False
-                    signal.emit(line)
+                signal.emit(line)
 
-        proc.subproc.communicate()
+                if proc.check_error_output:
+                    if proc.wrong_error_phrase and proc.wrong_error_phrase in line:
+                        continue
+                    else:
+                        success = False
+
         return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
 
