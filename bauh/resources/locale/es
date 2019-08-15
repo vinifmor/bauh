@@ -85,3 +85,4 @@ manage_window.bt_about.tooltip=Sobre
 warning.no_managers=No hay extensiones instaladas. No será posible instalar y administrar aplicaciones.
 confirmation=confirmación
 and=y
+error=error
