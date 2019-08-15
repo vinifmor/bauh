@@ -658,16 +658,16 @@ class ManageWindow(QWidget):
         dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
         dialog_info.exec_()
 
-    def _finish_get_history(self, app: dict):
+    def _finish_get_history(self, res: dict):
         self.finish_action()
         self.change_update_state(change_filters=False)
 
-        if app.get('error'):
+        if res.get('error'):
             self._handle_console_option(True)
-            self.textarea_output.appendPlainText(app['error'])
+            self.textarea_output.appendPlainText(res['error'])
             self.checkbox_console.setChecked(True)
         else:
-            dialog_history = HistoryDialog(app, self.icon_cache, self.locale_keys)
+            dialog_history = HistoryDialog(res['history'], self.icon_cache, self.locale_keys)
             dialog_history.exec_()
 
     def _begin_search(self, word):

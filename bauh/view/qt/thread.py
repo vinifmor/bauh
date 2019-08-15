@@ -196,8 +196,7 @@ class GetAppHistory(QThread):
     def run(self):
         if self.app:
             try:
-                res = {'model': self.app.model, 'history': self.manager.get_history(self.app.model)}
-                self.signal_finished.emit(res)
+                self.signal_finished.emit({'history': self.manager.get_history(self.app.model)})
             except (requests.exceptions.ConnectionError, NoInternetException):
                 self.signal_finished.emit({'error': self.locale_keys['internet.required']})
             finally:

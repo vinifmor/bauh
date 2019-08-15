@@ -4,7 +4,7 @@ from typing import List, Dict
 
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.handler import ProcessHandler
-from bauh_api.abstract.model import Application, ApplicationUpdate
+from bauh_api.abstract.model import Application, ApplicationUpdate, ApplicationHistory
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
 from bauh_api.util.system import SystemProcess
@@ -158,7 +158,7 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.get_info(app)
 
-    def get_history(self, app: Application):
+    def get_history(self, app: Application) -> ApplicationHistory:
         man = self._get_manager_for(app)
 
         if man:
