@@ -69,16 +69,20 @@ class UpdateSelectedApps(AsyncAction):
 
         success = False
 
-        for app in self.apps_to_update:
-            self.signal_status.emit(app.model.base_data.name)
-            success = self.manager.update(app.model, self.root_password, self)
+        if self.apps_to_update:
+            updated = 0
+            for app in self.apps_to_update:
+                self.signal_status.emit(app.model.base_data.name)
+                success = bool(self.manager.update(app.model, self.root_password, self))
 
-            if not success:
-                break
-            else:
-                self.signal_output.emit('\n')
+                if not success:
+                    break
+                else:
+                    updated += 1
+                    self.signal_output.emit('\n')
 
-        self.signal_finished.emit(success, len(self.apps_to_update))
+            self.signal_finished.emit(success, updated)
+
         self.apps_to_update = None
 
     def handle(self, proc: SystemProcess) -> bool:
