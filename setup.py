@@ -1,3 +1,4 @@
+
 import os
 from setuptools import setup, find_packages
 
@@ -7,7 +8,8 @@ DESCRIPTION = (
 
 AUTHOR = "Vinicius Moreira"
 AUTHOR_EMAIL = "vinicius_fmoreira@hotmail.com"
-URL = "https://github.com/vinifmor/fpakman"
+NAME = 'bauh'
+URL = "https://github.com/vinifmor/" + NAME
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -15,12 +17,12 @@ with open(file_dir + '/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines() if line]
 
 
-with open(file_dir + '/fpakman/__init__.py', 'r') as f:
+with open(file_dir + '/{}/__init__.py'.format(NAME), 'r') as f:
     exec(f.readlines()[0])
 
 
 setup(
-    name="fpakman",
+    name=NAME,
     version=eval('__version__'),
     description=DESCRIPTION,
     long_description=DESCRIPTION,
@@ -29,11 +31,11 @@ setup(
     python_requires=">=3.5",
     url=URL,
     packages=find_packages(),
-    package_data={"fpakman": ["resources/locale/*", "resources/img/*"]},
+    package_data={NAME: ["resources/locale/*", "resources/img/*"]},
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "fpakman=fpakman.app"
+            "{name}={name}.app".format(name=NAME)
         ]
     },
     include_package_data=True,

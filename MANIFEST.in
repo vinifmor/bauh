@@ -1,2 +1,2 @@
 include requirements.txt
-recursive-include fpakman/resources *
+recursive-include bauh/resources *
