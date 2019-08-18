@@ -26,8 +26,6 @@ class AsyncAction(QThread, ProcessHandler):
 
         success, already_succeeded = True, False
 
-        proc.wait()
-
         for output in proc.subproc.stdout:
             line = output.decode().strip()
             if line:
