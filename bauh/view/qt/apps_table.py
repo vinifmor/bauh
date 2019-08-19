@@ -162,6 +162,7 @@ class AppsTable(QTableWidget):
 
                     self._set_col_version(idx, app_v)
                     self._set_col_description(idx, app_v)
+                    self._set_col_settings(idx, app_v)
                     app_v.status = ApplicationViewStatus.READY
 
             self.window.resize_and_center()
