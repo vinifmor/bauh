@@ -16,6 +16,13 @@ from bauh.view.qt.view_model import ApplicationView
 
 class AsyncAction(QThread, ProcessHandler):
 
+    signal_confirmation = pyqtSignal(dict)
+
+    def __init__(self):
+        super(AsyncAction, self).__init__()
+        self.wait_confirmation = False
+        self.confirmation_res = None
+
     def notify_subproc_outputs(self, proc: SystemProcess, signal) -> bool:
         """
         :param signal:
@@ -49,6 +56,20 @@ class AsyncAction(QThread, ProcessHandler):
                         success = False
 
         return proc.subproc.returncode is None or proc.subproc.returncode == 0
+
+    def request_confirmation(self, title: str, body: str, options: dict) -> dict:
+        self.wait_confirmation = True
+        self.signal_confirmation.emit({'title': title, 'body': body, 'options': options})
+        self.wait_user()
+        return self.confirmation_res
+
+    def confirm(self, msg: dict):
+        self.confirmation_res = msg
+        self.wait_confirmation = False
+
+    def wait_user(self):
+        while self.wait_confirmation:
+            time.sleep(0.01)
 
 
 class UpdateSelectedApps(AsyncAction):
@@ -228,7 +249,6 @@ class SearchApps(QThread):
 class InstallApp(AsyncAction):
 
     signal_finished = pyqtSignal(object)
-    signal_confirmation = pyqtSignal(dict)
     signal_error = pyqtSignal(dict)
     signal_output = pyqtSignal(str)
 
@@ -243,20 +263,6 @@ class InstallApp(AsyncAction):
 
         self.wait_confirmation = False
         self.msg_confirmation = None
-
-    def request_confirmation(self, title: str, body: str, options: dict) -> dict:
-        self.wait_confirmation = True
-        self.signal_confirmation.emit({'title': title, 'body': body, 'options': options})
-        self.wait_user()
-        return self.msg_confirmation
-
-    def confirm(self, msg: dict):
-        self.msg_confirmation = msg
-        self.wait_confirmation = False
-
-    def wait_user(self) -> bool:
-        while self.wait_confirmation:
-            time.sleep(0.01)
 
     def run(self):
 
