@@ -2,7 +2,7 @@ import operator
 from functools import reduce
 from typing import List, Set
 
-from PyQt5.QtCore import QEvent, Qt, QSize
+from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
@@ -27,6 +27,8 @@ DARK_ORANGE = '#FF4500'
 
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
+
+    signal_user_res = pyqtSignal(dict)
 
     def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
@@ -166,9 +168,11 @@ class ManageWindow(QWidget):
         self.thread_search.signal_finished.connect(self._finish_search)
 
         self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
+        self.thread_install.signal_confirmation.connect(self._ask_confirmation)
         self.thread_install.signal_output.connect(self._update_action_output)
         self.thread_install.signal_error.connect(self._show_error)
         self.thread_install.signal_finished.connect(self._finish_install)
+        self.signal_user_res.connect(self.thread_install.confirm)
 
         self.thread_animate_progress = AnimateProgress()
         self.thread_animate_progress.signal_change.connect(self._update_progress)
@@ -218,6 +222,10 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def _ask_confirmation(self, msg: dict):
+        res = dialog.ask_confirmation(msg['title'], msg['body'], self.locale_keys)
+        self.signal_user_res.emit({'proceed': res, 'options': {}})
 
     def _show_error(self, msg: dict):
         dialog.show_error(title=msg['title'], body=msg['body'])

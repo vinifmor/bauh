@@ -228,6 +228,7 @@ class SearchApps(QThread):
 class InstallApp(AsyncAction):
 
     signal_finished = pyqtSignal(object)
+    signal_confirmation = pyqtSignal(dict)
     signal_error = pyqtSignal(dict)
     signal_output = pyqtSignal(str)
 
@@ -239,6 +240,23 @@ class InstallApp(AsyncAction):
         self.disk_cache = disk_cache
         self.locale_keys = locale_keys
         self.root_password = None
+
+        self.wait_confirmation = False
+        self.msg_confirmation = None
+
+    def request_confirmation(self, title: str, body: str, options: dict) -> dict:
+        self.wait_confirmation = True
+        self.signal_confirmation.emit({'title': title, 'body': body, 'options': options})
+        self.wait_user()
+        return self.msg_confirmation
+
+    def confirm(self, msg: dict):
+        self.msg_confirmation = msg
+        self.wait_confirmation = False
+
+    def wait_user(self) -> bool:
+        while self.wait_confirmation:
+            time.sleep(0.01)
 
     def run(self):
 
