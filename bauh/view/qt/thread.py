@@ -5,57 +5,26 @@ from typing import List
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 from bauh_api.abstract.controller import ApplicationManager
-from bauh_api.abstract.handler import ProcessHandler
+from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import ApplicationStatus
 from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
-from bauh_api.util.system import SystemProcess
 
 from bauh.view.qt.view_model import ApplicationView
 
 
-class AsyncAction(QThread, ProcessHandler):
+class AsyncAction(QThread, ProcessWatcher):
 
-    signal_confirmation = pyqtSignal(dict)
+    signal_output = pyqtSignal(str)  # print messages to the terminal widget
+    signal_confirmation = pyqtSignal(dict)  # asks the users to confirm something
+    signal_finished = pyqtSignal(object)  # informs the main window that the action has finished
+    signal_error = pyqtSignal(dict)  # asks the GUI to show an error popup
+    signal_status = pyqtSignal(str)  # changes the GUI status message
 
     def __init__(self):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
-
-    def notify_subproc_outputs(self, proc: SystemProcess, signal) -> bool:
-        """
-        :param signal:
-        :param proc:
-        :return: if the subprocess succeeded
-        """
-        signal.emit(' '.join(proc.subproc.args) + '\n')
-
-        success, already_succeeded = True, False
-
-        for output in proc.subproc.stdout:
-            line = output.decode().strip()
-            if line:
-                signal.emit(line)
-
-                if proc.success_phrase and proc.success_phrase in line:
-                    already_succeeded = True
-
-        if already_succeeded:
-            return True
-
-        for output in proc.subproc.stderr:
-            line = output.decode().strip()
-            if line:
-                signal.emit(line)
-
-                if proc.check_error_output:
-                    if proc.wrong_error_phrase and proc.wrong_error_phrase in line:
-                        continue
-                    else:
-                        success = False
-
-        return proc.subproc.returncode is None or proc.subproc.returncode == 0
 
     def request_confirmation(self, title: str, body: str, options: dict) -> dict:
         self.wait_confirmation = True
@@ -71,18 +40,28 @@ class AsyncAction(QThread, ProcessHandler):
         while self.wait_confirmation:
             time.sleep(0.01)
 
+    def print(self, msg: str):
+        if msg:
+            self.signal_output.emit(msg)
+
+    def show_error(self, title: str, body: str):
+        self.signal_error.emit({'title': title, 'body': body})
+
+    def notify_finished(self, res: object):
+        self.signal_finished.emit(res)
+
+    def change_status(self, status: str):
+        self.signal_status.emit(status)
+
 
 class UpdateSelectedApps(AsyncAction):
 
-    signal_finished = pyqtSignal(bool, int)
-    signal_status = pyqtSignal(str)
-    signal_output = pyqtSignal(str)
-
-    def __init__(self, manager: ApplicationManager, apps_to_update: List[ApplicationView] = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, apps_to_update: List[ApplicationView] = None):
         super(UpdateSelectedApps, self).__init__()
         self.apps_to_update = apps_to_update
         self.manager = manager
         self.root_password = None
+        self.locale_keys = locale_keys
 
     def run(self):
 
@@ -91,7 +70,7 @@ class UpdateSelectedApps(AsyncAction):
         if self.apps_to_update:
             updated = 0
             for app in self.apps_to_update:
-                self.signal_status.emit(app.model.base_data.name)
+                self.change_status('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.base_data.name))
                 success = bool(self.manager.update(app.model, self.root_password, self))
 
                 if not success:
@@ -100,33 +79,22 @@ class UpdateSelectedApps(AsyncAction):
                     updated += 1
                     self.signal_output.emit('\n')
 
-            self.signal_finished.emit(success, updated)
+            self.notify_finished({'success': success, 'updated': updated})
 
         self.apps_to_update = None
 
-    def handle(self, proc: SystemProcess) -> bool:
-        return self.notify_subproc_outputs(proc, self.signal_output)
 
-    def notify(self, msg: str):
-        if msg:
-            self.signal_output.emit(msg)
-
-
-class RefreshApps(QThread):
-
-    signal = pyqtSignal(list)
+class RefreshApps(AsyncAction):
 
     def __init__(self, manager: ApplicationManager):
         super(RefreshApps, self).__init__()
         self.manager = manager
 
     def run(self):
-        self.signal.emit(self.manager.read_installed())
+        self.notify_finished(self.manager.read_installed())
 
 
 class UninstallApp(AsyncAction):
-    signal_finished = pyqtSignal(object)
-    signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
         super(UninstallApp, self).__init__()
@@ -143,22 +111,12 @@ class UninstallApp(AsyncAction):
                 self.icon_cache.delete(self.app.model.base_data.icon_url)
                 self.manager.clean_cache_for(self.app.model)
 
-            self.signal_finished.emit(self.app if success else None)
+            self.notify_finished(self.app if success else None)
             self.app = None
             self.root_password = None
 
-    def handle(self, proc: SystemProcess) -> bool:
-        return self.notify_subproc_outputs(proc, self.signal_output)
-
-    def notify(self, msg: str):
-        if msg:
-            self.signal_output.emit(msg)
-
 
 class DowngradeApp(AsyncAction):
-    signal_finished = pyqtSignal(bool)
-    signal_error = pyqtSignal(dict)
-    signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(DowngradeApp, self).__init__()
@@ -174,25 +132,14 @@ class DowngradeApp(AsyncAction):
                 success = self.manager.downgrade_app(self.app.model, self.root_password, self)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
-                self.signal_output.emit(self.locale_keys['internet.required'])
+                self.print(self.locale_keys['internet.required'])
             finally:
                 self.app = None
                 self.root_password = None
-                self.signal_finished.emit(success)
-
-    def handle(self, proc: SystemProcess) -> bool:
-        return self.notify_subproc_outputs(proc, self.signal_output)
-
-    def notify(self, msg: str):
-        if msg:
-            self.signal_output.emit(msg)
-
-    def show_error(self, title: str, body: str):
-        self.signal_error.emit({'title': title, 'body': body})
+                self.notify_finished(success)
 
 
-class GetAppInfo(QThread):
-    signal_finished = pyqtSignal(dict)
+class GetAppInfo(AsyncAction):
 
     def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(GetAppInfo, self).__init__()
@@ -203,12 +150,11 @@ class GetAppInfo(QThread):
         if self.app:
             info = {'__app__': self.app}
             info.update(self.manager.get_info(self.app.model))
-            self.signal_finished.emit(info)
+            self.notify_finished(info)
             self.app = None
 
 
-class GetAppHistory(QThread):
-    signal_finished = pyqtSignal(dict)
+class GetAppHistory(AsyncAction):
 
     def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
         super(GetAppHistory, self).__init__()
@@ -219,15 +165,14 @@ class GetAppHistory(QThread):
     def run(self):
         if self.app:
             try:
-                self.signal_finished.emit({'history': self.manager.get_history(self.app.model)})
+                self.notify_finished({'history': self.manager.get_history(self.app.model)})
             except (requests.exceptions.ConnectionError, NoInternetException):
-                self.signal_finished.emit({'error': self.locale_keys['internet.required']})
+                self.notify_finished({'error': self.locale_keys['internet.required']})
             finally:
                 self.app = None
 
 
-class SearchApps(QThread):
-    signal_finished = pyqtSignal(list)
+class SearchApps(AsyncAction):
 
     def __init__(self, manager: ApplicationManager):
         super(SearchApps, self).__init__()
@@ -241,16 +186,11 @@ class SearchApps(QThread):
             res = self.manager.search(self.word)
             apps_found.extend(res['installed'])
             apps_found.extend(res['new'])
-
-        self.signal_finished.emit(apps_found)
-        self.word = None
+            self.notify_finished(apps_found)
+            self.word = None
 
 
 class InstallApp(AsyncAction):
-
-    signal_finished = pyqtSignal(object)
-    signal_error = pyqtSignal(dict)
-    signal_output = pyqtSignal(str)
 
     def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
         super(InstallApp, self).__init__()
@@ -261,11 +201,7 @@ class InstallApp(AsyncAction):
         self.locale_keys = locale_keys
         self.root_password = None
 
-        self.wait_confirmation = False
-        self.msg_confirmation = None
-
     def run(self):
-
         if self.app:
             success = False
 
@@ -282,20 +218,10 @@ class InstallApp(AsyncAction):
                                                    only_icon=False)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
-                self.signal_output.emit(self.locale_keys['internet.required'])
+                self.print(self.locale_keys['internet.required'])
             finally:
                 self.signal_finished.emit(self.app if success else None)
                 self.app = None
-
-    def handle(self, proc: SystemProcess) -> bool:
-        return self.notify_subproc_outputs(proc, self.signal_output)
-
-    def notify(self, msg: str):
-        if msg:
-            self.signal_output.emit(msg)
-
-    def show_error(self, title: str, body: str):
-        self.signal_error.emit({'title': title, 'body': body})
 
 
 class AnimateProgress(QThread):
@@ -366,9 +292,6 @@ class VerifyModels(QThread):
 
 class RefreshApp(AsyncAction):
 
-    signal_finished = pyqtSignal(bool)
-    signal_output = pyqtSignal(str)
-
     def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(RefreshApp, self).__init__()
         self.app = app
@@ -381,8 +304,7 @@ class RefreshApp(AsyncAction):
             success = False
 
             try:
-                process = self.manager.refresh(self.app.model, self.root_password)
-                success = self.notify_subproc_outputs(process, self.signal_output)
+                success = self.manager.refresh(self.app.model, self.root_password, self)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
                 self.signal_output.emit(self.locale_keys['internet.required'])
@@ -393,15 +315,13 @@ class RefreshApp(AsyncAction):
 
 class FindSuggestions(AsyncAction):
 
-    signal_finished = pyqtSignal(list)
-
     def __init__(self, man: ApplicationManager):
         super(FindSuggestions, self).__init__()
         self.man = man
 
     def run(self):
         sugs = self.man.list_suggestions(limit=-1)
-        self.signal_finished.emit(sugs if sugs is not None else [])
+        self.notify_finished(sugs if sugs is not None else [])
 
 
 class ListWarnings(QThread):

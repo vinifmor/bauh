@@ -3,7 +3,7 @@ from threading import Thread
 from typing import List, Dict
 
 from bauh_api.abstract.controller import ApplicationManager
-from bauh_api.abstract.handler import ProcessHandler
+from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import Application, ApplicationUpdate, ApplicationHistory
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
@@ -120,7 +120,7 @@ class GenericApplicationManager(ApplicationManager):
 
         return installed
 
-    def downgrade_app(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
+    def downgrade_app(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
@@ -134,19 +134,19 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.clean_cache_for(app)
 
-    def update(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
+    def update(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
             return man.update(app, root_password, handler)
 
-    def uninstall(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
+    def uninstall(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
             return man.uninstall(app, root_password, handler)
 
-    def install(self, app: Application, root_password: str, handler: ProcessHandler) -> bool:
+    def install(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
@@ -187,13 +187,13 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.requires_root(action, app)
 
-    def refresh(self, app: Application, root_password: str) -> SystemProcess:
+    def refresh(self, app: Application, root_password: str, watcher: ProcessWatcher) -> bool:
         self._wait_to_be_ready()
 
         man = self._get_manager_for(app)
 
         if man:
-            return man.refresh(app, root_password)
+            return man.refresh(app, root_password, watcher)
 
     def _prepare(self):
         if self.managers:

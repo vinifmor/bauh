@@ -19,7 +19,8 @@ from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
+    AsyncAction
 from bauh.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
@@ -141,51 +142,24 @@ class ManageWindow(QWidget):
         self.textarea_output.setVisible(False)
         self.textarea_output.setReadOnly(True)
 
-        self.thread_update = UpdateSelectedApps(self.manager)
-        self.thread_update.signal_output.connect(self._update_action_output)
-        self.thread_update.signal_finished.connect(self._finish_update_selected)
-        self.thread_update.signal_status.connect(self._change_updating_app_status)
-
-        self.thread_refresh = RefreshApps(self.manager)
-        self.thread_refresh.signal.connect(self._finish_refresh_apps)
-
-        self.thread_uninstall = UninstallApp(self.manager, self.icon_cache)
-        self.thread_uninstall.signal_output.connect(self._update_action_output)
-        self.thread_uninstall.signal_finished.connect(self._finish_uninstall)
-
-        self.thread_downgrade = DowngradeApp(self.manager, self.locale_keys)
-        self.thread_downgrade.signal_output.connect(self._update_action_output)
-        self.thread_downgrade.signal_finished.connect(self._finish_downgrade)
-        self.thread_downgrade.signal_error.connect(self._show_error)
-
-        self.thread_get_info = GetAppInfo(self.manager)
-        self.thread_get_info.signal_finished.connect(self._finish_get_info)
-
-        self.thread_get_history = GetAppHistory(self.manager, self.locale_keys)
-        self.thread_get_history.signal_finished.connect(self._finish_get_history)
-
-        self.thread_search = SearchApps(self.manager)
-        self.thread_search.signal_finished.connect(self._finish_search)
+        self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.locale_keys), finished_call=self._finish_update_selected)
+        self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
+        self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
+        self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
+        self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.locale_keys), finished_call=self._finish_get_history)
+        self.thread_search = self._bind_async_action(SearchApps(self.manager), finished_call=self._finish_search, only_finished=True)
+        self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.locale_keys), finished_call=self._finish_downgrade)
+        self.thread_refresh_app = self._bind_async_action(RefreshApp(manager=self.manager), finished_call=self._finish_refresh)
+        self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
 
         self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
-        self.thread_install.signal_confirmation.connect(self._ask_confirmation)
-        self.thread_install.signal_output.connect(self._update_action_output)
-        self.thread_install.signal_error.connect(self._show_error)
-        self.thread_install.signal_finished.connect(self._finish_install)
-        self.signal_user_res.connect(self.thread_install.confirm)
+        self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
         self.thread_animate_progress.signal_change.connect(self._update_progress)
 
         self.thread_verify_models = VerifyModels()
         self.thread_verify_models.signal_updates.connect(self._notify_model_data_change)
-
-        self.thread_refresh_app = RefreshApp(manager=self.manager)
-        self.thread_refresh_app.signal_finished.connect(self._finish_refresh)
-        self.thread_refresh_app.signal_output.connect(self._update_action_output)
-
-        self.thread_suggestions = FindSuggestions(man=self.manager)
-        self.thread_suggestions.signal_finished.connect(self._finish_search)
 
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
@@ -222,6 +196,18 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def _bind_async_action(self, action: AsyncAction, finished_call, only_finished: bool = False) -> AsyncAction:
+        action.signal_finished.connect(finished_call)
+
+        if not only_finished:
+            action.signal_confirmation.connect(self._ask_confirmation)
+            action.signal_output.connect(self._update_action_output)
+            action.signal_error.connect(self._show_error)
+            action.signal_status.connect(self._change_label_status)
+            self.signal_user_res.connect(action.confirm)
+
+        return action
 
     def _ask_confirmation(self, msg: dict):
         res = dialog.ask_confirmation(msg['title'], msg['body'], self.locale_keys)
@@ -396,8 +382,8 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def _change_updating_app_status(self, app_name: str):
-        self.label_status.setText('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app_name))
+    def _change_label_status(self, status: str):
+        self.label_status.setText(status)
 
     def apply_filters(self):
         if self.apps:
@@ -568,12 +554,12 @@ class ManageWindow(QWidget):
                 self.thread_update.root_password = pwd
                 self.thread_update.start()
 
-    def _finish_update_selected(self, success: bool, updated: int):
+    def _finish_update_selected(self, res: dict):
         self.finish_action()
 
-        if success:
+        if res['success']:
             if self._can_notify_user():
-                util.notify_user('{} {}'.format(updated, self.locale_keys['notification.update_selected.success']))
+                util.notify_user('{} {}'.format(res['updated'], self.locale_keys['notification.update_selected.success']))
 
             self.refresh_apps()
 
