@@ -86,3 +86,4 @@ warning.no_managers=Não há nenhuma extensão instalada. Não será possível i
 confirmation=confirmação
 and=e
 error=erro
+action.cancelled=operação cancelada pelo usuário

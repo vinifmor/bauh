@@ -7,6 +7,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import ApplicationStatus
+from bauh_api.abstract.view import InputViewComponent
 from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
 
@@ -20,20 +21,21 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_finished = pyqtSignal(object)  # informs the main window that the action has finished
     signal_error = pyqtSignal(dict)  # asks the GUI to show an error popup
     signal_status = pyqtSignal(str)  # changes the GUI status message
+    signal_substatus = pyqtSignal(str)  # changes the GUI substatus message
 
     def __init__(self):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
 
-    def request_confirmation(self, title: str, body: str, options: dict) -> dict:
+    def request_confirmation(self, title: str, body: str, options: List[InputViewComponent] = None) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'options': options})
         self.wait_user()
         return self.confirmation_res
 
-    def confirm(self, msg: dict):
-        self.confirmation_res = msg
+    def confirm(self, res: bool):
+        self.confirmation_res = res
         self.wait_confirmation = False
 
     def wait_user(self):
@@ -52,6 +54,9 @@ class AsyncAction(QThread, ProcessWatcher):
 
     def change_status(self, status: str):
         self.signal_status.emit(status)
+
+    def change_substatus(self, substatus: str):
+        self.signal_substatus.emit(substatus)
 
 
 class UpdateSelectedApps(AsyncAction):

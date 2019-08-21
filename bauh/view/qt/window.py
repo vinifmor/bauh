@@ -15,6 +15,7 @@ from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable
+from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
@@ -29,7 +30,7 @@ DARK_ORANGE = '#FF4500'
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
-    signal_user_res = pyqtSignal(dict)
+    signal_user_res = pyqtSignal(bool)
 
     def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
@@ -133,6 +134,7 @@ class ManageWindow(QWidget):
         self.ref_checkbox_console = toolbar_console.addWidget(self.checkbox_console)
 
         toolbar_console.addWidget(self._new_spacer())
+
         self.layout.addWidget(toolbar_console)
 
         self.textarea_output = QPlainTextEdit(self)
@@ -184,6 +186,14 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar_bottom)
 
+        self.toolbar_substatus = QToolBar()
+        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.label_substatus = QLabel()
+        self.toolbar_substatus.addWidget(self.label_substatus)
+        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.layout.addWidget(self.toolbar_substatus)
+        self._change_label_substatus('')
+
         self.centralize()
 
         self.filter_only_apps = True
@@ -205,13 +215,14 @@ class ManageWindow(QWidget):
             action.signal_output.connect(self._update_action_output)
             action.signal_error.connect(self._show_error)
             action.signal_status.connect(self._change_label_status)
+            action.signal_substatus.connect(self._change_label_substatus)
             self.signal_user_res.connect(action.confirm)
 
         return action
 
     def _ask_confirmation(self, msg: dict):
-        res = dialog.ask_confirmation(msg['title'], msg['body'], self.locale_keys)
-        self.signal_user_res.emit({'proceed': res, 'options': {}})
+        diag = ConfirmationDialog(msg['title'], msg['body'], self.locale_keys)
+        self.signal_user_res.emit(diag.is_confirmed())
 
     def _show_error(self, msg: dict):
         dialog.show_error(title=msg['title'], body=msg['body'])
@@ -384,6 +395,16 @@ class ManageWindow(QWidget):
 
     def _change_label_status(self, status: str):
         self.label_status.setText(status)
+
+    def _change_label_substatus(self, substatus: str):
+        if not substatus:
+            self.label_substatus.setText(substatus)
+            self.toolbar_substatus.hide()
+        else:
+            if not self.toolbar_substatus.isVisible():
+                self.toolbar_substatus.show()
+
+            self.label_substatus.setText("( {} )".format(substatus))
 
     def apply_filters(self):
         if self.apps:
@@ -600,6 +621,7 @@ class ManageWindow(QWidget):
             self.extra_filters.setEnabled(False)
 
     def finish_action(self):
+        self._change_label_substatus('')
         self.ref_bt_about.setVisible(True)
         self.ref_progress_bar.setVisible(False)
         self.ref_label_updates.setVisible(True)
@@ -610,6 +632,7 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(True)
         self.input_search.setEnabled(True)
         self.label_status.setText('')
+        self.label_substatus.setText('')
         self.ref_toolbar_search.setVisible(True)
         self.ref_toolbar_search.setEnabled(True)
         self.extra_filters.setEnabled(True)

@@ -84,3 +84,4 @@ warning.no_managers=There are no installed extensions. It will not be possible t
 confirmation=confirmation
 and=and
 error=error
+action.cancelled=operation cancelled by the user
