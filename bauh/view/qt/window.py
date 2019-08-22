@@ -144,6 +144,14 @@ class ManageWindow(QWidget):
         self.textarea_output.setVisible(False)
         self.textarea_output.setReadOnly(True)
 
+        self.toolbar_substatus = QToolBar()
+        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.label_substatus = QLabel()
+        self.toolbar_substatus.addWidget(self.label_substatus)
+        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.layout.addWidget(self.toolbar_substatus)
+        self._change_label_substatus('')
+
         self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.locale_keys), finished_call=self._finish_update_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
@@ -185,14 +193,6 @@ class ManageWindow(QWidget):
         self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
-
-        self.toolbar_substatus = QToolBar()
-        self.toolbar_substatus.addWidget(self._new_spacer())
-        self.label_substatus = QLabel()
-        self.toolbar_substatus.addWidget(self.label_substatus)
-        self.toolbar_substatus.addWidget(self._new_spacer())
-        self.layout.addWidget(self.toolbar_substatus)
-        self._change_label_substatus('')
 
         self.centralize()
 
@@ -397,14 +397,11 @@ class ManageWindow(QWidget):
         self.label_status.setText(status)
 
     def _change_label_substatus(self, substatus: str):
+        self.label_substatus.setText(substatus)
         if not substatus:
-            self.label_substatus.setText(substatus)
             self.toolbar_substatus.hide()
-        else:
-            if not self.toolbar_substatus.isVisible():
-                self.toolbar_substatus.show()
-
-            self.label_substatus.setText("( {} )".format(substatus))
+        elif not self.toolbar_substatus.isVisible():
+            self.toolbar_substatus.show()
 
     def apply_filters(self):
         if self.apps:
