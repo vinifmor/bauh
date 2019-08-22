@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QGroupBox, \
-    QLineEdit, QLabel
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
+    QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 from bauh_api.util.cache import Cache
 
 from bauh.util import util
@@ -15,15 +15,29 @@ class InfoDialog(QDialog):
         super(InfoDialog, self).__init__()
         self.setWindowTitle(app['__app__'].model.base_data.name)
         self.screen_size = screen_size
+        self.i18n = locale_keys
         layout = QVBoxLayout()
         self.setLayout(layout)
+        self.full_vals = []
 
-        gbox_info = QGroupBox()
-        gbox_info.setMaximumHeight(self.screen_size.height() - self.screen_size.height() * 0.1)
-        gbox_info_layout = QFormLayout()
-        gbox_info.setLayout(gbox_info_layout)
+        self.toolbar_field = QToolBar()
+        self.bt_back = QPushButton(locale_keys['back'].capitalize())
+        self.bt_back.clicked.connect(self.back_to_info)
+        self.toolbar_field.addWidget(self.bt_back)
+        self.layout().addWidget(self.toolbar_field)
+        self.toolbar_field.hide()
 
-        layout.addWidget(gbox_info)
+        # shows complete field string
+        self.text_field = QPlainTextEdit()
+        self.layout().addWidget(self.text_field)
+        self.text_field.hide()
+
+        self.gbox_info = QGroupBox()
+        self.gbox_info.setMaximumHeight(self.screen_size.height() - self.screen_size.height() * 0.1)
+        self.gbox_info_layout = QGridLayout()
+        self.gbox_info.setLayout(self.gbox_info_layout)
+
+        layout.addWidget(self.gbox_info)
 
         icon_data = icon_cache.get(app['__app__'].model.base_data.icon_url)
 
@@ -32,10 +46,11 @@ class InfoDialog(QDialog):
         else:
             self.setWindowIcon(QIcon(app['__app__'].model.get_type_icon_path()))
 
-        for attr in sorted(app.keys()):
+        for idx, attr in enumerate(sorted(app.keys())):
             if attr not in IGNORED_ATTRS and app[attr]:
                 i18n_key = app['__app__'].model.get_type() + '.info.' + attr.lower()
                 val = str(app[attr]).strip()
+                full_val = None
 
                 i18n_val = locale_keys.get('{}.{}'.format(i18n_key, val.lower()))
 
@@ -45,9 +60,11 @@ class InfoDialog(QDialog):
                 text = QLineEdit()
                 text.setToolTip(val)
 
-                if len(val) > 40:
+                if len(val) > 80:
+                    full_val = val
+                    self.full_vals.append(full_val)
                     val = util.strip_html(val)
-                    val = val[0:40] + '...'
+                    val = val[0:80] + '...'
 
                 text.setText(val)
                 text.setCursorPosition(0)
@@ -57,6 +74,28 @@ class InfoDialog(QDialog):
                 label = QLabel("{}: ".format(locale_keys.get(i18n_key, attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")
 
-                gbox_info_layout.addRow(label, text)
+                self.gbox_info_layout.addWidget(label, idx, 0)
+                self.gbox_info_layout.addWidget(text, idx, 1)
+
+                if full_val is not None:
+                    self._gen_show_button(idx, full_val)
 
         self.adjustSize()
+
+    def _gen_show_button(self, idx: int, val):
+
+        def show_full_field():
+            self.gbox_info.hide()
+            self.toolbar_field.show()
+            self.text_field.show()
+            self.text_field.appendHtml(val)
+
+        bt_full_field = QPushButton(self.i18n['show'].capitalize())
+        bt_full_field.clicked.connect(show_full_field)
+        self.gbox_info_layout.addWidget(bt_full_field, idx, 2)
+
+    def back_to_info(self):
+        self.text_field.setPlainText("")
+        self.text_field.hide()
+        self.toolbar_field.hide()
+        self.gbox_info.show()

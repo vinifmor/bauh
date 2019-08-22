@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QRadioButton, QFormLayout, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QVBoxLayout, QLabel
+    QVBoxLayout, QLabel, QSizePolicy
 from bauh_api.abstract.view import SingleSelectComponent, SelectOption, MultipleSelectComponent, SelectViewType
 
 
@@ -135,3 +135,8 @@ def new_single_select(model: SingleSelectComponent):
     else:
         raise Exception("Unsupported type {}".format(model.type))
 
+
+def new_spacer() -> QWidget:
+    spacer = QWidget()
+    spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    return spacer

@@ -87,3 +87,6 @@ confirmation=confirmación
 and=y
 error=error
 action.cancelled=operación cancelada por el usuario
+copy=copiar
+back=volver
+show=mostrar

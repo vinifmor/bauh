@@ -85,3 +85,6 @@ confirmation=confirmation
 and=and
 error=error
 action.cancelled=operation cancelled by the user
+copy=copy
+back=back
+show=show

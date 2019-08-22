@@ -5,7 +5,7 @@ from typing import List, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QSizePolicy, QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.model import Application
 from bauh_api.util.cache import Cache
@@ -15,6 +15,7 @@ from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable
+from bauh.view.qt.components import new_spacer
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
@@ -53,7 +54,7 @@ class ManageWindow(QWidget):
         self.setLayout(self.layout)
 
         self.toolbar_top = QToolBar()
-        self.toolbar_top.addWidget(self._new_spacer())
+        self.toolbar_top.addWidget(new_spacer())
 
         self.label_status = QLabel()
         self.label_status.setText('')
@@ -83,7 +84,7 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(label_pos_search)
 
         self.ref_toolbar_search = self.toolbar_top.addWidget(self.toolbar_search)
-        self.toolbar_top.addWidget(self._new_spacer())
+        self.toolbar_top.addWidget(new_spacer())
         self.layout.addWidget(self.toolbar_top)
 
         toolbar = QToolBar()
@@ -103,7 +104,7 @@ class ManageWindow(QWidget):
         self.extra_filters.setLayout(QHBoxLayout())
         toolbar.addWidget(self.extra_filters)
 
-        toolbar.addWidget(self._new_spacer())
+        toolbar.addWidget(new_spacer())
 
         self.bt_refresh = QToolButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
@@ -133,7 +134,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setVisible(False)
         self.ref_checkbox_console = toolbar_console.addWidget(self.checkbox_console)
 
-        toolbar_console.addWidget(self._new_spacer())
+        toolbar_console.addWidget(new_spacer())
 
         self.layout.addWidget(toolbar_console)
 
@@ -145,10 +146,10 @@ class ManageWindow(QWidget):
         self.textarea_output.setReadOnly(True)
 
         self.toolbar_substatus = QToolBar()
-        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.toolbar_substatus.addWidget(new_spacer())
         self.label_substatus = QLabel()
         self.toolbar_substatus.addWidget(self.label_substatus)
-        self.toolbar_substatus.addWidget(self._new_spacer())
+        self.toolbar_substatus.addWidget(new_spacer())
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
@@ -177,13 +178,13 @@ class ManageWindow(QWidget):
         self.label_updates = QLabel()
         self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
 
-        self.toolbar_bottom.addWidget(self._new_spacer())
+        self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(False)
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
-        self.toolbar_bottom.addWidget(self._new_spacer())
+        self.toolbar_bottom.addWidget(new_spacer())
 
         bt_about = QToolButton()
         bt_about.setStyleSheet('QToolButton { border: 0px; }')
@@ -262,11 +263,6 @@ class ManageWindow(QWidget):
 
     def _notify_model_data_change(self):
         self.table_apps.fill_async_data()
-
-    def _new_spacer(self):
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        return spacer
 
     def changeEvent(self, e: QEvent):
         if isinstance(e, QWindowStateChangeEvent):
