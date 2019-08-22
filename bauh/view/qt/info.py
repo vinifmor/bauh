@@ -35,7 +35,7 @@ class InfoDialog(QDialog):
         for attr in sorted(app.keys()):
             if attr not in IGNORED_ATTRS and app[attr]:
                 i18n_key = app['__app__'].model.get_type() + '.info.' + attr.lower()
-                val = app[attr].strip()
+                val = str(app[attr]).strip()
 
                 i18n_val = locale_keys.get('{}.{}'.format(i18n_key, val.lower()))
 
