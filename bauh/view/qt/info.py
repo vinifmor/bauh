@@ -88,7 +88,7 @@ class InfoDialog(QDialog):
             self.gbox_info.hide()
             self.toolbar_field.show()
             self.text_field.show()
-            self.text_field.appendHtml(val)
+            self.text_field.setPlainText(val)
 
         bt_full_field = QPushButton(self.i18n['show'].capitalize())
         bt_full_field.clicked.connect(show_full_field)
