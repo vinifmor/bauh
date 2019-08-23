@@ -7,7 +7,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import ApplicationStatus
-from bauh_api.abstract.view import InputViewComponent
+from bauh_api.abstract.view import InputViewComponent, MessageType
 from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
 
@@ -19,7 +19,7 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_output = pyqtSignal(str)  # print messages to the terminal widget
     signal_confirmation = pyqtSignal(dict)  # asks the users to confirm something
     signal_finished = pyqtSignal(object)  # informs the main window that the action has finished
-    signal_error = pyqtSignal(dict)  # asks the GUI to show an error popup
+    signal_message = pyqtSignal(dict)  # asks the GUI to show an error popup
     signal_status = pyqtSignal(str)  # changes the GUI status message
     signal_substatus = pyqtSignal(str)  # changes the GUI substatus message
 
@@ -46,8 +46,8 @@ class AsyncAction(QThread, ProcessWatcher):
         if msg:
             self.signal_output.emit(msg)
 
-    def show_error(self, title: str, body: str):
-        self.signal_error.emit({'title': title, 'body': body})
+    def show_message(self, title: str, body: str, type_: MessageType):
+        self.signal_message.emit({'title': title, 'body': body, 'type': type_})
 
     def notify_finished(self, res: object):
         self.signal_finished.emit(res)

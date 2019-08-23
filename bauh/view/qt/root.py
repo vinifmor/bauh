@@ -3,8 +3,9 @@ import os
 import subprocess
 
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
+from bauh_api.abstract.view import MessageType
 
-from bauh.view.qt.dialog import show_error
+from bauh.view.qt.dialog import show_message
 
 
 def is_root():
@@ -25,8 +26,9 @@ def ask_root_password(locale_keys: dict):
 
     if ok:
         if not validate_password(dialog_pwd.textValue()):
-            show_error(title=locale_keys['popup.root.bad_password.title'],
-                       body=locale_keys['popup.root.bad_password.body'])
+            show_message(title=locale_keys['popup.root.bad_password.title'],
+                         body=locale_keys['popup.root.bad_password.body'],
+                         type_=MessageType.ERROR)
             ok = False
 
     return dialog_pwd.textValue(), ok

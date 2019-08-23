@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHead
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.model import Application
+from bauh_api.abstract.view import MessageType
 from bauh_api.util.cache import Cache
 
 from bauh.core import resource
@@ -214,7 +215,7 @@ class ManageWindow(QWidget):
         if not only_finished:
             action.signal_confirmation.connect(self._ask_confirmation)
             action.signal_output.connect(self._update_action_output)
-            action.signal_error.connect(self._show_error)
+            action.signal_message.connect(self._show_message)
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             self.signal_user_res.connect(action.confirm)
@@ -225,13 +226,12 @@ class ManageWindow(QWidget):
         diag = ConfirmationDialog(msg['title'], msg['body'], self.locale_keys)
         self.signal_user_res.emit(diag.is_confirmed())
 
-    def _show_error(self, msg: dict):
-        dialog.show_error(title=msg['title'], body=msg['body'])
+    def _show_message(self, msg: dict):
+        dialog.show_message(title=msg['title'], body=msg['body'], type_=msg['type'])
 
     def _show_warnings(self, warnings: List[str]):
         if warnings:
-            for warning in warnings:
-                dialog.show_warning(title=self.locale_keys['warning'].capitalize(), body=warning)
+            dialog.show_message(title=self.locale_keys['warning'].capitalize(), body='\n'.join(warnings), type_=MessageType.WARNING)
 
     def show(self):
         super(ManageWindow, self).show()
