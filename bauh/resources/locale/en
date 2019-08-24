@@ -88,3 +88,4 @@ action.cancelled=operation cancelled by the user
 copy=copy
 back=back
 show=show
+ask.continue=Continue ?

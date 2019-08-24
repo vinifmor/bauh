@@ -90,3 +90,4 @@ action.cancelled=operação cancelada pelo usuário
 copy=copiar
 back=voltar
 show=mostrar
+ask.continue=Continuar ?
