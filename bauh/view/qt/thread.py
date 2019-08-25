@@ -46,7 +46,7 @@ class AsyncAction(QThread, ProcessWatcher):
         if msg:
             self.signal_output.emit(msg)
 
-    def show_message(self, title: str, body: str, type_: MessageType):
+    def show_message(self, title: str, body: str, type_: MessageType = MessageType.INFO):
         self.signal_message.emit({'title': title, 'body': body, 'type': type_})
 
     def notify_finished(self, res: object):

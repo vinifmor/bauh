@@ -223,7 +223,7 @@ class ManageWindow(QWidget):
         return action
 
     def _ask_confirmation(self, msg: dict):
-        diag = ConfirmationDialog(msg['title'], msg['body'], self.locale_keys)
+        diag = ConfirmationDialog(title=msg['title'], body=msg['body'], locale_keys=self.locale_keys, components=msg['options'])
         self.signal_user_res.emit(diag.is_confirmed())
 
     def _show_message(self, msg: dict):

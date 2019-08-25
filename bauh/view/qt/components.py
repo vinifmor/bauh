@@ -1,12 +1,11 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QRadioButton, QFormLayout, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QVBoxLayout, QLabel, QSizePolicy
-from bauh_api.abstract.view import SingleSelectComponent, SelectOption, MultipleSelectComponent, SelectViewType
+from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
+    QLabel, QSizePolicy
+from bauh_api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
 
 
 class RadioButtonQt(QRadioButton):
 
-    def __init__(self, model: SelectOption, model_parent: SingleSelectComponent):
+    def __init__(self, model: InputOption, model_parent: SingleSelectComponent):
         super(RadioButtonQt, self).__init__()
         self.model = model
         self.model_parent = model_parent
@@ -19,7 +18,7 @@ class RadioButtonQt(QRadioButton):
 
 class CheckboxQt(QCheckBox):
 
-    def __init__(self, model: SelectOption, model_parent: MultipleSelectComponent):
+    def __init__(self, model: InputOption, model_parent: MultipleSelectComponent):
         super(CheckboxQt, self).__init__()
         self.model = model
         self.model_parent = model_parent
@@ -102,7 +101,7 @@ class ComboSelectQt(QGroupBox):
 class MultipleSelectQt(QGroupBox):
 
     def __init__(self, model: MultipleSelectComponent):
-        super(MultipleSelectQt, self).__init__(model.label + ' :')
+        super(MultipleSelectQt, self).__init__(model.label + ' :' if model.label else None)
         self.setStyleSheet("QGroupBox { font-weight: bold }")
         self.model = model
         self._layout = QGridLayout()
