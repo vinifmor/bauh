@@ -133,7 +133,7 @@ class AppsTable(QTableWidget):
                 def downgrade():
                     if dialog.ask_confirmation(
                             title=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade'],
-                            body=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(app.model.base_data.name),
+                            body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(app)))),
                             locale_keys=self.window.locale_keys):
                         self.window.downgrade_app(app)
 
@@ -175,17 +175,15 @@ class AppsTable(QTableWidget):
 
     def _uninstall_app(self, app_v: ApplicationView):
         if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(app_v),
+                                   body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
                                    locale_keys=self.window.locale_keys):
             self.window.uninstall_app(app_v)
 
-    def _downgrade_app(self):
-        selected_app = self.get_selected_app()
+    def _bold(self, text: str) -> str:
+        return '<span style="font-weight: bold">{}</span>'.format(text)
 
-        if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade'],
-                                   body=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(selected_app.model.base_data.name),
-                                   locale_keys=self.window.locale_keys):
-            self.window.downgrade_app(selected_app)
+    def _parag(self, text: str) -> str:
+        return '<p>{}</p>'.format(text)
 
     def _refresh_app(self):
         self.window.refresh(self.get_selected_app())
@@ -200,7 +198,7 @@ class AppsTable(QTableWidget):
 
         if dialog.ask_confirmation(
                 title=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(app_v),
+                body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(app_v)))),
                 locale_keys=self.window.locale_keys):
 
             self.window.install_app(app_v)
