@@ -48,7 +48,10 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys
                                         http_client=http_client,
                                         locale_keys=locale_keys,
                                         app_cache=app_cache)
-                    cache_map[man.get_app_type()] = app_cache
+
+                    for t in man.get_managed_types():
+                        cache_map[t] = app_cache
+
                     caches.append(app_cache)
                     managers.append(man)
 

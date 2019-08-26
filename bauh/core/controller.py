@@ -1,13 +1,12 @@
 from argparse import Namespace
 from threading import Thread
-from typing import List, Dict
+from typing import List, Dict, Set
 
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import Application, ApplicationUpdate, ApplicationHistory
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
-from bauh_api.util.system import SystemProcess
 
 from bauh import ROOT_DIR
 
@@ -19,7 +18,7 @@ class GenericApplicationManager(ApplicationManager):
     def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace, locale_keys: dict):
         super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=locale_keys, app_root_dir=ROOT_DIR, http_client=None)
         self.managers = managers
-        self.map = {m.get_app_type(): m for m in self.managers}
+        self.map = {t: m for m in self.managers for t in m.get_managed_types()}
         self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if app_args.check_packaging_once else None
         self.thread_prepare = None
@@ -48,11 +47,11 @@ class GenericApplicationManager(ApplicationManager):
     def _is_enabled(self, man: ApplicationManager):
 
         if self._enabled_map is not None:
-            enabled = self._enabled_map.get(man.get_app_type())
+            enabled = self._enabled_map.get(man.get_managed_types())
 
             if enabled is None:
                 enabled = man.is_enabled()
-                self._enabled_map[man.get_app_type()] = enabled
+                self._enabled_map[man.get_managed_types()] = enabled
 
             return enabled
         else:
@@ -164,7 +163,7 @@ class GenericApplicationManager(ApplicationManager):
         if man:
             return man.get_history(app)
 
-    def get_app_type(self):
+    def get_managed_types(self) -> Set["type"]:
         return None
 
     def is_enabled(self):
