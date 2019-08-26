@@ -16,11 +16,9 @@ class ConfirmationDialog(QMessageBox):
         self.addButton(locale_keys['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 
         if body:
-            if components:
-                self.layout().addWidget(QLabel(body), 0, 1)
-            else:
+            self.layout().addWidget(QLabel(body), 0, 1)
+            if not components:
                 self.setIcon(QMessageBox.Question)
-                self.setText(body)
 
         if components:
             comps_container = QWidget(parent=self)
