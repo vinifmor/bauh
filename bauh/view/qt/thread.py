@@ -28,9 +28,9 @@ class AsyncAction(QThread, ProcessWatcher):
         self.wait_confirmation = False
         self.confirmation_res = None
 
-    def request_confirmation(self, title: str, body: str, options: List[InputViewComponent] = None, confirmation_label: str = None, deny_label: str = None) -> bool:
+    def request_confirmation(self, title: str, body: str, components: List[InputViewComponent] = None, confirmation_label: str = None, deny_label: str = None) -> bool:
         self.wait_confirmation = True
-        self.signal_confirmation.emit({'title': title, 'body': body, 'components': options, 'confirmation_label': confirmation_label, 'deny_label': deny_label})
+        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label})
         self.wait_user()
         return self.confirmation_res
 

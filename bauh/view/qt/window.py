@@ -398,7 +398,7 @@ class ManageWindow(QWidget):
         self.label_status.setText(status)
 
     def _change_label_substatus(self, substatus: str):
-        self.label_substatus.setText(substatus)
+        self.label_substatus.setText('<p>{}</p>'.format(substatus))
         if not substatus:
             self.toolbar_substatus.hide()
         elif not self.toolbar_substatus.isVisible():
