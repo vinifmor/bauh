@@ -1,4 +1,5 @@
 import os
+import subprocess
 from threading import Lock
 from typing import List
 
@@ -366,6 +367,13 @@ class AppsTable(QTableWidget):
 
     def _set_col_settings(self, idx: int, app_v: ApplicationView):
         tb = QToolBar()
+
+        if app_v.model.can_be_run() and app_v.model.get_command():
+
+            def run():
+                self.window.run_app(app_v)
+
+            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.window.locale_keys['action.run.tooltip']))
 
         if app_v.model.has_info():
 

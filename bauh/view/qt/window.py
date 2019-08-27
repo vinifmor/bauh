@@ -23,7 +23,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
-    AsyncAction
+    AsyncAction, RunApp
 from bauh.view.qt.view_model import ApplicationView
 
 DARK_ORANGE = '#FF4500'
@@ -163,6 +163,7 @@ class ManageWindow(QWidget):
         self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.locale_keys), finished_call=self._finish_downgrade)
         self.thread_refresh_app = self._bind_async_action(RefreshApp(manager=self.manager), finished_call=self._finish_refresh)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
+        self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
 
         self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
@@ -333,6 +334,11 @@ class ManageWindow(QWidget):
         self.thread_uninstall.app = app
         self.thread_uninstall.root_password = pwd
         self.thread_uninstall.start()
+
+    def run_app(self, app: ApplicationView):
+        self._begin_action(self.locale_keys['manage_window.status.running_app'].format(app.model.base_data.name))
+        self.thread_run_app.app = app
+        self.thread_run_app.start()
 
     def refresh(self, app: ApplicationView):
         pwd = None
@@ -739,3 +745,6 @@ class ManageWindow(QWidget):
 
     def _update_progress(self, value: int):
         self.progress_bar.setValue(value)
+
+    def _finish_run_app(self, success: bool):
+        self.finish_action()

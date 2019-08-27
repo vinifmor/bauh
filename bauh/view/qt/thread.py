@@ -1,3 +1,4 @@
+import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import List
@@ -342,3 +343,20 @@ class ListWarnings(QThread):
         warnings = self.man.list_warnings()
         if warnings:
             self.signal_warnings.emit(warnings)
+
+
+class RunApp(AsyncAction):
+
+    def __init__(self, app: ApplicationView = None):
+        super(RunApp, self).__init__()
+        self.app = app
+
+    def run(self):
+
+        if self.app:
+            try:
+                time.sleep(0.5)
+                subprocess.Popen(self.app.model.get_command().split(' '))
+                self.notify_finished(True)
+            except:
+                self.notify_finished(False)
