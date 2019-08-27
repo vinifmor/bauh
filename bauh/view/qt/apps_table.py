@@ -328,7 +328,7 @@ class AppsTable(QTableWidget):
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         col.setToolTip(self.window.locale_keys['app.name'].lower())
 
-        if self.disk_cache and app_v.model.supports_disk_cache() and os.path.exists(app_v.model.get_disk_icon_path()):
+        if self.disk_cache and app_v.model.supports_disk_cache() and app_v.model.get_disk_icon_path() and os.path.exists(app_v.model.get_disk_icon_path()):
             with open(app_v.model.get_disk_icon_path(), 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()

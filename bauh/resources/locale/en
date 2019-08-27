@@ -90,3 +90,4 @@ back=back
 show=show
 ask.continue=Continue ?
 cancel=cancel
+status.caching_data=Caching {} data to disk

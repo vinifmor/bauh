@@ -92,3 +92,4 @@ back=volver
 show=mostrar
 ask.continue=¿Continuar ?
 cancel=cancelar
+status.caching_data=Cacheando los datos de {} para el disco
