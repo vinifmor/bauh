@@ -34,7 +34,7 @@ class HistoryDialog(QDialog):
 
             for col, key in enumerate(sorted(commit.keys())):
                 item = QTableWidgetItem()
-                item.setText(commit[key])
+                item.setText(str(commit[key]))
                 item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
                 if current_status:
