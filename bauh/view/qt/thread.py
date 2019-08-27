@@ -189,8 +189,8 @@ class SearchApps(AsyncAction):
 
         if self.word:
             res = self.manager.search(self.word)
-            apps_found.extend(res['installed'])
-            apps_found.extend(res['new'])
+            apps_found.extend(res.installed)
+            apps_found.extend(res.new)
             self.notify_finished(apps_found)
             self.word = None
 

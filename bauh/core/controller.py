@@ -2,7 +2,7 @@ from argparse import Namespace
 from threading import Thread
 from typing import List, Dict, Set
 
-from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.controller import ApplicationManager, SearchResult
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import Application, ApplicationUpdate, ApplicationHistory
 from bauh_api.util.disk import DiskCacheLoader
@@ -57,16 +57,16 @@ class GenericApplicationManager(ApplicationManager):
         else:
             return man.is_enabled()
 
-    def _search(self, word: str, man: ApplicationManager, disk_loader, res: dict):
+    def _search(self, word: str, man: ApplicationManager, disk_loader, res: SearchResult):
         if self._is_enabled(man):
             apps_found = man.search(words=word, disk_loader=disk_loader)
-            res['installed'].extend(apps_found['installed'])
-            res['new'].extend(apps_found['new'])
+            res.installed.extend(apps_found.installed)
+            res.new.extend(apps_found.new)
 
-    def search(self, word: str, disk_loader: DiskCacheLoader = None) -> Dict[str, List[Application]]:
+    def search(self, word: str, disk_loader: DiskCacheLoader = None) -> SearchResult:
         self._wait_to_be_ready()
 
-        res = {'installed': [], 'new': []}
+        res = SearchResult([], [])
 
         norm_word = word.strip().lower()
         disk_loader = self.disk_loader_factory.new()
@@ -86,8 +86,8 @@ class GenericApplicationManager(ApplicationManager):
             disk_loader.stop = True
             disk_loader.join()
 
-        for key in res:
-            res[key] = self._sort(res[key], norm_word)
+        res.installed = self._sort(res.installed, norm_word)
+        res.new = self._sort(res.new, norm_word)
 
         return res
 
