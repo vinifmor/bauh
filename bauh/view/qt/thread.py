@@ -139,9 +139,9 @@ class DowngradeApp(AsyncAction):
                 success = False
                 self.print(self.locale_keys['internet.required'])
             finally:
+                self.notify_finished({'app': self.app, 'success': success})
                 self.app = None
                 self.root_password = None
-                self.notify_finished(success)
 
 
 class GetAppInfo(AsyncAction):

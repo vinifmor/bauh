@@ -368,13 +368,12 @@ class ManageWindow(QWidget):
     def _can_notify_user(self):
         return self.isHidden() or self.isMinimized()
 
-    def _finish_downgrade(self, success: bool):
+    def _finish_downgrade(self, res: dict):
         self.finish_action()
 
-        if success:
+        if res['success']:
             if self._can_notify_user():
-                app = self.table_apps.get_selected_app()
-                util.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['downgraded']))
+                util.notify_user('{} {}'.format(res['app'], self.locale_keys['downgraded']))
 
             self.refresh_apps()
 
