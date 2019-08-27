@@ -92,12 +92,28 @@ class UpdateSelectedApps(AsyncAction):
 
 class RefreshApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager):
+    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
         super(RefreshApps, self).__init__()
         self.manager = manager
+        self.app = app  # app that should be on list top
 
     def run(self):
-        self.notify_finished(self.manager.read_installed())
+        installed = self.manager.read_installed()
+
+        if installed and self.app:
+            idx_found, app_found = None, None
+            for idx, ins in enumerate(installed):
+                if ins.get_type() == self.app.model.get_type() and ins.base_data.id == self.app.model.base_data.id:
+                    idx_found = idx
+                    app_found = ins
+                    break
+
+            if app_found:
+                del installed[idx_found]
+                installed.insert(0, app_found)
+
+        self.notify_finished(installed)
+        self.app = None
 
 
 class UninstallApp(AsyncAction):

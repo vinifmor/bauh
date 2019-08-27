@@ -299,7 +299,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh_apps(self, keep_console: bool = True):
+    def refresh_apps(self, keep_console: bool = True, top_app: ApplicationView = None):
         self.filter_types.clear()
         self.input_search.clear()
 
@@ -309,6 +309,10 @@ class ManageWindow(QWidget):
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
         self._begin_action(self.locale_keys['manage_window.status.refreshing'], clear_filters=True)
+
+        if top_app:
+            self.thread_refresh.app = top_app  # the app will be on top when refresh happens
+
         self.thread_refresh.start()
 
     def _finish_refresh_apps(self, apps: List[Application]):
@@ -736,7 +740,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['installed']))
 
-            self.refresh_apps()
+            self.refresh_apps(top_app=app)
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.install.failed']))
