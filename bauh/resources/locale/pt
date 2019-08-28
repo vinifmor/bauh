@@ -97,3 +97,4 @@ ask.continue=Continuar ?
 cancel=cancelar
 status.caching_data=Cacheando dados de {} para o disco
 action.run.tooltip=Clique aqui para iniciar esse aplicativo
+any=qualquer

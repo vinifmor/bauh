@@ -5,7 +5,7 @@ from typing import List, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QRadioButton
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.model import Application
 from bauh_api.abstract.view import MessageType
@@ -204,7 +204,8 @@ class ManageWindow(QWidget):
         self.centralize()
 
         self.filter_only_apps = True
-        self.filter_types = set()
+        self.any_type_filter = 'any'
+        self.type_filter = self.any_type_filter
         self.filter_updates = False
         self._maximized = False
 
@@ -262,13 +263,8 @@ class ManageWindow(QWidget):
         self.filter_only_apps = status == 2
         self.apply_filters()
 
-    def _handle_type_filter(self, status: int, app_type: str):
-
-        if status == 2:
-            self.filter_types.add(app_type)
-        elif app_type in self.filter_types:
-            self.filter_types.remove(app_type)
-
+    def _handle_type_filter(self, app_type: str):
+        self.type_filter = app_type
         self.apply_filters()
 
     def _notify_model_data_change(self):
@@ -304,7 +300,7 @@ class ManageWindow(QWidget):
         self.textarea_output.hide()
 
     def refresh_apps(self, keep_console: bool = True, top_app: ApplicationView = None):
-        self.filter_types.clear()
+        self.type_filter = None
         self.input_search.clear()
 
         if not keep_console:
@@ -423,8 +419,8 @@ class ManageWindow(QWidget):
             for idx, app_v in enumerate(self.apps):
                 hidden = self.filter_only_apps and app_v.model.is_library()
 
-                if not hidden and self.filter_types is not None:
-                    hidden = app_v.model.get_type() not in self.filter_types
+                if not hidden and self.type_filter is not None and self.type_filter != 'any':
+                    hidden = app_v.model.get_type() != self.type_filter
 
                 if not hidden and self.filter_updates:
                     hidden = not app_v.model.update
@@ -497,7 +493,7 @@ class ManageWindow(QWidget):
         self.apps = []
 
         napps = 0  # number of apps (not libraries)
-        available_types = set()
+        available_types = {self.any_type_filter}
 
         if apps:
             for app in apps:
@@ -530,24 +526,27 @@ class ManageWindow(QWidget):
 
     def _update_type_filters(self, available_types: Set[str]):
 
-        self.filter_types = available_types
+        self.type_filter = self.any_type_filter
 
         filters_layout = self.extra_filters.layout()
         for i in reversed(range(filters_layout.count())):
             filters_layout.itemAt(i).widget().setParent(None)
 
-        if available_types:
+        if len(available_types) > 1:
             for app_type in sorted(list(available_types)):
-                checkbox_app_type = QCheckBox()
-                #  TODO
-                # checkbox_app_type.setStyleSheet('QCheckBox::indicator:checked { border: 2px solid gray; background: white; } QCheckBox::indicator:unchecked { border: 1px solid; background: none; }')
-                checkbox_app_type.setChecked(True)
-                checkbox_app_type.setText(app_type.capitalize())
+                checkbox_app_type = QRadioButton()
 
-                def handle_click(status: int, filter_type: str = app_type):
-                    self._handle_type_filter(status, filter_type)
+                text = app_type
+                if app_type == self.any_type_filter:
+                    checkbox_app_type.setChecked(True)
+                    text = self.locale_keys[app_type]
 
-                checkbox_app_type.stateChanged.connect(handle_click)
+                checkbox_app_type.setText(text.capitalize())
+
+                def handle_click(clicked: bool, filter_type: str = app_type):
+                    self._handle_type_filter(filter_type)
+
+                checkbox_app_type.clicked.connect(handle_click)
                 filters_layout.addWidget(checkbox_app_type)
 
     def resize_and_center(self, accept_lower_width: bool = True):
@@ -629,7 +628,7 @@ class ManageWindow(QWidget):
             self.ref_toolbar_search.setVisible(False)
 
         if clear_filters:
-            self._update_type_filters(set())
+            self._update_type_filters({self.any_type_filter})
         else:
             self.extra_filters.setEnabled(False)
 
