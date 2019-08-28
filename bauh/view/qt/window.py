@@ -5,7 +5,7 @@ from typing import List, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.model import Application
 from bauh_api.abstract.view import MessageType
@@ -89,6 +89,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         toolbar = QToolBar()
+        toolbar.setStyleSheet('QToolBar {spacing: 3px;}')
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setText(self.locale_keys['updates'].capitalize())
@@ -107,16 +108,19 @@ class ManageWindow(QWidget):
 
         toolbar.addWidget(new_spacer())
 
-        self.bt_refresh = QToolButton()
+        self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
-        self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
+        self.bt_refresh.setIcon(QIcon(resource.get_path('img/new_refresh.svg')))
+        self.bt_refresh.setText(self.locale_keys['manage_window.bt.refresh.text'])
+        self.bt_refresh.setStyleSheet('QPushButton { background: #2368AD; color: white; font-weight: bold;} QPushButton:disabled { background: gray }')
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
         toolbar.addWidget(self.bt_refresh)
 
-        self.bt_upgrade = QToolButton()
+        self.bt_upgrade = QPushButton()
         self.bt_upgrade.setToolTip(locale_keys['manage_window.bt.upgrade.tooltip'])
-        self.bt_upgrade.setIcon(QIcon(resource.get_path('img/update_green.svg')))
-        self.bt_upgrade.setEnabled(False)
+        self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+        self.bt_upgrade.setText(locale_keys['manage_window.bt.upgrade.text'])
+        self.bt_upgrade.setStyleSheet('QPushButton { background: #20A435; color: white; font-weight: bold;} QPushButton:disabled { background: gray }')  # 19CC24  19B622
         self.bt_upgrade.clicked.connect(self.update_selected)
         self.ref_bt_upgrade = toolbar.addWidget(self.bt_upgrade)
 
@@ -437,7 +441,7 @@ class ManageWindow(QWidget):
                 self.resize_and_center(accept_lower_width=visible_apps > 0)
 
     def change_update_state(self, change_filters: bool = True):
-        enable_bt_update = False
+        show_bt_upgrade = False
         app_updates, library_updates, not_installed = 0, 0, 0
 
         for app_v in self.apps:
@@ -452,10 +456,10 @@ class ManageWindow(QWidget):
 
         for app_v in self.apps:
             if not_installed == 0 and app_v.visible and app_v.update_checked:
-                enable_bt_update = True
+                show_bt_upgrade = True
                 break
 
-        self.bt_upgrade.setEnabled(enable_bt_update)
+        self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
         total_updates = app_updates + library_updates
 
@@ -535,6 +539,8 @@ class ManageWindow(QWidget):
         if available_types:
             for app_type in sorted(list(available_types)):
                 checkbox_app_type = QCheckBox()
+                #  TODO
+                # checkbox_app_type.setStyleSheet('QCheckBox::indicator:checked { border: 2px solid gray; background: white; } QCheckBox::indicator:unchecked { border: 1px solid; background: none; }')
                 checkbox_app_type.setChecked(True)
                 checkbox_app_type.setText(app_type.capitalize())
 
@@ -597,7 +603,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(self.locale_keys['notification.update_selected.failed'])
 
-            self.bt_upgrade.setEnabled(True)
+            self.ref_bt_upgrade.setVisible(True)
             self.checkbox_console.setChecked(True)
 
     def _update_action_output(self, output: str):
@@ -611,7 +617,7 @@ class ManageWindow(QWidget):
         self.ref_progress_bar.setVisible(True)
 
         self.label_status.setText(action_label + "...")
-        self.bt_upgrade.setEnabled(False)
+        self.ref_bt_upgrade.setVisible(False)
         self.bt_refresh.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)

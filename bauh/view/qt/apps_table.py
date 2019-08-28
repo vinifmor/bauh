@@ -59,7 +59,7 @@ class UpdateToggleButton(QWidget):
         self.bt.clicked.connect(self.change_state)
 
         self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
-        self.bt.setStyleSheet('QToolButton { background: #4EC306 } ' +
+        self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
                               'QToolButton:checked { background: gray }')
         layout.addWidget(self.bt)
 
