@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.0]
+### Improvements:
+
+### Fixes:
+
 ## [0.5.1] - 2019-08-12
 ### Improvements:
 - suggestions are now retrieved asynchronously taking 45% less time.

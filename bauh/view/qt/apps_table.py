@@ -239,19 +239,19 @@ class AppsTable(QTableWidget):
         self.setEnabled(True)
 
         if pkg_views:
-            for idx, app_v in enumerate(pkg_views):
-                self._set_col_name(idx, app_v)
-                self._set_col_version(idx, app_v)
-                self._set_col_description(idx, app_v)
-                self._set_col_type(idx, app_v)
-                self._set_col_installed(idx, app_v)
+            for idx, pkgv in enumerate(pkg_views):
+                self._set_col_name(idx, pkgv)
+                self._set_col_version(idx, pkgv)
+                self._set_col_description(idx, pkgv)
+                self._set_col_type(idx, pkgv)
+                self._set_col_installed(idx, pkgv)
 
-                self._set_col_settings(idx, app_v)
+                self._set_col_settings(idx, pkgv)
 
                 col_update = None
 
-                if update_check_enabled and app_v.model.update:
-                    col_update = UpdateToggleButton(app_v, self.window, self.window.locale_keys, app_v.model.update)
+                if update_check_enabled and pkgv.model.update:
+                    col_update = UpdateToggleButton(pkgv, self.window, self.window.locale_keys, pkgv.model.update)
 
                 self.setCellWidget(idx, 6, col_update)
 
