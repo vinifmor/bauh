@@ -5,7 +5,7 @@ from typing import List
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
-from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import PackageStatus
 from bauh_api.abstract.view import InputViewComponent, MessageType
@@ -62,7 +62,7 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpdateSelectedApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, apps_to_update: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, locale_keys: dict, apps_to_update: List[PackageView] = None):
         super(UpdateSelectedApps, self).__init__()
         self.apps_to_update = apps_to_update
         self.manager = manager
@@ -92,7 +92,7 @@ class UpdateSelectedApps(AsyncAction):
 
 class RefreshApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, app: PackageView = None):
         super(RefreshApps, self).__init__()
         self.manager = manager
         self.app = app  # app that should be on list top
@@ -118,7 +118,7 @@ class RefreshApps(AsyncAction):
 
 class UninstallApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, icon_cache: Cache, app: PackageView = None):
         super(UninstallApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -140,7 +140,7 @@ class UninstallApp(AsyncAction):
 
 class DowngradeApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, locale_keys: dict, app: PackageView = None):
         super(DowngradeApp, self).__init__()
         self.manager = manager
         self.app = app
@@ -163,7 +163,7 @@ class DowngradeApp(AsyncAction):
 
 class GetAppInfo(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, app: PackageView = None):
         super(GetAppInfo, self).__init__()
         self.app = app
         self.manager = manager
@@ -178,7 +178,7 @@ class GetAppInfo(AsyncAction):
 
 class GetAppHistory(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, locale_keys: dict, app: PackageView = None):
         super(GetAppHistory, self).__init__()
         self.app = app
         self.manager = manager
@@ -196,7 +196,7 @@ class GetAppHistory(AsyncAction):
 
 class SearchApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager):
+    def __init__(self, manager: SoftwareManager):
         super(SearchApps, self).__init__()
         self.word = None
         self.manager = manager
@@ -214,7 +214,7 @@ class SearchApps(AsyncAction):
 
 class InstallApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: PackageView = None):
         super(InstallApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -314,7 +314,7 @@ class VerifyModels(QThread):
 
 class RefreshApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, app: PackageView = None):
         super(RefreshApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -337,7 +337,7 @@ class RefreshApp(AsyncAction):
 
 class FindSuggestions(AsyncAction):
 
-    def __init__(self, man: ApplicationManager):
+    def __init__(self, man: SoftwareManager):
         super(FindSuggestions, self).__init__()
         self.man = man
 
@@ -350,7 +350,7 @@ class ListWarnings(QThread):
 
     signal_warnings = pyqtSignal(list)
 
-    def __init__(self, man: ApplicationManager, locale_keys: dict):
+    def __init__(self, man: SoftwareManager, locale_keys: dict):
         super(QThread, self).__init__()
         self.locale_keys = locale_keys
         self.man = man

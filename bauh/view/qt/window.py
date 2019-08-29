@@ -6,7 +6,7 @@ from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QComboBox
-from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.model import SoftwarePackage
 from bauh_api.abstract.view import MessageType
 from bauh_api.util.cache import Cache
@@ -37,7 +37,7 @@ class ManageWindow(QWidget):
     def _toolbar_button_style(self, bg: str):
         return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
 
-    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: Cache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager

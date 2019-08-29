@@ -4,7 +4,7 @@ import pkgutil
 from argparse import Namespace
 from typing import List, Dict
 
-from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.util.cache import Cache
 from bauh_api.util.http import HttpClient
 
@@ -17,7 +17,7 @@ ext_pattern = '{}_'.format(__app_name__)
 
 def find_manager(member):
     if not isinstance(member, str):
-        if inspect.isclass(member) and inspect.getmro(member)[1].__name__ == 'ApplicationManager':
+        if inspect.isclass(member) and inspect.getmro(member)[1].__name__ == 'SoftwareManager':
             return member
         elif inspect.ismodule(member) and member.__name__ not in ignore_modules:
             for name, mod in inspect.getmembers(member):
@@ -26,7 +26,7 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_client: HttpClient) -> List[ApplicationManager]:
+def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_client: HttpClient) -> List[SoftwareManager]:
     managers = []
 
     for m in pkgutil.iter_modules():

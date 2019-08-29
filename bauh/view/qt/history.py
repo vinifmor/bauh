@@ -10,10 +10,10 @@ from bauh_api.util.cache import Cache
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, app_history: PackageHistory, icon_cache: Cache, locale_keys: dict):
+    def __init__(self, history: PackageHistory, icon_cache: Cache, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
-        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app_history.app.base_data.name))
+        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], history.pkg.base_data.name))
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -24,13 +24,13 @@ class HistoryDialog(QDialog):
         table_history.verticalHeader().setVisible(False)
         table_history.setAlternatingRowColors(True)
 
-        table_history.setColumnCount(len(app_history.history[0]))
-        table_history.setRowCount(len(app_history.history))
-        table_history.setHorizontalHeaderLabels([locale_keys.get(app_history.app.get_type() + '.history.' + key, key).capitalize() for key in sorted(app_history.history[0].keys())])
+        table_history.setColumnCount(len(history.history[0]))
+        table_history.setRowCount(len(history.history))
+        table_history.setHorizontalHeaderLabels([locale_keys.get(history.pkg.get_type() + '.history.' + key, key).capitalize() for key in sorted(history.history[0].keys())])
 
-        for row, commit in enumerate(app_history.history):
+        for row, commit in enumerate(history.history):
 
-            current_status = app_history.app_status_idx == row
+            current_status = history.pkg_status_idx == row
 
             for col, key in enumerate(sorted(commit.keys())):
                 item = QTableWidgetItem()
@@ -54,7 +54,7 @@ class HistoryDialog(QDialog):
         new_width = reduce(operator.add, [table_history.columnWidth(i) for i in range(table_history.columnCount())])
         self.resize(new_width, table_history.height())
 
-        icon_data = icon_cache.get(app_history.app.base_data.icon_url)
+        icon_data = icon_cache.get(history.pkg.base_data.icon_url)
 
         if icon_data and icon_data.get('icon'):
             self.setWindowIcon(icon_data.get('icon'))

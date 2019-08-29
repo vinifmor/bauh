@@ -2,7 +2,7 @@ from argparse import Namespace
 from threading import Thread
 from typing import List, Set
 
-from bauh_api.abstract.controller import ApplicationManager, SearchResult
+from bauh_api.abstract.controller import SoftwareManager, SearchResult
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory
 from bauh_api.util.disk import DiskCacheLoader
@@ -13,10 +13,10 @@ from bauh import ROOT_DIR
 SUGGESTIONS_LIMIT = 6
 
 
-class GenericApplicationManager(ApplicationManager):
+class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[ApplicationManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace, locale_keys: dict):
-        super(GenericApplicationManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=locale_keys, app_root_dir=ROOT_DIR, http_client=None)
+    def __init__(self, managers: List[SoftwareManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace, locale_keys: dict):
+        super(GenericSoftwareManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=locale_keys, app_root_dir=ROOT_DIR, http_client=None)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
         self.disk_loader_factory = disk_loader_factory
@@ -44,7 +44,7 @@ class GenericApplicationManager(ApplicationManager):
 
         return res
 
-    def _is_enabled(self, man: ApplicationManager):
+    def _is_enabled(self, man: SoftwareManager):
 
         if self._enabled_map is not None:
             enabled = self._enabled_map.get(man.get_managed_types())
@@ -57,7 +57,7 @@ class GenericApplicationManager(ApplicationManager):
         else:
             return man.is_enabled()
 
-    def _search(self, word: str, man: ApplicationManager, disk_loader, res: SearchResult):
+    def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._is_enabled(man):
             apps_found = man.search(words=word, disk_loader=disk_loader)
             res.installed.extend(apps_found.installed)
@@ -169,7 +169,7 @@ class GenericApplicationManager(ApplicationManager):
     def is_enabled(self):
         return True
 
-    def _get_manager_for(self, app: SoftwarePackage) -> ApplicationManager:
+    def _get_manager_for(self, app: SoftwarePackage) -> SoftwareManager:
         man = self.map[app.__class__]
         return man if man and self._is_enabled(man) else None
 
@@ -235,7 +235,7 @@ class GenericApplicationManager(ApplicationManager):
 
         return warnings
 
-    def _fill_suggestions(self, suggestions: list, man: ApplicationManager, limit: int):
+    def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int):
         if self._is_enabled(man):
             man_sugs = man.list_suggestions(limit)
 

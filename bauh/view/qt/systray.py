@@ -9,7 +9,7 @@ from bauh_api.abstract.model import PackageUpdate
 
 from bauh import __app_name__
 from bauh.core import resource
-from bauh_api.abstract.controller import ApplicationManager
+from bauh_api.abstract.controller import SoftwareManager
 from bauh.util import util
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.window import ManageWindow
@@ -19,7 +19,7 @@ class UpdateCheck(QThread):
 
     signal = pyqtSignal(list)
 
-    def __init__(self, manager: ApplicationManager, check_interval: int, parent=None):
+    def __init__(self, manager: SoftwareManager, check_interval: int, parent=None):
         super(UpdateCheck, self).__init__(parent)
         self.check_interval = check_interval
         self.manager = manager
@@ -34,7 +34,7 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: ApplicationManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
