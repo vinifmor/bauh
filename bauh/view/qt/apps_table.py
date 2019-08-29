@@ -1,5 +1,4 @@
 import os
-import subprocess
 from threading import Lock
 from typing import List
 
@@ -9,10 +8,9 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
 from bauh_api.abstract.model import ApplicationStatus
-
-from bauh.core import resource
 from bauh_api.util.cache import Cache
 
+from bauh.core import resource
 from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.view_model import ApplicationView, ApplicationViewStatus
@@ -98,6 +96,7 @@ class AppsTable(QTableWidget):
 
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
+        self.setRowHeight(80,80)
 
     def has_any_settings(self, app_v: ApplicationView):
         return app_v.model.can_be_refreshed() or \

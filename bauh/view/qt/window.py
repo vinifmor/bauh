@@ -1,11 +1,11 @@
 import operator
 from functools import reduce
-from typing import List, Set
+from typing import List
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QRadioButton
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QComboBox
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.model import Application
 from bauh_api.abstract.view import MessageType
@@ -34,6 +34,9 @@ class ManageWindow(QWidget):
 
     signal_user_res = pyqtSignal(bool)
 
+    def _toolbar_button_style(self, bg: str):
+        return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
+
     def __init__(self, locale_keys: dict, icon_cache: Cache, manager: ApplicationManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
@@ -47,9 +50,9 @@ class ManageWindow(QWidget):
         self.download_icons = download_icons
         self.screen_size = screen_size
 
-        self.icon_flathub = QIcon(resource.get_path('img/logo.svg'))
+        self.icon_app = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
-        self.setWindowIcon(self.icon_flathub)
+        self.setWindowIcon(self.icon_app)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -75,7 +78,7 @@ class ManageWindow(QWidget):
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
-        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0;}")
+        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0; height: 30px; font-size: 12px; width: 300px}")
         self.input_search.returnPressed.connect(self.search)
         self.toolbar_search.addWidget(self.input_search)
 
@@ -88,43 +91,43 @@ class ManageWindow(QWidget):
         self.toolbar_top.addWidget(new_spacer())
         self.layout.addWidget(self.toolbar_top)
 
-        toolbar = QToolBar()
-        toolbar.setStyleSheet('QToolBar {spacing: 3px;}')
+        self.toolbar = QToolBar()
+        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 8px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setText(self.locale_keys['updates'].capitalize())
         self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
-        self.ref_checkbox_updates = toolbar.addWidget(self.checkbox_updates)
+        self.ref_checkbox_updates = self.toolbar.addWidget(self.checkbox_updates)
 
         self.checkbox_only_apps = QCheckBox()
         self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
-        self.ref_checkbox_only_apps = toolbar.addWidget(self.checkbox_only_apps)
+        self.ref_checkbox_only_apps = self.toolbar.addWidget(self.checkbox_only_apps)
 
         self.extra_filters = QWidget()
         self.extra_filters.setLayout(QHBoxLayout())
-        toolbar.addWidget(self.extra_filters)
+        self.toolbar.addWidget(self.extra_filters)
 
-        toolbar.addWidget(new_spacer())
+        self.toolbar.addWidget(new_spacer())
 
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/new_refresh.svg')))
         self.bt_refresh.setText(self.locale_keys['manage_window.bt.refresh.text'])
-        self.bt_refresh.setStyleSheet('QPushButton { background: #2368AD; color: white; font-weight: bold;} QPushButton:disabled { background: gray }')
+        self.bt_refresh.setStyleSheet(self._toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
-        toolbar.addWidget(self.bt_refresh)
+        self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
         self.bt_upgrade.setToolTip(locale_keys['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(locale_keys['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.setStyleSheet('QPushButton { background: #20A435; color: white; font-weight: bold;} QPushButton:disabled { background: gray }')  # 19CC24  19B622
+        self.bt_upgrade.setStyleSheet(self._toolbar_button_style('#20A435'))
         self.bt_upgrade.clicked.connect(self.update_selected)
-        self.ref_bt_upgrade = toolbar.addWidget(self.bt_upgrade)
+        self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
 
-        self.layout.addWidget(toolbar)
+        self.layout.addWidget(self.toolbar)
 
         self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.disk_cache, download_icons=self.download_icons)
         self.table_apps.change_headers_policy()
@@ -493,12 +496,12 @@ class ManageWindow(QWidget):
         self.apps = []
 
         napps = 0  # number of apps (not libraries)
-        available_types = {self.any_type_filter}
+        available_types = {}
 
         if apps:
             for app in apps:
                 app_model = ApplicationView(model=app, visible=(not app.is_library()) or not self.checkbox_only_apps.isChecked())
-                available_types.add(app.get_type())
+                available_types[app.get_type()] = app.get_type_icon_path()
                 napps += 1 if not app.is_library() else 0
                 self.apps.append(app_model)
 
@@ -524,30 +527,38 @@ class ManageWindow(QWidget):
         self.thread_verify_models.apps = self.apps
         self.thread_verify_models.start()
 
-    def _update_type_filters(self, available_types: Set[str]):
+    @staticmethod
+    def _get_resized_icon(path: str, size: int) -> QIcon:
+        pixmap = QPixmap(path)
+        return QIcon(pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def _update_type_filters(self, available_types: dict):
 
         self.type_filter = self.any_type_filter
 
-        filters_layout = self.extra_filters.layout()
-        for i in reversed(range(filters_layout.count())):
-            filters_layout.itemAt(i).widget().setParent(None)
-
         if len(available_types) > 1:
-            for app_type in sorted(list(available_types)):
-                checkbox_app_type = QRadioButton()
 
-                text = app_type
-                if app_type == self.any_type_filter:
-                    checkbox_app_type.setChecked(True)
-                    text = self.locale_keys[app_type]
+            filters_layout = self.extra_filters.layout()
+            for i in reversed(range(filters_layout.count())):
+                filters_layout.itemAt(i).widget().setParent(None)
 
-                checkbox_app_type.setText(text.capitalize())
+            if available_types:
+                combo = QComboBox()
+                combo.setStyleSheet('QLineEdit { height: 2px}')
+                combo.setEditable(True)
+                combo.lineEdit().setReadOnly(True)
+                combo.lineEdit().setAlignment(Qt.AlignCenter)
 
-                def handle_click(clicked: bool, filter_type: str = app_type):
-                    self._handle_type_filter(filter_type)
+                def handle_activated(index: int):
+                    self._handle_type_filter(combo.itemData(index))
 
-                checkbox_app_type.clicked.connect(handle_click)
-                filters_layout.addWidget(checkbox_app_type)
+                combo.activated.connect(handle_activated)
+                combo.addItem(self._get_resized_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
+
+                for app_type, icon_path in available_types.items():
+                    combo.addItem(self._get_resized_icon(icon_path, 14), app_type.capitalize(), app_type)
+
+                filters_layout.addWidget(combo)
 
     def resize_and_center(self, accept_lower_width: bool = True):
         new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
@@ -617,7 +628,7 @@ class ManageWindow(QWidget):
 
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
-        self.bt_refresh.setEnabled(False)
+        self.ref_bt_refresh.setVisible(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
@@ -628,7 +639,7 @@ class ManageWindow(QWidget):
             self.ref_toolbar_search.setVisible(False)
 
         if clear_filters:
-            self._update_type_filters({self.any_type_filter})
+            self._update_type_filters({})
         else:
             self.extra_filters.setEnabled(False)
 
@@ -639,7 +650,7 @@ class ManageWindow(QWidget):
         self.ref_label_updates.setVisible(True)
         self.thread_animate_progress.stop = True
         self.progress_bar.setValue(0)
-        self.bt_refresh.setEnabled(True)
+        self.ref_bt_refresh.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)
         self.input_search.setEnabled(True)
