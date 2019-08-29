@@ -5,7 +5,7 @@ from typing import List
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QComboBox
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox
 from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.model import SoftwarePackage
 from bauh_api.abstract.view import MessageType
@@ -106,9 +106,16 @@ class ManageWindow(QWidget):
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
         self.ref_checkbox_only_apps = self.toolbar.addWidget(self.checkbox_only_apps)
 
-        self.extra_filters = QWidget()
-        self.extra_filters.setLayout(QHBoxLayout())
-        self.toolbar.addWidget(self.extra_filters)
+        self.any_type_filter = 'any'
+        self.cache_type_filter_icons = {}
+        self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px}')
+        self.combo_filter_type.setEditable(True)
+        self.combo_filter_type.lineEdit().setReadOnly(True)
+        self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_filter_type.activated.connect(self._handle_type_filter)
+        self.combo_filter_type.addItem(self._get_resized_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
+        self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.toolbar.addWidget(new_spacer())
 
@@ -216,7 +223,6 @@ class ManageWindow(QWidget):
         self.centralize()
 
         self.filter_only_apps = True
-        self.any_type_filter = 'any'
         self.type_filter = self.any_type_filter
         self.filter_updates = False
         self._maximized = False
@@ -282,8 +288,8 @@ class ManageWindow(QWidget):
         self.filter_only_apps = status == 2
         self.apply_filters()
 
-    def _handle_type_filter(self, app_type: str):
-        self.type_filter = app_type
+    def _handle_type_filter(self, idx: int):
+        self.type_filter = self.combo_filter_type.itemData(idx)
         self.apply_filters()
 
     def _notify_model_data_change(self):
@@ -526,6 +532,7 @@ class ManageWindow(QWidget):
         else:  # use installed
             self.pkgs = self.pkgs_installed
             for app in self.pkgs:
+                available_types[app.model.get_type()] = app.model.get_type_icon_path()
                 napps += 1 if app.model.is_application() else 0
 
         if napps == 0:
@@ -561,29 +568,23 @@ class ManageWindow(QWidget):
 
         self.type_filter = self.any_type_filter
 
-        if len(available_types) > 1:
+        if available_types and len(available_types) > 1:
+            if self.combo_filter_type.count() > 1:
+                for _ in range(self.combo_filter_type.count() - 1):
+                    self.combo_filter_type.removeItem(1)
 
-            filters_layout = self.extra_filters.layout()
-            for i in reversed(range(filters_layout.count())):
-                filters_layout.itemAt(i).widget().setParent(None)
+            for app_type, icon_path in available_types.items():
+                icon = self.cache_type_filter_icons.get(app_type)
 
-            if available_types:
-                combo = QComboBox()
-                combo.setStyleSheet('QLineEdit { height: 2px}')
-                combo.setEditable(True)
-                combo.lineEdit().setReadOnly(True)
-                combo.lineEdit().setAlignment(Qt.AlignCenter)
+                if not icon:
+                    icon = self._get_resized_icon(icon_path, 14)
+                    self.cache_type_filter_icons[app_type] = icon
 
-                def handle_activated(index: int):
-                    self._handle_type_filter(combo.itemData(index))
+                self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
 
-                combo.activated.connect(handle_activated)
-                combo.addItem(self._get_resized_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
-
-                for app_type, icon_path in available_types.items():
-                    combo.addItem(self._get_resized_icon(icon_path, 14), app_type.capitalize(), app_type)
-
-                filters_layout.addWidget(combo)
+            self.ref_combo_filter_type.setVisible(True)
+        else:
+            self.ref_combo_filter_type.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
         new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
@@ -647,6 +648,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str, keep_search: bool = False, clear_filters: bool = False):
+        self.ref_combo_filter_type.setVisible(False)
         self.ref_bt_about.setVisible(False)
         self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
@@ -669,7 +671,7 @@ class ManageWindow(QWidget):
         if clear_filters:
             self._update_type_filters({})
         else:
-            self.extra_filters.setEnabled(False)
+            self.combo_filter_type.setEnabled(False)
 
     def finish_action(self):
         self._change_label_substatus('')
@@ -686,7 +688,7 @@ class ManageWindow(QWidget):
         self.label_substatus.setText('')
         self.ref_toolbar_search.setVisible(True)
         self.ref_toolbar_search.setEnabled(True)
-        self.extra_filters.setEnabled(True)
+        self.combo_filter_type.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
 
     def downgrade_app(self, app: PackageView):
