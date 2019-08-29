@@ -7,12 +7,12 @@ import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 from bauh_api.abstract.controller import ApplicationManager
 from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import ApplicationStatus
+from bauh_api.abstract.model import PackageStatus
 from bauh_api.abstract.view import InputViewComponent, MessageType
 from bauh_api.exception import NoInternetException
 from bauh_api.util.cache import Cache
 
-from bauh.view.qt.view_model import ApplicationView
+from bauh.view.qt.view_model import PackageView
 
 
 class AsyncAction(QThread, ProcessWatcher):
@@ -62,7 +62,7 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpdateSelectedApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, apps_to_update: List[ApplicationView] = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, apps_to_update: List[PackageView] = None):
         super(UpdateSelectedApps, self).__init__()
         self.apps_to_update = apps_to_update
         self.manager = manager
@@ -92,7 +92,7 @@ class UpdateSelectedApps(AsyncAction):
 
 class RefreshApps(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: PackageView = None):
         super(RefreshApps, self).__init__()
         self.manager = manager
         self.app = app  # app that should be on list top
@@ -118,7 +118,7 @@ class RefreshApps(AsyncAction):
 
 class UninstallApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, icon_cache: Cache, app: PackageView = None):
         super(UninstallApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -140,7 +140,7 @@ class UninstallApp(AsyncAction):
 
 class DowngradeApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: PackageView = None):
         super(DowngradeApp, self).__init__()
         self.manager = manager
         self.app = app
@@ -163,7 +163,7 @@ class DowngradeApp(AsyncAction):
 
 class GetAppInfo(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: PackageView = None):
         super(GetAppInfo, self).__init__()
         self.app = app
         self.manager = manager
@@ -178,7 +178,7 @@ class GetAppInfo(AsyncAction):
 
 class GetAppHistory(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, locale_keys: dict, app: PackageView = None):
         super(GetAppHistory, self).__init__()
         self.app = app
         self.manager = manager
@@ -214,7 +214,7 @@ class SearchApps(AsyncAction):
 
 class InstallApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: PackageView = None):
         super(InstallApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -279,7 +279,7 @@ class VerifyModels(QThread):
 
     signal_updates = pyqtSignal()
 
-    def __init__(self, apps: List[ApplicationView] = None):
+    def __init__(self, apps: List[PackageView] = None):
         super(VerifyModels, self).__init__()
         self.apps = apps
 
@@ -294,7 +294,7 @@ class VerifyModels(QThread):
                 current_ready = 0
 
                 for app in self.apps:
-                    current_ready += 1 if app.model.status == ApplicationStatus.READY else 0
+                    current_ready += 1 if app.model.status == PackageStatus.READY else 0
 
                 if current_ready > last_ready:
                     last_ready = current_ready
@@ -314,7 +314,7 @@ class VerifyModels(QThread):
 
 class RefreshApp(AsyncAction):
 
-    def __init__(self, manager: ApplicationManager, app: ApplicationView = None):
+    def __init__(self, manager: ApplicationManager, app: PackageView = None):
         super(RefreshApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -363,7 +363,7 @@ class ListWarnings(QThread):
 
 class RunApp(AsyncAction):
 
-    def __init__(self, app: ApplicationView = None):
+    def __init__(self, app: PackageView = None):
         super(RunApp, self).__init__()
         self.app = app
 

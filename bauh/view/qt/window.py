@@ -7,7 +7,7 @@ from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QHBoxLayout, QPushButton, QComboBox
 from bauh_api.abstract.controller import ApplicationManager
-from bauh_api.abstract.model import Application
+from bauh_api.abstract.model import SoftwarePackage
 from bauh_api.abstract.view import MessageType
 from bauh_api.util.cache import Cache
 
@@ -24,7 +24,7 @@ from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
     AsyncAction, RunApp
-from bauh.view.qt.view_model import ApplicationView
+from bauh.view.qt.view_model import PackageView
 
 DARK_ORANGE = '#FF4500'
 
@@ -43,7 +43,8 @@ class ManageWindow(QWidget):
         self.manager = manager
         self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
-        self.apps = []
+        self.pkgs = []
+        self.pkgs_installed = []
         self.label_flatpak = None
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
@@ -110,6 +111,14 @@ class ManageWindow(QWidget):
         self.toolbar.addWidget(self.extra_filters)
 
         self.toolbar.addWidget(new_spacer())
+
+        self.bt_installed = QPushButton()
+        self.bt_installed.setToolTip(self.locale_keys['manage_window.bt.installed.tooltip'])
+        self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
+        self.bt_installed.setText(self.locale_keys['manage_window.bt.installed.text'].capitalize())
+        self.bt_installed.clicked.connect(self._show_installed)
+        self.bt_installed.setStyleSheet(self._toolbar_button_style('brown'))
+        self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
 
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
@@ -252,6 +261,13 @@ class ManageWindow(QWidget):
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
+    def _show_installed(self):
+        if self.pkgs_installed:
+            self.finish_action()
+            self.ref_checkbox_only_apps.setVisible(True)
+            self.ref_bt_upgrade.setVisible(True)
+            self.update_apps(apps=None, as_installed=True)
+
     def _show_about(self):
         if self.dialog_about is None:
             self.dialog_about = AboutDialog(self.locale_keys)
@@ -302,7 +318,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh_apps(self, keep_console: bool = True, top_app: ApplicationView = None):
+    def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None):
         self.type_filter = None
         self.input_search.clear()
 
@@ -318,14 +334,14 @@ class ManageWindow(QWidget):
 
         self.thread_refresh.start()
 
-    def _finish_refresh_apps(self, apps: List[Application]):
+    def _finish_refresh_apps(self, apps: List[SoftwarePackage]):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(True)
         self.ref_bt_upgrade.setVisible(True)
-        self.update_apps(apps)
+        self.update_apps(apps, as_installed=True)
         self.first_refresh = False
 
-    def uninstall_app(self, app: ApplicationView):
+    def uninstall_app(self, app: PackageView):
         pwd = None
         requires_root = self.manager.requires_root('uninstall', app.model)
 
@@ -342,12 +358,12 @@ class ManageWindow(QWidget):
         self.thread_uninstall.root_password = pwd
         self.thread_uninstall.start()
 
-    def run_app(self, app: ApplicationView):
+    def run_app(self, app: PackageView):
         self._begin_action(self.locale_keys['manage_window.status.running_app'].format(app.model.base_data.name))
         self.thread_run_app.app = app
         self.thread_run_app.start()
 
-    def refresh(self, app: ApplicationView):
+    def refresh(self, app: PackageView):
         pwd = None
         requires_root = self.manager.requires_root('refresh', app.model)
 
@@ -364,7 +380,7 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.root_password = pwd
         self.thread_refresh_app.start()
 
-    def _finish_uninstall(self, app: ApplicationView):
+    def _finish_uninstall(self, app: PackageView):
         self.finish_action()
 
         if app:
@@ -417,10 +433,10 @@ class ManageWindow(QWidget):
             self.toolbar_substatus.show()
 
     def apply_filters(self):
-        if self.apps:
-            visible_apps = len(self.apps)
-            for idx, app_v in enumerate(self.apps):
-                hidden = self.filter_only_apps and app_v.model.is_library()
+        if self.pkgs:
+            visible_apps = len(self.pkgs)
+            for idx, app_v in enumerate(self.pkgs):
+                hidden = self.filter_only_apps and not app_v.model.is_application()
 
                 if not hidden and self.type_filter is not None and self.type_filter != 'any':
                     hidden = app_v.model.get_type() != self.type_filter
@@ -443,9 +459,9 @@ class ManageWindow(QWidget):
         show_bt_upgrade = False
         app_updates, library_updates, not_installed = 0, 0, 0
 
-        for app_v in self.apps:
+        for app_v in self.pkgs:
             if app_v.model.update:
-                if app_v.model.is_library():
+                if not app_v.model.is_application():
                     library_updates += 1
                 else:
                     app_updates += 1
@@ -453,7 +469,7 @@ class ManageWindow(QWidget):
             if not app_v.model.installed:
                 not_installed += 1
 
-        for app_v in self.apps:
+        for app_v in self.pkgs:
             if not_installed == 0 and app_v.visible and app_v.update_checked:
                 show_bt_upgrade = True
                 break
@@ -492,21 +508,27 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def update_apps(self, apps: List[Application], update_check_enabled: bool = True):
-        self.apps = []
+    def update_apps(self, apps: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True):
 
-        napps = 0  # number of apps (not libraries)
+        napps = 0  # number of apps (not libraries, runtimes or something else)
         available_types = {}
 
-        if apps:
+        if apps is not None:
+            self.pkgs = []
             for app in apps:
-                app_model = ApplicationView(model=app, visible=(not app.is_library()) or not self.checkbox_only_apps.isChecked())
+                app_model = PackageView(model=app, visible=app.is_application() or not self.checkbox_only_apps.isChecked())
                 available_types[app.get_type()] = app.get_type_icon_path()
-                napps += 1 if not app.is_library() else 0
-                self.apps.append(app_model)
+                napps += 1 if app.is_application() else 0
+                self.pkgs.append(app_model)
+
+                if as_installed:
+                    self.pkgs_installed.append(app_model)
+        else:  # use installed
+            self.pkgs = self.pkgs_installed
+            for app in self.pkgs:
+                napps += 1 if app.model.is_application() else 0
 
         if napps == 0:
-
             if self.first_refresh:
                 self._begin_search('')
                 self.thread_suggestions.start()
@@ -519,13 +541,16 @@ class ManageWindow(QWidget):
             self.checkbox_only_apps.setChecked(True)
 
         self._update_type_filters(available_types)
-        self.table_apps.update_apps(self.apps, update_check_enabled=update_check_enabled)
+        self.table_apps.update_apps(self.pkgs, update_check_enabled=update_check_enabled)
         self.apply_filters()
         self.change_update_state()
         self.resize_and_center()
 
-        self.thread_verify_models.apps = self.apps
-        self.thread_verify_models.start()
+        if apps:
+            self.thread_verify_models.apps = self.pkgs
+            self.thread_verify_models.start()
+
+        self.ref_bt_installed.setVisible(not as_installed)
 
     @staticmethod
     def _get_resized_icon(path: str, size: int) -> QIcon:
@@ -569,12 +594,12 @@ class ManageWindow(QWidget):
         self.centralize()
 
     def update_selected(self):
-        if self.apps:
+        if self.pkgs:
             requires_root = False
 
             to_update = []
 
-            for app_v in self.apps:
+            for app_v in self.pkgs:
                 if app_v.visible and app_v.update_checked:
                     to_update.append(app_v)
 
@@ -631,6 +656,7 @@ class ManageWindow(QWidget):
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
         self.ref_bt_refresh.setVisible(False)
+        self.ref_bt_installed.setVisible(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
@@ -663,7 +689,7 @@ class ManageWindow(QWidget):
         self.extra_filters.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
 
-    def downgrade_app(self, app: ApplicationView):
+    def downgrade_app(self, app: PackageView):
         pwd = None
         requires_root = self.manager.requires_root('downgrade', app.model)
 
@@ -728,12 +754,12 @@ class ManageWindow(QWidget):
             self.thread_search.word = word
             self.thread_search.start()
 
-    def _finish_search(self, apps_found: List[Application]):
+    def _finish_search(self, apps_found: List[SoftwarePackage]):
         self.finish_action()
         self.ref_bt_upgrade.setVisible(False)
-        self.update_apps(apps_found, update_check_enabled=False)
+        self.update_apps(apps_found, as_installed=False, update_check_enabled=False)
 
-    def install_app(self, app: ApplicationView):
+    def install_app(self, app: PackageView):
         pwd = None
         requires_root = self.manager.requires_root('install', app.model)
 
@@ -750,7 +776,7 @@ class ManageWindow(QWidget):
         self.thread_install.root_password = pwd
         self.thread_install.start()
 
-    def _finish_install(self, app: ApplicationView):
+    def _finish_install(self, app: PackageView):
         self.input_search.setText('')
         self.finish_action()
 

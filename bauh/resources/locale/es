@@ -32,6 +32,8 @@ manage_window.bt.refresh.text=Recargar
 manage_window.bt.refresh.tooltip=Recarga los datos sobre los aplicativos instalados
 manage_window.bt.upgrade.text=Actualizar
 manage_window.bt.upgrade.tooltip=Actualiza todos los aplicativos marcados
+manage_window.bt.installed.text=instalados
+manage_window.bt.installed.tooltip==Haces clic aqui para mostrar los aplicativos instalados
 manage_window.checkbox.show_details=Mostrar detalles
 popup.root.title=Requiere privilegios de root
 popup.root.password=Contraseña

@@ -4,13 +4,13 @@ from functools import reduce
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
-from bauh_api.abstract.model import ApplicationHistory
+from bauh_api.abstract.model import PackageHistory
 from bauh_api.util.cache import Cache
 
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, app_history: ApplicationHistory, icon_cache: Cache, locale_keys: dict):
+    def __init__(self, app_history: PackageHistory, icon_cache: Cache, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
         self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], app_history.app.base_data.name))

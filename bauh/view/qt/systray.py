@@ -5,7 +5,7 @@ from typing import List
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
-from bauh_api.abstract.model import ApplicationUpdate
+from bauh_api.abstract.model import PackageUpdate
 
 from bauh import __app_name__
 from bauh.core import resource
@@ -84,7 +84,7 @@ class TrayIcon(QSystemTrayIcon):
     def _verify_updates(self, notify_user: bool):
         self.notify_updates(self.manager.list_updates(), notify_user=notify_user)
 
-    def notify_updates(self, updates: List[ApplicationUpdate], notify_user: bool = True):
+    def notify_updates(self, updates: List[PackageUpdate], notify_user: bool = True):
 
         self.lock_notify.acquire()
 

@@ -1,10 +1,10 @@
 from argparse import Namespace
 from threading import Thread
-from typing import List, Dict, Set
+from typing import List, Set
 
 from bauh_api.abstract.controller import ApplicationManager, SearchResult
 from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import Application, ApplicationUpdate, ApplicationHistory
+from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
 
@@ -23,7 +23,7 @@ class GenericApplicationManager(ApplicationManager):
         self._enabled_map = {} if app_args.check_packaging_once else None
         self.thread_prepare = None
 
-    def _sort(self, apps: List[Application], word: str) -> List[Application]:
+    def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
         exact_name_matches, contains_name_matches, others = [], [], []
 
@@ -96,7 +96,7 @@ class GenericApplicationManager(ApplicationManager):
             self.thread_prepare.join()
             self.thread_prepare = None
 
-    def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[Application]:
+    def read_installed(self, disk_loader: DiskCacheLoader = None) -> List[SoftwarePackage]:
         self._wait_to_be_ready()
 
         installed = []
@@ -119,7 +119,7 @@ class GenericApplicationManager(ApplicationManager):
 
         return installed
 
-    def downgrade_app(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade_app(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
@@ -127,37 +127,37 @@ class GenericApplicationManager(ApplicationManager):
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
-    def clean_cache_for(self, app: Application):
+    def clean_cache_for(self, app: SoftwarePackage):
         man = self._get_manager_for(app)
 
         if man:
             return man.clean_cache_for(app)
 
-    def update(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
+    def update(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
             return man.update(app, root_password, handler)
 
-    def uninstall(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
+    def uninstall(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
             return man.uninstall(app, root_password, handler)
 
-    def install(self, app: Application, root_password: str, handler: ProcessWatcher) -> bool:
+    def install(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man:
             return man.install(app, root_password, handler)
 
-    def get_info(self, app: Application):
+    def get_info(self, app: SoftwarePackage):
         man = self._get_manager_for(app)
 
         if man:
             return man.get_info(app)
 
-    def get_history(self, app: Application) -> ApplicationHistory:
+    def get_history(self, app: SoftwarePackage) -> PackageHistory:
         man = self._get_manager_for(app)
 
         if man:
@@ -169,24 +169,24 @@ class GenericApplicationManager(ApplicationManager):
     def is_enabled(self):
         return True
 
-    def _get_manager_for(self, app: Application) -> ApplicationManager:
+    def _get_manager_for(self, app: SoftwarePackage) -> ApplicationManager:
         man = self.map[app.__class__]
         return man if man and self._is_enabled(man) else None
 
-    def cache_to_disk(self, app: Application, icon_bytes: bytes, only_icon: bool):
+    def cache_to_disk(self, app: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         if self.disk_loader_factory.disk_cache and app.supports_disk_cache():
             man = self._get_manager_for(app)
 
             if man:
                 return man.cache_to_disk(app, icon_bytes=icon_bytes, only_icon=only_icon)
 
-    def requires_root(self, action: str, app: Application):
+    def requires_root(self, action: str, app: SoftwarePackage):
         man = self._get_manager_for(app)
 
         if man:
             return man.requires_root(action, app)
 
-    def refresh(self, app: Application, root_password: str, watcher: ProcessWatcher) -> bool:
+    def refresh(self, app: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         self._wait_to_be_ready()
 
         man = self._get_manager_for(app)
@@ -204,7 +204,7 @@ class GenericApplicationManager(ApplicationManager):
         self.thread_prepare = Thread(target=self._prepare)
         self.thread_prepare.start()
 
-    def list_updates(self) -> List[ApplicationUpdate]:
+    def list_updates(self) -> List[PackageUpdate]:
         self._wait_to_be_ready()
 
         updates = []
@@ -242,7 +242,7 @@ class GenericApplicationManager(ApplicationManager):
             if man_sugs:
                 suggestions.extend(man_sugs)
 
-    def list_suggestions(self, limit: int) -> List[Application]:
+    def list_suggestions(self, limit: int) -> List[SoftwarePackage]:
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
