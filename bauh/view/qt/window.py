@@ -15,7 +15,7 @@ from bauh.core import resource
 from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.about import AboutDialog
-from bauh.view.qt.apps_table import AppsTable
+from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
@@ -581,9 +581,11 @@ class ManageWindow(QWidget):
                     if self.manager.requires_root('update', app_v.model):
                         requires_root = True
 
+            bt_ex = UpdateToggleButton(None, self, self.locale_keys, clickable=False)
             if to_update and dialog.ask_confirmation(title=self.locale_keys['manage_window.upgrade_all.popup.title'],
                                                      body=self.locale_keys['manage_window.upgrade_all.popup.body'],
-                                                     locale_keys=self.locale_keys):
+                                                     locale_keys=self.locale_keys,
+                                                     widgets=[bt_ex]):
                 pwd = None
 
                 if not is_root() and requires_root:

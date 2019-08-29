@@ -41,7 +41,7 @@ class IconButton(QWidget):
 
 class UpdateToggleButton(QWidget):
 
-    def __init__(self, app_view: ApplicationView, root: QWidget, locale_keys: dict, checked: bool = True):
+    def __init__(self, app_view: ApplicationView, root: QWidget, locale_keys: dict, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
 
         self.app_view = app_view
@@ -53,12 +53,14 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QToolButton()
-        self.bt.setCheckable(True)
-        self.bt.clicked.connect(self.change_state)
+        self.bt.setCheckable(clickable)
+
+        if clickable:
+            self.bt.clicked.connect(self.change_state)
 
         self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
-                              'QToolButton:checked { background: gray }')
+                              ('QToolButton:checked { background: gray }' if clickable else ''))
         layout.addWidget(self.bt)
 
         self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
