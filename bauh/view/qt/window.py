@@ -25,6 +25,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
     AsyncAction, RunApp
 from bauh.view.qt.view_model import PackageView
+from bauh.view.qt.view_utils import load_icon
 
 DARK_ORANGE = '#FF4500'
 
@@ -114,7 +115,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(self._get_resized_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.toolbar.addWidget(new_spacer())
@@ -159,6 +160,9 @@ class ManageWindow(QWidget):
         self.ref_checkbox_console = toolbar_console.addWidget(self.checkbox_console)
 
         toolbar_console.addWidget(new_spacer())
+
+        self.label_displayed = QLabel()
+        toolbar_console.addWidget(self.label_displayed)
 
         self.layout.addWidget(toolbar_console)
 
@@ -461,6 +465,10 @@ class ManageWindow(QWidget):
                 self.table_apps.change_headers_policy()
                 self.resize_and_center(accept_lower_width=visible_apps > 0)
 
+            self.label_displayed.setText('{} / {}'.format(visible_apps, len(self.pkgs)))
+        else:
+            self.label_displayed.setText('')
+
     def change_update_state(self, change_filters: bool = True):
         show_bt_upgrade = False
         app_updates, library_updates, not_installed = 0, 0, 0
@@ -577,11 +585,6 @@ class ManageWindow(QWidget):
 
         self.ref_bt_installed.setVisible(not as_installed)
 
-    @staticmethod
-    def _get_resized_icon(path: str, size: int) -> QIcon:
-        pixmap = QPixmap(path)
-        return QIcon(pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-
     def _update_type_filters(self, available_types: dict):
 
         self.type_filter = self.any_type_filter
@@ -595,7 +598,7 @@ class ManageWindow(QWidget):
                 icon = self.cache_type_filter_icons.get(app_type)
 
                 if not icon:
-                    icon = self._get_resized_icon(icon_path, 14)
+                    icon = load_icon(icon_path, 14)
                     self.cache_type_filter_icons[app_type] = icon
 
                 self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
@@ -773,10 +776,10 @@ class ManageWindow(QWidget):
             self.thread_search.word = word
             self.thread_search.start()
 
-    def _finish_search(self, apps_found: List[SoftwarePackage]):
+    def _finish_search(self, pkgs_found: List[SoftwarePackage]):
         self.finish_action()
         self.ref_bt_upgrade.setVisible(False)
-        self.update_pkgs(apps_found, as_installed=False, update_check_enabled=False)
+        self.update_pkgs(pkgs_found, as_installed=False, update_check_enabled=False)
 
     def install(self, pkg: PackageView):
         pwd = None
