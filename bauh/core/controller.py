@@ -63,10 +63,10 @@ class GenericSoftwareManager(SoftwareManager):
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
 
-    def search(self, word: str, disk_loader: DiskCacheLoader = None) -> SearchResult:
+    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1) -> SearchResult:
         self._wait_to_be_ready()
 
-        res = SearchResult([], [])
+        res = SearchResult([], [], 0)
 
         norm_word = word.strip().lower()
         disk_loader = self.disk_loader_factory.new()
@@ -88,6 +88,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         res.installed = self._sort(res.installed, norm_word)
         res.new = self._sort(res.new, norm_word)
+        res.total = len(res.installed) + len(res.new)
 
         return res
 
