@@ -23,7 +23,7 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(context: ApplicationContext) -> List[SoftwareManager]:
+def load_managers(locale: str, context: ApplicationContext) -> List[SoftwareManager]:
     managers = []
 
     for m in pkgutil.iter_modules():
@@ -37,7 +37,7 @@ def load_managers(context: ApplicationContext) -> List[SoftwareManager]:
                     locale_path = '{}/resources/locale'.format(module.__path__[0])
 
                     if os.path.exists(locale_path):
-                        context.i18n.update(util.get_locale_keys(context.args.locale, locale_path))
+                        context.i18n.update(util.get_locale_keys(locale, locale_path))
 
                     managers.append(manager_class(context=context))
 

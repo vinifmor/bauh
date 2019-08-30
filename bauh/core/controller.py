@@ -1,3 +1,4 @@
+from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
 
@@ -11,11 +12,11 @@ SUGGESTIONS_LIMIT = 6
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, app_args: Namespace):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._enabled_map = {} if context.args.check_packaging_once else None
+        self._enabled_map = {} if app_args.check_packaging_once else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
@@ -187,7 +188,7 @@ class GenericSoftwareManager(SoftwareManager):
         return man if man and self._is_enabled(man) else None
 
     def cache_to_disk(self, app: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
-        if self.context.args.disk_cache and app.supports_disk_cache():
+        if self.context.disk_cache and app.supports_disk_cache():
             man = self._get_manager_for(app)
 
             if man:

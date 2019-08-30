@@ -24,15 +24,16 @@ icon_cache = cache_factory.new(args.icon_exp)
 
 context = ApplicationContext(i18n=i18n,
                              http_client=HttpClient(),
-                             args=args,
+                             disk_cache=args.disk_cache,
+                             download_icons=args.download_icons,
                              app_root_dir=ROOT_DIR,
                              cache_factory=cache_factory,
                              disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache))
 
-managers = extensions.load_managers(context=context)
+managers = extensions.load_managers(context=context, locale=args.locale)
 
 
-manager = GenericSoftwareManager(managers, context=context)
+manager = GenericSoftwareManager(managers, context=context, app_args=args)
 manager.prepare()
 
 app = QApplication(sys.argv)
