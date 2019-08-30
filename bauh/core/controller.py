@@ -139,7 +139,7 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
-            return man.downgrade_app(app, root_password, handler)
+            return man.downgrade(app, root_password, handler)
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
