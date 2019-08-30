@@ -539,8 +539,8 @@ class ManageWindow(QWidget):
                 old_installed = self.pkgs_installed
                 self.pkgs_installed = []
 
-            for app in new_pkgs:
-                app_model = PackageView(model=app, visible=app.is_application() or not self.checkbox_only_apps.isChecked())
+            for pkg in new_pkgs:
+                app_model = PackageView(model=pkg, visible=pkg.is_application() or not self.checkbox_only_apps.isChecked())
                 self._update_pkgs_info(app_model, pkgs_info)
                 self.pkgs.append(app_model)
 

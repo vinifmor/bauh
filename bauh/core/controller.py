@@ -97,10 +97,10 @@ class GenericSoftwareManager(SoftwareManager):
             self.thread_prepare.join()
             self.thread_prepare = None
 
-    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> List[SoftwarePackage]:
+    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
         self._wait_to_be_ready()
 
-        installed = []
+        res = SearchResult([], None, 0)
 
         disk_loader = None
 
@@ -111,8 +111,9 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    installed.extend(man.read_installed(disk_loader=disk_loader, pkg_types=None))
-
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    res.installed.extend(man_res.installed)
+                    res.total += man_res.total
         else:
             man_already_used = []
 
@@ -124,17 +125,17 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    installed.extend(man.read_installed(disk_loader=disk_loader, pkg_types=None))
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    res.installed.extend(man_res.installed)
+                    res.total += man_res.total
 
         if disk_loader:
             disk_loader.stop = True
             disk_loader.join()
 
-        installed.sort(key=lambda a: a.base_data.name.lower())
+        return res
 
-        return installed
-
-    def downgrade_app(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():

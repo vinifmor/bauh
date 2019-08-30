@@ -100,12 +100,12 @@ class RefreshApps(AsyncAction):
         self.pkg_types = pkg_types
 
     def run(self):
-        installed = self.manager.read_installed(pkg_types=self.pkg_types)
+        res = self.manager.read_installed(pkg_types=self.pkg_types)
         refreshed_types = set()
 
-        if installed:
+        if res:
             idx_found, app_found = None, None
-            for idx, ins in enumerate(installed):
+            for idx, ins in enumerate(res.installed):
                 if self.pkg_types:
                     refreshed_types.add(ins.__class__)
 
@@ -115,12 +115,12 @@ class RefreshApps(AsyncAction):
                     break
 
             if app_found:
-                del installed[idx_found]
-                installed.insert(0, app_found)
+                del res.installed[idx_found]
+                res.installed.insert(0, app_found)
         elif self.pkg_types:
             refreshed_types = self.pkg_types
 
-        self.notify_finished({'installed': installed, 'types': refreshed_types})
+        self.notify_finished({'installed': res.installed, 'total': res.total, 'types': refreshed_types})
         self.app = None
         self.pkg_types = None
 
@@ -160,7 +160,7 @@ class DowngradeApp(AsyncAction):
         if self.app:
             success = False
             try:
-                success = self.manager.downgrade_app(self.app.model, self.root_password, self)
+                success = self.manager.downgrade(self.app.model, self.root_password, self)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
                 self.print(self.locale_keys['internet.required'])
