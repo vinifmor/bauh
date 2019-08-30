@@ -106,17 +106,19 @@ class RefreshApps(AsyncAction):
         if installed:
             idx_found, app_found = None, None
             for idx, ins in enumerate(installed):
+                if self.pkg_types:
+                    refreshed_types.add(ins.__class__)
+
                 if self.app and ins.get_type() == self.app.model.get_type() and ins.base_data.id == self.app.model.base_data.id:
                     idx_found = idx
                     app_found = ins
                     break
 
-                if self.pkg_types:
-                    refreshed_types.add(ins.__class__)
-
             if app_found:
                 del installed[idx_found]
                 installed.insert(0, app_found)
+        elif self.pkg_types:
+            refreshed_types = self.pkg_types
 
         self.notify_finished({'installed': installed, 'types': refreshed_types})
         self.app = None
@@ -221,9 +223,9 @@ class SearchApps(AsyncAction):
 
 class InstallApp(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, pkg: PackageView = None):
         super(InstallApp, self).__init__()
-        self.app = app
+        self.pkg = pkg
         self.manager = manager
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
@@ -231,26 +233,26 @@ class InstallApp(AsyncAction):
         self.root_password = None
 
     def run(self):
-        if self.app:
+        if self.pkg:
             success = False
 
             try:
-                success = self.manager.install(self.app.model, self.root_password, self)
+                success = self.manager.install(self.pkg.model, self.root_password, self)
 
                 if success and self.disk_cache:
-                    self.app.model.installed = True
+                    self.pkg.model.installed = True
 
-                    if self.app.model.supports_disk_cache():
-                        icon_data = self.icon_cache.get(self.app.model.base_data.icon_url)
-                        self.manager.cache_to_disk(app=self.app.model,
+                    if self.pkg.model.supports_disk_cache():
+                        icon_data = self.icon_cache.get(self.pkg.model.base_data.icon_url)
+                        self.manager.cache_to_disk(app=self.pkg.model,
                                                    icon_bytes=icon_data.get('bytes') if icon_data else None,
                                                    only_icon=False)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
                 self.print(self.locale_keys['internet.required'])
             finally:
-                self.signal_finished.emit(self.app if success else None)
-                self.app = None
+                self.signal_finished.emit(self.pkg if success else None)
+                self.pkg = None
 
 
 class AnimateProgress(QThread):

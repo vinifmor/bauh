@@ -124,7 +124,7 @@ class ManageWindow(QWidget):
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
         self.bt_installed.setText(self.locale_keys['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
-        self.bt_installed.setStyleSheet(self._toolbar_button_style('brown'))
+        self.bt_installed.setStyleSheet(self._toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
 
         self.bt_refresh = QPushButton()
@@ -272,7 +272,7 @@ class ManageWindow(QWidget):
             self.finish_action()
             self.ref_checkbox_only_apps.setVisible(True)
             self.ref_bt_upgrade.setVisible(True)
-            self.update_apps(apps=None, as_installed=True)
+            self.update_pkgs(new_pkgs=None, as_installed=True)
             self.input_search.setText('')
 
     def _show_about(self):
@@ -344,7 +344,7 @@ class ManageWindow(QWidget):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(True)
         self.ref_bt_upgrade.setVisible(True)
-        self.update_apps(res['installed'], as_installed=True, types=res['types'])
+        self.update_pkgs(res['installed'], as_installed=True, types=res['types'])
         self.first_refresh = False
 
     def uninstall_app(self, app: PackageView):
@@ -386,17 +386,17 @@ class ManageWindow(QWidget):
         self.thread_refresh_app.root_password = pwd
         self.thread_refresh_app.start()
 
-    def _finish_uninstall(self, app: PackageView):
+    def _finish_uninstall(self, pkgv: PackageView):
         self.finish_action()
 
-        if app:
+        if pkgv:
             if self._can_notify_user():
-                util.notify_user('{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['uninstalled']))
+                util.notify_user('{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.locale_keys['uninstalled']))
 
-            self.refresh_apps(pkg_types={app.model.__class__})
+            self.refresh_apps(pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
 
@@ -514,12 +514,12 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def update_apps(self, apps: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True, types: Set[type] = None):
+    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True, types: Set[type] = None):
 
         napps = 0  # number of apps (not libraries, runtimes or something else)
         available_types = {}
 
-        if apps is not None:
+        if new_pkgs is not None:
             self.pkgs = []
             old_installed = None
 
@@ -527,7 +527,7 @@ class ManageWindow(QWidget):
                 old_installed = self.pkgs_installed
                 self.pkgs_installed = []
 
-            for app in apps:
+            for app in new_pkgs:
                 app_model = PackageView(model=app, visible=app.is_application() or not self.checkbox_only_apps.isChecked())
                 available_types[app.get_type()] = app.get_type_icon_path()
                 napps += 1 if app.is_application() else 0
@@ -570,7 +570,7 @@ class ManageWindow(QWidget):
         self.change_update_state()
         self.resize_and_center()
 
-        if apps:
+        if new_pkgs:
             self.thread_verify_models.apps = self.pkgs
             self.thread_verify_models.start()
 
@@ -775,11 +775,11 @@ class ManageWindow(QWidget):
     def _finish_search(self, apps_found: List[SoftwarePackage]):
         self.finish_action()
         self.ref_bt_upgrade.setVisible(False)
-        self.update_apps(apps_found, as_installed=False, update_check_enabled=False)
+        self.update_pkgs(apps_found, as_installed=False, update_check_enabled=False)
 
-    def install_app(self, app: PackageView):
+    def install(self, pkg: PackageView):
         pwd = None
-        requires_root = self.manager.requires_root('install', app.model)
+        requires_root = self.manager.requires_root('install', pkg.model)
 
         if not is_root() and requires_root:
             pwd, ok = ask_root_password(self.locale_keys)
@@ -788,24 +788,24 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], pkg.model.base_data.name))
 
-        self.thread_install.app = app
+        self.thread_install.pkg = pkg
         self.thread_install.root_password = pwd
         self.thread_install.start()
 
-    def _finish_install(self, app: PackageView):
+    def _finish_install(self, pkgv: PackageView):
         self.input_search.setText('')
         self.finish_action()
 
-        if app:
+        if pkgv:
             if self._can_notify_user():
-                util.notify_user(msg='{} ({}) {}'.format(app.model.base_data.name, app.model.get_type(), self.locale_keys['installed']))
+                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.locale_keys['installed']))
 
-            self.refresh_apps(top_app=app, pkg_types={app.model.__class__})
+            self.refresh_apps(top_app=pkgv, pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(app.model.base_data.name, self.locale_keys['notification.install.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.locale_keys['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)
 

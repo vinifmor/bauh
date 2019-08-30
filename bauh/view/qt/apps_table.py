@@ -196,14 +196,14 @@ class AppsTable(QTableWidget):
     def _get_app_history(self):
         self.window.get_app_history(self.get_selected_app())
 
-    def _install_app(self, app_v: PackageView):
+    def _install_app(self, pkgv: PackageView):
 
         if dialog.ask_confirmation(
                 title=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(app_v)))),
+                body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))),
                 locale_keys=self.window.locale_keys):
 
-            self.window.install_app(app_v)
+            self.window.install(pkgv)
 
     def _load_icon_and_cache(self, http_response):
         icon_url = http_response.url().toString()
@@ -270,12 +270,12 @@ class AppsTable(QTableWidget):
 
         return col
 
-    def _set_col_installed(self, idx: int, app_v: PackageView):
+    def _set_col_installed(self, idx: int, pkgv: PackageView):
 
-        if app_v.model.installed:
-            if app_v.model.can_be_uninstalled():
+        if pkgv.model.installed:
+            if pkgv.model.can_be_uninstalled():
                 def uninstall():
-                    self._uninstall_app(app_v)
+                    self._uninstall_app(pkgv)
 
                 col = self._gen_row_button(self.window.locale_keys['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
             else:
@@ -283,9 +283,9 @@ class AppsTable(QTableWidget):
                 col.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
                 col.setAlignment(Qt.AlignCenter)
                 col.setToolTip(self.window.locale_keys['installed'])
-        elif app_v.model.can_be_installed():
+        elif pkgv.model.can_be_installed():
             def install():
-                self._install_app(app_v)
+                self._install_app(pkgv)
             col = self._gen_row_button(self.window.locale_keys['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
             col = None
