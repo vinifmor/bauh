@@ -96,7 +96,7 @@ class GenericSoftwareManager(SoftwareManager):
             self.thread_prepare.join()
             self.thread_prepare = None
 
-    def read_installed(self, disk_loader: DiskCacheLoader = None, pkg_types: Set[Type[SoftwarePackage]] = None) -> List[SoftwarePackage]:
+    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> List[SoftwarePackage]:
         self._wait_to_be_ready()
 
         installed = []
