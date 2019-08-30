@@ -2,24 +2,23 @@ from threading import Thread
 from typing import List, Set, Type
 
 from bauh_api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
+from bauh_api.abstract.disk import DiskCacheLoader
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory
-from bauh_api.util.disk import DiskCacheLoader
-from bauh_api.util.disk import DiskCacheLoaderFactory
 
 SUGGESTIONS_LIMIT = 6
 
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, disk_loader_factory: DiskCacheLoaderFactory):
-        super(GenericSoftwareManager, self).__init__(context=context, app_cache=None)
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext):
+        super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self.disk_loader_factory = disk_loader_factory
         self._enabled_map = {} if context.args.check_packaging_once else None
         self.thread_prepare = None
         self.i18n = context.i18n
+        self.disk_loader_factory = context.disk_loader_factory
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
@@ -188,7 +187,7 @@ class GenericSoftwareManager(SoftwareManager):
         return man if man and self._is_enabled(man) else None
 
     def cache_to_disk(self, app: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
-        if self.disk_loader_factory.disk_cache and app.supports_disk_cache():
+        if self.context.args.disk_cache and app.supports_disk_cache():
             man = self._get_manager_for(app)
 
             if man:

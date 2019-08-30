@@ -1,10 +1,9 @@
 import inspect
 import os
 import pkgutil
-from typing import List, Dict
+from typing import List
 
 from bauh_api.abstract.controller import SoftwareManager, ApplicationContext
-from bauh_api.util.cache import Cache
 
 from bauh import __app_name__
 from bauh.util import util
@@ -24,7 +23,7 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], context: ApplicationContext) -> List[SoftwareManager]:
+def load_managers(context: ApplicationContext) -> List[SoftwareManager]:
     managers = []
 
     for m in pkgutil.iter_modules():
@@ -40,13 +39,6 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], context: Ap
                     if os.path.exists(locale_path):
                         context.i18n.update(util.get_locale_keys(context.args.locale, locale_path))
 
-                    app_cache = Cache(expiration_time=context.args.cache_exp)
-                    man = manager_class(context=context, app_cache=app_cache)
-
-                    for t in man.get_managed_types():
-                        cache_map[t] = app_cache
-
-                    caches.append(app_cache)
-                    managers.append(man)
+                    managers.append(manager_class(context=context))
 
     return managers

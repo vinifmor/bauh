@@ -5,12 +5,12 @@ from typing import List, Type, Set
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import PackageStatus, SoftwarePackage
 from bauh_api.abstract.view import InputViewComponent, MessageType
 from bauh_api.exception import NoInternetException
-from bauh_api.util.cache import Cache
 
 from bauh.view.qt.view_model import PackageView
 
@@ -127,7 +127,7 @@ class RefreshApps(AsyncAction):
 
 class UninstallApp(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, icon_cache: Cache, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, icon_cache: MemoryCache, app: PackageView = None):
         super(UninstallApp, self).__init__()
         self.app = app
         self.manager = manager
@@ -223,7 +223,7 @@ class SearchApps(AsyncAction):
 
 class InstallApp(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: Cache, locale_keys: dict, pkg: PackageView = None):
+    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: MemoryCache, locale_keys: dict, pkg: PackageView = None):
         super(InstallApp, self).__init__()
         self.pkg = pkg
         self.manager = manager

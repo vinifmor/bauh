@@ -3,32 +3,36 @@ import sys
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from bauh_api.abstract.controller import ApplicationContext
-from bauh_api.util.cache import Cache
-from bauh_api.util.disk import DiskCacheLoaderFactory
 from bauh_api.util.http import HttpClient
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
 from bauh.core import resource, extensions
 from bauh.core.controller import GenericSoftwareManager
 from bauh.util import util
-from bauh.util.memory import CacheCleaner
+from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
+from bauh.util.disk import DefaultDiskCacheLoaderFactory
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 
 args = app_args.read()
 
 i18n = util.get_locale_keys(args.locale)
-caches, cache_map = [], {}
 
-context = ApplicationContext(i18n=i18n, http_client=HttpClient(), args=args, app_root_dir=ROOT_DIR)
-managers = extensions.load_managers(caches=caches, cache_map=cache_map, context=context)
+cache_cleaner = CacheCleaner()
+cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
+icon_cache = cache_factory.new(args.icon_exp)
 
-icon_cache = Cache(expiration_time=args.icon_exp)
-caches.append(icon_cache)
+context = ApplicationContext(i18n=i18n,
+                             http_client=HttpClient(),
+                             args=args,
+                             app_root_dir=ROOT_DIR,
+                             cache_factory=cache_factory,
+                             disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache))
 
-disk_loader_factory = DiskCacheLoaderFactory(disk_cache=args.disk_cache, cache_map=cache_map)
+managers = extensions.load_managers(context=context)
 
-manager = GenericSoftwareManager(managers, disk_loader_factory=disk_loader_factory, context=context)
+
+manager = GenericSoftwareManager(managers, context=context)
 manager.prepare()
 
 app = QApplication(sys.argv)
@@ -56,5 +60,5 @@ else:
     manage_window.refresh_apps()
     manage_window.show()
 
-CacheCleaner(caches).start()
+cache_cleaner.start()
 sys.exit(app.exec_())

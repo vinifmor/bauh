@@ -7,8 +7,8 @@ from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
+from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.model import PackageStatus
-from bauh_api.util.cache import Cache
 
 from bauh.core import resource
 from bauh.util import util
@@ -75,7 +75,7 @@ class UpdateToggleButton(QWidget):
 
 class AppsTable(QTableWidget):
 
-    def __init__(self, parent: QWidget, icon_cache: Cache, disk_cache: bool, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, disk_cache: bool, download_icons: bool):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent

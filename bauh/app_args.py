@@ -20,7 +20,7 @@ def read() -> Namespace:
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
     parser.add_argument('-e', '--cache-exp', action="store",
                         default=int(os.getenv('BAUH_CACHE_EXPIRATION', 60 * 60)), type=int,
-                        help='cached API data expiration time in SECONDS. Default: %(default)s')
+                        help='default memory caches expiration time in SECONDS. Default: %(default)s')
     parser.add_argument('-ie', '--icon-exp', action="store", default=int(os.getenv('BAUH_ICON_EXPIRATION', 60 * 5)),
                         type=int, help='cached icons expiration time in SECONDS. Default: %(default)s')
     parser.add_argument('-l', '--locale', action="store", default=os.getenv('BAUH_LOCALE', 'en'),
