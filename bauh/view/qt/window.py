@@ -514,10 +514,14 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
+    def _update_pkgs_info(self, pkgv: PackageView, pkgs_info: dict):
+        pkgs_info['available_types'][pkgv.model.get_type()] = pkgv.model.get_type_icon_path()
+        pkgs_info['napps'] += 1 if pkgv.model.is_application() else 0
+
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True, types: Set[type] = None):
 
-        napps = 0  # number of apps (not libraries, runtimes or something else)
-        available_types = {}
+        pkgs_info = {'napps': 0,  # number of apps (not libraries, runtimes or something else)
+                     'available_types': {}}
 
         if new_pkgs is not None:
             self.pkgs = []
@@ -529,8 +533,7 @@ class ManageWindow(QWidget):
 
             for app in new_pkgs:
                 app_model = PackageView(model=app, visible=app.is_application() or not self.checkbox_only_apps.isChecked())
-                available_types[app.get_type()] = app.get_type_icon_path()
-                napps += 1 if app.is_application() else 0
+                self._update_pkgs_info(app_model, pkgs_info)
                 self.pkgs.append(app_model)
 
                 if as_installed:
@@ -539,8 +542,7 @@ class ManageWindow(QWidget):
             if old_installed and types:
                 for pkgv in old_installed:
                     if not pkgv.model.__class__ in types:
-                        available_types[pkgv.model.get_type()] = pkgv.model.get_type_icon_path()
-                        napps += 1 if pkgv.model.is_application() else 0
+                        self._update_pkgs_info(pkgv, pkgs_info)
                         self.pkgs.append(pkgv)
 
                         if as_installed:
@@ -548,11 +550,10 @@ class ManageWindow(QWidget):
 
         else:  # use installed
             self.pkgs = self.pkgs_installed
-            for app in self.pkgs:
-                available_types[app.model.get_type()] = app.model.get_type_icon_path()
-                napps += 1 if app.model.is_application() else 0
+            for pkgv in self.pkgs:
+                self._update_pkgs_info(pkgv, pkgs_info)
 
-        if napps == 0:
+        if pkgs_info['napps'] == 0:
             if self.first_refresh:
                 self._begin_search('')
                 self.thread_suggestions.start()
@@ -564,7 +565,7 @@ class ManageWindow(QWidget):
             self.checkbox_only_apps.setCheckable(True)
             self.checkbox_only_apps.setChecked(True)
 
-        self._update_type_filters(available_types)
+        self._update_type_filters(pkgs_info['available_types'])
         self.table_apps.update_apps(self.pkgs, update_check_enabled=update_check_enabled)
         self.apply_filters()
         self.change_update_state()
