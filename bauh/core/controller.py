@@ -1,27 +1,25 @@
-from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
 
-from bauh_api.abstract.controller import SoftwareManager, SearchResult
+from bauh_api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh_api.abstract.handler import ProcessWatcher
 from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory
 from bauh_api.util.disk import DiskCacheLoader
 from bauh_api.util.disk import DiskCacheLoaderFactory
-
-from bauh import ROOT_DIR
 
 SUGGESTIONS_LIMIT = 6
 
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], disk_loader_factory: DiskCacheLoaderFactory, app_args: Namespace, locale_keys: dict):
-        super(GenericSoftwareManager, self).__init__(app_args=app_args, app_cache=None, locale_keys=locale_keys, app_root_dir=ROOT_DIR, http_client=None)
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, disk_loader_factory: DiskCacheLoaderFactory):
+        super(GenericSoftwareManager, self).__init__(context=context, app_cache=None)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
         self.disk_loader_factory = disk_loader_factory
-        self._enabled_map = {} if app_args.check_packaging_once else None
+        self._enabled_map = {} if context.args.check_packaging_once else None
         self.thread_prepare = None
+        self.i18n = context.i18n
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
@@ -179,8 +177,8 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             return man.get_history(app)
 
-    def get_managed_types(self) -> Set["type"]:
-        return None
+    def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
+        pass
 
     def is_enabled(self):
         return True
@@ -247,7 +245,7 @@ class GenericSoftwareManager(SoftwareManager):
 
                     warnings.extend(man_warnings)
         else:
-            warnings.append(self.locale_keys['warning.no_managers'])
+            warnings.append(self.i18n['warning.no_managers'])
 
         return warnings
 

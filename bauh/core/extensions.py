@@ -1,14 +1,12 @@
 import inspect
 import os
 import pkgutil
-from argparse import Namespace
 from typing import List, Dict
 
-from bauh_api.abstract.controller import SoftwareManager
+from bauh_api.abstract.controller import SoftwareManager, ApplicationContext
 from bauh_api.util.cache import Cache
-from bauh_api.util.http import HttpClient
 
-from bauh import ROOT_DIR, __app_name__
+from bauh import __app_name__
 from bauh.util import util
 
 ignore_modules = {'{}_api'.format(__app_name__)}
@@ -26,7 +24,7 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys: Dict[str, str], app_args: Namespace, http_client: HttpClient) -> List[SoftwareManager]:
+def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], context: ApplicationContext) -> List[SoftwareManager]:
     managers = []
 
     for m in pkgutil.iter_modules():
@@ -40,14 +38,10 @@ def load_managers(caches: List[Cache], cache_map: Dict[type, Cache], locale_keys
                     locale_path = '{}/resources/locale'.format(module.__path__[0])
 
                     if os.path.exists(locale_path):
-                        locale_keys.update(util.get_locale_keys(app_args.locale, locale_path))
+                        context.i18n.update(util.get_locale_keys(context.args.locale, locale_path))
 
-                    app_cache = Cache(expiration_time=app_args.cache_exp)
-                    man = manager_class(app_args=app_args,
-                                        app_root_dir=ROOT_DIR,
-                                        http_client=http_client,
-                                        locale_keys=locale_keys,
-                                        app_cache=app_cache)
+                    app_cache = Cache(expiration_time=context.args.cache_exp)
+                    man = manager_class(context=context, app_cache=app_cache)
 
                     for t in man.get_managed_types():
                         cache_map[t] = app_cache
