@@ -117,6 +117,7 @@ class RefreshApps(AsyncAction):
             if app_found:
                 del res.installed[idx_found]
                 res.installed.insert(0, app_found)
+
         elif self.pkg_types:
             refreshed_types = self.pkg_types
 

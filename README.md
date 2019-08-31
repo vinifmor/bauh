@@ -54,6 +54,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
 - **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
+- **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 200.
 
 ### How to improve the application performance
 - If you don't care about a specific packaging technology and don't want the app to deal with it, just disable it via the specific argument or environment variable. For instance, if I don't care

@@ -38,15 +38,16 @@ class ManageWindow(QWidget):
     def _toolbar_button_style(self, bg: str):
         return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
 
-    def __init__(self, locale_keys: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, tray_icon=None):
+    def __init__(self, locale_keys: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, display_limit: int, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
         self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
-        self.pkgs = []
-        self.pkgs_installed = []
-        self.label_flatpak = None
+        self.pkgs = []  # packages current loaded in the table
+        self.pkgs_available = []  # all packages loaded in memory
+        self.pkgs_installed = []  # cached installed packages
+        self.display_limit = display_limit
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
         self.download_icons = download_icons
@@ -442,10 +443,11 @@ class ManageWindow(QWidget):
         elif not self.toolbar_substatus.isVisible():
             self.toolbar_substatus.show()
 
-    def apply_filters(self):
-        if self.pkgs:
-            visible_apps = len(self.pkgs)
-            for idx, app_v in enumerate(self.pkgs):
+    def apply_filters(self, update_check_enabled: bool = True):
+        if self.pkgs_available:
+            pkgs_displayed = []
+            displayed = 0
+            for idx, app_v in enumerate(self.pkgs_available):
                 hidden = self.filter_only_apps and not app_v.model.is_application()
 
                 if not hidden and self.type_filter is not None and self.type_filter != 'any':
@@ -454,18 +456,24 @@ class ManageWindow(QWidget):
                 if not hidden and self.filter_updates:
                     hidden = not app_v.model.update
 
-                self.table_apps.setRowHidden(idx, hidden)
+                # self.table_apps.setRowHidden(idx, hidden)
                 app_v.visible = not hidden
-                visible_apps -= 1 if hidden else 0
+
+                if not hidden and displayed < self.display_limit:
+                    pkgs_displayed.append(app_v)
+                    displayed += 1
+
+            self.pkgs = pkgs_displayed
+            self.table_apps.update_apps(pkgs_displayed, update_check_enabled=update_check_enabled)
 
             self.change_update_state(change_filters=False)
 
             if not self._maximized:
                 self.table_apps.change_headers_policy(QHeaderView.Stretch)
                 self.table_apps.change_headers_policy()
-                self.resize_and_center(accept_lower_width=visible_apps > 0)
+                self.resize_and_center(accept_lower_width=displayed > 0)
 
-            self.label_displayed.setText('{} / {}'.format(visible_apps, len(self.pkgs)))
+            self.label_displayed.setText('{} / {}'.format(displayed, len(self.pkgs_available)))
         else:
             self.label_displayed.setText('')
 
@@ -529,10 +537,13 @@ class ManageWindow(QWidget):
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True, types: Set[type] = None):
 
         pkgs_info = {'napps': 0,  # number of apps (not libraries, runtimes or something else)
-                     'available_types': {}}
+                     'available_types': {},  # available package types in 'new_pkgs'
+                     'total': 0}  # total packages
+
+        self.pkgs = []
+        self.pkgs_available = []
 
         if new_pkgs is not None:
-            self.pkgs = []
             old_installed = None
 
             if as_installed:
@@ -542,24 +553,39 @@ class ManageWindow(QWidget):
             for pkg in new_pkgs:
                 app_model = PackageView(model=pkg, visible=pkg.is_application() or not self.checkbox_only_apps.isChecked())
                 self._update_pkgs_info(app_model, pkgs_info)
-                self.pkgs.append(app_model)
 
-                if as_installed:
-                    self.pkgs_installed.append(app_model)
+                self.pkgs_available.append(app_model)
+
+                if pkgs_info['total'] < self.display_limit:
+                    self.pkgs.append(app_model)
+
+                pkgs_info['total'] += 1
 
             if old_installed and types:
                 for pkgv in old_installed:
                     if not pkgv.model.__class__ in types:
                         self._update_pkgs_info(pkgv, pkgs_info)
-                        self.pkgs.append(pkgv)
 
-                        if as_installed:
-                            self.pkgs_installed.append(pkgv)
+                        self.pkgs_available.append(pkgv)
+
+                        if pkgs_info['total'] < self.display_limit:
+                            self.pkgs.append(pkgv)
+
+                        pkgs_info['total'] += 1
+
+            if as_installed:
+                self.pkgs_installed = self.pkgs_available
 
         else:  # use installed
-            self.pkgs = self.pkgs_installed
-            for pkgv in self.pkgs:
+            for pkgv in self.pkgs_installed:
                 self._update_pkgs_info(pkgv, pkgs_info)
+
+                self.pkgs_available.append(pkgv)
+
+                if pkgs_info['total'] < self.display_limit:
+                    self.pkgs.append(pkgv)
+
+                pkgs_info['total'] += 1
 
         if pkgs_info['napps'] == 0:
             if self.first_refresh:
@@ -574,8 +600,7 @@ class ManageWindow(QWidget):
             self.checkbox_only_apps.setChecked(True)
 
         self._update_type_filters(pkgs_info['available_types'])
-        self.table_apps.update_apps(self.pkgs, update_check_enabled=update_check_enabled)
-        self.apply_filters()
+        self.apply_filters(update_check_enabled=update_check_enabled)
         self.change_update_state()
         self.resize_and_center()
 

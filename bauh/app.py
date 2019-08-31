@@ -47,7 +47,8 @@ manage_window = ManageWindow(locale_keys=i18n,
                              disk_cache=args.disk_cache,
                              download_icons=bool(args.download_icons),
                              screen_size=app.primaryScreen().size(),
-                             suggestions=args.sugs)
+                             suggestions=args.sugs,
+                             display_limit=args.max_displayed)
 
 if args.tray:
     trayIcon = TrayIcon(locale_keys=i18n,
