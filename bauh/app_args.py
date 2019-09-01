@@ -42,7 +42,7 @@ def read() -> Namespace:
     parser.add_argument('--tray', action="store", default=os.getenv('BAUH_TRAY', 0), choices=[0, 1], type=int,
                         help='If the tray icon and update-check daemon should be created. Default: %(default)s')
     parser.add_argument('--sugs', action="store", default=os.getenv('BAUH_SUGGESTIONS', 1), choices=[0, 1], type=int, help='If app suggestions should be displayed if no application package is installed (runtimes / libraries do not count as apps). Default: %(default)s')
-    parser.add_argument('-md', '--max-displayed', action="store", default=os.getenv('BAUH_MAX_DISPLAYED', 200), choices=[0, 1], type=int, help='Maximum number of displayed packages in the management panel table. Default: %(default)s')
+    parser.add_argument('-md', '--max-displayed', action="store", default=os.getenv('BAUH_MAX_DISPLAYED', 100), choices=[0, 1], type=int, help='Maximum number of displayed packages in the management panel table. Default: %(default)s')
     args = parser.parse_args()
 
     if args.cache_exp < 0:

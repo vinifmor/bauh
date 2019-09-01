@@ -100,3 +100,4 @@ cancel=cancelar
 status.caching_data=Cacheando los datos de {} para el disco
 action.run.tooltip=Haces clic aqui para iniciar este aplicativo
 any=cualquier
+manage_window.name_filter.tooltip=Digite aqui para encontrar um aplicativo pelo nome

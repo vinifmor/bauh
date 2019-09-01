@@ -98,3 +98,4 @@ cancel=cancel
 status.caching_data=Caching {} data to disk
 action.run.tooltip=Click here to launch this application
 any=any
+manage_window.name_filter.tooltip=Escriba aquí para encontrar una aplicación por su nombre

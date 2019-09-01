@@ -16,7 +16,7 @@ from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
-from bauh.view.qt.components import new_spacer
+from bauh.view.qt.components import new_spacer, InputFilter
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
@@ -118,6 +118,14 @@ class ManageWindow(QWidget):
         self.combo_filter_type.activated.connect(self._handle_type_filter)
         self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
+
+        self.input_name_filter = InputFilter(self._filter_by_name)
+        self.input_name_filter.setMaxLength(10)
+        self.input_name_filter.setPlaceholderText(self.locale_keys['name'].capitalize() + ',,,')
+        self.input_name_filter.setToolTip(self.locale_keys['manage_window.name_filter.tooltip'])
+        self.input_name_filter.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
+        self.input_name_filter.setMaximumWidth(120)
+        self.ref_input_name_filter = self.toolbar.addWidget(self.input_name_filter)
 
         self.toolbar.addWidget(new_spacer())
 
@@ -237,6 +245,9 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def _filter_by_name(self, words: str):
+        self.apply_filters()
 
     def _bind_async_action(self, action: AsyncAction, finished_call, only_finished: bool = False) -> AsyncAction:
         action.signal_finished.connect(finished_call)
@@ -447,6 +458,7 @@ class ManageWindow(QWidget):
         if self.pkgs_available:
             pkgs_displayed = []
             displayed = 0
+            starts_with_lower = self.input_name_filter.text().lower() if self.input_name_filter.text() else None
             for idx, app_v in enumerate(self.pkgs_available):
                 hidden = self.filter_only_apps and not app_v.model.is_application()
 
@@ -456,7 +468,9 @@ class ManageWindow(QWidget):
                 if not hidden and self.filter_updates:
                     hidden = not app_v.model.update
 
-                # self.table_apps.setRowHidden(idx, hidden)
+                if not hidden and starts_with_lower:
+                    hidden = not app_v.model.base_data.name.lower().startswith(starts_with_lower)
+
                 app_v.visible = not hidden
 
                 if not hidden and displayed < self.display_limit:
@@ -464,6 +478,7 @@ class ManageWindow(QWidget):
                     displayed += 1
 
             self.pkgs = pkgs_displayed
+
             self.table_apps.update_apps(pkgs_displayed, update_check_enabled=update_check_enabled)
 
             self.change_update_state(change_filters=False)
@@ -599,6 +614,9 @@ class ManageWindow(QWidget):
             self.checkbox_only_apps.setCheckable(True)
             self.checkbox_only_apps.setChecked(True)
 
+        if self.pkgs:
+            self.ref_input_name_filter.setVisible(True)
+
         self._update_type_filters(pkgs_info['available_types'])
         self.apply_filters(update_check_enabled=update_check_enabled)
         self.change_update_state()
@@ -693,6 +711,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str, keep_search: bool = False, clear_filters: bool = False):
+        self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_bt_about.setVisible(False)
         self.ref_label_updates.setVisible(False)

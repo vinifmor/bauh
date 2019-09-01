@@ -1,5 +1,6 @@
+from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy
+    QLabel, QSizePolicy, QLineEdit
 from bauh_api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
 
 
@@ -124,6 +125,18 @@ class MultipleSelectQt(QGroupBox):
                 col = 0
             else:
                 col += 1
+
+
+class InputFilter(QLineEdit):
+
+    def __init__(self, on_key_press):
+        super(InputFilter, self).__init__()
+        self.on_key_press = on_key_press
+
+    def keyPressEvent(self, event):
+        super(InputFilter, self).keyPressEvent(event)
+        if event.key() != Qt.EnterKeyReturn:
+            self.on_key_press(self.text())
 
 
 def new_single_select(model: SingleSelectComponent):
