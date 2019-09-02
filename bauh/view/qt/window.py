@@ -258,36 +258,35 @@ class ManageWindow(QWidget):
 
         self.ref_toolbar_search.setVisible(False)
 
-        if self.checkbox_updates.isVisible():
-            self.checkbox_updates.setCheckable(False)
-
-        if self.checkbox_only_apps.isVisible():
-            self.checkbox_only_apps.setCheckable(False)
-
-        if self.input_name_filter.isVisible():
-            self.input_name_filter.setReadOnly(True)
+        # if self.checkbox_updates.isVisible():
+        #     self.checkbox_updates.setCheckable(False)
+        #
+        # if self.checkbox_only_apps.isVisible():
+        #     self.checkbox_only_apps.setCheckable(False)
+        #
+        # if self.input_name_filter.isVisible():
+        #     self.input_name_filter.setReadOnly(True)
 
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
 
     def _update_table_and_state(self, pkginfo: dict):
-        self.change_update_state(pkginfo, False)
         self._update_table(pkginfo, True)
-        self.change_update_state(pkginfo, False)
+        self._update_bt_upgrade(pkginfo)
 
     def _finish_apply_filters_async(self, success: bool):
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)
 
-        if self.checkbox_updates.isVisible():
-            self.checkbox_updates.setCheckable(True)
-
-        if self.checkbox_only_apps.isVisible():
-            self.checkbox_only_apps.setCheckable(True)
-
-        if self.input_name_filter.isVisible():
-            self.input_name_filter.setReadOnly(False)
+        # if self.checkbox_updates.isVisible():
+        #     self.checkbox_updates.setCheckable(True)
+        #
+        # if self.checkbox_only_apps.isVisible():
+        #     self.checkbox_only_apps.setCheckable(True)
+        #
+        # if self.input_name_filter.isVisible():
+        #     self.input_name_filter.setReadOnly(False)
 
     def _filter_by_name(self, words: str):
         self._filter_pkgs()
@@ -524,7 +523,7 @@ class ManageWindow(QWidget):
         if signal:
             self.signal_table_update.emit()
 
-    def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
+    def _update_bt_upgrade(self, pkgs_info: dict):
         show_bt_upgrade = False
 
         if pkgs_info['not_installed'] == 0:
@@ -534,6 +533,9 @@ class ManageWindow(QWidget):
                     break
 
         self.ref_bt_upgrade.setVisible(show_bt_upgrade)
+
+    def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
+        self._update_bt_upgrade(pkgs_info)
 
         if pkgs_info['updates'] > 0:
             self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
