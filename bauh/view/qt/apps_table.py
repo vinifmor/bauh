@@ -107,39 +107,39 @@ class AppsTable(QTableWidget):
                app_v.model.has_history() or \
                app_v.model.can_be_downgraded()
 
-    def show_app_settings(self, app: PackageView):
+    def show_pkg_settings(self, pkgv: PackageView):
         menu_row = QMenu()
 
-        if app.model.installed:
-            if app.model.can_be_refreshed():
+        if pkgv.model.installed:
+            if pkgv.model.can_be_refreshed():
                 action_history = QAction(self.i18n["manage_window.apps_table.row.actions.refresh"])
                 action_history.setIcon(QIcon(resource.get_path('img/refresh.svg')))
 
                 def refresh():
-                    self.window.refresh(app)
+                    self.window.refresh(pkgv)
 
                 action_history.triggered.connect(refresh)
                 menu_row.addAction(action_history)
 
-            if app.model.has_history():
+            if pkgv.model.has_history():
                 action_history = QAction(self.i18n["manage_window.apps_table.row.actions.history"])
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
 
                 def show_history():
-                    self.window.get_app_history(app)
+                    self.window.get_app_history(pkgv)
 
                 action_history.triggered.connect(show_history)
                 menu_row.addAction(action_history)
 
-            if app.model.can_be_downgraded():
+            if pkgv.model.can_be_downgraded():
                 action_downgrade = QAction(self.i18n["manage_window.apps_table.row.actions.downgrade"])
 
                 def downgrade():
                     if dialog.ask_confirmation(
                             title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
-                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(app)))),
+                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkgv)))),
                             locale_keys=self.i18n):
-                        self.window.downgrade_app(app)
+                        self.window.downgrade(pkgv)
 
                 action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
@@ -378,7 +378,7 @@ class AppsTable(QTableWidget):
             tb.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3'))
 
         def handle_click():
-            self.show_app_settings(app_v)
+            self.show_pkg_settings(app_v)
 
         if self.has_any_settings(app_v):
             bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB')

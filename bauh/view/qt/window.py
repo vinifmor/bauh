@@ -466,6 +466,8 @@ class ManageWindow(QWidget):
 
     def _finish_refresh(self, success: bool):
         self.finish_action()
+        self.update_bt_upgrade()
+        self._update_type_filters()
 
         if success:
             self.refresh_apps()
@@ -481,17 +483,6 @@ class ManageWindow(QWidget):
             self.toolbar_substatus.hide()
         elif not self.toolbar_substatus.isVisible():
             self.toolbar_substatus.show()
-
-    def _filter_pkgs(self):  # TODO vai virar o async
-        if self.pkgs_available:
-            pkgs_info = commons.new_pkgs_info()
-            filters = self._gen_filters()
-
-            for pkgv in self.pkgs_available:
-                commons.update_info(pkgv, pkgs_info)
-                commons.apply_filters(pkgv, filters, pkgs_info)
-
-            self._update_table(pkgs_info=pkgs_info)
 
     def _update_table(self, pkgs_info: dict, signal: bool = False):
         self.pkgs = pkgs_info['pkgs_displayed']
@@ -566,13 +557,13 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def _gen_filters(self, ignore_updates: bool = False) -> dict:
+    def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
         return {
             'only_apps': self.filter_only_apps,
             'type': self.type_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
-            'display_limit': self.display_limit
+            'display_limit': self.display_limit if updates <= 0 else None
         }
 
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False):
@@ -632,41 +623,44 @@ class ManageWindow(QWidget):
         self._update_type_filters(pkgs_info['available_types'])
 
         self._update_table(pkgs_info=pkgs_info)
-        self.resize_and_center()
 
         if new_pkgs:
             self.thread_verify_models.apps = self.pkgs
             self.thread_verify_models.start()
 
         self.ref_bt_installed.setVisible(not as_installed)
+        self.resize_and_center()
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
-        filters = self._gen_filters(ignore_updates=ignore_updates)
+        filters = self._gen_filters(updates=pkgs_info['updates'], ignore_updates=ignore_updates)
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 
-    def _update_type_filters(self, available_types: dict):
+    def _update_type_filters(self, available_types: dict = None):
 
-        self.type_filter = self.any_type_filter
-
-        if available_types and len(available_types) > 1:
-            if self.combo_filter_type.count() > 1:
-                for _ in range(self.combo_filter_type.count() - 1):
-                    self.combo_filter_type.removeItem(1)
-
-            for app_type, icon_path in available_types.items():
-                icon = self.cache_type_filter_icons.get(app_type)
-
-                if not icon:
-                    icon = load_icon(icon_path, 14)
-                    self.cache_type_filter_icons[app_type] = icon
-
-                self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
-
-            self.ref_combo_filter_type.setVisible(True)
+        if available_types is None:
+            self.ref_combo_filter_type.setVisible(self.combo_filter_type.count() > 1)
         else:
-            self.ref_combo_filter_type.setVisible(False)
+            self.type_filter = self.any_type_filter
+
+            if available_types and len(available_types) > 1:
+                if self.combo_filter_type.count() > 1:
+                    for _ in range(self.combo_filter_type.count() - 1):
+                        self.combo_filter_type.removeItem(1)
+
+                for app_type, icon_path in available_types.items():
+                    icon = self.cache_type_filter_icons.get(app_type)
+
+                    if not icon:
+                        icon = load_icon(icon_path, 14)
+                        self.cache_type_filter_icons[app_type] = icon
+
+                    self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
+
+                self.ref_combo_filter_type.setVisible(True)
+            else:
+                self.ref_combo_filter_type.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
         new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
@@ -773,7 +767,12 @@ class ManageWindow(QWidget):
         self.combo_filter_type.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
 
-    def downgrade_app(self, pkgv: PackageView):
+        if self.pkgs:
+            self.ref_input_name_filter.setVisible(True)
+            self.update_bt_upgrade()
+            self._update_type_filters()
+
+    def downgrade(self, pkgv: PackageView):
         pwd = None
         requires_root = self.manager.requires_root('downgrade', pkgv.model)
 
@@ -806,13 +805,11 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        self.change_update_state(trigger_filters=False)
         dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.i18n, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, res: dict):
         self.finish_action()
-        self.change_update_state(trigger_filters=False)
 
         if res.get('error'):
             self._handle_console_option(True)
