@@ -22,7 +22,7 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
         pkgs_info['napps_count'] += 1
 
     if pkgv.model.update:
-        if pkgv.model.is_application:
+        if pkgv.model.is_application():
             pkgs_info['app_updates'] += 1
         else:
             pkgs_info['napp_updates'] += 1
