@@ -70,7 +70,7 @@ class UpdateToggleButton(QWidget):
 
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
-        self.root.change_update_state(change_filters=False)
+        self.root.update_bt_upgrade()
 
 
 class AppsTable(QTableWidget):

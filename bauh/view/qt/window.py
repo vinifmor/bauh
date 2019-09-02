@@ -273,7 +273,7 @@ class ManageWindow(QWidget):
 
     def _update_table_and_state(self, pkginfo: dict):
         self._update_table(pkginfo, True)
-        self._update_bt_upgrade(pkginfo)
+        self.update_bt_upgrade(pkginfo)
 
     def _finish_apply_filters_async(self, success: bool):
         self.label_status.setText('')
@@ -521,11 +521,11 @@ class ManageWindow(QWidget):
         if signal:
             self.signal_table_update.emit()
 
-    def _update_bt_upgrade(self, pkgs_info: dict):
+    def update_bt_upgrade(self, pkgs_info: dict = None):
         show_bt_upgrade = False
 
-        if pkgs_info['not_installed'] == 0:
-            for app_v in pkgs_info['pkgs_displayed']:
+        if not pkgs_info or pkgs_info['not_installed'] == 0:
+            for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
                 if app_v.update_checked:
                     show_bt_upgrade = True
                     break
@@ -533,7 +533,7 @@ class ManageWindow(QWidget):
         self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
-        self._update_bt_upgrade(pkgs_info)
+        self.update_bt_upgrade(pkgs_info)
 
         if pkgs_info['updates'] > 0:
             self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
@@ -695,7 +695,7 @@ class ManageWindow(QWidget):
             to_update = []
 
             for app_v in self.pkgs:
-                if app_v.visible and app_v.update_checked:
+                if app_v.update_checked:
                     to_update.append(app_v)
 
                     if self.manager.requires_root('update', app_v.model):
