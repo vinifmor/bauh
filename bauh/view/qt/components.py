@@ -136,7 +136,7 @@ class InputFilter(QLineEdit):
     def keyPressEvent(self, event):
         super(InputFilter, self).keyPressEvent(event)
         if event.key() != Qt.EnterKeyReturn:
-            self.on_key_press(self.text())
+            self.on_key_press()
 
 
 def new_single_select(model: SingleSelectComponent):

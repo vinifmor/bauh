@@ -10,10 +10,9 @@ class PackageViewStatus(Enum):
 
 class PackageView:
 
-    def __init__(self, model: SoftwarePackage, visible: bool = True):
+    def __init__(self, model: SoftwarePackage):
         self.model = model
         self.update_checked = model.update
-        self.visible = visible
         self.status = PackageViewStatus.LOADING
 
     def __repr__(self):

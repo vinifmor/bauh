@@ -98,7 +98,8 @@ class AppsTable(QTableWidget):
 
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
-        self.setRowHeight(80,80)
+        self.setRowHeight(80, 80)
+        self.cache_type_icon = {}
 
     def has_any_settings(self, app_v: PackageView):
         return app_v.model.can_be_refreshed() or \
@@ -152,7 +153,7 @@ class AppsTable(QTableWidget):
 
             for idx, app_v in enumerate(self.window.pkgs):
 
-                if app_v.visible and app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
+                if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
 
                     if self.download_icons:
                         self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
@@ -169,12 +170,6 @@ class AppsTable(QTableWidget):
 
             self.window.resize_and_center()
 
-    def get_selected_app(self) -> PackageView:
-        return self.window.pkgs[self.currentRow()]
-
-    def get_selected_app_icon(self) -> QIcon:
-        return self.item(self.currentRow(), 0).icon()
-
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
                                    body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
@@ -186,15 +181,6 @@ class AppsTable(QTableWidget):
 
     def _parag(self, text: str) -> str:
         return '<p>{}</p>'.format(text)
-
-    def _refresh_app(self):
-        self.window.refresh(self.get_selected_app())
-
-    def _get_app_info(self):
-        self.window.get_app_info(self.get_selected_app())
-
-    def _get_app_history(self):
-        self.window.get_app_history(self.get_selected_app())
 
     def _install_app(self, pkgv: PackageView):
 
@@ -293,9 +279,16 @@ class AppsTable(QTableWidget):
         self.setCellWidget(idx, 4, col)
 
     def _set_col_type(self, idx: int, app_v: PackageView):
+
+        pixmap = self.cache_type_icon.get(app_v.model.get_type())
+
+        if not pixmap:
+            pixmap = QPixmap(app_v.model.get_type_icon_path())
+            pixmap = pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.cache_type_icon[app_v.model.get_type()] = pixmap
+
         col_type = QLabel()
-        pixmap = QPixmap(app_v.model.get_default_icon_path())
-        col_type.setPixmap(pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        col_type.setPixmap(pixmap)
         col_type.setAlignment(Qt.AlignCenter)
         col_type.setToolTip('{}: {}'.format(self.window.locale_keys['type'], app_v.model.get_type()))
         self.setCellWidget(idx, 3, col_type)

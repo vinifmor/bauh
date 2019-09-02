@@ -12,6 +12,7 @@ from bauh_api.abstract.model import PackageStatus, SoftwarePackage
 from bauh_api.abstract.view import InputViewComponent, MessageType
 from bauh_api.exception import NoInternetException
 
+from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 
 
@@ -386,3 +387,33 @@ class RunApp(AsyncAction):
                 self.notify_finished(True)
             except:
                 self.notify_finished(False)
+
+
+class ApplyFilters(AsyncAction):
+
+    signal_table = pyqtSignal(object)
+
+    def __init__(self, filters: dict = None, pkgs: List[PackageView] = None):
+        super(ApplyFilters, self).__init__()
+        self.pkgs = pkgs
+        self.filters = filters
+        self.wait_table_update = False
+
+    def stop_waiting(self):
+        self.wait_table_update = False
+
+    def run(self):
+        if self.pkgs:
+            pkgs_info = commons.new_pkgs_info()
+
+            for pkgv in self.pkgs:
+                commons.update_info(pkgv, pkgs_info)
+                commons.apply_filters(pkgv, self.filters, pkgs_info)
+
+            self.wait_table_update = True
+            self.signal_table.emit(pkgs_info)
+
+            while self.wait_table_update:
+                time.sleep(0.005)
+
+        self.notify_finished(True)

@@ -1,4 +1,5 @@
 import operator
+import time
 from functools import reduce
 from typing import List, Type, Set
 
@@ -13,7 +14,7 @@ from bauh_api.abstract.view import MessageType
 
 from bauh.core import resource
 from bauh.util import util
-from bauh.view.qt import dialog
+from bauh.view.qt import dialog, commons
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer, InputFilter
@@ -23,7 +24,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
-    AsyncAction, RunApp
+    AsyncAction, RunApp, ApplyFilters
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 
@@ -34,6 +35,7 @@ class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
     signal_user_res = pyqtSignal(bool)
+    signal_table_update = pyqtSignal()
 
     def _toolbar_button_style(self, bg: str):
         return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
@@ -119,7 +121,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
-        self.input_name_filter = InputFilter(self._filter_by_name)
+        self.input_name_filter = InputFilter(self.apply_filters_async)
         self.input_name_filter.setMaxLength(10)
         self.input_name_filter.setPlaceholderText(self.locale_keys['name'].capitalize() + ',,,')
         self.input_name_filter.setToolTip(self.locale_keys['manage_window.name_filter.tooltip'])
@@ -201,6 +203,11 @@ class ManageWindow(QWidget):
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
 
+        self.thread_apply_filters = ApplyFilters()
+        self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
+        self.thread_apply_filters.signal_table.connect(self._update_table_and_state)
+        self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
+
         self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
@@ -246,8 +253,44 @@ class ManageWindow(QWidget):
         self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
 
+    def apply_filters_async(self):
+        self.label_status.setText('Filtering...')
+
+        self.ref_toolbar_search.setVisible(False)
+
+        if self.checkbox_updates.isVisible():
+            self.checkbox_updates.setCheckable(False)
+
+        if self.checkbox_only_apps.isVisible():
+            self.checkbox_only_apps.setCheckable(False)
+
+        if self.input_name_filter.isVisible():
+            self.input_name_filter.setReadOnly(True)
+
+        self.thread_apply_filters.filters = self._gen_filters()
+        self.thread_apply_filters.pkgs = self.pkgs_available
+        self.thread_apply_filters.start()
+
+    def _update_table_and_state(self, pkginfo: dict):
+        self.change_update_state(pkginfo, False)
+        self._update_table(pkginfo, True)
+        self.change_update_state(pkginfo, False)
+
+    def _finish_apply_filters_async(self, success: bool):
+        self.label_status.setText('')
+        self.ref_toolbar_search.setVisible(True)
+
+        if self.checkbox_updates.isVisible():
+            self.checkbox_updates.setCheckable(True)
+
+        if self.checkbox_only_apps.isVisible():
+            self.checkbox_only_apps.setCheckable(True)
+
+        if self.input_name_filter.isVisible():
+            self.input_name_filter.setReadOnly(False)
+
     def _filter_by_name(self, words: str):
-        self.apply_filters()
+        self._filter_pkgs()
 
     def _bind_async_action(self, action: AsyncAction, finished_call, only_finished: bool = False) -> AsyncAction:
         action.signal_finished.connect(finished_call)
@@ -299,15 +342,15 @@ class ManageWindow(QWidget):
 
     def _handle_updates_filter(self, status: int):
         self.filter_updates = status == 2
-        self.apply_filters()
+        self.apply_filters_async()
 
     def _handle_filter_only_apps(self, status: int):
         self.filter_only_apps = status == 2
-        self.apply_filters()
+        self.apply_filters_async()
 
     def _handle_type_filter(self, idx: int):
         self.type_filter = self.combo_filter_type.itemData(idx)
-        self.apply_filters()
+        self.apply_filters_async()
 
     def _notify_model_data_change(self):
         self.table_apps.fill_async_data()
@@ -454,89 +497,75 @@ class ManageWindow(QWidget):
         elif not self.toolbar_substatus.isVisible():
             self.toolbar_substatus.show()
 
-    def apply_filters(self, update_check_enabled: bool = True):
+    def _filter_pkgs(self):  # TODO vai virar o async
         if self.pkgs_available:
-            pkgs_displayed = []
-            displayed = 0
-            starts_with_lower = self.input_name_filter.text().lower() if self.input_name_filter.text() else None
-            for idx, app_v in enumerate(self.pkgs_available):
-                hidden = self.filter_only_apps and not app_v.model.is_application()
+            pkgs_info = commons.new_pkgs_info()
+            filters = self._gen_filters()
 
-                if not hidden and self.type_filter is not None and self.type_filter != 'any':
-                    hidden = app_v.model.get_type() != self.type_filter
+            for pkgv in self.pkgs_available:
+                commons.update_info(pkgv, pkgs_info)
+                commons.apply_filters(pkgv, filters, pkgs_info)
 
-                if not hidden and self.filter_updates:
-                    hidden = not app_v.model.update
+            self._update_table(pkgs_info=pkgs_info)
 
-                if not hidden and starts_with_lower:
-                    hidden = not app_v.model.base_data.name.lower().startswith(starts_with_lower)
+    def _update_table(self, pkgs_info: dict, signal: bool = False):
+        self.pkgs = pkgs_info['pkgs_displayed']
 
-                app_v.visible = not hidden
+        self.table_apps.update_apps(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
 
-                if not hidden and displayed < self.display_limit:
-                    pkgs_displayed.append(app_v)
-                    displayed += 1
-
-            self.pkgs = pkgs_displayed
-
-            self.table_apps.update_apps(pkgs_displayed, update_check_enabled=update_check_enabled)
-
-            self.change_update_state(change_filters=False)
-
-            if not self._maximized:
-                self.table_apps.change_headers_policy(QHeaderView.Stretch)
-                self.table_apps.change_headers_policy()
-                self.resize_and_center(accept_lower_width=displayed > 0)
-
-            self.label_displayed.setText('{} / {}'.format(displayed, len(self.pkgs_available)))
+        if not self._maximized:
+            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy()
+            self.resize_and_center(accept_lower_width=len(self.pkgs) > 0)
+            self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
         else:
             self.label_displayed.setText('')
 
-    def change_update_state(self, change_filters: bool = True):
+        if signal:
+            self.signal_table_update.emit()
+
+    def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
         show_bt_upgrade = False
-        app_updates, library_updates, not_installed = 0, 0, 0
 
-        for app_v in self.pkgs:
-            if app_v.model.update:
-                if not app_v.model.is_application():
-                    library_updates += 1
-                else:
-                    app_updates += 1
-
-            if not app_v.model.installed:
-                not_installed += 1
-
-        for app_v in self.pkgs:
-            if not_installed == 0 and app_v.visible and app_v.update_checked:
-                show_bt_upgrade = True
-                break
+        if pkgs_info['not_installed'] == 0:
+            for app_v in pkgs_info['pkgs_displayed']:
+                if app_v.update_checked:
+                    show_bt_upgrade = True
+                    break
 
         self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
-        total_updates = app_updates + library_updates
-
-        if total_updates > 0:
+        if pkgs_info['updates'] > 0:
             self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             self.label_updates.setToolTip('{}: {} ( {} {} | {} {} )'.format(self.locale_keys['manage_window.label.updates'],
-                                                                            total_updates,
-                                                                            app_updates,
+                                                                            pkgs_info['updates'],
+                                                                            pkgs_info['app_updates'],
                                                                             self.locale_keys['manage_window.checkbox.only_apps'].lower(),
-                                                                            library_updates,
+                                                                            pkgs_info['napp_updates'],
                                                                             self.locale_keys['others'].lower()))
 
-            if not_installed == 0:
+            if pkgs_info['not_installed'] == 0:
                 if not self.ref_checkbox_updates.isVisible():
                     self.ref_checkbox_updates.setVisible(True)
 
-                if change_filters and not self.checkbox_updates.isChecked():
-                    self.checkbox_updates.setChecked(True)
+                if not self.checkbox_updates.isChecked():
+                    self._change_checkbox(self.checkbox_updates, True, trigger_filters)
 
-            if change_filters and library_updates > 0 and self.checkbox_only_apps.isChecked():
-                self.checkbox_only_apps.setChecked(False)
+            if pkgs_info['napp_updates'] > 0 and self.checkbox_only_apps.isChecked():
+                self._change_checkbox(self.checkbox_only_apps, False, trigger_filters)
         else:
-            self.checkbox_updates.setChecked(False)
+            self._change_checkbox(self.checkbox_updates, False, trigger_filters)
             self.ref_checkbox_updates.setVisible(False)
             self.label_updates.setPixmap(QPixmap())
+
+    def _change_checkbox(self, checkbox: QCheckBox, checked: bool, trigger: bool = True):
+        if not trigger:
+            checkbox.blockSignals(True)
+
+        checkbox.setChecked(checked)
+
+        if not trigger:
+            checkbox.blockSignals(False)
 
     def centralize(self):
         geo = self.frameGeometry()
@@ -545,18 +574,19 @@ class ManageWindow(QWidget):
         geo.moveCenter(center_point)
         self.move(geo.topLeft())
 
-    def _update_pkgs_info(self, pkgv: PackageView, pkgs_info: dict):
-        pkgs_info['available_types'][pkgv.model.get_type()] = pkgv.model.get_type_icon_path()
-        pkgs_info['napps'] += 1 if pkgv.model.is_application() else 0
+    def _gen_filters(self) -> dict:
+        return {
+            'only_apps': self.checkbox_only_apps.isChecked(),
+            'type': self.type_filter,
+            'updates': self.checkbox_updates.isChecked(),
+            'name_starts_with': self.input_name_filter.text().strip().lower() if self.input_name_filter.text().strip() else None,
+            'display_limit': self.display_limit
+        }
 
-    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, update_check_enabled: bool = True, types: Set[type] = None):
+    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None):
 
-        pkgs_info = {'napps': 0,  # number of apps (not libraries, runtimes or something else)
-                     'available_types': {},  # available package types in 'new_pkgs'
-                     'total': 0}  # total packages
-
-        self.pkgs = []
-        self.pkgs_available = []
+        pkgs_info = commons.new_pkgs_info()
+        filters = self._gen_filters()
 
         if new_pkgs is not None:
             old_installed = None
@@ -566,60 +596,50 @@ class ManageWindow(QWidget):
                 self.pkgs_installed = []
 
             for pkg in new_pkgs:
-                app_model = PackageView(model=pkg, visible=pkg.is_application() or not self.checkbox_only_apps.isChecked())
-                self._update_pkgs_info(app_model, pkgs_info)
-
-                self.pkgs_available.append(app_model)
-
-                if pkgs_info['total'] < self.display_limit:
-                    self.pkgs.append(app_model)
-
-                pkgs_info['total'] += 1
+                app_model = PackageView(model=pkg)
+                commons.update_info(app_model, pkgs_info)
+                commons.apply_filters(app_model, filters, pkgs_info)
 
             if old_installed and types:
                 for pkgv in old_installed:
                     if not pkgv.model.__class__ in types:
-                        self._update_pkgs_info(pkgv, pkgs_info)
-
-                        self.pkgs_available.append(pkgv)
-
-                        if pkgs_info['total'] < self.display_limit:
-                            self.pkgs.append(pkgv)
-
-                        pkgs_info['total'] += 1
-
-            if as_installed:
-                self.pkgs_installed = self.pkgs_available
+                        commons.update_info(pkgv, pkgs_info)
+                        commons.apply_filters(pkgv, filters, pkgs_info)
 
         else:  # use installed
             for pkgv in self.pkgs_installed:
-                self._update_pkgs_info(pkgv, pkgs_info)
+                commons.update_info(pkgv, pkgs_info)
+                commons.apply_filters(pkgv, filters, pkgs_info)
 
-                self.pkgs_available.append(pkgv)
-
-                if pkgs_info['total'] < self.display_limit:
-                    self.pkgs.append(pkgv)
-
-                pkgs_info['total'] += 1
-
-        if pkgs_info['napps'] == 0:
+        if pkgs_info['apps_count'] == 0:
             if self.first_refresh:
                 self._begin_search('')
                 self.thread_suggestions.start()
                 return
             else:
-                self.checkbox_only_apps.setChecked(False)
+                self._change_checkbox(self.checkbox_only_apps, False, False)  # TODO validate
                 self.checkbox_only_apps.setCheckable(False)
         else:
             self.checkbox_only_apps.setCheckable(True)
-            self.checkbox_only_apps.setChecked(True)
+            self._change_checkbox(self.checkbox_only_apps, True, False)  # TODO validate
+
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
+        self._apply_filter(pkgs_info)
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
+
+        self.pkgs_available = pkgs_info['pkgs']
+
+        if as_installed:
+            self.pkgs_installed = pkgs_info['pkgs']
+
+        self.pkgs = pkgs_info['pkgs_displayed']
 
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)
 
         self._update_type_filters(pkgs_info['available_types'])
-        self.apply_filters(update_check_enabled=update_check_enabled)
-        self.change_update_state()
+
+        self._update_table(pkgs_info=pkgs_info)
         self.resize_and_center()
 
         if new_pkgs:
@@ -627,6 +647,12 @@ class ManageWindow(QWidget):
             self.thread_verify_models.start()
 
         self.ref_bt_installed.setVisible(not as_installed)
+
+    def _apply_filter(self, pkgs_info: dict):
+        pkgs_info['pkgs_displayed'] = []
+        filters = self._gen_filters()
+        for pkgv in pkgs_info['pkgs']:
+            commons.apply_filters(pkgv, filters, pkgs_info)
 
     def _update_type_filters(self, available_types: dict):
 
@@ -788,13 +814,13 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        self.change_update_state(change_filters=False)
+        self.change_update_state(trigger_filters=False)
         dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, res: dict):
         self.finish_action()
-        self.change_update_state(change_filters=False)
+        self.change_update_state(trigger_filters=False)
 
         if res.get('error'):
             self._handle_console_option(True)
@@ -823,7 +849,7 @@ class ManageWindow(QWidget):
     def _finish_search(self, pkgs_found: List[SoftwarePackage]):
         self.finish_action()
         self.ref_bt_upgrade.setVisible(False)
-        self.update_pkgs(pkgs_found, as_installed=False, update_check_enabled=False)
+        self.update_pkgs(pkgs_found, as_installed=False)
 
     def install(self, pkg: PackageView):
         pwd = None
