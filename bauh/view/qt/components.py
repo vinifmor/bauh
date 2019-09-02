@@ -132,11 +132,22 @@ class InputFilter(QLineEdit):
     def __init__(self, on_key_press):
         super(InputFilter, self).__init__()
         self.on_key_press = on_key_press
+        self.last_text = ''
 
     def keyPressEvent(self, event):
         super(InputFilter, self).keyPressEvent(event)
-        if event.key() != Qt.EnterKeyReturn:
+        text = self.text().strip()
+
+        if text != self.last_text:
+            self.last_text = text
             self.on_key_press()
+
+    def get_text(self):
+        return self.last_text
+
+    def setText(self, p_str):
+        super(InputFilter, self).setText(p_str)
+        self.last_text = p_str
 
 
 def new_single_select(model: SingleSelectComponent):

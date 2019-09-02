@@ -28,6 +28,7 @@ manage_window.status.searching=Buscando
 manage_window.status.installing=Instalando
 manage_window.status.refreshing_app=Actualizando
 manage_window.status.running_app=Ejecutando {}
+manage_window.status.filtering=Filtrando
 manage_window.bt.refresh.text=Recargar
 manage_window.bt.refresh.tooltip=Recarga los datos sobre los aplicativos instalados
 manage_window.bt.upgrade.text=Actualizar

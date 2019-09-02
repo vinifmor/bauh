@@ -41,7 +41,7 @@ class IconButton(QWidget):
 
 class UpdateToggleButton(QWidget):
 
-    def __init__(self, app_view: PackageView, root: QWidget, locale_keys: dict, checked: bool = True, clickable: bool = True):
+    def __init__(self, app_view: PackageView, root: QWidget, i18n: dict, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
 
         self.app_view = app_view
@@ -63,7 +63,7 @@ class UpdateToggleButton(QWidget):
                               ('QToolButton:checked { background: gray }' if clickable else ''))
         layout.addWidget(self.bt)
 
-        self.setToolTip(locale_keys['manage_window.apps_table.upgrade_toggle.tooltip'])
+        self.setToolTip(i18n['manage_window.apps_table.upgrade_toggle.tooltip'])
 
         if not checked:
             self.bt.click()
@@ -100,6 +100,7 @@ class AppsTable(QTableWidget):
         self.lock_async_data = Lock()
         self.setRowHeight(80, 80)
         self.cache_type_icon = {}
+        self.i18n = self.window.i18n
 
     def has_any_settings(self, app_v: PackageView):
         return app_v.model.can_be_refreshed() or \
@@ -111,7 +112,7 @@ class AppsTable(QTableWidget):
 
         if app.model.installed:
             if app.model.can_be_refreshed():
-                action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.refresh"])
+                action_history = QAction(self.i18n["manage_window.apps_table.row.actions.refresh"])
                 action_history.setIcon(QIcon(resource.get_path('img/refresh.svg')))
 
                 def refresh():
@@ -121,7 +122,7 @@ class AppsTable(QTableWidget):
                 menu_row.addAction(action_history)
 
             if app.model.has_history():
-                action_history = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.history"])
+                action_history = QAction(self.i18n["manage_window.apps_table.row.actions.history"])
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
 
                 def show_history():
@@ -131,13 +132,13 @@ class AppsTable(QTableWidget):
                 menu_row.addAction(action_history)
 
             if app.model.can_be_downgraded():
-                action_downgrade = QAction(self.window.locale_keys["manage_window.apps_table.row.actions.downgrade"])
+                action_downgrade = QAction(self.i18n["manage_window.apps_table.row.actions.downgrade"])
 
                 def downgrade():
                     if dialog.ask_confirmation(
-                            title=self.window.locale_keys['manage_window.apps_table.row.actions.downgrade'],
-                            body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(app)))),
-                            locale_keys=self.window.locale_keys):
+                            title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
+                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(app)))),
+                            locale_keys=self.i18n):
                         self.window.downgrade_app(app)
 
                 action_downgrade.triggered.connect(downgrade)
@@ -171,9 +172,9 @@ class AppsTable(QTableWidget):
             self.window.resize_and_center()
 
     def _uninstall_app(self, app_v: PackageView):
-        if dialog.ask_confirmation(title=self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
-                                   locale_keys=self.window.locale_keys):
+        if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
+                                   body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
+                                   locale_keys=self.i18n):
             self.window.uninstall_app(app_v)
 
     def _bold(self, text: str) -> str:
@@ -185,9 +186,9 @@ class AppsTable(QTableWidget):
     def _install_app(self, pkgv: PackageView):
 
         if dialog.ask_confirmation(
-                title=self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self._parag(self.window.locale_keys['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))),
-                locale_keys=self.window.locale_keys):
+                title=self.i18n['manage_window.apps_table.row.actions.install.popup.title'],
+                body=self._parag(self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))),
+                locale_keys=self.i18n):
 
             self.window.install(pkgv)
 
@@ -237,7 +238,7 @@ class AppsTable(QTableWidget):
                 col_update = None
 
                 if update_check_enabled and pkgv.model.update:
-                    col_update = UpdateToggleButton(pkgv, self.window, self.window.locale_keys, pkgv.model.update)
+                    col_update = UpdateToggleButton(pkgv, self.window, self.i18n, pkgv.model.update)
 
                 self.setCellWidget(idx, 6, col_update)
 
@@ -263,16 +264,16 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkgv)
 
-                col = self._gen_row_button(self.window.locale_keys['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+                col = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
             else:
                 col = QLabel()
                 col.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
                 col.setAlignment(Qt.AlignCenter)
-                col.setToolTip(self.window.locale_keys['installed'])
+                col.setToolTip(self.i18n['installed'])
         elif pkgv.model.can_be_installed():
             def install():
                 self._install_app(pkgv)
-            col = self._gen_row_button(self.window.locale_keys['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
+            col = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
             col = None
 
@@ -290,7 +291,7 @@ class AppsTable(QTableWidget):
         col_type = QLabel()
         col_type.setPixmap(pixmap)
         col_type.setAlignment(Qt.AlignCenter)
-        col_type.setToolTip('{}: {}'.format(self.window.locale_keys['type'], app_v.model.get_type()))
+        col_type.setToolTip('{}: {}'.format(self.i18n['type'], app_v.model.get_type()))
         self.setCellWidget(idx, 3, col_type)
 
     def _set_col_version(self, idx: int, app_v: PackageView):
@@ -302,16 +303,16 @@ class AppsTable(QTableWidget):
         col_version.layout().addWidget(label_version)
 
         if app_v.model.base_data.version:
-            tooltip = self.window.locale_keys['version.installed'] if app_v.model.installed else self.window.locale_keys['version']
+            tooltip = self.i18n['version.installed'] if app_v.model.installed else self.i18n['version']
         else:
-            tooltip = self.window.locale_keys['version.unknown']
+            tooltip = self.i18n['version.unknown']
 
         if app_v.model.update:
             label_version.setStyleSheet("color: #4EC306; font-weight: bold")
-            tooltip = self.window.locale_keys['version.installed_outdated']
+            tooltip = self.i18n['version.installed_outdated']
 
         if app_v.model.installed and app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
-            tooltip = '{}. {}: {}'.format(tooltip, self.window.locale_keys['version.latest'], app_v.model.base_data.latest_version)
+            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], app_v.model.base_data.latest_version)
             label_version.setText(label_version.text() + ' > {}'.format(app_v.model.base_data.latest_version))
 
         col_version.setToolTip(tooltip)
@@ -321,7 +322,7 @@ class AppsTable(QTableWidget):
         col = QTableWidgetItem()
         col.setText(app_v.model.base_data.name if app_v.model.base_data.name else '...')
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-        col.setToolTip(self.window.locale_keys['app.name'].lower())
+        col.setToolTip(self.i18n['app.name'].lower())
 
         if self.disk_cache and app_v.model.supports_disk_cache() and app_v.model.get_disk_icon_path() and os.path.exists(app_v.model.get_disk_icon_path()):
             with open(app_v.model.get_disk_icon_path(), 'rb') as f:
@@ -367,7 +368,7 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(app_v)
 
-            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.window.locale_keys['action.run.tooltip']))
+            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
         if app_v.model.has_info():
 

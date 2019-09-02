@@ -41,7 +41,7 @@ app.setApplicationName(__app_name__)
 app.setApplicationVersion(__version__)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-manage_window = ManageWindow(locale_keys=i18n,
+manage_window = ManageWindow(i18n=i18n,
                              manager=manager,
                              icon_cache=icon_cache,
                              disk_cache=args.disk_cache,

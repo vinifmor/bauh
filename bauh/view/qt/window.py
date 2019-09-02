@@ -40,9 +40,9 @@ class ManageWindow(QWidget):
     def _toolbar_button_style(self, bg: str):
         return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
 
-    def __init__(self, locale_keys: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, display_limit: int, tray_icon=None):
+    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, display_limit: int, tray_icon=None):
         super(ManageWindow, self).__init__()
-        self.locale_keys = locale_keys
+        self.i18n = i18n
         self.manager = manager
         self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
@@ -81,8 +81,8 @@ class ManageWindow(QWidget):
         self.input_search = QLineEdit()
         self.input_search.setMaxLength(20)
         self.input_search.setFrame(False)
-        self.input_search.setPlaceholderText(self.locale_keys['window_manage.input_search.placeholder'] + "...")
-        self.input_search.setToolTip(self.locale_keys['window_manage.input_search.tooltip'])
+        self.input_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
+        self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
         self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0; height: 30px; font-size: 12px; width: 300px}")
         self.input_search.returnPressed.connect(self.search)
         self.toolbar_search.addWidget(self.input_search)
@@ -100,12 +100,12 @@ class ManageWindow(QWidget):
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 8px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
-        self.checkbox_updates.setText(self.locale_keys['updates'].capitalize())
+        self.checkbox_updates.setText(self.i18n['updates'].capitalize())
         self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
         self.ref_checkbox_updates = self.toolbar.addWidget(self.checkbox_updates)
 
         self.checkbox_only_apps = QCheckBox()
-        self.checkbox_only_apps.setText(self.locale_keys['manage_window.checkbox.only_apps'])
+        self.checkbox_only_apps.setText(self.i18n['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
         self.ref_checkbox_only_apps = self.toolbar.addWidget(self.checkbox_only_apps)
@@ -118,39 +118,39 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.locale_keys[self.any_type_filter].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n[self.any_type_filter].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
         self.input_name_filter.setMaxLength(10)
-        self.input_name_filter.setPlaceholderText(self.locale_keys['name'].capitalize() + ',,,')
-        self.input_name_filter.setToolTip(self.locale_keys['manage_window.name_filter.tooltip'])
+        self.input_name_filter.setPlaceholderText(self.i18n['name'].capitalize() + '...')
+        self.input_name_filter.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
         self.input_name_filter.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
-        self.input_name_filter.setMaximumWidth(120)
+        self.input_name_filter.setFixedWidth(120)
         self.ref_input_name_filter = self.toolbar.addWidget(self.input_name_filter)
 
         self.toolbar.addWidget(new_spacer())
 
         self.bt_installed = QPushButton()
-        self.bt_installed.setToolTip(self.locale_keys['manage_window.bt.installed.tooltip'])
+        self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
-        self.bt_installed.setText(self.locale_keys['manage_window.bt.installed.text'].capitalize())
+        self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(self._toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
 
         self.bt_refresh = QPushButton()
-        self.bt_refresh.setToolTip(locale_keys['manage_window.bt.refresh.tooltip'])
+        self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/new_refresh.svg')))
-        self.bt_refresh.setText(self.locale_keys['manage_window.bt.refresh.text'])
+        self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(self._toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
-        self.bt_upgrade.setToolTip(locale_keys['manage_window.bt.upgrade.tooltip'])
+        self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
-        self.bt_upgrade.setText(locale_keys['manage_window.bt.upgrade.text'])
+        self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
         self.bt_upgrade.setStyleSheet(self._toolbar_button_style('#20A435'))
         self.bt_upgrade.clicked.connect(self.update_selected)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
@@ -165,7 +165,7 @@ class ManageWindow(QWidget):
         toolbar_console = QToolBar()
 
         self.checkbox_console = QCheckBox()
-        self.checkbox_console.setText(self.locale_keys['manage_window.checkbox.show_details'])
+        self.checkbox_console.setText(self.i18n['manage_window.checkbox.show_details'])
         self.checkbox_console.stateChanged.connect(self._handle_console)
         self.checkbox_console.setVisible(False)
         self.ref_checkbox_console = toolbar_console.addWidget(self.checkbox_console)
@@ -192,23 +192,23 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
-        self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.locale_keys), finished_call=self._finish_update_selected)
+        self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.i18n), finished_call=self._finish_update_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
         self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
-        self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.locale_keys), finished_call=self._finish_get_history)
+        self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.i18n), finished_call=self._finish_get_history)
         self.thread_search = self._bind_async_action(SearchApps(self.manager), finished_call=self._finish_search, only_finished=True)
-        self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.locale_keys), finished_call=self._finish_downgrade)
+        self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.i18n), finished_call=self._finish_downgrade)
         self.thread_refresh_app = self._bind_async_action(RefreshApp(manager=self.manager), finished_call=self._finish_refresh)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
 
         self.thread_apply_filters = ApplyFilters()
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
-        self.thread_apply_filters.signal_table.connect(self._update_table_and_state)
+        self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.locale_keys)
+        self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -235,7 +235,7 @@ class ManageWindow(QWidget):
         bt_about.setStyleSheet('QToolButton { border: 0px; }')
         bt_about.setIcon(QIcon(resource.get_path('img/about.svg')))
         bt_about.clicked.connect(self._show_about)
-        bt_about.setToolTip(self.locale_keys['manage_window.bt_about.tooltip'])
+        bt_about.setToolTip(self.i18n['manage_window.bt_about.tooltip'])
         self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
@@ -250,43 +250,31 @@ class ManageWindow(QWidget):
         self.dialog_about = None
         self.first_refresh = suggestions
 
-        self.thread_warnings = ListWarnings(man=manager, locale_keys=locale_keys)
+        self.thread_warnings = ListWarnings(man=manager, locale_keys=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
 
     def apply_filters_async(self):
-        self.label_status.setText('Filtering...')
+        self.label_status.setText(self.i18n['manage_window.status.filtering'])
 
         self.ref_toolbar_search.setVisible(False)
 
-        # if self.checkbox_updates.isVisible():
-        #     self.checkbox_updates.setCheckable(False)
-        #
-        # if self.checkbox_only_apps.isVisible():
-        #     self.checkbox_only_apps.setCheckable(False)
-        #
-        # if self.input_name_filter.isVisible():
-        #     self.input_name_filter.setReadOnly(True)
+        if self.ref_input_name_filter.isVisible():
+            self.input_name_filter.setReadOnly(True)
 
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
 
-    def _update_table_and_state(self, pkginfo: dict):
-        self._update_table(pkginfo, True)
-        self.update_bt_upgrade(pkginfo)
+    def _update_table_and_upgrades(self, pkgs_info: dict):
+        self._update_table(pkgs_info=pkgs_info, signal=True)
+        self.update_bt_upgrade(pkgs_info)
 
     def _finish_apply_filters_async(self, success: bool):
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)
 
-        # if self.checkbox_updates.isVisible():
-        #     self.checkbox_updates.setCheckable(True)
-        #
-        # if self.checkbox_only_apps.isVisible():
-        #     self.checkbox_only_apps.setCheckable(True)
-        #
-        # if self.input_name_filter.isVisible():
-        #     self.input_name_filter.setReadOnly(False)
+        if self.ref_input_name_filter.isVisible():
+            self.input_name_filter.setReadOnly(False)
 
     def _bind_async_action(self, action: AsyncAction, finished_call, only_finished: bool = False) -> AsyncAction:
         action.signal_finished.connect(finished_call)
@@ -304,7 +292,7 @@ class ManageWindow(QWidget):
     def _ask_confirmation(self, msg: dict):
         diag = ConfirmationDialog(title=msg['title'],
                                   body=msg['body'],
-                                  locale_keys=self.locale_keys,
+                                  locale_keys=self.i18n,
                                   components=msg['components'],
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'])
@@ -315,7 +303,7 @@ class ManageWindow(QWidget):
 
     def _show_warnings(self, warnings: List[str]):
         if warnings:
-            dialog.show_message(title=self.locale_keys['warning'].capitalize(), body='<p>{}</p>'.format('<br/>'.join(warnings)), type_=MessageType.WARNING)
+            dialog.show_message(title=self.i18n['warning'].capitalize(), body='<p>{}</p>'.format('<br/>'.join(warnings)), type_=MessageType.WARNING)
 
     def show(self):
         super(ManageWindow, self).show()
@@ -333,7 +321,7 @@ class ManageWindow(QWidget):
 
     def _show_about(self):
         if self.dialog_about is None:
-            self.dialog_about = AboutDialog(self.locale_keys)
+            self.dialog_about = AboutDialog(self.i18n)
 
         self.dialog_about.show()
 
@@ -390,7 +378,7 @@ class ManageWindow(QWidget):
 
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action(self.locale_keys['manage_window.status.refreshing'], clear_filters=True)
+        self._begin_action(self.i18n['manage_window.status.refreshing'], clear_filters=True)
 
         self.thread_refresh.app = top_app  # the app will be on top when refresh happens
         self.thread_refresh.pkg_types = pkg_types
@@ -408,20 +396,20 @@ class ManageWindow(QWidget):
         requires_root = self.manager.requires_root('uninstall', app.model)
 
         if not is_root() and requires_root:
-            pwd, ok = ask_root_password(self.locale_keys)
+            pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.uninstalling'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.base_data.name))
 
         self.thread_uninstall.app = app
         self.thread_uninstall.root_password = pwd
         self.thread_uninstall.start()
 
     def run_app(self, app: PackageView):
-        self._begin_action(self.locale_keys['manage_window.status.running_app'].format(app.model.base_data.name))
+        self._begin_action(self.i18n['manage_window.status.running_app'].format(app.model.base_data.name))
         self.thread_run_app.app = app
         self.thread_run_app.start()
 
@@ -430,13 +418,13 @@ class ManageWindow(QWidget):
         requires_root = self.manager.requires_root('refresh', app.model)
 
         if not is_root() and requires_root:
-            pwd, ok = ask_root_password(self.locale_keys)
+            pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.refreshing_app'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.refreshing_app'], app.model.base_data.name))
 
         self.thread_refresh_app.app = app
         self.thread_refresh_app.root_password = pwd
@@ -447,12 +435,12 @@ class ManageWindow(QWidget):
 
         if pkgv:
             if self._can_notify_user():
-                util.notify_user('{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.locale_keys['uninstalled']))
+                util.notify_user('{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
             self.refresh_apps(pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.locale_keys['notification.uninstall.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.i18n['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
 
@@ -464,7 +452,7 @@ class ManageWindow(QWidget):
 
         if res['success']:
             if self._can_notify_user():
-                util.notify_user('{} {}'.format(res['app'], self.locale_keys['downgraded']))
+                util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
             self.refresh_apps(pkg_types={res['app'].model.__class__})
 
@@ -472,7 +460,7 @@ class ManageWindow(QWidget):
                 self.tray_icon.verify_updates(notify_user=False)
         else:
             if self._can_notify_user():
-                util.notify_user(self.locale_keys['notification.downgrade.failed'])
+                util.notify_user(self.i18n['notification.downgrade.failed'])
 
             self.checkbox_console.setChecked(True)
 
@@ -537,12 +525,12 @@ class ManageWindow(QWidget):
 
         if pkgs_info['updates'] > 0:
             self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            self.label_updates.setToolTip('{}: {} ( {} {} | {} {} )'.format(self.locale_keys['manage_window.label.updates'],
+            self.label_updates.setToolTip('{}: {} ( {} {} | {} {} )'.format(self.i18n['manage_window.label.updates'],
                                                                             pkgs_info['updates'],
                                                                             pkgs_info['app_updates'],
-                                                                            self.locale_keys['manage_window.checkbox.only_apps'].lower(),
+                                                                            self.i18n['manage_window.checkbox.only_apps'].lower(),
                                                                             pkgs_info['napp_updates'],
-                                                                            self.locale_keys['others'].lower()))
+                                                                            self.i18n['others'].lower()))
 
             if pkgs_info['not_installed'] == 0:
                 if not self.ref_checkbox_updates.isVisible():
@@ -583,7 +571,7 @@ class ManageWindow(QWidget):
             'only_apps': self.filter_only_apps,
             'type': self.type_filter,
             'updates': False if ignore_updates else self.filter_updates,
-            'name_starts_with': self.input_name_filter.text().strip().lower() if self.input_name_filter.text().strip() else None,
+            'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
             'display_limit': self.display_limit
         }
 
@@ -701,20 +689,20 @@ class ManageWindow(QWidget):
                     if self.manager.requires_root('update', app_v.model):
                         requires_root = True
 
-            if to_update and dialog.ask_confirmation(title=self.locale_keys['manage_window.upgrade_all.popup.title'],
-                                                     body=self.locale_keys['manage_window.upgrade_all.popup.body'],
-                                                     locale_keys=self.locale_keys,
-                                                     widgets=[UpdateToggleButton(None, self, self.locale_keys, clickable=False)]):
+            if to_update and dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
+                                                     body=self.i18n['manage_window.upgrade_all.popup.body'],
+                                                     locale_keys=self.i18n,
+                                                     widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
                 pwd = None
 
                 if not is_root() and requires_root:
-                    pwd, ok = ask_root_password(self.locale_keys)
+                    pwd, ok = ask_root_password(self.i18n)
 
                     if not ok:
                         return
 
                 self._handle_console_option(True)
-                self._begin_action(self.locale_keys['manage_window.status.upgrading'])
+                self._begin_action(self.i18n['manage_window.status.upgrading'])
                 self.thread_update.apps_to_update = to_update
                 self.thread_update.root_password = pwd
                 self.thread_update.start()
@@ -724,7 +712,7 @@ class ManageWindow(QWidget):
 
         if res['success']:
             if self._can_notify_user():
-                util.notify_user('{} {}'.format(res['updated'], self.locale_keys['notification.update_selected.success']))
+                util.notify_user('{} {}'.format(res['updated'], self.i18n['notification.update_selected.success']))
 
             self.refresh_apps(pkg_types=res['types'])
 
@@ -732,7 +720,7 @@ class ManageWindow(QWidget):
                 self.tray_icon.verify_updates()
         else:
             if self._can_notify_user():
-                util.notify_user(self.locale_keys['notification.update_selected.failed'])
+                util.notify_user(self.i18n['notification.update_selected.failed'])
 
             self.ref_bt_upgrade.setVisible(True)
             self.checkbox_console.setChecked(True)
@@ -790,13 +778,13 @@ class ManageWindow(QWidget):
         requires_root = self.manager.requires_root('downgrade', pkgv.model)
 
         if not is_root() and requires_root:
-            pwd, ok = ask_root_password(self.locale_keys)
+            pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.downgrading'], pkgv.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.downgrading'], pkgv.model.base_data.name))
 
         self.thread_downgrade.app = pkgv
         self.thread_downgrade.root_password = pwd
@@ -804,14 +792,14 @@ class ManageWindow(QWidget):
 
     def get_app_info(self, pkg: dict):
         self._handle_console_option(False)
-        self._begin_action(self.locale_keys['manage_window.status.info'])
+        self._begin_action(self.i18n['manage_window.status.info'])
 
         self.thread_get_info.app = pkg
         self.thread_get_info.start()
 
     def get_app_history(self, app: dict):
         self._handle_console_option(False)
-        self._begin_action(self.locale_keys['manage_window.status.history'])
+        self._begin_action(self.i18n['manage_window.status.history'])
 
         self.thread_get_history.app = app
         self.thread_get_history.start()
@@ -819,7 +807,7 @@ class ManageWindow(QWidget):
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
         self.change_update_state(trigger_filters=False)
-        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.locale_keys, screen_size=self.screen_size)
+        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.i18n, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, res: dict):
@@ -831,7 +819,7 @@ class ManageWindow(QWidget):
             self.textarea_output.appendPlainText(res['error'])
             self.checkbox_console.setChecked(True)
         else:
-            dialog_history = HistoryDialog(res['history'], self.icon_cache, self.locale_keys)
+            dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
             dialog_history.exec_()
 
     def _begin_search(self, word):
@@ -839,7 +827,7 @@ class ManageWindow(QWidget):
         self.ref_checkbox_only_apps.setVisible(False)
         self.ref_checkbox_updates.setVisible(False)
         self.filter_updates = False
-        self._begin_action('{}{}'.format(self.locale_keys['manage_window.status.searching'], '"{}"'.format(word) if word else ''), clear_filters=True)
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.searching'], word if word else ''), clear_filters=True)
 
     def search(self):
         word = self.input_search.text().strip()
@@ -858,13 +846,13 @@ class ManageWindow(QWidget):
         requires_root = self.manager.requires_root('install', pkg.model)
 
         if not is_root() and requires_root:
-            pwd, ok = ask_root_password(self.locale_keys)
+            pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.locale_keys['manage_window.status.installing'], pkg.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.installing'], pkg.model.base_data.name))
 
         self.thread_install.pkg = pkg
         self.thread_install.root_password = pwd
@@ -876,12 +864,12 @@ class ManageWindow(QWidget):
 
         if pkgv:
             if self._can_notify_user():
-                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.locale_keys['installed']))
+                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.i18n['installed']))
 
             self.refresh_apps(top_app=pkgv, pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.locale_keys['notification.install.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.i18n['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)
 
