@@ -97,7 +97,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
-        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 8px; margin-bottom: 5px}')
+        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setText(self.i18n['updates'].capitalize())

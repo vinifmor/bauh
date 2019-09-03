@@ -308,12 +308,12 @@ class AppsTable(QTableWidget):
             tooltip = self.i18n['version.unknown']
 
         if app_v.model.update:
-            label_version.setStyleSheet("color: #4EC306; font-weight: bold")
+            label_version.setStyleSheet("color: #20A435; font-weight: bold")
             tooltip = self.i18n['version.installed_outdated']
 
         if app_v.model.installed and app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
             tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], app_v.model.base_data.latest_version)
-            label_version.setText(label_version.text() + ' > {}'.format(app_v.model.base_data.latest_version))
+            label_version.setText(label_version.text() + '  >  {}'.format(app_v.model.base_data.latest_version))
 
         col_version.setToolTip(tooltip)
         self.setCellWidget(idx, 1, col_version)
