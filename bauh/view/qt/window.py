@@ -122,10 +122,10 @@ class ManageWindow(QWidget):
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
         self.input_name_filter.setMaxLength(10)
-        self.input_name_filter.setPlaceholderText(self.i18n['name'].capitalize() + '...')
+        self.input_name_filter.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
         self.input_name_filter.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
         self.input_name_filter.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
-        self.input_name_filter.setFixedWidth(120)
+        self.input_name_filter.setFixedWidth(130)
         self.ref_input_name_filter = self.toolbar.addWidget(self.input_name_filter)
 
         self.toolbar.addWidget(new_spacer())
