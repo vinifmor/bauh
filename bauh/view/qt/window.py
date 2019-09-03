@@ -1,5 +1,4 @@
 import operator
-import time
 from functools import reduce
 from typing import List, Type, Set
 
@@ -487,7 +486,7 @@ class ManageWindow(QWidget):
     def _update_table(self, pkgs_info: dict, signal: bool = False):
         self.pkgs = pkgs_info['pkgs_displayed']
 
-        self.table_apps.update_apps(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
+        self.table_apps.update_pkgs(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
 
         if not self._maximized:
             self.table_apps.change_headers_policy(QHeaderView.Stretch)
@@ -663,10 +662,13 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
+        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))])
 
         if accept_lower_width or new_width > self.width():
             self.resize(new_width, self.height())
+
+            if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
+                self.adjustSize()
 
         self.centralize()
 

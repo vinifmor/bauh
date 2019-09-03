@@ -221,7 +221,7 @@ class AppsTable(QTableWidget):
                     if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                         self.window.manager.cache_to_disk(app=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
-    def update_apps(self, pkg_views: List[PackageView], update_check_enabled: bool = True):
+    def update_pkgs(self, pkg_views: List[PackageView], update_check_enabled: bool = True):
         self.setRowCount(len(pkg_views) if pkg_views else 0)
         self.setEnabled(True)
 
