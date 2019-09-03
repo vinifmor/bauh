@@ -385,7 +385,7 @@ class ManageWindow(QWidget):
 
     def _finish_refresh_apps(self, res: dict):
         self.finish_action()
-        self.ref_checkbox_only_apps.setVisible(True)
+        self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
         self.update_pkgs(res['installed'], as_installed=True, types=res['types'])
         self.first_refresh = False
@@ -600,11 +600,11 @@ class ManageWindow(QWidget):
                 self.thread_suggestions.start()
                 return
             else:
-                self._change_checkbox(self.checkbox_only_apps, checked=False, trigger=False)  # TODO validate
+                self._change_checkbox(self.checkbox_only_apps, checked=False, trigger=False)
                 self.checkbox_only_apps.setCheckable(False)
         else:
             self.checkbox_only_apps.setCheckable(True)
-            self._change_checkbox(self.checkbox_only_apps, checked=True, trigger=False)  # TODO validate
+            self._change_checkbox(self.checkbox_only_apps, checked=True, trigger=False)
 
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
         self._apply_filters(pkgs_info, ignore_updates=ignore_updates)
@@ -628,8 +628,10 @@ class ManageWindow(QWidget):
             self.thread_verify_models.apps = self.pkgs
             self.thread_verify_models.start()
 
-        self.ref_bt_installed.setVisible(not as_installed)
-        self.resize_and_center()
+        if self.pkgs_installed:
+            self.ref_bt_installed.setVisible(not as_installed)
+
+        self.resize_and_center(accept_lower_width=self.pkgs_installed)
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
@@ -663,10 +665,13 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))])
+        if self.pkgs:
+            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))])
 
-        if self.ref_bt_upgrade.isVisible():
-            new_width *= 1.07
+            if self.ref_bt_upgrade.isVisible():
+                new_width *= 1.07
+        else:
+            new_width = self.toolbar_top.width()
 
         if accept_lower_width or new_width > self.width():
             self.resize(new_width, self.height())
