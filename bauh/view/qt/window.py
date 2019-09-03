@@ -377,7 +377,7 @@ class ManageWindow(QWidget):
 
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action(self.i18n['manage_window.status.refreshing'], clear_filters=True)
+        self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False, clear_filters=True)
 
         self.thread_refresh.app = top_app  # the app will be on top when refresh happens
         self.thread_refresh.pkg_types = pkg_types
@@ -500,15 +500,16 @@ class ManageWindow(QWidget):
             self.signal_table_update.emit()
 
     def update_bt_upgrade(self, pkgs_info: dict = None):
-        show_bt_upgrade = False
+        if not self.ref_bt_installed.isVisible():
+            show_bt_upgrade = False
 
-        if not pkgs_info or pkgs_info['not_installed'] == 0:
-            for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
-                if app_v.update_checked:
-                    show_bt_upgrade = True
-                    break
+            if not pkgs_info or pkgs_info['not_installed'] == 0:
+                for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
+                    if app_v.update_checked:
+                        show_bt_upgrade = True
+                        break
 
-        self.ref_bt_upgrade.setVisible(show_bt_upgrade)
+            self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
         self.update_bt_upgrade(pkgs_info)
@@ -664,6 +665,9 @@ class ManageWindow(QWidget):
     def resize_and_center(self, accept_lower_width: bool = True):
         new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))])
 
+        if self.ref_bt_upgrade.isVisible():
+            new_width *= 1.07
+
         if accept_lower_width or new_width > self.width():
             self.resize(new_width, self.height())
 
@@ -724,7 +728,7 @@ class ManageWindow(QWidget):
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
 
-    def _begin_action(self, action_label: str, keep_search: bool = False, clear_filters: bool = False):
+    def _begin_action(self, action_label: str, keep_search: bool = False, keep_bt_installed: bool = True, clear_filters: bool = False):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_bt_about.setVisible(False)
@@ -736,10 +740,14 @@ class ManageWindow(QWidget):
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
         self.ref_bt_refresh.setVisible(False)
-        self.ref_bt_installed.setVisible(False)
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
+
+        if not keep_bt_installed:
+            self.ref_bt_installed.setVisible(False)
+        elif self.ref_bt_installed.isVisible():
+            self.ref_bt_installed.setEnabled(False)
 
         if keep_search:
             self.ref_toolbar_search.setVisible(True)
@@ -773,6 +781,9 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(True)
             self.update_bt_upgrade()
             self._update_type_filters()
+
+            if self.ref_bt_installed.isVisible():
+                self.ref_bt_installed.setEnabled(True)
 
     def downgrade(self, pkgv: PackageView):
         pwd = None
