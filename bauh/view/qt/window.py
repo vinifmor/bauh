@@ -257,7 +257,7 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.set_progress(val)
 
     def apply_filters_async(self):
-        self.label_status.setText(self.i18n['manage_window.status.filtering'])
+        self.label_status.setText(self.i18n['manage_window.status.filtering'] + '...')
 
         self.ref_toolbar_search.setVisible(False)
 
