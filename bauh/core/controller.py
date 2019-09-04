@@ -5,9 +5,9 @@ from typing import List, Set, Type
 from bauh_api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh_api.abstract.disk import DiskCacheLoader
 from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory
+from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion
 
-SUGGESTIONS_LIMIT = 6
+SUGGESTIONS_LIMIT = 5
 
 
 class GenericSoftwareManager(SoftwareManager):
@@ -254,9 +254,12 @@ class GenericSoftwareManager(SoftwareManager):
             man_sugs = man.list_suggestions(limit)
 
             if man_sugs:
+                if len(man_sugs) > limit:
+                    man_sugs = man_sugs[0:limit]
+
                 suggestions.extend(man_sugs)
 
-    def list_suggestions(self, limit: int) -> List[SoftwarePackage]:
+    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
         if self.managers:
             suggestions, threads = [], []
             for man in self.managers:
@@ -266,5 +269,8 @@ class GenericSoftwareManager(SoftwareManager):
 
             for t in threads:
                 t.join()
+
+            if suggestions:
+                suggestions.sort(key=lambda s: s.priority.value, reverse=True)
 
             return suggestions
