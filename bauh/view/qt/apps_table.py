@@ -75,20 +75,21 @@ class UpdateToggleButton(QWidget):
 
 class AppsTable(QTableWidget):
 
+    COL_NUMBER = 8
+
     def __init__(self, parent: QWidget, icon_cache: MemoryCache, disk_cache: bool, download_icons: bool):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent
         self.disk_cache = disk_cache
         self.download_icons = download_icons
-        self.column_names = ['' for _ in range(7)]
-        self.setColumnCount(len(self.column_names))
+        self.setColumnCount(self.COL_NUMBER)
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
         self.setSelectionBehavior(QTableView.SelectRows)
-        self.setHorizontalHeaderLabels(self.column_names)
+        self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_flathub = QIcon(resource.get_path('img/flathub.svg'))
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
@@ -159,14 +160,7 @@ class AppsTable(QTableWidget):
                     if self.download_icons:
                         self.network_man.get(QNetworkRequest(QUrl(app_v.model.icon_url)))
 
-                    app_name = self.item(idx, 0).text()
-
-                    if not app_name or app_name == '...':
-                        self.item(idx, 0).setText(app_v.model.name)
-
-                    self._set_col_version(idx, app_v)
-                    self._set_col_description(idx, app_v)
-                    self._set_col_settings(idx, app_v)
+                    self._update_row(idx, app_v, change_update_col=False)
                     app_v.status = PackageViewStatus.READY
 
             self.window.resize_and_center()
@@ -227,20 +221,24 @@ class AppsTable(QTableWidget):
 
         if pkg_views:
             for idx, pkgv in enumerate(pkg_views):
-                self._set_col_name(idx, pkgv)
-                self._set_col_version(idx, pkgv)
-                self._set_col_description(idx, pkgv)
-                self._set_col_type(idx, pkgv)
-                self._set_col_installed(idx, pkgv)
+                self._update_row(idx, pkgv, update_check_enabled)
 
-                self._set_col_settings(idx, pkgv)
+    def _update_row(self, idx: int, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
+        self._set_col_name(idx, 0, pkg)
+        self._set_col_version(idx, 1, pkg)
+        self._set_col_description(idx, 2, pkg)
+        self._set_col_publisher(idx, 3, pkg)
+        self._set_col_type(idx, 4, pkg)
+        self._set_col_installed(idx, 5, pkg)
+        self._set_col_settings(idx, 6, pkg)
 
-                col_update = None
+        if change_update_col:
+            col_update = None
 
-                if update_check_enabled and pkgv.model.update:
-                    col_update = UpdateToggleButton(pkgv, self.window, self.i18n, pkgv.model.update)
+            if update_check_enabled and pkg.model.update:
+                col_update = UpdateToggleButton(pkg, self.window, self.i18n, pkg.model.update)
 
-                self.setCellWidget(idx, 6, col_update)
+            self.setCellWidget(idx, 7, col_update)
 
     def _gen_row_button(self, text: str, style: str, callback) -> QWidget:
         col = QWidget()
@@ -257,134 +255,160 @@ class AppsTable(QTableWidget):
 
         return col
 
-    def _set_col_installed(self, idx: int, pkgv: PackageView):
+    def _set_col_installed(self, row: int, col: int, pkg: PackageView):
 
-        if pkgv.model.installed:
-            if pkgv.model.can_be_uninstalled():
+        if pkg.model.installed:
+            if pkg.model.can_be_uninstalled():
                 def uninstall():
-                    self._uninstall_app(pkgv)
+                    self._uninstall_app(pkg)
 
-                col = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
             else:
-                col = QLabel()
-                col.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
-                col.setAlignment(Qt.AlignCenter)
-                col.setToolTip(self.i18n['installed'])
-        elif pkgv.model.can_be_installed():
+                item = QLabel()
+                item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
+                item.setAlignment(Qt.AlignCenter)
+                item.setToolTip(self.i18n['installed'])
+        elif pkg.model.can_be_installed():
             def install():
-                self._install_app(pkgv)
-            col = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
+                self._install_app(pkg)
+            item = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
-            col = None
+            item = None
 
-        self.setCellWidget(idx, 4, col)
+        self.setCellWidget(row, col, item)
 
-    def _set_col_type(self, idx: int, app_v: PackageView):
+    def _set_col_type(self, idx: int, col: int, pkg: PackageView):
 
-        pixmap = self.cache_type_icon.get(app_v.model.get_type())
+        pixmap = self.cache_type_icon.get(pkg.model.get_type())
 
         if not pixmap:
-            pixmap = QPixmap(app_v.model.get_type_icon_path())
+            pixmap = QPixmap(pkg.model.get_type_icon_path())
             pixmap = pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.cache_type_icon[app_v.model.get_type()] = pixmap
+            self.cache_type_icon[pkg.model.get_type()] = pixmap
 
-        col_type = QLabel()
-        col_type.setPixmap(pixmap)
-        col_type.setAlignment(Qt.AlignCenter)
-        col_type.setToolTip('{}: {}'.format(self.i18n['type'], app_v.model.get_type()))
-        self.setCellWidget(idx, 3, col_type)
+        item = QLabel()
+        item.setPixmap(pixmap)
+        item.setAlignment(Qt.AlignCenter)
+        item.setToolTip('{}: {}'.format(self.i18n['type'], pkg.model.get_type().capitalize()))
+        self.setCellWidget(idx, col, item)
 
-    def _set_col_version(self, idx: int, app_v: PackageView):
-        label_version = QLabel(app_v.model.version if app_v.model.version else '?')
+    def _set_col_version(self, idx: int, col: int, pkg: PackageView):
+        label_version = QLabel(pkg.model.version if pkg.model.version else '?')
         label_version.setAlignment(Qt.AlignCenter)
 
-        col_version = QWidget()
-        col_version.setLayout(QHBoxLayout())
-        col_version.layout().addWidget(label_version)
+        item = QWidget()
+        item.setLayout(QHBoxLayout())
+        item.layout().addWidget(label_version)
 
-        if app_v.model.version:
-            tooltip = self.i18n['version.installed'] if app_v.model.installed else self.i18n['version']
+        if pkg.model.version:
+            tooltip = self.i18n['version.installed'] if pkg.model.installed else self.i18n['version']
         else:
             tooltip = self.i18n['version.unknown']
 
-        if app_v.model.update:
+        if pkg.model.update:
             label_version.setStyleSheet("color: #20A435; font-weight: bold")
             tooltip = self.i18n['version.installed_outdated']
 
-        if app_v.model.installed and app_v.model.version and app_v.model.latest_version and app_v.model.version < app_v.model.latest_version:
-            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], app_v.model.latest_version)
-            label_version.setText(label_version.text() + '  >  {}'.format(app_v.model.latest_version))
+        if pkg.model.installed and pkg.model.version and pkg.model.latest_version and pkg.model.version < pkg.model.latest_version:
+            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], pkg.model.latest_version)
+            label_version.setText(label_version.text() + '  >  {}'.format(pkg.model.latest_version))
 
-        col_version.setToolTip(tooltip)
-        self.setCellWidget(idx, 1, col_version)
+        item.setToolTip(tooltip)
+        self.setCellWidget(idx, col, item)
 
-    def _set_col_name(self, idx: int, app_v: PackageView):
-        col = QTableWidgetItem()
-        col.setText(app_v.model.name if app_v.model.name else '...')
-        col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-        col.setToolTip(self.i18n['app.name'].lower())
+    def _set_col_name(self, idx: int, col: int, pkg: PackageView):
+        item = QTableWidgetItem()
+        item.setText(pkg.model.name if pkg.model.name else '...')
+        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setToolTip(self.i18n['app.name'].lower())
 
-        if self.disk_cache and app_v.model.supports_disk_cache() and app_v.model.get_disk_icon_path() and os.path.exists(app_v.model.get_disk_icon_path()):
-            with open(app_v.model.get_disk_icon_path(), 'rb') as f:
+        if self.disk_cache and pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and os.path.exists(pkg.model.get_disk_icon_path()):
+            with open(pkg.model.get_disk_icon_path(), 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
                 icon = QIcon(pixmap)
-                self.icon_cache.add_non_existing(app_v.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+                self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
 
-        elif not app_v.model.icon_url:
-            icon = QIcon(app_v.model.get_default_icon_path())
+        elif not pkg.model.icon_url:
+            icon = QIcon(pkg.model.get_default_icon_path())
         else:
-            icon_data = self.icon_cache.get(app_v.model.icon_url)
-            icon = icon_data['icon'] if icon_data else QIcon(app_v.model.get_default_icon_path())
+            icon_data = self.icon_cache.get(pkg.model.icon_url)
+            icon = icon_data['icon'] if icon_data else QIcon(pkg.model.get_default_icon_path())
 
-        col.setIcon(icon)
-        self.setItem(idx, 0, col)
+        item.setIcon(icon)
+        self.setItem(idx, col, item)
 
-    def _set_col_description(self, idx: int, app_v: PackageView):
-        col = QTableWidgetItem()
-        col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+    def _set_col_description(self, idx: int, col: int, pkg: PackageView):
+        item = QTableWidgetItem()
+        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        if app_v.model.description is not None or not app_v.model.is_application() or app_v.model.status == PackageStatus.READY:
-            desc = app_v.model.description
+        if pkg.model.description is not None or not pkg.model.is_application() or pkg.model.status == PackageStatus.READY:
+            desc = pkg.model.description
         else:
             desc = '...'
 
         if desc and desc != '...':
             desc = strip_html(desc[0:25]) + '...'
 
-        col.setText(desc)
+        item.setText(desc)
 
-        if app_v.model.description:
-            col.setToolTip(app_v.model.description)
+        if pkg.model.description:
+            item.setToolTip(pkg.model.description)
 
-        self.setItem(idx, 2, col)
+        self.setItem(idx, col, item)
 
-    def _set_col_settings(self, idx: int, app_v: PackageView):
-        tb = QToolBar()
+    def _set_col_publisher(self, idx: int, col: int, pkg: PackageView):
+        item = QLabel()
 
-        if app_v.model.can_be_run() and app_v.model.get_command():
+        publisher = pkg.model.get_publisher()
+        full_publisher = None
+
+        if publisher:
+            publisher = publisher.strip()
+            full_publisher = publisher
+
+            if len(publisher) > 10:
+                publisher = full_publisher[0:10] + '...'
+
+        if not publisher:
+            if not pkg.model.installed:
+                item.setStyleSheet('QLabel { color: red; font-weight: bold}')
+
+            publisher = '({})'.format(self.i18n['publisher.unknown'])
+
+        item.setText('  {}  '.format(publisher))
+
+        if publisher and full_publisher:
+            item.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
+
+        self.setCellWidget(idx, col, item)
+
+    def _set_col_settings(self, idx: int, col: int, pkg: PackageView):
+        item = QToolBar()
+
+        if pkg.model.can_be_run() and pkg.model.get_command():
 
             def run():
-                self.window.run_app(app_v)
+                self.window.run_app(pkg)
 
-            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            item.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
-        if app_v.model.has_info():
+        if pkg.model.has_info():
 
             def get_info():
-                self.window.get_app_info(app_v)
+                self.window.get_app_info(pkg)
 
-            tb.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3'))
+            item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3'))
 
         def handle_click():
-            self.show_pkg_settings(app_v)
+            self.show_pkg_settings(pkg)
 
-        if self.has_any_settings(app_v):
+        if self.has_any_settings(pkg):
             bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB')
-            tb.addWidget(bt)
+            item.addWidget(bt)
 
-        self.setCellWidget(idx, 5, tb)
+        self.setCellWidget(idx, col, item)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
         header_horizontal = self.horizontalHeader()

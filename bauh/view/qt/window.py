@@ -672,7 +672,7 @@ class ManageWindow(QWidget):
 
     def resize_and_center(self, accept_lower_width: bool = True):
         if self.pkgs:
-            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))])
+            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
 
             if self.ref_bt_upgrade.isVisible():
                 new_width *= 1.07

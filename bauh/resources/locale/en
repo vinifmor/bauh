@@ -101,3 +101,5 @@ action.run.tooltip=Click here to launch this application
 any=any
 manage_window.name_filter.tooltip=Type here to filter apps by name
 manage_window.name_filter.placeholder=Filter by name
+publisher=publisher
+publisher.unknown=unknown publisher
