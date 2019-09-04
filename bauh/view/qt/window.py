@@ -1,4 +1,5 @@
 import operator
+import time
 from functools import reduce
 from typing import List, Type, Set
 
@@ -252,6 +253,10 @@ class ManageWindow(QWidget):
         self.thread_warnings = ListWarnings(man=manager, locale_keys=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
 
+    def _update_process_progress(self, val: int):
+        self.progress_bar.setTextVisible(True)
+        self.thread_animate_progress.set_progress(val)
+
     def apply_filters_async(self):
         self.label_status.setText(self.i18n['manage_window.status.filtering'])
 
@@ -284,6 +289,8 @@ class ManageWindow(QWidget):
             action.signal_message.connect(self._show_message)
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
+            action.signal_progress.connect(self._update_process_progress)
+
             self.signal_user_res.connect(action.confirm)
 
         return action
@@ -765,12 +772,16 @@ class ManageWindow(QWidget):
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self):
+        self.thread_animate_progress.stop = True
+        self.thread_animate_progress.wait()
+        self.ref_progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+
         self._change_label_substatus('')
         self.ref_bt_about.setVisible(True)
-        self.ref_progress_bar.setVisible(False)
+
         self.ref_label_updates.setVisible(True)
-        self.thread_animate_progress.stop = True
-        self.progress_bar.setValue(0)
         self.ref_bt_refresh.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)

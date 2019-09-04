@@ -24,6 +24,7 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_message = pyqtSignal(dict)  # asks the GUI to show an error popup
     signal_status = pyqtSignal(str)  # changes the GUI status message
     signal_substatus = pyqtSignal(str)  # changes the GUI substatus message
+    signal_progress = pyqtSignal(int)
 
     def __init__(self):
         super(AsyncAction, self).__init__()
@@ -59,6 +60,9 @@ class AsyncAction(QThread, ProcessWatcher):
 
     def change_substatus(self, substatus: str):
         self.signal_substatus.emit(substatus)
+
+    def change_progress(self, val: int):
+        self.signal_progress.emit(val)
 
 
 class UpdateSelectedApps(AsyncAction):
@@ -266,24 +270,51 @@ class AnimateProgress(QThread):
         self.progress_value = 0
         self.increment = 5
         self.stop = False
+        self.limit = 100
+        self.sleep = 0.05
+        self.last_progress = 0
+        self.manual = False
+
+    def _reset(self):
+        self.progress_value = 0
+        self.increment = 5
+        self.stop = False
+        self.limit = 100
+        self.sleep = 0.05
+        self.last_progress = 0
+        self.manual = False
+
+    def set_progress(self, val: int):
+        if 0 <= val <= 100:
+            self.limit = val
+            self.manual = True
+            self.increment = 0.5
 
     def run(self):
 
         current_increment = self.increment
 
         while not self.stop:
-            self.signal_change.emit(self.progress_value)
+            if self.progress_value != self.last_progress:
+                self.signal_change.emit(self.progress_value)
+                self.last_progress = self.progress_value
 
-            if self.progress_value == 100:
-                current_increment = -current_increment
-            if self.progress_value == 0:
-                current_increment = self.increment
+            if not self.manual:
+                if self.progress_value >= self.limit:
+                    current_increment = -self.increment
+                elif self.progress_value <= 0:
+                    current_increment = self.increment
+            else:
+                if self.progress_value >= self.limit:
+                    current_increment = 0
+                else:
+                    current_increment = self.increment
 
             self.progress_value += current_increment
+            time.sleep(self.sleep)
 
-            time.sleep(0.05)
-
-        self.progress_value = 0
+        self.signal_change.emit(100)
+        self._reset()
 
 
 class VerifyModels(QThread):
