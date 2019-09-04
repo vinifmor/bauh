@@ -534,26 +534,24 @@ class ManageWindow(QWidget):
                     self.ref_checkbox_updates.setVisible(True)
 
                 if not self.filter_updates:
-                    self._change_checkbox(self.checkbox_updates, True, trigger_filters)
-                    self.filter_updates = True
+                    self._change_checkbox(self.checkbox_updates, True, 'filter_updates', trigger_filters)
 
             if pkgs_info['napp_updates'] > 0 and self.filter_only_apps:
-                self._change_checkbox(self.checkbox_only_apps, False, trigger_filters)
-                self.filter_only_apps = False
+                self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger_filters)
         else:
-            self._change_checkbox(self.checkbox_updates, False, trigger_filters)
-            self.filter_updates = False
+            self._change_checkbox(self.checkbox_updates, False, 'filter_updates', trigger_filters)
 
             self.ref_checkbox_updates.setVisible(False)
             self.label_updates.setPixmap(QPixmap())
 
-    def _change_checkbox(self, checkbox: QCheckBox, checked: bool, trigger: bool = True):
+    def _change_checkbox(self, checkbox: QCheckBox, checked: bool, attr: str = None, trigger: bool = True):
         if not trigger:
             checkbox.blockSignals(True)
 
         checkbox.setChecked(checked)
 
         if not trigger:
+            setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
     def centralize(self):
@@ -606,11 +604,11 @@ class ManageWindow(QWidget):
                 self.thread_suggestions.start()
                 return
             else:
-                self._change_checkbox(self.checkbox_only_apps, checked=False, trigger=False)
+                self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger=False)
                 self.checkbox_only_apps.setCheckable(False)
         else:
             self.checkbox_only_apps.setCheckable(True)
-            self._change_checkbox(self.checkbox_only_apps, checked=True, trigger=False)
+            self._change_checkbox(self.checkbox_only_apps, True, 'filter_only_apps', trigger=False)
 
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
         self._apply_filters(pkgs_info, ignore_updates=ignore_updates)
