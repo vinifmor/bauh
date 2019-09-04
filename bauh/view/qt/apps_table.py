@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
 from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.model import PackageStatus
+from bauh_api.util.html import strip_html
 
 from bauh.core import resource
-from bauh.util import util
 from bauh.view.qt import dialog
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 
@@ -351,7 +351,7 @@ class AppsTable(QTableWidget):
             desc = '...'
 
         if desc and desc != '...':
-            desc = util.strip_html(desc[0:25]) + '...'
+            desc = strip_html(desc[0:25]) + '...'
 
         col.setText(desc)
 

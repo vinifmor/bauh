@@ -1,14 +1,11 @@
 import glob
 import locale
-import re
 
 from bauh_api.util import system
 from bauh_api.util.resource import get_path
 
 from bauh import ROOT_DIR, __app_name__
 from bauh.core import resource
-
-HTML_RE = re.compile(r'<[^>]+>')
 
 
 def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')):
@@ -43,10 +40,6 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
             locale_obj[keyval[0].strip()] = keyval[1].strip()
 
     return locale_obj
-
-
-def strip_html(string: str):
-    return HTML_RE.sub('', string)
 
 
 def notify_user(msg: str, icon_path: str = get_path('img/logo.svg', ROOT_DIR)):

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 from bauh_api.abstract.cache import MemoryCache
 
-from bauh.util import util
+from bauh_api.util.html import strip_html
 
 IGNORED_ATTRS = {'name', '__app__'}
 
@@ -63,7 +63,7 @@ class InfoDialog(QDialog):
                 if len(val) > 80:
                     full_val = val
                     self.full_vals.append(full_val)
-                    val = util.strip_html(val)
+                    val = strip_html(val)
                     val = val[0:80] + '...'
 
                 text.setText(val)
