@@ -30,6 +30,7 @@ class AsyncAction(QThread, ProcessWatcher):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
+        self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[InputViewComponent] = None, confirmation_label: str = None, deny_label: str = None) -> bool:
         self.wait_confirmation = True
@@ -63,6 +64,9 @@ class AsyncAction(QThread, ProcessWatcher):
 
     def change_progress(self, val: int):
         self.signal_progress.emit(val)
+
+    def should_stop(self):
+        return self.stop
 
 
 class UpdateSelectedApps(AsyncAction):
