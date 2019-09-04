@@ -13,7 +13,7 @@ class InfoDialog(QDialog):
 
     def __init__(self, app: dict, icon_cache: MemoryCache, locale_keys: dict, screen_size: QSize()):
         super(InfoDialog, self).__init__()
-        self.setWindowTitle(app['__app__'].model.base_data.name)
+        self.setWindowTitle(app['__app__'].model.name)
         self.screen_size = screen_size
         self.i18n = locale_keys
         layout = QVBoxLayout()
@@ -39,7 +39,7 @@ class InfoDialog(QDialog):
 
         layout.addWidget(self.gbox_info)
 
-        icon_data = icon_cache.get(app['__app__'].model.base_data.icon_url)
+        icon_data = icon_cache.get(app['__app__'].model.icon_url)
 
         if icon_data and icon_data.get('icon'):
             self.setWindowIcon(icon_data.get('icon'))

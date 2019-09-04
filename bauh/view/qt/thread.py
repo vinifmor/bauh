@@ -81,7 +81,7 @@ class UpdateSelectedApps(AsyncAction):
         if self.apps_to_update:
             updated, updated_types = 0, set()
             for app in self.apps_to_update:
-                self.change_status('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.base_data.name))
+                self.change_status('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.name))
                 success = bool(self.manager.update(app.model, self.root_password, self))
 
                 if not success:
@@ -114,7 +114,7 @@ class RefreshApps(AsyncAction):
                 if self.pkg_types:
                     refreshed_types.add(ins.__class__)
 
-                if self.app and ins.get_type() == self.app.model.get_type() and ins.base_data.id == self.app.model.base_data.id:
+                if self.app and ins.get_type() == self.app.model.get_type() and ins.id == self.app.model.id:
                     idx_found = idx
                     app_found = ins
                     break
@@ -145,7 +145,7 @@ class UninstallApp(AsyncAction):
             success = self.manager.uninstall(self.app.model, self.root_password, self)
 
             if success:
-                self.icon_cache.delete(self.app.model.base_data.icon_url)
+                self.icon_cache.delete(self.app.model.icon_url)
                 self.manager.clean_cache_for(self.app.model)
 
             self.notify_finished(self.app if success else None)
@@ -249,7 +249,7 @@ class InstallApp(AsyncAction):
                     self.pkg.model.installed = True
 
                     if self.pkg.model.supports_disk_cache():
-                        icon_data = self.icon_cache.get(self.pkg.model.base_data.icon_url)
+                        icon_data = self.icon_cache.get(self.pkg.model.icon_url)
                         self.manager.cache_to_disk(app=self.pkg.model,
                                                    icon_bytes=icon_data.get('bytes') if icon_data else None,
                                                    only_icon=False)

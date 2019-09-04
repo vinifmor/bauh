@@ -1,5 +1,4 @@
 import operator
-import time
 from functools import reduce
 from typing import List, Type, Set
 
@@ -408,14 +407,14 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name))
 
         self.thread_uninstall.app = app
         self.thread_uninstall.root_password = pwd
         self.thread_uninstall.start()
 
     def run_app(self, app: PackageView):
-        self._begin_action(self.i18n['manage_window.status.running_app'].format(app.model.base_data.name))
+        self._begin_action(self.i18n['manage_window.status.running_app'].format(app.model.name))
         self.thread_run_app.app = app
         self.thread_run_app.start()
 
@@ -430,7 +429,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.refreshing_app'], app.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.refreshing_app'], app.model.name))
 
         self.thread_refresh_app.app = app
         self.thread_refresh_app.root_password = pwd
@@ -441,12 +440,12 @@ class ManageWindow(QWidget):
 
         if pkgv:
             if self._can_notify_user():
-                util.notify_user('{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.i18n['uninstalled']))
+                util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
             self.refresh_apps(pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.i18n['notification.uninstall.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
 
@@ -812,7 +811,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.downgrading'], pkgv.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.downgrading'], pkgv.model.name))
 
         self.thread_downgrade.app = pkgv
         self.thread_downgrade.root_password = pwd
@@ -878,7 +877,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.installing'], pkg.model.base_data.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.installing'], pkg.model.name))
 
         self.thread_install.pkg = pkg
         self.thread_install.root_password = pwd
@@ -890,12 +889,12 @@ class ManageWindow(QWidget):
 
         if pkgv:
             if self._can_notify_user():
-                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.base_data.name, pkgv.model.get_type(), self.i18n['installed']))
+                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['installed']))
 
             self.refresh_apps(top_app=pkgv, pkg_types={pkgv.model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.base_data.name, self.i18n['notification.install.failed']))
+                util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)
 

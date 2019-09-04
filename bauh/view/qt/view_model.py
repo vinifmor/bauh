@@ -16,4 +16,4 @@ class PackageView:
         self.status = PackageViewStatus.LOADING
 
     def __repr__(self):
-        return '{} ( {} )'.format(self.model.base_data.name, self.model.get_type())
+        return '{} ( {} )'.format(self.model.name, self.model.get_type())

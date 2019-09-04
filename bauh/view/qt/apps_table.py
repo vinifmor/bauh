@@ -157,12 +157,12 @@ class AppsTable(QTableWidget):
                 if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
 
                     if self.download_icons:
-                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.base_data.icon_url)))
+                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.icon_url)))
 
                     app_name = self.item(idx, 0).text()
 
                     if not app_name or app_name == '...':
-                        self.item(idx, 0).setText(app_v.model.base_data.name)
+                        self.item(idx, 0).setText(app_v.model.name)
 
                     self._set_col_version(idx, app_v)
                     self._set_col_description(idx, app_v)
@@ -213,7 +213,7 @@ class AppsTable(QTableWidget):
             self.icon_cache.add(icon_url, icon_data)
 
         for idx, app in enumerate(self.window.pkgs):
-            if app.model.base_data.icon_url == icon_url:
+            if app.model.icon_url == icon_url:
                 col_name = self.item(idx, 0)
                 col_name.setIcon(icon_data['icon'])
 
@@ -295,14 +295,14 @@ class AppsTable(QTableWidget):
         self.setCellWidget(idx, 3, col_type)
 
     def _set_col_version(self, idx: int, app_v: PackageView):
-        label_version = QLabel(app_v.model.base_data.version if app_v.model.base_data.version else '?')
+        label_version = QLabel(app_v.model.version if app_v.model.version else '?')
         label_version.setAlignment(Qt.AlignCenter)
 
         col_version = QWidget()
         col_version.setLayout(QHBoxLayout())
         col_version.layout().addWidget(label_version)
 
-        if app_v.model.base_data.version:
+        if app_v.model.version:
             tooltip = self.i18n['version.installed'] if app_v.model.installed else self.i18n['version']
         else:
             tooltip = self.i18n['version.unknown']
@@ -311,16 +311,16 @@ class AppsTable(QTableWidget):
             label_version.setStyleSheet("color: #20A435; font-weight: bold")
             tooltip = self.i18n['version.installed_outdated']
 
-        if app_v.model.installed and app_v.model.base_data.version and app_v.model.base_data.latest_version and app_v.model.base_data.version < app_v.model.base_data.latest_version:
-            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], app_v.model.base_data.latest_version)
-            label_version.setText(label_version.text() + '  >  {}'.format(app_v.model.base_data.latest_version))
+        if app_v.model.installed and app_v.model.version and app_v.model.latest_version and app_v.model.version < app_v.model.latest_version:
+            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], app_v.model.latest_version)
+            label_version.setText(label_version.text() + '  >  {}'.format(app_v.model.latest_version))
 
         col_version.setToolTip(tooltip)
         self.setCellWidget(idx, 1, col_version)
 
     def _set_col_name(self, idx: int, app_v: PackageView):
         col = QTableWidgetItem()
-        col.setText(app_v.model.base_data.name if app_v.model.base_data.name else '...')
+        col.setText(app_v.model.name if app_v.model.name else '...')
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         col.setToolTip(self.i18n['app.name'].lower())
 
@@ -330,12 +330,12 @@ class AppsTable(QTableWidget):
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
                 icon = QIcon(pixmap)
-                self.icon_cache.add_non_existing(app_v.model.base_data.icon_url, {'icon': icon, 'bytes': icon_bytes})
+                self.icon_cache.add_non_existing(app_v.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
 
-        elif not app_v.model.base_data.icon_url:
+        elif not app_v.model.icon_url:
             icon = QIcon(app_v.model.get_default_icon_path())
         else:
-            icon_data = self.icon_cache.get(app_v.model.base_data.icon_url)
+            icon_data = self.icon_cache.get(app_v.model.icon_url)
             icon = icon_data['icon'] if icon_data else QIcon(app_v.model.get_default_icon_path())
 
         col.setIcon(icon)
@@ -345,8 +345,8 @@ class AppsTable(QTableWidget):
         col = QTableWidgetItem()
         col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        if app_v.model.base_data.description is not None or not app_v.model.is_application() or app_v.model.status == PackageStatus.READY:
-            desc = app_v.model.base_data.description
+        if app_v.model.description is not None or not app_v.model.is_application() or app_v.model.status == PackageStatus.READY:
+            desc = app_v.model.description
         else:
             desc = '...'
 
@@ -355,8 +355,8 @@ class AppsTable(QTableWidget):
 
         col.setText(desc)
 
-        if app_v.model.base_data.description:
-            col.setToolTip(app_v.model.base_data.description)
+        if app_v.model.description:
+            col.setToolTip(app_v.model.description)
 
         self.setItem(idx, 2, col)
 

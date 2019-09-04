@@ -13,7 +13,7 @@ class HistoryDialog(QDialog):
     def __init__(self, history: PackageHistory, icon_cache: MemoryCache, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
-        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], history.pkg.base_data.name))
+        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], history.pkg.name))
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -54,7 +54,7 @@ class HistoryDialog(QDialog):
         new_width = reduce(operator.add, [table_history.columnWidth(i) for i in range(table_history.columnCount())])
         self.resize(new_width, table_history.height())
 
-        icon_data = icon_cache.get(history.pkg.base_data.icon_url)
+        icon_data = icon_cache.get(history.pkg.icon_url)
 
         if icon_data and icon_data.get('icon'):
             self.setWindowIcon(icon_data.get('icon'))

@@ -26,7 +26,7 @@ class GenericSoftwareManager(SoftwareManager):
         exact_name_matches, contains_name_matches, others = [], [], []
 
         for app in apps:
-            lower_name = app.base_data.name.lower()
+            lower_name = app.name.lower()
 
             if word == lower_name:
                 exact_name_matches.append(app)
@@ -37,7 +37,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         res = []
         for app_list in (exact_name_matches, contains_name_matches, others):
-            app_list.sort(key=lambda a: a.base_data.name.lower())
+            app_list.sort(key=lambda a: a.name.lower())
             res.extend(app_list)
 
         return res

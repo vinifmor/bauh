@@ -51,7 +51,7 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
                     cache = self.cache_map.get(pkg.__class__)\
 
                     if cache:
-                        cache.add_non_existing(pkg.base_data.id, cached_data)
+                        cache.add_non_existing(pkg.id, cached_data)
 
 
 class DefaultDiskCacheLoaderFactory(DiskCacheLoaderFactory):

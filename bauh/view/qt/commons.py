@@ -43,7 +43,7 @@ def apply_filters(pkgv: PackageView, filters: dict, info: dict):
         hidden = not pkgv.model.update
 
     if not hidden and filters['name']:
-        hidden = filters['name'] not in pkgv.model.base_data.name.lower()
+        hidden = filters['name'] not in pkgv.model.name.lower()
 
     if not hidden and (not filters['display_limit'] or len(info['pkgs_displayed']) < filters['display_limit']):
         info['pkgs_displayed'].append(pkgv)
