@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHead
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox
 from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.controller import SoftwareManager
-from bauh_api.abstract.model import SoftwarePackage
+from bauh_api.abstract.model import SoftwarePackage, PackageAction
 from bauh_api.abstract.view import MessageType
 
 from bauh.core import resource
@@ -22,8 +22,8 @@ from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, RefreshApp, FindSuggestions, ListWarnings, \
-    AsyncAction, RunApp, ApplyFilters
+    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
+    AsyncAction, RunApp, ApplyFilters, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 
@@ -140,7 +140,7 @@ class ManageWindow(QWidget):
 
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
-        self.bt_refresh.setIcon(QIcon(resource.get_path('img/new_refresh.svg')))
+        self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(self._toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
@@ -198,9 +198,9 @@ class ManageWindow(QWidget):
         self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.i18n), finished_call=self._finish_get_history)
         self.thread_search = self._bind_async_action(SearchApps(self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.i18n), finished_call=self._finish_downgrade)
-        self.thread_refresh_app = self._bind_async_action(RefreshApp(manager=self.manager), finished_call=self._finish_refresh)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
+        self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
 
         self.thread_apply_filters = ApplyFilters()
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
@@ -418,23 +418,6 @@ class ManageWindow(QWidget):
         self.thread_run_app.app = app
         self.thread_run_app.start()
 
-    def refresh(self, app: PackageView):
-        pwd = None
-        requires_root = self.manager.requires_root('refresh', app.model)
-
-        if not is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
-
-            if not ok:
-                return
-
-        self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.refreshing_app'], app.model.name))
-
-        self.thread_refresh_app.app = app
-        self.thread_refresh_app.root_password = pwd
-        self.thread_refresh_app.start()
-
     def _finish_uninstall(self, pkgv: PackageView):
         self.finish_action()
 
@@ -467,16 +450,6 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(self.i18n['notification.downgrade.failed'])
 
-            self.checkbox_console.setChecked(True)
-
-    def _finish_refresh(self, success: bool):
-        self.finish_action()
-        self.update_bt_upgrade()
-        self._update_type_filters()
-
-        if success:
-            self.refresh_apps()
-        else:
             self.checkbox_console.setChecked(True)
 
     def _change_label_status(self, status: str):
@@ -901,3 +874,27 @@ class ManageWindow(QWidget):
 
     def _finish_run_app(self, success: bool):
         self.finish_action()
+
+    def execute_custom_action(self, pkg: PackageView, action: PackageAction):
+        pwd = None
+
+        if not is_root() and action.requires_root:
+            pwd, ok = ask_root_password(self.i18n)
+
+            if not ok:
+                return
+
+        self._handle_console_option(True)
+        self._begin_action('{} {}'.format(self.i18n[action.i18n_status_key], pkg.model.name))
+
+        self.thread_custom_action.pkg = pkg
+        self.thread_custom_action.root_password = pwd
+        self.thread_custom_action.custom_action = action
+        self.thread_custom_action.start()
+
+    def _finish_custom_action(self, res: dict):
+        self.finish_action()
+        if res['success']:
+            self.refresh_apps(pkg_types={res['pkg'].model.__class__})
+        else:
+            self.checkbox_console.setChecked(True)

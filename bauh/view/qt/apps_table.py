@@ -91,7 +91,6 @@ class AppsTable(QTableWidget):
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.icon_flathub = QIcon(resource.get_path('img/flathub.svg'))
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
 
         self.network_man = QNetworkAccessManager()
@@ -103,48 +102,55 @@ class AppsTable(QTableWidget):
         self.cache_type_icon = {}
         self.i18n = self.window.i18n
 
-    def has_any_settings(self, app_v: PackageView):
-        return app_v.model.can_be_refreshed() or \
-               app_v.model.has_history() or \
-               app_v.model.can_be_downgraded()
+    def has_any_settings(self, pkg: PackageView):
+        return pkg.model.has_history() or \
+               pkg.model.can_be_downgraded() or \
+               bool(pkg.model.get_custom_supported_actions())
 
-    def show_pkg_settings(self, pkgv: PackageView):
+    def show_pkg_settings(self, pkg: PackageView):
         menu_row = QMenu()
 
-        if pkgv.model.installed:
-            if pkgv.model.can_be_refreshed():
-                action_history = QAction(self.i18n["manage_window.apps_table.row.actions.refresh"])
-                action_history.setIcon(QIcon(resource.get_path('img/refresh.svg')))
-
-                def refresh():
-                    self.window.refresh(pkgv)
-
-                action_history.triggered.connect(refresh)
-                menu_row.addAction(action_history)
-
-            if pkgv.model.has_history():
+        if pkg.model.installed:
+            if pkg.model.has_history():
                 action_history = QAction(self.i18n["manage_window.apps_table.row.actions.history"])
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
 
                 def show_history():
-                    self.window.get_app_history(pkgv)
+                    self.window.get_app_history(pkg)
 
                 action_history.triggered.connect(show_history)
                 menu_row.addAction(action_history)
 
-            if pkgv.model.can_be_downgraded():
+            if pkg.model.can_be_downgraded():
                 action_downgrade = QAction(self.i18n["manage_window.apps_table.row.actions.downgrade"])
 
                 def downgrade():
                     if dialog.ask_confirmation(
                             title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
-                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkgv)))),
+                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkg)))),
                             locale_keys=self.i18n):
-                        self.window.downgrade(pkgv)
+                        self.window.downgrade(pkg)
 
                 action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
+
+        if bool(pkg.model.get_custom_supported_actions()):
+            for action in pkg.model.get_custom_supported_actions():
+                item = QAction(self.i18n[action.i18_label_key])
+
+                if action.icon_path:
+                    item.setIcon(QIcon(action.icon_path))
+
+                def custom_action():
+                    if dialog.ask_confirmation(
+                            title=self.i18n[action.i18_label_key],
+                            body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
+                            locale_keys=self.i18n):
+                        self.window.execute_custom_action(pkg, action)
+
+                item.triggered.connect(custom_action)
+                menu_row.addAction(item)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())

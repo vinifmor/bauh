@@ -5,7 +5,7 @@ from typing import List, Set, Type
 from bauh_api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh_api.abstract.disk import DiskCacheLoader
 from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion
+from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 
 SUGGESTIONS_LIMIT = 5
 
@@ -274,3 +274,9 @@ class GenericSoftwareManager(SoftwareManager):
                 suggestions.sort(key=lambda s: s.priority.value, reverse=True)
 
             return suggestions
+
+    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+        man = self._get_manager_for(pkg)
+
+        if man:
+            return exec('man.{}(pkg=pkg, root_password=root_password, watcher=watcher)'.format(action.manager_method))

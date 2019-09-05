@@ -8,7 +8,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import PackageStatus, SoftwarePackage
+from bauh_api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh_api.abstract.view import InputViewComponent, MessageType
 from bauh_api.exception import NoInternetException
 
@@ -358,29 +358,6 @@ class VerifyModels(QThread):
         self.apps = None
 
 
-class RefreshApp(AsyncAction):
-
-    def __init__(self, manager: SoftwareManager, app: PackageView = None):
-        super(RefreshApp, self).__init__()
-        self.app = app
-        self.manager = manager
-        self.root_password = None
-
-    def run(self):
-
-        if self.app:
-            success = False
-
-            try:
-                success = self.manager.refresh(self.app.model, self.root_password, self)
-            except (requests.exceptions.ConnectionError, NoInternetException):
-                success = False
-                self.signal_output.emit(self.locale_keys['internet.required'])
-            finally:
-                self.app = None
-                self.signal_finished.emit(success)
-
-
 class FindSuggestions(AsyncAction):
 
     def __init__(self, man: SoftwareManager):
@@ -452,3 +429,30 @@ class ApplyFilters(AsyncAction):
                 time.sleep(0.005)
 
         self.notify_finished(True)
+
+
+class CustomAction(AsyncAction):
+
+    def __init__(self, manager: SoftwareManager, custom_action: PackageAction = None, pkg: PackageView = None, root_password: str = None):
+        super(CustomAction, self).__init__()
+        self.manager = manager
+        self.pkg = pkg
+        self.custom_action = custom_action
+        self.root_password = root_password
+
+    def run(self):
+        success = True
+        if self.pkg:
+            try:
+                success = self.manager.execute_custom_action(action=self.custom_action,
+                                                             pkg=self.pkg.model,
+                                                             root_password=self.root_password,
+                                                             watcher=self)
+            except (requests.exceptions.ConnectionError, NoInternetException):
+                success = False
+                self.signal_output.emit(self.locale_keys['internet.required'])
+
+        self.notify_finished({'success': success, 'pkg': self.pkg})
+        self.pkg = None
+        self.custom_action = None
+        self.root_password = None
