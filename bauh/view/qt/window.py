@@ -319,8 +319,8 @@ class ManageWindow(QWidget):
     def _show_installed(self):
         if self.pkgs_installed:
             self.finish_action()
-            self.ref_checkbox_only_apps.setVisible(True)
             self.ref_bt_upgrade.setVisible(True)
+            self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
             self.input_name_filter.setText('')
             self.update_pkgs(new_pkgs=None, as_installed=True)
@@ -480,16 +480,15 @@ class ManageWindow(QWidget):
             self.signal_table_update.emit()
 
     def update_bt_upgrade(self, pkgs_info: dict = None):
-        if not self.ref_bt_installed.isVisible():
-            show_bt_upgrade = False
+        show_bt_upgrade = False
 
-            if not pkgs_info or pkgs_info['not_installed'] == 0:
-                for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
-                    if app_v.update_checked:
-                        show_bt_upgrade = True
-                        break
+        if not pkgs_info or pkgs_info['not_installed'] == 0:
+            for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
+                if app_v.update_checked:
+                    show_bt_upgrade = True
+                    break
 
-            self.ref_bt_upgrade.setVisible(show_bt_upgrade)
+        self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
         self.update_bt_upgrade(pkgs_info)
