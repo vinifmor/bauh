@@ -544,7 +544,7 @@ class ManageWindow(QWidget):
         }
 
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False):
-
+        self.input_name_filter.setText('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates)
 
