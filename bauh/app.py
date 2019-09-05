@@ -8,13 +8,15 @@ from bauh_api.util.http import HttpClient
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
 from bauh.core import resource, extensions
 from bauh.core.controller import GenericSoftwareManager
-from bauh.util import util
+from bauh.util import util, logs
 from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.util.disk import DefaultDiskCacheLoaderFactory
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 
 args = app_args.read()
+logger = logs.new_logger(__app_name__, bool(args.logs))
+app_args.validate(args, logger)
 
 i18n = util.get_locale_keys(args.locale)
 
@@ -28,7 +30,8 @@ context = ApplicationContext(i18n=i18n,
                              download_icons=args.download_icons,
                              app_root_dir=ROOT_DIR,
                              cache_factory=cache_factory,
-                             disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache))
+                             disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache),
+                             logger=logger)
 
 managers = extensions.load_managers(context=context, locale=args.locale)
 

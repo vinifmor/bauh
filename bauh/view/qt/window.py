@@ -30,14 +30,15 @@ from bauh.view.qt.view_utils import load_icon
 DARK_ORANGE = '#FF4500'
 
 
+def toolbar_button_style(bg: str):
+    return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
+
+
 class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
-
-    def _toolbar_button_style(self, bg: str):
-        return 'QPushButton { color: white; font-weight: bold; background: ' + bg + '}'
 
     def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, display_limit: int, tray_icon=None):
         super(ManageWindow, self).__init__()
@@ -135,14 +136,14 @@ class ManageWindow(QWidget):
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
-        self.bt_installed.setStyleSheet(self._toolbar_button_style('#A94E0A'))
+        self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
 
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
-        self.bt_refresh.setStyleSheet(self._toolbar_button_style('#2368AD'))
+        self.bt_refresh.setStyleSheet(toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
@@ -150,7 +151,7 @@ class ManageWindow(QWidget):
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.setStyleSheet(self._toolbar_button_style('#20A435'))
+        self.bt_upgrade.setStyleSheet(toolbar_button_style('#20A435'))
         self.bt_upgrade.clicked.connect(self.update_selected)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
 

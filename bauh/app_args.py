@@ -1,18 +1,9 @@
 import argparse
+import logging
 import os
 from argparse import Namespace
 
-from colorama import Fore
-
 from bauh import __app_name__, __version__
-
-
-def log_msg(msg: str, color: int = None):
-
-    if color is None:
-        print('[{}] {}'.format(__app_name__, msg))
-    else:
-        print('{}[{}] {}{}'.format(color, __app_name__, msg, Fore.RESET))
 
 
 def read() -> Namespace:
@@ -43,32 +34,39 @@ def read() -> Namespace:
                         help='If the tray icon and update-check daemon should be created. Default: %(default)s')
     parser.add_argument('--sugs', action="store", default=os.getenv('BAUH_SUGGESTIONS', 1), choices=[0, 1], type=int, help='If app suggestions should be displayed if no application package is installed (runtimes / libraries do not count as apps). Default: %(default)s')
     parser.add_argument('-md', '--max-displayed', action="store", default=os.getenv('BAUH_MAX_DISPLAYED', 100), choices=[0, 1], type=int, help='Maximum number of displayed packages in the management panel table. Default: %(default)s')
-    args = parser.parse_args()
+    parser.add_argument('--logs', action="store", default=int(os.getenv('BAUH_LOGS', 0)), choices=[0, 1], type=int, help='If the application logs should be displayed. Default: %(default)s')
+    return parser.parse_args()
+    
+    
+def validate(args: Namespace, logger: logging.Logger):
 
     if args.cache_exp < 0:
-        log_msg("'cache-exp' set to '{}': cache will not expire.".format(args.cache_exp), Fore.YELLOW)
+        logger.info("'cache-exp' set to '{}': cache will not expire.".format(args.cache_exp))
 
     if args.icon_exp < 0:
-        log_msg("'icon-exp' set to '{}': cache will not expire.".format(args.cache_exp), Fore.YELLOW)
+        logger.info("'icon-exp' set to '{}': cache will not expire.".format(args.cache_exp))
 
     if not args.locale.strip():
-        log_msg("'locale' set as '{}'. You must provide a valid one. Aborting...".format(args.locale), Fore.RED)
+        logger.info("'locale' set as '{}'. You must provide a valid one. Aborting...".format(args.locale))
         exit(1)
 
     if args.check_interval <= 0:
-        log_msg("'check-interval' set as '{}'. It must be >= 0. Aborting...".format(args.check_interval), Fore.RED)
+        logger.info("'check-interval' set as '{}'. It must be >= 0. Aborting...".format(args.check_interval))
         exit(1)
 
     if args.update_notification == 0:
-        log_msg('updates notifications are disabled', Fore.YELLOW)
+        logger.info('updates notifications are disabled')
 
     if args.download_icons == 0:
-        log_msg("'download-icons' is disabled", Fore.YELLOW)
+        logger.info("'download-icons' is disabled")
 
     if args.check_packaging_once == 1:
-        log_msg("'check-packaging-once' is enabled", Fore.YELLOW)
+        logger.info("'check-packaging-once' is enabled")
 
     if args.sugs == 0:
-        log_msg("suggestions are disabled", Fore.YELLOW)
+        logger.info("suggestions are disabled")
+
+    if args.logs == 1:
+        logger.info("Logs are enabled")
 
     return args
