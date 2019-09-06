@@ -47,6 +47,7 @@ parser.add_argument('--snap', action="store", default=os.getenv('BAUH_SNAP', 1),
 parser.add_argument('-co', '--check-packaging-once', action="store", default=os.getenv('BAUH_CHECK_PACKAGING_ONCE', 0), choices=[0, 1], type=int, help='If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Default: %(default)s')
 parser.add_argument('--tray', action="store", default=os.getenv('BAUH_TRAY', 0), choices=[0, 1], type=int, help='If the tray icon and update-check daemon should be created. Default: %(default)s')
 parser.add_argument('--sugs', action="store", default=os.getenv('BAUH_SUGGESTIONS', 1), choices=[0, 1], type=int, help='If app suggestions should be displayed if no app is installed (runtimes do not count as apps). Default: %(default)s')
+parser.add_argument('--theme', action="store", default=os.getenv('BAUH_THEME'), type=str, help='Define a custom QT theme (style) for the application. If not defined, it will be using breeze or fusion depending on your desktop environment')
 args = parser.parse_args()
 
 if args.cache_exp < 0:
@@ -117,6 +118,12 @@ app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
 app.setApplicationVersion(__version__)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
+
+
+if args.theme:
+    app.setStyle(args.theme)
+elif not app.style().objectName().lower() not in {'fusion', 'breeze'}:
+    app.setStyle('fusion')
 
 screen_size = app.primaryScreen().size()
 
