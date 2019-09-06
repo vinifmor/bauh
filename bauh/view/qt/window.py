@@ -517,10 +517,19 @@ class ManageWindow(QWidget):
                 filters_layout.addWidget(checkbox_app_type)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(len(self.table_apps.column_names))]) * 1.05
+        if self.apps:
+            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
+
+            if self.ref_bt_upgrade.isVisible():
+                new_width *= 1.07
+        else:
+            new_width = self.toolbar_top.width()
 
         if accept_lower_width or new_width > self.width():
             self.resize(new_width, self.height())
+
+            if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
+                self.adjustSize()
 
         self.centralize()
 

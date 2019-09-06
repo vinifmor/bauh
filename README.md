@@ -1,7 +1,10 @@
 ## bauh
 
-Non-official graphical user interface for Flatpak / Snap application management (old **fpakman**). It is a tray icon that let the user known when new updates are available and
-an application management panel where you can search, update, install and uninstall applications.
+Graphical user interface to manage your Linux applications (packages) (old **fpakman**). It currently only supports Flatpak and Snap packaging types. When you launch **bauh** you will see
+a management panel where you can search, update, install and uninstall applications. You can also downgrade some apps depending on the package type.
+
+It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
+
 
 ### Developed with:
 - Python3 and Qt5.
@@ -20,7 +23,7 @@ an application management panel where you can search, update, install and uninst
 ### Distribution
 **PyPi**
 ```
-sudo pip3 install bauh
+pip3 install bauh
 ```
 
 **AUR**
@@ -54,6 +57,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
 - **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
+- **BAUH_THEME**: Define a custom QT theme (style) for the application. If not defined, it will be using breeze or fusion depending on your desktop environment.
 
 ### How to improve the application performance
 - If you don't care about a specific packaging technology and don't want the app to deal with it, just disable it via the specific argument or environment variable. For instance, if I don't care
