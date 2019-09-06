@@ -1,6 +1,6 @@
 ## bauh
 
-Graphical user interface to manage your Linux applications (packages) (old **fpakman**). It currently only supports Flatpak and Snaps packaging types. When you launch **bauh** you will see
+Graphical user interface to manage your Linux applications (packages) (old **fpakman**). It currently only supports Flatpak and Snap packaging types. When you launch **bauh** you will see
 a management panel where you can search, update, install and uninstall applications. You can also downgrade some apps depending on the package type.
 
 It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.

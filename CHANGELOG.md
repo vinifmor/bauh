@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.5.2] 2019-09-
 ### Features
-- New environment variables / parameter to set a custom QT theme for the application: BAUH_THEME (--theme)
+- New environment variable / parameter to set a custom QT theme for the application: BAUH_THEME (--theme)
 ### Fixes
 - wrong management panel resizing for some scenarios
 - bad application theme when fusion or breeze are not set as default QT theme / style
