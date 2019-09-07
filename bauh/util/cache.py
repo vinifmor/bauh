@@ -1,7 +1,6 @@
 import datetime
 import time
 from threading import Lock, Thread
-from typing import List
 
 from bauh_api.abstract.cache import MemoryCache, MemoryCacheFactory
 

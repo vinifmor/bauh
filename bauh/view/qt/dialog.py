@@ -4,7 +4,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
 from bauh_api.abstract.view import MessageType
 
-from bauh.core import resource
+from bauh.util import resource
 
 MSG_TYPE_MAP = {
     MessageType.ERROR: QMessageBox.Critical,

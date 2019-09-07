@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel
 
 from bauh import __version__, __app_name__
-from bauh.core import resource
+from bauh.util import resource
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
 LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.format(__app_name__)

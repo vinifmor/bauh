@@ -11,8 +11,7 @@ from bauh_api.abstract.controller import SoftwareManager
 from bauh_api.abstract.model import SoftwarePackage, PackageAction
 from bauh_api.abstract.view import MessageType
 
-from bauh.core import resource
-from bauh.util import util
+from bauh.util import util, resource
 from bauh.view.qt import dialog, commons
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton

@@ -3,12 +3,12 @@ import sys
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from bauh_api.abstract.controller import ApplicationContext
-from bauh_api.util.http import HttpClient
+from bauh_api.http import HttpClient
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
-from bauh.core import resource, extensions
+from bauh.core import extensions
 from bauh.core.controller import GenericSoftwareManager
-from bauh.util import util, logs
+from bauh.util import util, logs, resource
 from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.util.disk import DefaultDiskCacheLoaderFactory
 from bauh.view.qt.systray import TrayIcon

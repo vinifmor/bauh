@@ -1,11 +1,9 @@
 import glob
 import locale
+import os
 
-from bauh_api.util import system
-from bauh_api.util.resource import get_path
-
-from bauh import ROOT_DIR, __app_name__
-from bauh.core import resource
+from bauh import __app_name__
+from bauh.util import resource
 
 
 def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')):
@@ -42,5 +40,5 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
     return locale_obj
 
 
-def notify_user(msg: str, icon_path: str = get_path('img/logo.svg', ROOT_DIR)):
-    system.notify_user(msg=msg, app_name=__app_name__, icon_path=icon_path)
+def notify_user(msg: str, icon_path: str = resource.get_path('img/logo.svg')):
+    os.system("notify-send -a {} {} '{}'".format(__app_name__, "-i {}".format(icon_path) if icon_path else '', msg))

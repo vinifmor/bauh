@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 from bauh_api.abstract.cache import MemoryCache
 
-from bauh_api.util.html import strip_html
+from bauh.util.html import strip_html
 
 IGNORED_ATTRS = {'name', '__app__'}
 

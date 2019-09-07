@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
 from bauh_api.abstract.cache import MemoryCache
 from bauh_api.abstract.model import PackageStatus
-from bauh_api.util.html import strip_html
 
-from bauh.core import resource
+from bauh.util import resource
+from bauh.util.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 

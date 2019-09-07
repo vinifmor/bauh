@@ -8,7 +8,7 @@ from bauh_api.abstract.controller import SoftwareManager, ApplicationContext
 from bauh import __app_name__
 from bauh.util import util
 
-ignore_modules = {'{}_api'.format(__app_name__)}
+ignore_modules = {'{}_api'.format(__app_name__), '{}_commons'.format(__app_name__)}
 ext_pattern = '{}_'.format(__app_name__)
 
 
