@@ -1,8 +1,9 @@
 import re
-from typing import List
+from typing import List, Dict
 
 RE_RULES = re.compile(r'([\w.\-_]+)|([>=<][>=<]?[\w.]+)')
 RE_SPLIT_RULE = re.compile(r'([<=>]+)(.+)')
+RE_BAUH_REQ = re.compile(r'bauh_.+')
 
 
 class Requirement:
@@ -36,3 +37,15 @@ def parse(line: str) -> Requirement:
                 rules.append("{}'{}'".format(split_rule[0], split_rule[1]))
 
         return Requirement(name=match[0][0], rules=rules)
+
+
+def full_parse(text: str, only_components: bool = True) -> Dict[str, Requirement]:
+    res = {}
+    req_list = RE_BAUH_REQ.findall(text) if only_components else text.split('\n')
+
+    for l in req_list:
+        if l and not l.startswith('#'):
+            req = parse(l)
+            res[req.name] = req
+
+    return res

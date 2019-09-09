@@ -5,6 +5,7 @@ from typing import Set
 import requests
 
 URL_RELEASES = 'https://api.github.com/repos/vinifmor/{}/releases'
+URL_REQUIREMENTS = 'https://github.com/vinifmor/{name}/blob/{version}/requirements.txt'
 
 
 class GitHubClient:
@@ -34,3 +35,11 @@ class GitHubClient:
             t.join()
 
         return components
+
+    def get_requirements(self, name: str, version: str) -> str:
+        res = self.session.get(URL_REQUIREMENTS.format(name=name, version=version))
+
+        if res.status_code == 200 and res.text:
+            return res.text
+        else:
+            print("Could not retrieve '{}' ({}) requirements file".format(name, version))
