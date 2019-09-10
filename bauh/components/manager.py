@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import List, Dict
+from typing import Dict, List
 
 from bauh_api.abstract.component import ComponentsManager, Component, ComponentType
 from bauh_commons.system import run_cmd, new_subprocess
@@ -56,7 +56,7 @@ class PythonComponentsManager(ComponentsManager):
 
         return comps
 
-    def _check_component(self, comp: Component, api: Component, commons: Component):
+    def _add_conflicts(self, comp: Component, api: Component, commons: Component):
         reqs_text = self.github_client.get_requirements(comp.name, comp.new_version)
 
         if reqs_text:
@@ -67,11 +67,13 @@ class PythonComponentsManager(ComponentsManager):
             else:
                 if not comp_reqs.get('bauh_api'):
                     self.logger.error("Could not retrieve 'bauh_api' requirement version for '{}'".format(comp.name))
-                    return False
                 elif not comp_reqs['bauh_api'].accepts(api.new_version):
                     self.logger.warning("'{}' requirement 'bauh_api' ({}) is not compatible with the version {}"
                                         .format(comp.name, comp_reqs['bauh_api'].rules, api.new_version))
-                    return False
+                    comp.conflicts.append(api)
+
+                    if api.has_update():
+                        api.conflicts.append(comp)
 
                 if commons:
                     comp_commons = comp_reqs.get('bauh_commons')
@@ -79,41 +81,46 @@ class PythonComponentsManager(ComponentsManager):
                     if comp_commons and not comp_commons.accepts(commons.new_version):
                         self.logger.warning("'{}' requirement 'bauh_commons' ({}) is not compatible with the version {}"
                                             .format(comp.name, comp_reqs['bauh_commons'].rules, commons.new_version))
-                        return False
+                        comp.conflicts.append(commons)
 
-                return True
-
-        return False
+                        if commons.has_update():
+                            commons.conflicts.append(comp)
 
     def list_updates(self) -> List[Component]:
         components = self.list_components()
 
-        to_update = []
+        res = []
+
         if components:
 
             api = components[ComponentType.LIBRARY]['bauh_api']
 
+            if api.has_update():
+                res.append(api)
+
             commons = components[ComponentType.LIBRARY]['bauh_commons']
 
-            if not self._check_component(commons, api, None):
-                return []
+            self._add_conflicts(commons, api, None)
+
+            if commons.has_update():
+                res.append(commons)
 
             gui = components[ComponentType.APPLICATION]['bauh']
 
-            if not self._check_component(gui, api, commons):
-                return []
+            self._add_conflicts(gui, api, commons)
+
+            if gui.has_update():
+                res.append(gui)
 
             # Gems
             if components[ComponentType.GEM]:
                 for gem in components[ComponentType.GEM].values():
-                    if not self._check_component(gem, api, commons):
-                        return []
+                    self._add_conflicts(gem, api, commons)
 
-            for c in [api, commons, gui, *components[ComponentType.GEM].values()]:
-                if c.update:
-                    to_update.append(c)
+                    if gem.has_update():
+                        res.append(gem)
 
-        return to_update
+        return res
 
     def update(self, component: Component):
         pass

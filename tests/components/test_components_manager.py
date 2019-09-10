@@ -16,12 +16,12 @@ class PythonComponentsManagerTest(TestCase):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.1', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.1', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -37,17 +37,18 @@ class PythonComponentsManagerTest(TestCase):
         self.assertIsNotNone(updates)
         self.assertEqual(1, len(updates))
         self.assertEqual(comps[ComponentType.LIBRARY]['bauh_api'], updates[0])
+        self.assertFalse(updates[0].conflicts)
 
     def test_list_updates__it_should_return_only_a_commons_update_when_its_available(self):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.1', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.1', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -63,17 +64,18 @@ class PythonComponentsManagerTest(TestCase):
         self.assertIsNotNone(updates)
         self.assertEqual(1, len(updates))
         self.assertEqual(comps[ComponentType.LIBRARY]['bauh_commons'], updates[0])
+        self.assertFalse(updates[0].conflicts)
 
-    def test_list_updates__it_should_not_return_an_api_update_if_its_not_compatible_with_the_installed_components(self):
+    def test_list_updates__it_should_return_an_api_update_and_its_conflicting_components(self):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.2.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.2.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -86,18 +88,34 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(1, len(updates))
+        self.assertEqual(comps[ComponentType.LIBRARY]['bauh_api'], updates[0])
+        self.assertTrue(updates[0].conflicts)
 
-    def test_list_updates__it_should_not_return_a_gui_update_if_its_not_compatible_with_the_installed_api(self):
+        self.assertEqual(3, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_commons'], updates[0].conflicts)
+        self.assertEqual(1, len(comps[ComponentType.LIBRARY]['bauh_commons'].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], comps[ComponentType.LIBRARY]['bauh_commons'].conflicts)
+
+        self.assertIn(comps[ComponentType.APPLICATION]['bauh'], updates[0].conflicts)
+        self.assertEqual(1, len(comps[ComponentType.APPLICATION]['bauh'].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], comps[ComponentType.APPLICATION]['bauh'].conflicts)
+
+        self.assertIn(comps[ComponentType.GEM]['bauh_snap'], updates[0].conflicts)
+        self.assertEqual(1, len(comps[ComponentType.GEM]['bauh_snap'].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], comps[ComponentType.GEM]['bauh_snap'].conflicts)
+
+    def test_list_updates__it_should_return_a_gui_update_with_the_installed_api_as_a_conflict(self):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.2.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.2.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -113,18 +131,23 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(1, len(updates))
+        self.assertEqual(comps[ComponentType.APPLICATION]['bauh'], updates[0])
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], updates[0].conflicts)
 
-    def test_list_updates__it_should_not_return_a_gui_update_if_its_not_compatible_with_the_installed_commons(self):
+    def test_list_updates__it_should_return_a_gui_update_with_the_installed_commons_as_a_conflict(self):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.2.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.2.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -140,18 +163,23 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(1, len(updates))
+        self.assertEqual(comps[ComponentType.APPLICATION]['bauh'], updates[0])
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_commons'], updates[0].conflicts)
 
     def test_list_updates__it_should_return_a_gui_update_if_its_compatible_with_the_api_and_commons_updates(self):
 
         # setup
         comps = {
-            ComponentType.APPLICATION:  {'bauh': Component(name='bauh', version='0.1.0', new_version='0.2.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION:  {'bauh': Component('bauh', '0.1.0', '0.2.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.2', new_version='0.1.4', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.2', new_version='0.1.6', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.2', '0.1.4', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.2', '0.1.6', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.0', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.0', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -170,17 +198,18 @@ class PythonComponentsManagerTest(TestCase):
         self.assertEqual(comps[ComponentType.LIBRARY]['bauh_commons'], updates[1])
         self.assertEqual(comps[ComponentType.APPLICATION]['bauh'], updates[2])
 
-    def test_list_updates__it_should_not_return_a_gem_update_if_its_not_compatible_with_the_installed_api(self):
+        for up in updates:
+            self.assertFalse(up.conflicts, up.name)
+
+    def test_list_updates__it_should_return_a_gem_update_with_the_installed_api_as_a_conflict(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -196,19 +225,23 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(1, len(updates))
+        self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[0])
 
-    def test_list_updates__it_should_not_return_a_gem_update_if_its_not_compatible_with_the_installed_commons(self):
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], updates[0].conflicts)
+
+    def test_list_updates__it_should_return_a_gem_update_with_the_installed_commons_as_a_conflict(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -224,69 +257,97 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(1, len(updates))
+        self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[0])
 
-    def test_list_updates__it_should_not_return_a_gem_update_if_its_not_compatible_with_an_api_update(self):
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_commons'], updates[0].conflicts)
+
+    def test_list_updates__it_should_return_a_gem_update_with_an_api_update_as_a_conflict(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.2.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.2.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.1.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
         self.manager.list_components.return_value = comps
 
         def get_requirements(name, version):
-            return "bauh_api>=0.1,<0.2,{}".format('\nbauh_commons>=0.1,<0.2' if name != 'bauh_commons' else '')
+            if name == 'bauh_snap':
+                return "bauh_api>=0.1,<0.2\nbauh_commons>=0.1"
+
+            return "bauh_api>=0.2,<0.3,{}".format('\nbauh_commons>=0.1,<0.2' if name != 'bauh_commons' else '')
 
         self.github_client.get_requirements.side_effect = get_requirements
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(2, len(updates))
+        self.assertEqual(comps[ComponentType.LIBRARY]['bauh_api'], updates[0])
+        self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[1])
 
-    def test_list_updates__it_should_not_return_a_gem_update_if_its_not_compatible_with_a_commons_update(self):
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.GEM]['bauh_snap'], updates[0].conflicts)
+
+        self.assertTrue(updates[1].conflicts)
+        self.assertEqual(1, len(updates[1].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], updates[1].conflicts)
+
+    def test_list_updates__it_should_return_a_gem_update_with_a_commons_update_as_a_conflict(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.2.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.0', '0.1.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.0', '0.2.0', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
         self.manager.list_components.return_value = comps
 
         def get_requirements(name, version):
-            return "bauh_api>=0.1,<0.2,{}".format('\nbauh_commons>=0.1,<0.2' if name != 'bauh_commons' else '')
+            if name == 'bauh_snap':
+                return "bauh_api>=0.1,<0.2\nbauh_commons>=0.1, <0.2"
+
+            return "bauh_api>=0.1,<0.2,{}".format('\nbauh_commons>=0.2,<0.3' if name != 'bauh_commons' else '')
 
         self.github_client.get_requirements.side_effect = get_requirements
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(2, len(updates))
+        self.assertEqual(comps[ComponentType.LIBRARY]['bauh_commons'], updates[0])
+        self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[1])
+
+        self.assertTrue(updates[0].conflicts)
+        self.assertEqual(1, len(updates[0].conflicts))
+        self.assertIn(comps[ComponentType.GEM]['bauh_snap'], updates[0].conflicts)
+
+        self.assertTrue(updates[1].conflicts)
+        self.assertEqual(1, len(updates[1].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_commons'], updates[1].conflicts)
 
     def test_list_updates__it_should_return_a_gem_update_if_its_compatible_with_the_installed_api_and_commons(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.5', new_version='0.1.5', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.0', new_version='0.1.0', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.5', '0.1.5', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.2', '0.1.2', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -302,18 +363,17 @@ class PythonComponentsManagerTest(TestCase):
         self.assertIsNotNone(updates)
         self.assertEqual(1, len(updates))
         self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[0])
+        self.assertFalse(updates[0].conflicts)
 
     def test_list_updates__it_should_return_a_gem_update_if_its_compatible_with_an_api_and_commons_update(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.1', new_version='0.1.5', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.1', new_version='0.1.6', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.5', '0.1.6', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.2', '0.1.7', ComponentType.LIBRARY, [])
             },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)}
+            ComponentType.GEM: {'bauh_snap': Component('bauh_snap', '0.1.0', '0.1.1', ComponentType.GEM, [])}
         }
 
         self.manager.list_components = MagicMock()
@@ -332,19 +392,20 @@ class PythonComponentsManagerTest(TestCase):
         self.assertEqual(comps[ComponentType.LIBRARY]['bauh_commons'], updates[1])
         self.assertEqual(comps[ComponentType.GEM]['bauh_snap'], updates[2])
 
-    def test_list_updates__it_should_not_return_when_one_of_the_gems_are_not_compatible_with_the_api_update(self):
+        for up in updates:
+            self.assertFalse(up.conflicts, up.name)
+
+    def test_list_updates__it_should_return_one_of_the_gem_with_its_conflicts_set(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.0', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.1', new_version='0.2.0',
-                                      type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.1', new_version='0.1.6', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.1', '0.2.0', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.1', '0.1.6', ComponentType.LIBRARY, [])
             },
             ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.2.1', type=ComponentType.GEM),
-                'bauh_flatpak': Component(name='bauh_flatpak', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)
+                'bauh_snap': Component('bauh_snap', '0.1.0', '0.2.1', ComponentType.GEM, []),
+                'bauh_flatpak': Component('bauh_flatpak', '0.1.0', '0.1.1', ComponentType.GEM, []),
             }
         }
 
@@ -361,51 +422,32 @@ class PythonComponentsManagerTest(TestCase):
 
         # test
         updates = self.manager.list_updates()
-        self.assertFalse(updates)
+        self.assertIsNotNone(updates)
+        self.assertEqual(4, len(updates))
+        self.assertEqual(comps[ComponentType.LIBRARY]['bauh_api'], updates[0])
+        self.assertEqual(comps[ComponentType.LIBRARY]['bauh_commons'], updates[1])
 
-    def test_list_updates__it_should_not_return_when_one_of_the_gems_are_not_compatible_with_the_commons_update(self):
+        self.assertIn(comps[ComponentType.GEM]['bauh_snap'], updates)
+        self.assertFalse(comps[ComponentType.GEM]['bauh_snap'].conflicts)
+
+        self.assertIn(comps[ComponentType.GEM]['bauh_flatpak'], updates)
+        self.assertEqual(1, len(comps[ComponentType.GEM]['bauh_flatpak'].conflicts))
+        self.assertIn(comps[ComponentType.LIBRARY]['bauh_api'], comps[ComponentType.GEM]['bauh_flatpak'].conflicts)
+
+        self.assertEqual(1, len(comps[ComponentType.LIBRARY]['bauh_api'].conflicts))
+        self.assertIn(comps[ComponentType.GEM]['bauh_flatpak'], comps[ComponentType.LIBRARY]['bauh_api'].conflicts)
+
+    def test_list_updates__it_should_return_updated_from_all_component_types_with_no_conflicts_set(self):
         # setup
         comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.0', type=ComponentType.APPLICATION)},
+            ComponentType.APPLICATION: {'bauh': Component('bauh', '0.1.0', '0.1.2', ComponentType.APPLICATION, [])},
             ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.1', new_version='0.1.3',
-                                      type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.1', new_version='0.1.5', type=ComponentType.LIBRARY)
+                'bauh_api': Component('bauh_api', '0.1.1', '0.1.4', ComponentType.LIBRARY, []),
+                'bauh_commons': Component('bauh_commons', '0.1.1', '0.1.6', ComponentType.LIBRARY, [])
             },
             ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.2.1', type=ComponentType.GEM),
-                'bauh_flatpak': Component(name='bauh_flatpak', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM)
-            }
-        }
-
-        self.manager.list_components = MagicMock()
-        self.manager.list_components.return_value = comps
-
-        def get_requirements(name, version):
-            if name == 'bauh_flatpak':
-                return "bauh_api>=0.1,<0.2,\nbauh_commons>=0.1,<0.1.5"
-
-            return "bauh_api>=0.1,<0.2,{}".format('\nbauh_commons>=0.1,<0.2' if name != 'bauh_commons' else '')
-
-        self.github_client.get_requirements.side_effect = get_requirements
-
-        # test
-        updates = self.manager.list_updates()
-        self.assertFalse(updates)
-
-    def test_list_updates__it_should_return_updates_for_all_component_types(self):
-        # setup
-        comps = {
-            ComponentType.APPLICATION: {
-                'bauh': Component(name='bauh', version='0.1.0', new_version='0.1.3', type=ComponentType.APPLICATION)},
-            ComponentType.LIBRARY: {
-                'bauh_api': Component(name='bauh_api', version='0.1.1', new_version='0.1.9', type=ComponentType.LIBRARY),
-                'bauh_commons': Component(name='bauh_commons', version='0.1.1', new_version='0.1.9', type=ComponentType.LIBRARY)
-            },
-            ComponentType.GEM: {
-                'bauh_snap': Component(name='bauh_snap', version='0.1.0', new_version='0.1.1', type=ComponentType.GEM),
-                'bauh_flatpak': Component(name='bauh_flatpak', version='0.1.1', new_version='0.1.6', type=ComponentType.GEM)
+                'bauh_snap': Component('bauh_snap', '0.1.0', '0.2.1', ComponentType.GEM, []),
+                'bauh_flatpak': Component('bauh_flatpak', '0.1.0', '0.1.1', ComponentType.GEM, []),
             }
         }
 
@@ -426,3 +468,6 @@ class PythonComponentsManagerTest(TestCase):
         self.assertEqual(comps[ComponentType.APPLICATION]['bauh'], updates[2])
         self.assertIn(comps[ComponentType.GEM]['bauh_snap'], updates)
         self.assertIn(comps[ComponentType.GEM]['bauh_flatpak'], updates)
+
+        for up in updates:
+            self.assertFalse(up.conflicts, up.name)
