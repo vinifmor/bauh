@@ -10,7 +10,7 @@ class PythonComponentsManagerTest(TestCase):
 
     def setUp(self):
         self.github_client = MagicMock()
-        self.manager = PythonComponentsManager(self.github_client, MagicMock())
+        self.manager = PythonComponentsManager(MagicMock(), self.github_client)
 
     def test_list_updates__it_should_return_only_an_api_update_when_its_available(self):
 

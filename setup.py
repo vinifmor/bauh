@@ -40,6 +40,7 @@ setup(
     },
     include_package_data=True,
     license="zlib/libpng",
+    test_suite='tests',
     classifiers=[
         'Topic :: Utilities',
         'Programming Language :: Python',

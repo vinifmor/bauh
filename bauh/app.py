@@ -1,5 +1,6 @@
 import sys
 
+import requests
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 from bauh_api.abstract.controller import ApplicationContext
@@ -25,7 +26,7 @@ cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleane
 icon_cache = cache_factory.new(args.icon_exp)
 
 context = ApplicationContext(i18n=i18n,
-                             http_client=HttpClient(logger),
+                             http_client=HttpClient(requests.session(), logger),
                              disk_cache=args.disk_cache,
                              download_icons=args.download_icons,
                              app_root_dir=ROOT_DIR,

@@ -105,3 +105,6 @@ manage_window.name_filter.tooltip=Escriba aquí para filtrar aplicaciones por no
 manage_window.name_filter.placeholder=Filtrar por nombre
 publisher=publicador
 publisher.unknown=publicador desconocido
+components.update.beginning=Actualizando {}
+components.update.failed=No fue posible actualizar {}
+components.update.success={} actualizado

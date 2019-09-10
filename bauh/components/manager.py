@@ -1,32 +1,34 @@
-import logging
 import sys
 from typing import Dict, List
 
 from bauh_api.abstract.component import ComponentsManager, Component, ComponentType
-from bauh_commons.system import run_cmd, new_subprocess
+from bauh_api.abstract.context import ApplicationContext
+from bauh_api.abstract.handler import ProcessWatcher
+from bauh_commons.html import bold
+from bauh_commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess
 
 from bauh.components import requirements
 from bauh.components.github import GitHubClient
 
 PIP_PATH = '/'.join(sys.executable.split('/')[0:-1]) + '/pip'
 
-# requirements URL -> https://github.com/vinifmor/bauh/blob/0.5.2/requirements.txt
-
-
-def map_type(name: str):
-    if name == 'bauh':
-        return ComponentType.APPLICATION
-    elif name in {'bauh_api', 'bauh_commons'}:
-        return ComponentType.LIBRARY
-    else:
-        return ComponentType.GEM
-
 
 class PythonComponentsManager(ComponentsManager):
 
-    def __init__(self, github_client: GitHubClient, logger: logging.Logger):
+    def __init__(self, context: ApplicationContext, github_client: GitHubClient):
+        super(PythonComponentsManager, self).__init__(context=context)
         self.github_client = github_client
-        self.logger = logger
+        self.logger = context.logger
+        self.i18n = context.i18n
+
+    @staticmethod
+    def map_type(name: str):
+        if name == 'bauh':
+            return ComponentType.APPLICATION
+        elif name in {'bauh_api', 'bauh_commons'}:
+            return ComponentType.LIBRARY
+        else:
+            return ComponentType.GEM
 
     def list_components(self) -> Dict[ComponentType, Dict[str, Component]]:
         python_comps = new_subprocess([PIP_PATH, 'list'], global_interpreter=False).stdout
@@ -45,7 +47,7 @@ class PythonComponentsManager(ComponentsManager):
 
             if latest:
                 for pkg, version in installed.items():
-                    comp = Component(name=pkg, version=version, new_version=version, type=map_type(pkg))
+                    comp = Component(name=pkg, version=version, new_version=version, type=self.map_type(pkg), conflicts=[])
 
                     if pkg in latest:
                         comp.new_version = latest[pkg]
@@ -122,9 +124,58 @@ class PythonComponentsManager(ComponentsManager):
 
         return res
 
-    def update(self, component: Component):
-        pass
+    def _update(self, comp: Component, root_password: str, handler: ProcessHandler) -> bool:
+        self.logger.info("Updating '{}' version from {} to {}".format(comp.name, comp.version, comp.new_version))
+
+        info = '{} ({} -> {})'.format(bold(comp.name), comp.version, comp.new_version)
+        handler.watcher.change_status(self.i18n['components.update.beginning'].format(info))
+
+        # TODO at the moment 'root' is not necessary because the venv is created in the current user home
+        proc = new_subprocess([PIP_PATH, 'install', '{}=={}'.format(comp.name, comp.new_version)], global_interpreter=False)
+        res = handler.handle(SystemProcess(proc))
+
+        if not res:
+            handler.watcher.change_status(self.i18n['components.update.failed'].format(bold(comp.name)))
+            self.logger.error("'{}' failed to updated to version {}".format(comp.name, comp.version))
+        else:
+            handler.watcher.change_status(self.i18n['components.update.success'].format(bold(comp.name)))
+            self.logger.info("'{}' updated".format(comp.name))
+
+        return res
+
+    def requires_root(self):
+        return False
+
+    def update(self, components: List[Component], root_password: str, watcher: ProcessWatcher) -> bool:
+        self.logger.info('Updating components')
+
+        comps = {t: {} for t in ComponentType}
+
+        handler = ProcessHandler(watcher)
+
+        for c in components:
+            comps[c.type][c.name] = c
+
+        api = comps[ComponentType.LIBRARY].get('bauh_api')
+
+        if api and not self._update(api, root_password, handler):
+            return False
+
+        commons = comps[ComponentType.LIBRARY].get('bauh_commons')
+
+        if commons and not self._update(commons, root_password, handler):
+            return False
+
+        gui = comps[ComponentType.APPLICATION].get('bauh')
+
+        if gui and not self._update(gui, root_password, handler):
+            return False
+
+        for gem in comps[ComponentType.GEM].values():
+            if not self._update(gem, root_password, handler):
+                return False
+
+        return True
 
     def is_enabled(self) -> bool:
         return bool(run_cmd('pip --version', global_interpreter=False))
-

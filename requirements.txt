@@ -1,3 +1,4 @@
+requests>=2.22
 pyqt5>=5.12
 bauh_api>=0.1,<0.2
 bauh_commons>=0.1,<0.2
