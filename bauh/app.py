@@ -7,12 +7,15 @@ from bauh_api.abstract.controller import ApplicationContext
 from bauh_api.http import HttpClient
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
+from bauh.components.github import GitHubClient
+from bauh.components.manager import PythonComponentsManager
 from bauh.core import extensions
 from bauh.core.controller import GenericSoftwareManager
 from bauh.util import util, logs, resource
 from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.util.disk import DefaultDiskCacheLoaderFactory
 from bauh.view.qt.systray import TrayIcon
+from bauh.view.qt.updates import UpdatesPanel
 from bauh.view.qt.window import ManageWindow
 
 args = app_args.read()
@@ -34,37 +37,43 @@ context = ApplicationContext(i18n=i18n,
                              disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache),
                              logger=logger)
 
-managers = extensions.load_managers(context=context, locale=args.locale)
-
-
-manager = GenericSoftwareManager(managers, context=context, app_args=args)
-manager.prepare()
+component_manager = PythonComponentsManager(context=context, github_client=GitHubClient(logger))
+updates = component_manager.list_updates()
 
 app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
 app.setApplicationVersion(__version__)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-manage_window = ManageWindow(i18n=i18n,
-                             manager=manager,
-                             icon_cache=icon_cache,
-                             disk_cache=args.disk_cache,
-                             download_icons=bool(args.download_icons),
-                             screen_size=app.primaryScreen().size(),
-                             suggestions=args.sugs,
-                             display_limit=args.max_displayed)
-
-if args.tray:
-    trayIcon = TrayIcon(locale_keys=i18n,
-                        manager=manager,
-                        manage_window=manage_window,
-                        check_interval=args.check_interval,
-                        update_notification=bool(args.update_notification))
-    manage_window.tray_icon = trayIcon
-    trayIcon.show()
+if updates:
+    UpdatesPanel(component_manager, updates, i18n).show()
 else:
-    manage_window.refresh_apps()
-    manage_window.show()
+    managers = extensions.load_managers(context=context, locale=args.locale)
 
-cache_cleaner.start()
+    manager = GenericSoftwareManager(managers, context=context, app_args=args)
+    manager.prepare()
+
+    manage_window = ManageWindow(i18n=i18n,
+                                 manager=manager,
+                                 icon_cache=icon_cache,
+                                 disk_cache=args.disk_cache,
+                                 download_icons=bool(args.download_icons),
+                                 screen_size=app.primaryScreen().size(),
+                                 suggestions=args.sugs,
+                                 display_limit=args.max_displayed)
+
+    if args.tray:
+        trayIcon = TrayIcon(locale_keys=i18n,
+                            manager=manager,
+                            manage_window=manage_window,
+                            check_interval=args.check_interval,
+                            update_notification=bool(args.update_notification))
+        manage_window.tray_icon = trayIcon
+        trayIcon.show()
+    else:
+        manage_window.refresh_apps()
+        manage_window.show()
+
+    cache_cleaner.start()
+
 sys.exit(app.exec_())
