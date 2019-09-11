@@ -3,7 +3,7 @@ import os
 import subprocess
 
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
-from bauh_api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType
 
 from bauh.view.qt.dialog import show_message
 

@@ -4,8 +4,8 @@ from functools import reduce
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
-from bauh_api.abstract.cache import MemoryCache
-from bauh_api.abstract.model import PackageHistory
+from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.model import PackageHistory
 
 
 class HistoryDialog(QDialog):

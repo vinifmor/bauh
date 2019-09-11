@@ -2,10 +2,10 @@ from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
 
-from bauh_api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
-from bauh_api.abstract.disk import DiskCacheLoader
-from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
+from bauh.api.abstract.disk import DiskCacheLoader
+from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 
 SUGGESTIONS_LIMIT = 5
 

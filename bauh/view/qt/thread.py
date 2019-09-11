@@ -5,12 +5,12 @@ from typing import List, Type, Set
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
-from bauh_api.abstract.cache import MemoryCache
-from bauh_api.abstract.controller import SoftwareManager
-from bauh_api.abstract.handler import ProcessWatcher
-from bauh_api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
-from bauh_api.abstract.view import InputViewComponent, MessageType
-from bauh_api.exception import NoInternetException
+from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
+from bauh.api.abstract.view import InputViewComponent, MessageType
+from bauh.api.exception import NoInternetException
 
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView

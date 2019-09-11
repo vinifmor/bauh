@@ -7,8 +7,8 @@ from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
-from bauh_api.abstract.cache import MemoryCache
-from bauh_api.abstract.model import PackageStatus
+from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.model import PackageStatus
 
 from bauh.util import resource
 from bauh.util.html import strip_html

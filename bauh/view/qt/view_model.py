@@ -1,6 +1,6 @@
 from enum import Enum
 
-from bauh_api.abstract.model import SoftwarePackage
+from bauh.api.abstract.model import SoftwarePackage
 
 
 class PackageViewStatus(Enum):

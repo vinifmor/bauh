@@ -6,10 +6,10 @@ from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox
-from bauh_api.abstract.cache import MemoryCache
-from bauh_api.abstract.controller import SoftwareManager
-from bauh_api.abstract.model import SoftwarePackage, PackageAction
-from bauh_api.abstract.view import MessageType
+from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.model import SoftwarePackage, PackageAction
+from bauh.api.abstract.view import MessageType
 
 from bauh.util import util, resource
 from bauh.view.qt import dialog, commons

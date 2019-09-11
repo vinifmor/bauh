@@ -1,0 +1,5 @@
+flatpak.notification.no_remotes=No Flatpak remotes set. It will not be possible to search for Flatpak apps.
+flatpak.downgrade.impossible.title=Error
+flatpak.downgrade.impossible.body=Impossible to downgrade: the app is in its first version
+flatpak.downgrade.commits=Reading package commits
+flatpak.downgrade.reverting=Reverting version

@@ -2,7 +2,7 @@ import datetime
 import time
 from threading import Lock, Thread
 
-from bauh_api.abstract.cache import MemoryCache, MemoryCacheFactory
+from bauh.api.abstract.cache import MemoryCache, MemoryCacheFactory
 
 
 class DefaultMemoryCache(MemoryCache):

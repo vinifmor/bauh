@@ -2,7 +2,7 @@ from typing import List
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
-from bauh_api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType
 
 from bauh.util import resource
 

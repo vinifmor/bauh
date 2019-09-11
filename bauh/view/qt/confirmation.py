@@ -1,7 +1,7 @@
 from typing import List
 
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget
-from bauh_api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
+from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
 
 from bauh.view.qt.components import MultipleSelectQt, new_single_select
 
@@ -29,7 +29,7 @@ class ConfirmationDialog(QMessageBox):
                 if isinstance(comp, SingleSelectComponent):
                     inst = new_single_select(comp)
                 elif isinstance(comp, MultipleSelectComponent):
-                    inst = MultipleSelectQt(comp)
+                    inst = MultipleSelectQt(comp, None)
                 else:
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 

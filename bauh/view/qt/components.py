@@ -1,7 +1,10 @@
-from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit
-from bauh_api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
+
+from bauh import ROOT_DIR
+from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
+from bauh.commons import resource
 
 
 class RadioButtonQt(QRadioButton):
@@ -19,18 +22,29 @@ class RadioButtonQt(QRadioButton):
 
 class CheckboxQt(QCheckBox):
 
-    def __init__(self, model: InputOption, model_parent: MultipleSelectComponent):
+    def __init__(self, model: InputOption, model_parent: MultipleSelectComponent, callback):
         super(CheckboxQt, self).__init__()
         self.model = model
         self.model_parent = model_parent
         self.stateChanged.connect(self._set_checked)
+        self.callback = callback
+        self.setText(model.label)
+        self.setToolTip(model.tooltip)
+
+        if model.icon_path:
+            self.setIcon(QIcon(model.icon_path))
 
     def _set_checked(self, state):
-        if state == 2:
+        checked = state == 2
+
+        if checked:
             self.model_parent.values.add(self.model)
         else:
             if self.model in self.model_parent.values:
                 self.model_parent.values.remove(self.model)
+
+        if self.callback:
+            self.callback(self.model, checked)
 
 
 class ComboBoxQt(QComboBox):
@@ -101,8 +115,8 @@ class ComboSelectQt(QGroupBox):
 
 class MultipleSelectQt(QGroupBox):
 
-    def __init__(self, model: MultipleSelectComponent):
-        super(MultipleSelectQt, self).__init__(model.label + ' :' if model.label else None)
+    def __init__(self, model: MultipleSelectComponent, callback):
+        super(MultipleSelectQt, self).__init__(model.label if model.label else None)
         self.setStyleSheet("QGroupBox { font-weight: bold }")
         self.model = model
         self._layout = QGridLayout()
@@ -110,9 +124,7 @@ class MultipleSelectQt(QGroupBox):
 
         line, col = 0, 0
         for op in model.options:
-            comp = CheckboxQt(op, model)
-            comp.setText(op.label)
-            comp.setToolTip(op.tooltip)
+            comp = CheckboxQt(op, model, callback)
 
             if model.values and op in model.values:
                 self.value = comp

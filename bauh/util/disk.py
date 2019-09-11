@@ -3,9 +3,9 @@ import os
 from threading import Thread, Lock
 from typing import Type, Dict
 
-from bauh_api.abstract.cache import MemoryCache
-from bauh_api.abstract.disk import DiskCacheLoader, DiskCacheLoaderFactory
-from bauh_api.abstract.model import SoftwarePackage
+from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.disk import DiskCacheLoader, DiskCacheLoaderFactory
+from bauh.api.abstract.model import SoftwarePackage
 
 
 class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
