@@ -1,7 +1,7 @@
 import inspect
 import os
 import pkgutil
-from typing import List
+from typing import List, Type
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
@@ -29,10 +29,11 @@ def load_managers(locale: str, context: ApplicationContext, names: List[str] = N
             manager_class = find_manager(module)
 
             if manager_class:
-                locale_path = '{}/resources/locale'.format(f.path)
+                if locale:
+                    locale_path = '{}/resources/locale'.format(f.path)
 
-                if os.path.exists(locale_path):
-                    context.i18n.update(util.get_locale_keys(locale, locale_path))
+                    if os.path.exists(locale_path):
+                        context.i18n.update(util.get_locale_keys(locale, locale_path))
 
                 managers.append(manager_class(context=context))
 

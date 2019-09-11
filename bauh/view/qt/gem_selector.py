@@ -16,26 +16,28 @@ from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
 class GemSelectorPanel(QWidget):
 
-    def __init__(self, managers: List[SoftwareManager], i18n: dict, boot: bool):
+    def __init__(self, managers: List[SoftwareManager], i18n: dict, managers_set: List[str], exit_on_close: bool = True):
         super(GemSelectorPanel, self).__init__()
         self.managers = managers
         self.setLayout(QGridLayout())
         self.setWindowIcon(QIcon(resource.get_path('img/logo.svg', ROOT_DIR)))
-        self.setWindowTitle('Welcome' if boot else 'Supported types')
+        self.setWindowTitle(i18n['welcome'].capitalize() if not managers_set else i18n['gem_selector.title'])
         self.resize(400, 400)
+        self.exit_on_close = exit_on_close
 
-        self.label_question = QLabel('What types of applications do you want to find here ?')
+        self.label_question = QLabel(i18n['gem_selector.question'])
         self.label_question.setStyleSheet('QLabel { font-weight: bold}')
         self.layout().addWidget(self.label_question, 0, 1, Qt.AlignHCenter)
 
-        self.bt_proceed = QPushButton('Proceed')
-        self.bt_proceed.setStyleSheet('QPushButton { background: green; color: white; font-weight: bold}')
-        self.bt_proceed.setEnabled(True)
+        self.bt_proceed = QPushButton(i18n['proceed' if not managers_set else 'change'].capitalize())
+        self.bt_proceed.setStyleSheet("""QPushButton { background: green; color: white; font-weight: bold} 
+                                         QPushButton:disabled { background-color: gray; }  
+                                      """)
         self.bt_proceed.clicked.connect(self.save)
 
-        self.bt_exit = QPushButton('Exit')
+        self.bt_exit = QPushButton(i18n['exit'].capitalize())
         self.bt_exit.setStyleSheet('QPushButton { background: red; color: white; font-weight: bold}')
-        self.bt_exit.clicked.connect(lambda:  QCoreApplication.exit())
+        self.bt_exit.clicked.connect(self.exit)
 
         gem_options = []
 
@@ -45,7 +47,14 @@ class GemSelectorPanel(QWidget):
                                            value=modname,
                                            icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname)))
 
-        self.gem_select_model = MultipleSelectComponent(label='', options=gem_options, default_options=set(gem_options), max_per_line=3)
+        if managers_set:
+            default_ops = {o for o in gem_options if o.value in managers_set}
+        else:
+            default_ops = set(gem_options)
+
+        self.bt_proceed.setEnabled(bool(default_ops))
+
+        self.gem_select_model = MultipleSelectComponent(label='', options=gem_options, default_options=default_ops, max_per_line=3)
 
         self.gem_select = MultipleSelectQt(self.gem_select_model, self.check_state)
         self.layout().addWidget(self.gem_select, 1, 1)
@@ -59,11 +68,18 @@ class GemSelectorPanel(QWidget):
         self.setFixedSize(self.size())
 
     def check_state(self, model: CheckboxQt, checked: bool):
-        self.bt_proceed.setEnabled(bool(self.gem_select_model.values))
+        if self.isVisible():
+            self.bt_proceed.setEnabled(bool(self.gem_select_model.values))
 
     def save(self):
         config = Configuration(gems=[o.value for o in self.gem_select_model.values])
         save(config)
         subprocess.Popen([sys.executable, *sys.argv])
-        self.close()
+        QCoreApplication.exit()
+
+    def exit(self):
+        if self.exit_on_close:
+            QCoreApplication.exit()
+        else:
+            self.close()
 

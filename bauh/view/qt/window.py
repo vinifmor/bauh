@@ -3,20 +3,24 @@ from functools import reduce
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction
+
 from bauh.api.abstract.cache import MemoryCache
+from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
-
+from bauh.core import gems
+from bauh.core.config import Configuration
 from bauh.util import util, resource
 from bauh.view.qt import dialog, commons
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
-from bauh.view.qt.components import new_spacer, InputFilter
+from bauh.view.qt.components import new_spacer, InputFilter, IconButton
 from bauh.view.qt.confirmation import ConfirmationDialog
+from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
@@ -39,7 +43,8 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool, screen_size, suggestions: bool, display_limit: int, tray_icon=None):
+    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool,
+                 screen_size, suggestions: bool, display_limit: int, config: Configuration, context: ApplicationContext, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.manager = manager
@@ -53,6 +58,8 @@ class ManageWindow(QWidget):
         self.disk_cache = disk_cache
         self.download_icons = download_icons
         self.screen_size = screen_size
+        self.config = config
+        self.context = context
 
         self.icon_app = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
@@ -230,12 +237,8 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(new_spacer())
 
-        bt_about = QToolButton()
-        bt_about.setStyleSheet('QToolButton { border: 0px; }')
-        bt_about.setIcon(QIcon(resource.get_path('img/about.svg')))
-        bt_about.clicked.connect(self._show_about)
-        bt_about.setToolTip(self.i18n['manage_window.bt_about.tooltip'])
-        self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
+        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=self._show_settings_menu, background='#12ABAB')
+        self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -712,7 +715,7 @@ class ManageWindow(QWidget):
     def _begin_action(self, action_label: str, keep_search: bool = False, keep_bt_installed: bool = True, clear_filters: bool = False):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
-        self.ref_bt_about.setVisible(False)
+        self.ref_bt_settings.setVisible(False)
         self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
@@ -748,7 +751,7 @@ class ManageWindow(QWidget):
         self.progress_bar.setTextVisible(False)
 
         self._change_label_substatus('')
-        self.ref_bt_about.setVisible(True)
+        self.ref_bt_settings.setVisible(True)
 
         self.ref_label_updates.setVisible(True)
         self.ref_bt_refresh.setVisible(True)
@@ -897,3 +900,27 @@ class ManageWindow(QWidget):
             self.refresh_apps(pkg_types={res['pkg'].model.__class__})
         else:
             self.checkbox_console.setChecked(True)
+
+    def _show_gems_selector(self):
+        managers = gems.load_managers(context=self.context, locale=None)
+        enabled_managers = [m for m in managers if m.is_enabled()]
+        gem_panel = GemSelectorPanel(managers=enabled_managers, i18n=self.i18n, managers_set=self.config.gems, exit_on_close=False)
+        gem_panel.show()
+
+    def _show_settings_menu(self):
+        menu_row = QMenu()
+
+        action_gems = QAction(self.i18n['manage_window.settings.gems'])
+        action_gems.setIcon(self.icon_app)
+
+        action_gems.triggered.connect(self._show_gems_selector)
+        menu_row.addAction(action_gems)
+
+        action_about = QAction(self.i18n['manage_window.settings.about'])
+        action_about.setIcon(QIcon(resource.get_path('img/about.svg')))
+        action_about.triggered.connect(self._show_about)
+        menu_row.addAction(action_about)
+
+        menu_row.adjustSize()
+        menu_row.popup(QCursor.pos())
+        menu_row.exec_()

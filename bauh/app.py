@@ -49,7 +49,7 @@ else:
 enabled_managers = [m for m in managers if m.is_enabled()]
 
 if not user_config.gems and enabled_managers:
-    gem_panel = GemSelectorPanel(enabled_managers, i18n, boot=True)
+    gem_panel = GemSelectorPanel(enabled_managers, i18n, managers_set=None)
     gem_panel.show()
 else:
     manager = GenericSoftwareManager(enabled_managers, context=context, app_args=args)
@@ -62,7 +62,9 @@ else:
                                  download_icons=bool(args.download_icons),
                                  screen_size=app.primaryScreen().size(),
                                  suggestions=args.sugs,
-                                 display_limit=args.max_displayed)
+                                 display_limit=args.max_displayed,
+                                 config=user_config,
+                                 context=context)
 
     if args.tray:
         trayIcon = TrayIcon(locale_keys=i18n,

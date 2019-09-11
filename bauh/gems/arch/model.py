@@ -90,13 +90,14 @@ class ArchPackage(SoftwarePackage):
         return cache
 
     def fill_cached_data(self, data: dict):
-        for a in {'command', 'icon_path', 'mirror', 'desktop_entry'}:
-            val = data.get(a)
-            if val:
-                setattr(self, a, val)
+        if data:
+            for a in {'command', 'icon_path', 'mirror', 'desktop_entry'}:
+                val = data.get(a)
+                if val:
+                    setattr(self, a, val)
 
-                if a == 'icon_path':
-                    self.icon_url = val
+                    if a == 'icon_path':
+                        self.icon_url = val
 
     def can_be_run(self) -> bool:
         # only returns if there is a desktop entry set for the application to avoid running command-line applications

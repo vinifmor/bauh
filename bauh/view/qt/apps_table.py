@@ -13,30 +13,10 @@ from bauh.api.abstract.model import PackageStatus
 from bauh.util import resource
 from bauh.util.html import strip_html
 from bauh.view.qt import dialog
+from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
-
-
-class IconButton(QWidget):
-
-    def __init__(self, icon_path: str, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
-        super(IconButton, self).__init__()
-        self.bt = QToolButton()
-        self.bt.setIcon(QIcon(icon_path))
-        self.bt.clicked.connect(action)
-
-        if background:
-            self.bt.setStyleSheet('QToolButton { color: white; background: ' + background + '}')
-
-        if tooltip:
-            self.bt.setToolTip(tooltip)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setAlignment(align)
-        layout.addWidget(self.bt)
-        self.setLayout(layout)
 
 
 class UpdateToggleButton(QWidget):

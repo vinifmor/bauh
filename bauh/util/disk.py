@@ -47,11 +47,12 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
             if os.path.exists(pkg.get_disk_data_path()):
                 with open(pkg.get_disk_data_path()) as f:
                     cached_data = json.loads(f.read())
-                    pkg.fill_cached_data(cached_data)
-                    cache = self.cache_map.get(pkg.__class__)\
+                    if cached_data:
+                        pkg.fill_cached_data(cached_data)
+                        cache = self.cache_map.get(pkg.__class__)\
 
-                    if cache:
-                        cache.add_non_existing(pkg.id, cached_data)
+                        if cache:
+                            cache.add_non_existing(pkg.id, cached_data)
 
 
 class DefaultDiskCacheLoaderFactory(DiskCacheLoaderFactory):
@@ -63,10 +64,8 @@ class DefaultDiskCacheLoaderFactory(DiskCacheLoaderFactory):
 
     def map(self, pkg_type: Type[SoftwarePackage], cache: MemoryCache):
         if pkg_type:
-            if pkg_type in self.cache_map:
-                raise Exception('{} is already mapped')
-
-            self.cache_map[pkg_type] = cache
+            if pkg_type not in self.cache_map:
+                    self.cache_map[pkg_type] = cache
 
     def new(self) -> AsyncDiskCacheLoader:
         return AsyncDiskCacheLoader(enabled=self.disk_cache_enabled, cache_map=self.cache_map)

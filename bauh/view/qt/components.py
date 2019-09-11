@@ -1,10 +1,9 @@
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout
 
-from bauh import ROOT_DIR
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
-from bauh.commons import resource
 
 
 class RadioButtonQt(QRadioButton):
@@ -160,6 +159,27 @@ class InputFilter(QLineEdit):
     def setText(self, p_str):
         super(InputFilter, self).setText(p_str)
         self.last_text = p_str
+
+
+class IconButton(QWidget):
+
+    def __init__(self, icon_path: str, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
+        super(IconButton, self).__init__()
+        self.bt = QToolButton()
+        self.bt.setIcon(QIcon(icon_path))
+        self.bt.clicked.connect(action)
+
+        if background:
+            self.bt.setStyleSheet('QToolButton { color: white; background: ' + background + '}')
+
+        if tooltip:
+            self.bt.setToolTip(tooltip)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(align)
+        layout.addWidget(self.bt)
+        self.setLayout(layout)
 
 
 def new_single_select(model: SingleSelectComponent):

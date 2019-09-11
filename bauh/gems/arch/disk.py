@@ -113,6 +113,11 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
                 if entries:
                     desktop_matches[pkg] = entries[0]
 
+                    if len(entries) > 1:
+                        for e in entries:
+                            if e.startswith('/usr/share/applications'):
+                                desktop_matches[pkg] = e
+
         if not desktop_matches:
             no_desktop_files = to_cache
         else:
@@ -130,7 +135,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
 
                 for field in RE_DESKTOP_ENTRY.findall(desktop_entry):
                     if field[0] == 'Exec':
-                        p.command = field[1].strip()
+                        p.command = field[1].strip().replace('"', '')
                     elif field[0] == 'Icon':
                         p.icon_path = field[1].strip()
 
