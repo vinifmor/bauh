@@ -7,13 +7,14 @@ from bauh import __app_name__
 from bauh.api.constants import HOME_PATH
 
 CONFIG_PATH = '{}/.config/{}'.format(HOME_PATH, __app_name__)
-FILE_PATH =  '{}/config.json'.format(CONFIG_PATH)
+FILE_PATH = '{}/config.json'.format(CONFIG_PATH)
 
 
 class Configuration:
 
-    def __init__(self, gems: List[str]):
+    def __init__(self, gems: List[str] = None, style: str = None):
         self.gems = gems
+        self.style = style
 
 
 def read() -> Configuration:

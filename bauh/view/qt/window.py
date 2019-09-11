@@ -4,7 +4,7 @@ from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolButton, QToolBar, \
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction
 
 from bauh.api.abstract.cache import MemoryCache
@@ -24,6 +24,7 @@ from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
+from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, RunApp, ApplyFilters, CustomAction
@@ -225,6 +226,7 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
+        self.toolbar_bottom.setStyleSheet('QToolBar { spacing: 3px }')
 
         self.label_updates = QLabel()
         self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
@@ -236,6 +238,10 @@ class ManageWindow(QWidget):
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
         self.toolbar_bottom.addWidget(new_spacer())
+
+        combo_styles = StylesComboBox(self, i18n)
+        combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
+        self.ref_combo_styles = self.toolbar_bottom.addWidget(combo_styles)
 
         bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=self._show_settings_menu, background='#12ABAB')
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
@@ -720,6 +726,7 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
+        self.ref_combo_styles.setVisible(False)
 
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
@@ -744,6 +751,7 @@ class ManageWindow(QWidget):
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self):
+        self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait()
         self.ref_progress_bar.setVisible(False)

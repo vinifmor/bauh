@@ -33,13 +33,18 @@ context = ApplicationContext(i18n=i18n,
                              cache_factory=cache_factory,
                              disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache),
                              logger=logger)
+user_config = config.read()
 
 app = QApplication(sys.argv)
 app.setApplicationName(__app_name__)
 app.setApplicationVersion(__version__)
 app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-user_config = config.read()
+if user_config.style:
+    app.setStyle(user_config.style)
+else:
+    if app.style().objectName().lower() not in {'fusion', 'breeze'}:
+        app.setStyle('fusion')
 
 if not user_config.gems:
     managers = gems.load_managers(context=context, locale=args.locale)
