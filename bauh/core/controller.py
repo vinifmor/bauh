@@ -244,8 +244,6 @@ class GenericSoftwareManager(SoftwareManager):
                         warnings = []
 
                     warnings.extend(man_warnings)
-        else:
-            warnings.append(self.i18n['warning.no_managers'])
 
         return warnings
 

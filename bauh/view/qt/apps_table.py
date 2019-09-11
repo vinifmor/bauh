@@ -354,8 +354,8 @@ class AppsTable(QTableWidget):
             publisher = publisher.strip()
             full_publisher = publisher
 
-            if len(publisher) > 10:
-                publisher = full_publisher[0:10] + '...'
+            if len(publisher) > 20:
+                publisher = full_publisher[0:20] + '...'
 
         if not publisher:
             if not pkg.model.installed:

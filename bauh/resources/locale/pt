@@ -88,7 +88,6 @@ bt.app_not_upgrade=Não atualizar
 manage_window.upgrade_all.popup.title=Atualizar
 manage_window.upgrade_all.popup.body=Atualizar todos os aplicativos selecionados ?
 manage_window.settings.about=Sobre
-warning.no_managers=Não há nenhuma extensão instalada. Não será possível instalar e gerenciar aplicações.
 confirmation=confirmação
 and=e
 error=erro

@@ -16,14 +16,15 @@ from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
 class GemSelectorPanel(QWidget):
 
-    def __init__(self, managers: List[SoftwareManager], i18n: dict, managers_set: List[str], exit_on_close: bool = True):
+    def __init__(self, managers: List[SoftwareManager], i18n: dict, managers_set: List[str], show_panel_after_restart: bool = False):
         super(GemSelectorPanel, self).__init__()
         self.managers = managers
         self.setLayout(QGridLayout())
         self.setWindowIcon(QIcon(resource.get_path('img/logo.svg', ROOT_DIR)))
         self.setWindowTitle(i18n['welcome'].capitalize() if not managers_set else i18n['gem_selector.title'])
         self.resize(400, 400)
-        self.exit_on_close = exit_on_close
+        self.exit_on_close = not managers_set
+        self.show_panel_after_restart = show_panel_after_restart
 
         self.label_question = QLabel(i18n['gem_selector.question'])
         self.label_question.setStyleSheet('QLabel { font-weight: bold}')
@@ -74,7 +75,13 @@ class GemSelectorPanel(QWidget):
     def save(self):
         config = Configuration(gems=[o.value for o in self.gem_select_model.values])
         save(config)
-        subprocess.Popen([sys.executable, *sys.argv])
+
+        restart_cmd = [sys.executable, *sys.argv]
+
+        if self.show_panel_after_restart:
+            restart_cmd.append('--show-panel')
+
+        subprocess.Popen(restart_cmd)
         QCoreApplication.exit()
 
     def exit(self):

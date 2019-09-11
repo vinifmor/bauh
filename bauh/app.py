@@ -48,7 +48,7 @@ else:
 
 enabled_managers = [m for m in managers if m.is_enabled()]
 
-if not user_config.gems and enabled_managers:
+if not user_config.gems and enabled_managers and not args.tray:
     gem_panel = GemSelectorPanel(enabled_managers, i18n, managers_set=None)
     gem_panel.show()
 else:
@@ -67,13 +67,17 @@ else:
                                  context=context)
 
     if args.tray:
-        trayIcon = TrayIcon(locale_keys=i18n,
-                            manager=manager,
-                            manage_window=manage_window,
-                            check_interval=args.check_interval,
-                            update_notification=bool(args.update_notification))
-        manage_window.tray_icon = trayIcon
-        trayIcon.show()
+        tray_icon = TrayIcon(locale_keys=i18n,
+                             manager=manager,
+                             manage_window=manage_window,
+                             check_interval=args.check_interval,
+                             update_notification=bool(args.update_notification),
+                             config=user_config)
+        manage_window.tray_icon = tray_icon
+        tray_icon.show()
+
+        if args.show_panel:
+            tray_icon.show_manage_window()
     else:
         manage_window.refresh_apps()
         manage_window.show()

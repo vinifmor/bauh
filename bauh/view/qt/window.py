@@ -901,10 +901,12 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def _show_gems_selector(self):
+    def show_gems_selector(self):
         managers = gems.load_managers(context=self.context, locale=None)
         enabled_managers = [m for m in managers if m.is_enabled()]
-        gem_panel = GemSelectorPanel(managers=enabled_managers, i18n=self.i18n, managers_set=self.config.gems, exit_on_close=False)
+        gem_panel = GemSelectorPanel(managers=enabled_managers, i18n=self.i18n,
+                                     managers_set=self.config.gems,
+                                     show_panel_after_restart=bool(self.tray_icon))
         gem_panel.show()
 
     def _show_settings_menu(self):
@@ -913,7 +915,7 @@ class ManageWindow(QWidget):
         action_gems = QAction(self.i18n['manage_window.settings.gems'])
         action_gems.setIcon(self.icon_app)
 
-        action_gems.triggered.connect(self._show_gems_selector)
+        action_gems.triggered.connect(self.show_gems_selector)
         menu_row.addAction(action_gems)
 
         action_about = QAction(self.i18n['manage_window.settings.about'])
