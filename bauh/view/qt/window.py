@@ -15,7 +15,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.core import gems
 from bauh.core.config import Configuration
 from bauh.util import util, resource
-from bauh.view.qt import dialog, commons
+from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
@@ -248,7 +248,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar_bottom)
 
-        self.centralize()
+        qt_utils.centralize(self)
 
         self.filter_only_apps = True
         self.type_filter = self.any_type_filter
@@ -539,13 +539,6 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def centralize(self):
-        geo = self.frameGeometry()
-        screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
-        center_point = QApplication.desktop().screenGeometry(screen).center()
-        geo.moveCenter(center_point)
-        self.move(geo.topLeft())
-
     def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
         return {
             'only_apps': self.filter_only_apps,
@@ -668,7 +661,7 @@ class ManageWindow(QWidget):
             if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
                 self.adjustSize()
 
-        self.centralize()
+        qt_utils.centralize(self)
 
     def update_selected(self):
         if self.pkgs:

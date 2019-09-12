@@ -12,6 +12,7 @@ from bauh.api.abstract.view import MultipleSelectComponent, InputOption
 from bauh.commons import resource, system
 from bauh.core.config import Configuration, save
 from bauh.util import util
+from bauh.view.qt import qt_utils
 from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
 
@@ -68,6 +69,7 @@ class GemSelectorPanel(QWidget):
 
         self.adjustSize()
         self.setFixedSize(self.size())
+        qt_utils.centralize(self)
 
     def check_state(self, model: CheckboxQt, checked: bool):
         if self.isVisible():
