@@ -26,10 +26,10 @@ def show_message(title: str, body: str, type_: MessageType, icon: QIcon = QIcon(
 
 
 def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIcon(resource.get_path('img/logo.svg')), widgets: List[QWidget] = None):
-    dialog_confirmation = QMessageBox()
-    dialog_confirmation.setIcon(QMessageBox.Question)
-    dialog_confirmation.setWindowTitle(title)
-    dialog_confirmation.setStyleSheet('QLabel { margin-right: 25px; }')
+    diag = QMessageBox()
+    diag.setIcon(QMessageBox.Question)
+    diag.setWindowTitle(title)
+    diag.setStyleSheet('QLabel { margin-right: 25px; }')
 
     wbody = QWidget()
     wbody.setLayout(QHBoxLayout())
@@ -39,14 +39,17 @@ def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIc
         for w in widgets:
             wbody.layout().addWidget(w)
 
-    dialog_confirmation.layout().addWidget(wbody, 0, 1)
+    diag.layout().addWidget(wbody, 0, 1)
 
-    bt_yes = dialog_confirmation.addButton(locale_keys['popup.button.yes'], QMessageBox.YesRole)
-    dialog_confirmation.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
+    bt_yes = diag.addButton(locale_keys['popup.button.yes'], QMessageBox.YesRole)
+    bt_yes.setStyleSheet('background: green; color: white; font-weight: bold')
+
+    bt_no = diag.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
+    bt_no.setStyleSheet('background: red; color: white; font-weight: bold')
 
     if icon:
-        dialog_confirmation.setWindowIcon(icon)
+        diag.setWindowIcon(icon)
 
-    dialog_confirmation.exec_()
+    diag.exec_()
 
-    return dialog_confirmation.clickedButton() == bt_yes
+    return diag.clickedButton() == bt_yes

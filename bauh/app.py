@@ -78,7 +78,7 @@ else:
                              check_interval=args.check_interval,
                              update_notification=bool(args.update_notification),
                              config=user_config)
-        manage_window.tray_icon = tray_icon
+        manage_window.set_tray_icon(tray_icon)
         tray_icon.show()
 
         if args.show_panel:

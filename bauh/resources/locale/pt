@@ -112,3 +112,5 @@ change=alterar
 exit=sair
 manage_window.settings.gems=Tipos de aplicativos
 style=estilo
+style.change.title=Mudança de estilo
+style.change.question=Para alterar o estilo atual é necessário reiniciar o {}. Continuar ?

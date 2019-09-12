@@ -13,7 +13,10 @@ class ConfirmationDialog(QMessageBox):
         self.setWindowTitle(title)
         self.setStyleSheet('QLabel { margin-right: 25px; }')
         self.bt_yes = self.addButton(locale_keys['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)
-        self.addButton(locale_keys['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
+        self.bt_yes.setStyleSheet('background: green; color: white; font-weight: bold')
+
+        bt_no = self.addButton(locale_keys['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
+        bt_no.setStyleSheet('background: red; color: white; font-weight: bold')
 
         if body:
             if not components:

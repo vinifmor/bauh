@@ -112,3 +112,5 @@ change=cambiar
 exit=salir
 manage_window.settings.gems=Tipos de aplicativos
 style=estilo
+style.change.title=Cambio de estilo
+style.change.question=Para cambiar el estilo actual es necesario reiniciar {}. ¿Proceder?

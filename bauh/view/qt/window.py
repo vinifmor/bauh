@@ -239,9 +239,9 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(new_spacer())
 
-        combo_styles = StylesComboBox(self, i18n)
-        combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
-        self.ref_combo_styles = self.toolbar_bottom.addWidget(combo_styles)
+        self.combo_styles = StylesComboBox(parent=self, i18n=i18n, show_panel_after_restart=bool(tray_icon))
+        self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
+        self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
         bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=self._show_settings_menu, background='#12ABAB')
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
@@ -260,6 +260,10 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, locale_keys=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+
+    def set_tray_icon(self, tray_icon):
+        self.tray_icon = tray_icon
+        self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
         self.progress_bar.setTextVisible(True)

@@ -110,3 +110,5 @@ change=change
 exit=exit
 manage_window.settings.gems=Application types
 style=style
+style.change.title=Style change
+style.change.question=To change the current style is necessary to restart {}. Proceed ?

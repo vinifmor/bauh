@@ -9,8 +9,9 @@ from PyQt5.QtWidgets import QWidget, QLabel, QGridLayout, QPushButton
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
-from bauh.commons import resource
+from bauh.commons import resource, system
 from bauh.core.config import Configuration, save
+from bauh.util import util
 from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
 
@@ -76,13 +77,7 @@ class GemSelectorPanel(QWidget):
         config = Configuration(gems=[o.value for o in self.gem_select_model.values])
         save(config)
 
-        restart_cmd = [sys.executable, *sys.argv]
-
-        if self.show_panel_after_restart:
-            restart_cmd.append('--show-panel')
-
-        subprocess.Popen(restart_cmd)
-        QCoreApplication.exit()
+        util.restart_app(self.show_panel_after_restart)
 
     def exit(self):
         if self.exit_on_close:
