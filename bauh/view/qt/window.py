@@ -308,16 +308,21 @@ class ManageWindow(QWidget):
         return action
 
     def _ask_confirmation(self, msg: dict):
+        self.thread_animate_progress.pause()
         diag = ConfirmationDialog(title=msg['title'],
                                   body=msg['body'],
                                   locale_keys=self.i18n,
                                   components=msg['components'],
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'])
-        self.signal_user_res.emit(diag.is_confirmed())
+        res = diag.is_confirmed()
+        self.thread_animate_progress.animate()
+        self.signal_user_res.emit(res)
 
     def _show_message(self, msg: dict):
+        self.thread_animate_progress.pause()
         dialog.show_message(title=msg['title'], body=msg['body'], type_=msg['type'])
+        self.thread_animate_progress.animate()
 
     def _show_warnings(self, warnings: List[str]):
         if warnings:

@@ -278,6 +278,7 @@ class AnimateProgress(QThread):
         self.sleep = 0.05
         self.last_progress = 0
         self.manual = False
+        self.paused = False
 
     def _reset(self):
         self.progress_value = 0
@@ -287,34 +288,44 @@ class AnimateProgress(QThread):
         self.sleep = 0.05
         self.last_progress = 0
         self.manual = False
+        self.paused = False
 
     def set_progress(self, val: int):
         if 0 <= val <= 100:
             self.limit = val
             self.manual = True
             self.increment = 0.5
+            self.paused = False
+
+    def pause(self):
+        self.paused = True
+
+    def animate(self):
+        self.paused = False
 
     def run(self):
 
         current_increment = self.increment
 
         while not self.stop:
-            if self.progress_value != self.last_progress:
-                self.signal_change.emit(self.progress_value)
-                self.last_progress = self.progress_value
+            if not self.paused:
+                if self.progress_value != self.last_progress:
+                    self.signal_change.emit(self.progress_value)
+                    self.last_progress = self.progress_value
 
-            if not self.manual:
-                if self.progress_value >= self.limit:
-                    current_increment = -self.increment
-                elif self.progress_value <= 0:
-                    current_increment = self.increment
-            else:
-                if self.progress_value >= self.limit:
-                    current_increment = 0
+                if not self.manual:
+                    if self.progress_value >= self.limit:
+                        current_increment = -self.increment
+                    elif self.progress_value <= 0:
+                        current_increment = self.increment
                 else:
-                    current_increment = self.increment
+                    if self.progress_value >= self.limit:
+                        current_increment = 0
+                    else:
+                        current_increment = self.increment
 
-            self.progress_value += current_increment
+                self.progress_value += current_increment
+
             time.sleep(self.sleep)
 
         self.signal_change.emit(100)
