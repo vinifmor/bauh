@@ -228,9 +228,6 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.setIconSize(QSize(16, 16))
         self.toolbar_bottom.setStyleSheet('QToolBar { spacing: 3px }')
 
-        self.label_updates = QLabel()
-        self.ref_label_updates = self.toolbar_bottom.addWidget(self.label_updates)
-
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
@@ -511,13 +508,6 @@ class ManageWindow(QWidget):
         self.update_bt_upgrade(pkgs_info)
 
         if pkgs_info['updates'] > 0:
-            self.label_updates.setPixmap(QPixmap(resource.get_path('img/exclamation.svg')).scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            self.label_updates.setToolTip('{}: {} ( {} {} | {} {} )'.format(self.i18n['manage_window.label.updates'],
-                                                                            pkgs_info['updates'],
-                                                                            pkgs_info['app_updates'],
-                                                                            self.i18n['manage_window.checkbox.only_apps'].lower(),
-                                                                            pkgs_info['napp_updates'],
-                                                                            self.i18n['others'].lower()))
 
             if pkgs_info['not_installed'] == 0:
                 if not self.ref_checkbox_updates.isVisible():
@@ -532,7 +522,6 @@ class ManageWindow(QWidget):
             self._change_checkbox(self.checkbox_updates, False, 'filter_updates', trigger_filters)
 
             self.ref_checkbox_updates.setVisible(False)
-            self.label_updates.setPixmap(QPixmap())
 
     def _change_checkbox(self, checkbox: QCheckBox, checked: bool, attr: str = None, trigger: bool = True):
         if not trigger:
@@ -724,7 +713,6 @@ class ManageWindow(QWidget):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_bt_settings.setVisible(False)
-        self.ref_label_updates.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
@@ -763,7 +751,6 @@ class ManageWindow(QWidget):
         self._change_label_substatus('')
         self.ref_bt_settings.setVisible(True)
 
-        self.ref_label_updates.setVisible(True)
         self.ref_bt_refresh.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
         self.table_apps.setEnabled(True)
