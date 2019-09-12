@@ -44,7 +44,7 @@ if user_config.style:
     app.setStyle(user_config.style)
 else:
     if app.style().objectName().lower() not in {'fusion', 'breeze'}:
-        app.setStyle('fusion')
+        app.setStyle('Fusion')
 
 if not user_config.gems:
     managers = gems.load_managers(context=context, locale=args.locale)

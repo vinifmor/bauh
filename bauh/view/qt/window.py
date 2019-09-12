@@ -653,7 +653,7 @@ class ManageWindow(QWidget):
         if self.pkgs:
             new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
 
-            if self.ref_bt_upgrade.isVisible():
+            if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
                 new_width *= 1.07
         else:
             new_width = self.toolbar_top.width()
