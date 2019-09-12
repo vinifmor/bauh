@@ -12,14 +12,17 @@ RE_CLEAN_NAME = re.compile(r'^(\w+)-?|_?.+')
 
 
 def write(app: ArchPackage):
-    Path(app.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+    data = app.get_data_to_cache()
 
-    with open(app.get_disk_data_path(), 'w+') as f:
-        f.write(json.dumps(app.get_data_to_cache()))
+    if data:
+        Path(app.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+
+        with open(app.get_disk_data_path(), 'w+') as f:
+            f.write(json.dumps(data))
 
 
 def fill_icon_path(app: ArchPackage, icon_paths: List[str], only_exact_match: bool):
-    ends_with = re.compile(r'.+/{}\.(png|svg)$'.format(app.name), re.IGNORECASE)
+    ends_with = re.compile(r'.+/{}\.(png|svg)$'.format(app.icon_path if app.icon_path else app.name), re.IGNORECASE)
 
     for path in icon_paths:
         if ends_with.match(path):
@@ -30,11 +33,11 @@ def fill_icon_path(app: ArchPackage, icon_paths: List[str], only_exact_match: bo
         pkg_icons_path = pacman.list_icon_paths({app.name})
 
         if pkg_icons_path:
-            app.icon_path = pkg_icons_path[0]
+            app.set_icon(pkg_icons_path)
 
 
 def set_icon_path(app: ArchPackage, icon_name: str = None):
-    installed_icons = pacman.list_icon_paths(app.name)
+    installed_icons = pacman.list_icon_paths({app.name})
 
     if installed_icons:
         exact_match = re.compile(r'.+/{}\..+$'.format(icon_name.split('.')[0] if icon_name else app.name))
@@ -60,11 +63,16 @@ def save(pkgname: str, mirror: str):
         with open(to_parse) as f:
             desktop_entry = f.read()
 
+        icons_found = []
+
         for field in RE_DESKTOP_ENTRY.findall(desktop_entry):
             if field[0] == 'Exec':
                 app.command = field[1].strip()
             elif field[0] == 'Icon':
-                app.icon_path = field[1].strip()
+                icons_found.append(field[1].strip())
+
+        if icons_found:
+            app.set_icon(icons_found)
 
         if app.icon_path and '/' not in app.icon_path:  # if the icon full path is not defined
             set_icon_path(app, app.icon_path)
@@ -80,10 +88,7 @@ def save(pkgname: str, mirror: str):
 
         set_icon_path(app)
 
-    Path(app.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
-
-    with open(app.get_disk_data_path(), 'w+') as f:
-        f.write(json.dumps(app.get_data_to_cache()))
+    write(app)
 
 
 def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int:
@@ -105,7 +110,6 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
 
             if pkg not in desktop_matches:
                 no_exact_match.add(pkg)
-
         if no_exact_match:  # check every not matched app individually
             for pkg in no_exact_match:
                 entries = pacman.list_desktop_entries({pkg})
@@ -117,6 +121,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
                         for e in entries:
                             if e.startswith('/usr/share/applications'):
                                 desktop_matches[pkg] = e
+                                break
 
         if not desktop_matches:
             no_desktop_files = to_cache
@@ -146,7 +151,6 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
 
             if apps_icons_noabspath:
                 icon_paths = pacman.list_icon_paths({app.name for app in apps_icons_noabspath})
-
                 if icon_paths:
                     for p in apps_icons_noabspath:
                         fill_icon_path(p, icon_paths, False)

@@ -1,4 +1,5 @@
 import datetime
+from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.constants import CACHE_PATH
@@ -81,8 +82,6 @@ class ArchPackage(SoftwarePackage):
 
             if val:
                 cache[a] = val
-            else:
-                return None
 
         if self.desktop_entry:
             cache['desktop_entry'] = self.desktop_entry
@@ -108,3 +107,20 @@ class ArchPackage(SoftwarePackage):
 
     def get_publisher(self):
         return self.maintainer
+
+    def set_icon(self, paths: List[str]):
+        self.icon_path = paths[0]
+
+        if len(paths) > 1:
+            for path in paths:
+                if '/' in path:
+                    self.icon_path = path
+                    break
+
+        self.icon_url = self.icon_path
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return '{} (name={}, command={}, icon_path={})'.format(self.__class__.__name__, self.name, self.command, self.icon_path)

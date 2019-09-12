@@ -42,10 +42,8 @@ def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIc
     diag.layout().addWidget(wbody, 0, 1)
 
     bt_yes = diag.addButton(locale_keys['popup.button.yes'], QMessageBox.YesRole)
-    bt_yes.setStyleSheet('background: green; color: white; font-weight: bold')
 
-    bt_no = diag.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
-    bt_no.setStyleSheet('background: red; color: white; font-weight: bold')
+    diag.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
 
     if icon:
         diag.setWindowIcon(icon)

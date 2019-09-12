@@ -99,10 +99,10 @@ def install_as_process(pkgpath: str, root_password: str, aur: bool, pkgdir: str 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
     if pkgnames:
-        installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames]).stdout
+        installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
         desktop_files = []
-        for out in new_subprocess(['grep', '-E', '.desktop'], stdin=installed_files).stdout:
+        for out in new_subprocess(['grep', '-E', '.desktop'], stdin=installed_files.stdout).stdout:
             if out:
                 desktop_files.append(out.decode().strip())
 
@@ -110,22 +110,26 @@ def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
 
 
 def list_icon_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames]).stdout
+    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
     icon_files = []
-    for out in new_subprocess(['grep', '-E', '.(png|svg|jpeg)'], stdin=installed_files).stdout:
+    for out in new_subprocess(['grep', '-E', '.(png|svg)'], stdin=installed_files.stdout).stdout:
         if out:
-            icon_files.append(out.decode().strip())
+            line = out.decode().strip()
+            if line:
+                icon_files.append(line)
 
     return icon_files
 
 
 def list_bin_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames]).stdout
+    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
     bin_paths = []
-    for out in new_subprocess(['grep', '-E', '^/usr/bin/.+'], stdin=installed_files).stdout:
+    for out in new_subprocess(['grep', '-E', '^/usr/bin/.+'], stdin=installed_files.stdout).stdout:
         if out:
-            bin_paths.append(out.decode().strip())
+            line = out.decode().strip()
+            if line:
+                bin_paths.append(line)
 
     return bin_paths

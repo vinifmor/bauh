@@ -8,18 +8,21 @@ RE_DEPS_PATTERN = re.compile(r'\n?\s+->\s(.+)\n')
 
 
 def check_missing_deps(pkgdir: str, watcher: ProcessWatcher) -> List[str]:
-    depcheck = new_subprocess(['makepkg', '--check'], cwd=pkgdir)
+    depcheck = new_subprocess(['makepkg', '-L', '--check'], cwd=pkgdir)
 
     for o in depcheck.stdout:
         if o:
-            watcher.print(o.decode())
+            line = o.decode().strip()
+
+            if line:
+                watcher.print(line)
 
     error_lines = []
     for s in depcheck.stderr:
         if s:
-            line = s.decode()
-            print(line)
-            error_lines.append(line)
+            line = s.decode().strip()
+            if line:
+                error_lines.append(line)
 
     if error_lines:
         error_str = ''.join(error_lines)
