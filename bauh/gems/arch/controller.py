@@ -428,7 +428,7 @@ class ArchManager(SoftwareManager):
         self._update_progress(handler.watcher, 70, change_progress)
         if check_install_output and 'conflict' in check_install_output[-1]:
             conflicting_apps = [w[0] for w in re.findall(r'((\w|\-|\.)+)\s(and|are)', check_install_output[-1])]
-            conflict_msg = ' {} '.format(self.i18n['and']).join(conflicting_apps)
+            conflict_msg = ' {} '.format(self.i18n['and']).join([bold(c) for c in conflicting_apps])
             if not handler.watcher.request_confirmation(title=self.i18n['arch.install.conflict.popup.title'],
                                                         body=self.i18n['arch.install.conflict.popup.body'].format(conflict_msg)):
                 handler.watcher.print(self.i18n['action.cancelled'])

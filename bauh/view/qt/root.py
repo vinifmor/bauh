@@ -2,9 +2,12 @@ import io
 import os
 import subprocess
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
-from bauh.api.abstract.view import MessageType
 
+from bauh import ROOT_DIR
+from bauh.api.abstract.view import MessageType
+from bauh.commons import resource
 from bauh.view.qt.dialog import show_message
 
 
@@ -14,24 +17,25 @@ def is_root():
 
 def ask_root_password(locale_keys: dict):
 
-    dialog_pwd = QInputDialog()
-    dialog_pwd.setInputMode(QInputDialog.TextInput)
-    dialog_pwd.setTextEchoMode(QLineEdit.Password)
-    dialog_pwd.setWindowTitle(locale_keys['popup.root.title'])
-    dialog_pwd.setLabelText(locale_keys['popup.root.password'] + ':')
-    dialog_pwd.setCancelButtonText(locale_keys['popup.button.cancel'])
-    dialog_pwd.resize(400, 200)
+    diag = QInputDialog()
+    diag.setInputMode(QInputDialog.TextInput)
+    diag.setTextEchoMode(QLineEdit.Password)
+    diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg', ROOT_DIR)))
+    diag.setWindowTitle(locale_keys['popup.root.title'])
+    diag.setLabelText(locale_keys['popup.root.password'] + ':')
+    diag.setCancelButtonText(locale_keys['popup.button.cancel'])
+    diag.resize(400, 200)
 
-    ok = dialog_pwd.exec_()
+    ok = diag.exec_()
 
     if ok:
-        if not validate_password(dialog_pwd.textValue()):
+        if not validate_password(diag.textValue()):
             show_message(title=locale_keys['popup.root.bad_password.title'],
                          body=locale_keys['popup.root.bad_password.body'],
                          type_=MessageType.ERROR)
             ok = False
 
-    return dialog_pwd.textValue(), ok
+    return diag.textValue(), ok
 
 
 def validate_password(password: str) -> bool:
