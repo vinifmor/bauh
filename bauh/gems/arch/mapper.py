@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
 
@@ -46,6 +47,7 @@ class ArchDataMapper:
     def map_api_data(self, apidata: dict, installed: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name'))
         app = ArchPackage(name=apidata.get('Name'), installed=bool(data), mirror='aur')
+        app.status = PackageStatus.LOADING_DATA
 
         if data:
             app.version = data.get('version')

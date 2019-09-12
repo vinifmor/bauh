@@ -9,7 +9,7 @@ from typing import List, Set, Type
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion
+from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess
 
@@ -104,6 +104,7 @@ class ArchManager(SoftwareManager):
                 app.downgrade_enabled = downgrade_enabled
                 if disk_loader:
                     disk_loader.fill(app)
+                    app.status = PackageStatus.READY
 
                 apps.append(app)
 
