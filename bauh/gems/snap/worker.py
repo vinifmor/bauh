@@ -5,7 +5,6 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageStatus
-
 from bauh.gems.snap import snap
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication

@@ -6,7 +6,6 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion
 from bauh.commons.system import SystemProcess, ProcessHandler
-
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
@@ -29,7 +28,7 @@ class SnapManager(SoftwareManager):
                               name=app_json.get('name'),
                               version=app_json.get('version'),
                               latest_version=app_json.get('version'),
-                              description=app_json.get('description'))
+                              description=app_json.get('description', app_json.get('summary')))
 
         if app.publisher:
             app.publisher = app.publisher.replace('*', '')

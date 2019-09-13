@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.0]
 ### Improvements:
+- Reading installed snaps now takes around 95% less time.
 
 ### Fixes:
 

@@ -46,7 +46,7 @@ class SnapApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self):
-        return not self.type and (self.type not in ('core', 'base', 'snapd') and not self._name_starts_with(('gtk-', 'gnome-', 'kde-', 'gtk2-')))
+        return not self.type and (self.name != 'snapd' and self.type not in ('core', 'base', 'os') and not self._name_starts_with(('gtk-', 'gnome-', 'kde-', 'gtk2-')))
 
     def _name_starts_with(self, words: tuple):
         for word in words:

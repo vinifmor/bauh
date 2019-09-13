@@ -1,8 +1,9 @@
 import re
 import subprocess
+import time
 from typing import List
 
-from bauh.commons.system import new_root_subprocess, run_cmd
+from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
 
 BASE_CMD = 'snap'
 
@@ -43,7 +44,6 @@ def app_str_to_json(app: str) -> dict:
         'notes': app_data[5] if len(app_data) >= 6 else None
     }
 
-    app_json.update(get_info(app_json['name'], ('summary', 'type', 'description')))
     return app_json
 
 
@@ -82,6 +82,19 @@ def read_installed() -> List[dict]:
             for idx, app_str in enumerate(lines):
                 if idx > 0 and app_str:
                     apps.append(app_str_to_json(app_str))
+
+            info_out = new_subprocess(['cat', *['/var/lib/snapd/snap/{}/current/meta/snap.yaml'.format(a['name']) for a in apps]]).stdout
+
+            idx = -1
+            for o in new_subprocess(['grep', '-E', '(summary|type)', '--colour=never'], stdin=info_out).stdout:
+                if o:
+                    line = o.decode()
+
+                    if line.startswith('summary:'):
+                        idx += 1
+                        apps[idx]['summary'] = line.split(':')[1].strip()
+                    else:
+                        apps[idx]['type'] = line.split(':')[1].strip()
 
     return apps
 
