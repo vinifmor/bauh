@@ -66,4 +66,4 @@ class FlatpakApplication(SoftwarePackage):
         return self.installed and not self.runtime
 
     def get_publisher(self):
-        return 'Flathub'
+        return self.origin

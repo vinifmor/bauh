@@ -64,7 +64,7 @@ class ArchPackage(SoftwarePackage):
         return resource.get_path('img/arch.png', ROOT_DIR)  # TODO change icon when from mirrors
 
     def is_application(self):
-        return True
+        return self.can_be_run()
 
     def supports_disk_cache(self):
         return True
