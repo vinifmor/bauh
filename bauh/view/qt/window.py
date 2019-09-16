@@ -231,6 +231,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumHeight(7)
         self.progress_bar.setTextVisible(False)
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
@@ -263,7 +264,7 @@ class ManageWindow(QWidget):
         self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
-        self.progress_bar.setTextVisible(True)
+        # self.progress_bar.setTextVisible(True)
         self.thread_animate_progress.set_progress(val)
 
     def apply_filters_async(self):

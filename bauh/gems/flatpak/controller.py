@@ -1,4 +1,5 @@
 from datetime import datetime
+from threading import Thread
 from typing import List, Set, Type
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
@@ -8,7 +9,6 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html
 from bauh.commons.system import SystemProcess, ProcessHandler
-
 from bauh.gems.flatpak import flatpak, suggestions
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
@@ -27,25 +27,14 @@ class FlatpakManager(SoftwareManager):
 
     def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader) -> FlatpakApplication:
 
-        app = FlatpakApplication(arch=app_json.get('arch'),
-                                 branch=app_json.get('branch'),
-                                 origin=app_json.get('origin'),
-                                 runtime=app_json.get('runtime'),
-                                 ref=app_json.get('ref'),
-                                 commit=app_json.get('commit'),
-                                 id=app_json.get('id'),
-                                 name=app_json.get('name'),
-                                 version=app_json.get('version'),
-                                 latest_version=app_json.get('latest_version'))
-
+        app = FlatpakApplication(**app_json)
         app.installed = installed
-
         api_data = self.api_cache.get(app_json['id'])
 
         expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
 
         if not api_data or expired_data:
-            if not app_json['runtime']:
+            if not app.runtime:
                 if disk_loader:
                     disk_loader.fill(app)  # preloading cached disk data
                 FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
@@ -79,22 +68,32 @@ class FlatpakManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
+    def _add_updates(self, version: str, output: list):
+        output.append(flatpak.list_updates_as_str(version))
+
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
-        installed = flatpak.list_installed()
+        version = flatpak.get_version()
+
+        updates = []
+        thread_updates = Thread(target=self._add_updates, args=(version, updates))
+        thread_updates.start()
+
+        installed = flatpak.list_installed(version)
         models = []
 
         if installed:
-
-            available_updates = flatpak.list_updates_as_str()
+            thread_updates.join()
 
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True, disk_loader=disk_loader)
-                model.update = app_json['id'] in available_updates
+                model.update = app_json['ref'] in updates[0]
                 models.append(model)
 
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
+
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
         commits = flatpak.get_app_commits(pkg.ref, pkg.origin)
@@ -127,10 +126,11 @@ class FlatpakManager(SoftwareManager):
         app_info = flatpak.get_app_info_fields(app.id, app.branch)
         app_info['name'] = app.name
         app_info['type'] = 'runtime' if app.runtime else 'app'
-        app_info['description'] = strip_html(app.description)
+        app_info['description'] = strip_html(app.description) if app.description else ''
         return app_info
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin)
         status_idx = 0
 
@@ -154,32 +154,25 @@ class FlatpakManager(SoftwareManager):
         pass
 
     def list_updates(self) -> List[PackageUpdate]:
+        to_update = [app for app in self.read_installed(None).installed if app.update]
         updates = []
-        installed = flatpak.list_installed(extra_fields=False)
 
-        if installed:
-            available_updates = flatpak.list_updates_as_str()
+        if to_update:
+                loaders = []
 
-            if available_updates:
-                loaders = None
-
-                for app_json in installed:
-                    if app_json['id'] in available_updates:
-                        loader = FlatpakUpdateLoader(app=app_json, http_client=self.context.http_client)
+                for app in to_update:
+                    if app.is_application():
+                        loader = FlatpakUpdateLoader(app=app, http_client=self.context.http_client)
                         loader.start()
-
-                        if loaders is None:
-                            loaders = []
-
                         loaders.append(loader)
 
-                if loaders:
-                    for loader in loaders:
-                        loader.join()
-                        app = loader.app
-                        updates.append(PackageUpdate(pkg_id='{}:{}'.format(app['id'], app['branch']),
-                                                     pkg_type='flatpak',
-                                                     version=app.get('version')))
+                for loader in loaders:
+                    loader.join()
+
+                for app in to_update:
+                    updates.append(PackageUpdate(pkg_id='{}:{}'.format(app.id, app.branch),
+                                                 pkg_type='flatpak',
+                                                 version=app.version))
 
         return updates
 

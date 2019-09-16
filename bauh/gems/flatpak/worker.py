@@ -43,7 +43,7 @@ class FlatpakAsyncDataLoader(Thread):
                     self.app.icon_url = data.get('iconMobileUrl', None)
                     self.app.latest_version = data.get('currentReleaseVersion', self.app.version)
 
-                    if not self.app.version and self.app.latest_version:
+                    if self.app.latest_version and (not self.app.version or not self.app.update):
                         self.app.version = self.app.latest_version
 
                     if not self.app.installed and self.app.latest_version:
@@ -73,24 +73,17 @@ class FlatpakAsyncDataLoader(Thread):
 
 class FlatpakUpdateLoader(Thread):
 
-    def __init__(self, app: dict, http_client: HttpClient):
+    def __init__(self, app: FlatpakApplication, http_client: HttpClient):
         super(FlatpakUpdateLoader, self).__init__(daemon=True)
         self.app = app
         self.http_client = http_client
 
     def run(self):
+        try:
+            data = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, self.app.id))
 
-        if self.app.get('ref') is None:
-            self.app.update(flatpak.get_app_info_fields(self.app['id'], self.app['branch'], fields=['ref'], check_runtime=True))
-        else:
-            self.app['runtime'] = self.app['ref'].startswith('runtime/')
-
-        if not self.app['runtime']:
-
-            try:
-                data = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, self.app['id']))
-
-                if data and data.get('currentReleaseVersion'):
-                    self.app['version'] = data['currentReleaseVersion']
-            except:
-                traceback.print_exc()
+            if data and data.get('currentReleaseVersion'):
+                self.app.version = data['currentReleaseVersion']
+                self.app.latest_version = self.app.version
+        except:
+            traceback.print_exc()

@@ -85,7 +85,7 @@ class UpdateSelectedApps(AsyncAction):
         if self.apps_to_update:
             updated, updated_types = 0, set()
             for app in self.apps_to_update:
-                self.change_status('{} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.name))
+                self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.name, app.model.version))
                 success = bool(self.manager.update(app.model, self.root_password, self))
 
                 if not success:
@@ -405,7 +405,7 @@ class RunApp(AsyncAction):
 
         if self.app:
             try:
-                time.sleep(0.5)
+                time.sleep(0.25)
                 subprocess.Popen(self.app.model.get_command().split(' '))
                 self.notify_finished(True)
             except:

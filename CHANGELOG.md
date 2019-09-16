@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.0]
 ### Improvements:
-- Reading installed snaps now takes around 95% less time.
+- Reading installed Snaps now takes around 95% less time.
+- Reading installed Flatpaks now takes around 45% less time.
 
 ### Fixes:
+- cached Flatpak app current version
 
 ## [0.5.1] - 2019-08-12
 ### Improvements:

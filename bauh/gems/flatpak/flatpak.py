@@ -1,49 +1,12 @@
 import re
 import subprocess
+from io import StringIO
 from typing import List
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess
 
 BASE_CMD = 'flatpak'
-
-
-def app_str_to_json(line: str, version: str, extra_fields: bool = True) -> dict:
-
-    app_array = line.split('\t')
-
-    if version >= '1.3.0':
-        app = {'name': app_array[0],
-               'id': app_array[1],
-               'version': app_array[2],
-               'branch': app_array[3]}
-
-    elif '1.0' <= version < '1.1':
-
-        ref_data = app_array[0].split('/')
-
-        app = {'id': ref_data[0],
-               'arch': ref_data[1],
-               'name': ref_data[0].split('.')[-1],
-               'ref': app_array[0],
-               'options': app_array[1],
-               'branch': ref_data[2],
-               'version': None}
-    elif '1.2' <= version < '1.3':
-        app = {'id': app_array[1],
-               'name': app_array[1].strip().split('.')[-1],
-               'version': app_array[2],
-               'branch': app_array[3],
-               'arch': app_array[4],
-               'origin': app_array[5]}
-    else:
-        raise Exception('Unsupported version')
-
-    if extra_fields:
-        extra_fields = get_app_info_fields(app['id'], app['branch'], ['origin', 'arch', 'ref', 'commit'], check_runtime=True)
-        app.update(extra_fields)
-
-    return app
 
 
 def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_runtime: bool = False):
@@ -85,15 +48,64 @@ def get_app_info(app_id: str, branch: str):
     return run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch))
 
 
-def list_installed(extra_fields: bool = True) -> List[dict]:
-    apps_str = run_cmd('{} list'.format(BASE_CMD))
+def get_commit(app_id: str, branch: str) -> str:
+    info = new_subprocess([BASE_CMD, 'info', app_id, branch])
 
-    if apps_str:
-        version = get_version()
-        app_lines = apps_str.split('\n')
-        return [app_str_to_json(line, version, extra_fields=extra_fields) for line in app_lines if line]
+    for o in new_subprocess(['grep', 'Commit:', '--color=never'], stdin=info.stdout).stdout:
+        if o:
+            return o.decode().split(':')[1].strip()
 
-    return []
+
+def list_installed(version: str) -> List[dict]:
+
+    apps = []
+
+    if version < '1.2':
+        app_list = new_subprocess([BASE_CMD, 'list', '-d'])
+
+        for o in app_list.stdout:
+            if o:
+                data = o.decode().strip().split('\t')
+                ref_split = data[0].split('/')
+                runtime = 'runtime' in data[5]
+
+                apps.append({
+                    'id': ref_split[0],
+                    'name': ref_split[0].split('.')[-1].capitalize(),
+                    'ref': data[0],
+                    'arch': ref_split[1],
+                    'branch': ref_split[2],
+                    'description': None,
+                    'origin': data[1],
+                    'runtime': runtime,
+                    'version': ref_split[2] if runtime else None
+                })
+
+    else:
+        app_list = new_subprocess([BASE_CMD, 'list', '--columns=application,name,ref,arch,branch,description,origin,options,version'])
+
+        for o in app_list.stdout:
+            if o:
+                data = o.decode().strip().split('\t')
+                runtime = 'runtime' in data[7]
+
+                if len(data) > 8 and data[8]:
+                    version = data[8]
+                elif runtime:
+                    version = data[4]
+                else:
+                    version = None
+
+                apps.append({'id': data[0],
+                             'name': data[1],
+                             'ref': data[2],
+                             'arch': data[3],
+                             'branch': data[4],
+                             'description': data[5],
+                             'origin': data[6],
+                             'runtime': runtime,
+                             'version': version})
+    return apps
 
 
 def update(app_ref: str):
@@ -114,8 +126,19 @@ def uninstall(app_ref: str):
     return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
 
 
-def list_updates_as_str():
-    return run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
+def list_updates_as_str(version: str):
+    if version < '1.2':
+        return run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
+    else:
+        updates = new_subprocess([BASE_CMD, 'update']).stdout
+
+        out = StringIO()
+        for o in new_subprocess(['grep', '-E', r'[0-9]+.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+', '-o', '--color=never'], stdin=updates).stdout:
+            if o:
+                out.write('/'.join(o.decode().strip().split('\t')[2:]) + '\n')
+
+        out.seek(0)
+        return out.read()
 
 
 def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
