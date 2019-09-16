@@ -7,7 +7,7 @@ desktop_file = """
 Type = Application
 Name = bauh ( tray )
 Categories = System;
-Comment = Manage your applications
+Comment = Manage your Flatpak / Snap / AUR applications
 Exec = {path}
 Icon = {lib_path}/python{version}/site-packages/bauh/resources/img/logo.svg
 """
