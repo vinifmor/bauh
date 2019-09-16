@@ -335,7 +335,7 @@ class AppsTable(QTableWidget):
             desc = '...'
 
         if desc and desc != '...':
-            desc = strip_html(desc[0:25]) + '...'
+            desc = strip_html(desc[0:40]) + '...'
 
         item.setText(desc)
 
@@ -359,9 +359,9 @@ class AppsTable(QTableWidget):
 
         if not publisher:
             if not pkg.model.installed:
-                item.setStyleSheet('QLabel { color: red; font-weight: bold}')
+                item.setStyleSheet('QLabel { color: red; }')
 
-            publisher = '({})'.format(self.i18n['publisher.unknown'])
+            publisher = self.i18n['unknown']
 
         item.setText('  {}  '.format(publisher))
 

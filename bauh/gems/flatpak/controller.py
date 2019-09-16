@@ -21,6 +21,7 @@ class FlatpakManager(SoftwareManager):
         self.i18n = context.i18n
         self.api_cache = context.cache_factory.new()
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
+        self.enabled = True
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -145,6 +146,12 @@ class FlatpakManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin)))
 
     def is_enabled(self):
+        return self.enabled
+
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled
+
+    def can_work(self) -> bool:
         return flatpak.is_installed()
 
     def requires_root(self, action: str, pkg: FlatpakApplication):

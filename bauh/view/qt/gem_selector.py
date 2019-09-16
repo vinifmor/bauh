@@ -1,57 +1,53 @@
-import subprocess
-import sys
-from typing import List
-
-from PyQt5.QtCore import Qt, QCoreApplication
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QLabel, QGridLayout, QPushButton
 
 from bauh import ROOT_DIR
-from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
-from bauh.commons import resource, system
+from bauh.commons import resource
 from bauh.core.config import Configuration, save
-from bauh.util import util
-from bauh.view.qt import qt_utils
+from bauh.core.controller import GenericSoftwareManager
+from bauh.view.qt import qt_utils, css
 from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
 
 class GemSelectorPanel(QWidget):
 
-    def __init__(self, managers: List[SoftwareManager], i18n: dict, managers_set: List[str], show_panel_after_restart: bool = False):
+    def __init__(self, window: QWidget, manager: GenericSoftwareManager, i18n: dict, config: Configuration, show_panel_after_restart: bool = False):
         super(GemSelectorPanel, self).__init__()
-        self.managers = managers
+        self.window = window
+        self.manager = manager
+        self.config = config
         self.setLayout(QGridLayout())
         self.setWindowIcon(QIcon(resource.get_path('img/logo.svg', ROOT_DIR)))
-        self.setWindowTitle(i18n['welcome'].capitalize() if not managers_set else i18n['gem_selector.title'])
+        self.setWindowTitle(i18n['gem_selector.title'])
         self.resize(400, 400)
-        self.exit_on_close = not managers_set
         self.show_panel_after_restart = show_panel_after_restart
 
         self.label_question = QLabel(i18n['gem_selector.question'])
         self.label_question.setStyleSheet('QLabel { font-weight: bold}')
         self.layout().addWidget(self.label_question, 0, 1, Qt.AlignHCenter)
 
-        self.bt_proceed = QPushButton(i18n['proceed' if not managers_set else 'change'].capitalize())
-        self.bt_proceed.setStyleSheet("""QPushButton { background: green; color: white; font-weight: bold} 
-                                         QPushButton:disabled { background-color: gray; }  
-                                      """)
+        self.bt_proceed = QPushButton(i18n['change'].capitalize())
+        self.bt_proceed.setStyleSheet(css.OK_BUTTON)
         self.bt_proceed.clicked.connect(self.save)
 
         self.bt_exit = QPushButton(i18n['exit'].capitalize())
-        self.bt_exit.setStyleSheet('QPushButton { background: red; color: white; font-weight: bold}')
         self.bt_exit.clicked.connect(self.exit)
 
+        self.gem_map = {}
         gem_options = []
 
-        for m in managers:
-            modname = m.__module__.split('.')[-2]
-            gem_options.append(InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
-                                           value=modname,
-                                           icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname)))
+        for m in manager.managers:
+            if m.can_work():
+                modname = m.__module__.split('.')[-2]
+                gem_options.append(InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
+                                               value=modname,
+                                               icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname)))
+                self.gem_map[modname] = m
 
-        if managers_set:
-            default_ops = {o for o in gem_options if o.value in managers_set}
+        if self.config.enabled_gems:
+            default_ops = {o for o in gem_options if o.value in self.config.enabled_gems}
         else:
             default_ops = set(gem_options)
 
@@ -76,14 +72,19 @@ class GemSelectorPanel(QWidget):
             self.bt_proceed.setEnabled(bool(self.gem_select_model.values))
 
     def save(self):
-        config = Configuration(gems=[o.value for o in self.gem_select_model.values])
-        save(config)
+        enabled_gems = [op.value for op in self.gem_select_model.values]
 
-        util.restart_app(self.show_panel_after_restart)
+        for module, man in self.gem_map.items():
+            enabled = module in enabled_gems
+            man.set_enabled(enabled)
+
+        self.config.enabled_gems = enabled_gems
+        save(self.config)
+
+        self.manager.reset_cache()
+        self.manager.prepare()
+        self.window.refresh_apps()
+        self.close()
 
     def exit(self):
-        if self.exit_on_close:
-            QCoreApplication.exit()
-        else:
-            self.close()
-
+        self.close()

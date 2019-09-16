@@ -16,10 +16,14 @@ class GenericSoftwareManager(SoftwareManager):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._enabled_map = {} if app_args.check_packaging_once else None
+        self._available_map = {} if app_args.check_packaging_once else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
+
+    def reset_cache(self):
+        if self._available_map is not None:
+            self._available_map = {}
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
@@ -42,21 +46,21 @@ class GenericSoftwareManager(SoftwareManager):
 
         return res
 
-    def _is_enabled(self, man: SoftwareManager):
+    def _can_work(self, man: SoftwareManager):
 
-        if self._enabled_map is not None:
-            enabled = self._enabled_map.get(man.get_managed_types())
+        if self._available_map is not None:
+            enabled = self._available_map.get(man.get_managed_types())
 
             if enabled is None:
-                enabled = man.is_enabled()
-                self._enabled_map[man.get_managed_types()] = enabled
+                enabled = man.is_enabled() and man.can_work()
+                self._available_map[man.get_managed_types()] = enabled
 
             return enabled
         else:
-            return man.is_enabled()
+            return man.is_enabled() and man.can_work()
 
     def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
-        if self._is_enabled(man):
+        if self._can_work(man):
             apps_found = man.search(words=word, disk_loader=disk_loader)
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
@@ -95,6 +99,12 @@ class GenericSoftwareManager(SoftwareManager):
             self.thread_prepare.join()
             self.thread_prepare = None
 
+    def set_enabled(self, enabled: bool):
+        pass
+
+    def can_work(self) -> bool:
+        return True
+
     def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
         self._wait_to_be_ready()
 
@@ -104,7 +114,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         if not pkg_types:  # any type
             for man in self.managers:
-                if self._is_enabled(man):
+                if self._can_work(man):
                     if not disk_loader:
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
@@ -117,7 +127,7 @@ class GenericSoftwareManager(SoftwareManager):
 
             for t in pkg_types:
                 man = self.map.get(t)
-                if man and (man not in man_already_used) and self._is_enabled(man):
+                if man and (man not in man_already_used) and self._can_work(man):
 
                     if not disk_loader:
                         disk_loader = self.disk_loader_factory.new()
@@ -185,7 +195,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def _get_manager_for(self, app: SoftwarePackage) -> SoftwareManager:
         man = self.map[app.__class__]
-        return man if man and self._is_enabled(man) else None
+        return man if man and self._can_work(man) else None
 
     def cache_to_disk(self, app: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         if self.context.disk_cache and app.supports_disk_cache():
@@ -211,7 +221,7 @@ class GenericSoftwareManager(SoftwareManager):
     def _prepare(self):
         if self.managers:
             for man in self.managers:
-                if self._is_enabled(man):
+                if self._can_work(man):
                     man.prepare()
 
     def prepare(self):
@@ -225,7 +235,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         if self.managers:
             for man in self.managers:
-                if self._is_enabled(man):
+                if self._can_work(man):
                     man_updates = man.list_updates()
                     if man_updates:
                         updates.extend(man_updates)
@@ -248,7 +258,7 @@ class GenericSoftwareManager(SoftwareManager):
         return warnings
 
     def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int):
-        if self._is_enabled(man):
+        if self._can_work(man):
             man_sugs = man.list_suggestions(limit)
 
             if man_sugs:

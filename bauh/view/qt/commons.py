@@ -34,7 +34,7 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
 
 
 def apply_filters(pkgv: PackageView, filters: dict, info: dict):
-    hidden = filters['only_apps'] and not pkgv.model.is_application()
+    hidden = filters['only_apps'] and pkgv.model.installed and not pkgv.model.is_application()
 
     if not hidden and filters['type'] is not None and filters['type'] != 'any':
         hidden = pkgv.model.get_type() != filters['type']

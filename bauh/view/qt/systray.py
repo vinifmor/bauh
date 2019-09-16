@@ -5,11 +5,10 @@ from typing import List
 from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
-from bauh.api.abstract.model import PackageUpdate
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.core.config import Configuration
+from bauh.api.abstract.model import PackageUpdate
 from bauh.util import util, resource
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.window import ManageWindow
@@ -34,11 +33,10 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: SoftwareManager, manage_window: ManageWindow, config: Configuration, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, locale_keys: dict, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.locale_keys = locale_keys
         self.manager = manager
-        self.config = config
 
         self.icon_default = QIcon(resource.get_path('img/logo.png'))
         self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
@@ -118,12 +116,8 @@ class TrayIcon(QSystemTrayIcon):
         if self.manage_window.isMinimized():
             self.manage_window.setWindowState(Qt.WindowNoState)
         elif not self.manage_window.isVisible():
-            if self.config.gems:
-                self.manage_window.refresh_apps()
-                self.manage_window.show()
-            else:
-                self.manage_window.show()
-                self.manage_window.show_gems_selector()
+            self.manage_window.refresh_apps()
+            self.manage_window.show()
 
     def show_about(self):
 

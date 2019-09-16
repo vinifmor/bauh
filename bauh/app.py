@@ -11,7 +11,6 @@ from bauh.core.controller import GenericSoftwareManager
 from bauh.util import util, logs, resource
 from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.util.disk import DefaultDiskCacheLoaderFactory
-from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 
@@ -46,47 +45,37 @@ else:
     if app.style().objectName().lower() not in {'fusion', 'breeze'}:
         app.setStyle('Fusion')
 
-if not user_config.gems:
-    managers = gems.load_managers(context=context, locale=args.locale)
-else:
-    managers = gems.load_managers(context=context, locale=args.locale, names=user_config.gems)
+managers = gems.load_managers(context=context, locale=args.locale, enabled_gems=user_config.enabled_gems if user_config.enabled_gems else None)
 
-enabled_managers = [m for m in managers if m.is_enabled()]
+manager = GenericSoftwareManager(managers, context=context, app_args=args)
+manager.prepare()
 
-if not user_config.gems and enabled_managers and not args.tray:
-    gem_panel = GemSelectorPanel(enabled_managers, i18n, managers_set=None)
-    gem_panel.show()
-else:
-    manager = GenericSoftwareManager(enabled_managers, context=context, app_args=args)
-    manager.prepare()
-
-    manage_window = ManageWindow(i18n=i18n,
-                                 manager=manager,
-                                 icon_cache=icon_cache,
-                                 disk_cache=args.disk_cache,
-                                 download_icons=bool(args.download_icons),
-                                 screen_size=app.primaryScreen().size(),
-                                 suggestions=args.sugs,
-                                 display_limit=args.max_displayed,
-                                 config=user_config,
-                                 context=context)
-
-    if args.tray:
-        tray_icon = TrayIcon(locale_keys=i18n,
+manage_window = ManageWindow(i18n=i18n,
                              manager=manager,
-                             manage_window=manage_window,
-                             check_interval=args.check_interval,
-                             update_notification=bool(args.update_notification),
-                             config=user_config)
-        manage_window.set_tray_icon(tray_icon)
-        tray_icon.show()
+                             icon_cache=icon_cache,
+                             disk_cache=args.disk_cache,
+                             download_icons=bool(args.download_icons),
+                             screen_size=app.primaryScreen().size(),
+                             suggestions=args.sugs,
+                             display_limit=args.max_displayed,
+                             config=user_config,
+                             context=context)
 
-        if args.show_panel:
-            tray_icon.show_manage_window()
-    else:
-        manage_window.refresh_apps()
-        manage_window.show()
+if args.tray:
+    tray_icon = TrayIcon(locale_keys=i18n,
+                         manager=manager,
+                         manage_window=manage_window,
+                         check_interval=args.check_interval,
+                         update_notification=bool(args.update_notification),)
+    manage_window.set_tray_icon(tray_icon)
+    tray_icon.show()
 
-    cache_cleaner.start()
+    if args.show_panel:
+        tray_icon.show_manage_window()
+else:
+    manage_window.refresh_apps()
+    manage_window.show()
+
+cache_cleaner.start()
 
 sys.exit(app.exec_())

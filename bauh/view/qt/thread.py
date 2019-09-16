@@ -213,10 +213,10 @@ class GetAppHistory(AsyncAction):
                 self.app = None
 
 
-class SearchApps(AsyncAction):
+class SearchPackages(AsyncAction):
 
     def __init__(self, manager: SoftwareManager):
-        super(SearchApps, self).__init__()
+        super(SearchPackages, self).__init__()
         self.word = None
         self.manager = manager
 

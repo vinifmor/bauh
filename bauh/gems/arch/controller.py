@@ -11,13 +11,12 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
 from bauh.api.abstract.view import MessageType
+from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess
-
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.commons.html import bold
 from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
@@ -41,6 +40,7 @@ class ArchManager(SoftwareManager):
         self.aur_index_updater = AURIndexUpdater(context, self)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger)
         self.logger = context.logger
+        self.enabled = True
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])
@@ -510,6 +510,12 @@ class ArchManager(SoftwareManager):
             return False
 
     def is_enabled(self) -> bool:
+        return self.enabled
+
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled
+
+    def can_work(self) -> bool:
         try:
             return pacman.is_enabled() and self._is_wget_available()
         except FileNotFoundError:

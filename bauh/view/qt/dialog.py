@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
 from bauh.api.abstract.view import MessageType
 
 from bauh.util import resource
+from bauh.view.qt import css
 
 MSG_TYPE_MAP = {
     MessageType.ERROR: QMessageBox.Critical,
@@ -42,6 +43,7 @@ def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIc
     diag.layout().addWidget(wbody, 0, 1)
 
     bt_yes = diag.addButton(locale_keys['popup.button.yes'], QMessageBox.YesRole)
+    bt_yes.setStyleSheet(css.OK_BUTTON)
 
     diag.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
 

@@ -12,8 +12,8 @@ FILE_PATH = '{}/config.json'.format(CONFIG_PATH)
 
 class Configuration:
 
-    def __init__(self, gems: List[str] = None, style: str = None):
-        self.gems = gems
+    def __init__(self, enabled_gems: List[str] = None, style: str = None):
+        self.enabled_gems = enabled_gems
         self.style = style
 
 
@@ -24,7 +24,7 @@ def read() -> Configuration:
 
         return Configuration(**json.loads(config_file))
 
-    return Configuration(gems=None)
+    return Configuration()
 
 
 def save(config: Configuration):

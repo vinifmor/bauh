@@ -134,9 +134,23 @@ class SoftwareManager(ABC):
     @abstractmethod
     def is_enabled(self) -> bool:
         """
-        :return: if the instance is available to perform actions
+        :return: if the instance is enabled
         """
         pass
+
+    @abstractmethod
+    def set_enabled(self, enabled: bool):
+        """
+        :param enabled:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def can_work(self) -> bool:
+        """
+        :return: if the instance can work based on what is installed in the user's machine.
+        """
 
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         """

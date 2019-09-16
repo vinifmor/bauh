@@ -4,7 +4,7 @@ from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QApplication, QCheckBox, QHeaderView, QToolBar, \
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction
 
 from bauh.api.abstract.cache import MemoryCache
@@ -12,8 +12,8 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
-from bauh.core import gems
 from bauh.core.config import Configuration
+from bauh.core.controller import GenericSoftwareManager
 from bauh.util import util, resource
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -26,7 +26,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchApps, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
+    GetAppHistory, SearchPackages, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, RunApp, ApplyFilters, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
@@ -204,7 +204,7 @@ class ManageWindow(QWidget):
         self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
         self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
         self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.i18n), finished_call=self._finish_get_history)
-        self.thread_search = self._bind_async_action(SearchApps(self.manager), finished_call=self._finish_search, only_finished=True)
+        self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.i18n), finished_call=self._finish_downgrade)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
@@ -900,21 +900,21 @@ class ManageWindow(QWidget):
             self.checkbox_console.setChecked(True)
 
     def show_gems_selector(self):
-        managers = gems.load_managers(context=self.context, locale=None)
-        enabled_managers = [m for m in managers if m.is_enabled()]
-        gem_panel = GemSelectorPanel(managers=enabled_managers, i18n=self.i18n,
-                                     managers_set=self.config.gems,
+        gem_panel = GemSelectorPanel(window=self,
+                                     manager=self.manager, i18n=self.i18n,
+                                     config=self.config,
                                      show_panel_after_restart=bool(self.tray_icon))
         gem_panel.show()
 
     def _show_settings_menu(self):
         menu_row = QMenu()
 
-        action_gems = QAction(self.i18n['manage_window.settings.gems'])
-        action_gems.setIcon(self.icon_app)
+        if isinstance(self.manager, GenericSoftwareManager):
+            action_gems = QAction(self.i18n['manage_window.settings.gems'])
+            action_gems.setIcon(self.icon_app)
 
-        action_gems.triggered.connect(self.show_gems_selector)
-        menu_row.addAction(action_gems)
+            action_gems.triggered.connect(self.show_gems_selector)
+            menu_row.addAction(action_gems)
 
         action_about = QAction(self.i18n['manage_window.settings.about'])
         action_about.setIcon(QIcon(resource.get_path('img/about.svg')))

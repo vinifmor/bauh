@@ -19,11 +19,11 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(locale: str, context: ApplicationContext, names: List[str] = None) -> List[SoftwareManager]:
+def load_managers(locale: str, context: ApplicationContext, enabled_gems: List[str] = None) -> List[SoftwareManager]:
     managers = []
 
     for f in os.scandir(ROOT_DIR + '/gems'):
-        if f.is_dir() and f.name != '__pycache__' and (not names or f.name in names):
+        if f.is_dir() and f.name != '__pycache__':
             module = pkgutil.find_loader('bauh.gems.{}.controller'.format(f.name)).load_module()
 
             manager_class = find_manager(module)
@@ -35,7 +35,12 @@ def load_managers(locale: str, context: ApplicationContext, names: List[str] = N
                     if os.path.exists(locale_path):
                         context.i18n.update(util.get_locale_keys(locale, locale_path))
 
-                managers.append(manager_class(context=context))
+                man = manager_class(context=context)
+
+                if enabled_gems is not None and  f.name not in enabled_gems:
+                    man.set_enabled(False)
+
+                managers.append(man)
 
     return managers
 

@@ -18,6 +18,7 @@ class SnapManager(SoftwareManager):
         self.i18n = context.i18n
         self.api_cache = context.cache_factory.new()
         context.disk_loader_factory.map(SnapApplication, self.api_cache)
+        self.enabled = True
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -108,6 +109,12 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
 
     def is_enabled(self) -> bool:
+        return self.enabled
+
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled
+
+    def can_work(self) -> bool:
         return snap.is_installed()
 
     def requires_root(self, action: str, pkg: SnapApplication):
