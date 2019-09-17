@@ -40,9 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - disk loader not filling all requested cached data from the disk
 
 ### Code
-- Code was internally modularized as: "api" (conceptual classes used to create custom software managers), "gems" (software managers), "commons" (common classes shared between the UI and "gems")
-- "gems" modules requires only "api" and "commons" (no UI code)
-- "api" allows custom operations, so the "gems" can provide actions that the current GUI does not know (Snap "refresh" was refactored as a custom operation)
+- Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)
+- **api** allows custom operations, so the **gems** can provide actions that the current GUI does not support (Snap "refresh" was refactored as a custom operation)
 
 
 ## [0.5.2] 2019-09-06
