@@ -4,7 +4,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
 from bauh.api.abstract.view import MessageType
 
-from bauh.util import resource
+from bauh.view.util import resource
 from bauh.view.qt import css
 
 MSG_TYPE_MAP = {

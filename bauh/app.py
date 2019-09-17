@@ -6,13 +6,13 @@ from PyQt5.QtWidgets import QApplication
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
 from bauh.api.abstract.controller import ApplicationContext
 from bauh.api.http import HttpClient
-from bauh.core import gems, config
-from bauh.core.controller import GenericSoftwareManager
-from bauh.util import util, logs, resource
-from bauh.util.cache import DefaultMemoryCacheFactory, CacheCleaner
-from bauh.util.disk import DefaultDiskCacheLoaderFactory
+from bauh.view.core import gems, config
+from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.util import util, logs, resource
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
+from bauh.view.util.cache import CacheCleaner, DefaultMemoryCacheFactory
+from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 
 args = app_args.read()
 logger = logs.new_logger(__app_name__, bool(args.logs))

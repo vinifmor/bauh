@@ -1,11 +1,11 @@
 import inspect
 import os
 import pkgutil
-from typing import List, Type
+from typing import List
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
-from bauh.util import util
+from bauh.view.util import util
 
 
 def find_manager(member):

@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageUpdate
-from bauh.util import util, resource
+from bauh.view.util import util, resource
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.window import ManageWindow
 

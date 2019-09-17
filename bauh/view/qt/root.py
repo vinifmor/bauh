@@ -5,9 +5,8 @@ import subprocess
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
-from bauh import ROOT_DIR
 from bauh.api.abstract.view import MessageType
-from bauh.commons import resource
+from bauh.view.util import resource
 from bauh.view.qt.dialog import show_message
 
 
@@ -20,7 +19,7 @@ def ask_root_password(locale_keys: dict):
     diag = QInputDialog()
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
-    diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg', ROOT_DIR)))
+    diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg')))
     diag.setWindowTitle(locale_keys['popup.root.title'])
     diag.setLabelText(locale_keys['popup.root.password'] + ':')
     diag.setCancelButtonText(locale_keys['popup.button.cancel'])

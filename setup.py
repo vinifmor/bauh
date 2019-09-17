@@ -31,7 +31,7 @@ setup(
     python_requires=">=3.5",
     url=URL,
     packages=find_packages(),
-    package_data={NAME: ["resources/locale/*", "resources/img/*", "gems/*/resources/img/*", "gems/*/resources/locale/*"]},
+    package_data={NAME: ["view/resources/locale/*", "view/resources/img/*", "gems/*/resources/img/*", "gems/*/resources/locale/*"]},
     install_requires=requirements,
     entry_points={
         "console_scripts": [

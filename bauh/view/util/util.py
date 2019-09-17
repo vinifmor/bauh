@@ -7,7 +7,7 @@ import sys
 from PyQt5.QtCore import QCoreApplication
 
 from bauh import __app_name__
-from bauh.util import resource
+from bauh.view.util import resource
 
 
 def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')):

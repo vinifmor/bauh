@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import QComboBox, QStyleFactory, QWidget, QApplication
 
 from bauh import __app_name__
 from bauh.commons.html import bold
-from bauh.core import config
-from bauh.util import util
+from bauh.view.core import config
+from bauh.view.util import util
 from bauh.view.qt import dialog
 
 

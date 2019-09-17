@@ -9,7 +9,7 @@ if system_locale == 'pt':
     comment = "Gerencie seus aplicativos Flatpak / Snap / AUR "
     tray = 'bandeja'
 elif system_locale == 'es':
-    comment = "Administre sus aplicaciones Flatpak / Snap / AUR"
+    comment = "Administre sus aplicativos Flatpak / Snap / AUR"
     tray = 'bandeja'
 else:
     comment = "Manage your Flatpak / Snap / AUR applications"

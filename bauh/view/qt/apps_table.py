@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
-from bauh.util import resource
-from bauh.util.html import strip_html
+from bauh.commons.html import strip_html
+from bauh.view.util import resource
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
@@ -385,13 +385,13 @@ class AppsTable(QTableWidget):
             def get_info():
                 self.window.get_app_info(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3'))
+            item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
         if self.has_any_settings(pkg):
-            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB')
+            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
             item.addWidget(bt)
 
         self.setCellWidget(idx, col, item)

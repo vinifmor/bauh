@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import QWidget, QLabel, QGridLayout, QPushButton
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
-from bauh.commons import resource
-from bauh.core.config import Configuration, save
-from bauh.core.controller import GenericSoftwareManager
+from bauh.view.core.config import Configuration, save
+from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.util import resource
 from bauh.view.qt import qt_utils, css
 from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
 
@@ -19,7 +19,7 @@ class GemSelectorPanel(QWidget):
         self.manager = manager
         self.config = config
         self.setLayout(QGridLayout())
-        self.setWindowIcon(QIcon(resource.get_path('img/logo.svg', ROOT_DIR)))
+        self.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
         self.setWindowTitle(i18n['gem_selector.title'])
         self.resize(400, 400)
         self.show_panel_after_restart = show_panel_after_restart

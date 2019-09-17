@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - Supporting AUR packages (install, uninstall, search, info, downgrade and history)
 - Now it is possible to enable / disable the packaging technologies via graphical interface using the "Application types" action in the lower "Settings" menu
+- Environment variables / parameters **BAUH_FLATPAK (--flatpak)** and **BAUH_SNAP (--snap)** removed in favor of the feature above
 - Qt style / theme combo selector ( environment variable / parameter BAUH_THEME (--theme) removed )
 - New "Launch" button: can launch application packages
 - New "Installed" button: quickly retrieves the installed packages without a full refresh ( available after a search )
@@ -25,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - When a package is installed, it will be the first element of the table after refreshing
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
+- small UI improvements
 
 ### UI Changes
 - "Upgrade selected" and "Refresh" buttons now have text labels and new colors

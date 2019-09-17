@@ -6,15 +6,15 @@ from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication
+from pip._internal.configuration import Configuration
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
-from bauh.core.config import Configuration
-from bauh.core.controller import GenericSoftwareManager
-from bauh.util import util, resource
+from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.util import util, resource
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
@@ -242,7 +242,10 @@ class ManageWindow(QWidget):
         self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
-        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=self._show_settings_menu, background='#12ABAB')
+        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'),
+                                 action=self._show_settings_menu,
+                                 background='#12ABAB',
+                                 tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
         self.layout.addWidget(self.toolbar_bottom)
