@@ -80,10 +80,14 @@ You can change some application settings via environment variables or arguments 
 
 ### Code structure
 #### Modules
+
 **view**: code associated with the graphical interface
+
 **gems**: code responsible to work with the different packaging technologies (every submodule deals with one or more type)
+
 **api**: code abstractions representing the main actions that a user can do with Linux packages (search, install, ...). These abstractions are implemented by the *gems*, and
 the **view** code is only attached to them (it does not know how the **gems** handle the actions)
+
 **commons**: common code used by **gem** and **view**
 
 ### Roadmap
