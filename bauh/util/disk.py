@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import time
 from threading import Thread, Lock
 from typing import Type, Dict
 
@@ -10,13 +12,15 @@ from bauh.api.abstract.model import SoftwarePackage
 
 class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
 
-    def __init__(self, enabled: bool, cache_map: Dict[Type[SoftwarePackage], MemoryCache]):
+    def __init__(self, enabled: bool, cache_map: Dict[Type[SoftwarePackage], MemoryCache], logger: logging.Logger):
         super(AsyncDiskCacheLoader, self).__init__(daemon=True)
-        self.apps = []
-        self.stop = False
+        self.pkgs = []
+        self._work = True
         self.lock = Lock()
         self.cache_map = cache_map
         self.enabled = enabled
+        self.logger = logger
+        self.processed = 0
 
     def fill(self, pkg: SoftwarePackage):
         """
@@ -24,25 +28,28 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         :param pkg:
         :return:
         """
-        if self.enabled:
-            if pkg and pkg.supports_disk_cache():
-                self.lock.acquire()
-                self.apps.append(pkg)
-                self.lock.release()
+        if self.enabled and pkg and pkg.supports_disk_cache():
+            self.pkgs.append(pkg)
+
+    def stop_working(self):
+        self._work = False
 
     def run(self):
         if self.enabled:
+            last = 0
+
             while True:
-                if self.apps:
-                    self.lock.acquire()
-                    app = self.apps[0]
-                    del self.apps[0]
-                    self.lock.release()
-                    self._fill_cached_data(app)
-                elif self.stop:
+                time.sleep(0.00001)
+                if len(self.pkgs) > self.processed:
+                    pkg = self.pkgs[last]
+
+                    self._fill_cached_data(pkg)
+                    self.processed += 1
+                    last += 1
+                elif not self._work:
                     break
 
-    def _fill_cached_data(self, pkg: SoftwarePackage):
+    def _fill_cached_data(self, pkg: SoftwarePackage) -> bool:
         if self.enabled:
             if os.path.exists(pkg.get_disk_data_path()):
                 with open(pkg.get_disk_data_path()) as f:
@@ -54,12 +61,16 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
                         if cache:
                             cache.add_non_existing(pkg.id, cached_data)
 
+                        return True
+        return False
+
 
 class DefaultDiskCacheLoaderFactory(DiskCacheLoaderFactory):
 
-    def __init__(self, disk_cache_enabled: bool):
+    def __init__(self, disk_cache_enabled: bool, logger: logging.Logger):
         super(DefaultDiskCacheLoaderFactory, self).__init__()
         self.disk_cache_enabled = disk_cache_enabled
+        self.logger = logger
         self.cache_map = {}
 
     def map(self, pkg_type: Type[SoftwarePackage], cache: MemoryCache):
@@ -68,4 +79,4 @@ class DefaultDiskCacheLoaderFactory(DiskCacheLoaderFactory):
                     self.cache_map[pkg_type] = cache
 
     def new(self) -> AsyncDiskCacheLoader:
-        return AsyncDiskCacheLoader(enabled=self.disk_cache_enabled, cache_map=self.cache_map)
+        return AsyncDiskCacheLoader(enabled=self.disk_cache_enabled, cache_map=self.cache_map, logger=self.logger)

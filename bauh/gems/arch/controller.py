@@ -100,13 +100,13 @@ class ArchManager(SoftwareManager):
 
         if pkgsinfo:
             for pkgdata in pkgsinfo:
-                app = self.mapper.map_api_data(pkgdata, not_signed)
-                app.downgrade_enabled = downgrade_enabled
+                pkg = self.mapper.map_api_data(pkgdata, not_signed)
+                pkg.downgrade_enabled = downgrade_enabled
                 if disk_loader:
-                    disk_loader.fill(app)
-                    app.status = PackageStatus.READY
+                    disk_loader.fill(pkg)
+                    pkg.status = PackageStatus.READY
 
-                apps.append(app)
+                apps.append(pkg)
 
     def _fill_mirror_pkgs(self, mirrors: dict, apps: list):
         # TODO
@@ -203,8 +203,8 @@ class ArchManager(SoftwareManager):
         watcher.change_progress(50)
 
         if info.get('required by'):
-            pkname = '"{}"'.format(pkg.name)
-            msg = '{}:\n\n{}\n\n{}'.format(self.i18n['arch.uninstall.required_by'].format(pkname), info['required by'], self.i18n['arch.uninstall.required_by.advice'].format(pkname))
+            pkname = bold(pkg.name)
+            msg = '{}:<br/><br/>{}<br/><br/>{}'.format(self.i18n['arch.uninstall.required_by'].format(pkname), bold(info['required by']), self.i18n['arch.uninstall.required_by.advice'].format(pkname))
             watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.WARNING)
             return False
 
@@ -537,7 +537,6 @@ class ArchManager(SoftwareManager):
 
     def prepare(self):
         self.dcache_updater.start()
-
         self.aur_index_updater.start()
 
     def list_updates(self) -> List[PackageUpdate]:

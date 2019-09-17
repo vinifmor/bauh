@@ -22,7 +22,6 @@ class AURIndexUpdater(Thread):
         self.man = man
 
     def run(self):
-
         while True:
             self.logger.info('Pre-indexing AUR packages in memory')
             res = self.http_client.get(URL_INDEX)

@@ -1,3 +1,4 @@
+import time
 from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
@@ -20,6 +21,8 @@ class GenericSoftwareManager(SoftwareManager):
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
+        self.logger = context.logger
+        self._already_prepared = []
 
     def reset_cache(self):
         if self._available_map is not None:
@@ -66,6 +69,7 @@ class GenericSoftwareManager(SoftwareManager):
             res.new.extend(apps_found.new)
 
     def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1) -> SearchResult:
+        ti = time.time()
         self._wait_to_be_ready()
 
         res = SearchResult([], [], 0)
@@ -85,13 +89,15 @@ class GenericSoftwareManager(SoftwareManager):
             t.join()
 
         if disk_loader:
-            disk_loader.stop = True
+            disk_loader.stop_working()
             disk_loader.join()
 
         res.installed = self._sort(res.installed, norm_word)
         res.new = self._sort(res.new, norm_word)
         res.total = len(res.installed) + len(res.new)
 
+        tf = time.time()
+        self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
         return res
 
     def _wait_to_be_ready(self):
@@ -106,6 +112,7 @@ class GenericSoftwareManager(SoftwareManager):
         return True
 
     def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
+        ti = time.time()
         self._wait_to_be_ready()
 
         res = SearchResult([], None, 0)
@@ -138,9 +145,11 @@ class GenericSoftwareManager(SoftwareManager):
                     res.total += man_res.total
 
         if disk_loader:
-            disk_loader.stop = True
+            disk_loader.stop_working()
             disk_loader.join()
 
+        tf = time.time()
+        self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
         return res
 
     def downgrade(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
@@ -221,8 +230,9 @@ class GenericSoftwareManager(SoftwareManager):
     def _prepare(self):
         if self.managers:
             for man in self.managers:
-                if self._can_work(man):
+                if man not in self._already_prepared and self._can_work(man):
                     man.prepare()
+                    self._already_prepared.append(man)
 
     def prepare(self):
         self.thread_prepare = Thread(target=self._prepare)

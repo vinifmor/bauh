@@ -15,11 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - "Application settings" button located in right lower corner
 - Package "Name" filter field (above the packages table)
 - Showing the number of packages being shown by the total found
+- "Show" button for large fields of the "Info" window
 
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time
 - Reading installed Flatpaks now takes around 45% less time
 - Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
+- When a package is installed, it will be the first element of the table after refreshing
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
 
@@ -32,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes:
 - cached Flatpak app current version
+- disk loader not filling all requested cached data from the disk
 
 ### Code
 - Code was internally modularized as: "api" (conceptual classes used to create custom software managers), "gems" (software managers), "commons" (common classes shared between the UI and "gems")

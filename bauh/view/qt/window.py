@@ -5,7 +5,7 @@ from typing import List, Type, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -231,7 +231,8 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
-        self.progress_bar.setMaximumHeight(7)
+        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
+
         self.progress_bar.setTextVisible(False)
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 

@@ -30,7 +30,7 @@ context = ApplicationContext(i18n=i18n,
                              download_icons=args.download_icons,
                              app_root_dir=ROOT_DIR,
                              cache_factory=cache_factory,
-                             disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache),
+                             disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache, logger=logger),
                              logger=logger)
 user_config = config.read()
 
