@@ -30,20 +30,17 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 
 
 ### Distribution
-**PyPi**
-```
-pip3 install bauh (may require **sudo**)
-```
 
 **AUR**
 
 As **bauh** package. There is also a staging version (**bauh-staging**) but is intended for testing and may not work properly.
 
+**PyPi**
+```pip3 install bauh ``` ( may require **sudo**, but prefere the *Manual installation** described below to not mess up with your system libraries )
+
 
 ### Manual installation:
-If you prefer a manual and isolated installation:
-
-If you cloned this project, type the following commands within its folder:
+If you prefer a manual and isolated installation, type the following commands within the cloned project folder:
 
 ```
 python3 -m venv env ( creates a virtualenv in a folder called **env** )
@@ -51,7 +48,7 @@ env/bin/pip install . ( install the application code inside the **env** )
 env/bin/bauh  ( launch the application )
 ```
 
-If you want do not want to clone / download this repository, go your Home folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
+If you want do not want to clone / download this repository, go your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
 
 
 ### Autostart
@@ -72,14 +69,11 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 200.
 
-### How to improve the application performance
-- If you don't care about a specific packaging technology and don't want the app to deal with it, just disable it via the specific argument or environment variable. For instance, if I don't care
-about **snaps**, I can initialize the application setting "snap=0" (**bauh --snap=0**). This will improve the application response time, since it won't need to do any verifications associated
-with the technology that I don't care every time an action is executed.
-- If you don't care about restarting the app every time a new supported packaging technology is installed, set "check-packaging-once=1" (**bauh --check-packaging-once=1**). This can reduce the application response time up to 80% in some scenarios, since it won't need to recheck if the packaging type is available for every action you request.
+### How to improve **bauh** performance
+- If you don't care about a specific packaging technology and don't want **bauh** to deal with it, just disable it via the graphical interface.
+- If you don't care about restarting the app every time a new supported packaging technology is installed, set "check-packaging-once=1" (**bauh --check-packaging-once=1**). This can reduce the application response time up in some scenarios, since it won't need to recheck if the packaging type is available for every action you request.
 - If you don't mind to see the applications icons, you can set "download-icons=0" (**bauh --download-icons=0**). The application may have a slight response improvement, since it will reduce the parallelism within it.
 - If you don't mind app suggestions, disable it (**bauh --sugs=0**)
-
 
 ### Code structure
 #### Modules
@@ -88,7 +82,6 @@ with the technology that I don't care every time an action is executed.
 **api**: code abstractions representing the main actions that a user can do with Linux packages (search, install, ...). These abstractions are implemented by the *gems*, and
 the **view** code is only attached to them (it does not know how the **gems** handle the actions)
 **commons**: common code used by **gem** and **view**
-
 
 ### Roadmap
 - Support for other packaging technologies
