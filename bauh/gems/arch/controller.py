@@ -41,6 +41,7 @@ class ArchManager(SoftwareManager):
         self.dcache_updater = ArchDiskCacheUpdater(context.logger)
         self.logger = context.logger
         self.enabled = True
+        self.arch_distro = self.context.linux_distro[0].lower() == 'arch'
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])
@@ -517,7 +518,7 @@ class ArchManager(SoftwareManager):
 
     def can_work(self) -> bool:
         try:
-            return pacman.is_enabled() and self._is_wget_available()
+            return self.arch_distro and pacman.is_enabled() and self._is_wget_available()
         except FileNotFoundError:
             return False
 
@@ -545,14 +546,15 @@ class ArchManager(SoftwareManager):
     def list_warnings(self) -> List[str]:
         warnings = []
 
-        if not pacman.is_enabled():
-            warnings.append(self.i18n['arch.warning.disabled'].format(bold('pacman')))
+        if self.arch_distro:
+            if not pacman.is_enabled():
+                warnings.append(self.i18n['arch.warning.disabled'].format(bold('pacman')))
 
-        if not self._is_wget_available():
-            warnings.append(self.i18n['arch.warning.disabled'].format(bold('wget')))
+            if not self._is_wget_available():
+                warnings.append(self.i18n['arch.warning.disabled'].format(bold('wget')))
 
-        if not git.is_enabled():
-            warnings.append(self.i18n['arch.warning.git'].format(bold('git')))
+            if not git.is_enabled():
+                warnings.append(self.i18n['arch.warning.git'].format(bold('git')))
 
         return warnings
 

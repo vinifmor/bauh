@@ -1,4 +1,5 @@
 import logging
+import platform
 
 from bauh.api.abstract.cache import MemoryCacheFactory
 from bauh.api.abstract.disk import DiskCacheLoaderFactory
@@ -28,3 +29,4 @@ class ApplicationContext:
         self.cache_factory = cache_factory
         self.disk_loader_factory = disk_loader_factory
         self.logger = logger
+        self.linux_distro = platform.linux_distribution()
