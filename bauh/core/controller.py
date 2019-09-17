@@ -64,7 +64,11 @@ class GenericSoftwareManager(SoftwareManager):
 
     def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):
+            mti = time.time()
             apps_found = man.search(words=word, disk_loader=disk_loader)
+            mtf = time.time()
+            self.logger.info(man.__class__.__name__ +  " took {0:.2f} seconds".format(mtf - mti))
+
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
 
@@ -126,7 +130,11 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
+                    mti = time.time()
                     man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    mtf = time.time()
+                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+
                     res.installed.extend(man_res.installed)
                     res.total += man_res.total
         else:
@@ -140,7 +148,11 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
+                    mti = time.time()
                     man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    mtf = time.time()
+                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+
                     res.installed.extend(man_res.installed)
                     res.total += man_res.total
 

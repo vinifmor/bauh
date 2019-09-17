@@ -49,4 +49,4 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
         if installed and installed['not_signed']:
             saved = disk.save_several({app for app in installed['not_signed']}, 'aur', overwrite=False)
 
-        self.logger.info('Pre-cached data of {} AUR packages to disk'.format(saved))
+        self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))
