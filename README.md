@@ -36,7 +36,10 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 As **bauh** package. There is also a staging version (**bauh-staging**) but is intended for testing and may not work properly.
 
 **PyPi**
-```pip3 install bauh ``` ( may require **sudo**, but prefere the *Manual installation** described below to not mess up with your system libraries )
+
+```pip3 install bauh ```
+
+It may require **sudo**, but prefer the *Manual installation** described below to not mess up with your system libraries.
 
 
 ### Manual installation:
