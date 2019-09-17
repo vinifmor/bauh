@@ -6,23 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.0] 2019-09-
 ### Features
-- Theme / style selector via UI (environment variable / parameter BAUH_THEME (--theme) removed)
-- New "Installed" button: quickly retrieves the installed packages without a full refresh
-- Now it is possible to enable / disable the packaging technologies via graphical interface using the "Application types" action in the lower "Settings" menu
 - Supporting AUR packages (install, uninstall, search, info, downgrade and history)
+- Now it is possible to enable / disable the packaging technologies via graphical interface using the "Application types" action in the lower "Settings" menu
+- Qt style / theme combo selector ( environment variable / parameter BAUH_THEME (--theme) removed )
+- New "Launch" button: can launch application packages
+- New "Installed" button: quickly retrieves the installed packages without a full refresh ( available after a search )
+- Publisher / maintainer column in the packages table
+- "Application settings" button located in right lower corner
+- Package "Name" filter field (above the packages table)
+- Showing the number of packages being shown by the total found
 
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time
 - Reading installed Flatpaks now takes around 45% less time
 - Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
 - Progress bar status can now be controlled by the software manager while an operation is being executed
+- Flatpak: showing runtime branches as versions when they are not available
 
 ### UI Changes
 - "Upgrade selected" and "Refresh" buttons now have text labels and new colors
 - Updates warning icon removed
-- Publisher / maintainer column
 - Progress bar height reduced
-- New "Application settings" buttons located in right lower corner
+- Packaging type checkbox filters replaced by a combo box (single select)
+- Search bar resized
 
 ### Fixes:
 - cached Flatpak app current version
