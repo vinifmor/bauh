@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time
+- Reading Snap suggestions now takes aroung 75% less time
 - Reading installed Flatpaks now takes around 45% less time
 - Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
 - When a package is installed, it will be the first element of the table after refreshing

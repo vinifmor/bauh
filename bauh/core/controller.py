@@ -281,7 +281,10 @@ class GenericSoftwareManager(SoftwareManager):
 
     def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int):
         if self._can_work(man):
+            mti = time.time()
             man_sugs = man.list_suggestions(limit)
+            mtf = time.time()
+            self.logger.info(man.__class__.__name__ + ' took {0:.2f} seconds'.format(mtf - mti))
 
             if man_sugs:
                 if len(man_sugs) > limit:

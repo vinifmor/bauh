@@ -1,12 +1,15 @@
 from datetime import datetime
+from threading import Thread
 from typing import List, Set, Type
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion
+from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
+    SuggestionPriority
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
+from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
 
@@ -19,6 +22,8 @@ class SnapManager(SoftwareManager):
         self.api_cache = context.cache_factory.new()
         context.disk_loader_factory.map(SnapApplication, self.api_cache)
         self.enabled = True
+        self.http_client = context.http_client
+        self.logger = context.logger
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -133,19 +138,35 @@ class SnapManager(SoftwareManager):
         if snap.get_snapd_version() == 'unavailable':
             return [self.i18n['snap.notification.snapd_unavailable']]
 
+    def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):
+        res = self.http_client.get_json(SNAP_API_URL + '/search?q=package_name:{}'.format(pkg_name))
+
+        if res and res['_embedded']['clickindex:package']:
+            pkg = res['_embedded']['clickindex:package'][0]
+            pkg['rev'] = pkg['revision']
+            pkg['name'] = pkg_name
+
+            out.append(PackageSuggestion(self.map_json(pkg, installed=False, disk_loader=None), priority))
+        else:
+            self.logger.warning("Could not retrieve suggestion '{}'".format(pkg_name))
+
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
         res = []
 
         sugs = [(i, p) for i, p in suggestions.ALL.items()]
         sugs.sort(key=lambda t: t[1].value, reverse=True)
 
+        threads = []
         for sug in sugs:
 
             if limit <= 0 or len(res) < limit:
-                found = snap.search(sug[0], exact_name=True)
-                if found:
-                    res.append(PackageSuggestion(self.map_json(found[0], installed=False, disk_loader=None), sug[1]))
+                t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
+                t.start()
+                threads.append(t)
             else:
                 break
+
+        for t in threads:
+            t.join()
 
         return res

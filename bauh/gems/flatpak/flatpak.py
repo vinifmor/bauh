@@ -176,8 +176,7 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     return commits
 
 
-def search(word: str, app_id: bool = False) -> List[dict]:
-    cli_version = get_version()
+def search(version: str, word: str, app_id: bool = False) -> List[dict]:
 
     res = run_cmd('{} search {}'.format(BASE_CMD, word))
 
@@ -189,39 +188,39 @@ def search(word: str, app_id: bool = False) -> List[dict]:
         for info in split_res:
             if info:
                 info_list = info.split('\t')
-                if cli_version >= '1.3.0':
+                if version >= '1.3.0':
                     id_ = info_list[2].strip()
 
                     if app_id and id_ != word:
                         continue
 
-                    version = info_list[3].strip()
+                    pkg_ver = info_list[3].strip()
                     app = {
                         'name': info_list[0].strip(),
                         'description': info_list[1].strip(),
                         'id': id_,
-                        'version': version,
-                        'latest_version': version,
+                        'version': pkg_ver,
+                        'latest_version': pkg_ver,
                         'branch': info_list[4].strip(),
                         'origin': info_list[5].strip(),
                         'runtime': False,
                         'arch': None,  # unknown at this moment,
                         'ref': None  # unknown at this moment
                     }
-                elif cli_version >= '1.2.0':
+                elif version >= '1.2.0':
                     id_ = info_list[1].strip()
 
                     if app_id and id_ != word:
                         continue
 
                     desc = info_list[0].split('-')
-                    version = info_list[2].strip()
+                    pkg_ver = info_list[2].strip()
                     app = {
                         'name': desc[0].strip(),
                         'description': desc[1].strip(),
                         'id': id_,
-                        'version': version,
-                        'latest_version': version,
+                        'version': pkg_ver,
+                        'latest_version': pkg_ver,
                         'branch': info_list[3].strip(),
                         'origin': info_list[4].strip(),
                         'runtime': False,
@@ -234,13 +233,13 @@ def search(word: str, app_id: bool = False) -> List[dict]:
                     if app_id and id_ != word:
                         continue
 
-                    version = info_list[1].strip()
+                    pkg_ver = info_list[1].strip()
                     app = {
                         'name': '',
                         'description': info_list[4].strip(),
                         'id': id_,
-                        'version': version,
-                        'latest_version': version,
+                        'version': pkg_ver,
+                        'latest_version': pkg_ver,
                         'branch': info_list[2].strip(),
                         'origin': info_list[3].strip(),
                         'runtime': False,

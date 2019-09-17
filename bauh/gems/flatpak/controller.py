@@ -48,7 +48,7 @@ class FlatpakManager(SoftwareManager):
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
 
         res = SearchResult([], [], 0)
-        apps_found = flatpak.search(words)
+        apps_found = flatpak.search(flatpak.get_version(), words)
 
         if apps_found:
             already_read = set()
@@ -189,7 +189,7 @@ class FlatpakManager(SoftwareManager):
                 return [self.i18n['flatpak.notification.no_remotes']]
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-
+        cli_version = flatpak.get_version()
         res = []
 
         sugs = [(i, p) for i, p in suggestions.ALL.items()]
@@ -198,7 +198,7 @@ class FlatpakManager(SoftwareManager):
         for sug in sugs:
 
             if limit <= 0 or len(res) < limit:
-                app_json = flatpak.search(sug[0], app_id=True)
+                app_json = flatpak.search(cli_version, sug[0], app_id=True)
 
                 if app_json:
                     res.append(PackageSuggestion(self._map_to_model(app_json[0], False, None), sug[1]))
