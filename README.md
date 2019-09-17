@@ -39,7 +39,7 @@ As **bauh** package. There is also a staging version (**bauh-staging**) but is i
 
 ```pip3 install bauh ```
 
-It may require **sudo**, but prefer the *Manual installation** described below to not mess up with your system libraries.
+It may require **sudo**, but prefer the **Manual installation** described below to not mess up with your system libraries.
 
 
 ### Manual installation:
@@ -67,10 +67,10 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_ICON_EXPIRATION**: define a custom expiration time in SECONDS for cached icons. Default: 300 (5 minutes).
 - **BAUH_DISK_CACHE**: enables / disables disk cache. When disk cache is enabled, the installed applications data are loaded faster. Use **0** (disable) or **1** (enable, default).
 - **BAUH_DOWNLOAD_ICONS**: Enables / disables app icons download. It may improve the application speed depending on how applications data are being retrieved. Use **0** (disable) or **1** (enable, default).
-- **BAUH_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
+- **BAUH_CHECK_PACKAGING_ONCE**: If the available supported packaging types should be checked ONLY once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a new supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
 - **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
-- **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no app is installed (runtimes do not count as apps). Use **0** (disable) or **1** (enable, default).
-- **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 200.
+- **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no packaged considered as an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
+- **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 
 ### How to improve **bauh** performance
 - If you don't care about a specific packaging technology and don't want **bauh** to deal with it, just disable it via the graphical interface.
