@@ -6,21 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.0] 2019-09-
 ### Features
-- Supporting AUR packages (install, uninstall, search, info, downgrade and history)
-- Now it is possible to enable / disable the packaging technologies via graphical interface using the "Application types" action in the lower "Settings" menu
+- Supporting **AUR** packages (install, uninstall, search, info, downgrade and history)
+- Now it is possible to enable / disable the packaging technologies via graphical interface using the **Application types** action in the lower **Settings** button
 - Environment variables / parameters **BAUH_FLATPAK (--flatpak)** and **BAUH_SNAP (--snap)** removed in favor of the feature above
-- Qt style / theme combo selector ( environment variable / parameter BAUH_THEME (--theme) removed )
-- New "Launch" button: can launch application packages
-- New "Installed" button: quickly retrieves the installed packages without a full refresh ( available after a search )
+- Qt style / theme combo selector ( environment variable / parameter **BAUH_THEME (--theme)** removed )
+- New **Launch button**: can launch application packages
+- New **Installed button**: quickly retrieves the installed packages without a full refresh ( available after a search )
 - Publisher / maintainer column in the packages table
-- "Application settings" button located in right lower corner
-- Package "Name" filter field (above the packages table)
-- Showing the number of packages being shown by the total found
-- "Show" button for large fields of the "Info" window
+- **Extra actions** button located in right lower corner
+- Package "Name" filter field ( above the packages table )
+- Showing the number of packages being shown by the total found in the right lower corner
+- **Show button** for large fields in the **Info** window
 
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time
-- Reading Snap suggestions now takes aroung 75% less time
+- Reading Snap suggestions now takes around 75% less time
 - Reading installed Flatpaks now takes around 45% less time
 - Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
 - When a package is installed, it will be the first element of the table after refreshing
@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - small UI improvements
 
 ### UI Changes
-- "Upgrade selected" and "Refresh" buttons now have text labels and new colors
+- **Upgrade selected** and **Refresh** buttons now have text labels and new colors
 - Updates warning icon removed
 - Progress bar height reduced
 - Packaging type checkbox filters replaced by a combo box (single select)
@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Code
 - Code was internally modularized as: "api" (conceptual classes used to create custom software managers), "gems" (software managers), "commons" (common classes shared between the UI and "gems")
-- "gems" modules requires only "api" (no UI code)
+- "gems" modules requires only "api" and "commons" (no UI code)
 - "api" allows custom operations, so the "gems" can provide actions that the current GUI does not know (Snap "refresh" was refactored as a custom operation)
 
 
