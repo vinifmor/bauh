@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes:
 - cached Flatpak app current version
 - disk loader not filling all requested cached data from the disk
+- [Ubuntu 19.04 pip3 install issue] (https://github.com/vinifmor/bauh/issues/3)
 
 ### Code
 - Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)

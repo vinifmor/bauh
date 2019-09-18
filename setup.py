@@ -35,7 +35,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "{name}={name}.app".format(name=NAME)
+            "{name}={name}.app:main".format(name=NAME)
         ]
     },
     include_package_data=True,
