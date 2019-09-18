@@ -278,3 +278,9 @@ def set_default_remotes():
 
 def has_remotes_set() -> bool:
     return bool(run_cmd('{} remotes'.format(BASE_CMD)).strip())
+
+
+def run(app_id: str):
+    subprocess.Popen([BASE_CMD, 'run', app_id])
+
+

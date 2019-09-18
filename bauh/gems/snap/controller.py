@@ -173,3 +173,6 @@ class SnapManager(SoftwareManager):
 
     def is_default_enabled(self) -> bool:
         return True
+
+    def launch(self, pkg: SnapApplication):
+        snap.run(pkg)

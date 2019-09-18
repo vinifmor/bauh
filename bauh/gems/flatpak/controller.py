@@ -1,3 +1,4 @@
+import subprocess
 from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
@@ -210,3 +211,6 @@ class FlatpakManager(SoftwareManager):
 
     def is_default_enabled(self) -> bool:
         return True
+
+    def launch(self, pkg: SoftwarePackage):
+        flatpak.run(pkg.id)

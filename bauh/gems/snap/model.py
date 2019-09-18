@@ -79,9 +79,6 @@ class SnapApplication(SoftwarePackage):
             if data.get('confinement'):
                 self.confinement = data['confinement']
 
-    def get_command(self) -> str:
-        return "snap run " + self.name
-
     def can_be_run(self) -> bool:
         return self.installed and self.is_application()
 

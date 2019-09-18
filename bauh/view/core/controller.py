@@ -231,14 +231,6 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             return man.requires_root(action, app)
 
-    def refresh(self, app: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
-        self._wait_to_be_ready()
-
-        man = self._get_manager_for(app)
-
-        if man:
-            return man.refresh(app, root_password, watcher)
-
     def _prepare(self):
         if self.managers:
             for man in self.managers:
@@ -317,3 +309,11 @@ class GenericSoftwareManager(SoftwareManager):
 
     def is_default_enabled(self) -> bool:
         return True
+
+    def launch(self, pkg: SoftwarePackage):
+        self._wait_to_be_ready()
+
+        man = self._get_manager_for(pkg)
+
+        if man:
+            man.launch(pkg)

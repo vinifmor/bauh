@@ -232,3 +232,7 @@ class SoftwareManager(ABC):
         """
         :return: if the instance is enabled by default when there is no user settings defining which gems are enabled.
         """
+
+    @abstractmethod
+    def launch(self, pkg: SoftwarePackage):
+        pass

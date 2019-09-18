@@ -395,18 +395,19 @@ class ListWarnings(QThread):
             self.signal_warnings.emit(warnings)
 
 
-class RunApp(AsyncAction):
+class LaunchApp(AsyncAction):
 
-    def __init__(self, app: PackageView = None):
-        super(RunApp, self).__init__()
+    def __init__(self, manager: SoftwareManager, app: PackageView = None):
+        super(LaunchApp, self).__init__()
         self.app = app
+        self.manager = manager
 
     def run(self):
 
         if self.app:
             try:
                 time.sleep(0.25)
-                subprocess.Popen(self.app.model.get_command().split(' '))
+                self.manager.launch(self.app.model)
                 self.notify_finished(True)
             except:
                 self.notify_finished(False)

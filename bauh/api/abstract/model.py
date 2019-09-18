@@ -149,13 +149,6 @@ class SoftwarePackage(ABC):
         :return: whether the app can be run via the GUI
         """
 
-    @abstractmethod
-    def get_command(self) -> str:
-        """
-        :return: the command to run the application
-        """
-        pass
-
     def is_trustable(self) -> bool:
         """
         :return: if the package is distributed by a trustable source

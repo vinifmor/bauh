@@ -102,9 +102,6 @@ class ArchPackage(SoftwarePackage):
         # only returns if there is a desktop entry set for the application to avoid running command-line applications
         return bool(self.desktop_entry)
 
-    def get_command(self) -> str:
-        return self.command
-
     def get_publisher(self):
         return self.maintainer
 

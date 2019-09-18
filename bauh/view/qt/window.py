@@ -27,7 +27,7 @@ from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
-    AsyncAction, RunApp, ApplyFilters, CustomAction
+    AsyncAction, LaunchApp, ApplyFilters, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 
@@ -207,7 +207,7 @@ class ManageWindow(QWidget):
         self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.i18n), finished_call=self._finish_downgrade)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
-        self.thread_run_app = self._bind_async_action(RunApp(), finished_call=self._finish_run_app, only_finished=False)
+        self.thread_run_app = self._bind_async_action(LaunchApp(self.manager), finished_call=self._finish_run_app, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
 
         self.thread_apply_filters = ApplyFilters()

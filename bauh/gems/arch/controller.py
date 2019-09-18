@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 import time
 from pathlib import Path
 from threading import Thread
@@ -580,3 +581,7 @@ class ArchManager(SoftwareManager):
 
     def is_default_enabled(self) -> bool:
         return False
+
+    def launch(self, pkg: ArchPackage):
+        if pkg.command:
+            subprocess.Popen(pkg.command.split(' '))

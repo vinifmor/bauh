@@ -373,7 +373,7 @@ class AppsTable(QTableWidget):
     def _set_col_settings(self, idx: int, col: int, pkg: PackageView):
         item = QToolBar()
 
-        if pkg.model.can_be_run() and pkg.model.get_command():
+        if pkg.model.can_be_run():
 
             def run():
                 self.window.run_app(pkg)

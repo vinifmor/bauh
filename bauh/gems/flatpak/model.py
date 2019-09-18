@@ -59,9 +59,6 @@ class FlatpakApplication(SoftwarePackage):
             if data.get(attr) and not getattr(self, attr):
                 setattr(self, attr, data[attr])
 
-    def get_command(self) -> str:
-        return "flatpak run {}".format(self.id)
-
     def can_be_run(self) -> bool:
         return self.installed and not self.runtime
 

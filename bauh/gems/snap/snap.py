@@ -4,6 +4,7 @@ import time
 from typing import List
 
 from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
+from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
 
@@ -65,7 +66,7 @@ def get_info(app_name: str, attrs: tuple = None):
 
         if not attrs or 'commands' in attrs:
             commands = re.findall(r'commands:\s*\n*((\s+-\s.+\s*\n)+)', full_info_lines)
-            data['commands'] = commands[0][0].replace('-', '').strip().split('\n') if commands else None
+            data['commands'] = commands[0][0].strip().replace('- ', '').split('\n') if commands else None
 
     return data
 
@@ -152,3 +153,11 @@ def downgrade_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
 
 def refresh_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
     return new_root_subprocess([BASE_CMD, 'refresh', app_name], root_password)
+
+
+def run(app: SnapApplication):
+    info = get_info(app.name, 'commands')
+
+    if info.get('commands'):
+        subprocess.Popen([BASE_CMD, 'run', info['commands'][0]])
+
