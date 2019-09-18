@@ -1,13 +1,12 @@
-import io
 import os
-import subprocess
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
 from bauh.api.abstract.view import MessageType
-from bauh.view.util import resource
+from bauh.commons.system import new_subprocess
 from bauh.view.qt.dialog import show_message
+from bauh.view.util import resource
 
 
 def is_root():
@@ -38,13 +37,19 @@ def ask_root_password(locale_keys: dict):
 
 
 def validate_password(password: str) -> bool:
-    proc = subprocess.Popen('sudo -k && echo {} | sudo -S whoami'.format(password),
-                            shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL,
-                            bufsize=-1)
-    stream = os._wrap_close(io.TextIOWrapper(proc.stdout), proc)
-    res = stream.read()
-    stream.close()
+    clean = new_subprocess(['sudo', '-k']).stdout
+    echo = new_subprocess(['echo', password], stdin=clean).stdout
 
-    return bool(res.strip())
+    validate = new_subprocess(['sudo', '-S', '-v'], stdin=echo)
+
+    for o in validate.stdout:
+        pass
+
+    for o in validate.stderr:
+        if o:
+            line = o.decode()
+
+            if 'incorrect password attempt' in line:
+                return False
+
+    return True
