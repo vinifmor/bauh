@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)
 - **api** allows custom operations, so the **gems** can provide actions that the current GUI does not support (Snap "refresh" was refactored as a custom operation)
 
+### Comments
+- the application settings are stored in **/home/$USER/.config/bauh/config.json**
 
 ## [0.5.2] 2019-09-06
 ### Features

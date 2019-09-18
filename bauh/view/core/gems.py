@@ -37,8 +37,10 @@ def load_managers(locale: str, context: ApplicationContext, enabled_gems: List[s
 
                 man = manager_class(context=context)
 
-                if enabled_gems is not None and  f.name not in enabled_gems:
-                    man.set_enabled(False)
+                if enabled_gems is None:
+                    man.set_enabled(man.is_default_enabled())
+                else:
+                    man.set_enabled(f.name in enabled_gems)
 
                 managers.append(man)
 

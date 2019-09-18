@@ -1,9 +1,10 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
+from bauh.view.util import resource
 
 
 class RadioButtonQt(QRadioButton):
@@ -122,6 +123,15 @@ class MultipleSelectQt(QGroupBox):
         self.setLayout(self._layout)
 
         line, col = 0, 0
+
+        pixmap_help = QPixmap()
+
+        for op in model.options:  # loads the help icon if at least one option has a tooltip
+            if op.tooltip:
+                with open(resource.get_path('img/help.png'), 'rb') as f:
+                    pixmap_help.loadFromData(f.read())
+                break
+
         for op in model.options:
             comp = CheckboxQt(op, model, callback)
 
@@ -129,7 +139,17 @@ class MultipleSelectQt(QGroupBox):
                 self.value = comp
                 comp.setChecked(True)
 
-            self._layout.addWidget(comp, line, col)
+            widget = QWidget()
+            widget.setLayout(QHBoxLayout())
+            widget.layout().addWidget(comp)
+
+            if op.tooltip:
+                help_icon = QLabel()
+                help_icon.setPixmap(pixmap_help)
+                help_icon.setToolTip(op.tooltip)
+                widget.layout().addWidget(help_icon)
+
+            self._layout.addWidget(widget, line, col)
 
             if col + 1 == self.model.max_per_line:
                 line += 1

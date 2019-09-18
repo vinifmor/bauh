@@ -1,4 +1,5 @@
 gem.arch.label=Arch ( AUR )
+gem.arch.info=Los paquetes AUR son mantenidos por una comunidad de usuarios independiente. No hay garantía de que funcionen o que no dañen su sistema.
 aur.info.architecture=arquitectura
 aur.info.architecture.any=cualquier
 aur.info.build date=fecha de construcción

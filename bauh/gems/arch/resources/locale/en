@@ -1,4 +1,5 @@
 gem.arch.label=Arch ( AUR )
+gem.arch.info=AUR packages are maintained by an independent user community. There is no warranty that they will work or not harm you system.
 arch.install.conflict.popup.title=Conflict detected
 arch.install.conflict.popup.body=The applications {} are in conflict. You must uninstall one to install the other. Continue ?
 arch.missing_deps.title=Missing dependencies

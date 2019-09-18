@@ -577,3 +577,6 @@ class ArchManager(SoftwareManager):
                     res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}), suggestions.ALL.get(pkg['Name'])))
 
         return res
+
+    def is_default_enabled(self) -> bool:
+        return False

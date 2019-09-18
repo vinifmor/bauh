@@ -37,19 +37,26 @@ class GemSelectorPanel(QWidget):
 
         self.gem_map = {}
         gem_options = []
+        current_enabled = set()
 
         for m in manager.managers:
             if m.can_work():
                 modname = m.__module__.split('.')[-2]
-                gem_options.append(InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
-                                               value=modname,
-                                               icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname)))
+                op = InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
+                                 tooltip=i18n.get('gem.{}.info'.format(modname)),
+                                 value=modname,
+                                 icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname))
+
+                gem_options.append(op)
                 self.gem_map[modname] = m
+
+                if m.is_enabled():
+                    current_enabled.add(op)
 
         if self.config.enabled_gems:
             default_ops = {o for o in gem_options if o.value in self.config.enabled_gems}
         else:
-            default_ops = set(gem_options)
+            default_ops = current_enabled
 
         self.bt_proceed.setEnabled(bool(default_ops))
 

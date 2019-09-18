@@ -206,3 +206,6 @@ class FlatpakManager(SoftwareManager):
                 break
 
         return res
+
+    def is_default_enabled(self) -> bool:
+        return True

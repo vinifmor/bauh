@@ -226,3 +226,9 @@ class SoftwareManager(ABC):
         :return: if the action resulted in success
         """
         pass
+
+    @abstractmethod
+    def is_default_enabled(self) -> bool:
+        """
+        :return: if the instance is enabled by default when there is no user settings defining which gems are enabled.
+        """

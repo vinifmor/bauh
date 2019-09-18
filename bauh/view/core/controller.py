@@ -313,3 +313,6 @@ class GenericSoftwareManager(SoftwareManager):
 
         if man:
             return exec('man.{}(pkg=pkg, root_password=root_password, watcher=watcher)'.format(action.manager_method))
+
+    def is_default_enabled(self) -> bool:
+        return True

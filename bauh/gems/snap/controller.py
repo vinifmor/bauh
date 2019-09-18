@@ -170,3 +170,6 @@ class SnapManager(SoftwareManager):
             t.join()
 
         return res
+
+    def is_default_enabled(self) -> bool:
+        return True

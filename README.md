@@ -72,11 +72,20 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no packaged considered as an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 
+
+The application settings are stored in **/home/$USER/.config/bauh/config.json**
+
+
+### Disk cache
+- **bauh** stores some data about your installed applications by **default** in **/home/$USER/.cache/bauh** to load them faster.
+
 ### How to improve **bauh** performance
 - If you don't care about a specific packaging technology and don't want **bauh** to deal with it, just disable it via the graphical interface.
 - If you don't care about restarting the app every time a new supported packaging technology is installed, set "check-packaging-once=1" (**bauh --check-packaging-once=1**). This can reduce the application response time up in some scenarios, since it won't need to recheck if the packaging type is available for every action you request.
 - If you don't mind to see the applications icons, you can set "download-icons=0" (**bauh --download-icons=0**). The application may have a slight response improvement, since it will reduce the parallelism within it.
 - If you don't mind app suggestions, disable it (**bauh --sugs=0**)
+- Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
+
 
 ### Code structure
 #### Modules

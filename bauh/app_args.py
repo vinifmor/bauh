@@ -7,7 +7,7 @@ from bauh import __app_name__, __version__
 
 
 def read() -> Namespace:
-    parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Linux packages management")
+    parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Linux package management")
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
     parser.add_argument('-e', '--cache-exp', action="store",
                         default=int(os.getenv('BAUH_CACHE_EXPIRATION', 60 * 60)), type=int,
