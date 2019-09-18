@@ -73,7 +73,7 @@ class ProcessHandler:
                     if process.wrong_error_phrase and process.wrong_error_phrase in line:
                         continue
                     else:
-                        break
+                        return False
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
