@@ -37,7 +37,7 @@ class GemSelectorPanel(QWidget):
 
         self.gem_map = {}
         gem_options = []
-        current_enabled = set()
+        default = set()
 
         for m in manager.managers:
             if m.can_work():
@@ -50,13 +50,13 @@ class GemSelectorPanel(QWidget):
                 gem_options.append(op)
                 self.gem_map[modname] = m
 
-                if m.is_enabled():
-                    current_enabled.add(op)
+                if m.is_enabled() and m in manager.working_managers:
+                    default.add(op)
 
         if self.config.enabled_gems:
             default_ops = {o for o in gem_options if o.value in self.config.enabled_gems}
         else:
-            default_ops = current_enabled
+            default_ops = default
 
         self.bt_proceed.setEnabled(bool(default_ops))
 

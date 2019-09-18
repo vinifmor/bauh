@@ -5,6 +5,7 @@ from typing import List
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
+from bauh.view.core.config import Configuration
 from bauh.view.util import util
 
 
@@ -19,7 +20,7 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(locale: str, context: ApplicationContext, enabled_gems: List[str] = None) -> List[SoftwareManager]:
+def load_managers(locale: str, context: ApplicationContext, config: Configuration) -> List[SoftwareManager]:
     managers = []
 
     for f in os.scandir(ROOT_DIR + '/gems'):
@@ -37,10 +38,10 @@ def load_managers(locale: str, context: ApplicationContext, enabled_gems: List[s
 
                 man = manager_class(context=context)
 
-                if enabled_gems is None:
+                if config.enabled_gems is None:
                     man.set_enabled(man.is_default_enabled())
                 else:
-                    man.set_enabled(f.name in enabled_gems)
+                    man.set_enabled(f.name in config.enabled_gems)
 
                 managers.append(man)
 

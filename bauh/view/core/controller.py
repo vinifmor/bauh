@@ -17,16 +17,18 @@ class GenericSoftwareManager(SoftwareManager):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._available_map = {} if app_args.check_packaging_once else None
+        self._available_cache = {} if app_args.check_packaging_once else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
         self.logger = context.logger
         self._already_prepared = []
+        self.working_managers = []
 
     def reset_cache(self):
-        if self._available_map is not None:
-            self._available_map = {}
+        if self._available_cache is not None:
+            self._available_cache = {}
+            self.working_managers.clear()
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
@@ -51,16 +53,24 @@ class GenericSoftwareManager(SoftwareManager):
 
     def _can_work(self, man: SoftwareManager):
 
-        if self._available_map is not None:
-            enabled = self._available_map.get(man.get_managed_types())
+        if self._available_cache is not None:
+            available = self._available_cache.get(man.get_managed_types())
 
-            if enabled is None:
-                enabled = man.is_enabled() and man.can_work()
-                self._available_map[man.get_managed_types()] = enabled
+            if available is None:
+                available = man.is_enabled() and man.can_work()
+                self._available_cache[man.get_managed_types()] = available
 
-            return enabled
         else:
-            return man.is_enabled() and man.can_work()
+            available = man.is_enabled() and man.can_work()
+
+        if available:
+            if man not in self.working_managers:
+                self.working_managers.append(man)
+        else:
+            if man in self.working_managers:
+                self.working_managers.remove(man)
+
+        return available
 
     def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):

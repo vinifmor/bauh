@@ -47,7 +47,7 @@ def main():
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
 
-    managers = gems.load_managers(context=context, locale=args.locale, enabled_gems=user_config.enabled_gems if user_config.enabled_gems else None)
+    managers = gems.load_managers(context=context, locale=args.locale, config=user_config)
 
     manager = GenericSoftwareManager(managers, context=context, app_args=args)
     manager.prepare()
