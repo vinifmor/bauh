@@ -247,8 +247,8 @@ class ArchManager(SoftwareManager):
             res_srcinfo = self.context.http_client.get(URL_SRC_INFO + pkg.name)
 
             if res_srcinfo and res_srcinfo.text:
-                info['11_dependson'] = ' '.join(pkgbuild.read_depends_on(res_srcinfo.text))
-                info['12_optdepends'] = ' '.join(pkgbuild.read_optdeps(res_srcinfo.text))
+                info['11_dependson'] = '\n'.join(pkgbuild.read_depends_on(res_srcinfo.text))
+                info['12_optdepends'] = '\n'.join(pkgbuild.read_optdeps(res_srcinfo.text))
 
             if pkg.pkgbuild:
                 info['13_pkg_build'] = pkg.pkgbuild
@@ -339,7 +339,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir)))
+        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir), check_error_output=False))
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -392,7 +392,7 @@ class ArchManager(SoftwareManager):
 
     def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, change_progress: bool = True) -> bool:
         with open('{}/.SRCINFO'.format(pkgdir)) as f:
-            odeps = pkgbuild.read_optdeps(f.read())
+            odeps = pkgbuild.read_optdeps_as_dict(f.read())
 
         if not odeps:
             return True
@@ -406,7 +406,9 @@ class ArchManager(SoftwareManager):
         pkg_mirrors = self._map_mirrors(to_install)
 
         if pkg_mirrors:
-            deps_to_install = confirmation.request_optional_deps(pkgname, pkg_mirrors, handler.watcher, self.i18n)
+            final_optdeps = {dep: {'desc': odeps[dep], 'mirror': pkg_mirrors[dep]} for dep in to_install}
+
+            deps_to_install = confirmation.request_optional_deps(pkgname, final_optdeps, handler.watcher, self.i18n)
 
             if not deps_to_install:
                 return True
@@ -477,7 +479,7 @@ class ArchManager(SoftwareManager):
                     file_url = URL_PKG_DOWNLOAD.format(pkgname)
                     file_name = file_url.split('/')[-1]
                     handler.watcher.change_substatus('{} {}'.format(self.i18n['arch.downloading.package'], bold(file_name)))
-                    download = handler.handle(SystemProcess(new_subprocess(['wget', file_url], cwd=app_build_dir)))
+                    download = handler.handle(SystemProcess(new_subprocess(['wget', file_url], cwd=app_build_dir), check_error_output=False))
 
                     if download:
                         self._update_progress(handler.watcher, 30, change_progress)

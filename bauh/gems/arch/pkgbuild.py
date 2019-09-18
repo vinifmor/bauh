@@ -1,8 +1,17 @@
 import re
 from typing import Set
 
-RE_PKGBUILD_OPTDEPS = re.compile(r"optdepends = ([^:\s]+)")
-RE_PKGBUILD_DEPSON = re.compile(r"depends = ([^:\s]+)")
+RE_PKGBUILD_OPTDEPS = re.compile(r"optdepends = (.+)")
+RE_PKGBUILD_DEPSON = re.compile(r"\s+depends = (.+)")
+
+
+def read_optdeps_as_dict(srcinfo: str) -> dict:
+    res = {}
+    for optdep in read_opts_deps(srcinfo):
+        split_dep = optdep.split(':')
+        res[split_dep[0].strip()] = split_dep[1].strip() if len(split_dep) > 1 else None
+
+    return res
 
 
 def read_optdeps(srcinfo: str) -> Set[str]:
