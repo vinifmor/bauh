@@ -82,29 +82,42 @@ def list_installed(version: str) -> List[dict]:
                 })
 
     else:
-        app_list = new_subprocess([BASE_CMD, 'list', '--columns=application,name,ref,arch,branch,description,origin,options,version'])
+        cols = 'application,ref,arch,branch,description,origin,options,{}version'.format('' if version < '1.3' else 'name,')
+        app_list = new_subprocess([BASE_CMD, 'list', '--columns=' + cols])
 
         for o in app_list.stdout:
             if o:
                 data = o.decode().strip().split('\t')
-                runtime = 'runtime' in data[7]
+                runtime = 'runtime' in data[6]
 
-                if len(data) > 8 and data[8]:
-                    version = data[8]
-                elif runtime:
-                    version = data[4]
+                if version < '1.3':
+                    name = data[0].split('.')[-1]
+
+                    if len(data) > 7 and data[7]:
+                        app_ver = data[7]
+                    elif runtime:
+                        app_ver = data[3]
+                    else:
+                        app_ver = None
                 else:
-                    version = None
+                    name = data[7]
+
+                    if len(data) > 8 and data[8]:
+                        app_ver = data[8]
+                    elif runtime:
+                        app_ver = data[3]
+                    else:
+                        app_ver = None
 
                 apps.append({'id': data[0],
-                             'name': data[1],
-                             'ref': data[2],
-                             'arch': data[3],
-                             'branch': data[4],
-                             'description': data[5],
-                             'origin': data[6],
+                             'name': name,
+                             'ref': data[1],
+                             'arch': data[2],
+                             'branch': data[3],
+                             'description': data[4],
+                             'origin': data[5],
                              'runtime': runtime,
-                             'version': version})
+                             'version': app_ver})
     return apps
 
 

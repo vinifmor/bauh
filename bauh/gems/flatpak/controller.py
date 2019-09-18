@@ -128,6 +128,7 @@ class FlatpakManager(SoftwareManager):
         app_info['name'] = app.name
         app_info['type'] = 'runtime' if app.runtime else 'app'
         app_info['description'] = strip_html(app.description) if app.description else ''
+        app_info['installed'] = app_info['installed'].replace('?', ' ')
         return app_info
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
