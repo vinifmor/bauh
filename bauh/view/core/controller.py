@@ -269,13 +269,14 @@ class GenericSoftwareManager(SoftwareManager):
 
         if self.managers:
             for man in self.managers:
-                man_warnings = man.list_warnings()
+                if man.is_enabled():
+                    man_warnings = man.list_warnings()
 
-                if man_warnings:
-                    if warnings is None:
-                        warnings = []
+                    if man_warnings:
+                        if warnings is None:
+                            warnings = []
 
-                    warnings.extend(man_warnings)
+                        warnings.extend(man_warnings)
 
         return warnings
 

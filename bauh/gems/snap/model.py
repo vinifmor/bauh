@@ -13,6 +13,7 @@ EXTRA_INSTALLED_ACTIONS = [
                   requires_root=True)
 ]
 
+KNOWN_APP_NAMES = {'gnome-calculator', 'gnome-system-monitor'}
 KNOWN_RUNTIME_NAMES = {'snapd', 'core', 'core18', 'snapcraft', 'multipass'}
 KNOWN_RUNTIME_PREFIXES = {'gtk-', 'gnome-', 'kde-', 'gtk2-'}
 KNOWN_RUNTIME_TYPES = {'base', 'core', 'os'}
@@ -50,7 +51,7 @@ class SnapApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self):
-        return not self.type and (self.name not in KNOWN_RUNTIME_NAMES and self.type not in KNOWN_RUNTIME_TYPES and not self._name_starts_with(KNOWN_RUNTIME_PREFIXES))
+        return not self.type and (self.name in KNOWN_APP_NAMES) or (self.name not in KNOWN_RUNTIME_NAMES and self.type not in KNOWN_RUNTIME_TYPES and not self._name_starts_with(KNOWN_RUNTIME_PREFIXES))
 
     def _name_starts_with(self, words: set):
         for word in words:
