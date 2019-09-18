@@ -335,6 +335,9 @@ class ManageWindow(QWidget):
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
+    def verify_warnings(self):
+        self.thread_warnings.start()
+
     def _show_installed(self):
         if self.pkgs_installed:
             self.finish_action()

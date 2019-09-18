@@ -90,6 +90,7 @@ class GemSelectorPanel(QWidget):
 
         self.manager.reset_cache()
         self.manager.prepare()
+        self.window.verify_warnings()
         self.window.refresh_apps()
         self.close()
 
