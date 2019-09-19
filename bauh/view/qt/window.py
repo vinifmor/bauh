@@ -256,6 +256,7 @@ class ManageWindow(QWidget):
         self.type_filter = self.any_type_filter
         self.filter_updates = False
         self._maximized = False
+        self.progress_controll_enabled = True
 
         self.dialog_about = None
         self.first_refresh = suggestions
@@ -268,8 +269,8 @@ class ManageWindow(QWidget):
         self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
-        # self.progress_bar.setTextVisible(True)
-        self.thread_animate_progress.set_progress(val)
+        if self.progress_controll_enabled:
+            self.thread_animate_progress.set_progress(val)
 
     def apply_filters_async(self):
         self.label_status.setText(self.i18n['manage_window.status.filtering'] + '...')
@@ -691,6 +692,7 @@ class ManageWindow(QWidget):
                         return
 
                 self._handle_console_option(True)
+                self.progress_controll_enabled =  len(to_update) == 1
                 self._begin_action(self.i18n['manage_window.status.upgrading'])
                 self.thread_update.apps_to_update = to_update
                 self.thread_update.root_password = pwd
@@ -769,6 +771,7 @@ class ManageWindow(QWidget):
         self.ref_toolbar_search.setEnabled(True)
         self.combo_filter_type.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
+        self.progress_controll_enabled = True
 
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)
