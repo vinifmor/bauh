@@ -61,6 +61,11 @@ def list_installed() -> Set[str]:
     return {out.decode().strip() for out in new_subprocess(['pacman', '-Qq']).stdout if out}
 
 
+def check_installed(pkg: str) -> bool:
+    res = run_cmd('pacman -Qq ' + pkg, print_error=False)
+    return bool(res)
+
+
 def list_and_map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
     installed = new_subprocess(['pacman', '-Qq']).stdout  # retrieving all installed package names
     allinfo = new_subprocess(['pacman', '-Qi'], stdin=installed).stdout  # retrieving all installed packages info

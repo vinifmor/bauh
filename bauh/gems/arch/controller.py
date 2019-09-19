@@ -407,8 +407,7 @@ class ArchManager(SoftwareManager):
         if not odeps:
             return True
 
-        installed = pacman.list_installed()
-        to_install = {d for d in odeps if d not in installed}
+        to_install = {d for d in odeps if not pacman.check_installed(d)}
 
         if not to_install:
             return True
