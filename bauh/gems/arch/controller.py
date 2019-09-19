@@ -195,7 +195,17 @@ class ArchManager(SoftwareManager):
         return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
 
     def _uninstall(self, pkg_name: str, root_password: str, handler: ProcessHandler) -> bool:
-        return handler.handle(SystemProcess(new_root_subprocess(['pacman', '-R', pkg_name, '--noconfirm'], root_password)))
+        res = handler.handle(SystemProcess(new_root_subprocess(['pacman', '-R', pkg_name, '--noconfirm'], root_password)))
+
+        if res:
+            cached_paths = [ArchPackage.disk_cache_path(pkg_name, 'aur'), ArchPackage.disk_cache_path(pkg_name, 'mirror')]
+
+            for path in cached_paths:
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                    break
+
+        return res
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
