@@ -416,7 +416,7 @@ class ArchManager(SoftwareManager):
         pkg_mirrors = self._map_mirrors(to_install)
 
         if pkg_mirrors:
-            final_optdeps = {dep: {'desc': odeps[dep], 'mirror': pkg_mirrors[dep]} for dep in to_install}
+            final_optdeps = {dep: {'desc': odeps.get(dep), 'mirror': pkg_mirrors.get(dep)} for dep in to_install if dep in pkg_mirrors}
 
             deps_to_install = confirmation.request_optional_deps(pkgname, final_optdeps, handler.watcher, self.i18n)
 

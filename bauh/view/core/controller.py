@@ -1,4 +1,5 @@
 import time
+import traceback
 from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
@@ -204,7 +205,16 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man:
-            return man.install(app, root_password, handler)
+            ti = time.time()
+            try:
+                self.logger.info('Installing {}'.format(app))
+                return man.install(app, root_password, handler)
+            except:
+                traceback.print_exc()
+                return False
+            finally:
+                tf = time.time()
+                self.logger.info('Installation of {} took {} seconds'.format(app, tf - ti))
 
     def get_info(self, app: SoftwarePackage):
         man = self._get_manager_for(app)

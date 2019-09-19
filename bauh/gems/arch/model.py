@@ -100,7 +100,7 @@ class ArchPackage(SoftwarePackage):
 
     def can_be_run(self) -> bool:
         # only returns if there is a desktop entry set for the application to avoid running command-line applications
-        return bool(self.desktop_entry)
+        return bool(self.command) and bool(self.desktop_entry)
 
     def get_publisher(self):
         return self.maintainer
