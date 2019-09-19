@@ -19,7 +19,7 @@ Name = bauh
 Categories = System;
 Comment = {comment}
 Exec = {path}
-Icon = {lib_path}/python{version}/site-packages/bauh/resources/img/logo.svg
+Icon = {lib_path}/python{version}/site-packages/bauh/view/resources/img/logo.svg
 """
 
 py_version = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
