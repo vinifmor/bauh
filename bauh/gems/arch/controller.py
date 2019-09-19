@@ -39,7 +39,7 @@ class ArchManager(SoftwareManager):
         self.aur_client = AURClient(context.http_client)
         self.names_index = {}
         self.aur_index_updater = AURIndexUpdater(context, self)
-        self.dcache_updater = ArchDiskCacheUpdater(context.logger)
+        self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = self.context.linux_distro[0].lower() == 'arch'
@@ -467,7 +467,9 @@ class ArchManager(SoftwareManager):
 
         if installed and self.context.disk_cache:
             handler.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(pkgname)))
-            disk.save_several({pkgname}, mirror)
+            if self.context.disk_cache:
+                disk.save_several({pkgname}, mirror)
+
             self._update_progress(handler.watcher, 100, change_progress)
 
         return installed

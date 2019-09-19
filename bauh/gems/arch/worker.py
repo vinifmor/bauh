@@ -37,16 +37,18 @@ class AURIndexUpdater(Thread):
 
 class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, logger: logging.Logger, disk_cache: bool):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
+        self.disk_cache = disk_cache
 
     def run(self):
-        self.logger.info('Pre-caching installed AUR packages data to disk')
-        installed = pacman.list_and_map_installed()
+        if self.disk_cache:
+            self.logger.info('Pre-caching installed AUR packages data to disk')
+            installed = pacman.list_and_map_installed()
 
-        saved = 0
-        if installed and installed['not_signed']:
-            saved = disk.save_several({app for app in installed['not_signed']}, 'aur', overwrite=False)
+            saved = 0
+            if installed and installed['not_signed']:
+                saved = disk.save_several({app for app in installed['not_signed']}, 'aur', overwrite=False)
 
-        self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))
+            self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))

@@ -175,4 +175,4 @@ class SnapManager(SoftwareManager):
         return True
 
     def launch(self, pkg: SnapApplication):
-        snap.run(pkg)
+        snap.run(pkg, self.context.logger)

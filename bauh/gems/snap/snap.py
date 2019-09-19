@@ -1,3 +1,4 @@
+import logging
 import re
 import subprocess
 import time
@@ -155,9 +156,36 @@ def refresh_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
     return new_root_subprocess([BASE_CMD, 'refresh', app_name], root_password)
 
 
-def run(app: SnapApplication):
+def run(app: SnapApplication, logger: logging.Logger):
     info = get_info(app.name, 'commands')
+    app_name = app.name.lower()
 
     if info.get('commands'):
-        subprocess.Popen([BASE_CMD, 'run', info['commands'][0]])
+
+        logger.info('Available commands found for {}: {}'.format(app_name, info['commands']))
+
+        commands = [c.strip() for c in info['commands']]
+
+        # trying to find an exact match command:
+        command = None
+
+        for c in commands:
+            if c.lower() == app_name:
+                command = c
+                logger.info("Found exact match command for '{}'".format(app_name))
+                break
+
+        if not command:
+            for c in command:
+                if not c.endswith('.apm'):
+                    command = c
+
+        if command:
+            logger.info("Running '{}'".format(command))
+            subprocess.Popen([BASE_CMD, 'run', command])
+            return
+
+        logger.error("No valid command found for '{}'".format(app_name))
+    else:
+        logger.error("No command found for '{}'".format(app_name))
 

@@ -336,4 +336,5 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(pkg)
 
         if man:
+            self.logger.info('Launching {}'.format(pkg))
             man.launch(pkg)

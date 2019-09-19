@@ -71,6 +71,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no packaged considered as an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
+- **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
 
 
 The application settings are stored in **/home/$USER/.config/bauh/config.json**

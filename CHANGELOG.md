@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Package "Name" filter field ( above the packages table )
 - Showing the number of packages being shown by the total found in the right lower corner
 - **Show button** for large fields in the **Info** window
+- New environment variables / parameters: BAUH_MAX_DISPLAYED and BAUH_LOGS
+
 
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time

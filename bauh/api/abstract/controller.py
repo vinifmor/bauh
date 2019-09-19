@@ -160,7 +160,7 @@ class SoftwareManager(ABC):
         :param only_icon: if only the icon should be saved
         :return:
         """
-        if pkg.supports_disk_cache():
+        if self.context.disk_cache and pkg.supports_disk_cache():
 
             if not only_icon:
                 Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
