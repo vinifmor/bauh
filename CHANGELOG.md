@@ -36,7 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Search bar resized
 
 ### Fixes:
-- cached Flatpak app current version
+- flatpak: cached app current version
+- flatpak: update notification for runtimes with the same name
 - disk loader not filling all requested cached data from the disk
 - Ubuntu root password check
 - [Ubuntu 19.04 pip3 install issue] (https://github.com/vinifmor/bauh/issues/3)
