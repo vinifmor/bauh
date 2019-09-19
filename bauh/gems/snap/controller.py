@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
@@ -163,12 +164,14 @@ class SnapManager(SoftwareManager):
                 t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
                 t.start()
                 threads.append(t)
+                time.sleep(0.001)  # to avoid being blocked
             else:
                 break
 
         for t in threads:
             t.join()
 
+        res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:

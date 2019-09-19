@@ -207,6 +207,7 @@ class FlatpakManager(SoftwareManager):
             else:
                 break
 
+        res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:
