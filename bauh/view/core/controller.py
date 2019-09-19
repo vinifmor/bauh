@@ -55,12 +55,16 @@ class GenericSoftwareManager(SoftwareManager):
     def _can_work(self, man: SoftwareManager):
 
         if self._available_cache is not None:
-            available = self._available_cache.get(man.get_managed_types())
+            available = False
+            for t in man.get_managed_types():
+                available = self._available_cache.get(t)
 
-            if available is None:
-                available = man.is_enabled() and man.can_work()
-                self._available_cache[man.get_managed_types()] = available
+                if available is None:
+                    available = man.is_enabled() and man.can_work()
+                    self._available_cache[t] = available
 
+                if available:
+                    available = True
         else:
             available = man.is_enabled() and man.can_work()
 
