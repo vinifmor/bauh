@@ -33,9 +33,9 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, locale_keys: dict, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, i18n: dict, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
-        self.locale_keys = locale_keys
+        self.i18n = i18n
         self.manager = manager
 
         self.icon_default = QIcon(resource.get_path('img/logo.png'))
@@ -44,13 +44,13 @@ class TrayIcon(QSystemTrayIcon):
 
         self.menu = QMenu()
 
-        self.action_manage = self.menu.addAction(self.locale_keys['tray.action.manage'])
+        self.action_manage = self.menu.addAction(self.i18n['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
 
-        self.action_about = self.menu.addAction(self.locale_keys['tray.action.about'])
+        self.action_about = self.menu.addAction(self.i18n['tray.action.about'])
         self.action_about.triggered.connect(self.show_about)
 
-        self.action_exit = self.menu.addAction(self.locale_keys['tray.action.exit'])
+        self.action_exit = self.menu.addAction(self.i18n['tray.action.exit'])
         self.action_exit.triggered.connect(lambda: QCoreApplication.exit())
 
         self.setContextMenu(self.menu)
@@ -71,7 +71,7 @@ class TrayIcon(QSystemTrayIcon):
         self.manage_window = manage_window
 
     def set_default_tooltip(self):
-        self.setToolTip('{} ({})'.format(self.locale_keys['manage_window.title'], __app_name__).lower())
+        self.setToolTip('{} ({})'.format(self.i18n['manage_window.title'], __app_name__).lower())
 
     def handle_click(self, reason):
         if reason == self.Trigger:
@@ -95,7 +95,8 @@ class TrayIcon(QSystemTrayIcon):
 
                 if update_keys.difference(self.last_updates):
                     self.last_updates = update_keys
-                    msg = '{}: {}'.format(self.locale_keys['notification.new_updates'], len(updates))
+                    n_updates = len(updates)
+                    msg = self.i18n['notification.update{}'.format('' if n_updates == 1 else 's')].format(n_updates)
                     self.setToolTip(msg)
 
                     if self.update_notification and notify_user:
@@ -122,7 +123,7 @@ class TrayIcon(QSystemTrayIcon):
     def show_about(self):
 
         if self.dialog_about is None:
-            self.dialog_about = AboutDialog(self.locale_keys)
+            self.dialog_about = AboutDialog(self.i18n)
 
         if self.dialog_about.isHidden():
             self.dialog_about.show()

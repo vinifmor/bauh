@@ -44,8 +44,9 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool, download_icons: bool,
-                 screen_size, suggestions: bool, display_limit: int, config: Configuration, context: ApplicationContext, tray_icon=None):
+    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
+                 download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
+                 context: ApplicationContext, notifications: bool, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.manager = manager
@@ -61,6 +62,7 @@ class ManageWindow(QWidget):
         self.screen_size = screen_size
         self.config = config
         self.context = context
+        self.notifications = notifications
 
         self.icon_app = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
@@ -457,7 +459,7 @@ class ManageWindow(QWidget):
             self.checkbox_console.setChecked(True)
 
     def _can_notify_user(self):
-        return self.isHidden() or self.isMinimized()
+        return self.notifications and (self.isHidden() or self.isMinimized())
 
     def _finish_downgrade(self, res: dict):
         self.finish_action()

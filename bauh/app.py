@@ -61,14 +61,15 @@ def main():
                                  suggestions=args.sugs,
                                  display_limit=args.max_displayed,
                                  config=user_config,
-                                 context=context)
+                                 context=context,
+                                 notifications=bool(args.system_notifications))
 
     if args.tray:
-        tray_icon = TrayIcon(locale_keys=i18n,
+        tray_icon = TrayIcon(i18n=i18n,
                              manager=manager,
                              manage_window=manage_window,
                              check_interval=args.check_interval,
-                             update_notification=bool(args.update_notification),)
+                             update_notification=bool(args.system_notifications))
         manage_window.set_tray_icon(tray_icon)
         tray_icon.show()
 

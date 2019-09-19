@@ -19,7 +19,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Show button** for large fields in the **Info** window
 - New environment variables / parameters: BAUH_MAX_DISPLAYED and BAUH_LOGS
 
-
 ### Improvements:
 - Reading installed Snaps now takes around 95% less time
 - Reading Snap suggestions now takes around 75% less time
@@ -29,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
 - small UI improvements
+- Environment variable / parameter BAUH_UPDATE_NOTIFICATION renamed to BAUH_SYSTEM_NOTIFICATIONS and now works for any system notification
 
 ### UI Changes
 - **Upgrade selected** and **Refresh** buttons now have text labels and new colors

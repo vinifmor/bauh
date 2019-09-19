@@ -18,9 +18,9 @@ def read() -> Namespace:
                         help='Translation key. Default: %(default)s')
     parser.add_argument('-i', '--check-interval', action="store", default=int(os.getenv('BAUH_CHECK_INTERVAL', 60)),
                         type=int, help='Updates check interval in SECONDS. Default: %(default)s')
-    parser.add_argument('-n', '--update-notification', action="store", choices=[0, 1],
-                        default=os.getenv('BAUH_UPDATE_NOTIFICATION', 1), type=int,
-                        help='Enables / disables system notifications for new updates. Default: %(default)s')
+    parser.add_argument('-n', '--system-notifications', action="store", choices=[0, 1],
+                        default=os.getenv('BAUH_SYSTEM_NOTIFICATIONS', 1), type=int,
+                        help='Enables / disables system notifications. Default: %(default)s')
     parser.add_argument('-dc', '--disk-cache', action="store", choices=[0, 1],
                         default=os.getenv('BAUH_DISK_CACHE', 1), type=int,
                         help='Enables / disables disk cache. When disk cache is enabled, the installed applications data are loaded faster. Default: %(default)s')
@@ -55,8 +55,8 @@ def validate(args: Namespace, logger: logging.Logger):
         logger.info("'check-interval' set as '{}'. It must be >= 0. Aborting...".format(args.check_interval))
         exit(1)
 
-    if args.update_notification == 0:
-        logger.info('updates notifications are disabled')
+    if args.system_notifications == 0:
+        logger.info('system notifications are disabled')
 
     if args.download_icons == 0:
         logger.info("'download-icons' is disabled")
