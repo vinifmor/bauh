@@ -101,7 +101,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
     if desktop_files:
         desktop_matches, no_exact_match = {}, set()
         for pkg in to_cache:  # first try to find exact matches
-            ends_with = re.compile('.+/{}.desktop$'.format(pkg), re.IGNORECASE)
+            ends_with = re.compile('/usr/share/applications/{}.desktop$'.format(pkg), re.IGNORECASE)
 
             for f in desktop_files:
                 if ends_with.match(f):
