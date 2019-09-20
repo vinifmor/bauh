@@ -48,7 +48,12 @@ class InfoDialog(QDialog):
         for idx, attr in enumerate(sorted(app.keys())):
             if attr not in IGNORED_ATTRS and app[attr]:
                 i18n_key = app['__app__'].model.get_type() + '.info.' + attr.lower()
-                val = str(app[attr]).strip()
+
+                if isinstance(app[attr], list):
+                    val = '\n'.join([str(e) for e in app[attr]])
+                else:
+                    val = str(app[attr]).strip()
+
                 full_val = None
 
                 i18n_val = locale_keys.get('{}.{}'.format(i18n_key, val.lower()))

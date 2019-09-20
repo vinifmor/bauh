@@ -3,6 +3,8 @@ from typing import List, Set
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess
 
+RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
+
 
 def is_enabled() -> bool:
     try:
@@ -48,11 +50,14 @@ def get_info_dict(pkg_name: str) -> dict:
     if info_list:
         info_dict = {}
         for info_data in info_list:
-            attr = info_data[0].lower()
+            attr = info_data[0].lower().strip()
             info_dict[attr] = info_data[1] if '\n' not in info_data[1] else ' '.join([l.strip() for l in info_data[1].split('\n')])
 
             if info_dict[attr] == 'None':
                 info_dict[attr] = None
+
+            if attr == 'optional deps' and info_dict[attr]:
+                info_dict[attr] = RE_DEPS.findall(info_dict[attr])
 
         return info_dict
 
