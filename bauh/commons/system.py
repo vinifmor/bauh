@@ -1,12 +1,22 @@
 import os
 import subprocess
+import sys
 from subprocess import PIPE
 from typing import List
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
 
-GLOBAL_INTERPRETER_PATH = ':'.join(os.getenv('PATH').split(':')[1:])
+PY_VERSION = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
+GLOBAL_PY_LIBS = '/usr/lib/python{}'.format(PY_VERSION)
+
+PATH = os.getenv('PATH')
+
+GLOBAL_INTERPRETER_PATH = ':'.join(PATH.split(':')[1:])
+
+if GLOBAL_PY_LIBS not in PATH:
+    PATH = '{}:{}'.format(GLOBAL_PY_LIBS, PATH)
+
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
 
@@ -15,6 +25,8 @@ def gen_env(global_interpreter: bool) -> dict:
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
         res['PATH'] = GLOBAL_INTERPRETER_PATH
+    else:
+        res['PATH'] = PATH
 
     return res
 
