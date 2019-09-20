@@ -56,29 +56,35 @@ class SnapManager(SoftwareManager):
         return app
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
-        installed = self.read_installed(disk_loader).installed
+        if snap.is_snapd_running():
+            installed = self.read_installed(disk_loader).installed
 
-        res = SearchResult([], [], 0)
+            res = SearchResult([], [], 0)
 
-        for app_json in snap.search(words):
+            for app_json in snap.search(words):
 
-            already_installed = None
+                already_installed = None
 
-            if installed:
-                already_installed = [i for i in installed if i.id == app_json.get('name')]
-                already_installed = already_installed[0] if already_installed else None
+                if installed:
+                    already_installed = [i for i in installed if i.id == app_json.get('name')]
+                    already_installed = already_installed[0] if already_installed else None
 
-            if already_installed:
-                res.installed.append(already_installed)
-            else:
-                res.new.append(self.map_json(app_json, installed=False, disk_loader=disk_loader))
+                if already_installed:
+                    res.installed.append(already_installed)
+                else:
+                    res.new.append(self.map_json(app_json, installed=False, disk_loader=disk_loader))
 
-        res.total = len(res.installed) + len(res.new)
-        return res
+            res.total = len(res.installed) + len(res.new)
+            return res
+        else:
+            return SearchResult([], [], 0)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
-        installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
-        return SearchResult(installed, None, len(installed))
+        if snap.is_snapd_running():
+            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
+            return SearchResult(installed, None, len(installed))
+        else:
+            return SearchResult([], None, 0)
 
     def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.downgrade_and_stream(pkg.name, root_password), wrong_error_phrase=None))
@@ -136,7 +142,7 @@ class SnapManager(SoftwareManager):
         pass
 
     def list_warnings(self) -> List[str]:
-        if snap.get_snapd_version() == 'unavailable':
+        if not snap.is_snapd_running():
             return [self.i18n['snap.notification.snapd_unavailable']]
 
     def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):

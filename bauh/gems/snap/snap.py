@@ -1,7 +1,6 @@
 import logging
 import re
 import subprocess
-import time
 from typing import List
 
 from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
@@ -11,28 +10,19 @@ BASE_CMD = 'snap'
 
 
 def is_installed():
-    version = get_snapd_version()
-    return False if version is None else True
+    res = run_cmd('which snap')
+    return res and not res.strip().startswith('which ')
 
 
-def get_version():
-    res = run_cmd('{} --version'.format(BASE_CMD), print_error=False)
-    return res.split('\n')[0].split(' ')[-1].strip() if res else None
+def is_snapd_running() -> bool:
+    services = new_subprocess(['systemctl', 'list-units'])
 
+    for o in new_subprocess(['grep', 'snapd.socket'], stdin=services.stdout).stdout:
+        if o:
+            if ' running ' in o.decode():
+                return True
 
-def get_snapd_version():
-    res = run_cmd('{} --version'.format(BASE_CMD), print_error=False)
-
-    if not res:
-        return None
-    else:
-        lines = res.split('\n')
-
-        if lines and len(lines) >= 2:
-            version = lines[1].split(' ')[-1].strip()
-            return version if version and version.lower() != 'unavailable' else None
-        else:
-            return None
+    return False
 
 
 def app_str_to_json(app: str) -> dict:

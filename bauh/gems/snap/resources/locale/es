@@ -7,6 +7,6 @@ snap.info.revision=revisión
 snap.info.tracking=tracking
 snap.info.installed=instalado
 snap.info.publisher=publicador
-snap.notification.snapd_unavailable=snapd no parece estar habilitado. los paquetes snap estarán indisponibles.
+snap.notification.snapd_unavailable=snapd no parece estar instalado o habilitado. los paquetes snap estarán indisponibles.
 snap.action.refresh.status=Actualizando
 snap.action.refresh.label=Actualizar

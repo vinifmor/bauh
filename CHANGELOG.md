@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Reading installed Snaps now takes around 95% less time
 - Reading Snap suggestions now takes around 75% less time
 - Reading installed Flatpaks now takes around 45% less time
+- "snap" and "snapd" installation check latency
 - Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
 - When a package is installed, it will be the first element of the table after refreshing
 - Progress bar status can now be controlled by the software manager while an operation is being executed
