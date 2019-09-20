@@ -17,10 +17,10 @@ def is_installed():
 def is_snapd_running() -> bool:
     services = new_subprocess(['systemctl', 'list-units'])
 
-    for o in new_subprocess(['grep', 'snapd.socket'], stdin=services.stdout).stdout:
+    for o in new_subprocess(['grep', '-oP', 'snapd.socket.+\K(listening|running)'], stdin=services.stdout).stdout:
         if o:
-            if ' running ' in o.decode():
-                return True
+            line = o.decode().strip()
+            return bool(line)
 
     return False
 
@@ -178,4 +178,3 @@ def run(app: SnapApplication, logger: logging.Logger):
         logger.error("No valid command found for '{}'".format(app_name))
     else:
         logger.error("No command found for '{}'".format(app_name))
-
