@@ -14,7 +14,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess
-from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions
+from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, gpg
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -254,11 +254,14 @@ class ArchManager(SoftwareManager):
                 '10_url': pkg.url_download,
             }
 
-            res_srcinfo = self.context.http_client.get(URL_SRC_INFO + pkg.name)
+            srcinfo = self.aur_client.get_src_info(pkg.name)
 
-            if res_srcinfo and res_srcinfo.text:
-                info['11_dependson'] = '\n'.join(pkgbuild.read_depends_on(res_srcinfo.text))
-                info['12_optdepends'] = '\n'.join(pkgbuild.read_optdeps(res_srcinfo.text))
+            if srcinfo:
+                if srcinfo.get('depends'):
+                    info['11_dependson'] = srcinfo['depends']
+
+                if srcinfo.get('optdepends'):
+                    info['12_optdepends'] = srcinfo['optdepends']
 
             if pkg.pkgbuild:
                 info['13_pkg_build'] = pkg.pkgbuild
@@ -344,7 +347,7 @@ class ArchManager(SoftwareManager):
     def _make_pkg(self, pkgname: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
         self._update_progress(handler.watcher, 50, change_progress)
-        if not self._install_missings_deps(pkgname, root_password, handler, project_dir):
+        if not self._install_missings_deps_and_keys(pkgname, root_password, handler, project_dir):
             return False
 
         # building main package
@@ -373,30 +376,44 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _install_missings_deps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
+    def _install_missings_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        missing_deps = makepkg.check_missing_deps(pkgdir, handler.watcher)
+        check_res = makepkg.check_missing_deps(pkgdir, handler.watcher)
 
-        if missing_deps:
-            depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in missing_deps}
-            dep_mirrors = self._map_mirrors(depnames)
+        if check_res:
 
-            for dep in depnames:  # cheking if a dependency could not be found in any mirror
-                if dep not in dep_mirrors:
-                    message.show_dep_not_found(dep, self.i18n, handler.watcher)
+            if check_res.get('gpg_key'):
+                if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
+                                                        body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(pkgname), bold(check_res['gpg_key']))):
+                    handler.watcher.change_substatus(self.i18n['arch.aur.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
+                    if not handler.handle(gpg.receive_key(check_res['gpg_key'])):
+                        handler.watcher.show_message(title=self.i18n['error'],
+                                                     body=self.i18n['arch.aur.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
+                        return False
+                else:
+                    handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
-            handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
+            if check_res.get('missing_deps'):
+                depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in check_res['missing_deps']}
+                dep_mirrors = self._map_mirrors(depnames)
 
-            if not confirmation.request_install_missing_deps(pkgname, dep_mirrors, handler.watcher, self.i18n):
-                handler.watcher.print(self.i18n['action.cancelled'])
-                return False
+                for dep in depnames:  # cheking if a dependency could not be found in any mirror
+                    if dep not in dep_mirrors:
+                        message.show_dep_not_found(dep, self.i18n, handler.watcher)
+                        return False
 
-            dep_not_installed = self._install_deps(depnames, dep_mirrors, root_password, handler, change_progress=False)
+                handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
 
-            if dep_not_installed:
-                message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
-                return False
+                if not confirmation.request_install_missing_deps(pkgname, dep_mirrors, handler.watcher, self.i18n):
+                    handler.watcher.print(self.i18n['action.cancelled'])
+                    return False
+
+                dep_not_installed = self._install_deps(depnames, dep_mirrors, root_password, handler, change_progress=False)
+
+                if dep_not_installed:
+                    message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
+                    return False
 
         return True
 
@@ -477,6 +494,41 @@ class ArchManager(SoftwareManager):
     def _update_progress(self, watcher: ProcessWatcher, val: int, change_progress: bool):
         if change_progress:
             watcher.change_progress(val)
+
+    def _import_pgp_keys(self, pkgname: str, root_password: str, handler: ProcessHandler):
+        srcinfo = self.aur_client.get_src_info(pkgname)
+
+        if srcinfo.get('validpgpkeys'):
+            handler.watcher.print(self.i18n['arch.aur.install.verifying_pgp'])
+            keys_to_download = [key for key in srcinfo['validpgpkeys'] if not pacman.verify_pgp_key(key)]
+
+            if keys_to_download:
+                keys_str = ''.join(
+                    ['<br/><span style="font-weight:bold">  - {}</span>'.format(k) for k in keys_to_download])
+                msg_body = '{}:<br/>{}<br/><br/>{}'.format(self.i18n['arch.aur.install.pgp.body'].format(bold(pkgname)),
+                                                           keys_str, self.i18n['ask.continue'])
+
+                if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.pgp.title'], body=msg_body):
+                    for key in keys_to_download:
+                        handler.watcher.change_substatus(self.i18n['arch.aur.install.pgp.substatus'].format(bold(key)))
+                        if not handler.handle(pacman.receive_key(key, root_password)):
+                            handler.watcher.show_message(title=self.i18n['error'],
+                                                         body=self.i18n['arch.aur.install.pgp.receive_fail'].format(
+                                                             bold(key)),
+                                                         type_=MessageType.ERROR)
+                            return False
+
+                        if not handler.handle(pacman.sign_key(key, root_password)):
+                            handler.watcher.show_message(title=self.i18n['error'],
+                                                         body=self.i18n['arch.aur.install.pgp.sign_fail'].format(
+                                                             bold(key)),
+                                                         type_=MessageType.ERROR)
+                            return False
+
+                        handler.watcher.change_substatus(self.i18n['arch.aur.install.pgp.success'])
+                else:
+                    handler.watcher.print(self.i18n['action.cancelled'])
+                    return False
 
     def _install_from_aur(self, pkgname: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
