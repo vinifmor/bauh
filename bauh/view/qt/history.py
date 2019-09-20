@@ -13,7 +13,7 @@ class HistoryDialog(QDialog):
     def __init__(self, history: PackageHistory, icon_cache: MemoryCache, locale_keys: dict):
         super(HistoryDialog, self).__init__()
 
-        self.setWindowTitle('{} - {} '.format(locale_keys['popup.history.title'], history.pkg.name))
+        self.setWindowTitle('{} - {} ({})'.format(locale_keys['popup.history.title'], history.pkg.name, history.pkg.get_type()))
 
         layout = QVBoxLayout()
         self.setLayout(layout)
