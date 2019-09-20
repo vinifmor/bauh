@@ -7,9 +7,10 @@ from bauh.commons.html import bold
 
 
 def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: dict) -> Set[str]:
+    opts = [InputOption('{}{} ( {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', d['mirror'].upper()), p) for p, d in pkg_mirrors.items()]
     view_opts = MultipleSelectComponent(label='',
-                                        options=[InputOption('{}{} ( {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', d['mirror'].upper()), p)
-                                                 for p, d in pkg_mirrors.items()])
+                                        options=opts,
+                                        default_options=set(opts))
     install = watcher.request_confirmation(title=i18n['arch.install.optdeps.request.title'],
                                            body='<p>{}</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)) + ':'),
                                            components=[view_opts],

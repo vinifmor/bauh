@@ -381,7 +381,6 @@ class ArchManager(SoftwareManager):
         check_res = makepkg.check_missing_deps(pkgdir, handler.watcher)
 
         if check_res:
-
             if check_res.get('gpg_key'):
                 if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
                                                         body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(pkgname), bold(check_res['gpg_key']))):
