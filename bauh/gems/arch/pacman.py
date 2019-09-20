@@ -99,7 +99,7 @@ def install_as_process(pkgpath: str, root_password: str, aur: bool, pkgdir: str 
     else:
         cmd = ['pacman', '-S', pkgpath, '--noconfirm']  # pkgpath = pkgname
 
-    return SystemProcess(new_root_subprocess(cmd, root_password, cwd=pkgdir), wrong_error_phrase='warning: downgrading package')
+    return SystemProcess(new_root_subprocess(cmd, root_password, cwd=pkgdir), wrong_error_phrase='warning:')
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
