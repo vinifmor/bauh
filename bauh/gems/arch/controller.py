@@ -26,6 +26,9 @@ URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 
 RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 
+SOURCE_FIELDS = ('source', 'source_x86_64')
+RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg]$')
+
 
 class ArchManager(SoftwareManager):
 
@@ -251,7 +254,7 @@ class ArchManager(SoftwareManager):
                 '07_maintainer': pkg.maintainer,
                 '08_first_submitted': pkg.first_submitted,
                 '09_last_modified': pkg.last_modified,
-                '10_url': pkg.url_download,
+                '10_url': pkg.url_download
             }
 
             srcinfo = self.aur_client.get_src_info(pkg.name)
@@ -344,7 +347,43 @@ class ArchManager(SoftwareManager):
 
         return pkg_mirrors
 
+    def _pre_download_source(self, pkgname: str, project_dir: str, watcher: ProcessWatcher) -> bool:
+        if self.context.file_downloader.is_multithreaded():
+            srcinfo = self.aur_client.get_src_info(pkgname)
+
+            pre_download_files = []
+
+            for attr in SOURCE_FIELDS:
+                if srcinfo.get(attr):
+                    if attr == 'source_x86_x64' and not self.context.is_system_x86_64():
+                        continue
+                    else:
+                        for f in srcinfo[attr]:
+                            if RE_PRE_DOWNLOADABLE_FILES.findall(f):
+                                pre_download_files.append(f)
+
+            for f in pre_download_files:
+                fdata = f.split('::')
+
+                args = {'watcher': watcher, 'cwd': project_dir}
+                if len(fdata) > 1:
+                    args.update({'file_url': fdata[1], 'output_path': fdata[0]})
+                else:
+                    args.update({'file_url': fdata[0], 'output_path': None})
+
+                file_size = self.context.http_client.get_content_length(args['file_url'])
+                file_size = int(file_size) / (1024 ** 2) if file_size else None
+
+                watcher.change_substatus(self.i18n['downloading'] + ' ' + bold(args['file_url'].split('/')[-1]) + ' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
+                if not self.context.file_downloader.download(**args):
+                    watcher.print('Could not download source file {}'.format(args['file_url']))
+                    return False
+
+        return True
+
     def _make_pkg(self, pkgname: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+        if not self._pre_download_source(pkgname, project_dir, handler.watcher):
+            return False
 
         self._update_progress(handler.watcher, 50, change_progress)
         if not self._install_missings_deps_and_keys(pkgname, root_password, handler, project_dir):
@@ -378,7 +417,7 @@ class ArchManager(SoftwareManager):
 
     def _install_missings_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check_missing_deps(pkgdir, handler.watcher)
+        check_res = makepkg.check(pkgdir, handler.watcher)
 
         if check_res:
             if check_res.get('gpg_key'):

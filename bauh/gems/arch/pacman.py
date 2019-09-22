@@ -61,6 +61,8 @@ def get_info_dict(pkg_name: str) -> dict:
 
             if attr == 'optional deps' and info_dict[attr]:
                 info_dict[attr] = RE_DEPS.findall(info_dict[attr])
+            elif attr == 'depends on' and info_dict[attr]:
+                info_dict[attr] = [d.strip() for d in info_dict[attr].split(' ') if d]
 
         return info_dict
 

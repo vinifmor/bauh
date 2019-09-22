@@ -12,7 +12,7 @@ class InfoDialog(QDialog):
 
     def __init__(self, app: dict, icon_cache: MemoryCache, locale_keys: dict, screen_size: QSize()):
         super(InfoDialog, self).__init__()
-        self.setWindowTitle(app['__app__'].model.name)
+        self.setWindowTitle(str(app['__app__']))
         self.screen_size = screen_size
         self.i18n = locale_keys
         layout = QVBoxLayout()
@@ -50,7 +50,7 @@ class InfoDialog(QDialog):
                 i18n_key = app['__app__'].model.get_type() + '.info.' + attr.lower()
 
                 if isinstance(app[attr], list):
-                    val = '\n'.join([str(e) for e in app[attr]])
+                    val = '\n'.join(['* ' + str(e.strip()) for e in app[attr] if e])
                 else:
                     val = str(app[attr]).strip()
 

@@ -29,7 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
 - small UI improvements
+- installation logs are saved at **/tmp/bauh/logs/install**
 - Environment variable / parameter BAUH_UPDATE_NOTIFICATION renamed to BAUH_SYSTEM_NOTIFICATIONS and now works for any system notification
+- Environment variable / parameter BAUH_DOWNLOAD_MULTITHREAD (--download-mthread): if source files should be downloaded using multi-threads.
 
 ### UI Changes
 - **Upgrade selected** and **Refresh** buttons now have text labels and new colors
@@ -44,6 +46,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - disk loader not filling all requested cached data from the disk
 - Ubuntu root password check
 - [Ubuntu 19.04 pip3 install issue] (https://github.com/vinifmor/bauh/issues/3)
+
+### AUR support (**arch gem**):
+- Search, install, uninstall, downgrade, retrieve history and launch packages
+- Faster source files download when (**axel**) [https://github.com/axel-download-accelerator/axel] is installed on your system
 
 ### Code
 - Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)

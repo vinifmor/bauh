@@ -72,7 +72,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no packaged considered as an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 - **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-
+- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **axel** is installed ). Use **0** (disable) or **1** (enabled, default).
 
 The application settings are stored in **/home/$USER/.config/bauh/config.json**
 
@@ -87,6 +87,8 @@ The application settings are stored in **/home/$USER/.config/bauh/config.json**
 - If you don't mind app suggestions, disable it (**bauh --sugs=0**)
 - Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
 
+### Logs
+- Installation logs are saved at **/tmp/bauh/logs/install**
 
 ### Code structure
 #### Modules

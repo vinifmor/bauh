@@ -38,3 +38,13 @@ class HttpClient:
     def get_json(self, url: str):
         res = self.get(url)
         return res.json() if res else None
+
+    def get_content_length(self, url: str) -> int:
+        """
+        :param url:
+        :return:
+        """
+        res = self.session.head(url)
+
+        if res.status_code == 200:
+            return res.headers['content-length']

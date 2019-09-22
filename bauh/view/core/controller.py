@@ -218,7 +218,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return False
             finally:
                 tf = time.time()
-                self.logger.info('Installation of {} took {} seconds'.format(app, tf - ti))
+                self.logger.info('Installation of {}'.format(app) + 'took {0:.2f} minutes'.format((tf - ti)/60))
 
     def get_info(self, app: SoftwarePackage):
         man = self._get_manager_for(app)

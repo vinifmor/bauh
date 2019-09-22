@@ -118,3 +118,4 @@ style=estilo
 style.change.title=Cambio de estilo
 style.change.question=Para cambiar el estilo actual es necesario reiniciar {}. ¿Proceder?
 manage_window.bt_settings.tooltip=Haga clic aquí para abrir acciones adicionales
+downloading=Descargando

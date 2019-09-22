@@ -36,6 +36,7 @@ def read() -> Namespace:
     parser.add_argument('-md', '--max-displayed', action="store", default=os.getenv('BAUH_MAX_DISPLAYED', 50), type=int, help='Maximum number of displayed packages in the management panel table. Default: %(default)s')
     parser.add_argument('--logs', action="store", default=int(os.getenv('BAUH_LOGS', 0)), choices=[0, 1], type=int, help='If the application logs should be displayed. Default: %(default)s')
     parser.add_argument('--show-panel', action="store_true", help='Shows the management panel after the app icon is attached to the tray.')
+    parser.add_argument('-dm', '--download-mthread', action="store", default=os.getenv('BAUH_DOWNLOAD_MULTITHREAD', 1), choices=[0, 1], type=int, help='If installation files should be downloaded using multi-threads (only possible if axel is installed). Default: %(default)s')
     return parser.parse_args()
     
     
@@ -69,5 +70,8 @@ def validate(args: Namespace, logger: logging.Logger):
 
     if args.logs == 1:
         logger.info("Logs are enabled")
+
+    if args.download_mthread == 0:
+        logger.info("Multithreaded downloads disabled")
 
     return args

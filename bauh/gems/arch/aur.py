@@ -11,6 +11,8 @@ URL_SEARCH = 'https://aur.archlinux.org/rpc/?v=5&type=search&arg='
 
 RE_SRCINFO_KEYS = re.compile(r'(\w+)\s+=\s+(.+)\n')
 
+KNOWN_LIST_FIELDS = ('validpgpkeys', 'depends', 'optdepends', 'sha512sums', 'sha512sums_x86_64', 'source', 'source_x86_64')
+
 
 def map_pkgbuild(pkgbuild: str) -> dict:
     return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
@@ -36,15 +38,12 @@ class AURClient:
             info = {}
             for field in RE_SRCINFO_KEYS.findall(res.text):
                 if field[0] not in info:
-                    info[field[0]] = field[1]
+                    info[field[0]] = [field[1]] if field[0] in KNOWN_LIST_FIELDS else field[1]
                 else:
                     if not isinstance(info[field[0]], list):
                         info[field[0]] = [info[field[0]]]
 
                     info[field[0]].append(field[1])
-
-            if info.get('validpgpkeys') and isinstance(info['validpgpkeys'], str):
-                info['validpgpkeys'] = [info['validpgpkeys']]
 
             return info
 

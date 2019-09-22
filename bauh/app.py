@@ -8,6 +8,7 @@ from bauh.api.abstract.controller import ApplicationContext
 from bauh.api.http import HttpClient
 from bauh.view.core import gems, config
 from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import util, logs, resource
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
@@ -33,7 +34,8 @@ def main():
                                  app_root_dir=ROOT_DIR,
                                  cache_factory=cache_factory,
                                  disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache, logger=logger),
-                                 logger=logger)
+                                 logger=logger,
+                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread)))
     user_config = config.read()
 
     app = QApplication(sys.argv)
