@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### AUR support (**arch gem**):
 - Search, install, uninstall, downgrade, retrieve history and launch packages
-- Faster source files download when (**aria2**) [https://github.com/aria2/aria2] is installed on your system ( see **README.md** for more information )
+- Faster source files downloads improving installation speed ( see **README.md** for more information )
 - Automatically improves package compilations (see *README.md** for more information )
 
 ### Code

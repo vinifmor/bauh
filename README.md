@@ -27,6 +27,7 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 - **wget**: to be able to download and install AUR packages
 - **pacman**: to be able to handle AUR packages
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
+- **aria2**: faster AUR source files downloading ( reduces packages installation time. More information below. )
 
 
 ### Distribution
@@ -51,7 +52,7 @@ env/bin/pip install . ( install the application code inside the **env** )
 env/bin/bauh  ( launch the application )
 ```
 
-If you want do not want to clone / download this repository, go your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
+If you do not want to clone / download this repository, go your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
 
 
 ### Autostart
@@ -72,7 +73,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no packaged considered as an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 - **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **axel** is installed ). Use **0** (disable) or **1** (enabled, default).
+- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **aria2** is installed ). Use **0** (disable) or **1** (enabled, default).
 
 The application settings are stored in **/home/$USER/.config/bauh/config.json**
 
@@ -95,11 +96,11 @@ The application settings are stored in **/home/$USER/.config/bauh/config.json**
 
 ### AUR support ( arch gem )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
-- It handles conflicts, and missing / optional packages installations
-- Automatically makes a simple package compilation improvement: if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
+- It handles conflicts, and missing / optional packages installations ( include from your distro mirrors )
+- Automatically makes a simple package compilation improvement -> if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
 then a copy of **/etc/makepkg.conf** will be generated at **/home/$USER/makepkg.conf** defining MAKEFLAGS to work with
 the number of your machine processors multiplied by 1.5 rounded up ( this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0** )
-- If (**aria2**) [https://github.com/aria2/aria2] is installed on your system and multi-threaded downloads are enabled ( see**BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+- If (**aria2**) [https://github.com/aria2/aria2] is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
 
 
