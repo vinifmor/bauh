@@ -11,6 +11,7 @@ PY_VERSION = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 GLOBAL_PY_LIBS = '/usr/lib/python{}'.format(PY_VERSION)
 
 PATH = os.getenv('PATH')
+DEFAULT_LANG = 'en'
 
 GLOBAL_INTERPRETER_PATH = ':'.join(PATH.split(':')[1:])
 
@@ -20,8 +21,11 @@ if GLOBAL_PY_LIBS not in PATH:
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
 
-def gen_env(global_interpreter: bool) -> dict:
-    res = {'LANG': 'en'}
+def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG) -> dict:
+    res = {}
+
+    if lang:
+        res['LANG'] = lang
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
         res['PATH'] = GLOBAL_INTERPRETER_PATH
@@ -37,11 +41,12 @@ class SystemProcess:
     Represents a system process being executed.
     """
 
-    def __init__(self, subproc: subprocess.Popen, success_phrase: str = None, wrong_error_phrase: str = '[sudo] password for', check_error_output: bool = True):
+    def __init__(self, subproc: subprocess.Popen, success_phrase: str = None, wrong_error_phrase: str = '[sudo] password for', check_error_output: bool = True, skip_stdout: bool = False):
         self.subproc = subproc
         self.success_phrase = success_phrase
         self.wrong_error_phrase = wrong_error_phrase
         self.check_error_output = check_error_output
+        self.skip_stdout = skip_stdout
 
     def wait(self):
         self.subproc.wait()
@@ -65,27 +70,34 @@ class ProcessHandler:
 
         already_succeeded = False
 
-        for output in process.subproc.stdout:
-            line = output.decode().strip()
-            if line:
-                self._notify_watcher(line)
+        if not process.skip_stdout:
+            for output in process.subproc.stdout:
+                line = output.decode().strip()
+                if line:
+                    self._notify_watcher(line)
 
-                if process.success_phrase and process.success_phrase in line:
-                    already_succeeded = True
+                    if process.success_phrase and process.success_phrase in line:
+                        already_succeeded = True
+
+            if already_succeeded:
+                return True
+
+        for output in process.subproc.stderr:
+            if output:
+                line = output.decode().strip()
+                if line:
+                    self._notify_watcher(line)
+
+                    if process.check_error_output:
+                        if process.wrong_error_phrase and process.wrong_error_phrase in line:
+                            continue
+                        else:
+                            return False
+                    elif process.skip_stdout and process.success_phrase and process.success_phrase in line:
+                        already_succeeded = True
 
         if already_succeeded:
             return True
-
-        for output in process.subproc.stderr:
-            line = output.decode().strip()
-            if line:
-                self._notify_watcher(line)
-
-                if process.check_error_output:
-                    if process.wrong_error_phrase and process.wrong_error_phrase in line:
-                        continue
-                    else:
-                        return False
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
@@ -116,13 +128,13 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
-                   global_interpreter: bool = USE_GLOBAL_INTERPRETER) -> subprocess.Popen:
+                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
         "stderr": PIPE,
         "cwd": cwd,
         "shell": shell,
-        "env": gen_env(global_interpreter)
+        "env": gen_env(global_interpreter, lang)
     }
 
     if input:
@@ -132,12 +144,12 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
 
 
 def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
-                        global_interpreter: bool = USE_GLOBAL_INTERPRETER) -> subprocess.Popen:
+                        global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
     pwdin, final_cmd = None, []
 
     if root_password is not None:
         final_cmd.extend(['sudo', '-S'])
-        pwdin = new_subprocess(['echo', root_password], global_interpreter=global_interpreter).stdout
+        pwdin = new_subprocess(['echo', root_password], global_interpreter=global_interpreter, lang=lang).stdout
 
     final_cmd.extend(cmd)
     return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd)

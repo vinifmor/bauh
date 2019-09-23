@@ -869,24 +869,25 @@ class ManageWindow(QWidget):
         self.thread_install.start()
 
     def _finish_install(self, pkgv: PackageView):
-        console_output = self.textarea_output.toPlainText()
-
-        if console_output:
-            log_path = '/tmp/bauh/logs/install/{}/{}'.format(pkgv.model.get_type(), pkgv.model.name)
-            try:
-                Path(log_path).mkdir(parents=True, exist_ok=True)
-
-                with open(log_path + '/{}.log'.format(int(time.time())), 'w+') as f:
-                    f.write(console_output)
-            except:
-                self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
-
         self.input_search.setText('')
         self.finish_action()
 
         if pkgv:
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['installed']))
+
+            console_output = self.textarea_output.toPlainText()
+
+            if console_output:
+                log_path = '/tmp/bauh/logs/install/{}/{}'.format(pkgv.model.get_type(), pkgv.model.name)
+                try:
+                    Path(log_path).mkdir(parents=True, exist_ok=True)
+
+                    with open(log_path + '/{}.log'.format(int(time.time())), 'w+') as f:
+                        f.write(console_output)
+                except:
+                    self.textarea_output.appendPlainText(
+                        "[warning] Could not write install log file to '{}'".format(log_path))
 
             self.refresh_apps(top_app=pkgv, pkg_types={pkgv.model.__class__})
         else:

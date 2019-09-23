@@ -1,3 +1,4 @@
+import os
 import sys
 
 from PyQt5.QtGui import QIcon
@@ -17,6 +18,9 @@ from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 
 
 def main():
+    if not os.getenv('PYTHONUNBUFFERED'):
+        os.environ['PYTHONUNBUFFERED'] = '1'
+
     args = app_args.read()
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)

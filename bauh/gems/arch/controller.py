@@ -391,7 +391,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir), check_error_output=False))
+        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir, lang=None), check_error_output=False))
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
