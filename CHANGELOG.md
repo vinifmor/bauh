@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Show button** for large fields in the **Info** window
 - New environment variables / parameters: BAUH_MAX_DISPLAYED and BAUH_LOGS
 
-### Improvements:
+### Improvements
 - Reading installed Snaps now takes around 95% less time
 - Reading Snap suggestions now takes around 75% less time
 - Reading installed Flatpaks now takes around 45% less time
@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Packaging type checkbox filters replaced by a combo box (single select)
 - Search bar resized
 
-### Fixes:
+### Fixes
 - flatpak: cached app current version
 - flatpak: update notification for runtimes with the same name
 - disk loader not filling all requested cached data from the disk
