@@ -58,14 +58,33 @@ class SystemProcess:
 
 class SimpleProcess:
 
-    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None, global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG):
-        self.instance = subprocess.Popen(cmd,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.STDOUT,
-                                         bufsize=-1,
-                                         cwd=cwd,
-                                         env=gen_env(global_interpreter, lang))
+    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None, global_interpreter: bool = USE_GLOBAL_INTERPRETER,
+                 lang: str = DEFAULT_LANG, root_password: str = None):
+        pwdin, final_cmd = None, []
+
+        if root_password is not None:
+            final_cmd.extend(['sudo', '-S'])
+            pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
+
+        final_cmd.extend(cmd)
+
+        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin)
         self.expected_code = expected_code
+
+    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None) -> subprocess.Popen:
+
+        args = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "bufsize": -1,
+            "cwd": cwd,
+            "env": gen_env(global_interpreter, lang)
+        }
+
+        if stdin:
+            args['stdin'] = stdin
+
+        return subprocess.Popen(cmd, **args)
 
 
 class ProcessHandler:

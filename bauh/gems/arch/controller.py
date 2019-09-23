@@ -501,9 +501,8 @@ class ArchManager(SoftwareManager):
 
         handler.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(pkgname)))
 
-        for check_out in new_root_subprocess(['pacman', '-U', pkgpath], root_password=root_password, cwd=pkgdir).stdout:
-            if check_out:
-                check_install_output.append(check_out.decode())
+        for check_out in SimpleProcess(['pacman', '-U', pkgpath], root_password=root_password, cwd=pkgdir).instance.stdout:
+            check_install_output.append(check_out.decode())
 
         self._update_progress(handler.watcher, 70, change_progress)
         if check_install_output and 'conflict' in check_install_output[-1]:
