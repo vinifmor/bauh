@@ -13,7 +13,8 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess
+from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
+    SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, gpg
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
@@ -397,7 +398,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir, lang=None), check_error_output=False, skip_stdout=True))
+        pkgbuilt, output = handler.handle_simple(SimpleProcess(['makepkg', '-ALcsmf'], cwd=project_dir, lang=None))
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -423,7 +424,7 @@ class ArchManager(SoftwareManager):
 
     def _install_missings_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check(pkgdir, handler.watcher)
+        check_res = makepkg.check(pkgdir, handler)
 
         if check_res:
             if check_res.get('missing_deps'):

@@ -2,8 +2,9 @@ import os
 import subprocess
 import sys
 import time
+from io import StringIO
 from subprocess import PIPE
-from typing import List
+from typing import List, Tuple
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -53,6 +54,18 @@ class SystemProcess:
 
     def wait(self):
         self.subproc.wait()
+
+
+class SimpleProcess:
+
+    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None, global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG):
+        self.instance = subprocess.Popen(cmd,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT,
+                                         bufsize=-1,
+                                         cwd=cwd,
+                                         env=gen_env(global_interpreter, lang))
+        self.expected_code = expected_code
 
 
 class ProcessHandler:
@@ -109,6 +122,23 @@ class ProcessHandler:
             return True
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
+
+    def handle_simple(self, proc: SimpleProcess) -> Tuple[bool, str]:
+        self._notify_watcher(' '.join(proc.instance.args) + '\n')
+
+        output = StringIO()
+        for o in proc.instance.stdout:
+            if o:
+                line = o.decode()
+                output.write(line)
+
+                line = line.strip()
+
+                if line:
+                    self._notify_watcher(line)
+
+        output.seek(0)
+        return proc.instance.returncode == proc.expected_code, output.read()
 
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
