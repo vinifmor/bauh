@@ -28,7 +28,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchPackages, InstallApp, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
+    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
@@ -219,7 +219,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallApp(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -868,31 +868,30 @@ class ManageWindow(QWidget):
         self.thread_install.root_password = pwd
         self.thread_install.start()
 
-    def _finish_install(self, pkgv: PackageView):
+    def _finish_install(self, res: dict):
         self.input_search.setText('')
         self.finish_action()
 
-        if pkgv:
+        console_output = self.textarea_output.toPlainText()
+
+        if console_output:
+            log_path = '/tmp/bauh/logs/install/{}/{}'.format(res['pkg'].model.get_type(), res['pkg'].model.name)
+            try:
+                Path(log_path).mkdir(parents=True, exist_ok=True)
+
+                with open(log_path + '/{}.log'.format(int(time.time())), 'w+') as f:
+                    f.write(console_output)
+            except:
+                self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
+
+        if res['success']:
             if self._can_notify_user():
-                util.notify_user(msg='{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['installed']))
+                util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 
-            console_output = self.textarea_output.toPlainText()
-
-            if console_output:
-                log_path = '/tmp/bauh/logs/install/{}/{}'.format(pkgv.model.get_type(), pkgv.model.name)
-                try:
-                    Path(log_path).mkdir(parents=True, exist_ok=True)
-
-                    with open(log_path + '/{}.log'.format(int(time.time())), 'w+') as f:
-                        f.write(console_output)
-                except:
-                    self.textarea_output.appendPlainText(
-                        "[warning] Could not write install log file to '{}'".format(log_path))
-
-            self.refresh_apps(top_app=pkgv, pkg_types={pkgv.model.__class__})
+            self.refresh_apps(top_app=res['pkg'], pkg_types={res['pkg'].model.__class__})
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.install.failed']))
+                util.notify_user('{}: {}'.format(res['pkg'].model.name, self.i18n['notification.install.failed']))
 
             self.checkbox_console.setChecked(True)
 

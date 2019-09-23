@@ -35,8 +35,8 @@ class AdaptableFileDownloader(FileDownloader):
 
         if output_path:
             output_split = output_path.split('/')
-            cmd.append('-d=' + '/'.join(output_split[:-1]))
-            cmd.append('-o=' + output_split[-1])
+            cmd.append('--dir=' + '/'.join(output_split[:-1]))
+            cmd.append('--out=' + output_split[-1])
 
         return SystemProcess(new_subprocess(cmd=cmd, cwd=cwd),
                              skip_stdout=True,

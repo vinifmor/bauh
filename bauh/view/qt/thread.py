@@ -231,10 +231,10 @@ class SearchPackages(AsyncAction):
             self.word = None
 
 
-class InstallApp(AsyncAction):
+class InstallPackage(AsyncAction):
 
     def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: MemoryCache, locale_keys: dict, pkg: PackageView = None):
-        super(InstallApp, self).__init__()
+        super(InstallPackage, self).__init__()
         self.pkg = pkg
         self.manager = manager
         self.icon_cache = icon_cache
@@ -261,7 +261,7 @@ class InstallApp(AsyncAction):
                 success = False
                 self.print(self.locale_keys['internet.required'])
             finally:
-                self.signal_finished.emit(self.pkg if success else None)
+                self.signal_finished.emit({'success': success, 'pkg': self.pkg})
                 self.pkg = None
 
 
