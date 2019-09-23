@@ -1,17 +1,16 @@
-import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import List, Type, Set
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
-
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 
@@ -57,13 +56,16 @@ class AsyncAction(QThread, ProcessWatcher):
         self.signal_finished.emit(res)
 
     def change_status(self, status: str):
-        self.signal_status.emit(status)
+        if status:
+            self.signal_status.emit(status)
 
     def change_substatus(self, substatus: str):
-        self.signal_substatus.emit(substatus)
+        if substatus:
+            self.signal_substatus.emit(substatus)
 
     def change_progress(self, val: int):
-        self.signal_progress.emit(val)
+        if val is not None:
+            self.signal_progress.emit(val)
 
     def should_stop(self):
         return self.stop

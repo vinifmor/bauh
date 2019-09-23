@@ -28,7 +28,7 @@ URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 
 SOURCE_FIELDS = ('source', 'source_x86_64')
-RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg]$')
+RE_PRE_DOWNLOADABLE_FILES = re.compile(r'^(https?|ftp)://.+\.\w+[^gpg|git]$')
 
 
 class ArchManager(SoftwareManager):
