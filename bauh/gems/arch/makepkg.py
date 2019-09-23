@@ -8,7 +8,7 @@ RE_UNKNOWN_GPG_KEY = re.compile(r'\(unknown public key (\w+)\)')
 
 def check(pkgdir: str, handler: ProcessHandler) -> dict:
     res = {}
-    success, output = handler.handle_simple(SimpleProcess(['makepkg', '-ALcf', '--check', '--noarchive'], cwd=pkgdir))
+    success, output = handler.handle_simple(SimpleProcess(['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild'], cwd=pkgdir))
 
     if 'Missing dependencies' in output:
         res['missing_deps'] = RE_DEPS_PATTERN.findall(output)

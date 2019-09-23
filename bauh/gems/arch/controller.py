@@ -28,7 +28,7 @@ URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 
 SOURCE_FIELDS = ('source', 'source_x86_64')
-RE_PRE_DOWNLOADABLE_FILES = re.compile(r'^(https?|ftp)://.+\.\w+[^gpg|git]$')
+RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg|git]$')
 
 
 class ArchManager(SoftwareManager):
@@ -501,7 +501,7 @@ class ArchManager(SoftwareManager):
 
         handler.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(pkgname)))
 
-        for check_out in SimpleProcess(['pacman', '-U', pkgpath], root_password=root_password, cwd=pkgdir).instance.stdout:
+        for check_out in SimpleProcess(['pacman', '-U' if install_file else '-S', pkgpath], root_password=root_password, cwd=pkgdir).instance.stdout:
             check_install_output.append(check_out.decode())
 
         self._update_progress(handler.watcher, 70, change_progress)
@@ -520,7 +520,7 @@ class ArchManager(SoftwareManager):
                     handler.watcher.change_substatus(self.i18n['arch.uninstalling.conflict'].format(bold(conflict)))
                     if not self._uninstall(conflict, root_password, handler):
                         handler.watcher.show_message(title=self.i18n['error'],
-                                                     body=self.i18n['arch.uninstalling.conflict.fail'].format('"{}"'.format(conflict)),
+                                                     body=self.i18n['arch.uninstalling.conflict.fail'].format(bold(conflict)),
                                                      type_=MessageType.ERROR)
                         return False
 
