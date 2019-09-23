@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### AUR support (**arch gem**):
 - Search, install, uninstall, downgrade, retrieve history and launch packages
 - Faster source files downloads improving installation speed ( see **README.md** for more information )
-- Automatically improves package compilations (see *README.md** for more information )
+- Automatically improves package compilations (see **README.md** for more information )
 
 ### Code
 - Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)
