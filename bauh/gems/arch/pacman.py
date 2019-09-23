@@ -118,7 +118,7 @@ def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
         installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
         desktop_files = []
-        for out in new_subprocess(['grep', '-E', '.desktop'], stdin=installed_files.stdout).stdout:
+        for out in new_subprocess(['grep', '-E', ".desktop$"], stdin=installed_files.stdout).stdout:
             if out:
                 desktop_files.append(out.decode().strip())
 
@@ -129,7 +129,7 @@ def list_icon_paths(pkgnames: Set[str]) -> List[str]:
     installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
     icon_files = []
-    for out in new_subprocess(['grep', '-E', '.(png|svg)'], stdin=installed_files.stdout).stdout:
+    for out in new_subprocess(['grep', '-E', '.(png|svg)$'], stdin=installed_files.stdout).stdout:
         if out:
             line = out.decode().strip()
             if line:
