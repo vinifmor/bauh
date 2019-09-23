@@ -18,7 +18,7 @@ from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, c
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -43,6 +43,7 @@ class ArchManager(SoftwareManager):
         self.names_index = {}
         self.aur_index_updater = AURIndexUpdater(context, self)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
+        self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = self.context.linux_distro[0].lower() == 'arch'
@@ -62,6 +63,8 @@ class ArchManager(SoftwareManager):
         Thread(target=self.mapper.fill_package_build, args=(app,)).start()
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+        self.comp_optimizer.join()
+
         downgrade_enabled = git.is_enabled()
         res = SearchResult([], [], 0)
 
@@ -362,28 +365,31 @@ class ArchManager(SoftwareManager):
                             if RE_PRE_DOWNLOADABLE_FILES.findall(f):
                                 pre_download_files.append(f)
 
-            for f in pre_download_files:
-                fdata = f.split('::')
+            if pre_download_files:
+                downloader = self.context.file_downloader.get_default_client_name()
 
-                args = {'watcher': watcher, 'cwd': project_dir}
-                if len(fdata) > 1:
-                    args.update({'file_url': fdata[1], 'output_path': fdata[0]})
-                else:
-                    args.update({'file_url': fdata[0], 'output_path': None})
+                for f in pre_download_files:
+                    fdata = f.split('::')
 
-                file_size = self.context.http_client.get_content_length(args['file_url'])
-                file_size = int(file_size) / (1024 ** 2) if file_size else None
+                    args = {'watcher': watcher, 'cwd': project_dir}
+                    if len(fdata) > 1:
+                        args.update({'file_url': fdata[1], 'output_path': fdata[0]})
+                    else:
+                        args.update({'file_url': fdata[0], 'output_path': None})
 
-                watcher.change_substatus(self.i18n['downloading'] + ' ' + bold(args['file_url'].split('/')[-1]) + ' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
-                if not self.context.file_downloader.download(**args):
-                    watcher.print('Could not download source file {}'.format(args['file_url']))
-                    return False
+                    file_size = self.context.http_client.get_content_length(args['file_url'])
+                    file_size = int(file_size) / (1024 ** 2) if file_size else None
+
+                    watcher.change_substatus(bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(args['file_url'].split('/')[-1]) + ' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
+                    if not self.context.file_downloader.download(**args):
+                        watcher.print('Could not download source file {}'.format(args['file_url']))
+                        return False
 
         return True
 
     def _make_pkg(self, pkgname: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
-        if not self._pre_download_source(pkgname, project_dir, handler.watcher):
-            return False
+
+        self._pre_download_source(pkgname, project_dir, handler.watcher)
 
         self._update_progress(handler.watcher, 50, change_progress)
         if not self._install_missings_deps_and_keys(pkgname, root_password, handler, project_dir):
@@ -391,7 +397,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir, lang=None), check_error_output=False))
+        pkgbuilt = handler.handle(SystemProcess(new_subprocess(['makepkg', '-ALcsmf'], cwd=project_dir, lang=None), check_error_output=False, skip_stdout=True))
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -642,6 +648,7 @@ class ArchManager(SoftwareManager):
 
     def prepare(self):
         self.dcache_updater.start()
+        self.comp_optimizer.start()
         self.aur_index_updater.start()
 
     def list_updates(self) -> List[PackageUpdate]:

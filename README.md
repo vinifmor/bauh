@@ -87,6 +87,22 @@ The application settings are stored in **/home/$USER/.config/bauh/config.json**
 - If you don't mind app suggestions, disable it (**bauh --sugs=0**)
 - Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
 
+### Flatpak support ( flatpak gem )
+- The user is able to search, install, uninstall, downgrade and retrieve the applications history
+
+### Snap support ( snap gem )
+- The user is able to search, install, uninstall and downgrade applications
+
+### AUR support ( arch gem )
+- The user is able to search, install, uninstall, downgrade and retrieve the packages history
+- It handles conflicts, and missing / optional packages installations
+- Automatically makes a simple package compilation improvement: if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
+then a copy of **/etc/makepkg.conf** will be generated at **/home/$USER/makepkg.conf** defining MAKEFLAGS to work with
+the number of your machine processors multiplied by 1.5 rounded up ( this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0** )
+- If (**aria2**) [https://github.com/aria2/aria2] is installed on your system and multi-threaded downloads are enabled ( see**BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+will be downloaded faster.
+
+
 ### Logs
 - Installation logs are saved at **/tmp/bauh/logs/install**
 

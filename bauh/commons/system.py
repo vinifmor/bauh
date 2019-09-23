@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import time
 from subprocess import PIPE
 from typing import List
 
@@ -41,12 +42,14 @@ class SystemProcess:
     Represents a system process being executed.
     """
 
-    def __init__(self, subproc: subprocess.Popen, success_phrase: str = None, wrong_error_phrase: str = '[sudo] password for', check_error_output: bool = True, skip_stdout: bool = False):
+    def __init__(self, subproc: subprocess.Popen, success_phrase: str = None, wrong_error_phrase: str = '[sudo] password for',
+                 check_error_output: bool = True, skip_stdout: bool = False, output_delay: float = None):
         self.subproc = subproc
         self.success_phrase = success_phrase
         self.wrong_error_phrase = wrong_error_phrase
         self.check_error_output = check_error_output
         self.skip_stdout = skip_stdout
+        self.output_delay = output_delay
 
     def wait(self):
         self.subproc.wait()
@@ -79,6 +82,9 @@ class ProcessHandler:
                     if process.success_phrase and process.success_phrase in line:
                         already_succeeded = True
 
+                if not already_succeeded and process.output_delay:
+                    time.sleep(process.output_delay)
+
             if already_succeeded:
                 return True
 
@@ -95,6 +101,9 @@ class ProcessHandler:
                             return False
                     elif process.skip_stdout and process.success_phrase and process.success_phrase in line:
                         already_succeeded = True
+
+                if not already_succeeded and process.output_delay:
+                    time.sleep(process.output_delay)
 
         if already_succeeded:
             return True

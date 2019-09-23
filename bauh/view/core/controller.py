@@ -82,7 +82,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             apps_found = man.search(words=word, disk_loader=disk_loader)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ +  " took {0:.2f} seconds".format(mtf - mti))
+            self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)

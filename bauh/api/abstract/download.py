@@ -19,3 +19,10 @@ class FileDownloader(ABC):
     @abstractmethod
     def is_multithreaded(self) -> bool:
         pass
+
+    @abstractmethod
+    def get_default_client_name(self) -> str:
+        """
+        :return: retrieve current downloader client name
+        """
+        pass

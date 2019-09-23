@@ -2,7 +2,6 @@ import logging
 import os
 import time
 import traceback
-from multiprocessing import cpu_count
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -15,29 +14,24 @@ class AdaptableFileDownloader(FileDownloader):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
 
-        if multithread_enabled:
-            try:
-                self.download_threads = int(cpu_count() * 2)
-            except:
-                self.download_threads = 4
-
-            self.download_threads = 16 if self.download_threads > 16 else self.download_threads
-        else:
-            self.download_threads = 1
-
-    def is_axel_available(self) -> bool:
-        return bool(run_cmd('which axel'))
-
     def is_aria2c_available(self) -> bool:
         return bool(run_cmd('which aria2c'))
 
     def _get_aria2c_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
-        cmd = ['aria2c', '-x{}'.format(self.download_threads), url,
+        cmd = ['aria2c', url,
+               '--no-conf',
+               '--max-connection-per-server=16',
+               '--split=16',
                '--enable-color=false',
                '--stderr=true',
                '--summary-interval=0',
                '--disable-ipv6',
-               '--min-split-size=1M']
+               '--min-split-size=1M',
+               '--allow-overwrite=true',
+               '--continue=true',
+               '--timeout=5',
+               '--max-file-not-found=3',
+               '--remote-time=true']
 
         if output_path:
             output_split = output_path.split('/')
@@ -47,16 +41,8 @@ class AdaptableFileDownloader(FileDownloader):
         return SystemProcess(new_subprocess(cmd=cmd, cwd=cwd),
                              skip_stdout=True,
                              check_error_output=False,
-                             success_phrase='download completed')
-
-    def _get_axel_cmd(self, url: str, output_path: str, cwd: str) -> SystemProcess:
-        cmd = ['axel', '-k', '-n', str(self.download_threads), url]
-
-        if output_path:
-            cmd.append('-o')
-            cmd.append(output_path)
-
-        return SystemProcess(new_subprocess(cmd, cwd=cwd))
+                             success_phrase='download completed',
+                             output_delay=0.001)
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
         cmd = ['wget', url]
@@ -87,7 +73,6 @@ class AdaptableFileDownloader(FileDownloader):
             if self.is_multithreaded():
                 ti = time.time()
                 process = self._get_aria2c_process(file_url, output_path, final_cwd)
-                # process = self._get_axel_cmd(file_url, output_path, final_cwd)
             else:
                 ti = time.time()
                 process = self._get_wget_process(file_url, output_path, final_cwd)
@@ -108,4 +93,7 @@ class AdaptableFileDownloader(FileDownloader):
 
     def is_multithreaded(self) -> bool:
         return self.multithread_enabled and self.is_aria2c_available()
+
+    def get_default_client_name(self) -> str:
+        return 'aria2c' if self. is_multithreaded() else 'wget'
 

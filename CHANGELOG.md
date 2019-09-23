@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - small UI improvements
 - installation logs are saved at **/tmp/bauh/logs/install**
 - Environment variable / parameter BAUH_UPDATE_NOTIFICATION renamed to BAUH_SYSTEM_NOTIFICATIONS and now works for any system notification
-- Environment variable / parameter BAUH_DOWNLOAD_MULTITHREAD (--download-mthread): if source files should be downloaded using multi-threads.
+- Environment variable / parameter BAUH_DOWNLOAD_MULTITHREAD (--download-mthread): if source files should be downloaded using multi-threads (not supported by all **gems**).
 
 ### UI Changes
 - **Upgrade selected** and **Refresh** buttons now have text labels and new colors
@@ -49,7 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### AUR support (**arch gem**):
 - Search, install, uninstall, downgrade, retrieve history and launch packages
-- Faster source files download when (**axel**) [https://github.com/axel-download-accelerator/axel] is installed on your system
+- Faster source files download when (**aria2**) [https://github.com/aria2/aria2] is installed on your system ( see **README.md** for more information )
+- Automatically improves package compilations (see *README.md** for more information )
 
 ### Code
 - Code was internally modularized as: **api** (conceptual classes used to create custom software managers), **gems** (software managers), **commons** (common classes shared between the **view** and **gems**), **view** (UI code)
