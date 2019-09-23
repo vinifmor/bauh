@@ -95,6 +95,7 @@ The application settings are stored in **/home/$USER/.config/bauh/config.json**
 - The user is able to search, install, uninstall, launch and downgrade applications
 
 ### AUR support ( arch gem )
+- It is **not enabled by default**. It is necessary to enable it using the UI.
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
 - It handles conflicts, and missing / optional packages installations ( include from your distro mirrors )
 - Automatically makes a simple package compilation improvement -> if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
