@@ -426,18 +426,6 @@ class ArchManager(SoftwareManager):
         check_res = makepkg.check(pkgdir, handler.watcher)
 
         if check_res:
-            if check_res.get('gpg_key'):
-                if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
-                                                        body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(pkgname), bold(check_res['gpg_key']))):
-                    handler.watcher.change_substatus(self.i18n['arch.aur.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
-                    if not handler.handle(gpg.receive_key(check_res['gpg_key'])):
-                        handler.watcher.show_message(title=self.i18n['error'],
-                                                     body=self.i18n['arch.aur.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
-                        return False
-                else:
-                    handler.watcher.print(self.i18n['action.cancelled'])
-                    return False
-
             if check_res.get('missing_deps'):
                 depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in check_res['missing_deps']}
                 dep_mirrors = self._map_mirrors(depnames)
@@ -457,6 +445,21 @@ class ArchManager(SoftwareManager):
 
                 if dep_not_installed:
                     message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
+                    return False
+
+                # it is necessary to re-check because missing PGP keys are only notified when there are none missing
+                return self._install_missings_deps_and_keys(pkgname, root_password, handler, pkgdir)
+
+            if check_res.get('gpg_key'):
+                if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
+                                                        body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(pkgname), bold(check_res['gpg_key']))):
+                    handler.watcher.change_substatus(self.i18n['arch.aur.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
+                    if not handler.handle(gpg.receive_key(check_res['gpg_key'])):
+                        handler.watcher.show_message(title=self.i18n['error'],
+                                                     body=self.i18n['arch.aur.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
+                        return False
+                else:
+                    handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
         return True
