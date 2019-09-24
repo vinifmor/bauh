@@ -895,7 +895,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 
-            self._finish_refresh_apps({'installed': [res['pkg'].model], 'total': 1, 'types': [res['pkg'].model.__class__]})
+            self._finish_refresh_apps({'installed': [res['pkg'].model], 'total': 1, 'types': None})
             self.ref_bt_installed.setVisible(False)
             self.ref_checkbox_only_apps.setVisible(False)
         else:
