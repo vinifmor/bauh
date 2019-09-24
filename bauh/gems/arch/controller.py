@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -639,7 +640,17 @@ class ArchManager(SoftwareManager):
         return False
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
-        return self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
+        res = self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
+
+        if res:
+            if os.path.exists(pkg.get_disk_data_path()):
+                with open(pkg.get_disk_data_path()) as f:
+                    data = f.read()
+                    if data:
+                        data = json.loads(data)
+                        pkg.fill_cached_data(data)
+
+        return res
 
     def _is_wget_available(self):
         try:
@@ -668,8 +679,7 @@ class ArchManager(SoftwareManager):
             return False
 
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
-        if self.context.disk_cache and pkg.supports_disk_cache():
-            pass
+       pass
 
     def requires_root(self, action: str, pkg: ArchPackage):
         return action != 'search'

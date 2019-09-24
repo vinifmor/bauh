@@ -43,10 +43,10 @@ class SystemProcess:
     Represents a system process being executed.
     """
 
-    def __init__(self, subproc: subprocess.Popen, success_phrase: str = None, wrong_error_phrase: str = '[sudo] password for',
+    def __init__(self, subproc: subprocess.Popen, success_phrases: List[str] = None, wrong_error_phrase: str = '[sudo] password for',
                  check_error_output: bool = True, skip_stdout: bool = False, output_delay: float = None):
         self.subproc = subproc
-        self.success_phrase = success_phrase
+        self.success_phrases = success_phrases
         self.wrong_error_phrase = wrong_error_phrase
         self.check_error_output = check_error_output
         self.skip_stdout = skip_stdout
@@ -111,7 +111,7 @@ class ProcessHandler:
                 if line:
                     self._notify_watcher(line)
 
-                    if process.success_phrase and process.success_phrase in line:
+                    if process.success_phrases and [p in line for p in process.success_phrases]:
                         already_succeeded = True
 
                 if not already_succeeded and process.output_delay:

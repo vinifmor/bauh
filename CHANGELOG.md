@@ -24,8 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Reading Snap suggestions now takes around 75% less time
 - Reading installed Flatpaks now takes around 45% less time
 - "snap" and "snapd" installation check latency
-- Refreshing only the associated package type after a successful operation (install, uninstall, downgrade, ...)
-- When a package is installed, it will be the first element of the table after refreshing
+- Refreshing only the associated package type after a successful operation (uninstall, downgrade, ...) ( installation has a different treatment. See below )
+- Only the package status is changed after a successful installation ( not refreshing the whole table )
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
 - better internet offline handling
@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - flatpak: cached app current version
 - flatpak: update notification for runtimes with the same name
+- flatpak: some warnings are treated as errors after downgrading
 - disk loader not filling all requested cached data from the disk
 - Ubuntu root password check
 - [Ubuntu 19.04 pip3 install issue](https://github.com/vinifmor/bauh/issues/3)

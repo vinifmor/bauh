@@ -262,12 +262,12 @@ class GenericSoftwareManager(SoftwareManager):
         man = self.map[app.__class__]
         return man if man and self._can_work(man) else None
 
-    def cache_to_disk(self, app: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
-        if self.context.disk_cache and app.supports_disk_cache():
-            man = self._get_manager_for(app)
+    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+        if self.context.disk_cache and pkg.supports_disk_cache():
+            man = self._get_manager_for(pkg)
 
             if man:
-                return man.cache_to_disk(app, icon_bytes=icon_bytes, only_icon=only_icon)
+                return man.cache_to_disk(pkg, icon_bytes=icon_bytes, only_icon=only_icon)
 
     def requires_root(self, action: str, app: SoftwarePackage):
         man = self._get_manager_for(app)

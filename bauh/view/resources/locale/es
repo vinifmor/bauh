@@ -119,3 +119,4 @@ style.change.title=Cambio de estilo
 style.change.question=Para cambiar el estilo actual es necesario reiniciar {}. ¿Proceder?
 manage_window.bt_settings.tooltip=Haga clic aquí para abrir acciones adicionales
 downloading=Descargando
+console.install_logs.path=Los registros de instalación se pueden encontrar en {}

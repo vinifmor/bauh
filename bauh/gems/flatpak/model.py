@@ -21,13 +21,13 @@ class FlatpakApplication(SoftwarePackage):
         return self.description is None and self.icon_url
 
     def has_history(self):
-        return self.installed
+        return self.installed and self.ref
 
     def has_info(self):
         return self.installed
 
     def can_be_downgraded(self):
-        return self.installed
+        return self.installed and self.ref
 
     def get_type(self):
         return 'flatpak'

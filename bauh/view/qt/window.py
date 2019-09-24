@@ -883,8 +883,11 @@ class ManageWindow(QWidget):
             try:
                 Path(log_path).mkdir(parents=True, exist_ok=True)
 
-                with open(log_path + '/{}.log'.format(int(time.time())), 'w+') as f:
+                log_file = log_path + '/{}.log'.format(int(time.time()))
+                with open(log_file, 'w+') as f:
                     f.write(console_output)
+
+                self.textarea_output.appendPlainText(self.i18n['console.install_logs.path'].format('"{}"'.format(log_file)))
             except:
                 self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
 
@@ -892,7 +895,9 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 
-            self.refresh_apps(top_app=res['pkg'], pkg_types={res['pkg'].model.__class__})
+            self.ref_bt_installed.setVisible(False)
+            self.ref_bt_refresh.setVisible(True)
+            self.table_apps.refresh(res['pkg'])
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(res['pkg'].model.name, self.i18n['notification.install.failed']))

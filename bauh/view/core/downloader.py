@@ -41,7 +41,7 @@ class AdaptableFileDownloader(FileDownloader):
         return SystemProcess(new_subprocess(cmd=cmd, cwd=cwd),
                              skip_stdout=True,
                              check_error_output=False,
-                             success_phrase='download completed',
+                             success_phrases=['download completed'],
                              output_delay=0.001)
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:

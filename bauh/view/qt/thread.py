@@ -179,7 +179,7 @@ class DowngradeApp(AsyncAction):
             success = False
             try:
                 success = self.manager.downgrade(self.app.model, self.root_password, self)
-            except (requests.exceptions.ConnectionError, NoInternetException):
+            except (requests.exceptions.ConnectionError, NoInternetException) as e:
                 success = False
                 self.print(self.locale_keys['internet.required'])
             finally:
@@ -215,7 +215,7 @@ class GetAppHistory(AsyncAction):
         if self.app:
             try:
                 self.notify_finished({'history': self.manager.get_history(self.app.model)})
-            except (requests.exceptions.ConnectionError, NoInternetException):
+            except (requests.exceptions.ConnectionError, NoInternetException) as e:
                 self.notify_finished({'error': self.locale_keys['internet.required']})
             finally:
                 self.app = None
@@ -266,7 +266,7 @@ class InstallPackage(AsyncAction):
 
                     if self.pkg.model.supports_disk_cache():
                         icon_data = self.icon_cache.get(self.pkg.model.icon_url)
-                        self.manager.cache_to_disk(app=self.pkg.model,
+                        self.manager.cache_to_disk(pkg=self.pkg.model,
                                                    icon_bytes=icon_data.get('bytes') if icon_data else None,
                                                    only_icon=False)
             except (requests.exceptions.ConnectionError, NoInternetException):

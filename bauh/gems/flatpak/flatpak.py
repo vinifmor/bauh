@@ -34,6 +34,22 @@ def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_
     return data
 
 
+def get_fields(app_id: str, branch: str, fields: List[str]) -> List[str]:
+    cmd = [BASE_CMD, 'info', app_id]
+
+    if branch:
+        cmd.append(branch)
+
+    info = new_subprocess(cmd).stdout
+
+    res = []
+    for o in new_subprocess(['grep', '-E', '({}):.+'.format('|'.join(fields)), '-o'], stdin=info).stdout:
+        if o:
+            res.append(o.decode().split(':')[-1].strip())
+
+    return res
+
+
 def is_installed():
     version = get_version()
     return False if version is None else True
@@ -282,5 +298,3 @@ def has_remotes_set() -> bool:
 
 def run(app_id: str):
     subprocess.Popen([BASE_CMD, 'run', app_id])
-
-

@@ -14,6 +14,7 @@ class PackageView:
         self.model = model
         self.update_checked = model.update
         self.status = PackageViewStatus.LOADING
+        self.table_index = -1
 
     def __repr__(self):
         return '{} ( {} )'.format(self.model.name, self.model.get_type())

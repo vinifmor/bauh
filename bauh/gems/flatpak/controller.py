@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
@@ -117,7 +118,7 @@ class FlatpakManager(SoftwareManager):
         commit = commits[commit_idx + 1]
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, root_password), success_phrase='Updates complete.'))
+        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, root_password), success_phrases=['Changes complete.', 'Updates complete.']))
         watcher.change_progress(100)
         return success
 
@@ -152,7 +153,19 @@ class FlatpakManager(SoftwareManager):
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
     def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin)))
+        res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin)))
+
+        if res:
+            try:
+                fields = flatpak.get_fields(pkg.id, pkg.branch, ['Ref', 'Branch'])
+
+                if fields:
+                    pkg.ref = fields[0]
+                    pkg.branch = fields[1]
+            except:
+                traceback.print_exc()
+
+        return res
 
     def is_enabled(self):
         return self.enabled
