@@ -15,7 +15,7 @@ URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
 
 GLOBAL_MAKEPKG = '/etc/makepkg.conf'
-USER_MAKEPKG = '{}/makepkg.conf'.format(HOME_PATH)
+USER_MAKEPKG = '{}/.makepkg.conf'.format(HOME_PATH)
 
 RE_MAKE_FLAGS = re.compile(r'#?\s*MAKEFLAGS\s*=\s*.+\s*')
 RE_COMPRESS_XZ = re.compile(r'#?\s*COMPRESSXZ\s*=\s*.+')
@@ -81,7 +81,7 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                 ncpus = ceil(os.cpu_count() * 1.5)
             except:
                 self.logger.error('Could not determine the number of processors. Aborting...')
-                return
+                ncpus = None
 
             if os.path.exists(GLOBAL_MAKEPKG) and not os.path.exists(USER_MAKEPKG):
                 self.logger.info("Verifying if it is possible to optimize Arch packages compilation")
@@ -89,21 +89,21 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                 with open(GLOBAL_MAKEPKG) as f:
                     global_makepkg = f.read()
 
-                user_makepkg = None
-                optimizations = []
+                user_makepkg, optimizations = None, []
 
-                makeflags = RE_MAKE_FLAGS.findall(global_makepkg)
+                if ncpus:
+                    makeflags = RE_MAKE_FLAGS.findall(global_makepkg)
 
-                if makeflags:
-                    not_commented = [f for f in makeflags if not f.startswith('#')]
+                    if makeflags:
+                        not_commented = [f for f in makeflags if not f.startswith('#')]
 
-                    if not not_commented:
-                        user_makepkg = RE_MAKE_FLAGS.sub('', global_makepkg)
-                        optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
+                        if not not_commented:
+                            user_makepkg = RE_MAKE_FLAGS.sub('', global_makepkg)
+                            optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
+                        else:
+                            self.logger.warning("It seems '{}' compilation flags are already customized".format(GLOBAL_MAKEPKG))
                     else:
-                        self.logger.warning("It seems '{}' compilation flags are already customized".format(GLOBAL_MAKEPKG))
-                else:
-                    optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
+                        optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
 
                 compress_xz = RE_COMPRESS_XZ.findall(user_makepkg if user_makepkg else global_makepkg)
 
