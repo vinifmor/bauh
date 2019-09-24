@@ -201,7 +201,7 @@ class ArchManager(SoftwareManager):
                                             break
 
                                     watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
-                                    return self._make_pkg(pkg.name, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
+                                    return self._make_pkg(pkg.name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
                                 else:
                                     watcher.show_message(title=self.i18n['arch.downgrade.error'],
                                                          body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
@@ -351,9 +351,9 @@ class ArchManager(SoftwareManager):
             mirror = pkg_mirrors[pkgname]
             handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(pkgname, mirror))))
             if mirror == 'aur':
-                installed = self._install_from_aur(pkgname=pkgname, root_password=root_password, handler=handler, dependency=True, change_progress=False)
+                installed = self._install_from_aur(pkgname=pkgname, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
-                installed = self._install(pkgname=pkgname, root_password=root_password, handler=handler, install_file=None, mirror=mirror, change_progress=False)
+                installed = self._install(pkgname=pkgname, maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=mirror, change_progress=False)
 
             if not installed:
                 return pkgname
@@ -411,7 +411,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _make_pkg(self, pkgname: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+    def _make_pkg(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
         self._pre_download_source(pkgname, project_dir, handler.watcher)
 
@@ -433,7 +433,8 @@ class ArchManager(SoftwareManager):
 
             install_file = '{}/{}'.format(project_dir, gen_file[0])
 
-            if self._install(pkgname=pkgname, root_password=root_password, mirror='aur', handler=handler, install_file=install_file, pkgdir=project_dir, change_progress=change_progress):
+            if self._install(pkgname=pkgname, maintainer=maintainer, root_password=root_password, mirror='aur', handler=handler,
+                             install_file=install_file, pkgdir=project_dir, change_progress=change_progress):
 
                 if dependency or skip_optdeps:
                     return True
@@ -518,7 +519,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _install(self, pkgname: str, root_password: str, mirror: str, handler: ProcessHandler, install_file: str = None, pkgdir: str = '.', change_progress: bool = True):
+    def _install(self, pkgname: str, maintainer: str, root_password: str, mirror: str, handler: ProcessHandler, install_file: str = None, pkgdir: str = '.', change_progress: bool = True):
         check_install_output = []
         pkgpath = install_file if install_file else pkgname
 
@@ -555,7 +556,7 @@ class ArchManager(SoftwareManager):
         if installed and self.context.disk_cache:
             handler.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(pkgname)))
             if self.context.disk_cache:
-                disk.save_several({pkgname}, mirror)
+                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True)
 
             self._update_progress(handler.watcher, 100, change_progress)
 
@@ -600,7 +601,7 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
-    def _install_from_aur(self, pkgname: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+    def _install_from_aur(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
@@ -623,6 +624,7 @@ class ArchManager(SoftwareManager):
                         if uncompress:
                             uncompress_dir = '{}/{}'.format(app_build_dir, pkgname)
                             return self._make_pkg(pkgname=pkgname,
+                                                  maintainer=maintainer,
                                                   root_password=root_password,
                                                   handler=handler,
                                                   build_dir=app_build_dir,
@@ -637,7 +639,7 @@ class ArchManager(SoftwareManager):
         return False
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
-        return self._install_from_aur(pkg.name, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
+        return self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
 
     def _is_wget_available(self):
         try:

@@ -47,51 +47,7 @@ def set_icon_path(app: ArchPackage, icon_name: str = None):
                 break
 
 
-def save(pkgname: str, mirror: str):
-    app = ArchPackage(name=pkgname, mirror=mirror)
-    desktop_files = pacman.list_desktop_entries({pkgname})
-
-    if desktop_files:
-        if len(desktop_files) > 1:
-            exact_match = [f for f in desktop_files if f.endswith('{}.desktop'.format(pkgname))]
-            to_parse = exact_match[0] if exact_match else desktop_files[0]
-        else:
-            to_parse = desktop_files[0]
-
-        app.desktop_entry = to_parse
-
-        with open(to_parse) as f:
-            desktop_entry = f.read()
-
-        icons_found = []
-
-        for field in RE_DESKTOP_ENTRY.findall(desktop_entry):
-            if field[0] == 'Exec':
-                app.command = field[1].strip()
-            elif field[0] == 'Icon':
-                icons_found.append(field[1].strip())
-
-        if icons_found:
-            app.set_icon(icons_found)
-
-        if app.icon_path and '/' not in app.icon_path:  # if the icon full path is not defined
-            set_icon_path(app, app.icon_path)
-    else:
-        bin_paths = pacman.list_bin_paths({pkgname})
-
-        if bin_paths:
-            if len(bin_paths) > 1:
-                exact_match = [p for p in bin_paths if p.endswith('/' + pkgname)]
-                app.command = exact_match[0] if exact_match else bin_paths[0]
-            else:
-                app.command = bin_paths[0]
-
-        set_icon_path(app)
-
-    write(app)
-
-
-def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int:
+def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, maintainer: str = None) -> int:
     to_cache = {n for n in pkgnames if overwrite or not os.path.exists(ArchPackage.disk_cache_path(n, mirror))}
     desktop_files = pacman.list_desktop_entries(to_cache)
 
@@ -182,6 +138,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True) -> int
 
     if to_write:
         for p in to_write:
+            p.maintainer = maintainer
             write(p)
         return len(to_write)
     return 0
