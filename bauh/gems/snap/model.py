@@ -13,7 +13,7 @@ EXTRA_INSTALLED_ACTIONS = [
                   requires_root=True)
 ]
 
-KNOWN_APP_NAMES = {'gnome-calculator', 'gnome-system-monitor'}
+KNOWN_APP_NAMES = {'gnome-calculator', 'gnome-system-monitor', 'gnome-logs'}
 KNOWN_RUNTIME_NAMES = {'snapd', 'core', 'core18', 'snapcraft', 'multipass'}
 KNOWN_RUNTIME_PREFIXES = {'gtk-', 'gnome-', 'kde-', 'gtk2-'}
 KNOWN_RUNTIME_TYPES = {'base', 'core', 'os'}
