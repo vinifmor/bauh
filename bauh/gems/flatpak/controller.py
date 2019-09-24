@@ -1,4 +1,3 @@
-import subprocess
 from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
@@ -27,7 +26,7 @@ class FlatpakManager(SoftwareManager):
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
 
-    def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader) -> FlatpakApplication:
+    def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader, internet: bool = True) -> FlatpakApplication:
 
         app = FlatpakApplication(**app_json)
         app.installed = installed
@@ -39,7 +38,9 @@ class FlatpakManager(SoftwareManager):
             if not app.runtime:
                 if disk_loader:
                     disk_loader.fill(app)  # preloading cached disk data
-                FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
+
+                if internet:
+                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
 
         else:
             app.fill_cached_data(api_data)
@@ -73,22 +74,28 @@ class FlatpakManager(SoftwareManager):
     def _add_updates(self, version: str, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         version = flatpak.get_version()
 
         updates = []
-        thread_updates = Thread(target=self._add_updates, args=(version, updates))
-        thread_updates.start()
+
+        if internet_available:
+            thread_updates = Thread(target=self._add_updates, args=(version, updates))
+            thread_updates.start()
+        else:
+            thread_updates = None
 
         installed = flatpak.list_installed(version)
         models = []
 
         if installed:
-            thread_updates.join()
+            if thread_updates:
+                thread_updates.join()
 
             for app_json in installed:
-                model = self._map_to_model(app_json=app_json, installed=True, disk_loader=disk_loader)
-                model.update = app_json['ref'] in updates[0]
+                model = self._map_to_model(app_json=app_json, installed=True,
+                                           disk_loader=disk_loader, internet=internet_available)
+                model.update = app_json['ref'] in updates[0] if updates else None
                 models.append(model)
 
         return SearchResult(models, None, len(models))

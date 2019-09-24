@@ -7,6 +7,8 @@ from bauh.commons import resource
 
 from bauh.gems.arch import ROOT_DIR
 
+CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry'}
+
 
 class ArchPackage(SoftwarePackage):
 
@@ -77,20 +79,17 @@ class ArchPackage(SoftwarePackage):
         cache = {}
 
         # required attrs to cache
-        for a in {'command', 'icon_path', 'mirror'}:
+        for a in CACHED_ATTRS:
             val = getattr(self, a)
 
             if val:
                 cache[a] = val
 
-        if self.desktop_entry:
-            cache['desktop_entry'] = self.desktop_entry
-
         return cache
 
     def fill_cached_data(self, data: dict):
         if data:
-            for a in {'command', 'icon_path', 'mirror', 'desktop_entry'}:
+            for a in CACHED_ATTRS:
                 val = data.get(a)
                 if val:
                     setattr(self, a, val)
@@ -100,7 +99,7 @@ class ArchPackage(SoftwarePackage):
 
     def can_be_run(self) -> bool:
         # only returns if there is a desktop entry set for the application to avoid running command-line applications
-        return bool(self.command) and bool(self.desktop_entry)
+        return bool(self.desktop_entry) and bool(self.command)
 
     def get_publisher(self):
         return self.maintainer

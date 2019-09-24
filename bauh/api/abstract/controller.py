@@ -47,12 +47,13 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int, only_apps: bool, pkg_types: Set[Type[SoftwarePackage]]) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int, only_apps: bool, pkg_types: Set[Type[SoftwarePackage]], internet_available: bool) -> SearchResult:
         """
         :param disk_loader:  a running disk loader thread that loads application data from the disk asynchronously
         :param limit: the max number of packages to be retrieved. <= 1 should retrieve everything
         :param only_apps: if only application packages should be retrieved
         :param pkg_types: use 'None' to bring any or specify some
+        :param internet_available: if there is internet connection
         :return:
         """
         pass

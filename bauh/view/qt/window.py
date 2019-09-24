@@ -846,10 +846,14 @@ class ManageWindow(QWidget):
             self.thread_search.word = word
             self.thread_search.start()
 
-    def _finish_search(self, pkgs_found: List[SoftwarePackage]):
+    def _finish_search(self, res: dict):
         self.finish_action()
-        self.ref_bt_upgrade.setVisible(False)
-        self.update_pkgs(pkgs_found, as_installed=False, ignore_updates=True)
+
+        if not res['error']:
+            self.ref_bt_upgrade.setVisible(False)
+            self.update_pkgs(res['pkgs_found'], as_installed=False, ignore_updates=True)
+        else:
+            dialog.show_message(title=self.i18n['warning'].capitalize(), body=self.i18n[res['error']], type_=MessageType.WARNING)
 
     def install(self, pkg: PackageView):
         pwd = None

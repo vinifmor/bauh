@@ -31,13 +31,16 @@ class AURIndexUpdater(Thread):
     def run(self):
         while True:
             self.logger.info('Pre-indexing AUR packages in memory')
-            res = self.http_client.get(URL_INDEX)
+            try:
+                res = self.http_client.get(URL_INDEX)
 
-            if res and res.text:
-                self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
-                self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
-            else:
-                self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+                if res and res.text:
+                    self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
+                    self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
+                else:
+                    self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+            except ConnectionError:
+                self.logger.warning('No internet connection: could not pre-index packages')
 
             time.sleep(5 * 60)  # updates every 5 minutes
 

@@ -8,6 +8,8 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.exception import NoInternetException
+from bauh.commons import internet
 
 SUGGESTIONS_LIMIT = 5
 
@@ -93,27 +95,30 @@ class GenericSoftwareManager(SoftwareManager):
 
         res = SearchResult([], [], 0)
 
-        norm_word = word.strip().lower()
-        disk_loader = self.disk_loader_factory.new()
-        disk_loader.start()
+        if internet.is_available(self.context.http_client, self.context.logger):
+            norm_word = word.strip().lower()
+            disk_loader = self.disk_loader_factory.new()
+            disk_loader.start()
 
-        threads = []
+            threads = []
 
-        for man in self.managers:
-            t = Thread(target=self._search, args=(norm_word, man, disk_loader, res))
-            t.start()
-            threads.append(t)
+            for man in self.managers:
+                t = Thread(target=self._search, args=(norm_word, man, disk_loader, res))
+                t.start()
+                threads.append(t)
 
-        for t in threads:
-            t.join()
+            for t in threads:
+                t.join()
 
-        if disk_loader:
-            disk_loader.stop_working()
-            disk_loader.join()
+            if disk_loader:
+                disk_loader.stop_working()
+                disk_loader.join()
 
-        res.installed = self._sort(res.installed, norm_word)
-        res.new = self._sort(res.new, norm_word)
-        res.total = len(res.installed) + len(res.new)
+            res.installed = self._sort(res.installed, norm_word)
+            res.new = self._sort(res.new, norm_word)
+            res.total = len(res.installed) + len(res.new)
+        else:
+            raise NoInternetException()
 
         tf = time.time()
         self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
@@ -130,9 +135,20 @@ class GenericSoftwareManager(SoftwareManager):
     def can_work(self) -> bool:
         return True
 
-    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
+    def _is_internet_available(self, res: dict):
+        res['available'] = internet.is_available(self.context.http_client, self.context.logger)
+
+    def _get_internet_check(self, res: dict) -> Thread:
+        t = Thread(target=self._is_internet_available, args=(res,))
+        t.start()
+        return t
+
+    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
+
+        internet_available = {}
+        thread_internet_check = self._get_internet_check(internet_available)
 
         res = SearchResult([], None, 0)
 
@@ -145,8 +161,9 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
+                    thread_internet_check.join()
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available['available'])
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -163,8 +180,9 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
+                    thread_internet_check.join()
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None)
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available['available'])
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -310,7 +328,7 @@ class GenericSoftwareManager(SoftwareManager):
                 suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        if self.managers:
+        if self.managers and internet.is_available(self.context.http_client, self.context.logger):
             suggestions, threads = [], []
             for man in self.managers:
                 t = Thread(target=self._fill_suggestions, args=(suggestions, man, SUGGESTIONS_LIMIT))

@@ -28,7 +28,11 @@ class HttpClient:
 
                 if self.sleep > 0:
                     time.sleep(self.sleep)
-            except:
+            except Exception as e:
+                if isinstance(e, requests.exceptions.ConnectionError):
+                    self.logger.error('Internet seems to be off')
+                    raise
+
                 self.logger.error("Could not retrieve data from '{}'".format(url))
                 traceback.print_exc()
                 continue

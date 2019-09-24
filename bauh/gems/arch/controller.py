@@ -7,6 +7,8 @@ from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type
 
+import requests
+
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -103,19 +105,40 @@ class ArchManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def _fill_aur_pkgs(self, not_signed: dict, apps: list, disk_loader: DiskCacheLoader):
+    def _fill_aur_pkgs(self, not_signed: dict, pkgs: list, disk_loader: DiskCacheLoader, internet_available: bool):
         downgrade_enabled = git.is_enabled()
-        pkgsinfo = self.aur_client.get_info(not_signed.keys())
 
-        if pkgsinfo:
-            for pkgdata in pkgsinfo:
-                pkg = self.mapper.map_api_data(pkgdata, not_signed)
-                pkg.downgrade_enabled = downgrade_enabled
-                if disk_loader:
-                    disk_loader.fill(pkg)
-                    pkg.status = PackageStatus.READY
+        if internet_available:
+            try:
+                pkgsinfo = self.aur_client.get_info(not_signed.keys())
 
-                apps.append(pkg)
+                if pkgsinfo:
+                    for pkgdata in pkgsinfo:
+                        pkg = self.mapper.map_api_data(pkgdata, not_signed)
+                        pkg.downgrade_enabled = downgrade_enabled
+
+                        if disk_loader:
+                            disk_loader.fill(pkg)
+                            pkg.status = PackageStatus.READY
+
+                        pkgs.append(pkg)
+
+                return
+            except requests.exceptions.ConnectionError:
+                self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
+                self.logger.info("Reading only local AUR packages data")
+
+        for name, data in not_signed.items():
+            pkg = ArchPackage(name=name, version=data.get('version'),
+                              latest_version=data.get('version'), description=data.get('description'),
+                              installed=True, mirror='aur')
+            pkg.downgrade_enabled = downgrade_enabled
+
+            if disk_loader:
+                disk_loader.fill(pkg)
+                pkg.status = PackageStatus.READY
+
+            pkgs.append(pkg)
 
     def _fill_mirror_pkgs(self, mirrors: dict, apps: list):
         # TODO
@@ -126,13 +149,13 @@ class ArchManager(SoftwareManager):
             app.update = False  # TODO
             apps.append(app)
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         installed = pacman.list_and_map_installed()
 
         apps = []
         if installed and installed['not_signed']:
             self.dcache_updater.join()
-            self._fill_aur_pkgs(installed['not_signed'], apps, disk_loader)
+            self._fill_aur_pkgs(installed['not_signed'], apps, disk_loader, internet_available)
 
         return SearchResult(apps, None, len(apps))
 

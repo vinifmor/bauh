@@ -8,6 +8,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
+from bauh.commons import internet
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.constants import SNAP_API_URL
@@ -26,7 +27,7 @@ class SnapManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
 
-    def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader) -> SnapApplication:
+    def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
                               rev=app_json.get('rev'),
                               notes=app_json.get('notes'),
@@ -49,7 +50,8 @@ class SnapManager(SoftwareManager):
             if disk_loader and app.installed:
                 disk_loader.fill(app)
 
-            SnapAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
+            if internet:
+                SnapAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
         else:
             app.fill_cached_data(api_data)
 
@@ -79,9 +81,10 @@ class SnapManager(SoftwareManager):
         else:
             return SearchResult([], [], 0)
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
-            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader) for app_json in snap.read_installed()]
+            internet_available = internet.is_available(self.http_client, self.logger)
+            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed()]
             return SearchResult(installed, None, len(installed))
         else:
             return SearchResult([], None, 0)

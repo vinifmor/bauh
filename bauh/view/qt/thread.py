@@ -1,3 +1,4 @@
+import re
 import time
 from datetime import datetime, timedelta
 from typing import List, Type, Set
@@ -13,6 +14,8 @@ from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
+
+RE_VERSION_IN_NAME = re.compile(r'\s+version\s+[\w\.]+\s*$')
 
 
 class AsyncAction(QThread, ProcessWatcher):
@@ -87,7 +90,10 @@ class UpdateSelectedApps(AsyncAction):
         if self.apps_to_update:
             updated, updated_types = 0, set()
             for app in self.apps_to_update:
-                self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], app.model.name, app.model.version))
+
+                name = app.model.name if not RE_VERSION_IN_NAME.findall(app.model.name) else app.model.name.split('version')[0].strip()
+
+                self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], name, app.model.version))
                 success = bool(self.manager.update(app.model, self.root_password, self))
 
                 if not success:
@@ -223,14 +229,18 @@ class SearchPackages(AsyncAction):
         self.manager = manager
 
     def run(self):
-        apps_found = []
+        search_res = {'pkgs_found': [], 'error': None}
 
         if self.word:
-            res = self.manager.search(self.word)
-            apps_found.extend(res.installed)
-            apps_found.extend(res.new)
-            self.notify_finished(apps_found)
-            self.word = None
+            try:
+                res = self.manager.search(self.word)
+                search_res['pkgs_found'].extend(res.installed)
+                search_res['pkgs_found'].extend(res.new)
+            except NoInternetException:
+                search_res['error'] = 'internet.required'
+            finally:
+                self.notify_finished(search_res)
+                self.word = None
 
 
 class InstallPackage(AsyncAction):
