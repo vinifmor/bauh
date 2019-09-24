@@ -131,7 +131,7 @@ class ProcessHandler:
                             continue
                         else:
                             return False
-                    elif process.skip_stdout and process.success_phrase and process.success_phrase in line:
+                    elif process.skip_stdout and process.success_phrases and [p in line for p in process.success_phrases]:
                         already_succeeded = True
 
                 if not already_succeeded and process.output_delay:
