@@ -5,6 +5,8 @@ a management panel where you can search, update, install, uninstall and launch a
 
 It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
 
+This project has an official Twitter account ( **@bauh4linux**) so people can stay on top of its news.
+
 ### Developed with:
 - Python3 and Qt5.
 
