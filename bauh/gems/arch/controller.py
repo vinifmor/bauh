@@ -314,13 +314,13 @@ class ArchManager(SoftwareManager):
             commits = git.list_commits(clone_path)
 
             if commits:
-                history, status_idx = [], 0
+                history, status_idx = [], -1
 
                 for idx, commit in enumerate(commits):
                     with open(pkgbuild_path) as f:
                         pkgdict = aur.map_pkgbuild(f.read())
 
-                    if '{}-{}'.format(pkgdict.get('pkgver'), pkgdict.get('pkgrel')) == pkg.version:
+                    if status_idx < 0 and '{}-{}'.format(pkgdict.get('pkgver'), pkgdict.get('pkgrel')) == pkg.version:
                         status_idx = idx
 
                     history.append({'1_version': pkgdict['pkgver'], '2_release': pkgdict['pkgrel'],
