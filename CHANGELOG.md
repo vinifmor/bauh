@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - When a package is installed, it will be the first element of the table after refreshing
 - Progress bar status can now be controlled by the software manager while an operation is being executed
 - Flatpak: showing runtime branches as versions when they are not available
+- better internet offline handling
 - small UI improvements
 - installation logs are saved at **/tmp/bauh/logs/install**
 - Environment variable / parameter BAUH_UPDATE_NOTIFICATION renamed to BAUH_SYSTEM_NOTIFICATIONS and now works for any system notification

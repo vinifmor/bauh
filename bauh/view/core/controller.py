@@ -161,7 +161,9 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    thread_internet_check.join()
+                    if thread_internet_check.isAlive():
+                        thread_internet_check.join()
+
                     mti = time.time()
                     man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available['available'])
                     mtf = time.time()
