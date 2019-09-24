@@ -100,12 +100,15 @@ The application settings are stored in **/home/$USER/.config/bauh/config.json**
 - It is **not enabled by default**. It is necessary to enable it using the UI.
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
 - It handles conflicts, and missing / optional packages installations ( include from your distro mirrors )
-- Automatically makes a simple package compilation improvement -> if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
-then a copy of **/etc/makepkg.conf** will be generated at **/home/$USER/makepkg.conf** defining MAKEFLAGS to work with
-the number of your machine processors multiplied by 1.5 rounded up ( this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0** )
 - If (**aria2**) [https://github.com/aria2/aria2] is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
+- Automatically makes simple package compilation improvements ( this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0** ):
+a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **/home/$USER/makepkg.conf** does not exist,
+then a copy of **/etc/makepkg.conf** will be generated at **/home/$USER/makepkg.conf** defining MAKEFLAGS to work with
+the number of your machine processors multiplied by 1.5 rounded up
+b) same as **a**, but related to **COMPRESSXZ** definition. If '--threads=0' is not defined, the custom file will be generated.
 
+( for more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
 
 ### Logs
 - Installation logs are saved at **/tmp/bauh/logs/install**
