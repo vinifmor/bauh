@@ -1,2 +1,2 @@
 include requirements.txt
-recursive-include bauh/resources *
+recursive-include bauh/view/resources *
