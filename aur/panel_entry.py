@@ -3,7 +3,8 @@ import os
 import sys
 import locale
 
-system_locale = locale.getdefaultlocale()[0].split('_')[0]
+system_locale = locale.getdefaultlocale()
+system_locale = system_locale[0].split('_')[0] if system_locale and isinstance(system_locale, list) else 'en'
 
 if system_locale == 'pt':
     comment = "Gerencie seus aplicativos Flatpak / Snap / AUR "
