@@ -99,11 +99,11 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
 
                         if not not_commented:
                             user_makepkg = RE_MAKE_FLAGS.sub('', global_makepkg)
-                            optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
+                            optimizations.append('MAKEFLAGS="-j$(nproc)"')
                         else:
                             self.logger.warning("It seems '{}' compilation flags are already customized".format(GLOBAL_MAKEPKG))
                     else:
-                        optimizations.append('MAKEFLAGS="-j{}"'.format(ncpus))
+                        optimizations.append('MAKEFLAGS="-j$(nproc)"')
 
                 compress_xz = RE_COMPRESS_XZ.findall(user_makepkg if user_makepkg else global_makepkg)
 

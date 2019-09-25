@@ -1,6 +1,6 @@
 ## bauh
 
-Graphical user interface to manage your Linux applications (packages) (old **fpakman**). It currently supports Flatpak, Snap and AUR packaging types. When you launch **bauh** you will see
+**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap and AUR packaging types. When you launch **bauh** you will see
 a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the package technology.
 
 It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
@@ -106,7 +106,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
   a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
 then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
-the number of your machine processors multiplied by 1.5 rounded up.
+the number of your machine processors (**-j${nproc}**).
 
   b) same as previous, but related to **COMPRESSXZ** definition. If '--threads=0' is not defined, the custom file will be generated.
 
