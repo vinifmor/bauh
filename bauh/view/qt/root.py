@@ -1,10 +1,12 @@
-import io
 import os
-import subprocess
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
-from bauh.view.qt.dialog import show_error
+from bauh.api.abstract.view import MessageType
+from bauh.commons.system import new_subprocess
+from bauh.view.qt.dialog import show_message
+from bauh.view.util import resource
 
 
 def is_root():
@@ -13,33 +15,41 @@ def is_root():
 
 def ask_root_password(locale_keys: dict):
 
-    dialog_pwd = QInputDialog()
-    dialog_pwd.setInputMode(QInputDialog.TextInput)
-    dialog_pwd.setTextEchoMode(QLineEdit.Password)
-    dialog_pwd.setWindowTitle(locale_keys['popup.root.title'])
-    dialog_pwd.setLabelText(locale_keys['popup.root.password'] + ':')
-    dialog_pwd.setCancelButtonText(locale_keys['popup.button.cancel'])
-    dialog_pwd.resize(400, 200)
+    diag = QInputDialog()
+    diag.setInputMode(QInputDialog.TextInput)
+    diag.setTextEchoMode(QLineEdit.Password)
+    diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg')))
+    diag.setWindowTitle(locale_keys['popup.root.title'])
+    diag.setLabelText(locale_keys['popup.root.password'] + ':')
+    diag.setCancelButtonText(locale_keys['popup.button.cancel'])
+    diag.resize(400, 200)
 
-    ok = dialog_pwd.exec_()
+    ok = diag.exec_()
 
     if ok:
-        if not validate_password(dialog_pwd.textValue()):
-            show_error(title=locale_keys['popup.root.bad_password.title'],
-                       body=locale_keys['popup.root.bad_password.body'])
+        if not validate_password(diag.textValue()):
+            show_message(title=locale_keys['popup.root.bad_password.title'],
+                         body=locale_keys['popup.root.bad_password.body'],
+                         type_=MessageType.ERROR)
             ok = False
 
-    return dialog_pwd.textValue(), ok
+    return diag.textValue(), ok
 
 
 def validate_password(password: str) -> bool:
-    proc = subprocess.Popen('sudo -k && echo {} | sudo -S whoami'.format(password),
-                            shell=True,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL,
-                            bufsize=-1)
-    stream = os._wrap_close(io.TextIOWrapper(proc.stdout), proc)
-    res = stream.read()
-    stream.close()
+    clean = new_subprocess(['sudo', '-k']).stdout
+    echo = new_subprocess(['echo', password], stdin=clean).stdout
 
-    return bool(res.strip())
+    validate = new_subprocess(['sudo', '-S', '-v'], stdin=echo)
+
+    for o in validate.stdout:
+        pass
+
+    for o in validate.stderr:
+        if o:
+            line = o.decode()
+
+            if 'incorrect password attempt' in line:
+                return False
+
+    return True

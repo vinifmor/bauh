@@ -1,20 +1,20 @@
 from enum import Enum
 
-from bauh.core.model import Application
+from bauh.api.abstract.model import SoftwarePackage
 
 
-class ApplicationViewStatus(Enum):
+class PackageViewStatus(Enum):
     LOADING = 0
     READY = 1
 
 
-class ApplicationView:
+class PackageView:
 
-    def __init__(self, model: Application, visible: bool = True):
+    def __init__(self, model: SoftwarePackage):
         self.model = model
         self.update_checked = model.update
-        self.visible = visible
-        self.status = ApplicationViewStatus.LOADING
+        self.status = PackageViewStatus.LOADING
+        self.table_index = -1
 
     def __repr__(self):
-        return '{} ( {} )'.format(self.model.base_data.name, self.model.get_type())
+        return '{} ( {} )'.format(self.model.name, self.model.get_type())

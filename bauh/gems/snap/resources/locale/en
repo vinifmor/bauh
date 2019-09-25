@@ -1,0 +1,3 @@
+snap.notification.snapd_unavailable=snapd seems not to be installed or enabled. snap packages will not be available.
+snap.action.refresh.status=Refreshing
+snap.action.refresh.label=Refresh
