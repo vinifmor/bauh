@@ -144,7 +144,7 @@ class SnapManager(SoftwareManager):
         pass
 
     def list_warnings(self) -> List[str]:
-        if not snap.is_snapd_running():
+        if snap.is_installed() and not snap.is_snapd_running():
             snap_bold = bold('Snap')
             return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
                     self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(self.i18n['manage_window.settings.gems']))]
