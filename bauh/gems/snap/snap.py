@@ -7,6 +7,8 @@ from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
 from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
+RE_SNAPD_STATUS = re.compile('\s+')
+SNAPD_RUNNING_STATUS = {'listening', 'running'}
 
 
 def is_installed():
@@ -17,12 +19,24 @@ def is_installed():
 def is_snapd_running() -> bool:
     services = new_subprocess(['systemctl', 'list-units'])
 
-    for o in new_subprocess(['grep', '-oP', 'snapd.socket.+\K(listening|running)'], stdin=services.stdout).stdout:
+    service, service_running = False, False
+    socket, socket_running = False, False
+    for o in new_subprocess(['grep', '-Eo', 'snapd.+'], stdin=services.stdout).stdout:
         if o:
             line = o.decode().strip()
-            return bool(line)
 
-    return False
+            if line:
+                line_split = RE_SNAPD_STATUS.split(line)
+                running = line_split[3] in SNAPD_RUNNING_STATUS
+
+                if line_split[0] == 'snapd.service':
+                    service = True
+                    service_running = running
+                elif line_split[0] == 'snapd.socket':
+                    socket = True
+                    socket_running = running
+
+    return socket and socket_running and (not service or (service and service_running))
 
 
 def app_str_to_json(app: str) -> dict:
