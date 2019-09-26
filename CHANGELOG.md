@@ -7,10 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.6.1]
 ### Improvements:
 - Better warning presentation when there are several messages
+- "Show" button available for all information fields
 
 ### Fixes:
 - Error when retrieving suggestions
 - snapd health check when snapd.service is available
+- AUR: not showing all optional dependencies ( Info )
 
 
 ## [0.6.0] 2019-09-25

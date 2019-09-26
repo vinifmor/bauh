@@ -6,7 +6,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, ProcessHandler
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
-
+RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 
 def is_enabled() -> bool:
     try:
@@ -43,7 +43,7 @@ def get_info(pkg_name) -> str:
 def get_info_list(pkg_name: str) -> List[tuple]:
     info = get_info(pkg_name)
     if info:
-        return re.findall(r'(\w+\s?\w+)\s+:\s+(.+(\n\s+.+)*)', info)
+        return re.findall(r'(\w+\s?\w+)\s*:\s*(.+(\n\s+.+)*)', info)
 
 
 def get_info_dict(pkg_name: str) -> dict:
@@ -53,14 +53,13 @@ def get_info_dict(pkg_name: str) -> dict:
         info_dict = {}
         for info_data in info_list:
             attr = info_data[0].lower().strip()
-            info_dict[attr] = info_data[1] if '\n' not in info_data[1] else ' '.join(
-                [l.strip() for l in info_data[1].split('\n')])
+            info_dict[attr] = info_data[1]
 
             if info_dict[attr] == 'None':
                 info_dict[attr] = None
 
             if attr == 'optional deps' and info_dict[attr]:
-                info_dict[attr] = RE_DEPS.findall(info_dict[attr])
+                info_dict[attr] = info_dict[attr].split('\n')
             elif attr == 'depends on' and info_dict[attr]:
                 info_dict[attr] = [d.strip() for d in info_dict[attr].split(' ') if d]
 

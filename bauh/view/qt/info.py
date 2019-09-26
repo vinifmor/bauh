@@ -3,7 +3,6 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 from bauh.api.abstract.cache import MemoryCache
-from bauh.commons.html import strip_html
 
 IGNORED_ATTRS = {'name', '__app__'}
 
@@ -54,8 +53,6 @@ class InfoDialog(QDialog):
                 else:
                     val = str(app[attr]).strip()
 
-                full_val = None
-
                 i18n_val = locale_keys.get('{}.{}'.format(i18n_key, val.lower()))
 
                 if i18n_val:
@@ -63,13 +60,6 @@ class InfoDialog(QDialog):
 
                 text = QLineEdit()
                 text.setToolTip(val)
-
-                if len(val) > 80:
-                    full_val = val
-                    self.full_vals.append(full_val)
-                    val = strip_html(val)
-                    val = val[0:80] + '...'
-
                 text.setText(val)
                 text.setCursorPosition(0)
                 text.setStyleSheet("width: 400px")
@@ -80,9 +70,7 @@ class InfoDialog(QDialog):
 
                 self.gbox_info_layout.addWidget(label, idx, 0)
                 self.gbox_info_layout.addWidget(text, idx, 1)
-
-                if full_val is not None:
-                    self._gen_show_button(idx, full_val)
+                self._gen_show_button(idx, val)
 
         self.adjustSize()
 
