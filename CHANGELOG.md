@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.1] 2019-09-
+## [0.6.1] 2019-09-26
 ### Improvements:
 - Better warning presentation when there are several messages
 - Better AUR update check handling
