@@ -333,7 +333,7 @@ class ManageWindow(QWidget):
 
     def _show_warnings(self, warnings: List[str]):
         if warnings:
-            dialog.show_message(title=self.i18n['warning'].capitalize(), body='<p>{}</p>'.format('<br/>'.join(warnings)), type_=MessageType.WARNING)
+            dialog.show_message(title=self.i18n['warning'].capitalize(), body='<p>{}</p>'.format('<br/><br/>'.join(warnings)), type_=MessageType.WARNING)
 
     def show(self):
         super(ManageWindow, self).show()

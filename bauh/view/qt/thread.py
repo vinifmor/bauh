@@ -389,7 +389,7 @@ class FindSuggestions(AsyncAction):
 
     def run(self):
         sugs = self.man.list_suggestions(limit=-1)
-        self.notify_finished([s.package for s in sugs] if sugs is not None else [])
+        self.notify_finished({'pkgs_found': [s.package for s in sugs] if sugs is not None else [], 'error': None})
 
 
 class ListWarnings(QThread):

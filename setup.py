@@ -30,9 +30,10 @@ setup(
     author_email=AUTHOR_EMAIL,
     python_requires=">=3.5",
     url=URL,
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests.*", "tests"]),
     package_data={NAME: ["view/resources/locale/*", "view/resources/img/*", "gems/*/resources/img/*", "gems/*/resources/locale/*"]},
     install_requires=requirements,
+    test_suite="tests",
     entry_points={
         "console_scripts": [
             "{name}={name}.app:main".format(name=NAME)

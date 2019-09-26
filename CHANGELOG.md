@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.1] 2019-09-26
+### Improvements:
+- Better warning presentation when there are several messages
+- Better AUR update check handling
+- "Show" button available for all information fields
+
+### Fixes:
+- Error when retrieving suggestions
+- snapd health check when snapd.service is available
+- AUR: not showing all optional dependencies ( Info )
+
 
 ## [0.6.0] 2019-09-25
 ### Features
@@ -33,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Environment variable / parameter **BAUH_UPDATE_NOTIFICATION** renamed to **BAUH_SYSTEM_NOTIFICATIONS** and now works for any system notification
 - Environment variable / parameter **BAUH_DOWNLOAD_MULTITHREAD**: if source files should be downloaded using multi-threads (not supported by all **gems**).
 - Environment variables / parameter **BAUH_MAX_DISPLAYED**: controls the maximum number of displayed apps ( default to 50 )
-- Environment variables / parameter **BAUH_LOGS**: controls the maximum number of displayed apps ( default to 50 )
+- Environment variables / parameter **BAUH_LOGS**: activates console logging.
 - small UI improvements
 
 ### UI Changes

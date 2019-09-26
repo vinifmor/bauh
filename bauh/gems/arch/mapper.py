@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from bauh.api.abstract.model import PackageStatus
@@ -5,6 +6,16 @@ from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
+RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
+
+RE_SFX = ('r', 're', 'release')
+GA_SFX = ('ga', 'ge')
+RC_SFX = ('rc',)
+BETA_SFX = ('b', 'beta')
+AL_SFX = ('alpha', 'alfa')
+DEV_SFX = ('dev', 'devel', 'development')
+
+V_SUFFIX_MAP = {s: {'c': sfxs[0], 'p': idx} for idx, sfxs in enumerate([RE_SFX, GA_SFX, RC_SFX, BETA_SFX, AL_SFX, DEV_SFX]) for s in sfxs}
 
 
 class ArchDataMapper:
@@ -36,7 +47,36 @@ class ArchDataMapper:
         pkg.url_download = URL_PKG_DOWNLOAD.format(package['URLPath']) if package.get('URLPath') else None
         pkg.first_submitted = datetime.fromtimestamp(package['FirstSubmitted']) if package.get('FirstSubmitted') else None
         pkg.last_modified = datetime.fromtimestamp(package['LastModified']) if package.get('LastModified') else None
-        pkg.update = pkg.version and pkg.latest_version and pkg.latest_version > pkg.version
+        pkg.update = self.check_update(pkg.version, pkg.latest_version)
+
+    @staticmethod
+    def check_update(version: str, latest_version: str) -> bool:
+        if version and latest_version:
+            current_sfx = RE_LETTERS.findall(version)
+            latest_sf = RE_LETTERS.findall(latest_version)
+
+            if latest_sf and current_sfx:
+                current_sfx = current_sfx[0]
+                latest_sf = latest_sf[0]
+
+                current_sfx_data = V_SUFFIX_MAP.get(current_sfx.lower())
+                latest_sfx_data = V_SUFFIX_MAP.get(latest_sf.lower())
+
+                if current_sfx_data and latest_sfx_data:
+                    nversion = version.split(current_sfx)[0]
+                    nlatest = latest_version.split(latest_sf)[0]
+
+                    if nversion == nlatest:
+                        if current_sfx_data['c'] != latest_sfx_data['c']:
+                            return latest_sfx_data['p'] < current_sfx_data['p']
+                        else:
+                            return ''.join(latest_version.split(latest_sf)) > ''.join(version.split(current_sfx))
+
+                    return nlatest > nversion
+
+            return latest_version > version
+
+        return False
 
     def fill_package_build(self, pkg: ArchPackage):
         res = self.http_client.get(pkg.get_pkg_build_url())

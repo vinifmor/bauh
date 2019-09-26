@@ -8,7 +8,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
-from bauh.commons import internet
+from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.constants import SNAP_API_URL
@@ -83,7 +83,6 @@ class SnapManager(SoftwareManager):
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
-            internet_available = internet.is_available(self.http_client, self.logger)
             installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed()]
             return SearchResult(installed, None, len(installed))
         else:
@@ -145,8 +144,10 @@ class SnapManager(SoftwareManager):
         pass
 
     def list_warnings(self) -> List[str]:
-        if not snap.is_snapd_running():
-            return [self.i18n['snap.notification.snapd_unavailable']]
+        if snap.is_installed() and not snap.is_snapd_running():
+            snap_bold = bold('Snap')
+            return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
+                    self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(self.i18n['manage_window.settings.gems']))]
 
     def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):
         res = self.http_client.get_json(SNAP_API_URL + '/search?q=package_name:{}'.format(pkg_name))
@@ -163,24 +164,25 @@ class SnapManager(SoftwareManager):
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
         res = []
 
-        sugs = [(i, p) for i, p in suggestions.ALL.items()]
-        sugs.sort(key=lambda t: t[1].value, reverse=True)
+        if snap.is_snapd_running():
+            sugs = [(i, p) for i, p in suggestions.ALL.items()]
+            sugs.sort(key=lambda t: t[1].value, reverse=True)
 
-        threads = []
-        for sug in sugs:
+            threads = []
+            for sug in sugs:
 
-            if limit <= 0 or len(res) < limit:
-                t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
-                t.start()
-                threads.append(t)
-                time.sleep(0.001)  # to avoid being blocked
-            else:
-                break
+                if limit <= 0 or len(res) < limit:
+                    t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
+                    t.start()
+                    threads.append(t)
+                    time.sleep(0.001)  # to avoid being blocked
+                else:
+                    break
 
-        for t in threads:
-            t.join()
+            for t in threads:
+                t.join()
 
-        res.sort(key=lambda s: s.priority.value, reverse=True)
+            res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:
