@@ -8,7 +8,6 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
-from bauh.commons import internet
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
