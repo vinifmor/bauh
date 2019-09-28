@@ -196,8 +196,9 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def list_updates(self) -> List[PackageUpdate]:
+    def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         """
+        :param internet_available
         :return: available package updates
         """
         pass

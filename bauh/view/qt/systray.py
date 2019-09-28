@@ -1,4 +1,5 @@
 import time
+from io import StringIO
 from threading import Lock, Thread
 from typing import List
 
@@ -96,7 +97,22 @@ class TrayIcon(QSystemTrayIcon):
                 if update_keys.difference(self.last_updates):
                     self.last_updates = update_keys
                     n_updates = len(updates)
-                    msg = self.i18n['notification.update{}'.format('' if n_updates == 1 else 's')].format(n_updates)
+                    ups_by_type = {}
+
+                    for key in update_keys:
+                        ptype = key.split(':')[0]
+                        count = ups_by_type.get(ptype)
+                        count = 1 if count is None else count + 1
+                        ups_by_type[ptype] = count
+
+                    msg = StringIO()
+                    msg.write(self.i18n['notification.update{}'.format('' if n_updates == 1 else 's')].format(n_updates))
+
+                    for ptype, count in ups_by_type.items():
+                        msg.write('\n  * {} ( {} )'.format(ptype.capitalize(), count))
+
+                    msg.seek(0)
+                    msg = msg.read()
                     self.setToolTip(msg)
 
                     if self.update_notification and notify_user:

@@ -689,8 +689,9 @@ class ArchManager(SoftwareManager):
         self.comp_optimizer.start()
         self.aur_index_updater.start()
 
-    def list_updates(self) -> List[PackageUpdate]:
-        return [PackageUpdate(app.id, app.latest_version, 'aur') for app in self.read_installed(disk_loader=None).installed if app.update]
+    def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
+        installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
+        return [PackageUpdate(p.id, p.latest_version, 'aur') for p in installed if p.update]
 
     def list_warnings(self) -> List[str]:
         warnings = []

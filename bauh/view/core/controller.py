@@ -143,12 +143,12 @@ class GenericSoftwareManager(SoftwareManager):
         t.start()
         return t
 
-    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, net_check: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
 
-        internet_available = {}
-        thread_internet_check = self._get_internet_check(internet_available)
+        net_check = {}
+        thread_internet_check = self._get_internet_check(net_check)
 
         res = SearchResult([], None, 0)
 
@@ -165,7 +165,7 @@ class GenericSoftwareManager(SoftwareManager):
                         thread_internet_check.join()
 
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available['available'])
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_check['available'])
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -184,7 +184,7 @@ class GenericSoftwareManager(SoftwareManager):
 
                     thread_internet_check.join()
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available['available'])
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_check['available'])
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -286,15 +286,22 @@ class GenericSoftwareManager(SoftwareManager):
         self.thread_prepare = Thread(target=self._prepare)
         self.thread_prepare.start()
 
-    def list_updates(self) -> List[PackageUpdate]:
+    def list_updates(self, net_check: bool = None) -> List[PackageUpdate]:
         self._wait_to_be_ready()
 
         updates = []
 
         if self.managers:
+            net_check = {}
+            thread_internet_check = self._get_internet_check(net_check)
+
             for man in self.managers:
                 if self._can_work(man):
-                    man_updates = man.list_updates()
+
+                    if thread_internet_check.is_alive():
+                        thread_internet_check.join()
+
+                    man_updates = man.list_updates(internet_available=net_check['available'])
                     if man_updates:
                         updates.extend(man_updates)
 

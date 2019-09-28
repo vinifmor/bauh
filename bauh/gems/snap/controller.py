@@ -140,7 +140,7 @@ class SnapManager(SoftwareManager):
     def prepare(self):
         pass
 
-    def list_updates(self) -> List[PackageUpdate]:
+    def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
 
     def list_warnings(self) -> List[str]:

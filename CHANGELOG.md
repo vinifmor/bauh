@@ -4,13 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.2] 2019-09-
+### Improvements
+- Update notifications showing the number of updates by type as well
+
+### Fixes
+- Update-check daemon not showing notifications
+
 ## [0.6.1] 2019-09-26
-### Improvements:
+### Improvements
 - Better warning presentation when there are several messages
 - Better AUR update check handling
 - "Show" button available for all information fields
 
-### Fixes:
+### Fixes
 - Error when retrieving suggestions
 - snapd health check when snapd.service is available
 - AUR: not showing all optional dependencies ( Info )
