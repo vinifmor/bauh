@@ -32,7 +32,6 @@ class ApplicationContext:
         self.cache_factory = cache_factory
         self.disk_loader_factory = disk_loader_factory
         self.logger = logger
-        self.linux_distro = platform.linux_distribution()
         self.file_downloader = file_downloader
         self.arch_x86_64 = sys.maxsize > 2**32
 

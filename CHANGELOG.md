@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.6.2] 2019-09-
 ### Improvements
 - Update notifications showing the number of updates by type as well
+- Improving Arch distro checking
 
 ### Fixes
 - Update-check daemon not showing notifications
