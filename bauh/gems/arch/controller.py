@@ -67,7 +67,8 @@ class ArchManager(SoftwareManager):
         Thread(target=self.mapper.fill_package_build, args=(app,)).start()
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
-        self.comp_optimizer.join()
+        if self.comp_optimizer.isAlive():
+            self.comp_optimizer.join()
 
         downgrade_enabled = git.is_enabled()
         res = SearchResult([], [], 0)
@@ -155,7 +156,9 @@ class ArchManager(SoftwareManager):
 
         apps = []
         if installed and installed['not_signed']:
-            self.dcache_updater.join()
+            if self.dcache_updater.isAlive():
+                self.dcache_updater.join()
+
             self._fill_aur_pkgs(installed['not_signed'], apps, disk_loader, internet_available)
 
         return SearchResult(apps, None, len(apps))
