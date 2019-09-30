@@ -270,6 +270,8 @@ class ArchManager(SoftwareManager):
             if pkg.pkgbuild:
                 info['13_pkg_build'] = pkg.pkgbuild
 
+            info['14_installed_files'] = pacman.list_installed_files(pkg.name)
+
             return info
         else:
             info = {
@@ -295,7 +297,7 @@ class ArchManager(SoftwareManager):
                     info['12_optdepends'] = srcinfo['optdepends']
 
             if pkg.pkgbuild:
-                info['13_pkg_build'] = pkg.pkgbuild
+                info['00_pkg_build'] = pkg.pkgbuild
             else:
                 info['11_pkg_build_url'] = pkg.get_pkg_build_url()
 

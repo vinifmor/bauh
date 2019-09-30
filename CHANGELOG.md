@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.6.2] 2019-09-
 ### Improvements
+- Installed files of AUR packages available in the Info window
 - Update notifications showing the number of updates by type as well
 - Improving Arch distro checking
 
