@@ -210,7 +210,8 @@ def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
         pwdin = new_subprocess(['echo', root_password], global_interpreter=global_interpreter, lang=lang).stdout
 
     final_cmd.extend(cmd)
-    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd)
+
+    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang))
 
 
 def notify_user(msg: str, app_name: str, icon_path: str):
