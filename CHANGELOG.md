@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes
 - Update-check daemon not showing notifications
+- Not retrieving the system default locale to translate the application texts
 - Installed button available after a recent installation if a new search is done
 
 ## [0.6.1] 2019-09-26

@@ -14,8 +14,7 @@ def read() -> Namespace:
                         help='default memory caches expiration time in SECONDS. Default: %(default)s')
     parser.add_argument('-ie', '--icon-exp', action="store", default=int(os.getenv('BAUH_ICON_EXPIRATION', 60 * 5)),
                         type=int, help='cached icons expiration time in SECONDS. Default: %(default)s')
-    parser.add_argument('-l', '--locale', action="store", default=os.getenv('BAUH_LOCALE', 'en'),
-                        help='Translation key. Default: %(default)s')
+    parser.add_argument('-l', '--locale', action="store", default=os.getenv('BAUH_LOCALE'), help='Locale key. e.g: en, es, pt, ...')
     parser.add_argument('-i', '--check-interval', action="store", default=int(os.getenv('BAUH_CHECK_INTERVAL', 60)),
                         type=int, help='Updates check interval in SECONDS. Default: %(default)s')
     parser.add_argument('-n', '--system-notifications', action="store", choices=[0, 1],
@@ -48,7 +47,7 @@ def validate(args: Namespace, logger: logging.Logger):
     if args.icon_exp < 0:
         logger.info("'icon-exp' set to '{}': cache will not expire.".format(args.cache_exp))
 
-    if not args.locale.strip():
+    if args.locale and not args.locale.strip():
         logger.info("'locale' set as '{}'. You must provide a valid one. Aborting...".format(args.locale))
         exit(1)
 
