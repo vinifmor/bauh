@@ -34,7 +34,7 @@ def load_managers(locale: str, context: ApplicationContext, config: Configuratio
                     locale_path = '{}/resources/locale'.format(f.path)
 
                     if os.path.exists(locale_path):
-                        context.i18n.update(util.get_locale_keys(locale, locale_path))
+                        context.i18n.update(util.get_locale_keys(locale, locale_path)[1])
 
                 man = manager_class(context=context)
 

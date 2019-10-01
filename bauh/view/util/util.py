@@ -3,6 +3,7 @@ import locale
 import os
 import subprocess
 import sys
+from typing import Tuple
 
 from PyQt5.QtCore import QCoreApplication
 
@@ -10,7 +11,7 @@ from bauh import __app_name__
 from bauh.view.util import resource
 
 
-def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')):
+def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')) -> Tuple[str, dict]:
 
     locale_path = None
 
@@ -41,7 +42,7 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
             keyval = line.strip().split('=')
             locale_obj[keyval[0].strip()] = keyval[1].strip()
 
-    return locale_obj
+    return locale_path.split('/')[-1], locale_obj
 
 
 def notify_user(msg: str, icon_path: str = resource.get_path('img/logo.svg')):
