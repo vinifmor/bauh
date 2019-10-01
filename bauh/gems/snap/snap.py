@@ -63,7 +63,16 @@ def get_info(app_name: str, attrs: tuple = None):
         info_map = re.findall(r'({}):\s+(.+)'.format(re_attrs), full_info_lines)
 
         for info in info_map:
-            data[info[0]] = info[1].strip()
+            val = info[1].strip()
+
+            if info[0] == 'installed':
+                val_split = [s for s in val.split(' ') if s]
+                data['version'] = val_split[0]
+
+                if len(val_split) > 2:
+                    data['size'] = val_split[2]
+            else:
+                data[info[0]] = val
 
         if not attrs or 'description' in attrs:
             desc = re.findall(r'\|\n+((\s+.+\n+)+)', full_info_lines)

@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.6.2] 2019-10-01
 ### Improvements
 - Update notifications showing the number of updates by type as well ( if there are from more than one packaging type )
+- Snap:
+    - **Installed** info field split into **version** and **size**
 - AUR:
     - Installed files available in the Info window
     - Improving Arch distro checking
