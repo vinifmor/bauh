@@ -108,8 +108,9 @@ class TrayIcon(QSystemTrayIcon):
                     msg = StringIO()
                     msg.write(self.i18n['notification.update{}'.format('' if n_updates == 1 else 's')].format(n_updates))
 
-                    for ptype, count in ups_by_type.items():
-                        msg.write('\n  * {} ( {} )'.format(ptype.capitalize(), count))
+                    if len(ups_by_type) > 1:
+                        for ptype, count in ups_by_type.items():
+                            msg.write('\n  * {} ( {} )'.format(ptype.capitalize(), count))
 
                     msg.seek(0)
                     msg = msg.read()
