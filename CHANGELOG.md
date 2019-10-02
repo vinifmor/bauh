@@ -12,14 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - Installed files available in the Info window
     - Improving Arch distro checking
-- Flatpak:
-    - error when retrieving information ( Flatpak 1.0.X )
 
 ### Fixes
 - Update-check daemon not showing notifications
 - Not retrieving the system default locale to translate the application texts
 - Not updating translations when the default locale is different from 'en'
 - Installed button available after a recent installation if a new search is done
+- Flatpak:
+    - error when retrieving information ( Flatpak 1.0.X )
 - AUR:
     - ignoring downgrade warnings for different locales
 
