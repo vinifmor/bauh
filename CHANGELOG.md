@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.6.2] 2019-10-01
+## [0.6.2] 2019-10-02
 ### Improvements
 - Update notifications showing the number of updates by type as well ( if there are from more than one packaging type )
 - Snap:
@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Installed files available in the Info window
     - Improving Arch distro checking
 - Flatpak:
-    - error when retrieving information ( Ubuntu 18.04 )
+    - error when retrieving information ( Flatpak 1.0.X )
 
 ### Fixes
 - Update-check daemon not showing notifications
