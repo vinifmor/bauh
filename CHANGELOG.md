@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - Installed files available in the Info window
     - Improving Arch distro checking
+- Flatpak:
+    - error when retrieving information ( Ubuntu 18.04 )
 
 ### Fixes
 - Update-check daemon not showing notifications
