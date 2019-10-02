@@ -4,13 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.6.2] 2019-10-02
+### Improvements
+- Update notifications showing the number of updates by type as well ( if there are from more than one packaging type )
+- Snap:
+    - **Installed** info field split into **version** and **size**
+- AUR:
+    - Installed files available in the Info window
+    - Improving Arch distro checking
+
+### Fixes
+- Update-check daemon not showing notifications
+- Not retrieving the system default locale to translate the application texts
+- Not updating translations when the default locale is different from 'en'
+- Installed button available after a recent installation if a new search is done
+- Flatpak:
+    - error when retrieving information ( Flatpak 1.0.X )
+- Snap:
+    - apps with commands different from their names do not launch
+- AUR:
+    - ignoring downgrade warnings for different locales
+
 ## [0.6.1] 2019-09-26
-### Improvements:
+### Improvements
 - Better warning presentation when there are several messages
 - Better AUR update check handling
 - "Show" button available for all information fields
 
-### Fixes:
+### Fixes
 - Error when retrieving suggestions
 - snapd health check when snapd.service is available
 - AUR: not showing all optional dependencies ( Info )

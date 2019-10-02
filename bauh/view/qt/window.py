@@ -261,6 +261,7 @@ class ManageWindow(QWidget):
         self.filter_updates = False
         self._maximized = False
         self.progress_controll_enabled = True
+        self.recent_installation = False
 
         self.dialog_about = None
         self.first_refresh = suggestions
@@ -403,6 +404,7 @@ class ManageWindow(QWidget):
         self.textarea_output.hide()
 
     def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
+        self.recent_installation = False
         self.type_filter = None
         self.input_search.clear()
 
@@ -417,11 +419,11 @@ class ManageWindow(QWidget):
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
-    def _finish_refresh_apps(self, res: dict):
+    def _finish_refresh_apps(self, res: dict, as_installed: bool = True):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
-        self.update_pkgs(res['installed'], as_installed=True, types=res['types'])
+        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'])
         self.first_refresh = False
 
     def uninstall_app(self, app: PackageView):
@@ -618,7 +620,7 @@ class ManageWindow(QWidget):
             self.thread_verify_models.start()
 
         if self.pkgs_installed:
-            self.ref_bt_installed.setVisible(not as_installed)
+            self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)
 
         self.resize_and_center(accept_lower_width=self.pkgs_installed)
 
@@ -892,6 +894,7 @@ class ManageWindow(QWidget):
                 self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
 
         if res['success']:
+            self.recent_installation = True
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 

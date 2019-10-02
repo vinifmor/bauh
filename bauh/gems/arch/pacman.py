@@ -150,6 +150,20 @@ def list_bin_paths(pkgnames: Set[str]) -> List[str]:
     return bin_paths
 
 
+def list_installed_files(pkgname: str) -> List[str]:
+    installed_files = new_subprocess(['pacman', '-Qlq', pkgname])
+
+    f_paths = []
+
+    for out in new_subprocess(['grep', '-E', '/.+\..+[^/]$'], stdin=installed_files.stdout).stdout:
+        if out:
+            line = out.decode().strip()
+            if line:
+                f_paths.append(line)
+
+    return f_paths
+
+
 def verify_pgp_key(key: str) -> bool:
     list_key = new_subprocess(['pacman-key', '-l']).stdout
 
@@ -168,3 +182,4 @@ def receive_key(key: str, root_password: str) -> SystemProcess:
 
 def sign_key(key: str, root_password: str) -> SystemProcess:
     return SystemProcess(new_root_subprocess(['pacman-key', '--lsign-key', key], root_password=root_password), check_error_output=False)
+

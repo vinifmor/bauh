@@ -139,7 +139,10 @@ class FlatpakManager(SoftwareManager):
         app_info['name'] = app.name
         app_info['type'] = 'runtime' if app.runtime else 'app'
         app_info['description'] = strip_html(app.description) if app.description else ''
-        app_info['installed'] = app_info['installed'].replace('?', ' ')
+
+        if app_info.get('installed'):
+            app_info['installed'] = app_info['installed'].replace('?', ' ')
+
         return app_info
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
@@ -184,26 +187,28 @@ class FlatpakManager(SoftwareManager):
     def prepare(self):
         pass
 
-    def list_updates(self) -> List[PackageUpdate]:
-        to_update = [app for app in self.read_installed(None).installed if app.update]
+    def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
+        installed = self.read_installed(None, internet_available=internet_available).installed
+
+        to_update = [p for p in installed if p.update]
 
         if to_update:
-                loaders = []
+            loaders = []
 
-                for app in to_update:
-                    if app.is_application():
-                        loader = FlatpakUpdateLoader(app=app, http_client=self.context.http_client)
-                        loader.start()
-                        loaders.append(loader)
+            for app in to_update:
+                if app.is_application():
+                    loader = FlatpakUpdateLoader(app=app, http_client=self.context.http_client)
+                    loader.start()
+                    loaders.append(loader)
 
-                for loader in loaders:
-                    loader.join()
+            for loader in loaders:
+                loader.join()
 
-                for app in to_update:
-                    updates.append(PackageUpdate(pkg_id='{}:{}'.format(app.id, app.branch),
-                                                 pkg_type='flatpak',
-                                                 version=app.version))
+            for app in to_update:
+                updates.append(PackageUpdate(pkg_id='{}:{}'.format(app.id, app.branch),
+                                             pkg_type='flatpak',
+                                             version=app.version))
 
         return updates
 

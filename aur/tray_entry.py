@@ -1,27 +1,18 @@
 # Generates a .desktop file based on the current python version. Used for AUR installation
-import locale
 import os
 import sys
 
-system_locale = locale.getdefaultlocale()
-system_locale = system_locale[0].split('_')[0] if system_locale and isinstance(system_locale, list) else 'en'
-
-if system_locale == 'pt':
-    comment = "Gerencie seus aplicativos Flatpak / Snap / AUR "
-    tray = 'bandeja'
-elif system_locale == 'es':
-    comment = "Administre sus aplicativos Flatpak / Snap / AUR"
-    tray = 'bandeja'
-else:
-    comment = "Manage your Flatpak / Snap / AUR applications"
-    tray = 'tray'
 
 desktop_file = """
 [Desktop Entry]
 Type = Application
-Name = bauh ( {tray} )
+Name = bauh ( tray )
+Name[pt] = bauh ( bandeja )
+Name[es] = bauh ( bandeja )
 Categories = System;
-Comment = {comment}
+Comment=Manage your Flatpak / Snap / AUR applications
+Comment[pt]=Gerencie seus aplicativos Flatpak / Snap / AUR
+Comment[es]=Administre sus aplicaciones Flatpak / Snap / AUR
 Exec = {path}
 Icon = {lib_path}/python{version}/site-packages/bauh/view/resources/img/logo.svg
 """
@@ -33,9 +24,7 @@ app_cmd = os.getenv('BAUH_PATH', '/usr/bin/bauh') + ' --tray=1'
 with open('bauh_tray.desktop', 'w+') as f:
     f.write(desktop_file.format(lib_path=os.getenv('BAUH_LIB_PATH', '/usr/lib'),
                                 version=py_version,
-                                path=app_cmd,
-                                comment=comment,
-                                tray=tray))
+                                path=app_cmd))
 
 
 with open('bauh-tray', 'w') as f:

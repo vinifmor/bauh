@@ -25,7 +25,7 @@ def main():
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
 
-    i18n = util.get_locale_keys(args.locale)
+    i18n_key, i18n = util.get_locale_keys(args.locale)
 
     cache_cleaner = CacheCleaner()
     cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
@@ -53,7 +53,7 @@ def main():
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
 
-    managers = gems.load_managers(context=context, locale=args.locale, config=user_config)
+    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config)
 
     manager = GenericSoftwareManager(managers, context=context, app_args=args)
     manager.prepare()

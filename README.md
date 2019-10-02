@@ -1,11 +1,9 @@
-## bauh
-
 **bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap and AUR packaging types. When you launch **bauh** you will see
 a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the package technology.
 
 It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
 
-This project has an official Twitter account ( **@bauh4linux**) so people can stay on top of its news.
+This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
 ### Developed with:
 - Python3 and Qt5.
@@ -94,7 +92,7 @@ You can change some application settings via environment variables or arguments 
 - It is **not enabled by default**
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If (**aria2**) [https://github.com/aria2/aria2] is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
 - Automatically makes simple package compilation improvements 
 
