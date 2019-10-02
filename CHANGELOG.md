@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Installed button available after a recent installation if a new search is done
 - Flatpak:
     - error when retrieving information ( Flatpak 1.0.X )
+- Snap:
+    - apps with commands different from their names do not launch
 - AUR:
     - ignoring downgrade warnings for different locales
 

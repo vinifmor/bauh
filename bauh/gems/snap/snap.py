@@ -189,7 +189,7 @@ def run(app: SnapApplication, logger: logging.Logger):
                 break
 
         if not command:
-            for c in command:
+            for c in commands:
                 if not c.endswith('.apm'):
                     command = c
 
