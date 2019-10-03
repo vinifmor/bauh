@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap:
     - apps with commands different from their names do not launch
 - AUR:
-    - ignoring downgrade warnings for different locales
+    - not ignoring downgrade warnings for different locales
 
 ## [0.6.1] 2019-09-26
 ### Improvements
