@@ -5,6 +5,10 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
+
+![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
+
+
 ### Developed with:
 - Python3 and Qt5.
 
