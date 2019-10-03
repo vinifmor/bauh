@@ -1,0 +1,2 @@
+gem.appimage.label=AppImage
+appimage.install.permission=Giving execution permission to {}

@@ -31,15 +31,17 @@ def main():
     cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
     icon_cache = cache_factory.new(args.icon_exp)
 
+    http_client = HttpClient(logger)
     context = ApplicationContext(i18n=i18n,
-                                 http_client=HttpClient(logger),
+                                 http_client=http_client,
                                  disk_cache=args.disk_cache,
                                  download_icons=args.download_icons,
                                  app_root_dir=ROOT_DIR,
                                  cache_factory=cache_factory,
                                  disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache, logger=logger),
                                  logger=logger,
-                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread)))
+                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread),
+                                                                         i18n, http_client))
     user_config = config.read()
 
     app = QApplication(sys.argv)

@@ -405,10 +405,6 @@ class ArchManager(SoftwareManager):
                     else:
                         args.update({'file_url': fdata[0], 'output_path': None})
 
-                    file_size = self.context.http_client.get_content_length(args['file_url'])
-                    file_size = int(file_size) / (1024 ** 2) if file_size else None
-
-                    watcher.change_substatus(bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(args['file_url'].split('/')[-1]) + ' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
                     if not self.context.file_downloader.download(**args):
                         watcher.print('Could not download source file {}'.format(args['file_url']))
                         return False

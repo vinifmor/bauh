@@ -5,14 +5,18 @@ import traceback
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.http import HttpClient
+from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess
 
 
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool):
+    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: dict, http_client: HttpClient):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
+        self.i18n = i18n
+        self.http_client = http_client
 
     def is_aria2c_available(self) -> bool:
         return bool(run_cmd('which aria2c'))
@@ -48,7 +52,7 @@ class AdaptableFileDownloader(FileDownloader):
         cmd = ['wget', url]
 
         if output_path:
-            cmd.append('-O')
+            cmd.append('-o')
             cmd.append(output_path)
 
         return SystemProcess(new_subprocess(cmd, cwd=cwd))
@@ -73,10 +77,16 @@ class AdaptableFileDownloader(FileDownloader):
             if self.is_multithreaded():
                 ti = time.time()
                 process = self._get_aria2c_process(file_url, output_path, final_cwd)
+                downloader = 'aria2c'
             else:
                 ti = time.time()
                 process = self._get_wget_process(file_url, output_path, final_cwd)
+                downloader = 'wget'
 
+            file_size = self.http_client.get_content_length(file_url)
+            file_size = int(file_size) / (1024 ** 2) if file_size else None
+            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
+            watcher.change_substatus(msg)
             success = handler.handle(process)
         except:
             traceback.print_exc()
@@ -90,6 +100,8 @@ class AdaptableFileDownloader(FileDownloader):
             self._rm_bad_file(file_name, output_path, final_cwd)
 
         return success
+
+
 
     def is_multithreaded(self) -> bool:
         return self.multithread_enabled and self.is_aria2c_available()

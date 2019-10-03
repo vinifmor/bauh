@@ -32,7 +32,7 @@ class SoftwarePackage(ABC):
 
     def __init__(self, id: str = None, version: str = None, name: str = None, description: str = None, latest_version: str = None,
                  icon_url: str = None, status: PackageStatus = PackageStatus.READY, installed: bool = False, update: bool = False,
-                 size: int = None, categories: List[str] = None):
+                 size: int = None, categories: List[str] = None, license: str = None):
         """
         :param id:
         :param version:
@@ -57,6 +57,7 @@ class SoftwarePackage(ABC):
         self.update = update
         self.size = size
         self.categories = categories
+        self.license = license
 
     @abstractmethod
     def has_history(self):

@@ -4,7 +4,7 @@ from typing import List
 
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
 
@@ -175,7 +175,8 @@ class AppsTable(QTableWidget):
 
             self.window.install(pkgv)
 
-    def _load_icon_and_cache(self, http_response):
+    def _load_icon_and_cache(self, http_response: QNetworkReply):
+
         icon_url = http_response.url().toString()
 
         icon_data = self.icon_cache.get(icon_url)
