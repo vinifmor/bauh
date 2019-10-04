@@ -1,4 +1,6 @@
 import os
+import re
+import shutil
 import sqlite3
 from pathlib import Path
 from typing import Set, Type, List
@@ -15,6 +17,11 @@ from bauh.gems.appimage import query, INSTALLATION_PATH
 from bauh.gems.appimage.model import AppImage
 
 DB_PATH = '{}/{}'.format(HOME_PATH, '.cache/bauh/appimage/appimage.db')
+DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(HOME_PATH)
+
+RE_DESKTOP_EXEC = re.compile(r'Exec\s+=\s+.+\n')
+RE_DESKTOP_ICON = re.compile(r'Icon\s+=\s+.+\n')
+RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
 
 
 class AppImageManager(SoftwareManager):
@@ -78,19 +85,74 @@ class AppImageManager(SoftwareManager):
         # TODO
         pass
 
+    def _find_desktop_file(self, folder: str) -> str:
+        for r, d, files in os.walk(folder):
+            for f in files:
+                if f.endswith('.desktop'):
+                    return f
+
+    def _find_icon_file(self, folder: str) -> str:
+        for r, d, files in os.walk(folder):
+            for f in files:
+                if RE_ICON_ENDS_WITH.match(f):
+                    return f
+
     def install(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
         out_dir = INSTALLATION_PATH + pkg.name.lower()
         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
         file_name = pkg.url_download.split('/')[-1]
         file_path = out_dir + '/' + file_name
-        downloaded = self.file_downloader.download(pkg.url_download, watcher=watcher, output_path=file_path, cwd=HOME_PATH)
+        downloaded = self.file_downloader.download(file_url=pkg.url_download, watcher=watcher,
+                                                   output_path=file_path, cwd=HOME_PATH)
 
         if downloaded:
-            handler = ProcessHandler(watcher)
             watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
-            return handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', file_path])))
+            permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', file_path])))
 
+            if permission_given:
+                watcher.change_substatus('Reading content from {}'.format(bold(file_name)))
+                extracted = handler.handle(SystemProcess(new_subprocess([file_name, '--appimage-extract'], cwd=out_dir)))
+
+                if extracted:
+                    watcher.change_substatus('Generating desktop entry')
+                    extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
+
+                    if os.path.exists(extracted_folder):
+                        desktop_entry = self._find_desktop_file(extracted_folder)
+
+                        if desktop_entry:
+                            with open(desktop_entry) as f:
+                                de_content = f.read()
+
+                            de_content = RE_DESKTOP_EXEC.sub('Exec='.format(file_path), de_content)
+
+                            extracted_icon = self._find_icon_file(extracted_folder)
+
+                            if extracted_icon:
+                                icon_path = out_dir + '/' + extracted_icon.split('/')[-1]
+                                shutil.copy(icon_path, icon_path)
+                                de_content = RE_DESKTOP_ICON.sub('Icon='.format(icon_path), de_content)
+
+                            Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+
+                            with open('{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, pkg.name.lower()), 'w+') as f:
+                                f.write(de_content)
+
+                            return True
+                        else:
+                            pass
+                            # todo generate new
+                    else:
+                        watcher.show_message(title=self.i18n['error'],
+                                             body='Could not find extracted the content from {}'.format(
+                                                 bold(file_name)))
+                else:
+                    watcher.show_message(title=self.i18n['error'],
+                                         body='Could not extract content from {}'.format(bold(file_name)))
+
+        handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return False
 
     def is_enabled(self) -> bool:

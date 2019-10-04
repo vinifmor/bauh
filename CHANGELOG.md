@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.0]
+### Features
+- AppImage support ( see below )
+
+
+### AppImage support
+- Database from https://appimage.github.io
+- Search, install, uninstall
+
+
 ## [0.6.2] 2019-10-02
 ### Improvements
 - Update notifications showing the number of updates by type as well ( if they are from more than one packaging type )

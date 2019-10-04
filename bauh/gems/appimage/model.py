@@ -9,7 +9,7 @@ class AppImage(SoftwarePackage):
 
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, license: str = None, pictures: List[str] = None):
-        super(AppImage, self).__init__(name=name, version=version, latest_version=version,
+        super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description)
         self.source = source
         self.github = github
