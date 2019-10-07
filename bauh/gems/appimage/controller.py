@@ -74,6 +74,7 @@ class AppImageManager(SoftwareManager):
                     if path:
                         with open(path) as f:
                             app = AppImage(installed=True, **json.loads(f.read()))
+                            app.icon_url = app.icon_path
 
                         res.installed.append(app)
 
@@ -108,8 +109,7 @@ class AppImageManager(SoftwareManager):
         pass
 
     def get_info(self, pkg: AppImage) -> dict:
-        # TODO
-        pass
+        return pkg.get_data_to_cache()
 
     def get_history(self, pkg: AppImage) -> PackageHistory:
         # TODO

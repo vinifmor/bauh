@@ -4,7 +4,7 @@ from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 
-CACHED_ATTRS = {'name', 'description', 'version', 'icon_path', 'author'}
+CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source', 'icon_path'}
 
 
 class AppImage(SoftwarePackage):
@@ -30,8 +30,7 @@ class AppImage(SoftwarePackage):
         return False
 
     def has_info(self):
-        # TODO
-        return False
+        return True
 
     def can_be_downgraded(self):
         # TODO

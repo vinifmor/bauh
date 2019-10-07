@@ -3,3 +3,5 @@ appimage.install.permission=Concediendo permiso de ejecución a {}
 appimage.install.extract=Extrayendo el contenido de {}
 appimage.install.desktop_entry=Creando un atajo en el menú
 appimage.uninstall.error.remove_folder=No se pudo eliminar el directorio de instalación de la aplicación {}
+appimage.info.url_download=URL del archivo
+appimage.info.icon_path=icono

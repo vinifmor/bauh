@@ -820,7 +820,7 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.i18n, screen_size=self.screen_size)
+        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, i18n=self.i18n, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, res: dict):

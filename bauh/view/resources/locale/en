@@ -117,3 +117,5 @@ style.change.question=To change the current style is necessary to restart {}. Pr
 manage_window.bt_settings.tooltip=Click here to open extra actions
 downloading=Downloading
 console.install_logs.path=Installation logs can be found at {}
+author=author
+source=source
