@@ -36,8 +36,7 @@ manage_window.bt.upgrade.tooltip=Actualiza todos los aplicativos marcados
 manage_window.bt.installed.text=instalados
 manage_window.bt.installed.tooltip==Haces clic aqui para mostrar los aplicativos instalados
 manage_window.checkbox.show_details=Mostrar detalles
-popup.root.title=Requiere privilegios de root
-popup.root.password=Contraseña
+popup.root.title=Requiere tu contraseña para continuar
 popup.root.bad_password.title=Error
 popup.root.bad_password.body=Contraseña incorrecta
 popup.history.title=Historia
