@@ -105,7 +105,6 @@ class AppImageManager(SoftwareManager):
         return {AppImage}
 
     def clean_cache_for(self, pkg: AppImage):
-        # TODO
         pass
 
     def get_info(self, pkg: AppImage) -> dict:

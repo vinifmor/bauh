@@ -338,7 +338,7 @@ class AppsTable(QTableWidget):
         else:
             desc = '...'
 
-        if desc and desc != '...':
+        if desc and desc != '...' and len(desc) > 40:
             desc = strip_html(desc[0:40]) + '...'
 
         item.setText(desc)
