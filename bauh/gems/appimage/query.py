@@ -1,4 +1,4 @@
-ATTRS = ('name', 'description', 'github', 'source', 'version', 'url_download', 'url_icon', 'license')
+ATTRS = ('name', 'description', 'github', 'source', 'version', 'url_download', 'url_icon', 'license', 'author')
 
 _SELECT_BASE = "SELECT {} FROM apps".format(','.join(ATTRS))
 

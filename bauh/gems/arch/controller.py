@@ -394,8 +394,6 @@ class ArchManager(SoftwareManager):
                                 pre_download_files.append(f)
 
             if pre_download_files:
-                downloader = self.context.file_downloader.get_default_client_name()
-
                 for f in pre_download_files:
                     fdata = f.split('::')
 

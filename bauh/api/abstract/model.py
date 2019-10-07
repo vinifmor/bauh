@@ -145,7 +145,7 @@ class SoftwarePackage(ABC):
         pass
 
     @abstractmethod
-    def can_be_run(self) -> str:
+    def can_be_run(self) -> bool:
         """
         :return: whether the app can be run via the GUI
         """

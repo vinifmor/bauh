@@ -1,2 +1,5 @@
 gem.appimage.label=AppImage
 appimage.install.permission=Giving execution permission to {}
+appimage.install.extract=Extracting the content from {}
+appimage.install.desktop_entry=Generating a menu shortcut
+appimage.uninstall.error.remove_folder=Could not remove the application installation directory {}

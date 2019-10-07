@@ -1,7 +1,9 @@
+import json
 import os
 import re
 import shutil
 import sqlite3
+import subprocess
 from pathlib import Path
 from typing import Set, Type, List
 
@@ -10,17 +12,18 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion
+from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler
+from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd
 from bauh.gems.appimage import query, INSTALLATION_PATH
 from bauh.gems.appimage.model import AppImage
 
-DB_PATH = '{}/{}'.format(HOME_PATH, '.cache/bauh/appimage/appimage.db')
+DB_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/appimage.db')
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(HOME_PATH)
 
-RE_DESKTOP_EXEC = re.compile(r'Exec\s+=\s+.+\n')
-RE_DESKTOP_ICON = re.compile(r'Icon\s+=\s+.+\n')
+RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
+RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
 
 
@@ -54,12 +57,28 @@ class AppImageManager(SoftwareManager):
                     res.new.append(app)
             finally:
                 connection.close()
+        else:
+            self.logger.warning('Could not get a connection from the local database at {}'.format(DB_PATH))
 
         res.total = len(res.installed) + len(res.new)
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
-        return SearchResult([], [], 0)
+        res = SearchResult([], [], 0)
+
+        if os.path.exists(INSTALLATION_PATH):
+            installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
+
+            if installed:
+                for path in installed.split('\n'):
+                    if path:
+                        with open(path) as f:
+                            app = AppImage(installed=True, **json.loads(f.read()))
+
+                        res.installed.append(app)
+
+        res.total = len(res.installed)
+        return res
 
     def downgrade(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
@@ -68,7 +87,18 @@ class AppImageManager(SoftwareManager):
         pass
 
     def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
-        pass
+        if os.path.exists(pkg.get_disk_cache_path()):
+            handler = ProcessHandler(watcher)
+
+            if not handler.handle(SystemProcess(new_subprocess(['rm', '-rf', pkg.get_disk_cache_path()]))):
+                watcher.show_message(title=self.i18n['error'], body=self.i18n['appimage.uninstall.error.remove_folder'].format(bold(pkg.get_disk_cache_path())))
+                return False
+
+            de_path = self._gen_desktop_entry_path(pkg)
+            if os.path.exists(de_path):
+                os.remove(de_path)
+
+        return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {AppImage}
@@ -91,6 +121,12 @@ class AppImageManager(SoftwareManager):
                 if f.endswith('.desktop'):
                     return f
 
+    def _find_appimage_file(self, folder: str) -> str:
+        for r, d, files in os.walk(folder):
+            for f in files:
+                if f.lower().endswith('.appimage'):
+                    return '{}/{}'.format(folder, f)
+
     def _find_icon_file(self, folder: str) -> str:
         for r, d, files in os.walk(folder):
             for f in files:
@@ -112,48 +148,47 @@ class AppImageManager(SoftwareManager):
             permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', file_path])))
 
             if permission_given:
-                watcher.change_substatus('Reading content from {}'.format(bold(file_name)))
-                extracted = handler.handle(SystemProcess(new_subprocess([file_name, '--appimage-extract'], cwd=out_dir)))
 
-                if extracted:
-                    watcher.change_substatus('Generating desktop entry')
-                    extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
+                watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
 
-                    if os.path.exists(extracted_folder):
-                        desktop_entry = self._find_desktop_file(extracted_folder)
+                handler.handle(SystemProcess(new_subprocess([file_path, '--appimage-extract'], cwd=out_dir)))
 
-                        if desktop_entry:
-                            with open(desktop_entry) as f:
-                                de_content = f.read()
+                watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
+                extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
 
-                            de_content = RE_DESKTOP_EXEC.sub('Exec='.format(file_path), de_content)
+                if os.path.exists(extracted_folder):
+                    desktop_entry = self._find_desktop_file(extracted_folder)
 
-                            extracted_icon = self._find_icon_file(extracted_folder)
+                    with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
+                        de_content = f.read()
 
-                            if extracted_icon:
-                                icon_path = out_dir + '/' + extracted_icon.split('/')[-1]
-                                shutil.copy(icon_path, icon_path)
-                                de_content = RE_DESKTOP_ICON.sub('Icon='.format(icon_path), de_content)
+                    de_content = RE_DESKTOP_EXEC.sub('Exec={}\n'.format(file_path), de_content)
 
-                            Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+                    extracted_icon = self._find_icon_file(extracted_folder)
 
-                            with open('{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, pkg.name.lower()), 'w+') as f:
-                                f.write(de_content)
+                    if extracted_icon:
+                        icon_path = out_dir + '/logo.' + extracted_icon.split('.')[-1]
+                        shutil.copy('{}/{}'.format(extracted_folder, extracted_icon), icon_path)
+                        de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+                        pkg.icon_path = icon_path
 
-                            return True
-                        else:
-                            pass
-                            # todo generate new
-                    else:
-                        watcher.show_message(title=self.i18n['error'],
-                                             body='Could not find extracted the content from {}'.format(
-                                                 bold(file_name)))
+                    Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+
+                    with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
+                        f.write(de_content)
+
+                    shutil.rmtree(extracted_folder)
+                    return True
                 else:
                     watcher.show_message(title=self.i18n['error'],
-                                         body='Could not extract content from {}'.format(bold(file_name)))
+                                         body='Could extract content from {}'.format(bold(file_name)),
+                                         type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return False
+
+    def _gen_desktop_entry_path(self, app: AppImage) -> str:
+        return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.name.lower())
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -187,5 +222,14 @@ class AppImageManager(SoftwareManager):
         return True
 
     def launch(self, pkg: AppImage):
-        # TODO
-        pass
+        installation_dir = pkg.get_disk_cache_path()
+        if os.path.exists(installation_dir):
+            appimag_path = self._find_appimage_file(installation_dir)
+
+            if appimag_path:
+                subprocess.Popen([appimag_path])
+            else:
+                self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
+
+    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+        self.serialize_to_disk(pkg, icon_bytes, only_icon)
