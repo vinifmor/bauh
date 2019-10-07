@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - AppImage support ( see below )
 
+### Improvements
+- AUR:
+    - Optional dependencies are not checked by default in their installation popup.
+
 
 ### AppImage support
 - Database from https://appimage.github.io
