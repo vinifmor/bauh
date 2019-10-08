@@ -4,6 +4,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
+from datetime import datetime
 from pathlib import Path
 from typing import Set, Type, List
 
@@ -136,7 +137,7 @@ class AppImageManager(SoftwareManager):
 
             if releases:
                 for idx, tup in enumerate(releases):
-                    history.append({'0_version': tup[0], '1_published_at': tup[2], '2_url_download': tup[1]})
+                    history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ'), '2_url_download': tup[1]})
 
                     if res.pkg_status_idx == -1 and pkg.version == tup[0]:
                         res.pkg_status_idx = idx
