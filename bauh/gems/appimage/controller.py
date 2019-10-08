@@ -45,6 +45,8 @@ class AppImageManager(SoftwareManager):
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
             return sqlite3.connect(db_path)
+        else:
+            self.logger.warning("Could not get a database connection. File '{}' not found".format(db_path))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -55,9 +57,27 @@ class AppImageManager(SoftwareManager):
                 cursor = connection.cursor()
                 cursor.execute(query.SEARCH_APPS_BY_NAME_OR_DESCRIPTION.format(words, words))
 
+                found_map = {}
+                idx = 0
                 for l in cursor.fetchall():
                     app = AppImage(*l)
                     res.new.append(app)
+                    found_map['{}_{}'.format(app.name.lower(), app.github.lower())] = {'app': app, 'idx': idx}
+                    idx += 1
+
+                if res.new:
+                    installed = self.read_installed(disk_loader, limit, only_apps=False, pkg_types=None, internet_available=True).installed
+
+                    if installed:
+                        for iapp in installed:
+                            key = '{}_{}'.format(iapp.name.lower(), iapp.github.lower())
+
+                            new_found = found_map.get(key)
+
+                            if new_found:
+                                del res.new[new_found['idx']]
+                                res.installed.append(iapp)
+
             finally:
                 connection.close()
         else:
@@ -73,6 +93,7 @@ class AppImageManager(SoftwareManager):
             installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
 
             if installed:
+                names, githubs = set(), set()
                 for path in installed.split('\n'):
                     if path:
                         with open(path) as f:
@@ -80,6 +101,29 @@ class AppImageManager(SoftwareManager):
                             app.icon_url = app.icon_path
 
                         res.installed.append(app)
+                        names.add("'{}'".format(app.name.lower()))
+                        githubs.add("'{}'".format(app.github.lower()))
+
+                if res.installed:
+                    con = self._get_db_connection(DB_APPS_PATH)
+
+                    if con:
+                        try:
+                            cursor = con.cursor()
+                            cursor.execute(query.FIND_APPS_LATEST_VERSIONS.format(','.join(names), ','.join(githubs)))
+
+                            for tup in cursor.fetchall():
+                                for app in res.installed:
+                                    if app.name.lower() == tup[0].lower() and app.github.lower() == tup[1].lower():
+                                        app.update = tup[2] > app.version
+
+                                        if app.update:
+                                            app.latest_version = tup[2]
+                                            app.url_download_latest_version = tup[3]
+
+                                        break
+                        finally:
+                            con.close()
 
         res.total = len(res.installed)
         return res
@@ -116,13 +160,23 @@ class AppImageManager(SoftwareManager):
                                          type_=MessageType.ERROR)
             else:
                 watcher.show_message(title=self.i18n['error'],
-                                     body=self.i18n['appimage.downgrade.uninstall_current_version'].format(bold(pkg.name)),
+                                     body=self.i18n['appimage.error.uninstall_current_version'].format(bold(pkg.name)),
                                      type_=MessageType.ERROR)
 
             return False
 
-    def update(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
-        pass
+    def update(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self.uninstall(pkg, root_password, watcher):
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['appimage.error.uninstall_current_version'],
+                                 type_=MessageType.ERROR)
+            return False
+
+        if self.install(pkg, root_password, watcher):
+            self.cache_to_disk(pkg, None, False)
+            return True
+
+        return False
 
     def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
         if os.path.exists(pkg.get_disk_cache_path()):
@@ -201,7 +255,11 @@ class AppImageManager(SoftwareManager):
         out_dir = INSTALLATION_PATH + pkg.name.lower()
         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-        file_name = pkg.url_download.split('/')[-1]
+        appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
+        file_name = appimage_url.split('/')[-1]
+        pkg.version = pkg.latest_version
+        pkg.url_download = appimage_url
+
         file_path = out_dir + '/' + file_name
         downloaded = self.file_downloader.download(file_url=pkg.url_download, watcher=watcher,
                                                    output_path=file_path, cwd=HOME_PATH)

@@ -11,7 +11,8 @@ class AppImage(SoftwarePackage):
 
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, license: str = None, author: str = None,
-                 pictures: List[str] = None, icon_path: str = None, installed: bool = False):
+                 pictures: List[str] = None, icon_path: str = None, installed: bool = False,
+                 url_download_latest_version: str = None):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
@@ -21,6 +22,7 @@ class AppImage(SoftwarePackage):
         self.url_download = url_download
         self.icon_path = icon_path
         self.author = author
+        self.url_download_latest_version = url_download_latest_version
 
     def __repr__(self):
         return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
