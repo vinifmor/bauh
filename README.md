@@ -35,6 +35,9 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
 
 
+P.S: [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages in your system.
+
+
 ### Distribution
 
 **AUR**
@@ -98,7 +101,10 @@ You can change some application settings via environment variables or arguments 
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
 - If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
-- Automatically makes simple package compilation improvements 
+- Automatically makes simple package compilation improvements
+
+### AppImage support ( appimage gem )
+-
 
   a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
 then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
