@@ -4,16 +4,18 @@ from functools import reduce
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
+
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
 
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, history: PackageHistory, icon_cache: MemoryCache, locale_keys: dict):
+    def __init__(self, history: PackageHistory, icon_cache: MemoryCache, i18n: dict):
         super(HistoryDialog, self).__init__()
+        self.setWindowFlags(self.windowFlags() | Qt.WindowSystemMenuHint | Qt.WindowMinMaxButtonsHint)
 
-        self.setWindowTitle('{} - {} ({})'.format(locale_keys['popup.history.title'], history.pkg.name, history.pkg.get_type()))
+        self.setWindowTitle('{} - {} ({})'.format(i18n['popup.history.title'], history.pkg.name, history.pkg.get_type()))
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -26,20 +28,19 @@ class HistoryDialog(QDialog):
 
         table_history.setColumnCount(len(history.history[0]))
         table_history.setRowCount(len(history.history))
-        table_history.setHorizontalHeaderLabels([locale_keys.get(history.pkg.get_type() + '.history.' + key, key).capitalize() for key in sorted(history.history[0].keys())])
+        table_history.setHorizontalHeaderLabels([i18n.get(history.pkg.get_type().lower() + '.history.' + key, i18n.get(key, key)).capitalize() for key in sorted(history.history[0].keys())])
 
-        for row, commit in enumerate(history.history):
+        for row, data in enumerate(history.history):
 
             current_status = history.pkg_status_idx == row
 
-            for col, key in enumerate(sorted(commit.keys())):
+            for col, key in enumerate(sorted(data.keys())):
                 item = QTableWidgetItem()
-                item.setText(str(commit[key]))
-                item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                item.setText(str(data[key]))
 
                 if current_status:
                     item.setBackground(QColor('#ffbf00' if row != 0 else '#32CD32'))
-                    tip = '{}. {}.'.format(locale_keys['popup.history.selected.tooltip'], locale_keys['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
+                    tip = '{}. {}.'.format(i18n['popup.history.selected.tooltip'], i18n['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 
                     item.setToolTip(tip)
 

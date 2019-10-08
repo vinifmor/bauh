@@ -19,7 +19,9 @@ from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, r
 from bauh.gems.appimage import query, INSTALLATION_PATH
 from bauh.gems.appimage.model import AppImage
 
-DB_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/appimage.db')
+DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
+DB_RELEASES_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/releases.db')
+
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(HOME_PATH)
 
 RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
@@ -39,18 +41,18 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
 
-    def _get_db_connection(self) -> sqlite3.Connection:
-        if os.path.exists(DB_PATH):
-            return sqlite3.connect(DB_PATH)
+    def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
+        if os.path.exists(db_path):
+            return sqlite3.connect(db_path)
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
         res = SearchResult([], [], 0)
-        connection = self._get_db_connection()
+        connection = self._get_db_connection(DB_APPS_PATH)
 
         if connection:
             try:
                 cursor = connection.cursor()
-                cursor.execute(query.SEARCH_BY_NAME_OR_DESCRIPTION.format(words, words))
+                cursor.execute(query.SEARCH_APPS_BY_NAME_OR_DESCRIPTION.format(words, words))
 
                 for l in cursor.fetchall():
                     app = AppImage(*l)
@@ -58,7 +60,7 @@ class AppImageManager(SoftwareManager):
             finally:
                 connection.close()
         else:
-            self.logger.warning('Could not get a connection from the local database at {}'.format(DB_PATH))
+            self.logger.warning('Could not get a connection from the local database at {}'.format(DB_APPS_PATH))
 
         res.total = len(res.installed) + len(res.new)
         return res
@@ -111,8 +113,35 @@ class AppImageManager(SoftwareManager):
         return pkg.get_data_to_cache()
 
     def get_history(self, pkg: AppImage) -> PackageHistory:
-        # TODO
-        pass
+        history = []
+        res = PackageHistory(pkg, history, -1)
+
+        connection = self._get_db_connection(DB_APPS_PATH)
+
+        if connection:
+            cursor = connection.cursor()
+
+            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower()))
+            app_tuple = cursor.fetchone()
+
+            if not app_tuple:
+                raise Exception("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
+
+            connection.close()
+
+            connection = self._get_db_connection(DB_RELEASES_PATH)
+            cursor = connection.cursor()
+
+            releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
+
+            if releases:
+                for idx, tup in enumerate(releases):
+                    history.append({'0_version': tup[0], '1_published_at': tup[2], '2_url_download': tup[1]})
+
+                    if res.pkg_status_idx == -1 and pkg.version == tup[0]:
+                        res.pkg_status_idx = idx
+
+        return res
 
     def _find_desktop_file(self, folder: str) -> str:
         for r, d, files in os.walk(folder):

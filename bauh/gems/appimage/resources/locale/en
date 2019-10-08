@@ -5,3 +5,6 @@ appimage.install.desktop_entry=Generating a menu shortcut
 appimage.uninstall.error.remove_folder=Could not remove the application installation directory {}
 appimage.info.url_download=File URL
 appimage.info.icon_path=icon
+appimage.history.0_version=version
+appimage.history.1_published_at=date
+appimage.history.2_url_download=File URL

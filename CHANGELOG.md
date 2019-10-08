@@ -11,10 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AUR:
     - Optional dependencies are not checked by default in their installation popup.
+- History panel can now me maximized, minimized and allows to copy column content.
 - Minor UI improvements
 
 ### AppImage support
-- Search, install, uninstall applications available in [AppImageHub](https://appimage.github.io)
+- Search, install, uninstall and retrieve history of applications available in [AppImageHub](https://appimage.github.io)
 - Adds desktop entries (menu shortcuts) for the installed applications
 
 

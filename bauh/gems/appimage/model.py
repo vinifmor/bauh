@@ -4,7 +4,7 @@ from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 
-CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source', 'icon_path'}
+CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source', 'icon_path', 'github'}
 
 
 class AppImage(SoftwarePackage):
@@ -22,12 +22,14 @@ class AppImage(SoftwarePackage):
         self.icon_path = icon_path
         self.author = author
 
+    def __repr__(self):
+        return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
+
     def can_be_installed(self):
         return not self.installed and self.url_download
 
     def has_history(self):
-        # TODO
-        return False
+        return self.installed
 
     def has_info(self):
         return True

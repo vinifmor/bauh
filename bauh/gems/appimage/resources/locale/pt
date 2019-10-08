@@ -5,3 +5,6 @@ appimage.install.desktop_entry=Criando um atalho no menu
 appimage.uninstall.error.remove_folder=Não foi possível remover o diretóri ode instalação do aplicativo {}
 appimage.info.url_download=URL do arquivo
 appimage.info.icon_path=ícone
+appimage.history.0_version=versão
+appimage.history.1_published_at=data
+appimage.history.2_url_download=URL do arquivo
