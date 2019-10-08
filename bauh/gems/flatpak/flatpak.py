@@ -1,5 +1,6 @@
 import re
 import subprocess
+from datetime import datetime
 from io import StringIO
 from typing import List
 
@@ -196,7 +197,11 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     commit = {}
 
     for idx, data in enumerate(res):
-        commit[data[0].strip().lower()] = data[1].strip()
+        attr = data[0].strip().lower()
+        commit[attr] = data[1].strip()
+
+        if attr == 'date':
+            commit[attr] = datetime.strptime(commit[attr], '%Y-%m-%d %H:%M:%S +0000')
 
         if (idx + 1) % 3 == 0:
             commits.append(commit)
