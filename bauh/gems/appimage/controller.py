@@ -85,7 +85,41 @@ class AppImageManager(SoftwareManager):
         return res
 
     def downgrade(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
-        pass
+        versions = self.get_history(pkg)
+
+        if len(versions.history) == 1:
+            watcher.show_message(title=self.i18n['appimage.downgrade.impossible.title'],
+                                 body=self.i18n['appimage.downgrade.impossible.body'].format(bold(pkg.name)),
+                                 type_=MessageType.ERROR)
+            return False
+        elif versions.pkg_status_idx == -1:
+            watcher.show_message(title=self.i18n['appimage.downgrade.impossible.title'],
+                                 body=self.i18n['appimage.downgrade.unknown_version.body'].format(bold(pkg.name)),
+                                 type_=MessageType.ERROR)
+            return False
+        elif versions.pkg_status_idx == len(versions.history) - 1:
+            watcher.show_message(title=self.i18n['appimage.downgrade.impossible.title'],
+                                 body=self.i18n['appimage.downgrade.first_version'].format(bold(pkg.name)),
+                                 type_=MessageType.ERROR)
+            return False
+        else:
+            if self.uninstall(pkg, root_password, watcher):
+                old_release = versions.history[versions.pkg_status_idx + 1]
+                pkg.version = old_release['0_version']
+                pkg.url_download = old_release['2_url_download']
+                if self.install(pkg, root_password, watcher):
+                    self.cache_to_disk(pkg, None, False)
+                    return True
+                else:
+                    watcher.show_message(title=self.i18n['error'],
+                                         body=self.i18n['appimage.downgrade.install_version'].format(bold(pkg.version), bold(pkg.url_download)),
+                                         type_=MessageType.ERROR)
+            else:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['appimage.downgrade.uninstall_current_version'].format(bold(pkg.name)),
+                                     type_=MessageType.ERROR)
+
+            return False
 
     def update(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
         pass

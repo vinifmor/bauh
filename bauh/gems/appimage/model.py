@@ -35,8 +35,7 @@ class AppImage(SoftwarePackage):
         return True
 
     def can_be_downgraded(self):
-        # TODO
-        return False
+        return self.installed
 
     def get_type(self):
         return 'AppImage'

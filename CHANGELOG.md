@@ -17,13 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Minor UI improvements
 
 ### AppImage support
-- Search, install, uninstall and retrieve history of applications available in [AppImageHub](https://appimage.github.io)
-- Adds desktop entries (menu shortcuts) for the installed applications
-
-
-### AppImage support
-- Database from https://appimage.github.io
-- Search, install, uninstall
+- Search, install, uninstall, downgrade, launch and retrieve the applications history available in [AppImageHub](https://appimage.github.io)
+- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
 
 
 ## [0.6.2] 2019-10-02

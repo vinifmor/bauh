@@ -90,7 +90,7 @@ You can change some application settings via environment variables or arguments 
 - Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
 
 ### Flatpak support ( flatpak gem )
-- The user is able to search, install, uninstall, downgrade, laucnh and retrieve the applications history
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
 ### Snap support ( snap gem )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
@@ -104,7 +104,8 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - Automatically makes simple package compilation improvements
 
 ### AppImage support ( appimage gem )
--
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history available in [AppImageHub](https://appimage.github.io)
+- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
 
   a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
 then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
