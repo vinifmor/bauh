@@ -31,7 +31,7 @@ class SnapManager(SoftwareManager):
         app = SnapApplication(publisher=app_json.get('publisher'),
                               rev=app_json.get('rev'),
                               notes=app_json.get('notes'),
-                              app_type=app_json.get('type'),
+                              has_apps_field=app_json.get('apps_field', False),
                               id=app_json.get('name'),
                               name=app_json.get('name'),
                               version=app_json.get('version'),

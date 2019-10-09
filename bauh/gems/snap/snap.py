@@ -101,7 +101,7 @@ def read_installed() -> List[dict]:
             info_out = new_subprocess(['cat', *['/var/lib/snapd/snap/{}/current/meta/snap.yaml'.format(a['name']) for a in apps]]).stdout
 
             idx = -1
-            for o in new_subprocess(['grep', '-E', '(summary|type)', '--colour=never'], stdin=info_out).stdout:
+            for o in new_subprocess(['grep', '-E', '(summary|apps)', '--colour=never'], stdin=info_out).stdout:
                 if o:
                     line = o.decode()
 
@@ -109,7 +109,7 @@ def read_installed() -> List[dict]:
                         idx += 1
                         apps[idx]['summary'] = line.split(':')[1].strip()
                     else:
-                        apps[idx]['type'] = line.split(':')[1].strip()
+                        apps[idx]['apps_field'] = True
 
     return apps
 

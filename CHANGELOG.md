@@ -9,10 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage support ( see below )
 
 ### Improvements
-- AUR:
-    - Optional dependencies are not checked by default in their installation popup.
 - Flatpak:
     - History panel now shows formatted dates
+- Snap:
+    - Improved how the the application verification is done ( if a given Snap is an application )
+- AUR:
+    - Optional dependencies are not checked by default in their installation popup.
 - History panel can now me maximized, minimized and allows to copy column content.
 - Minor UI improvements
 
