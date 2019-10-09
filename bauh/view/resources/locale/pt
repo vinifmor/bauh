@@ -121,3 +121,4 @@ downloading=Baixando
 console.install_logs.path=Os registros de instalação podem ser encontrados em {}
 author=autor
 source=fonte
+size=tamanho

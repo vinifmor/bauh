@@ -119,3 +119,4 @@ downloading=Downloading
 console.install_logs.path=Installation logs can be found at {}
 author=author
 source=source
+size=size

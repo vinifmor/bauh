@@ -4,6 +4,8 @@ import traceback
 
 import requests
 
+SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
+
 
 class HttpClient:
 
@@ -43,12 +45,20 @@ class HttpClient:
         res = self.get(url)
         return res.json() if res else None
 
-    def get_content_length(self, url: str) -> int:
+    def get_content_length(self, url: str) -> str:
         """
         :param url:
         :return:
         """
-        res = self.session.head(url)
+        res = self.session.get(url, allow_redirects=True, stream=True)
 
         if res.status_code == 200:
-            return res.headers['content-length']
+            size = int(res.headers.get('Content-Length'))
+
+            if size is not None:
+                for m in SIZE_MULTIPLIERS:
+                    size_str = str(size * m[0])
+
+                    if len(size_str.split('.')[0]) < 4:
+                        return '{0:.2f}'.format(float(size_str)) + ' ' +  m[1]
+                return str(size)

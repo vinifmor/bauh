@@ -199,7 +199,14 @@ class AppImageManager(SoftwareManager):
         pass
 
     def get_info(self, pkg: AppImage) -> dict:
-        return pkg.get_data_to_cache()
+        data = pkg.get_data_to_cache()
+
+        if data.get('url_download'):
+            size = self.http_client.get_content_length(data['url_download'])
+            if size:
+                data['size'] = size
+
+        return data
 
     def get_history(self, pkg: AppImage) -> PackageHistory:
         history = []

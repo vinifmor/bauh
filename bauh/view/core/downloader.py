@@ -84,8 +84,7 @@ class AdaptableFileDownloader(FileDownloader):
                 downloader = 'wget'
 
             file_size = self.http_client.get_content_length(file_url)
-            file_size = int(file_size) / (1024 ** 2) if file_size else None
-            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
+            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ' + file_size if file_size else '')
             watcher.change_substatus(msg)
             success = handler.handle(process)
         except:
@@ -100,8 +99,6 @@ class AdaptableFileDownloader(FileDownloader):
             self._rm_bad_file(file_name, output_path, final_cwd)
 
         return success
-
-
 
     def is_multithreaded(self) -> bool:
         return self.multithread_enabled and self.is_aria2c_available()

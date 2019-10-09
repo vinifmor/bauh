@@ -65,7 +65,7 @@ class InfoDialog(QDialog):
                 text.setStyleSheet("width: 400px")
                 text.setReadOnly(True)
 
-                label = QLabel("{}: ".format(i18n.get(i18n_key, i18n.get(attr.lower(), attr))).capitalize())
+                label = QLabel(i18n.get(i18n_key, i18n.get(attr.lower(), attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")
 
                 self.gbox_info_layout.addWidget(label, idx, 0)

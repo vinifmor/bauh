@@ -104,7 +104,9 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - Automatically makes simple package compilation improvements
 
 ### AppImage support ( appimage gem )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history available in [AppImageHub](https://appimage.github.io)
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+- Supported sources: [AppImageHub](https://appimage.github.io).
+- Applications with no releases published to GitHub are not available
 - Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
 
   a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
