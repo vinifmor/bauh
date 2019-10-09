@@ -120,3 +120,5 @@ console.install_logs.path=Installation logs can be found at {}
 author=author
 source=source
 size=size
+categories=categories
+summary=summary

@@ -49,7 +49,7 @@ class InfoDialog(QDialog):
                 i18n_key = app['__app__'].model.get_type().lower() + '.info.' + attr.lower()
 
                 if isinstance(app[attr], list):
-                    val = '\n'.join(['* ' + str(e.strip()) for e in app[attr] if e])
+                    val = '\n'.join(['* ' + str(e).strip() for e in app[attr] if e])
                 else:
                     val = str(app[attr]).strip()
 

@@ -11,8 +11,11 @@ from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.flatpak import flatpak, suggestions
+from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
+
+DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 
 
 class FlatpakManager(SoftwareManager):
@@ -23,6 +26,7 @@ class FlatpakManager(SoftwareManager):
         self.api_cache = context.cache_factory.new()
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
         self.enabled = True
+        self.http_client = context.http_client
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -135,15 +139,42 @@ class FlatpakManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref)))
 
     def get_info(self, app: FlatpakApplication) -> dict:
-        app_info = flatpak.get_app_info_fields(app.id, app.branch)
-        app_info['name'] = app.name
-        app_info['type'] = 'runtime' if app.runtime else 'app'
-        app_info['description'] = strip_html(app.description) if app.description else ''
+        if app.installed:
+            app_info = flatpak.get_app_info_fields(app.id, app.branch)
+            app_info['name'] = app.name
+            app_info['type'] = 'runtime' if app.runtime else 'app'
+            app_info['description'] = strip_html(app.description) if app.description else ''
 
-        if app_info.get('installed'):
-            app_info['installed'] = app_info['installed'].replace('?', ' ')
+            if app_info.get('installed'):
+                app_info['installed'] = app_info['installed'].replace('?', ' ')
 
-        return app_info
+            return app_info
+        else:
+            res = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, app.id))
+
+            if res:
+                if res.get('categories'):
+                    res['categories'] = [c.get('name') for c in res['categories']]
+
+                for to_del in ('screenshots', 'iconMobileUrl', 'iconDesktopUrl'):
+                    if res.get(to_del):
+                        del res[to_del]
+
+                for to_strip in ('description', 'currentReleaseDescription'):
+                    if res.get(to_strip):
+                        res[to_strip] = strip_html(res[to_strip])
+
+                for to_date in ('currentReleaseDate', 'inStoreSinceDate'):
+                    if res.get(to_date):
+                        try:
+                            res[to_date] = datetime.strptime(res[to_date], DATE_FORMAT)
+                        except:
+                            self.context.logger.error('Could not convert date string {} as {}'.format(res[to_date], DATE_FORMAT))
+                            pass
+
+                return res
+            else:
+                return {}
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)

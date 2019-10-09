@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Flatpak:
     - History panel now shows formatted dates
+    - Info available for not installed applications
 - Snap:
     - Improved how the the application verification is done ( if a given Snap is an application )
 - AUR:

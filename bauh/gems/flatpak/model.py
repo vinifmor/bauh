@@ -24,7 +24,7 @@ class FlatpakApplication(SoftwarePackage):
         return self.installed and self.ref
 
     def has_info(self):
-        return self.installed
+        return bool(self.id)
 
     def can_be_downgraded(self):
         return self.installed and self.ref
