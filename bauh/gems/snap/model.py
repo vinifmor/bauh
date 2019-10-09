@@ -2,7 +2,6 @@ from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.commons import resource
-
 from bauh.gems.snap import ROOT_DIR
 
 EXTRA_INSTALLED_ACTIONS = [
@@ -13,10 +12,7 @@ EXTRA_INSTALLED_ACTIONS = [
                   requires_root=True)
 ]
 
-KNOWN_APP_NAMES = {'gnome-calculator', 'gnome-system-monitor', 'gnome-logs'}
-KNOWN_RUNTIME_NAMES = {'snapd', 'core', 'core18', 'snapcraft', 'multipass'}
-KNOWN_RUNTIME_PREFIXES = {'gtk-', 'gnome-', 'kde-', 'gtk2-'}
-KNOWN_RUNTIME_TYPES = {'base', 'core', 'os'}
+KNOWN_RUNTIME_NAMES = {'snapd', 'snapcraft', 'multipass'}
 
 
 class SnapApplication(SoftwarePackage):
@@ -51,7 +47,7 @@ class SnapApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self) -> bool:
-        return self.has_apps_field is None or self.has_apps_field
+        return self.has_apps_field is None or self.has_apps_field and self.name.lower() not in KNOWN_RUNTIME_NAMES
 
     def _name_starts_with(self, words: set):
         for word in words:
