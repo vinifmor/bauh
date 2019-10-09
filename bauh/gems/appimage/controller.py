@@ -48,6 +48,9 @@ class AppImageManager(SoftwareManager):
         else:
             self.logger.warning("Could not get a database connection. File '{}' not found".format(db_path))
 
+    def _gen_app_key(self, app: AppImage):
+        return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
         res = SearchResult([], [], 0)
         connection = self._get_db_connection(DB_APPS_PATH)
@@ -62,7 +65,7 @@ class AppImageManager(SoftwareManager):
                 for l in cursor.fetchall():
                     app = AppImage(*l)
                     res.new.append(app)
-                    found_map['{}_{}'.format(app.name.lower(), app.github.lower())] = {'app': app, 'idx': idx}
+                    found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1
 
                 if res.new:
@@ -70,7 +73,7 @@ class AppImageManager(SoftwareManager):
 
                     if installed:
                         for iapp in installed:
-                            key = '{}_{}'.format(iapp.name.lower(), iapp.github.lower())
+                            key = self._gen_app_key(iapp)
 
                             new_found = found_map.get(key)
 
@@ -93,7 +96,7 @@ class AppImageManager(SoftwareManager):
             installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
 
             if installed:
-                names, githubs = set(), set()
+                names = set()
                 for path in installed.split('\n'):
                     if path:
                         with open(path) as f:
@@ -102,7 +105,6 @@ class AppImageManager(SoftwareManager):
 
                         res.installed.append(app)
                         names.add("'{}'".format(app.name.lower()))
-                        githubs.add("'{}'".format(app.github.lower()))
 
                 if res.installed:
                     con = self._get_db_connection(DB_APPS_PATH)
@@ -110,11 +112,11 @@ class AppImageManager(SoftwareManager):
                     if con:
                         try:
                             cursor = con.cursor()
-                            cursor.execute(query.FIND_APPS_LATEST_VERSIONS.format(','.join(names), ','.join(githubs)))
+                            cursor.execute(query.FIND_APPS_LATEST_VERSIONS.format(','.join(names)))
 
                             for tup in cursor.fetchall():
                                 for app in res.installed:
-                                    if app.name.lower() == tup[0].lower() and app.github.lower() == tup[1].lower():
+                                    if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
                                         app.update = tup[2] > app.version
 
                                         if app.update:
@@ -150,6 +152,7 @@ class AppImageManager(SoftwareManager):
             if self.uninstall(pkg, root_password, watcher):
                 old_release = versions.history[versions.pkg_status_idx + 1]
                 pkg.version = old_release['0_version']
+                pkg.latest_version = pkg.version
                 pkg.url_download = old_release['2_url_download']
                 if self.install(pkg, root_password, watcher):
                     self.cache_to_disk(pkg, None, False)
@@ -217,7 +220,7 @@ class AppImageManager(SoftwareManager):
         if connection:
             cursor = connection.cursor()
 
-            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower()))
+            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
             app_tuple = cursor.fetchone()
 
             if not app_tuple:
@@ -232,7 +235,7 @@ class AppImageManager(SoftwareManager):
 
             if releases:
                 for idx, tup in enumerate(releases):
-                    history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ'), '2_url_download': tup[1]})
+                    history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[2] else '', '2_url_download': tup[1]})
 
                     if res.pkg_status_idx == -1 and pkg.version == tup[0]:
                         res.pkg_status_idx = idx

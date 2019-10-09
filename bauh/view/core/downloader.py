@@ -84,7 +84,7 @@ class AdaptableFileDownloader(FileDownloader):
                 downloader = 'wget'
 
             file_size = self.http_client.get_content_length(file_url)
-            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ' + file_size if file_size else '')
+            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {} )'.format(file_size) if file_size else '')
             watcher.change_substatus(msg)
             success = handler.handle(process)
         except:
