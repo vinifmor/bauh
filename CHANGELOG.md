@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - History panel can now me maximized, minimized and allows to copy column content.
 - Minor UI improvements
 
+### Fixes
+- Snap:
+    - retrieving installed applications information for Ubuntu based distros
+
 ### AppImage support
 - Search, install, uninstall, downgrade, launch and retrieve the applications history available in [AppImageHub](https://appimage.github.io)
 - Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
