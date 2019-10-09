@@ -18,6 +18,10 @@ from bauh.view.qt.view_model import PackageView, PackageViewStatus
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
+NAME_MAX_SIZE = 30
+DESC_MAX_SIZE = 40
+PUBLISHER_MAX_SIZE = 25
+
 
 class UpdateToggleButton(QWidget):
 
@@ -308,9 +312,22 @@ class AppsTable(QTableWidget):
 
     def _set_col_name(self, col: int, pkg: PackageView):
         item = QTableWidgetItem()
-        item.setText(pkg.model.name if pkg.model.name else '...')
         item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-        item.setToolTip(self.i18n['app.name'].lower())
+
+        if pkg.model.name:
+            name = pkg.model.name
+            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), name))
+        else:
+            name = '...'
+            item.setToolTip(self.i18n['app.name'].lower())
+
+        if len(name) > NAME_MAX_SIZE:
+            name = name[0:NAME_MAX_SIZE - 3] + '...'
+
+        if len(name) < NAME_MAX_SIZE:
+            name = name + ' ' * (NAME_MAX_SIZE-len(name))
+
+        item.setText(name)
 
         if self.disk_cache and pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and os.path.exists(pkg.model.get_disk_icon_path()):
             with open(pkg.model.get_disk_icon_path(), 'rb') as f:
@@ -338,8 +355,14 @@ class AppsTable(QTableWidget):
         else:
             desc = '...'
 
-        if desc and desc != '...' and len(desc) > 40:
-            desc = strip_html(desc[0:40]) + '...'
+        if desc and desc != '...' and len(desc) > DESC_MAX_SIZE:
+            desc = strip_html(desc[0: DESC_MAX_SIZE - 1]) + '...'
+
+        if not desc:
+            desc = ' ' * DESC_MAX_SIZE
+
+        if len(desc) < DESC_MAX_SIZE:
+            desc = desc + ' ' * (DESC_MAX_SIZE - len(desc))
 
         item.setText(desc)
 
@@ -358,8 +381,11 @@ class AppsTable(QTableWidget):
             publisher = publisher.strip()
             full_publisher = publisher
 
-            if len(publisher) > 20:
-                publisher = full_publisher[0:20] + '...'
+            if len(publisher) > PUBLISHER_MAX_SIZE:
+                publisher = full_publisher[0: PUBLISHER_MAX_SIZE - 3] + '...'
+
+            if len(publisher) < PUBLISHER_MAX_SIZE:
+                publisher = publisher + ' ' * (PUBLISHER_MAX_SIZE - len(publisher))
 
         if not publisher:
             if not pkg.model.installed:

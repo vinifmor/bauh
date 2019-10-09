@@ -112,7 +112,7 @@ class AppImageManager(SoftwareManager):
                     if con:
                         try:
                             cursor = con.cursor()
-                            cursor.execute(query.FIND_APPS_LATEST_VERSIONS.format(','.join(names)))
+                            cursor.execute(query.FIND_APPS_BY_NAME.format(','.join(names)))
 
                             for tup in cursor.fetchall():
                                 for app in res.installed:
