@@ -9,7 +9,6 @@ from bauh.gems.snap.model import SnapApplication
 BASE_CMD = 'snap'
 RE_SNAPD_STATUS = re.compile('\s+')
 SNAPD_RUNNING_STATUS = {'listening', 'running'}
-UBUNTU_DISTRO = 'ubuntu' in run_cmd('cat /proc/version').lower()
 
 
 def is_installed():
@@ -86,7 +85,7 @@ def get_info(app_name: str, attrs: tuple = None):
     return data
 
 
-def read_installed() -> List[dict]:
+def read_installed(ubuntu_distro: bool) -> List[dict]:
     res = run_cmd('{} list'.format(BASE_CMD), print_error=False)
 
     apps = []
@@ -99,7 +98,7 @@ def read_installed() -> List[dict]:
                 if idx > 0 and app_str:
                     apps.append(app_str_to_json(app_str))
 
-            if UBUNTU_DISTRO:
+            if ubuntu_distro:
                 path = '/snap/{}/current/meta/snap.yaml'
             else:
                 path = '/var/lib/snapd/snap/{}/current/meta/snap.yaml'

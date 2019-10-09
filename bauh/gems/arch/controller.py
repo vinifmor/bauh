@@ -50,7 +50,7 @@ class ArchManager(SoftwareManager):
         self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
         self.enabled = True
-        self.arch_distro = os.path.exists('/etc/arch-release')
+        self.arch_distro = context.distro == 'arch'
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])

@@ -8,6 +8,7 @@ from typing import Tuple
 from PyQt5.QtCore import QCoreApplication
 
 from bauh import __app_name__
+from bauh.commons.system import run_cmd
 from bauh.view.util import resource
 
 
@@ -62,3 +63,13 @@ def restart_app(show_panel: bool):
     subprocess.Popen(restart_cmd)
     QCoreApplication.exit()
 
+
+def get_distro():
+    if os.path.exists('/etc/arch-release'):
+        return 'arch'
+
+    if os.path.exists('/proc/version'):
+        if 'ubuntu' in run_cmd('cat /proc/version').lower():
+            return 'ubuntu'
+
+    return 'unknown'

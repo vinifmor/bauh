@@ -26,6 +26,7 @@ class SnapManager(SoftwareManager):
         self.enabled = True
         self.http_client = context.http_client
         self.logger = context.logger
+        self.ubuntu_distro = context.distro == 'ubuntu'
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -83,7 +84,7 @@ class SnapManager(SoftwareManager):
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
-            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed()]
+            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(self.ubuntu_distro)]
             return SearchResult(installed, None, len(installed))
         else:
             return SearchResult([], None, 0)
