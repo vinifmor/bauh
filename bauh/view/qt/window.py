@@ -771,6 +771,7 @@ class ManageWindow(QWidget):
     def _begin_action(self, action_label: str, keep_search: bool = False, keep_bt_installed: bool = True, clear_filters: bool = False):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
+        self.ref_combo_categories.setVisible(False)
         self.ref_bt_settings.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
