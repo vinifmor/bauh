@@ -136,6 +136,16 @@ class ManageWindow(QWidget):
         self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n[self.any_type_filter].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
+        self.any_category_filter = 'any'
+        self.combo_categories = QComboBox()
+        self.combo_categories.setStyleSheet('QLineEdit { height: 2px}')
+        self.combo_categories.setEditable(True)
+        self.combo_categories.lineEdit().setReadOnly(True)
+        self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_categories.activated.connect(self._handle_category_filter)
+        self.combo_categories.addItem('--{}--'.format(self.i18n['category'].capitalize()), self.any_category_filter)
+        self.ref_combo_categories = self.toolbar.addWidget(self.combo_categories)
+
         self.input_name_filter = InputFilter(self.apply_filters_async)
         self.input_name_filter.setMaxLength(10)
         self.input_name_filter.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
@@ -263,6 +273,7 @@ class ManageWindow(QWidget):
 
         self.filter_only_apps = True
         self.type_filter = self.any_type_filter
+        self.category_filter = self.any_category_filter
         self.filter_updates = False
         self._maximized = False
         self.progress_controll_enabled = True
@@ -374,6 +385,10 @@ class ManageWindow(QWidget):
 
     def _handle_type_filter(self, idx: int):
         self.type_filter = self.combo_filter_type.itemData(idx)
+        self.apply_filters_async()
+
+    def _handle_category_filter(self, idx: int):
+        self.category_filter = self.combo_categories.itemData(idx)
         self.apply_filters_async()
 
     def _notify_model_data_change(self):
@@ -557,6 +572,7 @@ class ManageWindow(QWidget):
         return {
             'only_apps': self.filter_only_apps,
             'type': self.type_filter,
+            'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
             'display_limit': self.display_limit if updates <= 0 else None
@@ -617,6 +633,7 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(True)
 
         self._update_type_filters(pkgs_info['available_types'])
+        self._update_categories(pkgs_info['categories'])
 
         self._update_table(pkgs_info=pkgs_info)
 
@@ -659,6 +676,27 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(True)
             else:
                 self.ref_combo_filter_type.setVisible(False)
+
+    def _update_categories(self, categories: Set[str] = None):
+
+        if categories is None:
+            self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
+        else:
+            self.category_filter = self.any_category_filter
+
+            if categories and len(categories) > 1:
+                if self.combo_categories.count() > 1:
+                    for _ in range(self.combo_categories.count() - 1):
+                        self.combo_categories.removeItem(1)
+
+                for c in categories:
+                    i18n_cat = self.i18n.get(c)
+                    cat_label = i18n_cat if i18n_cat else c
+                    self.combo_categories.addItem(cat_label.capitalize(), c)
+
+                self.ref_combo_categories.setVisible(True)
+            else:
+                self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
         if self.pkgs:
@@ -758,6 +796,7 @@ class ManageWindow(QWidget):
 
         if clear_filters:
             self._update_type_filters({})
+            self._update_categories(set())
         else:
             self.combo_filter_type.setEnabled(False)
 
@@ -788,6 +827,7 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(True)
             self.update_bt_upgrade()
             self._update_type_filters()
+            self._update_categories()
 
             if self.ref_bt_installed.isVisible():
                 self.ref_bt_installed.setEnabled(True)

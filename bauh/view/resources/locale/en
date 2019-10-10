@@ -122,6 +122,7 @@ console.install_logs.path=Installation logs can be found at {}
 author=author
 source=source
 size=size
+category=category
 categories=categories
 summary=summary
 popup.screenshots.no_screenshot.body=it was not possible to retrieve {} screenshots
