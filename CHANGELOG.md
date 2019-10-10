@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - Optional dependencies are not checked by default in their installation popup.
 - History panel can now me maximized, minimized and allows to copy column content.
+- It is possible to use custom tray icons via the environment variables: **BAUH_TRAY_DEFAULT_ICON_PATH** and ** **BAUH_TRAY_UPDATES_ICON_PATH** ( displayed when there are updates )
 - Minor UI improvements
 
 ### Fixes

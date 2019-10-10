@@ -16,6 +16,7 @@ def is_root():
 def ask_root_password(locale_keys: dict):
 
     diag = QInputDialog()
+    diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
     diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg')))

@@ -1,3 +1,4 @@
+import os
 import time
 from io import StringIO
 from threading import Lock, Thread
@@ -39,8 +40,8 @@ class TrayIcon(QSystemTrayIcon):
         self.i18n = i18n
         self.manager = manager
 
-        self.icon_default = QIcon(resource.get_path('img/logo.png'))
-        self.icon_update = QIcon(resource.get_path('img/logo_update.png'))
+        self.icon_default = QIcon(os.getenv('BAUH_TRAY_DEFAULT_ICON_PATH', resource.get_path('img/logo.png')))
+        self.icon_update = QIcon(os.getenv('BAUH_TRAY_UPDATES_ICON_PATH', resource.get_path('img/logo_update.png')))
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
