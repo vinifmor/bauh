@@ -16,14 +16,19 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str):
+    def get(self, url: str, headers: dict = None):
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
             cur_attempts += 1
 
             try:
-                res = self.session.get(url, timeout=self.timeout)
+                args = {'timeout': self.timeout}
+
+                if headers:
+                    args['headers'] = headers
+
+                res = self.session.get(url, **args)
 
                 if res.status_code == 200:
                     return res
@@ -41,8 +46,8 @@ class HttpClient:
 
             self.logger.warning("Could not retrieve data from '{}'".format(url))
 
-    def get_json(self, url: str):
-        res = self.get(url)
+    def get_json(self, url: str, headers: dict = None):
+        res = self.get(url, headers=headers)
         return res.json() if res else None
 
     def get_content_length(self, url: str) -> str:

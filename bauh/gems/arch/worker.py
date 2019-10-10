@@ -5,10 +5,14 @@ import time
 from math import ceil
 from multiprocessing import Process
 from threading import Thread
+from typing import Dict, List
+
+import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.constants import HOME_PATH
+from bauh.api.http import HttpClient
 from bauh.gems.arch import pacman, disk
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
@@ -128,3 +132,29 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                     self.logger.info("A custom optimized 'makepkg.conf' was generated at '{}'".format(HOME_PATH))
             else:
                 self.logger.warning("A custom 'makepkg.conf' is already defined at '{}'".format(HOME_PATH))
+
+
+class CategoriesDownloader:
+
+    URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/aur/categories.txt'
+
+    def __init__(self, http_client: HttpClient, logger: logging.Logger):
+        self.http_client = http_client
+        self.logger = logger
+
+    def get_categories(self) -> Dict[str, List[str]]:
+        self.logger.info('Downloading AUR category definitions from {}'.format(self.URL_CATEGORIES_FILE))
+
+        res = self.http_client.get(self.URL_CATEGORIES_FILE, headers={'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))})
+
+        if res:
+            categories_map = {}
+            for l in res.text.split('\n'):
+                if l:
+                    data = l.split('=')
+                    categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+
+            self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
+            return categories_map
+        else:
+            self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))

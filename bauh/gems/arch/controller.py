@@ -22,7 +22,7 @@ from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, c
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, CategoriesDownloader
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -51,6 +51,8 @@ class ArchManager(SoftwareManager):
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
+        self.categories_downloader = CategoriesDownloader(context.http_client, context.logger)
+        self.categories_map = {}
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])
@@ -117,6 +119,7 @@ class ArchManager(SoftwareManager):
                     for pkgdata in pkgsinfo:
                         pkg = self.mapper.map_api_data(pkgdata, not_signed)
                         pkg.downgrade_enabled = downgrade_enabled
+                        pkg.categories = self.categories_map.get(pkg.name)
 
                         if disk_loader:
                             disk_loader.fill(pkg)
@@ -133,6 +136,8 @@ class ArchManager(SoftwareManager):
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
                               installed=True, mirror='aur')
+
+            pkg.categories = self.categories_map.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
 
             if disk_loader:
@@ -685,6 +690,7 @@ class ArchManager(SoftwareManager):
         self.dcache_updater.start()
         self.comp_optimizer.start()
         self.aur_index_updater.start()
+        self.categories_map = self.categories_downloader.get_categories()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
