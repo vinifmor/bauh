@@ -417,6 +417,12 @@ class AppsTable(QTableWidget):
 
             item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
 
+        if pkg.model.has_screenshots():
+            def get_screenshots():
+                self.window.get_screenshots(pkg)
+
+            item.addWidget(IconButton(icon_path=resource.get_path('img/camera.svg'), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+
         def handle_click():
             self.show_pkg_settings(pkg)
 

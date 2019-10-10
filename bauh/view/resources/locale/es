@@ -124,3 +124,6 @@ source=origen
 size=tamaño
 categories=categorías
 summary=sumario
+manage_window.status.screenshots=Obteniendo imágenes de {}
+action.screenshots.tooltip=Haga clic aquí para ver algunas fotos de esta aplicación
+popup.screenshots.no_screenshot.body=No fue posible recuperar las fotos de {}

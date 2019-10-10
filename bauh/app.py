@@ -72,6 +72,7 @@ def main():
                                  display_limit=args.max_displayed,
                                  config=user_config,
                                  context=context,
+                                 http_client=http_client,
                                  notifications=bool(args.system_notifications))
 
     if args.tray:

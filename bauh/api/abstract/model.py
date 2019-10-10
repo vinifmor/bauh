@@ -169,6 +169,12 @@ class SoftwarePackage(ABC):
         """
         pass
 
+    def has_screenshots(self) -> bool:
+        """
+        :return: if there are screenshots to be displayed
+        """
+        return not self.installed
+
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.id, self.name)
 

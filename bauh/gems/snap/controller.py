@@ -191,3 +191,21 @@ class SnapManager(SoftwareManager):
 
     def launch(self, pkg: SnapApplication):
         snap.run(pkg, self.context.logger)
+
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        res = self.http_client.get_json('{}/search?q={}'.format(SNAP_API_URL, pkg.name))
+
+        if res:
+            if res.get('_embedded') and res['_embedded'].get('clickindex:package'):
+                snap_data = res['_embedded']['clickindex:package'][0]
+
+                if snap_data.get('screenshot_urls'):
+                    return snap_data['screenshot_urls']
+                else:
+                    self.logger.warning("No 'screenshots_urls' defined for {}".format(pkg))
+            else:
+                self.logger.error('It seems the API is returning a different response: {}'.format(res))
+        else:
+            self.logger.warning('Could not retrieve data for {}'.format(pkg))
+
+        return []

@@ -10,7 +10,7 @@ CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'lic
 class AppImage(SoftwarePackage):
 
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
-                 url_download: str = None, url_icon: str = None, license: str = None, author: str = None,
+                 url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  pictures: List[str] = None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
@@ -21,6 +21,7 @@ class AppImage(SoftwarePackage):
         self.pictures = pictures
         self.url_download = url_download
         self.icon_path = icon_path
+        self.url_screenshot = url_screenshot
         self.author = author
         self.url_download_latest_version = url_download_latest_version
 
@@ -80,3 +81,6 @@ class AppImage(SoftwarePackage):
 
     def get_disk_icon_path(self):
         return self.icon_path
+
+    def has_screenshots(self):
+        return not self.installed and self.url_screenshot

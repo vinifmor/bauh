@@ -14,8 +14,11 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
+from bauh.api.http import HttpClient
+from bauh.commons.html import bold
 from bauh.view.core.config import Configuration
 from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.util import util, resource
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -29,7 +32,7 @@ from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomAction
+    AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 
@@ -48,7 +51,7 @@ class ManageWindow(QWidget):
 
     def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
                  download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
-                 context: ApplicationContext, notifications: bool, tray_icon=None):
+                 context: ApplicationContext, notifications: bool, http_client: HttpClient, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.manager = manager
@@ -65,6 +68,7 @@ class ManageWindow(QWidget):
         self.config = config
         self.context = context
         self.notifications = notifications
+        self.http_client = http_client
 
         self.icon_app = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
@@ -213,6 +217,7 @@ class ManageWindow(QWidget):
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(LaunchApp(self.manager), finished_call=self._finish_run_app, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
+        self.thread_screenshots = self._bind_async_action(GetScreenshots(self.manager, http_client), finished_call=self._finish_get_screenshots)
 
         self.thread_apply_filters = ApplyFilters()
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
@@ -810,6 +815,24 @@ class ManageWindow(QWidget):
 
         self.thread_get_info.app = pkg
         self.thread_get_info.start()
+
+    def get_screenshots(self, pkg: PackageView):
+        self._handle_console_option(False)
+        self._begin_action(self.i18n['manage_window.status.screenshots'].format(bold(pkg.model.name)))
+
+        self.thread_screenshots.pkg = pkg
+        self.thread_screenshots.start()
+
+    def _finish_get_screenshots(self, res: dict):
+        self.finish_action()
+
+        if res.get('screenshots'):
+            diag = ScreenshotsDialog(pkg=res['pkg'], icon_cache=self.icon_cache, i18n=self.i18n, screenshots=res['screenshots'])
+            diag.exec_()
+        else:
+            dialog.show_message(title=self.i18n['error'],
+                                body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
+                                type_=MessageType.ERROR)
 
     def get_app_history(self, app: dict):
         self._handle_console_option(False)

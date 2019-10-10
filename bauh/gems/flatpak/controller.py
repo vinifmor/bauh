@@ -272,4 +272,14 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def launch(self, pkg: SoftwarePackage):
-        flatpak.run(pkg.id)
+        flatpak.run(str(pkg.id))
+
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        res = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, pkg.id))
+        urls = []
+        if res and res.get('screenshots'):
+            for s in res['screenshots']:
+                if s.get('imgDesktopUrl'):
+                    urls.append(s['imgDesktopUrl'])
+
+        return urls

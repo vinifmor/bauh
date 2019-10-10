@@ -731,3 +731,6 @@ class ArchManager(SoftwareManager):
     def launch(self, pkg: ArchPackage):
         if pkg.command:
             subprocess.Popen(pkg.command.split(' '))
+
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        pass

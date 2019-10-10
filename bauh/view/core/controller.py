@@ -369,3 +369,9 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             self.logger.info('Launching {}'.format(pkg))
             man.launch(pkg)
+
+    def get_screenshots(self, pkg: SoftwarePackage):
+        man = self._get_manager_for(pkg)
+
+        if man:
+            return man.get_screenshots(pkg)

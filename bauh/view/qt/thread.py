@@ -5,6 +5,7 @@ from typing import List, Type, Set
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
@@ -12,6 +13,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
+from bauh.api.http import HttpClient
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 
@@ -480,3 +482,32 @@ class CustomAction(AsyncAction):
         self.pkg = None
         self.custom_action = None
         self.root_password = None
+
+
+class GetScreenshots(AsyncAction):
+
+    def __init__(self, manager: SoftwareManager, http_client: HttpClient, pkg: PackageView = None):
+        super(GetScreenshots, self).__init__()
+        self.pkg = pkg
+        self.manager = manager
+        self.http_client = http_client
+
+    def run(self):
+        if self.pkg:
+            imgs = []
+            screenshots = self.manager.get_screenshots(self.pkg.model)
+
+            if screenshots:
+                for url in screenshots:
+                    res = self.http_client.get(url)
+
+                    if res and res.status_code == 200:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(res.content)
+                        imgs.append(pixmap)
+                        break  # TODO load all
+
+            self.notify_finished({'pkg': self.pkg, 'screenshots': imgs})
+
+        self.pkg = None
+

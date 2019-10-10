@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.7.0]
 ### Features
 - AppImage support ( see below )
+- "Screenshots" button
 
 ### Improvements
 - Flatpak:

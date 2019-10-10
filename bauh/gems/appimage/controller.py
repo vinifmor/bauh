@@ -364,3 +364,9 @@ class AppImageManager(SoftwareManager):
 
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         self.serialize_to_disk(pkg, icon_bytes, only_icon)
+
+    def get_screenshots(self, pkg: AppImage) -> List[str]:
+        if pkg.has_screenshots():
+            return [pkg.url_screenshot]
+
+        return []
