@@ -19,6 +19,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd
 from bauh.gems.appimage import query, INSTALLATION_PATH
 from bauh.gems.appimage.model import AppImage
+from bauh.gems.appimage.worker import DatabaseUpdater
 
 DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
 DB_RELEASES_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/releases.db')
@@ -41,6 +42,7 @@ class AppImageManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
         self.file_downloader = context.file_downloader
+        self.dbs_updater = DatabaseUpdater(http_client=context.http_client, logger=context.logger)
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
@@ -335,8 +337,7 @@ class AppImageManager(SoftwareManager):
         return False
 
     def prepare(self):
-        # TODO
-        pass
+        self.dbs_updater.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         # TODO
