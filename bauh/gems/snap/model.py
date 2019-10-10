@@ -47,7 +47,7 @@ class SnapApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self) -> bool:
-        return self.has_apps_field is None or self.has_apps_field and self.name.lower() not in KNOWN_RUNTIME_NAMES
+        return not self.installed or ((self.has_apps_field is None or self.has_apps_field) and self.name.lower() not in KNOWN_RUNTIME_NAMES)
 
     def _name_starts_with(self, words: set):
         for word in words:
