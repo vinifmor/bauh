@@ -501,7 +501,7 @@ class GetScreenshots(AsyncAction):
                 for url in screenshots:
                     res = self.http_client.get(url)
 
-                    if res and res.status_code == 200:
+                    if res and res.status_code == 200 and res.content:
                         pixmap = QPixmap()
                         pixmap.loadFromData(res.content)
                         imgs.append(pixmap)

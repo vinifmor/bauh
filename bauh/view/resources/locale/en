@@ -126,3 +126,4 @@ category=category
 categories=categories
 summary=summary
 popup.screenshots.no_screenshot.body=it was not possible to retrieve {} screenshots
+terminalemulator=terminal

@@ -128,22 +128,22 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
-        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px}')
+        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n[self.any_type_filter].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n['type'].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
-        self.combo_categories.setStyleSheet('QLineEdit { height: 2px}')
+        self.combo_categories.setStyleSheet('QLineEdit { height: 2px; width: 50px; }')
         self.combo_categories.setEditable(True)
         self.combo_categories.lineEdit().setReadOnly(True)
         self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_categories.activated.connect(self._handle_category_filter)
-        self.combo_categories.addItem('--{}--'.format(self.i18n['category'].capitalize()), self.any_category_filter)
+        self.combo_categories.addItem('--- {} ---'.format(self.i18n['category'].capitalize()), self.any_category_filter)
         self.ref_combo_categories = self.toolbar.addWidget(self.combo_categories)
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
@@ -684,7 +684,7 @@ class ManageWindow(QWidget):
         else:
             self.category_filter = self.any_category_filter
 
-            if categories and len(categories) > 1:
+            if categories:
                 if self.combo_categories.count() > 1:
                     for _ in range(self.combo_categories.count() - 1):
                         self.combo_categories.removeItem(1)

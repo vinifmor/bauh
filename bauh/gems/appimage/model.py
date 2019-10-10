@@ -1,24 +1,23 @@
-from typing import List
-
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 
-CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source', 'icon_path', 'github'}
+CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
+                'icon_path', 'github', 'categories'}
 
 
 class AppImage(SoftwarePackage):
 
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
-                 pictures: List[str] = None, icon_path: str = None, installed: bool = False,
+                 categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
         self.source = source
         self.github = github
-        self.pictures = pictures
+        self.categories = categories.split(',') if isinstance(categories, str) else categories
         self.url_download = url_download
         self.icon_path = icon_path
         self.url_screenshot = url_screenshot

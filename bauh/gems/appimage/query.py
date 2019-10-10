@@ -1,4 +1,4 @@
-APP_ATTRS = ('name', 'description', 'github', 'source', 'version', 'url_download', 'url_icon', 'url_screenshot', 'license', 'author')
+APP_ATTRS = ('name', 'description', 'github', 'source', 'version', 'url_download', 'url_icon', 'url_screenshot', 'license', 'author', 'categories')
 RELEASE_ATTRS = ('version', 'url_download', 'published_at')
 
 
