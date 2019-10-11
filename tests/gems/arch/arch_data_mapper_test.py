@@ -22,6 +22,8 @@ class ArchDataMapperTest(TestCase):
         self.assertFalse(ArchDataMapper.check_update('77.0.3865.900-1', '77.0.3865.120-1'))
         self.assertTrue(ArchDataMapper.check_update('77.0.3865.120-1', '77.0.3865.900-1'))
         self.assertFalse(ArchDataMapper.check_update('77.0.3865.120-1', '77.0.3865.90-1'))
+        self.assertTrue(ArchDataMapper.check_update('77.0.3865.a-1', '77.0.3865.b-1'))
+        self.assertFalse(ArchDataMapper.check_update('77.0.b.0-1', '77.0.a.1-1'))
 
     def test_check_update_no_suffix_3_x_2_digits(self):
         self.assertTrue(ArchDataMapper.check_update('1.0.0-1', '1.1-1'))
