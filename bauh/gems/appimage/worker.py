@@ -4,15 +4,16 @@ import time
 from multiprocessing import Process
 from threading import Thread
 
+from bauh.api.constants import HOME_PATH
 from bauh.api.http import HttpClient
 
 
 class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Process):
 
-    URL_APPS = 'https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.db?raw=true'
-    URL_RELEASES = 'https://github.com/vinifmor/bauh-files/blob/master/appimage/releases.db?raw=true'
-    APPS_PATH = '{}/.local/share/bauh/appimage/apps.db'
-    RELEASES_PATH = '{}/.local/share/bauh/appimage/releases.db'
+    URL_APPS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/apps.db'
+    URL_RELEASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/releases.db'
+    APPS_PATH = '{}/.local/share/bauh/appimage/apps.db'.format(HOME_PATH)
+    RELEASES_PATH = '{}/.local/share/bauh/appimage/releases.db'.format(HOME_PATH)
 
     def __init__(self, http_client: HttpClient, logger: logging.Logger):
         super(DatabaseUpdater, self).__init__(daemon=True)
@@ -30,7 +31,7 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
 
             self.logger.info("Database file saved at {}".format(output))
         else:
-            self.logger.warning('Could not download a database file from {}'.format(url))
+            self.logger.warning('Could not download the database file {}'.format(url))
 
     def run(self):
         if self.enabled:
