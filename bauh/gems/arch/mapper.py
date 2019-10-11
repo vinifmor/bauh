@@ -8,6 +8,7 @@ from bauh.gems.arch.model import ArchPackage
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
 RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
 RE_ANY_LETTER = re.compile(r'[a-zA-Z]')
+RE_VERSION_DELS = re.compile(r'[.:#@\-_]')
 
 RE_SFX = ('r', 're', 'release')
 GA_SFX = ('ga', 'ge')
@@ -75,34 +76,26 @@ class ArchDataMapper:
 
                     return nlatest > nversion
 
-            if not RE_ANY_LETTER.findall(latest_version) and not RE_ANY_LETTER.findall(version):
-                latest_no_rel = latest_version.split('-')
-                version_no_rel = version.split('-')
+            latest_split = RE_VERSION_DELS.split(latest_version)
+            version_split = RE_VERSION_DELS.split(version)
 
-                latest_split = latest_no_rel[0].split('.')
-                version_split = version_no_rel[0].split('.')
+            for idx in range(len(latest_split)):
+                if idx < len(version_split):
+                    latest_part = latest_split[idx]
+                    version_part = version_split[idx]
 
-                for idx in range(len(latest_split)):
-                    if idx < len(version_split):
-                        dif = int(latest_split[idx]) - int(version_split[idx])
-
-                        if dif > 0:
-                            return True
-                        elif dif < 0:
-                            return False
+                    if latest_part != version_part:
+                        if RE_ANY_LETTER.findall(latest_part) or RE_ANY_LETTER.findall(version_part):
+                            return latest_part > version_part
                         else:
-                            continue
+                            dif = int(latest_part) - int(version_part)
 
-                if len(latest_no_rel) > 1 and len(version_no_rel) > 1:
-                    if not RE_ANY_LETTER.findall(latest_no_rel[1]) and not RE_ANY_LETTER.findall(version_no_rel[1]):
-                        return int(latest_no_rel[1]) > int(version_no_rel[1])
-                    else:
-                        return latest_no_rel[1] > version_no_rel[1]
-
-                return False
-            else:
-                return latest_version > version
-
+                            if dif > 0:
+                                return True
+                            elif dif < 0:
+                                return False
+                            else:
+                                continue
         return False
 
     def fill_package_build(self, pkg: ArchPackage):
