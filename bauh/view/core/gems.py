@@ -25,25 +25,28 @@ def load_managers(locale: str, context: ApplicationContext, config: Configuratio
 
     for f in os.scandir(ROOT_DIR + '/gems'):
         if f.is_dir() and f.name != '__pycache__':
-            module = pkgutil.find_loader('bauh.gems.{}.controller'.format(f.name)).load_module()
+            loader = pkgutil.find_loader('bauh.gems.{}.controller'.format(f.name))
 
-            manager_class = find_manager(module)
+            if loader:
+                module = loader.load_module()
 
-            if manager_class:
-                if locale:
-                    locale_path = '{}/resources/locale'.format(f.path)
+                manager_class = find_manager(module)
 
-                    if os.path.exists(locale_path):
-                        context.i18n.update(util.get_locale_keys(locale, locale_path)[1])
+                if manager_class:
+                    if locale:
+                        locale_path = '{}/resources/locale'.format(f.path)
 
-                man = manager_class(context=context)
+                        if os.path.exists(locale_path):
+                            context.i18n.update(util.get_locale_keys(locale, locale_path)[1])
 
-                if config.enabled_gems is None:
-                    man.set_enabled(man.is_default_enabled())
-                else:
-                    man.set_enabled(f.name in config.enabled_gems)
+                    man = manager_class(context=context)
 
-                managers.append(man)
+                    if config.enabled_gems is None:
+                        man.set_enabled(man.is_default_enabled())
+                    else:
+                        man.set_enabled(f.name in config.enabled_gems)
+
+                    managers.append(man)
 
     return managers
 
