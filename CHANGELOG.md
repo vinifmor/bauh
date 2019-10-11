@@ -32,6 +32,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Applications with no releases published to GitHub are not available
 - Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
 
+## [0.6.3] 2019-10-11
+### Fixes
+- AUR update check for some scenarios
+- table not showing some update versions due to a strange Python String comparison behavior ( e.g: the string version '0.1.90' is being handled as higher than '0.1.120' )
 
 ## [0.6.2] 2019-10-02
 ### Improvements
