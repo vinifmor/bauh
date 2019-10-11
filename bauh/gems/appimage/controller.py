@@ -353,8 +353,15 @@ class AppImageManager(SoftwareManager):
         self.dbs_updater.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
-        # TODO
-        pass
+        res = self.read_installed(disk_loader=None, internet_available=internet_available)
+
+        updates = []
+        if res.installed:
+            for app in res.installed:
+                if app.update:
+                    updates.append(PackageUpdate(pkg_id=app.name, pkg_type='appimage', version=app.latest_version))
+
+        return updates
 
     def list_warnings(self) -> List[str]:
         pass
