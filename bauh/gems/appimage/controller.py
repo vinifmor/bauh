@@ -329,9 +329,22 @@ class AppImageManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
+    def _is_sqlite3_available(self):
+        try:
+            new_subprocess(['sqlite3', '--version'])
+            return True
+        except FileNotFoundError:
+            return False
+
+    def _is_wget_available(self):
+        try:
+            new_subprocess(['wget', '--version'])
+            return True
+        except FileNotFoundError:
+            return False
+
     def can_work(self) -> bool:
-        # TODO check wget and sqlite
-        return True
+        return self._is_sqlite3_available() and self._is_wget_available()
 
     def requires_root(self, action: str, pkg: AppImage):
         return False
@@ -347,7 +360,6 @@ class AppImageManager(SoftwareManager):
         pass
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        # TODO
         pass
 
     def is_default_enabled(self) -> bool:

@@ -60,7 +60,7 @@ class GemSelectorPanel(QWidget):
 
         self.bt_proceed.setEnabled(bool(default_ops))
 
-        self.gem_select_model = MultipleSelectComponent(label='', options=gem_options, default_options=default_ops, max_per_line=3)
+        self.gem_select_model = MultipleSelectComponent(label='', options=gem_options, default_options=default_ops, max_per_line=1)
 
         self.gem_select = MultipleSelectQt(self.gem_select_model, self.check_state)
         self.layout().addWidget(self.gem_select, 1, 1)

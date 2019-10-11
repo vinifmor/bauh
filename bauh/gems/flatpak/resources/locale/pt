@@ -1,3 +1,4 @@
+gem.flatpak.info=Aplicativos disponíveis nos repositórios configurados do seu sistema
 flatpak.info.arch=arquitetura
 flatpak.info.branch=ramo
 flatpak.info.collection=coleção

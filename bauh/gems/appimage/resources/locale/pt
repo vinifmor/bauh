@@ -1,4 +1,5 @@
 gem.appimage.label=AppImage
+gem.appimage.info=Aplicativos publicados em https://appimage.github.io/
 appimage.install.permission=Concedendo permissão de execução para {}
 appimage.install.extract=Extraindo o conteúdo de {}
 appimage.install.desktop_entry=Criando um atalho no menu

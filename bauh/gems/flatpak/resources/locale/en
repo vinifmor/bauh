@@ -1,3 +1,4 @@
+gem.flatpak.info=Applications available in the repositories configured on your system
 flatpak.notification.no_remotes=No Flatpak remotes set. It will not be possible to search for Flatpak apps.
 flatpak.downgrade.impossible.title=Error
 flatpak.downgrade.impossible.body=Impossible to downgrade: the app is in its first version
