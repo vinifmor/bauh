@@ -28,7 +28,7 @@ class FlatpakAsyncDataLoader(Thread):
             try:
                 res = self.http_client.get('{}/apps/{}'.format(FLATHUB_API_URL, self.app.id))
 
-                if res.status_code == 200 and res.text:
+                if res and res.text:
                     data = res.json()
 
                     if not self.app.version:

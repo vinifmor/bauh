@@ -25,14 +25,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Snap:
     - retrieving installed applications information for Ubuntu based distros
-- Flatpak:
-    - update check for version 1.5.X
 
 ### AppImage support
 - Search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io).
 - Applications with no releases published to GitHub are not available
 - Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
+
+## [0.6.4] 2019-10-13
+### Fixes
+- Flatpak update-checking for version 1.5.X
 
 ## [0.6.3] 2019-10-11
 ### Fixes
