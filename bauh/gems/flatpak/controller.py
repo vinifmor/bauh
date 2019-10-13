@@ -96,7 +96,11 @@ class FlatpakManager(SoftwareManager):
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True,
                                            disk_loader=disk_loader, internet=internet_available)
-                model.update = app_json['ref'] in updates[0] if updates else None
+                if version >= '1.5.0':
+                    model.update = '{}/{}'.format(app_json['id'], app_json['branch']) in updates[0] if updates else None
+                else:
+                    model.update = app_json['ref'] in updates[0] if updates else None
+
                 models.append(model)
 
         return SearchResult(models, None, len(models))
