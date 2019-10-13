@@ -1,3 +1,8 @@
+include LICENSE
+include CHANGELOG.md README.md
+recursive-include pictures *.png
 include requirements.txt
+recursive-include aur *.py
 recursive-include bauh/view/resources *
 recursive-include bauh/gems/*/resources *
+recursive-include tests *.py
