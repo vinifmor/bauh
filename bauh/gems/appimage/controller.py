@@ -4,6 +4,7 @@ import re
 import shutil
 import sqlite3
 import subprocess
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Set, Type, List
@@ -294,7 +295,14 @@ class AppImageManager(SoftwareManager):
 
                 watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
 
-                handler.handle(SystemProcess(new_subprocess([file_path, '--appimage-extract'], cwd=out_dir)))
+                try:
+                    handler.handle(SystemProcess(new_subprocess([file_path, '--appimage-extract'], cwd=out_dir)))
+                except:
+                    watcher.show_message(title=self.i18n['error'],
+                                         body=traceback.format_exc(),
+                                         type_=MessageType.ERROR)
+                    traceback.print_exc()
+                    return False
 
                 watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
                 extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
