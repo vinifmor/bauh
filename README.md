@@ -86,7 +86,7 @@ You can change some application settings via environment variables or arguments 
 - **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no package considered an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
 - **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 - **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **aria2** is installed ). This feature reduces applications installation time ( only supported by AUR packages at the moment ). Use **0** (disable) or **1** (enabled, default).
+- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **aria2** is installed ). This feature reduces the application installation time. Use **0** (disable) or **1** (enabled, default).
 - **BAUH_TRAY_DEFAULT_ICON_PATH**: define a custom icon for the tray mode ( absolute path)
 - **BAUH_TRAY_UPDATES_ICON_PATH** define a custom updates icon for the tray mode ( absolute path)
 
