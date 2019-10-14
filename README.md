@@ -31,7 +31,7 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **pacman**: to be able to handle AUR packages
 - **wget**: to be able to handle AUR packages
 - **git**: to be able to downgrade AUR packages
-- **aria2**: faster AUR source files downloading ( reduces packages installation time. More information below. )
+- **aria2**: faster AppImage and AUR source files downloading ( reduces packages installation time. More information below. )
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
 
 
@@ -56,8 +56,8 @@ If you prefer a manual and isolated installation, type the following commands wi
 
 ```
 python3 -m venv env ( creates a virtualenv in a folder called **env** )
-env/bin/pip install . ( install the application code inside the **env** )
-env/bin/bauh  ( launch the application )
+env/bin/pip install . ( installs the application code inside the **env** )
+env/bin/bauh  ( launches the application )
 ```
 
 If you do not want to clone / download this repository, go to your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
