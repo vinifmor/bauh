@@ -104,6 +104,7 @@ You can change some application settings via environment variables or arguments 
 - If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
 - Automatically makes simple package compilation improvements:
+
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
     then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
     the number of your machine processors (**-j${nproc}**).
