@@ -37,7 +37,8 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 
 - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
 - There are some issues to work with AppImages in Ubuntu based distros. Installing the following packages can help **bauh** to work with them:
-```binfmt-support
+```
+   binfmt-support
    qemu
    qemu-user-static
 ```
