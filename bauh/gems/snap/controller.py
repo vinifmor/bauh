@@ -44,7 +44,7 @@ class SnapManager(SoftwareManager):
         if app.publisher:
             app.publisher = app.publisher.replace('*', '')
 
-        app.categories = self.categories.get(app.name)
+        app.categories = self.categories.get(app.name.lower())
 
         app.installed = installed
 
