@@ -103,27 +103,32 @@ You can change some application settings via environment variables or arguments 
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
 - If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
 will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
-- Automatically makes simple package compilation improvements
+- Automatically makes simple package compilation improvements:
+    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
+    then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
+    the number of your machine processors (**-j${nproc}**).
+
+    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+
+    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
+    ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1,category2,...```
 
 ### AppImage support ( appimage gem )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
-- Supported sources: [AppImageHub](https://appimage.github.io).
-- Applications with no releases published to GitHub are not available
-- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
-
-  a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
-then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
-the number of your machine processors (**-j${nproc}**).
-
-  b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
-
-Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
+- Supported sources: [AppImageHub](https://appimage.github.io) (**applications with no releases published to GitHub are not available yet**)
+- Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
+- Installed applications are store at **~/.local/share/bauh/appimage/installed**
+- Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
+- Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
 
 ### Files and Logs
 - Some application settings are stored in **~/.config/bauh/config.json**
 - Installation logs are saved at **/tmp/bauh/logs/install**
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
+
+### [bauh-files](https://github.com/vinifmor/bauh-files)
+- It is a separate repository with some files downloaded by **bauh** during runtime.
 
 ### Code structure
 #### Modules
