@@ -75,23 +75,21 @@ class AppImageManager(SoftwareManager):
                     found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1
 
-                if res.new:
-                    installed = self.read_installed(disk_loader, limit, only_apps=False, pkg_types=None, internet_available=True).installed
-
-                    if installed:
-                        for iapp in installed:
-                            key = self._gen_app_key(iapp)
-
-                            new_found = found_map.get(key)
-
-                            if new_found:
-                                del res.new[new_found['idx']]
-                                res.installed.append(iapp)
-
             finally:
                 self._close_connection(DB_APPS_PATH, connection)
-        else:
-            self.logger.warning('Could not get a connection from the local database at {}'.format(DB_APPS_PATH))
+
+            if res.new:
+                installed = self.read_installed(disk_loader, limit, only_apps=False, pkg_types=None, internet_available=True).installed
+
+                if installed:
+                    for iapp in installed:
+                        key = self._gen_app_key(iapp)
+
+                        new_found = found_map.get(key)
+
+                        if new_found:
+                            del res.new[new_found['idx']]
+                            res.installed.append(iapp)
 
         res.total = len(res.installed) + len(res.new)
         return res
