@@ -71,38 +71,15 @@ class DefaultMemoryCache(MemoryCache):
                 self.get(key)
 
 
-class CacheCleaner(Thread):
-
-    def __init__(self, check_interval: int = 15):
-        super(CacheCleaner, self).__init__(daemon=True)
-        self.caches = []
-        self.check_interval = check_interval
-
-    def register(self, cache: MemoryCache):
-        if cache.is_enabled():
-            self.caches.append(cache)
-
-    def run(self):
-        if self.caches:
-            while True:
-                for cache in self.caches:
-                    cache.clean_expired()
-
-                time.sleep(self.check_interval)
-
-
 class DefaultMemoryCacheFactory(MemoryCacheFactory):
 
-    def __init__(self, expiration_time: int, cleaner: CacheCleaner):
+    def __init__(self, expiration_time: int):
         """
         :param expiration_time: default expiration time for all instantiated caches
-        :param cleaner
         """
         super(DefaultMemoryCacheFactory, self).__init__()
         self.expiration_time = expiration_time
-        self.cleaner = cleaner
 
     def new(self, expiration: int = None) -> MemoryCache:
         instance = DefaultMemoryCache(expiration if expiration is not None else self.expiration_time)
-        self.cleaner.register(instance)
         return instance
