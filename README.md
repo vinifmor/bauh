@@ -35,9 +35,12 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **aria2**: faster AppImage and AUR source files downloading ( reduces packages installation time. More information below. )
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
 
-
-P.S: [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
-
+- [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
+- There are some issues to work with AppImages in Ubuntu based distros. Installing the following packages can help **bauh** to work with them:
+```binfmt-support
+   qemu
+   qemu-user-static
+```
 
 ### Distribution
 
