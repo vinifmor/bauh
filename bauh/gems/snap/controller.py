@@ -143,7 +143,10 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def prepare(self):
-        self.categories = self.categories_downloader.get_categories()
+        categories = self.categories_downloader.get_categories()
+
+        if categories:
+            self.categories = categories
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass

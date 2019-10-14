@@ -1,19 +1,15 @@
 import re
-import subprocess
 from typing import List, Set
 
-from bauh.api.abstract.handler import ProcessWatcher
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, ProcessHandler
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 
+
 def is_enabled() -> bool:
-    try:
-        new_subprocess(['pacman', '--version'])
-        return True
-    except FileNotFoundError:
-        return False
+    res = run_cmd('which pacman')
+    return res and not res.strip().startswith('which ')
 
 
 def get_mirrors(pkgs: Set[str]) -> dict:

@@ -655,11 +655,8 @@ class ArchManager(SoftwareManager):
         return res
 
     def _is_wget_available(self):
-        try:
-            new_subprocess(['wget', '--version'])
-            return True
-        except FileNotFoundError:
-            return False
+        res = run_cmd('which wget')
+        return res and not res.strip().startswith('which ')
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -690,7 +687,10 @@ class ArchManager(SoftwareManager):
         self.dcache_updater.start()
         self.comp_optimizer.start()
         self.aur_index_updater.start()
-        self.categories_map = self.categories_downloader.get_categories()
+        categories = self.categories_downloader.get_categories()
+
+        if categories:
+            self.categories_map = categories
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
