@@ -113,7 +113,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
     Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
     ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
-- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1,category2,...```
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 
 ### AppImage support ( appimage gem )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
