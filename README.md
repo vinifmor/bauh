@@ -1,4 +1,4 @@
-**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap and AUR packaging types. When you launch **bauh** you will see
+**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap, AppImage and AUR packaging types. When you launch **bauh** you will see
 a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the package technology.
 
 It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
@@ -35,7 +35,7 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
 
 
-P.S: [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages in your system.
+P.S: [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
 
 
 ### Distribution
