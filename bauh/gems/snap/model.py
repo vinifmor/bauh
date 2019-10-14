@@ -28,6 +28,9 @@ class SnapApplication(SoftwarePackage):
         self.confinement = confinement
         self.has_apps_field = has_apps_field
 
+    def supports_disk_cache(self):
+        return self.installed
+
     def has_history(self):
         return False
 
@@ -49,13 +52,6 @@ class SnapApplication(SoftwarePackage):
     def is_application(self) -> bool:
         return not self.installed or ((self.has_apps_field is None or self.has_apps_field) and self.name.lower() not in KNOWN_RUNTIME_NAMES)
 
-    def _name_starts_with(self, words: set):
-        for word in words:
-            if self.name.startswith(word):
-                return True
-
-        return False
-
     def get_disk_cache_path(self):
         return super(SnapApplication, self).get_disk_cache_path() + '/installed/' + self.name
 
@@ -63,17 +59,15 @@ class SnapApplication(SoftwarePackage):
         return {
             "icon_url": self.icon_url,
             'confinement': self.confinement,
-            'description': self.description
+            'description': self.description,
+            'categories': self.categories
         }
 
     def fill_cached_data(self, data: dict):
         if data:
-            for base_attr in ('icon_url', 'description'):
+            for base_attr in ('icon_url', 'description', 'confinement', 'categories'):
                 if data.get(base_attr):
                     setattr(self, base_attr, data[base_attr])
-
-            if data.get('confinement'):
-                self.confinement = data['confinement']
 
     def can_be_run(self) -> bool:
         return self.installed and self.is_application()

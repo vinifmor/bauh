@@ -13,7 +13,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
-from bauh.gems.snap.worker import SnapAsyncDataLoader
+from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
 
 
 class SnapManager(SoftwareManager):
@@ -27,6 +27,8 @@ class SnapManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
+        self.categories = {}
+        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger)
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -41,6 +43,8 @@ class SnapManager(SoftwareManager):
 
         if app.publisher:
             app.publisher = app.publisher.replace('*', '')
+
+        app.categories = self.categories.get(app.name)
 
         app.installed = installed
 
@@ -139,7 +143,7 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def prepare(self):
-        pass
+        self.categories = self.categories_downloader.get_categories()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
