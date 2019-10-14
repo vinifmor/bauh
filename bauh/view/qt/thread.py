@@ -1,11 +1,12 @@
 import re
 import time
 from datetime import datetime, timedelta
+from threading import Thread
 from typing import List, Type, Set
 
 import requests
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtGui import QPixmap
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
@@ -485,6 +486,8 @@ class CustomAction(AsyncAction):
 
 
 class GetScreenshots(AsyncAction):
+    MAX_HEIGHT = 600
+    MAX_WIDTH = 800
 
     def __init__(self, manager: SoftwareManager, http_client: HttpClient, pkg: PackageView = None):
         super(GetScreenshots, self).__init__()
@@ -492,22 +495,33 @@ class GetScreenshots(AsyncAction):
         self.manager = manager
         self.http_client = http_client
 
+    def _get_img(self, url: str, imgs: list):
+        res = self.http_client.get(url)
+
+        if res and res.status_code == 200 and res.content:
+            pixmap = QPixmap()
+            pixmap.loadFromData(res.content)
+
+            if pixmap.size().height() > self.MAX_HEIGHT or pixmap.size().width() > self.MAX_WIDTH:
+                pixmap = pixmap.scaled(self.MAX_WIDTH, self.MAX_HEIGHT, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+            imgs.append(pixmap)
+
     def run(self):
         if self.pkg:
             imgs = []
             screenshots = self.manager.get_screenshots(self.pkg.model)
 
             if screenshots:
+                threads = []
                 for url in screenshots:
-                    res = self.http_client.get(url)
+                    t = Thread(target=self._get_img, args=(url, imgs))
+                    t.start()
+                    threads.append(t)
 
-                    if res and res.status_code == 200 and res.content:
-                        pixmap = QPixmap()
-                        pixmap.loadFromData(res.content)
-                        imgs.append(pixmap)
-                        break  # TODO load all
+                for t in threads:
+                    t.join()
 
             self.notify_finished({'pkg': self.pkg, 'screenshots': imgs})
 
         self.pkg = None
-

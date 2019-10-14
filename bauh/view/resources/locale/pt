@@ -166,3 +166,7 @@ science=ciências
 news=notícias
 weather=tempo
 finance=finanças
+desktopsettings=configurações
+texteditor=editor de texto
+screenshots.bt_next.label=próxima
+screenshots.bt_back.label=anterior

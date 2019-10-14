@@ -127,3 +127,7 @@ categories=categories
 summary=summary
 popup.screenshots.no_screenshot.body=it was not possible to retrieve {} screenshots
 terminalemulator=terminal
+desktopsettings=desktop settings
+texteditor=text editor
+screenshots.bt_next.label=next
+screenshots.bt_back.label=previous

@@ -1,6 +1,7 @@
 import datetime
 import time
-from threading import Lock, Thread
+from multiprocessing import Lock
+from threading import Thread
 
 from bauh.api.abstract.cache import MemoryCache, MemoryCacheFactory
 
