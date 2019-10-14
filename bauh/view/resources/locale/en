@@ -132,3 +132,5 @@ texteditor=text editor
 screenshots.bt_next.label=next
 screenshots.bt_back.label=previous
 instantmessaging=messaging
+2dgraphics=2d graphics
+vectorgraphics=vector graphics
