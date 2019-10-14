@@ -17,7 +17,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd
-from bauh.gems.appimage import query, INSTALLATION_PATH
+from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
@@ -367,7 +367,28 @@ class AppImageManager(SoftwareManager):
         pass
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        pass
+        res = []
+
+        connection = self._get_db_connection(DB_APPS_PATH)
+
+        if connection:
+            try:
+                sugs = [(i, p) for i, p in suggestions.ALL.items()]
+                sugs.sort(key=lambda t: t[1].value, reverse=True)
+
+                if limit > 0:
+                    sugs = sugs[0:limit]
+
+                cursor = connection.cursor()
+                cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s[0]) for s in sugs])))
+
+                for t in cursor.fetchall():
+                    app = AppImage(*t)
+                    res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
+            finally:
+                connection.close()
+
+        return res
 
     def is_default_enabled(self) -> bool:
         return True
