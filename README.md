@@ -36,7 +36,7 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments
 
 - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
-- There are some issues to work with AppImages in Ubuntu based distros. Installing the following packages can help **bauh** to work with them:
+- There are some issues to work with AppImages in **Ubuntu** based distros. Installing the following packages can help **bauh** to work with them:
 ```
    binfmt-support
    qemu
