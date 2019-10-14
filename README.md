@@ -117,7 +117,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
 ### AppImage support ( appimage gem )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
-- Supported sources: [AppImageHub](https://appimage.github.io) (**applications with no releases published to GitHub are not available yet**)
+- Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are not available yet** )
 - Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
