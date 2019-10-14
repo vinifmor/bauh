@@ -9,7 +9,7 @@ from pathlib import Path
 from threading import Thread
 
 from bauh.api.http import HttpClient
-from bauh.gems.appimage import LOCAL_PATH
+from bauh.gems.appimage import LOCAL_PATH, db
 
 
 class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Process):
@@ -42,7 +42,10 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
             if old_db_files:
                 self.logger.info('Deleting old database files')
                 for f in old_db_files:
+                    db.acquire_lock(f)
                     os.remove(f)
+                    db.release_lock(f)
+
                 self.logger.info('Old database files deleted')
 
             self.logger.info('Uncompressing {}'.format(self.COMPRESS_FILE_PATH))

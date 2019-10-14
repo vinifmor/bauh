@@ -17,7 +17,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd
-from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions
+from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, db
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
@@ -46,9 +46,14 @@ class AppImageManager(SoftwareManager):
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
+            db.acquire_lock(db_path)
             return sqlite3.connect(db_path)
         else:
             self.logger.warning("Could not get a database connection. File '{}' not found".format(db_path))
+
+    def _close_connection(self, db_path: str, con: sqlite3.Connection):
+        con.close()
+        db.release_lock(db_path)
 
     def _gen_app_key(self, app: AppImage):
         return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
@@ -84,7 +89,7 @@ class AppImageManager(SoftwareManager):
                                 res.installed.append(iapp)
 
             finally:
-                connection.close()
+                self._close_connection(DB_APPS_PATH, connection)
         else:
             self.logger.warning('Could not get a connection from the local database at {}'.format(DB_APPS_PATH))
 
@@ -127,7 +132,7 @@ class AppImageManager(SoftwareManager):
 
                                         break
                         finally:
-                            con.close()
+                            self._close_connection(DB_APPS_PATH, con)
 
         res.total = len(res.installed)
         return res
@@ -220,27 +225,34 @@ class AppImageManager(SoftwareManager):
         connection = self._get_db_connection(DB_APPS_PATH)
 
         if connection:
-            cursor = connection.cursor()
+            try:
+                cursor = connection.cursor()
 
-            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
-            app_tuple = cursor.fetchone()
+                cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
+                app_tuple = cursor.fetchone()
 
-            if not app_tuple:
-                raise Exception("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
-
-            connection.close()
+                if not app_tuple:
+                    raise Exception("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
+            finally:
+                self._close_connection(DB_APPS_PATH, connection)
 
             connection = self._get_db_connection(DB_RELEASES_PATH)
-            cursor = connection.cursor()
 
-            releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
+            if connection:
+                try:
+                    cursor = connection.cursor()
 
-            if releases:
-                for idx, tup in enumerate(releases):
-                    history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[2] else '', '2_url_download': tup[1]})
+                    releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
 
-                    if res.pkg_status_idx == -1 and pkg.version == tup[0]:
-                        res.pkg_status_idx = idx
+                    if releases:
+                        for idx, tup in enumerate(releases):
+                            history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[2] else '', '2_url_download': tup[1]})
+
+                            if res.pkg_status_idx == -1 and pkg.version == tup[0]:
+                                res.pkg_status_idx = idx
+
+                finally:
+                    self._close_connection(DB_RELEASES_PATH, connection)
 
         return res
 
@@ -350,6 +362,9 @@ class AppImageManager(SoftwareManager):
         return False
 
     def prepare(self):
+        for path in (DB_APPS_PATH, DB_RELEASES_PATH):
+            db.release_lock(path)
+
         self.dbs_updater.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
@@ -386,7 +401,7 @@ class AppImageManager(SoftwareManager):
                     app = AppImage(*t)
                     res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
             finally:
-                connection.close()
+                self._close_connection(DB_APPS_PATH, connection)
 
         return res
 
