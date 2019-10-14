@@ -29,7 +29,8 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 - **flatpak**: to be able to handle Flatpak applications
 - **snapd**: to be able to handle Snap applications
 - **pacman**: to be able to handle AUR packages
-- **wget**: to be able to handle AUR packages
+- **wget**: to be able to handle AppImage and AUR packages
+- **sqlite3**: to be able to handle AppImage applications
 - **git**: to be able to downgrade AUR packages
 - **aria2**: faster AppImage and AUR source files downloading ( reduces packages installation time. More information below. )
 - **libappindicator3**: for the **tray mode** in GTK3 desktop environments

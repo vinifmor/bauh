@@ -340,18 +340,12 @@ class AppImageManager(SoftwareManager):
         self.enabled = enabled
 
     def _is_sqlite3_available(self):
-        try:
-            new_subprocess(['sqlite3', '--version'])
-            return True
-        except FileNotFoundError:
-            return False
+        res = run_cmd('which sqlite3')
+        return res and not res.strip().startswith('which ')
 
     def _is_wget_available(self):
-        try:
-            new_subprocess(['wget', '--version'])
-            return True
-        except FileNotFoundError:
-            return False
+        res = run_cmd('which wget')
+        return res and not res.strip().startswith('which ')
 
     def can_work(self) -> bool:
         return self._is_sqlite3_available() and self._is_wget_available()
