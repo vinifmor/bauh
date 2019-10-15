@@ -9,7 +9,7 @@ def acquire_lock(db_path: str):
             open(lock_path, 'a').close()
             break
         else:
-            time.sleep(0.0005)
+            time.sleep(0.0001)
 
 
 def release_lock(db_path: str):
