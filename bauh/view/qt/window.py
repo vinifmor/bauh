@@ -388,10 +388,12 @@ class ManageWindow(QWidget):
 
     def _handle_type_filter(self, idx: int):
         self.type_filter = self.combo_filter_type.itemData(idx)
+        self.combo_filter_type.adjustSize()
         self.apply_filters_async()
 
     def _handle_category_filter(self, idx: int):
         self.category_filter = self.combo_categories.itemData(idx)
+        self.combo_categories.adjustSize()
         self.apply_filters_async()
 
     def _notify_model_data_change(self):
