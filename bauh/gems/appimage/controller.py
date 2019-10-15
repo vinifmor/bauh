@@ -336,6 +336,10 @@ class AppImageManager(SoftwareManager):
                     watcher.show_message(title=self.i18n['error'],
                                          body='Could extract content from {}'.format(bold(file_name)),
                                          type_=MessageType.ERROR)
+        else:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['appimage.install.download.error'].format(bold(pkg.url_download)),
+                                 type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return False

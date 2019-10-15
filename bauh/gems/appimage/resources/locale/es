@@ -15,3 +15,4 @@ appimage.downgrade.unknown_version.body=No fue posible identificar la versión a
 appimage.downgrade.first_version={} está en su primera versión publicada
 appimage.downgrade.uninstall_current_version=No fue posible desinstalar la versión actual de {}
 appimage.downgrade.install_version=No fue posible instalar la versión {} ({})
+appimage.install.download.error=No fue posible descargar el archivo {}. El servidor del archivo puede estar inactivo.

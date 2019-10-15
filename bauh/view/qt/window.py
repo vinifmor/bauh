@@ -807,7 +807,7 @@ class ManageWindow(QWidget):
     def finish_action(self):
         self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
-        self.thread_animate_progress.wait()
+        self.thread_animate_progress.wait(msecs=1000)
         self.ref_progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)

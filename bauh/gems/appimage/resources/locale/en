@@ -15,3 +15,4 @@ appimage.downgrade.unknown_version.body=It was not possible to identify {} curre
 appimage.downgrade.first_version={} is in its first published version
 appimage.error.uninstall_current_version=It was not possible to uninstall the current version of {}
 appimage.downgrade.install_version=It was not possible to install the version {} ({})
+appimage.install.download.error=It was not possible to download the file {}. The file server can be down.
