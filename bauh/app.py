@@ -72,6 +72,7 @@ def main():
                                  config=user_config,
                                  context=context,
                                  http_client=http_client,
+                                 logger=logger,
                                  notifications=bool(args.system_notifications))
 
     if args.tray:

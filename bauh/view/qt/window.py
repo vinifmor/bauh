@@ -1,3 +1,4 @@
+import logging
 import operator
 import time
 from functools import reduce
@@ -51,9 +52,11 @@ class ManageWindow(QWidget):
 
     def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
                  download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
-                 context: ApplicationContext, notifications: bool, http_client: HttpClient, tray_icon=None):
+                 context: ApplicationContext, notifications: bool, http_client: HttpClient, logger: logging.Logger,
+                 tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
+        self.logger = logger
         self.manager = manager
         self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
@@ -227,7 +230,7 @@ class ManageWindow(QWidget):
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(LaunchApp(self.manager), finished_call=self._finish_run_app, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
-        self.thread_screenshots = self._bind_async_action(GetScreenshots(self.manager, http_client), finished_call=self._finish_get_screenshots)
+        self.thread_screenshots = self._bind_async_action(GetScreenshots(self.manager), finished_call=self._finish_get_screenshots)
 
         self.thread_apply_filters = ApplyFilters()
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
@@ -868,7 +871,12 @@ class ManageWindow(QWidget):
         self.finish_action()
 
         if res.get('screenshots'):
-            diag = ScreenshotsDialog(pkg=res['pkg'], icon_cache=self.icon_cache, i18n=self.i18n, screenshots=res['screenshots'])
+            diag = ScreenshotsDialog(pkg=res['pkg'],
+                                     http_client=self.http_client,
+                                     icon_cache=self.icon_cache,
+                                     logger=self.logger,
+                                     i18n=self.i18n,
+                                     screenshots=res['screenshots'])
             diag.exec_()
         else:
             dialog.show_message(title=self.i18n['error'],

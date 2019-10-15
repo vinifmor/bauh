@@ -173,3 +173,6 @@ screenshots.bt_back.label=anterior
 instantmessaging=mensagens
 2dgraphics=gŕaficos 2d
 vectorgraphics=gráficos vetoriais
+screenshots,download.running=baixando imagem
+screenshots.download.no_content=Sem conteúdo para exibir
+screenshots.download.no_response=Imagem não encontrada

@@ -134,3 +134,6 @@ screenshots.bt_back.label=previous
 instantmessaging=messaging
 2dgraphics=2d graphics
 vectorgraphics=vector graphics
+screenshots,download.running=downloading image
+screenshots.download.no_content=No content to display
+screenshots.download.no_response=Image not found

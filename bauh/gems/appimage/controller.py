@@ -130,6 +130,8 @@ class AppImageManager(SoftwareManager):
                                             app.url_download_latest_version = tup[3]
 
                                         break
+                        except:
+                            traceback.print_exc()
                         finally:
                             self._close_connection(DB_APPS_PATH, con)
 

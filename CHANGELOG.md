@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.7.0]
 ### Features
 - AppImage support ( see below )
-- **Screenshots** button
+- **Screenshots** button and panel
 - **Categories** filter
 
 ### Improvements
@@ -29,8 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### AppImage support
 - Search, install, uninstall, downgrade, launch and retrieve the applications history
-- Supported sources: [AppImageHub](https://appimage.github.io).
-- Applications with no releases published to GitHub are not available
+- Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
 
 ## [0.6.4] 2019-10-13
