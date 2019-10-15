@@ -89,9 +89,9 @@ class ScreenshotsDialog(QDialog):
 
         if res:
             if not res.content:
-                self.logger.warning("Image [{}] from {} has no content".format(idx, url))
-                self.screenshots.append(self.i18n['screenshots.download.no_content'])
-                return
+                self.logger.warning('Image [{}] from {} has no content'.format(idx, url))
+                self.loaded_imgs.append(self.i18n['screenshots.download.no_content'])
+                self._load_img()
             else:
                 self.logger.info('Image [{}] successfully downloaded'.format(idx))
                 pixmap = QPixmap()
@@ -106,7 +106,8 @@ class ScreenshotsDialog(QDialog):
                     self._load_img()
         else:
             self.logger.info("Could not retrieve image [{}] from {}".format(idx, url))
-            self.screenshots.append(self.i18n['screenshots.download.no_response'])
+            self.loaded_imgs.append(self.i18n['screenshots.download.no_response'])
+            self._load_img()
 
     def back(self):
         self.img_idx -= 1
