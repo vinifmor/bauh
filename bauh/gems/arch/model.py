@@ -115,6 +115,9 @@ class ArchPackage(SoftwarePackage):
 
         self.icon_url = self.icon_path
 
+    def has_screenshots(self) -> bool:
+        return False
+
     def __str__(self):
         return self.__repr__()
 
