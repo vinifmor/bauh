@@ -24,10 +24,19 @@ class AboutDialog(QDialog):
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
-        label_name = QLabel('{} ( {} {} )'.format(__app_name__, locale_keys['version'].lower(), __version__))
+        label_name = QLabel(__app_name__)
         label_name.setStyleSheet('font-weight: bold; font-size: 14px')
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)
+
+        layout.addWidget(QLabel(''))
+
+        line_desc = QLabel(self)
+        line_desc.setStyleSheet('font-size: 12px; font-weight: bold;')
+        line_desc.setText(locale_keys['about.info.desc'])
+        line_desc.setAlignment(Qt.AlignCenter)
+        line_desc.setMinimumWidth(400)
+        layout.addWidget(line_desc)
 
         layout.addWidget(QLabel(''))
 
@@ -46,14 +55,10 @@ class AboutDialog(QDialog):
         layout.addWidget(gems_widget)
         layout.addWidget(QLabel(''))
 
-        line_desc = QLabel(self)
-        line_desc.setStyleSheet('font-size: 12px; font-weight: bold;')
-        line_desc.setText(locale_keys['about.info.desc'])
-        line_desc.setAlignment(Qt.AlignCenter)
-        line_desc.setMinimumWidth(400)
-        layout.addWidget(line_desc)
-
-        layout.addWidget(QLabel(''))
+        label_version = QLabel(locale_keys['version'].lower() + ': ' + __version__)
+        label_version.setStyleSheet('QLabel { font-size: 10px; font-weight: bold }')
+        label_version.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_version)
 
         label_more_info = QLabel()
         label_more_info.setStyleSheet('font-size: 11px;')
