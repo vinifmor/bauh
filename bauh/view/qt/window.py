@@ -450,6 +450,7 @@ class ManageWindow(QWidget):
         self.ref_bt_upgrade.setVisible(True)
         self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'])
         self.first_refresh = False
+        self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
         pwd = None
@@ -837,6 +838,14 @@ class ManageWindow(QWidget):
 
             if self.ref_bt_installed.isVisible():
                 self.ref_bt_installed.setEnabled(True)
+
+        self._hide_fields_after_recent_installation()
+
+    def _hide_fields_after_recent_installation(self):
+        if self.recent_installation:
+            self.ref_combo_filter_type.setVisible(False)
+            self.ref_combo_categories.setVisible(False)
+            self.ref_input_name_filter.setVisible(False)
 
     def downgrade(self, pkgv: PackageView):
         pwd = None

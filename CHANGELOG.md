@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Runtimes update-checking for version 1.5.X
 - Snap:
     - retrieving installed applications information for Ubuntu based distros
+- minor UI fixes
 
 ### AppImage support
 - Search, install, uninstall, downgrade, launch and retrieve the applications history
