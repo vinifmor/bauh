@@ -4,11 +4,12 @@ from typing import List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QDialog, QLabel, QGridLayout, QPushButton
+from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QToolBar, QVBoxLayout
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.http import HttpClient
 from bauh.view.qt import qt_utils
+from bauh.view.qt.components import new_spacer
 from bauh.view.qt.view_model import PackageView
 
 
@@ -35,21 +36,28 @@ class ScreenshotsDialog(QDialog):
         else:
             self.setWindowIcon(QIcon(pkg.model.get_type_icon_path()))
 
-        self.grid = QGridLayout()
-        self.setLayout(self.grid)
-        self.bt_back = QPushButton(self.i18n['screenshots.bt_back.label'].capitalize())
-        self.bt_back.clicked.connect(self.back)
-        self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize())
-        self.bt_next.clicked.connect(self.next)
-
-        self.grid.addWidget(self.bt_back, 0, 0)
-        self.grid.addWidget(self.bt_next, 0, 2)
+        self.setLayout(QVBoxLayout())
 
         self.img = QLabel()
-        self.layout().addWidget(self.img, 1, 1)
+        self.layout().addWidget(self.img)
+
+        self.bottom_bar = QToolBar()
+
+        self.bt_back = QPushButton(self.i18n['screenshots.bt_back.label'].capitalize())
+        self.bt_back.clicked.connect(self.back)
+        self.ref_bt_back = self.bottom_bar.addWidget(self.bt_back)
+        self.bottom_bar.addWidget(new_spacer(50))
+
         self.img_label = QLabel()
         self.img_label.setStyleSheet('QLabel { font-weight: bold; text-align: center }')
-        self.layout().addWidget(self.img_label, 2, 1)
+        self.bottom_bar.addWidget(self.img_label)
+        self.bottom_bar.addWidget(new_spacer(50))
+
+        self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize())
+        self.bt_next.clicked.connect(self.next)
+        self.ref_bt_next = self.bottom_bar.addWidget(self.bt_next)
+
+        self.layout().addWidget(self.bottom_bar)
 
         self.img_idx = 0
 
@@ -74,11 +82,11 @@ class ScreenshotsDialog(QDialog):
             self.img_label.setText('...{}...'.format(self.i18n['screenshots,download.running']))
 
         if len(self.screenshots) == 1:
-            self.bt_back.setVisible(False)
-            self.bt_next.setVisible(False)
+            self.ref_bt_back.setVisible(False)
+            self.ref_bt_next.setVisible(False)
         else:
-            self.bt_back.setEnabled(self.img_idx != 0)
-            self.bt_next.setEnabled(self.img_idx != len(self.screenshots) - 1)
+            self.ref_bt_back.setEnabled(self.img_idx != 0)
+            self.ref_bt_next.setEnabled(self.img_idx != len(self.screenshots) - 1)
 
         self.adjustSize()
         qt_utils.centralize(self)
