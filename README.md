@@ -41,9 +41,9 @@ This project has an official Twitter account ( **@bauh4linux** ) so people can s
 
 **AUR**
 
-As **bauh** package. There is also a staging version (**bauh-staging**) but is intended for testing and may not work properly.
+As [**bauh**](https://aur.archlinux.org/packages/bauh) package. There is also a staging version ([**bauh-staging**](https://aur.archlinux.org/packages/bauh-staging)) but is intended for testing and may not work properly.
 
-**PyPi**
+[**PyPi**](https://pypi.org/project/bauh)
 
 ```pip3 install bauh ```
 
