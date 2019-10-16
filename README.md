@@ -122,6 +122,8 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
 
+Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+
 ### Files and Logs
 - Some application settings are stored in **~/.config/bauh/config.json**
 - Installation logs are saved at **/tmp/bauh/logs/install**
