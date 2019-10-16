@@ -61,9 +61,10 @@ class HttpClient:
         res = self.session.get(url, allow_redirects=True, stream=True)
 
         if res.status_code == 200:
-            size = int(res.headers.get('Content-Length'))
+            size = res.headers.get('Content-Length')
 
             if size is not None:
+                size = int(size)
                 for m in SIZE_MULTIPLIERS:
                     size_str = str(size * m[0])
 
