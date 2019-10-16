@@ -481,7 +481,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
-            self.refresh_apps(pkg_types={pkgv.model.__class__})
+            self.refresh_apps(pkg_types={pkgv.model.__class__} if len(self.pkgs) > 1 else None)
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))

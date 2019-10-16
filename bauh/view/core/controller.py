@@ -375,3 +375,6 @@ class GenericSoftwareManager(SoftwareManager):
 
         if man:
             return man.get_screenshots(pkg)
+
+    def get_working_managers(self):
+        return [m for m in self.managers if self._can_work(m)]
