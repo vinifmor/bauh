@@ -361,8 +361,12 @@ class AppImageManager(SoftwareManager):
         res = run_cmd('which wget')
         return res and not res.strip().startswith('which ')
 
+    def _is_aria2_available(self):
+        res = run_cmd('which aria2c')
+        return res and not res.strip().startswith('which ')
+
     def can_work(self) -> bool:
-        return self._is_sqlite3_available() and self._is_wget_available()
+        return self._is_sqlite3_available() and (self._is_wget_available() or self._is_aria2_available())
 
     def requires_root(self, action: str, pkg: AppImage):
         return False
