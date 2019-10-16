@@ -173,6 +173,7 @@ instantmessaging=mensajens
 vectorgraphics=gráficos vectoriales
 office=oficina
 devices=dispositivos
+security=seguridad
 screenshots.bt_next.label=próxima
 screenshots.bt_back.label=anterior
 screenshots,download.running=descargando imagen
