@@ -2,7 +2,7 @@ import operator
 from functools import reduce
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
 
 from bauh.api.abstract.cache import MemoryCache
@@ -55,7 +55,9 @@ class HistoryDialog(QDialog):
         new_width = reduce(operator.add, [table_history.columnWidth(i) for i in range(table_history.columnCount())])
         self.resize(new_width, table_history.height())
 
-        icon_data = icon_cache.get(history.pkg.icon_url)
-
-        if icon_data and icon_data.get('icon'):
-            self.setWindowIcon(icon_data.get('icon'))
+        # THERE ARE CRASHES WITH SOME RARE ICONS ( like insomnia ). IT CAN BE A QT BUG. IN THE MEANTIME, ONLY THE TYPE ICON WILL BE RENDERED
+        #
+        # icon_data = icon_cache.get(history.pkg.icon_url)
+        # if icon_data and icon_data.get('icon'):
+        #     self.setWindowIcon(icon_data.get('icon'))
+        self.setWindowIcon(QIcon(history.pkg.get_type_icon_path()))

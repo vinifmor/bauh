@@ -29,13 +29,15 @@ class ScreenshotsDialog(QDialog):
         self.i18n = i18n
         self.http_client = http_client
 
-        icon_data = icon_cache.get(pkg.model.icon_url)
-
-        if icon_data and icon_data.get('icon'):
-            self.setWindowIcon(icon_data.get('icon'))
-        else:
-            self.setWindowIcon(QIcon(pkg.model.get_type_icon_path()))
-
+        # THERE ARE CRASHES WITH SOME RARE ICONS ( like insomnia ). IT CAN BE A QT BUG. IN THE MEANTIME, ONLY THE TYPE ICON WILL BE RENDERED
+        #
+        # icon_data = icon_cache.get(pkg.model.icon_url)
+        #
+        # if icon_data and icon_data.get('icon'):
+        #     self.setWindowIcon(icon_data.get('icon'))
+        # else:
+        #     self.setWindowIcon(QIcon(pkg.model.get_type_icon_path()))
+        self.setWindowIcon(QIcon(pkg.model.get_type_icon_path()))
         self.setLayout(QVBoxLayout())
 
         self.img = QLabel()

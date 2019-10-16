@@ -37,12 +37,13 @@ class InfoDialog(QDialog):
 
         layout.addWidget(self.gbox_info)
 
-        icon_data = icon_cache.get(app['__app__'].model.icon_url)
-
-        if icon_data and icon_data.get('icon'):
-            self.setWindowIcon(icon_data.get('icon'))
-        else:
-            self.setWindowIcon(QIcon(app['__app__'].model.get_type_icon_path()))
+        # THERE ARE CRASHES WITH SOME RARE ICONS ( like insomnia ). IT CAN BE A QT BUG. IN THE MEANTIME, ONLY THE TYPE ICON WILL BE RENDERED
+        #
+        # icon_data = icon_cache.get(app['__app__'].model.icon_url)
+        #
+        # if icon_data and icon_data.get('icon'):
+        #     self.setWindowIcon(icon_data.get('icon'))
+        self.setWindowIcon(QIcon(app['__app__'].model.get_type_icon_path()))
 
         for idx, attr in enumerate(sorted(app.keys())):
             if attr not in IGNORED_ATTRS and app[attr]:

@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Runtimes update-checking for version 1.5.X
 - Snap:
     - retrieving installed applications information for Ubuntu based distros
+- Application icon replaced by the type icon in the Info, History and Screenshots panels due to unexpected Qt crashes.
 - minor UI fixes
 
 ### AppImage support
