@@ -2,6 +2,7 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
+
 from bauh.api.abstract.cache import MemoryCache
 
 IGNORED_ATTRS = {'name', '__app__'}
@@ -16,7 +17,6 @@ class InfoDialog(QDialog):
         self.i18n = i18n
         layout = QVBoxLayout()
         self.setLayout(layout)
-        self.full_vals = []
 
         self.toolbar_field = QToolBar()
         self.bt_back = QPushButton(i18n['back'].capitalize())
@@ -49,17 +49,20 @@ class InfoDialog(QDialog):
                 i18n_key = app['__app__'].model.get_type().lower() + '.info.' + attr.lower()
 
                 if isinstance(app[attr], list):
-                    val = '\n'.join(['* ' + str(e).strip() for e in app[attr] if e])
+                    val = ' '.join([str(e).strip() for e in app[attr] if e])
+                    show_val = '\n'.join(['* ' + str(e).strip() for e in app[attr] if e])
                 else:
                     val = str(app[attr]).strip()
+                    show_val = val
 
                 i18n_val = i18n.get('{}.{}'.format(i18n_key, val.lower()))
 
                 if i18n_val:
                     val = i18n_val
+                    show_val = val
 
                 text = QLineEdit()
-                text.setToolTip(val)
+                text.setToolTip(show_val)
                 text.setText(val)
                 text.setCursorPosition(0)
                 text.setStyleSheet("width: 400px")
@@ -70,7 +73,7 @@ class InfoDialog(QDialog):
 
                 self.gbox_info_layout.addWidget(label, idx, 0)
                 self.gbox_info_layout.addWidget(text, idx, 1)
-                self._gen_show_button(idx, val)
+                self._gen_show_button(idx, show_val)
 
         self.adjustSize()
 
