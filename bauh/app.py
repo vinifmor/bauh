@@ -13,7 +13,7 @@ from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 from bauh.view.util import util, logs, resource
-from bauh.view.util.cache import DefaultMemoryCacheFactory
+from bauh.view.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 
 
@@ -27,7 +27,8 @@ def main():
 
     i18n_key, i18n = util.get_locale_keys(args.locale)
 
-    cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp)
+    cache_cleaner = CacheCleaner()
+    cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
     icon_cache = cache_factory.new(args.icon_exp)
 
     http_client = HttpClient(logger)
@@ -90,6 +91,7 @@ def main():
         manage_window.refresh_apps()
         manage_window.show()
 
+    cache_cleaner.start()
     sys.exit(app.exec_())
 
 

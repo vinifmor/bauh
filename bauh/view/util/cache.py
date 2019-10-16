@@ -1,7 +1,6 @@
 import datetime
 import time
-from multiprocessing import Lock
-from threading import Thread
+from threading import Lock, Thread
 
 from bauh.api.abstract.cache import MemoryCache, MemoryCacheFactory
 
@@ -33,14 +32,14 @@ class DefaultMemoryCache(MemoryCache):
     def add_non_existing(self, key: str, val: object):
         if key and self. is_enabled():
             self.lock.acquire()
-            cur_val = self.get(key)
+            cur_val = self.get(key, lock=False)
 
             if cur_val is None:
                 self._add(key, val)
 
             self.lock.release()
 
-    def get(self, key: str):
+    def get(self, key: str, lock: bool = True):
         if key and self.is_enabled():
             val = self._cache.get(key)
 
@@ -48,9 +47,14 @@ class DefaultMemoryCache(MemoryCache):
                 expiration = val.get('expires_at')
 
                 if expiration and expiration <= datetime.datetime.utcnow():
-                    self.lock.acquire()
+                    if lock:
+                        self.lock.acquire()
+
                     del self._cache[key]
-                    self.lock.release()
+
+                    if lock:
+                        self.lock.release()
+
                     return None
 
                 return val['val']
@@ -71,15 +75,38 @@ class DefaultMemoryCache(MemoryCache):
                 self.get(key)
 
 
+class CacheCleaner(Thread):
+
+    def __init__(self, check_interval: int = 15):
+        super(CacheCleaner, self).__init__(daemon=True)
+        self.caches = []
+        self.check_interval = check_interval
+
+    def register(self, cache: MemoryCache):
+        if cache.is_enabled():
+            self.caches.append(cache)
+
+    def run(self):
+        if self.caches:
+            while True:
+                for cache in self.caches:
+                    cache.clean_expired()
+
+                time.sleep(self.check_interval)
+
+
 class DefaultMemoryCacheFactory(MemoryCacheFactory):
 
-    def __init__(self, expiration_time: int):
+    def __init__(self, expiration_time: int, cleaner: CacheCleaner):
         """
         :param expiration_time: default expiration time for all instantiated caches
+        :param cleaner
         """
         super(DefaultMemoryCacheFactory, self).__init__()
         self.expiration_time = expiration_time
+        self.cleaner = cleaner
 
     def new(self, expiration: int = None) -> MemoryCache:
         instance = DefaultMemoryCache(expiration if expiration is not None else self.expiration_time)
+        self.cleaner.register(instance)
         return instance

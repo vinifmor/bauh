@@ -21,9 +21,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - History panel can now me maximized, minimized and allows to copy column content.
 - It is possible to use custom tray icons via the environment variables: **BAUH_TRAY_DEFAULT_ICON_PATH** and ** **BAUH_TRAY_UPDATES_ICON_PATH** ( displayed when there are updates )
 - Minor UI improvements
-- CacheCleaner removed due to random crashes associated with Python threading lock
 
 ### Fixes
+- cache thread lock that was hanging the application
+- Flatpak:
+    - Runtimes update-checking for version 1.5.X
 - Snap:
     - retrieving installed applications information for Ubuntu based distros
 

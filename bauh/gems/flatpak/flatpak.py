@@ -163,7 +163,10 @@ def list_updates_as_str(version: str):
         updates = new_subprocess([BASE_CMD, 'update']).stdout
 
         out = StringIO()
-        for o in new_subprocess(['grep', '-E', r'[0-9]+.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+', '-o', '--color=never'], stdin=updates).stdout:
+
+        reg = r'[0-9]+\.\s+(\w+|\.)+\s+(\w|\.)+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
+
+        for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
             if o:
                 out.write('/'.join(o.decode().strip().split('\t')[2:]) + '\n')
 
