@@ -10,9 +10,9 @@ Name = bauh ( tray )
 Name[pt] = bauh ( bandeja )
 Name[es] = bauh ( bandeja )
 Categories = System;
-Comment=Manage your Flatpak / Snap / AUR applications
-Comment[pt]=Gerencie seus aplicativos Flatpak / Snap / AUR
-Comment[es]=Administre sus aplicaciones Flatpak / Snap / AUR
+Comment=Manage your Flatpak / Snap / AppImage / AUR applications
+Comment[pt]=Gerencie seus aplicativos Flatpak / Snap / AppImage / AUR
+Comment[es]=Administre sus aplicaciones Flatpak / Snap / AppImage / AUR
 Exec = {path}
 Icon = {lib_path}/python{version}/site-packages/bauh/view/resources/img/logo.svg
 """
