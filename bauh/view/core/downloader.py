@@ -52,7 +52,7 @@ class AdaptableFileDownloader(FileDownloader):
         cmd = ['wget', url]
 
         if output_path:
-            cmd.append('-o')
+            cmd.append('-O')
             cmd.append(output_path)
 
         return SystemProcess(new_subprocess(cmd, cwd=cwd))
