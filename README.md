@@ -61,12 +61,48 @@ env/bin/bauh  ( launches the application )
 
 If you do not want to clone / download this repository, go to your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
 
-
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
+### Gems ( package technology support )
+#### Flatpak ( flatpak gem )
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-### Settings
+#### Snap ( snap gem )
+- The user is able to search, install, uninstall, refresh, launch and downgrade applications
+
+#### AUR ( arch gem )
+- It is **not enabled by default**
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
+- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
+- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
+- Automatically makes simple package compilation improvements:
+
+    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
+    then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
+    the number of your machine processors (**-j${nproc}**).
+
+    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+
+    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
+    ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
+- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
+
+#### AppImage ( appimage gem )
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+- Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
+- Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
+- Installed applications are store at **~/.local/share/bauh/appimage/installed**
+- Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
+- Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
+- Databases updater daemon running every 20 minutes. It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
+
+Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+
+
+### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
 - **BAUH_SYSTEM_NOTIFICATIONS**: enable or disable system notifications. Use **0** (disable) or **1** (enable, default).
 - **BAUH_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
@@ -90,39 +126,6 @@ You can change some application settings via environment variables or arguments 
 - If you don't mind to see the applications icons, you can set "download-icons=0" (**bauh --download-icons=0**). The application may have a slight response improvement, since it will reduce the parallelism within it.
 - Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
 
-### Flatpak support ( flatpak gem )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
-
-### Snap support ( snap gem )
-- The user is able to search, install, uninstall, refresh, launch and downgrade applications
-
-### AUR support ( arch gem )
-- It is **not enabled by default**
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
-- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
-will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
-- Automatically makes simple package compilation improvements:
-
-    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
-    then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
-    the number of your machine processors (**-j${nproc}**).
-
-    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
-
-    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
-- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-
-### AppImage support ( appimage gem )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
-- Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
-- Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
-- Installed applications are store at **~/.local/share/bauh/appimage/installed**
-- Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
-- Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-
-Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
 
 ### Files and Logs
 - Some application settings are stored in **~/.config/bauh/config.json**
@@ -137,7 +140,7 @@ Obs: There are some crashes when **AppImageLauncher** is installed. It is advisa
 
 **view**: code associated with the graphical interface
 
-**gems**: code responsible to work with the different packaging technologies (every submodule deals with one or more types)
+**gems**: code responsible to work with the different packaging technologies ( every submodule deals with one or more types )
 
 **api**: code abstractions representing the main actions that a user can do with Linux packages (search, install, ...). These abstractions are implemented by the **gems**, and
 the **view** code is only attached to them (it does not know how the **gems** handle these actions)

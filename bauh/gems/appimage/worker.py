@@ -72,4 +72,4 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
                 self.logger.info('Sleeping')
                 time.sleep(self.sleep)
         else:
-            self.logger.warning('Disabled')
+            self.logger.warning('AppImage database updater disabled')

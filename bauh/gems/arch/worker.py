@@ -32,22 +32,26 @@ class AURIndexUpdater(Thread):
         self.http_client = context.http_client
         self.logger = context.logger
         self.man = man
+        self.enabled = bool(int(os.getenv('BAUH_ARCH_AUR_INDEX_UPDATER', 1)))
 
     def run(self):
-        while True:
-            self.logger.info('Pre-indexing AUR packages in memory')
-            try:
-                res = self.http_client.get(URL_INDEX)
+        if self.enabled:
+            while True:
+                self.logger.info('Pre-indexing AUR packages in memory')
+                try:
+                    res = self.http_client.get(URL_INDEX)
 
-                if res and res.text:
-                    self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
-                    self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
-                else:
-                    self.logger.warning('No data returned from: {}'.format(URL_INDEX))
-            except ConnectionError:
-                self.logger.warning('No internet connection: could not pre-index packages')
+                    if res and res.text:
+                        self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
+                        self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
+                    else:
+                        self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+                except ConnectionError:
+                    self.logger.warning('No internet connection: could not pre-index packages')
 
-            time.sleep(5 * 60)  # updates every 5 minutes
+                time.sleep(60 * 20)  # updates every 20 minutes
+        else:
+            self.logger.info("AUR index updater disabled")
 
 
 class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
