@@ -7,7 +7,7 @@ from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess
+from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
 
 
 class AdaptableFileDownloader(FileDownloader):
@@ -48,14 +48,14 @@ class AdaptableFileDownloader(FileDownloader):
                              success_phrases=['download completed'],
                              output_delay=0.001)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
-        cmd = ['wget', url]
+    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SimpleProcess:
+        cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
 
         if output_path:
             cmd.append('-O')
             cmd.append(output_path)
 
-        return SystemProcess(new_subprocess(cmd, cwd=cwd))
+        return SimpleProcess(cmd=cmd, cwd=cwd)
 
     def _rm_bad_file(self, file_name: str, output_path: str, cwd):
         to_delete = output_path if output_path else '{}/{}'.format(cwd, file_name)
@@ -86,7 +86,11 @@ class AdaptableFileDownloader(FileDownloader):
             file_size = self.http_client.get_content_length(file_url)
             msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {} )'.format(file_size) if file_size else '')
             watcher.change_substatus(msg)
-            success = handler.handle(process)
+
+            if isinstance(process, SimpleProcess):
+                success = handler.handle_simple(process)
+            else:
+                success = handler.handle(process)
         except:
             traceback.print_exc()
             self._rm_bad_file(file_name, output_path, final_cwd)
