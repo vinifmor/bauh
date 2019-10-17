@@ -27,7 +27,7 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
     def _download_databases(self):
         self.logger.info('Retrieving AppImage databases')
 
-        res = self.http_client.get(self.URL_DB, headers={'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))})
+        res = self.http_client.get(self.URL_DB)
 
         if res:
             Path(LOCAL_PATH).mkdir(parents=True, exist_ok=True)

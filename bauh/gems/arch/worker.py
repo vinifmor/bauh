@@ -149,7 +149,7 @@ class CategoriesDownloader:
     def get_categories(self) -> Dict[str, List[str]]:
         self.logger.info('Downloading AUR category definitions from {}'.format(self.URL_CATEGORIES_FILE))
 
-        res = self.http_client.get(self.URL_CATEGORIES_FILE, headers={'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))})
+        res = self.http_client.get(self.URL_CATEGORIES_FILE)
 
         if res:
             categories_map = {}
