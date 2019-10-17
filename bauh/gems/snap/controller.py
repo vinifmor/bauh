@@ -125,7 +125,12 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+        res = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+
+        if res:
+            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+
+        return res
 
     def is_enabled(self) -> bool:
         return self.enabled
