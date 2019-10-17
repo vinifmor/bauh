@@ -74,7 +74,7 @@ class AdaptableFileDownloader(FileDownloader):
         success = False
         ti = time.time()
         try:
-            if os.path.exists(output_path):
+            if output_path and os.path.exists(output_path):
                 self.logger.info('Removing old file found before downloading: {}'.format(output_path))
                 os.remove(output_path)
                 self.logger.info("Old file {} removed".format(output_path))
