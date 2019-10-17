@@ -88,13 +88,18 @@ class CategoriesDownloader:
         res = self.http_client.get(self.URL_CATEGORIES_FILE)
 
         if res:
-            categories_map = {}
-            for l in res.text.split('\n'):
-                if l:
-                    data = l.split('=')
-                    categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+            try:
+                categories_map = {}
+                for l in res.text.split('\n'):
+                    if l:
+                        data = l.split('=')
+                        categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
 
-            self.logger.info('Loaded categories for {} Snap applications'.format(len(categories_map)))
-            return categories_map
+                self.logger.info('Loaded categories for {} Snap applications'.format(len(categories_map)))
+                return categories_map
+            except:
+                self.logger.error("Could not parse categories definitions")
+                traceback.print_exc()
+                return {}
         else:
             self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
