@@ -74,6 +74,11 @@ class AdaptableFileDownloader(FileDownloader):
         success = False
         ti = time.time()
         try:
+            if os.path.exists(output_path):
+                self.logger.info('Removing old file found before downloading: {}'.format(output_path))
+                os.remove(output_path)
+                self.logger.info("Old file {} removed".format(output_path))
+
             if self.is_multithreaded():
                 ti = time.time()
                 process = self._get_aria2c_process(file_url, output_path, final_cwd)
