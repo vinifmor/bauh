@@ -19,7 +19,7 @@ def ask_root_password(locale_keys: dict):
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
-    diag.setWindowIcon(QIcon(resource.get_path('img/lock.svg')))
+    diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
     diag.setWindowTitle(locale_keys['popup.root.title'])
     diag.setLabelText('')
     diag.setCancelButtonText(locale_keys['popup.button.cancel'])
