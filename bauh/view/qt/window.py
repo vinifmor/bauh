@@ -132,6 +132,7 @@ class ManageWindow(QWidget):
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
@@ -141,7 +142,8 @@ class ManageWindow(QWidget):
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
-        self.combo_categories.setStyleSheet('QLineEdit { height: 2px; width: 50px; }')
+        self.combo_categories.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_categories.setEditable(True)
         self.combo_categories.lineEdit().setReadOnly(True)
         self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
@@ -393,7 +395,6 @@ class ManageWindow(QWidget):
 
     def _handle_category_filter(self, idx: int):
         self.category_filter = self.combo_categories.itemData(idx)
-        self.combo_categories.adjustSize()
         self.apply_filters_async()
 
     def _notify_model_data_change(self):
@@ -481,7 +482,8 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
-            self.refresh_apps(pkg_types={pkgv.model.__class__} if len(self.pkgs) > 1 else None)
+            only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
@@ -498,7 +500,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
-            self.refresh_apps(pkg_types={res['app'].model.__class__})
+            self.refresh_apps(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
 
             if self.tray_icon:
                 self.tray_icon.verify_updates(notify_user=False)
