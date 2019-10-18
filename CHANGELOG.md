@@ -19,16 +19,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - Optional dependencies are not checked by default in their installation popup.
 - History panel can now me maximized, minimized and allows to copy column content.
-- It is possible to use custom tray icons via the environment variables: **BAUH_TRAY_DEFAULT_ICON_PATH** and ** **BAUH_TRAY_UPDATES_ICON_PATH** ( displayed when there are updates )
+- It is possible to use custom tray icons via the environment variables: **BAUH_TRAY_DEFAULT_ICON_PATH** and **BAUH_TRAY_UPDATES_ICON_PATH** ( displayed when there are updates )
 - Minor UI improvements
 
 ### Fixes
-- cache thread lock that was hanging the application
+- cache thread lock that was eventually hanging the application
 - Flatpak:
     - Runtimes update-checking for version 1.5.X
 - Snap:
     - retrieving installed applications information for Ubuntu based distros
-- Application icon replaced by the type icon in the Info, History and Screenshots panels due to unexpected Qt crashes.
+- Application icon replaced by the type icon in the Info, History and Screenshots panels due to unexpected Qt crashes
 - minor UI fixes
 
 ### AppImage support
