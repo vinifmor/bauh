@@ -1,3 +1,4 @@
+import logging
 import operator
 import time
 from functools import reduce
@@ -14,8 +15,11 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
+from bauh.api.http import HttpClient
+from bauh.commons.html import bold
 from bauh.view.core.config import Configuration
 from bauh.view.core.controller import GenericSoftwareManager
+from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.util import util, resource
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -29,7 +33,7 @@ from bauh.view.qt.root import is_root, ask_root_password
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomAction
+    AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 
@@ -48,9 +52,11 @@ class ManageWindow(QWidget):
 
     def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
                  download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
-                 context: ApplicationContext, notifications: bool, tray_icon=None):
+                 context: ApplicationContext, notifications: bool, http_client: HttpClient, logger: logging.Logger,
+                 tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
+        self.logger = logger
         self.manager = manager
         self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
@@ -65,6 +71,7 @@ class ManageWindow(QWidget):
         self.config = config
         self.context = context
         self.notifications = notifications
+        self.http_client = http_client
 
         self.icon_app = QIcon(resource.get_path('img/logo.svg'))
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
@@ -124,13 +131,25 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
-        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px}')
+        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n[self.any_type_filter].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n['type'].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
+
+        self.any_category_filter = 'any'
+        self.combo_categories = QComboBox()
+        self.combo_categories.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.combo_categories.setEditable(True)
+        self.combo_categories.lineEdit().setReadOnly(True)
+        self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_categories.activated.connect(self._handle_category_filter)
+        self.combo_categories.addItem('--- {} ---'.format(self.i18n['category'].capitalize()), self.any_category_filter)
+        self.ref_combo_categories = self.toolbar.addWidget(self.combo_categories)
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
         self.input_name_filter.setMaxLength(10)
@@ -213,6 +232,7 @@ class ManageWindow(QWidget):
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(LaunchApp(self.manager), finished_call=self._finish_run_app, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
+        self.thread_screenshots = self._bind_async_action(GetScreenshots(self.manager), finished_call=self._finish_get_screenshots)
 
         self.thread_apply_filters = ApplyFilters()
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters_async)
@@ -258,6 +278,7 @@ class ManageWindow(QWidget):
 
         self.filter_only_apps = True
         self.type_filter = self.any_type_filter
+        self.category_filter = self.any_category_filter
         self.filter_updates = False
         self._maximized = False
         self.progress_controll_enabled = True
@@ -369,6 +390,11 @@ class ManageWindow(QWidget):
 
     def _handle_type_filter(self, idx: int):
         self.type_filter = self.combo_filter_type.itemData(idx)
+        self.combo_filter_type.adjustSize()
+        self.apply_filters_async()
+
+    def _handle_category_filter(self, idx: int):
+        self.category_filter = self.combo_categories.itemData(idx)
         self.apply_filters_async()
 
     def _notify_model_data_change(self):
@@ -425,6 +451,7 @@ class ManageWindow(QWidget):
         self.ref_bt_upgrade.setVisible(True)
         self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'])
         self.first_refresh = False
+        self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
         pwd = None
@@ -455,7 +482,8 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
-            self.refresh_apps(pkg_types={pkgv.model.__class__})
+            only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
@@ -472,7 +500,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
-            self.refresh_apps(pkg_types={res['app'].model.__class__})
+            self.refresh_apps(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
 
             if self.tray_icon:
                 self.tray_icon.verify_updates(notify_user=False)
@@ -552,6 +580,7 @@ class ManageWindow(QWidget):
         return {
             'only_apps': self.filter_only_apps,
             'type': self.type_filter,
+            'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
             'display_limit': self.display_limit if updates <= 0 else None
@@ -612,6 +641,7 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(True)
 
         self._update_type_filters(pkgs_info['available_types'])
+        self._update_categories(pkgs_info['categories'])
 
         self._update_table(pkgs_info=pkgs_info)
 
@@ -654,6 +684,27 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(True)
             else:
                 self.ref_combo_filter_type.setVisible(False)
+
+    def _update_categories(self, categories: Set[str] = None):
+
+        if categories is None:
+            self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
+        else:
+            self.category_filter = self.any_category_filter
+
+            if categories:
+                if self.combo_categories.count() > 1:
+                    for _ in range(self.combo_categories.count() - 1):
+                        self.combo_categories.removeItem(1)
+
+                for c in categories:
+                    i18n_cat = self.i18n.get(c)
+                    cat_label = i18n_cat if i18n_cat else c
+                    self.combo_categories.addItem(cat_label.capitalize(), c)
+
+                self.ref_combo_categories.setVisible(True)
+            else:
+                self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
         if self.pkgs:
@@ -728,6 +779,7 @@ class ManageWindow(QWidget):
     def _begin_action(self, action_label: str, keep_search: bool = False, keep_bt_installed: bool = True, clear_filters: bool = False):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
+        self.ref_combo_categories.setVisible(False)
         self.ref_bt_settings.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
@@ -753,13 +805,14 @@ class ManageWindow(QWidget):
 
         if clear_filters:
             self._update_type_filters({})
+            self._update_categories(set())
         else:
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self):
         self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
-        self.thread_animate_progress.wait()
+        self.thread_animate_progress.wait(msecs=1000)
         self.ref_progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
@@ -783,9 +836,18 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(True)
             self.update_bt_upgrade()
             self._update_type_filters()
+            self._update_categories()
 
             if self.ref_bt_installed.isVisible():
                 self.ref_bt_installed.setEnabled(True)
+
+        self._hide_fields_after_recent_installation()
+
+    def _hide_fields_after_recent_installation(self):
+        if self.recent_installation:
+            self.ref_combo_filter_type.setVisible(False)
+            self.ref_combo_categories.setVisible(False)
+            self.ref_input_name_filter.setVisible(False)
 
     def downgrade(self, pkgv: PackageView):
         pwd = None
@@ -811,6 +873,29 @@ class ManageWindow(QWidget):
         self.thread_get_info.app = pkg
         self.thread_get_info.start()
 
+    def get_screenshots(self, pkg: PackageView):
+        self._handle_console_option(False)
+        self._begin_action(self.i18n['manage_window.status.screenshots'].format(bold(pkg.model.name)))
+
+        self.thread_screenshots.pkg = pkg
+        self.thread_screenshots.start()
+
+    def _finish_get_screenshots(self, res: dict):
+        self.finish_action()
+
+        if res.get('screenshots'):
+            diag = ScreenshotsDialog(pkg=res['pkg'],
+                                     http_client=self.http_client,
+                                     icon_cache=self.icon_cache,
+                                     logger=self.logger,
+                                     i18n=self.i18n,
+                                     screenshots=res['screenshots'])
+            diag.exec_()
+        else:
+            dialog.show_message(title=self.i18n['error'],
+                                body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
+                                type_=MessageType.ERROR)
+
     def get_app_history(self, app: dict):
         self._handle_console_option(False)
         self._begin_action(self.i18n['manage_window.status.history'])
@@ -820,7 +905,7 @@ class ManageWindow(QWidget):
 
     def _finish_get_info(self, app_info: dict):
         self.finish_action()
-        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, locale_keys=self.i18n, screen_size=self.screen_size)
+        dialog_info = InfoDialog(app=app_info, icon_cache=self.icon_cache, i18n=self.i18n, screen_size=self.screen_size)
         dialog_info.exec_()
 
     def _finish_get_history(self, res: dict):

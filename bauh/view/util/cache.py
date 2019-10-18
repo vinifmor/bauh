@@ -32,14 +32,14 @@ class DefaultMemoryCache(MemoryCache):
     def add_non_existing(self, key: str, val: object):
         if key and self. is_enabled():
             self.lock.acquire()
-            cur_val = self.get(key)
+            cur_val = self.get(key, lock=False)
 
             if cur_val is None:
                 self._add(key, val)
 
             self.lock.release()
 
-    def get(self, key: str):
+    def get(self, key: str, lock: bool = True):
         if key and self.is_enabled():
             val = self._cache.get(key)
 
@@ -47,9 +47,14 @@ class DefaultMemoryCache(MemoryCache):
                 expiration = val.get('expires_at')
 
                 if expiration and expiration <= datetime.datetime.utcnow():
-                    self.lock.acquire()
+                    if lock:
+                        self.lock.acquire()
+
                     del self._cache[key]
-                    self.lock.release()
+
+                    if lock:
+                        self.lock.release()
+
                     return None
 
                 return val['val']

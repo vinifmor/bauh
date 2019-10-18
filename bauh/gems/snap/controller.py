@@ -13,7 +13,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
-from bauh.gems.snap.worker import SnapAsyncDataLoader
+from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
 
 
 class SnapManager(SoftwareManager):
@@ -26,12 +26,15 @@ class SnapManager(SoftwareManager):
         self.enabled = True
         self.http_client = context.http_client
         self.logger = context.logger
+        self.ubuntu_distro = context.distro == 'ubuntu'
+        self.categories = {}
+        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger)
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
                               rev=app_json.get('rev'),
                               notes=app_json.get('notes'),
-                              app_type=app_json.get('type'),
+                              has_apps_field=app_json.get('apps_field', False),
                               id=app_json.get('name'),
                               name=app_json.get('name'),
                               version=app_json.get('version'),
@@ -40,6 +43,8 @@ class SnapManager(SoftwareManager):
 
         if app.publisher:
             app.publisher = app.publisher.replace('*', '')
+
+        app.categories = self.categories.get(app.name.lower())
 
         app.installed = installed
 
@@ -83,7 +88,7 @@ class SnapManager(SoftwareManager):
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
-            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed()]
+            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(self.ubuntu_distro)]
             return SearchResult(installed, None, len(installed))
         else:
             return SearchResult([], None, 0)
@@ -120,7 +125,12 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+        res = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+
+        if res:
+            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+
+        return res
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -138,7 +148,10 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def prepare(self):
-        pass
+        categories = self.categories_downloader.get_categories()
+
+        if categories:
+            self.categories = categories
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -190,3 +203,21 @@ class SnapManager(SoftwareManager):
 
     def launch(self, pkg: SnapApplication):
         snap.run(pkg, self.context.logger)
+
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        res = self.http_client.get_json('{}/search?q={}'.format(SNAP_API_URL, pkg.name))
+
+        if res:
+            if res.get('_embedded') and res['_embedded'].get('clickindex:package'):
+                snap_data = res['_embedded']['clickindex:package'][0]
+
+                if snap_data.get('screenshot_urls'):
+                    return snap_data['screenshot_urls']
+                else:
+                    self.logger.warning("No 'screenshots_urls' defined for {}".format(pkg))
+            else:
+                self.logger.error('It seems the API is returning a different response: {}'.format(res))
+        else:
+            self.logger.warning('Could not retrieve data for {}'.format(pkg))
+
+        return []

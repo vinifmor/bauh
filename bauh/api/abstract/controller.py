@@ -162,20 +162,29 @@ class SoftwareManager(ABC):
         :return:
         """
         if self.context.disk_cache and pkg.supports_disk_cache():
+            self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
-            if not only_icon:
-                Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
-                data = pkg.get_data_to_cache()
+    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+        """
+        Sames as above, but does not check if disk cache is enabled or supported by the package instance
+        :param pkg:
+        :param icon_bytes:
+        :param only_icon:
+        :return:
+        """
+        if not only_icon:
+            Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+            data = pkg.get_data_to_cache()
 
-                if data:
-                    with open(pkg.get_disk_data_path(), 'w+') as f:
-                        f.write(json.dumps(data))
+            if data:
+                with open(pkg.get_disk_data_path(), 'w+') as f:
+                    f.write(json.dumps(data))
 
-            if icon_bytes:
-                Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+        if icon_bytes:
+            Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
 
-                with open(pkg.get_disk_icon_path(), 'wb+') as f:
-                    f.write(icon_bytes)
+            with open(pkg.get_disk_icon_path(), 'wb+') as f:
+                f.write(icon_bytes)
 
     @abstractmethod
     def requires_root(self, action: str, pkg: SoftwarePackage):
@@ -237,4 +246,11 @@ class SoftwareManager(ABC):
 
     @abstractmethod
     def launch(self, pkg: SoftwarePackage):
+        pass
+
+    @abstractmethod
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        """
+        :return: screenshot urls for the given package
+        """
         pass

@@ -6,8 +6,6 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
-
-from bauh.gems.flatpak import flatpak
 from bauh.gems.flatpak.constants import FLATHUB_API_URL, FLATHUB_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 

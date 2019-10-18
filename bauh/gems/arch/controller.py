@@ -22,7 +22,7 @@ from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, c
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, CategoriesDownloader
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -50,7 +50,9 @@ class ArchManager(SoftwareManager):
         self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
         self.enabled = True
-        self.arch_distro = os.path.exists('/etc/arch-release')
+        self.arch_distro = context.distro == 'arch'
+        self.categories_downloader = CategoriesDownloader(context.http_client, context.logger)
+        self.categories_map = {}
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])
@@ -117,6 +119,7 @@ class ArchManager(SoftwareManager):
                     for pkgdata in pkgsinfo:
                         pkg = self.mapper.map_api_data(pkgdata, not_signed)
                         pkg.downgrade_enabled = downgrade_enabled
+                        pkg.categories = self.categories_map.get(pkg.name)
 
                         if disk_loader:
                             disk_loader.fill(pkg)
@@ -133,6 +136,8 @@ class ArchManager(SoftwareManager):
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
                               installed=True, mirror='aur')
+
+            pkg.categories = self.categories_map.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
 
             if disk_loader:
@@ -394,8 +399,6 @@ class ArchManager(SoftwareManager):
                                 pre_download_files.append(f)
 
             if pre_download_files:
-                downloader = self.context.file_downloader.get_default_client_name()
-
                 for f in pre_download_files:
                     fdata = f.split('::')
 
@@ -405,10 +408,6 @@ class ArchManager(SoftwareManager):
                     else:
                         args.update({'file_url': fdata[0], 'output_path': None})
 
-                    file_size = self.context.http_client.get_content_length(args['file_url'])
-                    file_size = int(file_size) / (1024 ** 2) if file_size else None
-
-                    watcher.change_substatus(bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(args['file_url'].split('/')[-1]) + ' ( {0:.2f} Mb )'.format(file_size) if file_size else '')
                     if not self.context.file_downloader.download(**args):
                         watcher.print('Could not download source file {}'.format(args['file_url']))
                         return False
@@ -656,11 +655,8 @@ class ArchManager(SoftwareManager):
         return res
 
     def _is_wget_available(self):
-        try:
-            new_subprocess(['wget', '--version'])
-            return True
-        except FileNotFoundError:
-            return False
+        res = run_cmd('which wget')
+        return res and not res.strip().startswith('which ')
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -691,6 +687,10 @@ class ArchManager(SoftwareManager):
         self.dcache_updater.start()
         self.comp_optimizer.start()
         self.aur_index_updater.start()
+        categories = self.categories_downloader.get_categories()
+
+        if categories:
+            self.categories_map = categories
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
@@ -737,3 +737,6 @@ class ArchManager(SoftwareManager):
     def launch(self, pkg: ArchPackage):
         if pkg.command:
             subprocess.Popen(pkg.command.split(' '))
+
+    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+        pass

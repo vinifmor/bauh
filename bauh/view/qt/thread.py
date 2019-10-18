@@ -12,6 +12,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
+from bauh.api.http import HttpClient
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 
@@ -480,3 +481,17 @@ class CustomAction(AsyncAction):
         self.pkg = None
         self.custom_action = None
         self.root_password = None
+
+
+class GetScreenshots(AsyncAction):
+
+    def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
+        super(GetScreenshots, self).__init__()
+        self.pkg = pkg
+        self.manager = manager
+
+    def run(self):
+        if self.pkg:
+            self.notify_finished({'pkg': self.pkg, 'screenshots': self.manager.get_screenshots(self.pkg.model)})
+
+        self.pkg = None

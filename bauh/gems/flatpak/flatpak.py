@@ -1,5 +1,6 @@
 import re
 import subprocess
+from datetime import datetime
 from io import StringIO
 from typing import List
 
@@ -162,7 +163,10 @@ def list_updates_as_str(version: str):
         updates = new_subprocess([BASE_CMD, 'update']).stdout
 
         out = StringIO()
-        for o in new_subprocess(['grep', '-E', r'[0-9]+.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+', '-o', '--color=never'], stdin=updates).stdout:
+
+        reg = r'[0-9]+\.\s+(\w+|\.)+\s+(\w|\.)+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
+
+        for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
             if o:
                 out.write('/'.join(o.decode().strip().split('\t')[2:]) + '\n')
 
@@ -196,7 +200,11 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     commit = {}
 
     for idx, data in enumerate(res):
-        commit[data[0].strip().lower()] = data[1].strip()
+        attr = data[0].strip().lower()
+        commit[attr] = data[1].strip()
+
+        if attr == 'date':
+            commit[attr] = datetime.strptime(commit[attr], '%Y-%m-%d %H:%M:%S +0000')
 
         if (idx + 1) % 3 == 0:
             commits.append(commit)

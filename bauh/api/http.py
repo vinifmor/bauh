@@ -4,6 +4,8 @@ import traceback
 
 import requests
 
+SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
+
 
 class HttpClient:
 
@@ -14,14 +16,22 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str):
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
             cur_attempts += 1
 
             try:
-                res = self.session.get(url, timeout=self.timeout)
+                args = {'timeout': self.timeout, 'allow_redirects': allow_redirects}
+
+                if params:
+                    args['params'] = params
+
+                if headers:
+                    args['headers'] = headers
+
+                res = self.session.get(url, **args)
 
                 if res.status_code == 200:
                     return res
@@ -39,16 +49,25 @@ class HttpClient:
 
             self.logger.warning("Could not retrieve data from '{}'".format(url))
 
-    def get_json(self, url: str):
-        res = self.get(url)
+    def get_json(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
+        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects)
         return res.json() if res else None
 
-    def get_content_length(self, url: str) -> int:
+    def get_content_length(self, url: str) -> str:
         """
         :param url:
         :return:
         """
-        res = self.session.head(url)
+        res = self.session.get(url, allow_redirects=True, stream=True)
 
         if res.status_code == 200:
-            return res.headers['content-length']
+            size = res.headers.get('Content-Length')
+
+            if size is not None:
+                size = int(size)
+                for m in SIZE_MULTIPLIERS:
+                    size_str = str(size * m[0])
+
+                    if len(size_str.split('.')[0]) < 4:
+                        return '{0:.2f}'.format(float(size_str)) + ' ' +  m[1]
+                return str(size)

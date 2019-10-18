@@ -5,14 +5,18 @@ import traceback
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess
+from bauh.api.http import HttpClient
+from bauh.commons.html import bold
+from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
 
 
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool):
+    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: dict, http_client: HttpClient):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
+        self.i18n = i18n
+        self.http_client = http_client
 
     def is_aria2c_available(self) -> bool:
         return bool(run_cmd('which aria2c'))
@@ -44,14 +48,14 @@ class AdaptableFileDownloader(FileDownloader):
                              success_phrases=['download completed'],
                              output_delay=0.001)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
-        cmd = ['wget', url]
+    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SimpleProcess:
+        cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
 
         if output_path:
             cmd.append('-O')
             cmd.append(output_path)
 
-        return SystemProcess(new_subprocess(cmd, cwd=cwd))
+        return SimpleProcess(cmd=cmd, cwd=cwd)
 
     def _rm_bad_file(self, file_name: str, output_path: str, cwd):
         to_delete = output_path if output_path else '{}/{}'.format(cwd, file_name)
@@ -70,14 +74,28 @@ class AdaptableFileDownloader(FileDownloader):
         success = False
         ti = time.time()
         try:
+            if output_path and os.path.exists(output_path):
+                self.logger.info('Removing old file found before downloading: {}'.format(output_path))
+                os.remove(output_path)
+                self.logger.info("Old file {} removed".format(output_path))
+
             if self.is_multithreaded():
                 ti = time.time()
                 process = self._get_aria2c_process(file_url, output_path, final_cwd)
+                downloader = 'aria2c'
             else:
                 ti = time.time()
                 process = self._get_wget_process(file_url, output_path, final_cwd)
+                downloader = 'wget'
 
-            success = handler.handle(process)
+            file_size = self.http_client.get_content_length(file_url)
+            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {} )'.format(file_size) if file_size else '')
+            watcher.change_substatus(msg)
+
+            if isinstance(process, SimpleProcess):
+                success = handler.handle_simple(process)
+            else:
+                success = handler.handle(process)
         except:
             traceback.print_exc()
             self._rm_bad_file(file_name, output_path, final_cwd)

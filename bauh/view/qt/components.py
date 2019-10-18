@@ -211,7 +211,11 @@ def new_single_select(model: SingleSelectComponent):
         raise Exception("Unsupported type {}".format(model.type))
 
 
-def new_spacer() -> QWidget:
+def new_spacer(min_width: int = None) -> QWidget:
     spacer = QWidget()
+
+    if min_width:
+        spacer.setMinimumWidth(min_width)
+
     spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     return spacer

@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.0] 2019-10-18
+### Features
+- AppImage support ( see below )
+- **Screenshots** button and panel
+- **Categories** filter
+
+### Improvements
+- Flatpak:
+    - History panel now shows formatted dates
+    - Info available for not installed applications
+- Snap:
+    - Improved how the the application verification is done ( if a given Snap is an application )
+- AUR:
+    - Optional dependencies are not checked by default in their installation popup.
+- History panel can now me maximized, minimized and allows to copy column content.
+- It is possible to use custom tray icons via the environment variables: **BAUH_TRAY_DEFAULT_ICON_PATH** and **BAUH_TRAY_UPDATES_ICON_PATH** ( displayed when there are updates )
+- Minor UI improvements
+
+### Fixes
+- cache thread lock that was eventually hanging the application
+- Flatpak:
+    - Runtimes update-checking for version 1.5.X
+- Snap:
+    - retrieving installed applications information for Ubuntu based distros
+- Application icon replaced by the type icon in the Info, History and Screenshots panels due to unexpected Qt crashes
+- minor UI fixes
+
+### AppImage support
+- Search, install, uninstall, downgrade, launch and retrieve the applications history
+- Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
+- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
+
 ## [0.6.4] 2019-10-13
 ### Fixes
 - Flatpak update-checking for version 1.5.X

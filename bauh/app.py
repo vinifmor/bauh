@@ -10,10 +10,10 @@ from bauh.api.http import HttpClient
 from bauh.view.core import gems, config
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
-from bauh.view.util import util, logs, resource
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
-from bauh.view.util.cache import CacheCleaner, DefaultMemoryCacheFactory
+from bauh.view.util import util, logs, resource
+from bauh.view.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 
 
@@ -31,15 +31,19 @@ def main():
     cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
     icon_cache = cache_factory.new(args.icon_exp)
 
+    http_client = HttpClient(logger)
+
     context = ApplicationContext(i18n=i18n,
-                                 http_client=HttpClient(logger),
+                                 http_client=http_client,
                                  disk_cache=args.disk_cache,
                                  download_icons=args.download_icons,
                                  app_root_dir=ROOT_DIR,
                                  cache_factory=cache_factory,
                                  disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache, logger=logger),
                                  logger=logger,
-                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread)))
+                                 distro=util.get_distro(),
+                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread),
+                                                                         i18n, http_client))
     user_config = config.read()
 
     app = QApplication(sys.argv)
@@ -68,6 +72,8 @@ def main():
                                  display_limit=args.max_displayed,
                                  config=user_config,
                                  context=context,
+                                 http_client=http_client,
+                                 logger=logger,
                                  notifications=bool(args.system_notifications))
 
     if args.tray:
@@ -86,7 +92,6 @@ def main():
         manage_window.show()
 
     cache_cleaner.start()
-
     sys.exit(app.exec_())
 
 

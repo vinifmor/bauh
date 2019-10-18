@@ -32,7 +32,7 @@ class SoftwarePackage(ABC):
 
     def __init__(self, id: str = None, version: str = None, name: str = None, description: str = None, latest_version: str = None,
                  icon_url: str = None, status: PackageStatus = PackageStatus.READY, installed: bool = False, update: bool = False,
-                 size: int = None, categories: List[str] = None):
+                 size: int = None, categories: List[str] = None, license: str = None):
         """
         :param id:
         :param version:
@@ -57,6 +57,7 @@ class SoftwarePackage(ABC):
         self.update = update
         self.size = size
         self.categories = categories
+        self.license = license
 
     @abstractmethod
     def has_history(self):
@@ -144,7 +145,7 @@ class SoftwarePackage(ABC):
         pass
 
     @abstractmethod
-    def can_be_run(self) -> str:
+    def can_be_run(self) -> bool:
         """
         :return: whether the app can be run via the GUI
         """
@@ -167,6 +168,12 @@ class SoftwarePackage(ABC):
         :return: custom supported actions
         """
         pass
+
+    def has_screenshots(self) -> bool:
+        """
+        :return: if there are screenshots to be displayed
+        """
+        return not self.installed
 
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.id, self.name)

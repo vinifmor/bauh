@@ -1,3 +1,4 @@
+gem.snap.info=Applications published at https://snapcraft.io/store
 snap.notification.snapd_unavailable={} seems not to be installed or enabled. {} packages will not be available.
 snap.notification.snap.disable=If you do not want to use Snap applications, uncheck {} in {}
 snap.action.refresh.status=Refreshing

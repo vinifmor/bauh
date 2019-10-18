@@ -2,13 +2,18 @@ import logging
 import os
 import re
 import time
+import traceback
 from math import ceil
 from multiprocessing import Process
 from threading import Thread
+from typing import Dict, List
+
+import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.constants import HOME_PATH
+from bauh.api.http import HttpClient
 from bauh.gems.arch import pacman, disk
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
@@ -28,22 +33,26 @@ class AURIndexUpdater(Thread):
         self.http_client = context.http_client
         self.logger = context.logger
         self.man = man
+        self.enabled = bool(int(os.getenv('BAUH_ARCH_AUR_INDEX_UPDATER', 1)))
 
     def run(self):
-        while True:
-            self.logger.info('Pre-indexing AUR packages in memory')
-            try:
-                res = self.http_client.get(URL_INDEX)
+        if self.enabled:
+            while True:
+                self.logger.info('Pre-indexing AUR packages in memory')
+                try:
+                    res = self.http_client.get(URL_INDEX)
 
-                if res and res.text:
-                    self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
-                    self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
-                else:
-                    self.logger.warning('No data returned from: {}'.format(URL_INDEX))
-            except ConnectionError:
-                self.logger.warning('No internet connection: could not pre-index packages')
+                    if res and res.text:
+                        self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
+                        self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
+                    else:
+                        self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+                except ConnectionError:
+                    self.logger.warning('No internet connection: could not pre-index packages')
 
-            time.sleep(5 * 60)  # updates every 5 minutes
+                time.sleep(60 * 20)  # updates every 20 minutes
+        else:
+            self.logger.info("AUR index updater disabled")
 
 
 class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
@@ -128,3 +137,34 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                     self.logger.info("A custom optimized 'makepkg.conf' was generated at '{}'".format(HOME_PATH))
             else:
                 self.logger.warning("A custom 'makepkg.conf' is already defined at '{}'".format(HOME_PATH))
+
+
+class CategoriesDownloader:
+
+    URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/aur/categories.txt'
+
+    def __init__(self, http_client: HttpClient, logger: logging.Logger):
+        self.http_client = http_client
+        self.logger = logger
+
+    def get_categories(self) -> Dict[str, List[str]]:
+        self.logger.info('Downloading AUR category definitions from {}'.format(self.URL_CATEGORIES_FILE))
+
+        res = self.http_client.get(self.URL_CATEGORIES_FILE)
+
+        if res:
+            try:
+                categories_map = {}
+                for l in res.text.split('\n'):
+                    if l:
+                        data = l.split('=')
+                        categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+
+                self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
+                return categories_map
+            except:
+                self.logger.error("Could not parse AUR categories definitions")
+                traceback.print_exc()
+                return {}
+        else:
+            self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))

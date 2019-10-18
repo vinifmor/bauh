@@ -85,7 +85,7 @@ def get_info(app_name: str, attrs: tuple = None):
     return data
 
 
-def read_installed() -> List[dict]:
+def read_installed(ubuntu_distro: bool) -> List[dict]:
     res = run_cmd('{} list'.format(BASE_CMD), print_error=False)
 
     apps = []
@@ -98,10 +98,12 @@ def read_installed() -> List[dict]:
                 if idx > 0 and app_str:
                     apps.append(app_str_to_json(app_str))
 
-            info_out = new_subprocess(['cat', *['/var/lib/snapd/snap/{}/current/meta/snap.yaml'.format(a['name']) for a in apps]]).stdout
+            info_path = _get_app_info_path(ubuntu_distro)
+
+            info_out = new_subprocess(['cat', *[info_path.format(a['name']) for a in apps]]).stdout
 
             idx = -1
-            for o in new_subprocess(['grep', '-E', '(summary|type)', '--colour=never'], stdin=info_out).stdout:
+            for o in new_subprocess(['grep', '-E', '(summary|apps)', '--colour=never'], stdin=info_out).stdout:
                 if o:
                     line = o.decode()
 
@@ -109,9 +111,32 @@ def read_installed() -> List[dict]:
                         idx += 1
                         apps[idx]['summary'] = line.split(':')[1].strip()
                     else:
-                        apps[idx]['type'] = line.split(':')[1].strip()
+                        apps[idx]['apps_field'] = True
 
     return apps
+
+
+def _get_app_info_path(ubuntu_distro: bool) -> str:
+    if ubuntu_distro:
+        return '/snap/{}/current/meta/snap.yaml'
+    else:
+        return '/var/lib/snapd/snap/{}/current/meta/snap.yaml'
+
+
+def has_apps_field(name: str, ubuntu_distro: bool) -> bool:
+    info_path = _get_app_info_path(ubuntu_distro)
+
+    info_out = new_subprocess(['cat', info_path.format(name)]).stdout
+
+    res = False
+    for o in new_subprocess(['grep', '-E', 'apps', '--colour=never'], stdin=info_out).stdout:
+        if o:
+            line = o.decode()
+
+            if line.startswith('apps:'):
+                res = True
+
+    return res
 
 
 def search(word: str, exact_name: bool = False) -> List[dict]:
