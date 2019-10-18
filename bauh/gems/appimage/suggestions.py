@@ -1,12 +1,12 @@
 from bauh.api.abstract.model import SuggestionPriority
 
 ALL = {
-    'onlyoffice': SuggestionPriority.HIGH,
-    'gamehub': SuggestionPriority.HIGH,
-    'rpcs3': SuggestionPriority.HIGH,
-    'postman': SuggestionPriority.MEDIUM,
+    'onlyoffice': SuggestionPriority.MEDIUM,
+    'gamehub': SuggestionPriority.MEDIUM,
+    'rpcs3': SuggestionPriority.MEDIUM,
     'etcher': SuggestionPriority.MEDIUM,
+    'postman': SuggestionPriority.LOW,
     'nosqlbooster': SuggestionPriority.LOW,
     'emcas': SuggestionPriority.LOW,
-    'azpianter': SuggestionPriority.LOW
+    'azpainter': SuggestionPriority.LOW
 }
