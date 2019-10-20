@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=bauh
+Categories=System;
+Comment=Manage your Flatpak / Snap / AppImage / AUR applications
+Comment[pt]=Gerencie seus aplicativos Flatpak / Snap / AppImage / AUR
+Comment[es]=Administre sus aplicaciones Flatpak / Snap / AppImage / AUR
+Exec=/usr/bin/bauh --tray=1
+Icon=bauh
