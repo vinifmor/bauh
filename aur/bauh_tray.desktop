@@ -1,6 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=bauh
+Name=bauh ( tray )
+Name[pt]=bauh ( bandeja )
+Name[es]=bauh ( bandeja )
 Categories=System;
 Comment=Manage your Flatpak / Snap / AppImage / AUR applications
 Comment[pt]=Gerencie seus aplicativos Flatpak / Snap / AppImage / AUR
