@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AUR:
     - update-checking for some scenarios
-    - not respecting 'ignorepkg' settings in **pacman.conf**
+    - not respecting **ignorepkg** settings in **pacman.conf**
     - not able to handle **missing dependencies with symbols** ( e.g: libpng++ )
     - not able to work with **.xpm** icons
 
