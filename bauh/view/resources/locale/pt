@@ -39,6 +39,7 @@ manage_window.checkbox.show_details=Mostrar detalhes
 popup.root.title=Requer sua senha para prosseguir
 popup.root.bad_password.title=Erro
 popup.root.bad_password.body=Senha incorreta
+popup.root.bad_password.last_try=Tentativas finalizadas. Ação cancelada.
 popup.history.title=Histórico
 popup.history.selected.tooltip=Versão atual
 popup.button.yes=Sim

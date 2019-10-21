@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.7.1] 2019-
 ### Improvements
+- 3 password attempts for root authentication
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
 ### Fixes

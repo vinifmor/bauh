@@ -39,6 +39,7 @@ manage_window.checkbox.show_details=Mostrar detalles
 popup.root.title=Requiere tu contraseña para continuar
 popup.root.bad_password.title=Error
 popup.root.bad_password.body=Contraseña incorrecta
+popup.root.bad_password.last_try=Intentos finalizados. Acción cancelada.
 popup.history.title=Historia
 popup.history.selected.tooltip=Versión actual
 popup.button.yes=Sí
