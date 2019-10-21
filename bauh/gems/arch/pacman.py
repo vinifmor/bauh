@@ -14,7 +14,7 @@ def is_enabled() -> bool:
 
 
 def get_mirrors(pkgs: Set[str]) -> dict:
-    pkgre = '|'.join(pkgs)
+    pkgre = '|'.join(pkgs).replace('+', r'\+').replace('.', r'\.')
 
     searchres = new_subprocess(['pacman', '-Ss', pkgre]).stdout
     mirrors = {}
