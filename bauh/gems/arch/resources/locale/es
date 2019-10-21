@@ -93,3 +93,5 @@ arch.aur.install.unknown_key.title=Clave pública necesaria
 arch.aur.install.unknown_key.status=Recibiendo la clave pública {}
 arch.aur.install.unknown_key.receive_error=No fue posible recibir la clave pública {}
 arch.install.aur.unknown_key.body=Para continuar la instalación de {} es necesario confiar en la siguiente clave pública {}
+arch.aur.install.validity_check.title=Problemas de integridad
+arch.aur.install.validity_check.body=Algunos de los archivos fuente necesarios para la instalación de {} no están en buen estado. La instalación se cancelará para evitar daños a su sistema.

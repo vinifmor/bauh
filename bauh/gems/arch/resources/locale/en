@@ -61,3 +61,5 @@ arch.aur.install.unknown_key.title=Public key required
 arch.install.aur.unknown_key.body=To continue {} installation is necessary to trust the following public key {}
 arch.aur.install.unknown_key.status=Receiving public key {}
 arch.aur.install.unknown_key.receive_error=Could not receive public key {}
+arch.aur.install.validity_check.title=Integrity issues
+arch.aur.install.validity_check.body=Some of the source-files needed for {} installation are not healthy. The installation will be cancelled to avoid damages to your system.

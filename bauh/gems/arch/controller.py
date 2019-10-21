@@ -490,6 +490,12 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
+            if check_res.get('validity_check'):
+                handler.watcher.show_message(title=self.i18n['arch.aur.install.validity_check.title'],
+                                             body=self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
+                                             type_=MessageType.ERROR)
+                return False
+
         return True
 
     def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, change_progress: bool = True) -> bool:

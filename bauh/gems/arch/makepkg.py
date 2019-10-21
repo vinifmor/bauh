@@ -18,4 +18,7 @@ def check(pkgdir: str, handler: ProcessHandler) -> dict:
     if gpg_keys:
         res['gpg_key'] = gpg_keys[0]
 
+    if 'One or more files did not pass the validity check' in output:
+        res['validity_check'] = True
+
     return res
