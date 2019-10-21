@@ -7,8 +7,7 @@ from bauh.gems.arch.model import ArchPackage
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
 RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
-RE_ANY_LETTER = re.compile(r'[a-zA-Z]')
-RE_VERSION_DELS = re.compile(r'[.:#@\-_]')
+RE_VERSION_SPLIT = re.compile(r'[a-zA-Z]+|\d+|[\.\-_@#]+')
 
 RE_SFX = ('r', 're', 'release')
 GA_SFX = ('ga', 'ge')
@@ -76,19 +75,18 @@ class ArchDataMapper:
 
                     return nlatest > nversion
 
-            latest_split = RE_VERSION_DELS.split(latest_version)
-            version_split = RE_VERSION_DELS.split(version)
+            latest_split = RE_VERSION_SPLIT.findall(latest_version)
+            current_split = RE_VERSION_SPLIT.findall(version)
 
             for idx in range(len(latest_split)):
-                if idx < len(version_split):
+                if idx < len(current_split):
                     latest_part = latest_split[idx]
-                    version_part = version_split[idx]
+                    current_part = current_split[idx]
 
-                    if latest_part != version_part:
-                        if RE_ANY_LETTER.findall(latest_part) or RE_ANY_LETTER.findall(version_part):
-                            return latest_part > version_part
-                        else:
-                            dif = int(latest_part) - int(version_part)
+                    if latest_part != current_part:
+
+                        try:
+                            dif = int(latest_part) - int(current_part)
 
                             if dif > 0:
                                 return True
@@ -96,6 +94,14 @@ class ArchDataMapper:
                                 return False
                             else:
                                 continue
+
+                        except ValueError:
+                            if latest_part.isdigit():
+                                return True
+                            elif current_part.isdigit():
+                                return False
+                            else:
+                                return latest_part > current_part
         return False
 
     def fill_package_build(self, pkg: ArchPackage):
