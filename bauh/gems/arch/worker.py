@@ -8,8 +8,6 @@ from multiprocessing import Process
 from threading import Thread
 from typing import Dict, List
 
-import requests
-
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.constants import HOME_PATH

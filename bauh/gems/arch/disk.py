@@ -22,7 +22,7 @@ def write(app: ArchPackage):
 
 
 def fill_icon_path(app: ArchPackage, icon_paths: List[str], only_exact_match: bool):
-    ends_with = re.compile(r'.+/{}\.(png|svg)$'.format(app.icon_path if app.icon_path else app.name), re.IGNORECASE)
+    ends_with = re.compile(r'.+/{}\.(png|svg|xpm)$'.format(app.icon_path if app.icon_path else app.name), re.IGNORECASE)
 
     for path in icon_paths:
         if ends_with.match(path):
@@ -142,4 +142,3 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
             write(p)
         return len(to_write)
     return 0
-
