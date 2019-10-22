@@ -19,6 +19,7 @@ from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
 
 RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
+
 class SnapManager(SoftwareManager):
 
     def __init__(self, context: ApplicationContext):
@@ -31,7 +32,7 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger)
+        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger, self, context.disk_cache)
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -91,6 +92,7 @@ class SnapManager(SoftwareManager):
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
+            self.categories_downloader.join()
             installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(self.ubuntu_distro)]
             return SearchResult(installed, None, len(installed))
         else:
@@ -173,10 +175,7 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def prepare(self):
-        categories = self.categories_downloader.get_categories()
-
-        if categories:
-            self.categories = categories
+        self.categories_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -207,6 +206,8 @@ class SnapManager(SoftwareManager):
             sugs.sort(key=lambda t: t[1].value, reverse=True)
 
             threads = []
+            self.categories_downloader.join()
+
             for sug in sugs:
 
                 if limit <= 0 or len(res) < limit:

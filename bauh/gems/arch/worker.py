@@ -198,8 +198,7 @@ class AURCategoriesMapper(Thread):
                     self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
 
                     if self.disk_cache and categories_map:
-                        t = Thread(target=self._cache_categories_to_disk, args=(res.text,), daemon=True)
-                        t.start()
+                        Thread(target=self._cache_categories_to_disk, args=(res.text,), daemon=True).start()
 
                     return categories_map
                 except:
@@ -218,5 +217,6 @@ class AURCategoriesMapper(Thread):
 
         if categories:
             self.logger.info("Settings categories to {}".format(self.manager.__class__.__name__))
-            self.manager.categories_map = categories
-            self.logger.info('Finished')
+            self.manager.categories = categories
+
+        self.logger.info('Finished')

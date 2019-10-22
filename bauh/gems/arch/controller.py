@@ -52,10 +52,10 @@ class ArchManager(SoftwareManager):
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
         self.categories_mapper = AURCategoriesMapper(context.http_client, context.logger, self, self.context.disk_cache)
-        self.categories_map = {}
+        self.categories = {}
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
-        app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories_map)
+        app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
         app.downgrade_enabled = downgrade_enabled
 
         if app.installed:
@@ -117,7 +117,7 @@ class ArchManager(SoftwareManager):
 
                 if pkgsinfo:
                     for pkgdata in pkgsinfo:
-                        pkg = self.mapper.map_api_data(pkgdata, not_signed, self.categories_map)
+                        pkg = self.mapper.map_api_data(pkgdata, not_signed, self.categories)
                         pkg.downgrade_enabled = downgrade_enabled
 
                         if disk_loader:
@@ -136,7 +136,7 @@ class ArchManager(SoftwareManager):
                               latest_version=data.get('version'), description=data.get('description'),
                               installed=True, mirror='aur')
 
-            pkg.categories = self.categories_map.get(pkg.name)
+            pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
 
             if disk_loader:
@@ -731,7 +731,7 @@ class ArchManager(SoftwareManager):
             self.categories_mapper.join()
             for pkg in api_res:
                 if pkg.get('Name') in sug_names:
-                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories_map), suggestions.ALL.get(pkg['Name'])))
+                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions.ALL.get(pkg['Name'])))
 
         return res
 
