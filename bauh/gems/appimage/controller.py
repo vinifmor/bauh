@@ -17,7 +17,7 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
 from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd
+from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, db
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -298,12 +298,20 @@ class AppImageManager(SoftwareManager):
                 watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
 
                 try:
-                    handler.handle(SystemProcess(new_subprocess([file_path, '--appimage-extract'], cwd=out_dir)))
+                    res, output = handler.handle_simple(SimpleProcess([file_path, '--appimage-extract'], cwd=out_dir))
+
+                    if 'Error: Failed to register AppImage in AppImageLauncherFS' in output:
+                        watcher.show_message(title=self.i18n['error'],
+                                             body=self.i18n['appimage.install.appimagelauncher.error'].format(appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
+                                             type_=MessageType.ERROR)
+                        handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
+                        return False
                 except:
                     watcher.show_message(title=self.i18n['error'],
                                          body=traceback.format_exc(),
                                          type_=MessageType.ERROR)
                     traceback.print_exc()
+                    handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
                     return False
 
                 watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])

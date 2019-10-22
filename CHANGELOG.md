@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - 3 password attempts for root authentication
+- AppImage:
+    - showing an error popup when **AppImageLauncher** messes up with an application installation
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
     

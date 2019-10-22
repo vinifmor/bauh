@@ -16,3 +16,4 @@ appimage.downgrade.first_version={} está en su primera versión publicada
 appimage.downgrade.uninstall_current_version=No fue posible desinstalar la versión actual de {}
 appimage.downgrade.install_version=No fue posible instalar la versión {} ({})
 appimage.install.download.error=No fue posible descargar el archivo {}. El servidor del archivo puede estar inactivo.
+appimage.install.appimagelauncher.error = {appimgl} no permite la instalación de {app}. Desinstale {appimgl}, reinicie su sistema e intente instalar {app} nuevamente.
