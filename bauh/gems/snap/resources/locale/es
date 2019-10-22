@@ -15,4 +15,4 @@ snap.notification.snap.disable=Si no desea usar aplicativos Snap, desmarque {} e
 snap.action.refresh.status=Actualizando
 snap.action.refresh.label=Actualizar
 snap.install.available_channels.title=Canales disponibles
-snap.install.available_channels.body=No hay un canal {} ( stable ) disponible para {}. Pero hay estos otros disponibles abajo ( seleccione uno si desea continuar )
+snap.install.available_channels.body=No hay un canal {} ( stable ) disponible para {}. Pero hay estos otros abajo ( seleccione uno si desea continuar )
