@@ -90,10 +90,19 @@ class CategoriesDownloader(Thread):
 
     def _set_categories(self, categories: dict):
         if categories:
-            self.logger.info(self._msg("Settings categories to {}".format(self.manager.__class__.__name__)))
+            self.logger.info(self._msg("Settings {} categories to {}".format(len(categories), self.manager.__class__.__name__)))
             self.manager.categories = categories
 
-    def run(self):
-        self._set_categories(self._read_categories_from_disk())
+    def _download_and_set(self):
         self._set_categories(self.download_categories())
+
+    def run(self):
+        cached = self._read_categories_from_disk()
+
+        if cached:
+            self._set_categories(cached)
+            Thread(target=self._download_and_set, daemon=True).start()
+        else:
+            self._download_and_set()
+
         self.logger.info(self._msg('Finished'))
