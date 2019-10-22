@@ -3,7 +3,7 @@ import re
 import subprocess
 from typing import List
 
-from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
+from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess, SimpleProcess
 from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
@@ -176,14 +176,15 @@ def uninstall_and_stream(app_name: str, root_password: str):
     return new_root_subprocess([BASE_CMD, 'remove', app_name], root_password)
 
 
-def install_and_stream(app_name: str, confinement: str, root_password: str) -> subprocess.Popen:
+def install_and_stream(app_name: str, confinement: str, root_password: str) -> SimpleProcess:
 
     install_cmd = [BASE_CMD, 'install', app_name]  # default
 
     if confinement == 'classic':
         install_cmd.append('--classic')
 
-    return new_root_subprocess(install_cmd, root_password)
+    # return new_root_subprocess(install_cmd, root_password)
+    return SimpleProcess(install_cmd, root_password=root_password)
 
 
 def downgrade_and_stream(app_name: str, root_password: str) -> subprocess.Popen:

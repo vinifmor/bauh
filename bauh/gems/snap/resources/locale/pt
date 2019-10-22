@@ -14,3 +14,5 @@ snap.notification.snapd_unavailable={} não parece estar instalado ou habilitado
 snap.notification.snap.disable=Se não deseja usar aplicativos Snap, desmarque {} em {}
 snap.action.refresh.status=Atualizando
 snap.action.refresh.label=Atualizar
+snap.install.available_channels.title=Canais disponíveis
+snap.install.available_channels.body=Não há um canal {} ( stable ) disponível para {}. Porém existem estes outros disponíveis abaixo ( selecione algum se quiser continuar )

@@ -3,3 +3,5 @@ snap.notification.snapd_unavailable={} seems not to be installed or enabled. {} 
 snap.notification.snap.disable=If you do not want to use Snap applications, uncheck {} in {}
 snap.action.refresh.status=Refreshing
 snap.action.refresh.label=Refresh
+snap.install.available_channels.title=Available channels
+snap.install.available_channels.body=There is no {} channel available for {}. But there are these others available below ( select one if you want to continue )

@@ -1,3 +1,4 @@
+import re
 import time
 from datetime import datetime
 from threading import Thread
@@ -8,13 +9,15 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
+from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler
+from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
 from bauh.gems.snap import snap, suggestions
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
 
+RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
 class SnapManager(SoftwareManager):
 
@@ -125,9 +128,31 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        res = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+        res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
-        if res:
+        if 'error:' in output:
+            res = False
+            if 'not available on stable' in output:
+                channels = RE_AVAILABLE_CHANNELS.findall(output)
+
+                if channels:
+                    opts = [InputOption(label=c[0], value=c[1]) for c in channels]
+                    channel_select = SingleSelectComponent(type_=SelectViewType.RADIO, label='', options=opts, default_option=opts[0])
+                    if watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
+                                                    body=self.i18n['snap.install.available_channels.body'].format(bold(self.i18n['stable']), bold(pkg.name)) + ':',
+                                                    components=[channel_select],
+                                                    confirmation_label=self.i18n['continue'],
+                                                    deny_label=self.i18n['cancel']):
+                        self.logger.info("Installing '{}' with the custom command '{}'".format(pkg.name, channel_select.value))
+                        res = ProcessHandler(watcher).handle(SystemProcess(new_root_subprocess(channel_select.value.value.split(' '), root_password=root_password)))
+
+                        if res:
+                            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+
+                        return res
+                else:
+                    self.logger.error("Could not find available channels in the installation output: {}".format(output))
+        else:
             pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
 
         return res
