@@ -9,7 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 3 password attempts for root authentication
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
+    
 ### Fixes
+- application not initializing when there is no internet connection
 - AUR:
     - update-checking for some scenarios
     - not respecting **ignorepkg** settings in **pacman.conf**

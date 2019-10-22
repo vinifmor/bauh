@@ -8,6 +8,8 @@ from multiprocessing import Process
 from threading import Thread
 from typing import Dict, List
 
+import requests
+
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.constants import HOME_PATH
@@ -45,7 +47,7 @@ class AURIndexUpdater(Thread):
                         self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
                     else:
                         self.logger.warning('No data returned from: {}'.format(URL_INDEX))
-                except ConnectionError:
+                except requests.exceptions.ConnectionError:
                     self.logger.warning('No internet connection: could not pre-index packages')
 
                 time.sleep(60 * 20)  # updates every 20 minutes
@@ -148,21 +150,26 @@ class CategoriesDownloader:
     def get_categories(self) -> Dict[str, List[str]]:
         self.logger.info('Downloading AUR category definitions from {}'.format(self.URL_CATEGORIES_FILE))
 
-        res = self.http_client.get(self.URL_CATEGORIES_FILE)
+        try:
+            res = self.http_client.get(self.URL_CATEGORIES_FILE)
 
-        if res:
-            try:
-                categories_map = {}
-                for l in res.text.split('\n'):
-                    if l:
-                        data = l.split('=')
-                        categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+            if res:
+                try:
+                    categories_map = {}
+                    for l in res.text.split('\n'):
+                        if l:
+                            data = l.split('=')
+                            categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
 
-                self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
-                return categories_map
-            except:
-                self.logger.error("Could not parse AUR categories definitions")
-                traceback.print_exc()
+                    self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
+                    return categories_map
+                except:
+                    self.logger.error("Could not parse AUR categories definitions")
+                    traceback.print_exc()
+                    return {}
+            else:
+                self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
                 return {}
-        else:
-            self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('The internet connection seems to be off.')
+            return {}

@@ -4,6 +4,8 @@ import traceback
 from threading import Thread
 from typing import Dict, List
 
+import requests
+
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
@@ -85,21 +87,25 @@ class CategoriesDownloader:
     def get_categories(self) -> Dict[str, List[str]]:
         self.logger.info('Downloading Snap category definitions from {}'.format(self.URL_CATEGORIES_FILE))
 
-        res = self.http_client.get(self.URL_CATEGORIES_FILE)
+        try:
+            res = self.http_client.get(self.URL_CATEGORIES_FILE)
 
-        if res:
-            try:
-                categories_map = {}
-                for l in res.text.split('\n'):
-                    if l:
-                        data = l.split('=')
-                        categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+            if res:
+                try:
+                    categories_map = {}
+                    for l in res.text.split('\n'):
+                        if l:
+                            data = l.split('=')
+                            categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
 
-                self.logger.info('Loaded categories for {} Snap applications'.format(len(categories_map)))
-                return categories_map
-            except:
-                self.logger.error("Could not parse categories definitions")
-                traceback.print_exc()
-                return {}
-        else:
-            self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
+                    self.logger.info('Loaded categories for {} Snap applications'.format(len(categories_map)))
+                    return categories_map
+                except:
+                    self.logger.error("Could not parse categories definitions")
+                    traceback.print_exc()
+                    return {}
+            else:
+                self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('The internet connection seems to be off.')
+            return {}
