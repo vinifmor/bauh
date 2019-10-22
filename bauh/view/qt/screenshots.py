@@ -64,7 +64,7 @@ class ScreenshotsDialog(QDialog):
         self.img_idx = 0
 
         for idx, s in enumerate(self.screenshots):
-            t = Thread(target=self._download_img, args=(idx, s))
+            t = Thread(target=self._download_img, args=(idx, s), daemon=True)
             t.start()
 
         self._load_img()

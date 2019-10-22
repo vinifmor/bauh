@@ -110,14 +110,18 @@ class ArchDataMapper:
         if res and res.status_code == 200 and res.text:
             pkg.pkgbuild = res.text
 
-    def map_api_data(self, apidata: dict, installed: dict) -> ArchPackage:
+    def map_api_data(self, apidata: dict, installed: dict, categories: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name'))
         app = ArchPackage(name=apidata.get('Name'), installed=bool(data), mirror='aur')
         app.status = PackageStatus.LOADING_DATA
+
+        if categories:
+            app.categories = categories.get(app.name)
 
         if data:
             app.version = data.get('version')
             app.description = data.get('description')
 
         self.fill_api_data(app, apidata, fill_version=not data)
+
         return app

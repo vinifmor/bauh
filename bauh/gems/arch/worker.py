@@ -5,6 +5,7 @@ import time
 import traceback
 from math import ceil
 from multiprocessing import Process
+from pathlib import Path
 from threading import Thread
 from typing import Dict, List
 
@@ -12,9 +13,9 @@ import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.constants import HOME_PATH
+from bauh.api.constants import HOME_PATH, CACHE_PATH
 from bauh.api.http import HttpClient
-from bauh.gems.arch import pacman, disk
+from bauh.gems.arch import pacman, disk, ARCH_CACHE_PATH
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -139,13 +140,51 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                 self.logger.warning("A custom 'makepkg.conf' is already defined at '{}'".format(HOME_PATH))
 
 
-class CategoriesDownloader:
+class AURCategoriesMapper(Thread):
 
     URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/aur/categories.txt'
+    CATEGORIES_CACHE_DIR = ARCH_CACHE_PATH + '/categories'
+    CATEGORIES_FILE_PATH = CATEGORIES_CACHE_DIR + '/aur.txt'
 
-    def __init__(self, http_client: HttpClient, logger: logging.Logger):
+    def __init__(self, http_client: HttpClient, logger: logging.Logger, manager: SoftwareManager, disk_cache: bool):
+        super(AURCategoriesMapper, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
+        self.manager = manager
+        self.disk_cache = disk_cache
+
+    def _read_categories_from_disk(self) -> dict:
+        if self.disk_cache and os.path.exists(self.CATEGORIES_FILE_PATH):
+            self.logger.info("Reading cached categories from the disk")
+
+            with open(self.CATEGORIES_FILE_PATH) as f:
+                categories = f.read()
+
+            return self._map_categories(categories)
+
+        return {}
+
+    def _map_categories(self, categories: str) -> dict:
+        categories_map = {}
+        for l in categories.split('\n'):
+            if l:
+                data = l.split('=')
+                categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
+        return categories_map
+
+    def _cache_categories_to_disk(self, categories: str):
+        self.logger.info('Caching AUR categories to the disk')
+
+        try:
+            Path(self.CATEGORIES_CACHE_DIR).mkdir(parents=True, exist_ok=True)
+
+            with open(self.CATEGORIES_FILE_PATH, 'w+') as f:
+                f.write(categories)
+
+            self.logger.info("AUR categories cached to the disk as '{}'".format(self.CATEGORIES_FILE_PATH))
+        except:
+            self.logger.error("Could not cache AUR categories to the disk as '{}'".format(self.CATEGORIES_FILE_PATH))
+            traceback.print_exc()
 
     def get_categories(self) -> Dict[str, List[str]]:
         self.logger.info('Downloading AUR category definitions from {}'.format(self.URL_CATEGORIES_FILE))
@@ -155,21 +194,29 @@ class CategoriesDownloader:
 
             if res:
                 try:
-                    categories_map = {}
-                    for l in res.text.split('\n'):
-                        if l:
-                            data = l.split('=')
-                            categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
-
+                    categories_map = self._map_categories(res.text)
                     self.logger.info('Loaded categories for {} AUR packages'.format(len(categories_map)))
+
+                    if self.disk_cache and categories_map:
+                        t = Thread(target=self._cache_categories_to_disk, args=(res.text,), daemon=True)
+                        t.start()
+
                     return categories_map
                 except:
                     self.logger.error("Could not parse AUR categories definitions")
                     traceback.print_exc()
-                    return {}
             else:
                 self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))
-                return {}
+
         except requests.exceptions.ConnectionError:
             self.logger.warning('The internet connection seems to be off.')
-            return {}
+
+        return self._read_categories_from_disk()
+
+    def run(self):
+        categories = self.get_categories()
+
+        if categories:
+            self.logger.info("Settings categories to {}".format(self.manager.__class__.__name__))
+            self.manager.categories_map = categories
+            self.logger.info('Finished')

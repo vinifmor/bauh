@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - showing an error popup when **AppImageLauncher** messes up with an application installation
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
+    - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
+    - caching cloud to categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+- minor thread improvements
     
 ### Fixes
 - application not initializing when there is no internet connection
@@ -24,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not respecting **ignorepkg** settings in **pacman.conf**
     - not able to handle **missing dependencies with symbols** ( e.g: libpng++ )
     - not able to work with **.xpm** icons
+    - not mapping categories to the search results
 
 ## [0.7.0] 2019-10-18
 ### Features
