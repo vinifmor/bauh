@@ -16,10 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
-    - caching cloud to categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+    - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
 - Snap:
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
-    - caching cloud to categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+    - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
 - minor thread improvements
     
 ### Fixes

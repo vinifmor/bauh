@@ -568,7 +568,7 @@ class ArchManager(SoftwareManager):
         if installed and self.context.disk_cache:
             handler.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(pkgname)))
             if self.context.disk_cache:
-                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True)
+                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True, categories=self.categories)
 
             self._update_progress(handler.watcher, 100, change_progress)
 

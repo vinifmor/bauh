@@ -5,7 +5,7 @@ from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 
-CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry'}
+CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry', 'categories'}
 
 
 class ArchPackage(SoftwarePackage):
