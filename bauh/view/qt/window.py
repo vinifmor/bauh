@@ -314,6 +314,12 @@ class ManageWindow(QWidget):
         self._update_table(pkgs_info=pkgs_info, signal=True)
         self.update_bt_upgrade(pkgs_info)
 
+        if self.pkgs_available:
+            self.thread_verify_models.work = False
+            self.thread_verify_models.wait(50)
+            self.thread_verify_models.apps = self.pkgs_available
+            self.thread_verify_models.start()
+
     def _finish_apply_filters_async(self, success: bool):
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)

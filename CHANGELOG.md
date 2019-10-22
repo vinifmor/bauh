@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### Fixes
 - application not initializing when there is no internet connection
+- not loading application icons after some filters are applied to the table results
 - AUR:
     - update-checking for some scenarios
     - not respecting **ignorepkg** settings in **pacman.conf**

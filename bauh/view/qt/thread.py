@@ -352,6 +352,7 @@ class VerifyModels(QThread):
     def __init__(self, apps: List[PackageView] = None):
         super(VerifyModels, self).__init__()
         self.apps = apps
+        self.work = True
 
     def run(self):
 
@@ -361,6 +362,10 @@ class VerifyModels(QThread):
             last_ready = 0
 
             while True:
+
+                if not self.work:
+                    break
+
                 current_ready = 0
 
                 for app in self.apps:
@@ -379,6 +384,7 @@ class VerifyModels(QThread):
 
                 time.sleep(0.1)
 
+        self.work = True
         self.apps = None
 
 
