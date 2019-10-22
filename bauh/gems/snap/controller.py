@@ -10,12 +10,13 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
+from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
-from bauh.gems.snap import snap, suggestions
+from bauh.gems.snap import snap, suggestions, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
-from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
+from bauh.gems.snap.worker import SnapAsyncDataLoader
 
 RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
@@ -32,7 +33,8 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger, self, context.disk_cache)
+        self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
+                                                          URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
