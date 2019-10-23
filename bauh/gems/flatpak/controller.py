@@ -1,3 +1,4 @@
+import json
 import traceback
 from datetime import datetime
 from threading import Thread
@@ -279,11 +280,17 @@ class FlatpakManager(SoftwareManager):
         flatpak.run(str(pkg.id))
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        res = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, pkg.id))
+        screenshots_url = '{}/apps/{}'.format(FLATHUB_API_URL, pkg.id)
         urls = []
-        if res and res.get('screenshots'):
-            for s in res['screenshots']:
-                if s.get('imgDesktopUrl'):
-                    urls.append(s['imgDesktopUrl'])
+        try:
+            res = self.http_client.get_json(screenshots_url)
+
+            if res and res.get('screenshots'):
+                for s in res['screenshots']:
+                    if s.get('imgDesktopUrl'):
+                        urls.append(s['imgDesktopUrl'])
+
+        except json.decoder.JSONDecodeError:
+            self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
 
         return urls
