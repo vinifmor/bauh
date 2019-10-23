@@ -11,8 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - 3 password attempts for root authentication
+- not changing the table applied filters after a uninstall
 - AppImage:
     - showing an error popup when **AppImageLauncher** messes up with an application installation
+- Flatpak:
+    - Runtimes now are categorized as "runtimes"
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )

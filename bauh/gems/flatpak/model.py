@@ -17,6 +17,9 @@ class FlatpakApplication(SoftwarePackage):
         self.runtime = runtime
         self.commit = commit
 
+        if runtime:
+            self.categories = ['runtime']
+
     def is_incomplete(self):
         return self.description is None and self.icon_url
 

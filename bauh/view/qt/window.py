@@ -19,8 +19,6 @@ from bauh.api.http import HttpClient
 from bauh.commons.html import bold
 from bauh.view.core.config import Configuration
 from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.qt.screenshots import ScreenshotsDialog
-from bauh.view.util import util, resource
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
@@ -30,12 +28,14 @@ from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import is_root, ask_root_password
+from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
+from bauh.view.util import util, resource
 
 DARK_ORANGE = '#FF4500'
 
@@ -283,6 +283,7 @@ class ManageWindow(QWidget):
         self._maximized = False
         self.progress_controll_enabled = True
         self.recent_installation = False
+        self.recent_uninstall = False
 
         self.dialog_about = None
         self.first_refresh = suggestions
@@ -437,7 +438,7 @@ class ManageWindow(QWidget):
 
     def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
         self.recent_installation = False
-        self.type_filter = None
+        # self.type_filter = None
         self.input_search.clear()
 
         if not keep_console:
@@ -445,7 +446,7 @@ class ManageWindow(QWidget):
 
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False, clear_filters=True)
+        self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
 
         self.thread_refresh.app = top_app  # the app will be on top when refresh happens
         self.thread_refresh.pkg_types = pkg_types
@@ -455,8 +456,9 @@ class ManageWindow(QWidget):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
-        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'])
+        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall)
         self.first_refresh = False
+        self.recent_uninstall = False
         self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
@@ -470,7 +472,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name))
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name), clear_filters=False)
 
         self.thread_uninstall.app = app
         self.thread_uninstall.root_password = pwd
@@ -489,6 +491,7 @@ class ManageWindow(QWidget):
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
             only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            self.recent_uninstall = True
             self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
         else:
             if self._can_notify_user():
@@ -553,7 +556,7 @@ class ManageWindow(QWidget):
 
         self.ref_bt_upgrade.setVisible(show_bt_upgrade)
 
-    def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True):
+    def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True, keep_selected: bool = False):
         self.update_bt_upgrade(pkgs_info)
 
         if pkgs_info['updates'] > 0:
@@ -562,13 +565,14 @@ class ManageWindow(QWidget):
                 if not self.ref_checkbox_updates.isVisible():
                     self.ref_checkbox_updates.setVisible(True)
 
-                if not self.filter_updates:
+                if not self.filter_updates and not keep_selected:
                     self._change_checkbox(self.checkbox_updates, True, 'filter_updates', trigger_filters)
 
-            if pkgs_info['napp_updates'] > 0 and self.filter_only_apps:
+            if pkgs_info['napp_updates'] > 0 and self.filter_only_apps and not keep_selected:
                 self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger_filters)
         else:
-            self._change_checkbox(self.checkbox_updates, False, 'filter_updates', trigger_filters)
+            if not keep_selected:
+                self._change_checkbox(self.checkbox_updates, False, 'filter_updates', trigger_filters)
 
             self.ref_checkbox_updates.setVisible(False)
 
@@ -592,7 +596,7 @@ class ManageWindow(QWidget):
             'display_limit': self.display_limit if updates <= 0 else None
         }
 
-    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False):
+    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False, keep_filters: bool = False):
         self.input_name_filter.setText('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates)
@@ -620,21 +624,24 @@ class ManageWindow(QWidget):
                 commons.update_info(pkgv, pkgs_info)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
-        if pkgs_info['apps_count'] == 0:
-            if self.first_refresh:
-                self._begin_search('')
-                self.thread_suggestions.start()
-                return
+        if not keep_filters:
+            if pkgs_info['apps_count'] == 0:
+                if self.first_refresh:
+                    self._begin_search('')
+                    self.thread_suggestions.start()
+                    return
+                else:
+                    self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger=False)
+                    self.checkbox_only_apps.setCheckable(False)
             else:
-                self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger=False)
-                self.checkbox_only_apps.setCheckable(False)
-        else:
-            self.checkbox_only_apps.setCheckable(True)
-            self._change_checkbox(self.checkbox_only_apps, True, 'filter_only_apps', trigger=False)
+                self.checkbox_only_apps.setCheckable(True)
+                self._change_checkbox(self.checkbox_only_apps, True, 'filter_only_apps', trigger=False)
 
-        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(self.pkgs))
+        self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(self.pkgs))
+        self._update_type_filters(pkgs_info['available_types'], keep_selected=keep_filters and bool(self.pkgs))
         self._apply_filters(pkgs_info, ignore_updates=ignore_updates)
-        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False)
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(self.pkgs))
 
         self.pkgs_available = pkgs_info['pkgs']
 
@@ -645,9 +652,6 @@ class ManageWindow(QWidget):
 
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)
-
-        self._update_type_filters(pkgs_info['available_types'])
-        self._update_categories(pkgs_info['categories'])
 
         self._update_table(pkgs_info=pkgs_info)
 
@@ -666,19 +670,25 @@ class ManageWindow(QWidget):
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 
-    def _update_type_filters(self, available_types: dict = None):
+    def _update_type_filters(self, available_types: dict = None, keep_selected: bool = False):
 
         if available_types is None:
             self.ref_combo_filter_type.setVisible(self.combo_filter_type.count() > 1)
         else:
-            self.type_filter = self.any_type_filter
+            keeping_selected = keep_selected and available_types and self.type_filter in available_types
+
+            if not keeping_selected:
+                self.type_filter = self.any_type_filter
 
             if available_types and len(available_types) > 1:
                 if self.combo_filter_type.count() > 1:
                     for _ in range(self.combo_filter_type.count() - 1):
                         self.combo_filter_type.removeItem(1)
 
-                for app_type, icon_path in available_types.items():
+                sel_type = -1
+                for idx, item in enumerate(available_types.items()):
+                    app_type, icon_path = item[0], item[1]
+
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
@@ -687,28 +697,45 @@ class ManageWindow(QWidget):
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
 
+                    if keeping_selected and app_type == self.type_filter:
+                        sel_type = idx + 1
+
+                self.combo_filter_type.blockSignals(True)
+                self.combo_filter_type.setCurrentIndex(sel_type if sel_type > -1 else 0)
+                self.combo_filter_type.blockSignals(False)
                 self.ref_combo_filter_type.setVisible(True)
             else:
                 self.ref_combo_filter_type.setVisible(False)
 
-    def _update_categories(self, categories: Set[str] = None):
+    def _update_categories(self, categories: Set[str] = None, keep_selected: bool = False):
 
         if categories is None:
             self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
         else:
-            self.category_filter = self.any_category_filter
+            keeping_selected = keep_selected and categories and self.category_filter in categories
+
+            if not keeping_selected:
+                self.category_filter = self.any_category_filter
 
             if categories:
                 if self.combo_categories.count() > 1:
                     for _ in range(self.combo_categories.count() - 1):
                         self.combo_categories.removeItem(1)
 
-                for c in categories:
+                selected_cat = -1
+                for idx, c in enumerate(categories):
                     i18n_cat = self.i18n.get(c)
                     cat_label = i18n_cat if i18n_cat else c
                     self.combo_categories.addItem(cat_label.capitalize(), c)
 
+                    if keeping_selected and c == self.category_filter:
+                        selected_cat = idx + 1
+
+                self.combo_categories.blockSignals(True)
+                self.combo_categories.setCurrentIndex(selected_cat if selected_cat > -1 else 0)
+                self.combo_categories.blockSignals(False)
                 self.ref_combo_categories.setVisible(True)
+
             else:
                 self.ref_combo_categories.setVisible(False)
 
@@ -815,7 +842,7 @@ class ManageWindow(QWidget):
         else:
             self.combo_filter_type.setEnabled(False)
 
-    def finish_action(self):
+    def finish_action(self, keep_filters: bool = False):
         self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
@@ -841,8 +868,8 @@ class ManageWindow(QWidget):
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)
             self.update_bt_upgrade()
-            self._update_type_filters()
-            self._update_categories()
+            self._update_type_filters(keep_selected=keep_filters)
+            self._update_categories(keep_selected=keep_filters)
 
             if self.ref_bt_installed.isVisible():
                 self.ref_bt_installed.setEnabled(True)
