@@ -456,7 +456,7 @@ class ManageWindow(QWidget):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
-        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall)
+        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall and res['types'])
         self.first_refresh = False
         self.recent_uninstall = False
         self._hide_fields_after_recent_installation()
@@ -624,24 +624,25 @@ class ManageWindow(QWidget):
                 commons.update_info(pkgv, pkgs_info)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
-        if not keep_filters:
-            if pkgs_info['apps_count'] == 0:
-                if self.first_refresh:
-                    self._begin_search('')
-                    self.thread_suggestions.start()
-                    return
-                else:
+        if pkgs_info['apps_count'] == 0:
+            if self.first_refresh:
+                self._begin_search('')
+                self.thread_suggestions.start()
+                return
+            else:
+                if not keep_filters:
                     self._change_checkbox(self.checkbox_only_apps, False, 'filter_only_apps', trigger=False)
                     self.checkbox_only_apps.setCheckable(False)
-            else:
+        else:
+            if not keep_filters:
                 self.checkbox_only_apps.setCheckable(True)
                 self._change_checkbox(self.checkbox_only_apps, True, 'filter_only_apps', trigger=False)
 
-        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(self.pkgs))
-        self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(self.pkgs))
-        self._update_type_filters(pkgs_info['available_types'], keep_selected=keep_filters and bool(self.pkgs))
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
+        self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
+        self._update_type_filters(pkgs_info['available_types'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._apply_filters(pkgs_info, ignore_updates=ignore_updates)
-        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(self.pkgs))
+        self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
 
         self.pkgs_available = pkgs_info['pkgs']
 
