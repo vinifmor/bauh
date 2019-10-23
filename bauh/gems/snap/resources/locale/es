@@ -12,6 +12,7 @@ snap.info.version=versión
 snap.info.size=tamaño
 snap.notification.snapd_unavailable={} no parece estar instalado o habilitado. Los paquetes {} estarán indisponibles.
 snap.notification.snap.disable=Si no desea usar aplicativos Snap, desmarque {} en {}
+snap.notifications.api.unavailable = Parece que la API de {} no está disponible en este momento. No será posible buscar nuevos aplicativos {}}.
 snap.action.refresh.status=Actualizando
 snap.action.refresh.label=Actualizar
 snap.install.available_channels.title=Canales disponibles

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap:
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
     - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+    - showing a warning popup when the Snap API is out
 - minor thread improvements
 
 ### UI

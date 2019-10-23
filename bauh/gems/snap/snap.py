@@ -1,7 +1,8 @@
 import logging
 import re
 import subprocess
-from typing import List
+from io import StringIO
+from typing import List, Tuple
 
 from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess, SimpleProcess
 from bauh.gems.snap.model import SnapApplication
@@ -227,3 +228,14 @@ def run(app: SnapApplication, logger: logging.Logger):
         logger.error("No valid command found for '{}'".format(app_name))
     else:
         logger.error("No command found for '{}'".format(app_name))
+
+
+def is_api_available() -> Tuple[bool, str]:
+    output = StringIO()
+    for o in SimpleProcess(['snap', 'search']).instance.stdout:
+        if o:
+            output.write(o.decode())
+
+    output.seek(0)
+    output = output.read()
+    return 'error:' not in output, output
