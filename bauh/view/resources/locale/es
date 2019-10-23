@@ -183,6 +183,7 @@ packagemanager=administrador de paquetes
 sportsgame=juego de deportes
 arcadegame=juego arcade
 player=jugador
+fonts=fuentes
 screenshots.bt_next.label=próxima
 screenshots.bt_back.label=anterior
 screenshots,download.running=descargando imagen

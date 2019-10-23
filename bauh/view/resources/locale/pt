@@ -186,6 +186,7 @@ packagemanager=gerenciador de pacotes
 sportsgame=jogo de esportes
 arcadegame=jogo arcade
 player=jogador
+fonts=fontes
 screenshots.bt_next.label=próxima
 screenshots.bt_back.label=anterior
 screenshots,download.running=baixando imagem
