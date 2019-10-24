@@ -25,6 +25,7 @@ class FlatpakManager(SoftwareManager):
         super(FlatpakManager, self).__init__(context=context)
         self.i18n = context.i18n
         self.api_cache = context.cache_factory.new()
+        self.category_cache = context.cache_factory.new()
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
         self.enabled = True
         self.http_client = context.http_client
@@ -46,7 +47,8 @@ class FlatpakManager(SoftwareManager):
                     disk_loader.fill(app)  # preloading cached disk data
 
                 if internet:
-                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
+                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self,
+                                           context=self.context, category_cache=self.category_cache).start()
 
         else:
             app.fill_cached_data(api_data)

@@ -1,3 +1,4 @@
+import re
 import traceback
 from threading import Thread
 
@@ -9,10 +10,12 @@ from bauh.api.http import HttpClient
 from bauh.gems.flatpak.constants import FLATHUB_API_URL, FLATHUB_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 
+RE_SPLIT_UPPER = re.compile(r'[A-Z][a-z]*')
+
 
 class FlatpakAsyncDataLoader(Thread):
 
-    def __init__(self, app: FlatpakApplication, manager: SoftwareManager, context: ApplicationContext, api_cache: MemoryCache):
+    def __init__(self, app: FlatpakApplication, manager: SoftwareManager, context: ApplicationContext, api_cache: MemoryCache, category_cache: MemoryCache):
         super(FlatpakAsyncDataLoader, self).__init__(daemon=True)
         self.app = app
         self.manager = manager
@@ -20,6 +23,7 @@ class FlatpakAsyncDataLoader(Thread):
         self.api_cache = api_cache
         self.persist = False
         self.logger = context.logger
+        self.category_cache = category_cache
 
     def run(self):
         if self.app:
@@ -51,7 +55,17 @@ class FlatpakAsyncDataLoader(Thread):
                         self.app.icon_url = FLATHUB_URL + self.app.icon_url
 
                     if data.get('categories'):
-                        self.app.categories = [c['name'] for c in data['categories']]
+                        cats = []
+                        for c in data['categories']:
+                            cached = self.category_cache.get(c['name'])
+
+                            if not cached:
+                                cached = ' '.join(RE_SPLIT_UPPER.findall(c['name'])).lower()
+                                self.category_cache.add_non_existing(c['name'], cached)
+
+                            cats.append(cached)
+
+                        self.app.categories = cats
 
                     loaded_data = self.app.get_data_to_cache()
 

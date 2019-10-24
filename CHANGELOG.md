@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - showing an error popup when **AppImageLauncher** messes up with an application installation
 - Flatpak:
     - Runtimes now are categorized as "runtime"
+    - Formatting the API categories to the same format provided by the other packaging technologies
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
