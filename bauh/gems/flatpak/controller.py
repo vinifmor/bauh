@@ -290,7 +290,10 @@ class FlatpakManager(SoftwareManager):
                     if s.get('imgDesktopUrl'):
                         urls.append(s['imgDesktopUrl'])
 
-        except json.decoder.JSONDecodeError:
-            self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
+        except Exception as e:
+            if e.__class__.__name__ == 'JSONDecodeError':
+                self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
+            else:
+                traceback.print_exc()
 
         return urls
