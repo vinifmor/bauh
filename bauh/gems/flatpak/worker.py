@@ -60,7 +60,7 @@ class FlatpakAsyncDataLoader(Thread):
                             cached = self.category_cache.get(c['name'])
 
                             if not cached:
-                                cached = ' '.join(RE_SPLIT_UPPER.findall(c['name'])).lower()
+                                cached = ' '.join(RE_SPLIT_UPPER.findall(c['name'])).lower() if not c['name'].isupper() else c['name'].lower()
                                 self.category_cache.add_non_existing(c['name'], cached)
 
                             cats.append(cached)
