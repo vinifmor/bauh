@@ -47,12 +47,26 @@ class SnapManager(SoftwareManager):
                               latest_version=app_json.get('version'),
                               description=app_json.get('description', app_json.get('summary')))
 
-        if app.publisher:
+        if app.publisher and app.publisher.endswith('*'):
+            app.verified_publisher = True
             app.publisher = app.publisher.replace('*', '')
 
-        app.categories = self.categories.get(app.name.lower())
+        categories = self.categories.get(app.name.lower())
+
+        if categories:
+            app.categories = categories
 
         app.installed = installed
+
+        if not app.is_application():
+            categories = app.categories
+
+            if categories is None:
+                categories = []
+                app.categories = categories
+
+            if 'runtime' not in categories:
+                categories.append('runtime')
 
         api_data = self.api_cache.get(app_json['name'])
         expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()

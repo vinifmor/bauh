@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage:
     - showing an error popup when **AppImageLauncher** messes up with an application installation
 - Flatpak:
-    - Runtimes now are categorized as "runtimes"
+    - Runtimes now are categorized as "runtime"
 - AUR:
     - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
     - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
     - showing a warning popup when the Snap API is out
+    - Snaps not treated as applications with be categorized as "runtime" at least
 - minor thread improvements
 
 ### UI
@@ -33,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - application not initializing when there is no internet connection
 - not loading application icons after some filters are applied to the table results
+- not reloading the available categories after asynchronous data is fetched
 - AUR:
     - update-checking for some scenarios
     - not respecting **ignorepkg** settings in **pacman.conf**
