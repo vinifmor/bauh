@@ -727,7 +727,7 @@ class ManageWindow(QWidget):
         if categories is None:
             self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
         else:
-            keeping_selected = keep_selected and categories and self.category_filter in categories
+            keeping_selected = keep_selected and categories and self.category_filter in {c.lower() for c in categories}
 
             if not keeping_selected:
                 self.category_filter = self.any_category_filter
