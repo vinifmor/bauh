@@ -407,6 +407,20 @@ class ManageWindow(QWidget):
     def _notify_model_data_change(self):
         self.table_apps.fill_async_data()
 
+        if not self.recent_installation:
+            self._reload_categories()
+
+    def _reload_categories(self):
+
+        categories = set()
+
+        for p in self.pkgs_available:
+            if p.model.categories:
+                categories.update(p.model.categories)
+
+        if categories:
+            self._update_categories(categories, keep_selected=True)
+
     def changeEvent(self, e: QEvent):
         if isinstance(e, QWindowStateChangeEvent):
             self._maximized = self.isMaximized()
@@ -438,7 +452,6 @@ class ManageWindow(QWidget):
 
     def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
         self.recent_installation = False
-        # self.type_filter = None
         self.input_search.clear()
 
         if not keep_console:
@@ -725,11 +738,12 @@ class ManageWindow(QWidget):
 
                 selected_cat = -1
                 for idx, c in enumerate(categories):
-                    i18n_cat = self.i18n.get(c)
+                    lower_cat = c.lower()
+                    i18n_cat = self.i18n.get(lower_cat)
                     cat_label = i18n_cat if i18n_cat else c
-                    self.combo_categories.addItem(cat_label.capitalize(), c)
+                    self.combo_categories.addItem(cat_label.capitalize(), lower_cat)
 
-                    if keeping_selected and c == self.category_filter:
+                    if keeping_selected and lower_cat == self.category_filter:
                         selected_cat = idx + 1
 
                 self.combo_categories.blockSignals(True)
