@@ -35,6 +35,12 @@ RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 SOURCE_FIELDS = ('source', 'source_x86_64')
 RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg|git]$')
 
+SEARCH_OPTIMIZED_MAP = {
+    'google chrome': 'google-chrome',
+    'chrome google': 'google-chrome',
+    'googlechrome': 'google-chrome'
+}
+
 
 class ArchManager(SoftwareManager):
 
@@ -81,7 +87,9 @@ class ArchManager(SoftwareManager):
         read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed()), daemon=True)
         read_installed.start()
 
-        api_res = self.aur_client.search(words)
+        mapped_words = SEARCH_OPTIMIZED_MAP.get(words)
+
+        api_res = self.aur_client.search(mapped_words if mapped_words else words)
 
         if api_res and api_res.get('results'):
             read_installed.join()
