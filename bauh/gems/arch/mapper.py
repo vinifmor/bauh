@@ -9,6 +9,7 @@ URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
 RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
 RE_VERSION_SPLIT = re.compile(r'[a-zA-Z]+|\d+|[\.\-_@#]+')
 
+BAUH_PACKAGES = {'bauh', 'bauh-staging'}
 RE_SFX = ('r', 're', 'release')
 GA_SFX = ('ga', 'ge')
 RC_SFX = ('rc',)
@@ -48,32 +49,34 @@ class ArchDataMapper:
         pkg.url_download = URL_PKG_DOWNLOAD.format(package['URLPath']) if package.get('URLPath') else None
         pkg.first_submitted = datetime.fromtimestamp(package['FirstSubmitted']) if package.get('FirstSubmitted') else None
         pkg.last_modified = datetime.fromtimestamp(package['LastModified']) if package.get('LastModified') else None
-        pkg.update = self.check_update(pkg.version, pkg.latest_version)
+        pkg.update = self.check_update(pkg.version, pkg.latest_version, check_suffix=pkg.name in BAUH_PACKAGES)
 
     @staticmethod
-    def check_update(version: str, latest_version: str) -> bool:
+    def check_update(version: str, latest_version: str, check_suffix: bool = False) -> bool:
         if version and latest_version:
-            current_sfx = RE_LETTERS.findall(version)
-            latest_sf = RE_LETTERS.findall(latest_version)
 
-            if latest_sf and current_sfx:
-                current_sfx = current_sfx[0]
-                latest_sf = latest_sf[0]
+            if check_suffix:
+                current_sfx = RE_LETTERS.findall(version)
+                latest_sf = RE_LETTERS.findall(latest_version)
 
-                current_sfx_data = V_SUFFIX_MAP.get(current_sfx.lower())
-                latest_sfx_data = V_SUFFIX_MAP.get(latest_sf.lower())
+                if latest_sf and current_sfx:
+                    current_sfx = current_sfx[0]
+                    latest_sf = latest_sf[0]
 
-                if current_sfx_data and latest_sfx_data:
-                    nversion = version.split(current_sfx)[0]
-                    nlatest = latest_version.split(latest_sf)[0]
+                    current_sfx_data = V_SUFFIX_MAP.get(current_sfx.lower())
+                    latest_sfx_data = V_SUFFIX_MAP.get(latest_sf.lower())
 
-                    if nversion == nlatest:
-                        if current_sfx_data['c'] != latest_sfx_data['c']:
-                            return latest_sfx_data['p'] < current_sfx_data['p']
-                        else:
-                            return ''.join(latest_version.split(latest_sf)) > ''.join(version.split(current_sfx))
+                    if current_sfx_data and latest_sfx_data:
+                        nversion = version.split(current_sfx)[0]
+                        nlatest = latest_version.split(latest_sf)[0]
 
-                    return nlatest > nversion
+                        if nversion == nlatest:
+                            if current_sfx_data['c'] != latest_sfx_data['c']:
+                                return latest_sfx_data['p'] < current_sfx_data['p']
+                            else:
+                                return ''.join(latest_version.split(latest_sf)) > ''.join(version.split(current_sfx))
+
+                        return nlatest > nversion
 
             latest_split = RE_VERSION_SPLIT.findall(latest_version)
             current_split = RE_VERSION_SPLIT.findall(version)
