@@ -316,6 +316,7 @@ class ManageWindow(QWidget):
         self.update_bt_upgrade(pkgs_info)
 
         if self.pkgs_available:
+            self._notify_model_data_change()
             self.thread_verify_models.work = False
             self.thread_verify_models.wait(50)
             self.thread_verify_models.apps = self.pkgs_available
