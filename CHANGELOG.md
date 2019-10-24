@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - 3 password attempts for root authentication
 - not changing the table applied filters after a uninstall
+- cleaning the progress bar substatus after each upgrade
 - AppImage:
     - showing an error popup when **AppImageLauncher** messes up with an application installation
 - Flatpak:
@@ -37,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - application not initializing when there is no internet connection
 - not loading application icons after some filters are applied to the table results
 - not reloading the available categories after asynchronous data is fetched
+- not keeping the update toggle-button state after a filter is applied
 - AUR:
     - update-checking for some scenarios
     - not respecting **ignorepkg** settings in **pacman.conf**

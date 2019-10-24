@@ -64,8 +64,7 @@ class AsyncAction(QThread, ProcessWatcher):
             self.signal_status.emit(status)
 
     def change_substatus(self, substatus: str):
-        if substatus:
-            self.signal_substatus.emit(substatus)
+        self.signal_substatus.emit(substatus)
 
     def change_progress(self, val: int):
         if val is not None:
@@ -96,6 +95,7 @@ class UpdateSelectedApps(AsyncAction):
 
                 self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], name, app.model.version))
                 success = bool(self.manager.update(app.model, self.root_password, self))
+                self.change_substatus('')
 
                 if not success:
                     break
