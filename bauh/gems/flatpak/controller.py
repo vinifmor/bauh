@@ -248,7 +248,7 @@ class FlatpakManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         if flatpak.is_installed():
             if not flatpak.has_remotes_set():
                 return [self.i18n['flatpak.notification.no_remotes']]

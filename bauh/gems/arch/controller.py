@@ -710,7 +710,7 @@ class ArchManager(SoftwareManager):
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
         return [PackageUpdate(p.id, p.latest_version, 'aur') for p in installed if p.update]
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []
 
         if self.arch_distro:

@@ -396,7 +396,7 @@ class AppImageManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         pass
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
