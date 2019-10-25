@@ -1,5 +1,5 @@
-import re
 import traceback
+from io import StringIO
 from threading import Thread
 
 from bauh.api.abstract.cache import MemoryCache
@@ -9,8 +9,6 @@ from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.flatpak.constants import FLATHUB_API_URL, FLATHUB_URL
 from bauh.gems.flatpak.model import FlatpakApplication
-
-RE_SPLIT_UPPER = re.compile(r'[A-Z][a-z]*')
 
 
 class FlatpakAsyncDataLoader(Thread):
@@ -24,6 +22,20 @@ class FlatpakAsyncDataLoader(Thread):
         self.persist = False
         self.logger = context.logger
         self.category_cache = category_cache
+
+    @staticmethod
+    def format_category(category: str) -> str:
+        word = StringIO()
+        last_l = None
+        for idx, l in enumerate(category):
+            if idx != 0 and last_l != ' ' and l.isupper() and idx + 1 < len(category) and category[idx + 1].islower():
+                word.write(' ')
+
+            last_l = l.lower()
+            word.write(last_l)
+
+        word.seek(0)
+        return word.read()
 
     def run(self):
         if self.app:
@@ -60,7 +72,7 @@ class FlatpakAsyncDataLoader(Thread):
                             cached = self.category_cache.get(c['name'])
 
                             if not cached:
-                                cached = ' '.join(RE_SPLIT_UPPER.findall(c['name'])).lower() if not c['name'].isupper() else c['name'].lower()
+                                cached = self.format_category(c['name'])
                                 self.category_cache.add_non_existing(c['name'], cached)
 
                             cats.append(cached)

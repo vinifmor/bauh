@@ -417,7 +417,8 @@ class ManageWindow(QWidget):
 
         for p in self.pkgs_available:
             if p.model.categories:
-                categories.update(p.model.categories)
+                for c in p.model.categories:
+                    categories.add(c.lower())
 
         if categories:
             self._update_categories(categories, keep_selected=True)
@@ -727,7 +728,7 @@ class ManageWindow(QWidget):
         if categories is None:
             self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
         else:
-            keeping_selected = keep_selected and categories and self.category_filter in {c.lower() for c in categories}
+            keeping_selected = keep_selected and categories and self.category_filter in categories
 
             if not keeping_selected:
                 self.category_filter = self.any_category_filter
@@ -738,13 +739,15 @@ class ManageWindow(QWidget):
                         self.combo_categories.removeItem(1)
 
                 selected_cat = -1
-                for idx, c in enumerate(categories):
-                    lower_cat = c.lower()
-                    i18n_cat = self.i18n.get(lower_cat)
-                    cat_label = i18n_cat if i18n_cat else c
-                    self.combo_categories.addItem(cat_label.capitalize(), lower_cat)
+                cat_list = list(categories)
+                cat_list.sort()
 
-                    if keeping_selected and lower_cat == self.category_filter:
+                for idx, c in enumerate(cat_list):
+                    i18n_cat = self.i18n.get(c)
+                    cat_label = i18n_cat if i18n_cat else c
+                    self.combo_categories.addItem(cat_label.capitalize(), c)
+
+                    if keeping_selected and c == self.category_filter:
                         selected_cat = idx + 1
 
                 self.combo_categories.blockSignals(True)

@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 3 password attempts for root authentication
 - not changing the table applied filters after a uninstall
 - cleaning the progress bar substatus after each upgrade
+- sorted categories
 - AppImage:
     - showing an error popup when **AppImageLauncher** messes up with an application installation
 - Flatpak:
