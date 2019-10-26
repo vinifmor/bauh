@@ -4,12 +4,13 @@ from typing import List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QToolBar, QVBoxLayout
+from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QToolBar, QVBoxLayout, QProgressBar, QApplication
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.http import HttpClient
 from bauh.view.qt import qt_utils
 from bauh.view.qt.components import new_spacer
+from bauh.view.qt.thread import AnimateProgress
 from bauh.view.qt.view_model import PackageView
 
 
@@ -28,6 +29,12 @@ class ScreenshotsDialog(QDialog):
         self.resize(1280, 720)
         self.i18n = i18n
         self.http_client = http_client
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 6)
+        self.progress_bar.setTextVisible(False)
+        self.thread_progress = AnimateProgress()
+        self.thread_progress.signal_change.connect(self._update_progress)
+        self.thread_progress.start()
 
         # THERE ARE CRASHES WITH SOME RARE ICONS ( like insomnia ). IT CAN BE A QT BUG. IN THE MEANTIME, ONLY THE TYPE ICON WILL BE RENDERED
         #
@@ -52,7 +59,9 @@ class ScreenshotsDialog(QDialog):
 
         self.img_label = QLabel()
         self.img_label.setStyleSheet('QLabel { font-weight: bold; text-align: center }')
-        self.bottom_bar.addWidget(self.img_label)
+        self.ref_img_label = self.bottom_bar.addWidget(self.img_label)
+        self.ref_img_label.setVisible(False)
+        self.ref_progress_bar = self.bottom_bar.addWidget(self.progress_bar)
         self.bottom_bar.addWidget(new_spacer(50))
 
         self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize())
@@ -64,10 +73,13 @@ class ScreenshotsDialog(QDialog):
         self.img_idx = 0
 
         for idx, s in enumerate(self.screenshots):
-            t = Thread(target=self._download_img, args=(idx, s))
+            t = Thread(target=self._download_img, args=(idx, s), daemon=True)
             t.start()
 
         self._load_img()
+
+    def _update_progress(self, val: int):
+        self.progress_bar.setValue(val)
 
     def _load_img(self):
         if len(self.loaded_imgs) > self.img_idx:
@@ -79,9 +91,15 @@ class ScreenshotsDialog(QDialog):
             else:
                 self.img_label.setText(img)
                 self.img.setPixmap(QPixmap())
+
+            self.thread_progress.stop = True
+            self.ref_progress_bar.setVisible(False)
+            self.ref_img_label.setVisible(True)
         else:
             self.img.setPixmap(QPixmap())
-            self.img_label.setText('...{}...'.format(self.i18n['screenshots,download.running']))
+            self.ref_img_label.setVisible(False)
+            self.ref_progress_bar.setVisible(True)
+            self.thread_progress.start()
 
         if len(self.screenshots) == 1:
             self.ref_bt_back.setVisible(False)

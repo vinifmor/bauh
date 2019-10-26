@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 DESCRIPTION = (
-    "Graphical user interface to manage Flatpak / Snap applications."
+    "Graphical interface to manage Flatpak, Snap, AppImage and AUR packages"
 )
 
 AUTHOR = "Vinicius Moreira"

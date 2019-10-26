@@ -7,9 +7,9 @@ from bauh.gems.arch.model import ArchPackage
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
 RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
-RE_ANY_LETTER = re.compile(r'[a-zA-Z]')
-RE_VERSION_DELS = re.compile(r'[.:#@\-_]')
+RE_VERSION_SPLIT = re.compile(r'[a-zA-Z]+|\d+|[\.\-_@#]+')
 
+BAUH_PACKAGES = {'bauh', 'bauh-staging'}
 RE_SFX = ('r', 're', 'release')
 GA_SFX = ('ga', 'ge')
 RC_SFX = ('rc',)
@@ -49,46 +49,47 @@ class ArchDataMapper:
         pkg.url_download = URL_PKG_DOWNLOAD.format(package['URLPath']) if package.get('URLPath') else None
         pkg.first_submitted = datetime.fromtimestamp(package['FirstSubmitted']) if package.get('FirstSubmitted') else None
         pkg.last_modified = datetime.fromtimestamp(package['LastModified']) if package.get('LastModified') else None
-        pkg.update = self.check_update(pkg.version, pkg.latest_version)
+        pkg.update = self.check_update(pkg.version, pkg.latest_version, check_suffix=pkg.name in BAUH_PACKAGES)
 
     @staticmethod
-    def check_update(version: str, latest_version: str) -> bool:
+    def check_update(version: str, latest_version: str, check_suffix: bool = False) -> bool:
         if version and latest_version:
-            current_sfx = RE_LETTERS.findall(version)
-            latest_sf = RE_LETTERS.findall(latest_version)
 
-            if latest_sf and current_sfx:
-                current_sfx = current_sfx[0]
-                latest_sf = latest_sf[0]
+            if check_suffix:
+                current_sfx = RE_LETTERS.findall(version)
+                latest_sf = RE_LETTERS.findall(latest_version)
 
-                current_sfx_data = V_SUFFIX_MAP.get(current_sfx.lower())
-                latest_sfx_data = V_SUFFIX_MAP.get(latest_sf.lower())
+                if latest_sf and current_sfx:
+                    current_sfx = current_sfx[0]
+                    latest_sf = latest_sf[0]
 
-                if current_sfx_data and latest_sfx_data:
-                    nversion = version.split(current_sfx)[0]
-                    nlatest = latest_version.split(latest_sf)[0]
+                    current_sfx_data = V_SUFFIX_MAP.get(current_sfx.lower())
+                    latest_sfx_data = V_SUFFIX_MAP.get(latest_sf.lower())
 
-                    if nversion == nlatest:
-                        if current_sfx_data['c'] != latest_sfx_data['c']:
-                            return latest_sfx_data['p'] < current_sfx_data['p']
-                        else:
-                            return ''.join(latest_version.split(latest_sf)) > ''.join(version.split(current_sfx))
+                    if current_sfx_data and latest_sfx_data:
+                        nversion = version.split(current_sfx)[0]
+                        nlatest = latest_version.split(latest_sf)[0]
 
-                    return nlatest > nversion
+                        if nversion == nlatest:
+                            if current_sfx_data['c'] != latest_sfx_data['c']:
+                                return latest_sfx_data['p'] < current_sfx_data['p']
+                            else:
+                                return ''.join(latest_version.split(latest_sf)) > ''.join(version.split(current_sfx))
 
-            latest_split = RE_VERSION_DELS.split(latest_version)
-            version_split = RE_VERSION_DELS.split(version)
+                        return nlatest > nversion
+
+            latest_split = RE_VERSION_SPLIT.findall(latest_version)
+            current_split = RE_VERSION_SPLIT.findall(version)
 
             for idx in range(len(latest_split)):
-                if idx < len(version_split):
+                if idx < len(current_split):
                     latest_part = latest_split[idx]
-                    version_part = version_split[idx]
+                    current_part = current_split[idx]
 
-                    if latest_part != version_part:
-                        if RE_ANY_LETTER.findall(latest_part) or RE_ANY_LETTER.findall(version_part):
-                            return latest_part > version_part
-                        else:
-                            dif = int(latest_part) - int(version_part)
+                    if latest_part != current_part:
+
+                        try:
+                            dif = int(latest_part) - int(current_part)
 
                             if dif > 0:
                                 return True
@@ -96,6 +97,14 @@ class ArchDataMapper:
                                 return False
                             else:
                                 continue
+
+                        except ValueError:
+                            if latest_part.isdigit():
+                                return True
+                            elif current_part.isdigit():
+                                return False
+                            else:
+                                return latest_part > current_part
         return False
 
     def fill_package_build(self, pkg: ArchPackage):
@@ -104,14 +113,18 @@ class ArchDataMapper:
         if res and res.status_code == 200 and res.text:
             pkg.pkgbuild = res.text
 
-    def map_api_data(self, apidata: dict, installed: dict) -> ArchPackage:
+    def map_api_data(self, apidata: dict, installed: dict, categories: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name'))
         app = ArchPackage(name=apidata.get('Name'), installed=bool(data), mirror='aur')
         app.status = PackageStatus.LOADING_DATA
+
+        if categories:
+            app.categories = categories.get(app.name)
 
         if data:
             app.version = data.get('version')
             app.description = data.get('description')
 
         self.fill_api_data(app, apidata, fill_version=not data)
+
         return app

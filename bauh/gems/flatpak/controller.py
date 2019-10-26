@@ -1,3 +1,4 @@
+import json
 import traceback
 from datetime import datetime
 from threading import Thread
@@ -24,6 +25,7 @@ class FlatpakManager(SoftwareManager):
         super(FlatpakManager, self).__init__(context=context)
         self.i18n = context.i18n
         self.api_cache = context.cache_factory.new()
+        self.category_cache = context.cache_factory.new()
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
         self.enabled = True
         self.http_client = context.http_client
@@ -45,7 +47,8 @@ class FlatpakManager(SoftwareManager):
                     disk_loader.fill(app)  # preloading cached disk data
 
                 if internet:
-                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
+                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self,
+                                           context=self.context, category_cache=self.category_cache).start()
 
         else:
             app.fill_cached_data(api_data)
@@ -247,7 +250,7 @@ class FlatpakManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         if flatpak.is_installed():
             if not flatpak.has_remotes_set():
                 return [self.i18n['flatpak.notification.no_remotes']]
@@ -279,11 +282,20 @@ class FlatpakManager(SoftwareManager):
         flatpak.run(str(pkg.id))
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        res = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, pkg.id))
+        screenshots_url = '{}/apps/{}'.format(FLATHUB_API_URL, pkg.id)
         urls = []
-        if res and res.get('screenshots'):
-            for s in res['screenshots']:
-                if s.get('imgDesktopUrl'):
-                    urls.append(s['imgDesktopUrl'])
+        try:
+            res = self.http_client.get_json(screenshots_url)
+
+            if res and res.get('screenshots'):
+                for s in res['screenshots']:
+                    if s.get('imgDesktopUrl'):
+                        urls.append(s['imgDesktopUrl'])
+
+        except Exception as e:
+            if e.__class__.__name__ == 'JSONDecodeError':
+                self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
+            else:
+                traceback.print_exc()
 
         return urls

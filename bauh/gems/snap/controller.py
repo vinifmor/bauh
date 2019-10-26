@@ -1,3 +1,4 @@
+import re
 import time
 from datetime import datetime
 from threading import Thread
@@ -8,12 +9,16 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
+from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
+from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.snap import snap, suggestions
+from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
+from bauh.gems.snap import snap, suggestions, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
-from bauh.gems.snap.worker import SnapAsyncDataLoader, CategoriesDownloader
+from bauh.gems.snap.worker import SnapAsyncDataLoader
+
+RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
 
 class SnapManager(SoftwareManager):
@@ -28,7 +33,8 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader(self.http_client, self.logger)
+        self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
+                                                          URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -41,12 +47,26 @@ class SnapManager(SoftwareManager):
                               latest_version=app_json.get('version'),
                               description=app_json.get('description', app_json.get('summary')))
 
-        if app.publisher:
+        if app.publisher and app.publisher.endswith('*'):
+            app.verified_publisher = True
             app.publisher = app.publisher.replace('*', '')
 
-        app.categories = self.categories.get(app.name.lower())
+        categories = self.categories.get(app.name.lower())
+
+        if categories:
+            app.categories = categories
 
         app.installed = installed
+
+        if not app.is_application():
+            categories = app.categories
+
+            if categories is None:
+                categories = []
+                app.categories = categories
+
+            if 'runtime' not in categories:
+                categories.append('runtime')
 
         api_data = self.api_cache.get(app_json['name'])
         expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
@@ -88,6 +108,7 @@ class SnapManager(SoftwareManager):
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         if snap.is_snapd_running():
+            self.categories_downloader.join()
             installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(self.ubuntu_distro)]
             return SearchResult(installed, None, len(installed))
         else:
@@ -125,9 +146,31 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        res = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.install_and_stream(pkg.name, pkg.confinement, root_password)))
+        res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
-        if res:
+        if 'error:' in output:
+            res = False
+            if 'not available on stable' in output:
+                channels = RE_AVAILABLE_CHANNELS.findall(output)
+
+                if channels:
+                    opts = [InputOption(label=c[0], value=c[1]) for c in channels]
+                    channel_select = SingleSelectComponent(type_=SelectViewType.RADIO, label='', options=opts, default_option=opts[0])
+                    if watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
+                                                    body=self.i18n['snap.install.available_channels.body'].format(bold(self.i18n['stable']), bold(pkg.name)) + ':',
+                                                    components=[channel_select],
+                                                    confirmation_label=self.i18n['continue'],
+                                                    deny_label=self.i18n['cancel']):
+                        self.logger.info("Installing '{}' with the custom command '{}'".format(pkg.name, channel_select.value))
+                        res = ProcessHandler(watcher).handle(SystemProcess(new_root_subprocess(channel_select.value.value.split(' '), root_password=root_password)))
+
+                        if res:
+                            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+
+                        return res
+                else:
+                    self.logger.error("Could not find available channels in the installation output: {}".format(output))
+        else:
             pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
 
         return res
@@ -148,19 +191,23 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def prepare(self):
-        categories = self.categories_downloader.get_categories()
-
-        if categories:
-            self.categories = categories
+        self.categories_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         if snap.is_installed() and not snap.is_snapd_running():
             snap_bold = bold('Snap')
             return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
                     self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(self.i18n['manage_window.settings.gems']))]
+
+        if internet_available:
+            available, output = snap.is_api_available()
+
+            if not available:
+                self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
+                return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
     def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):
         res = self.http_client.get_json(SNAP_API_URL + '/search?q=package_name:{}'.format(pkg_name))
@@ -182,6 +229,8 @@ class SnapManager(SoftwareManager):
             sugs.sort(key=lambda t: t[1].value, reverse=True)
 
             threads = []
+            self.categories_downloader.join()
+
             for sug in sugs:
 
                 if limit <= 0 or len(res) < limit:

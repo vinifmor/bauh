@@ -100,7 +100,7 @@ class ProcessHandler:
         if self.watcher:
             self.watcher.print(msg)
 
-    def handle(self, process: SystemProcess) -> bool:
+    def handle(self, process: SystemProcess, error_output: StringIO = None) -> bool:
         self._notify_watcher(' '.join(process.subproc.args) + '\n')
 
         already_succeeded = False
@@ -125,6 +125,9 @@ class ProcessHandler:
                 line = output.decode().strip()
                 if line:
                     self._notify_watcher(line)
+
+                    if error_output is not None:
+                        error_output.write(line)
 
                     if process.check_error_output:
                         if process.wrong_error_phrase and process.wrong_error_phrase in line:

@@ -8,6 +8,8 @@ from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
 
+import requests
+
 from bauh.api.http import HttpClient
 from bauh.gems.appimage import LOCAL_PATH, db
 
@@ -68,7 +70,11 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
     def run(self):
         if self.enabled:
             while True:
-                self._download_databases()
+                try:
+                    self._download_databases()
+                except requests.exceptions.ConnectionError:
+                    self.logger.warning('The internet connection seems to be off.')
+
                 self.logger.info('Sleeping')
                 time.sleep(self.sleep)
         else:

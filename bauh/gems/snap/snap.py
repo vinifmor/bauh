@@ -1,9 +1,10 @@
 import logging
 import re
 import subprocess
-from typing import List
+from io import StringIO
+from typing import List, Tuple
 
-from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess
+from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess, SimpleProcess
 from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
@@ -176,14 +177,15 @@ def uninstall_and_stream(app_name: str, root_password: str):
     return new_root_subprocess([BASE_CMD, 'remove', app_name], root_password)
 
 
-def install_and_stream(app_name: str, confinement: str, root_password: str) -> subprocess.Popen:
+def install_and_stream(app_name: str, confinement: str, root_password: str) -> SimpleProcess:
 
     install_cmd = [BASE_CMD, 'install', app_name]  # default
 
     if confinement == 'classic':
         install_cmd.append('--classic')
 
-    return new_root_subprocess(install_cmd, root_password)
+    # return new_root_subprocess(install_cmd, root_password)
+    return SimpleProcess(install_cmd, root_password=root_password)
 
 
 def downgrade_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
@@ -226,3 +228,14 @@ def run(app: SnapApplication, logger: logging.Logger):
         logger.error("No valid command found for '{}'".format(app_name))
     else:
         logger.error("No command found for '{}'".format(app_name))
+
+
+def is_api_available() -> Tuple[bool, str]:
+    output = StringIO()
+    for o in SimpleProcess(['snap', 'search']).instance.stdout:
+        if o:
+            output.write(o.decode())
+
+    output.seek(0)
+    output = output.read()
+    return 'error:' not in output, output

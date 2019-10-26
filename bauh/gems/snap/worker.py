@@ -1,14 +1,10 @@
-import logging
-import os
 import traceback
 from threading import Thread
-from typing import Dict, List
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageStatus
-from bauh.api.http import HttpClient
 from bauh.gems.snap import snap
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
@@ -72,34 +68,3 @@ class SnapAsyncDataLoader(Thread):
 
             if self.persist:
                 self.manager.cache_to_disk(pkg=self.app, icon_bytes=None, only_icon=False)
-
-
-class CategoriesDownloader:
-
-    URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/categories.txt'
-
-    def __init__(self, http_client: HttpClient, logger: logging.Logger):
-        self.http_client = http_client
-        self.logger = logger
-
-    def get_categories(self) -> Dict[str, List[str]]:
-        self.logger.info('Downloading Snap category definitions from {}'.format(self.URL_CATEGORIES_FILE))
-
-        res = self.http_client.get(self.URL_CATEGORIES_FILE)
-
-        if res:
-            try:
-                categories_map = {}
-                for l in res.text.split('\n'):
-                    if l:
-                        data = l.split('=')
-                        categories_map[data[0]] = [c.strip() for c in data[1].split(',') if c]
-
-                self.logger.info('Loaded categories for {} Snap applications'.format(len(categories_map)))
-                return categories_map
-            except:
-                self.logger.error("Could not parse categories definitions")
-                traceback.print_exc()
-                return {}
-        else:
-            self.logger.info('Could not download {}'.format(self.URL_CATEGORIES_FILE))

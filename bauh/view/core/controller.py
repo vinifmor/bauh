@@ -307,13 +307,15 @@ class GenericSoftwareManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool = None) -> List[str]:
         warnings = []
 
         if self.managers:
+            int_available = internet.is_available(self.context.http_client, self.context.logger)
+
             for man in self.managers:
                 if man.is_enabled():
-                    man_warnings = man.list_warnings()
+                    man_warnings = man.list_warnings(internet_available=int_available)
 
                     if man_warnings:
                         if warnings is None:

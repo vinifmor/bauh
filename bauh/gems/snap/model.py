@@ -19,7 +19,7 @@ class SnapApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, publisher: str = None, rev: str = None, notes: str = None,
-                 confinement: str = None, has_apps_field: bool = None):
+                 confinement: str = None, has_apps_field: bool = None, verified_publisher: bool = False):
         super(SnapApplication, self).__init__(id=id, name=name, version=version,
                                               latest_version=latest_version, description=description)
         self.publisher = publisher
@@ -27,6 +27,7 @@ class SnapApplication(SoftwarePackage):
         self.notes = notes
         self.confinement = confinement
         self.has_apps_field = has_apps_field
+        self.verified_publisher = verified_publisher
 
     def supports_disk_cache(self):
         return self.installed

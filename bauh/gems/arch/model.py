@@ -2,12 +2,10 @@ import datetime
 from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
-from bauh.api.constants import CACHE_PATH
 from bauh.commons import resource
+from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 
-from bauh.gems.arch import ROOT_DIR
-
-CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry'}
+CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry', 'categories'}
 
 
 class ArchPackage(SoftwarePackage):
@@ -35,7 +33,7 @@ class ArchPackage(SoftwarePackage):
 
     @staticmethod
     def disk_cache_path(pkgname: str, mirror: str):
-        return CACHE_PATH + '/arch/installed/' + ('aur' if mirror == 'aur' else 'mirror') + '/' + pkgname
+        return ARCH_CACHE_PATH + '/installed/' + ('aur' if mirror == 'aur' else 'mirror') + '/' + pkgname
 
     def get_pkg_build_url(self):
         if self.package_base:

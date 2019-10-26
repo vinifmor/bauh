@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.1] 2019-10-25
+### Features
+- Snap:
+    - if the **stable** channel is not available while an application is being installed, a popup is displayed allowing the user to choose a different one ( e.g: dbeaver-ce )
+
+### Improvements
+- 3 password attempts for root authentication
+- not changing the table applied filters after a uninstall
+- cleaning the progress bar substatus after each upgrade
+- sorted categories
+- AppImage:
+    - showing an error popup when **AppImageLauncher** messes up with an application installation
+- Flatpak:
+    - Runtimes now are categorized as "runtime"
+    - Formatting the API categories to the same format provided by the other packaging technologies
+- AUR:
+    - showing a "user-friendly" popup when there are integrity issues with the source-files of a building package
+    - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
+    - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+    - mapping known search key words to the specific package name ( e.g:"google chrome" will become "google-chrome" )
+- Snap:
+    - not waiting for the categories file to be retrieved from the cloud during application boot ( reduces boot time )
+    - caching cloud categories to the disk so they can be used in scenarios when it is not possible to retrieve them ( e.g: internet is off )
+    - showing a warning popup when the Snap API is out
+    - Snaps not treated as applications with be categorized as "runtime" at least
+- minor thread improvements
+
+### UI
+- Screenshots panel:
+    - "downloading" label replaced by a progress bar
+    
+### Fixes
+- application not initializing when there is no internet connection
+- not loading application icons after some filters are applied to the table results
+- not reloading the available categories after asynchronous data is fetched
+- not keeping the update toggle-button state after a filter is applied
+- AUR:
+    - update-checking for some scenarios
+    - not respecting **ignorepkg** settings in **pacman.conf**
+    - not able to handle **missing dependencies with symbols** ( e.g: libpng++ )
+    - not able to work with **.xpm** icons
+    - not mapping categories to the search results
+
 ## [0.7.0] 2019-10-18
 ### Features
 - AppImage support ( see below )
@@ -34,7 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### AppImage support
 - Search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
-- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications **)
+- Adds desktop entries ( menu shortcuts ) for the installed applications ( **~/.local/share/applications**)
 
 ## [0.6.4] 2019-10-13
 ### Fixes

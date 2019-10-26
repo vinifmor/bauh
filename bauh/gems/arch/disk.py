@@ -22,7 +22,7 @@ def write(app: ArchPackage):
 
 
 def fill_icon_path(app: ArchPackage, icon_paths: List[str], only_exact_match: bool):
-    ends_with = re.compile(r'.+/{}\.(png|svg)$'.format(app.icon_path if app.icon_path else app.name), re.IGNORECASE)
+    ends_with = re.compile(r'.+/{}\.(png|svg|xpm)$'.format(app.icon_path if app.icon_path else app.name), re.IGNORECASE)
 
     for path in icon_paths:
         if ends_with.match(path):
@@ -47,7 +47,7 @@ def set_icon_path(app: ArchPackage, icon_name: str = None):
                 break
 
 
-def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, maintainer: str = None) -> int:
+def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, maintainer: str = None, categories: dict = None) -> int:
     to_cache = {n for n in pkgnames if overwrite or not os.path.exists(ArchPackage.disk_cache_path(n, mirror))}
     desktop_files = pacman.list_desktop_entries(to_cache)
 
@@ -138,8 +138,10 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
 
     if to_write:
         for p in to_write:
+            if categories:
+                p.categories = categories.get(p.name)
+
             p.maintainer = maintainer
             write(p)
         return len(to_write)
     return 0
-

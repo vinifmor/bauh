@@ -1,4 +1,5 @@
 import re
+from threading import Thread
 from typing import List, Set
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess
@@ -13,7 +14,7 @@ def is_enabled() -> bool:
 
 
 def get_mirrors(pkgs: Set[str]) -> dict:
-    pkgre = '|'.join(pkgs)
+    pkgre = '|'.join(pkgs).replace('+', r'\+').replace('.', r'\.')
 
     searchres = new_subprocess(['pacman', '-Ss', pkgre]).stdout
     mirrors = {}
@@ -71,9 +72,17 @@ def check_installed(pkg: str) -> bool:
     return bool(res)
 
 
+def _fill_ignored(res: dict):
+    res['pkgs'] = list_ignored_packages()
+
+
 def list_and_map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
     installed = new_subprocess(['pacman', '-Qq']).stdout  # retrieving all installed package names
     allinfo = new_subprocess(['pacman', '-Qi'], stdin=installed).stdout  # retrieving all installed packages info
+
+    ignored = {}
+    thread_ignored = Thread(target=_fill_ignored, args=(ignored,))
+    thread_ignored.start()
 
     pkgs, current_pkg = {'mirrors': {}, 'not_signed': {}}, {}
     for out in new_subprocess(['grep', '-E', '(Name|Description|Version|Validated By)'],
@@ -95,6 +104,18 @@ def list_and_map_installed() -> dict:  # returns a dict with with package names 
                                                                'description': current_pkg['description']}
 
                 current_pkg = {}
+
+    if pkgs and pkgs.get('not_signed'):
+        thread_ignored.join()
+
+        if ignored['pkgs']:
+            to_del = set()
+            for pkg in pkgs['not_signed'].keys():
+                if pkg in ignored['pkgs']:
+                    to_del.add(pkg)
+
+            for pkg in to_del:
+                del pkgs['not_signed'][pkg]
 
     return pkgs
 
@@ -124,7 +145,7 @@ def list_icon_paths(pkgnames: Set[str]) -> List[str]:
     installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
 
     icon_files = []
-    for out in new_subprocess(['grep', '-E', '.(png|svg)$'], stdin=installed_files.stdout).stdout:
+    for out in new_subprocess(['grep', '-E', '.(png|svg|xpm)$'], stdin=installed_files.stdout).stdout:
         if out:
             line = out.decode().strip()
             if line:
@@ -179,3 +200,19 @@ def receive_key(key: str, root_password: str) -> SystemProcess:
 def sign_key(key: str, root_password: str) -> SystemProcess:
     return SystemProcess(new_root_subprocess(['pacman-key', '--lsign-key', key], root_password=root_password), check_error_output=False)
 
+
+def list_ignored_packages(config_path: str = '/etc/pacman.conf') -> Set[str]:
+    pacman_conf = new_subprocess(['cat', config_path])
+
+    ignored = set()
+    grep = new_subprocess(['grep', '-Eo', r'\s*#*\s*ignorepkg\s*=\s*.+'], stdin=pacman_conf.stdout)
+    for o in grep.stdout:
+        if o:
+            line = o.decode().strip()
+
+            if not line.startswith('#'):
+                ignored.add(line.split('=')[1].strip())
+
+    pacman_conf.terminate()
+    grep.terminate()
+    return ignored

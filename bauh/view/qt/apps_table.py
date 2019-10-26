@@ -231,7 +231,7 @@ class AppsTable(QTableWidget):
             col_update = None
 
             if update_check_enabled and pkg.model.update:
-                col_update = UpdateToggleButton(pkg, self.window, self.i18n, pkg.model.update)
+                col_update = UpdateToggleButton(pkg, self.window, self.i18n, pkg.update_checked)
 
             self.setCellWidget(pkg.table_index, 7, col_update)
 

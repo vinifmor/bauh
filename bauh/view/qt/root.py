@@ -13,28 +13,41 @@ def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(locale_keys: dict):
-
+def ask_root_password(i18n: dict):
     diag = QInputDialog()
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
     diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
-    diag.setWindowTitle(locale_keys['popup.root.title'])
+    diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
-    diag.setCancelButtonText(locale_keys['popup.button.cancel'])
+    diag.setCancelButtonText(i18n['popup.button.cancel'])
     diag.resize(400, 200)
 
-    ok = diag.exec_()
+    for attempt in range(3):
 
-    if ok:
-        if not validate_password(diag.textValue()):
-            show_message(title=locale_keys['popup.root.bad_password.title'],
-                         body=locale_keys['popup.root.bad_password.body'],
-                         type_=MessageType.ERROR)
-            ok = False
+        ok = diag.exec_()
 
-    return diag.textValue(), ok
+        if ok:
+            if not validate_password(diag.textValue()):
+
+                body = i18n['popup.root.bad_password.body']
+
+                if attempt == 2:
+                    body += '. ' + i18n['popup.root.bad_password.last_try']
+
+                show_message(title=i18n['popup.root.bad_password.title'],
+                             body=body,
+                             type_=MessageType.ERROR)
+                ok = False
+                diag.setTextValue('')
+
+            if ok:
+                return diag.textValue(), ok
+        else:
+            break
+
+    return '', False
 
 
 def validate_password(password: str) -> bool:

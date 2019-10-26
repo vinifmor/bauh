@@ -1,9 +1,8 @@
 import re
 from typing import Set, List
 
-import requests
-
 from bauh.api.http import HttpClient
+import urllib.parse
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
 URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
@@ -32,7 +31,7 @@ class AURClient:
         return res['results'] if res and res.get('results') else []
 
     def get_src_info(self, name: str) -> dict:
-        res = self.http_client.get(URL_SRC_INFO + name)
+        res = self.http_client.get(URL_SRC_INFO + urllib.parse.quote(name))
 
         if res and res.text:
             info = {}
@@ -48,4 +47,4 @@ class AURClient:
             return info
 
     def _map_names_as_queries(self, names) -> str:
-        return '&'.join(['arg[{}]={}'.format(i, n) for i, n in enumerate(names)])
+        return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])

@@ -64,8 +64,7 @@ class AsyncAction(QThread, ProcessWatcher):
             self.signal_status.emit(status)
 
     def change_substatus(self, substatus: str):
-        if substatus:
-            self.signal_substatus.emit(substatus)
+        self.signal_substatus.emit(substatus)
 
     def change_progress(self, val: int):
         if val is not None:
@@ -96,6 +95,7 @@ class UpdateSelectedApps(AsyncAction):
 
                 self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], name, app.model.version))
                 success = bool(self.manager.update(app.model, self.root_password, self))
+                self.change_substatus('')
 
                 if not success:
                     break
@@ -352,6 +352,7 @@ class VerifyModels(QThread):
     def __init__(self, apps: List[PackageView] = None):
         super(VerifyModels, self).__init__()
         self.apps = apps
+        self.work = True
 
     def run(self):
 
@@ -361,6 +362,10 @@ class VerifyModels(QThread):
             last_ready = 0
 
             while True:
+
+                if not self.work:
+                    break
+
                 current_ready = 0
 
                 for app in self.apps:
@@ -379,6 +384,7 @@ class VerifyModels(QThread):
 
                 time.sleep(0.1)
 
+        self.work = True
         self.apps = None
 
 

@@ -15,14 +15,16 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
 from bauh.api.abstract.view import MessageType
+from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
     SimpleProcess
-from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, gpg
+from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, CategoriesDownloader
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -32,6 +34,12 @@ RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 
 SOURCE_FIELDS = ('source', 'source_x86_64')
 RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg|git]$')
+
+SEARCH_OPTIMIZED_MAP = {
+    'google chrome': 'google-chrome',
+    'chrome google': 'google-chrome',
+    'googlechrome': 'google-chrome'
+}
 
 
 class ArchManager(SoftwareManager):
@@ -51,11 +59,12 @@ class ArchManager(SoftwareManager):
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
-        self.categories_downloader = CategoriesDownloader(context.http_client, context.logger)
-        self.categories_map = {}
+        self.categories_mapper = CategoriesDownloader('AUR', context.http_client, context.logger, self, self.context.disk_cache,
+                                                      URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH)
+        self.categories = {}
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
-        app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'])
+        app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
         app.downgrade_enabled = downgrade_enabled
 
         if app.installed:
@@ -66,7 +75,7 @@ class ArchManager(SoftwareManager):
         else:
             res.new.append(app)
 
-        Thread(target=self.mapper.fill_package_build, args=(app,)).start()
+        Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
         self.comp_optimizer.join()
@@ -75,10 +84,12 @@ class ArchManager(SoftwareManager):
         res = SearchResult([], [], 0)
 
         installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed()))
+        read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed()), daemon=True)
         read_installed.start()
 
-        api_res = self.aur_client.search(words)
+        mapped_words = SEARCH_OPTIMIZED_MAP.get(words)
+
+        api_res = self.aur_client.search(mapped_words if mapped_words else words)
 
         if api_res and api_res.get('results'):
             read_installed.join()
@@ -117,9 +128,8 @@ class ArchManager(SoftwareManager):
 
                 if pkgsinfo:
                     for pkgdata in pkgsinfo:
-                        pkg = self.mapper.map_api_data(pkgdata, not_signed)
+                        pkg = self.mapper.map_api_data(pkgdata, not_signed, self.categories)
                         pkg.downgrade_enabled = downgrade_enabled
-                        pkg.categories = self.categories_map.get(pkg.name)
 
                         if disk_loader:
                             disk_loader.fill(pkg)
@@ -137,7 +147,7 @@ class ArchManager(SoftwareManager):
                               latest_version=data.get('version'), description=data.get('description'),
                               installed=True, mirror='aur')
 
-            pkg.categories = self.categories_map.get(pkg.name)
+            pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
 
             if disk_loader:
@@ -161,6 +171,7 @@ class ArchManager(SoftwareManager):
         apps = []
         if installed and installed['not_signed']:
             self.dcache_updater.join()
+            self.categories_mapper.join()
 
             self._fill_aur_pkgs(installed['not_signed'], apps, disk_loader, internet_available)
 
@@ -490,6 +501,12 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
+            if check_res.get('validity_check'):
+                handler.watcher.show_message(title=self.i18n['arch.aur.install.validity_check.title'],
+                                             body=self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
+                                             type_=MessageType.ERROR)
+                return False
+
         return True
 
     def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, change_progress: bool = True) -> bool:
@@ -559,7 +576,7 @@ class ArchManager(SoftwareManager):
         if installed and self.context.disk_cache:
             handler.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(pkgname)))
             if self.context.disk_cache:
-                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True)
+                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True, categories=self.categories)
 
             self._update_progress(handler.watcher, 100, change_progress)
 
@@ -678,7 +695,7 @@ class ArchManager(SoftwareManager):
             return False
 
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
-       pass
+        pass
 
     def requires_root(self, action: str, pkg: ArchPackage):
         return action != 'search'
@@ -687,16 +704,13 @@ class ArchManager(SoftwareManager):
         self.dcache_updater.start()
         self.comp_optimizer.start()
         self.aur_index_updater.start()
-        categories = self.categories_downloader.get_categories()
-
-        if categories:
-            self.categories_map = categories
+        self.categories_mapper.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
         return [PackageUpdate(p.id, p.latest_version, 'aur') for p in installed if p.update]
 
-    def list_warnings(self) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []
 
         if self.arch_distro:
@@ -725,9 +739,10 @@ class ArchManager(SoftwareManager):
         api_res = self.aur_client.get_info(sug_names)
 
         if api_res:
+            self.categories_mapper.join()
             for pkg in api_res:
                 if pkg.get('Name') in sug_names:
-                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}), suggestions.ALL.get(pkg['Name'])))
+                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions.ALL.get(pkg['Name'])))
 
         return res
 
