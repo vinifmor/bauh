@@ -3,7 +3,6 @@ snap.info.commands=comandos
 snap.info.contact=contacto
 snap.info.description=descripción
 snap.info.license=licencia
-snap.info.license.unset=no está definida
 snap.info.revision=revisión
 snap.info.tracking=tracking
 snap.info.installed=instalado

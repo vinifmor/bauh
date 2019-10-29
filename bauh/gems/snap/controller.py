@@ -140,6 +140,9 @@ class SnapManager(SoftwareManager):
         if info.get('commands'):
             info['commands'] = ' '.join(info['commands'])
 
+        if info.get('license') and info['license'] == 'unset':
+            del info['license']
+
         return info
 
     def get_history(self, pkg: SnapApplication) -> PackageHistory:
