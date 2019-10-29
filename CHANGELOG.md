@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
     - Snap
         - not showing **License** in the info window if it defined as **unset**
-    - i18n ( spanish contributions by @fitojb )
+    - i18n ( spanish contributions by [fitojb](https://github.com/fitojb) )
 
 ### Fixes:
     - Snap
