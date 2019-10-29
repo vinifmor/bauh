@@ -6,13 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.7.2]
 ### Improvements
-    - Snap
-        - not showing **License** in the info window if it defined as **unset**
-    - i18n ( spanish contributions by [fitojb](https://github.com/fitojb) )
+- Snap
+    - not showing **License** in the info window if it defined as **unset**
+- i18n: spanish contributions by [fitojb](https://github.com/fitojb)
+- minor labels improvements
 
 ### Fixes:
-    - Snap
-        - The application crashes due to Snap API checking when snap is not installed
+- Snap
+    - The application crashes due to Snap API checking when snap is not installed
 
 ## [0.7.1] 2019-10-25
 ### Features
