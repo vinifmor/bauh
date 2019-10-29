@@ -197,17 +197,18 @@ class SnapManager(SoftwareManager):
         pass
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        if snap.is_installed() and not snap.is_snapd_running():
-            snap_bold = bold('Snap')
-            return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
-                    self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(self.i18n['manage_window.settings.gems']))]
+        if snap.is_installed():
+            if not snap.is_snapd_running():
+                snap_bold = bold('Snap')
+                return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
+                        self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(self.i18n['manage_window.settings.gems']))]
 
-        if internet_available:
-            available, output = snap.is_api_available()
+            elif internet_available:
+                available, output = snap.is_api_available()
 
-            if not available:
-                self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
-                return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
+                if not available:
+                    self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
+                    return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
     def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):
         res = self.http_client.get_json(SNAP_API_URL + '/search?q=package_name:{}'.format(pkg_name))
