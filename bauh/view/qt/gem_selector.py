@@ -32,7 +32,7 @@ class GemSelectorPanel(QWidget):
         self.bt_proceed.setStyleSheet(css.OK_BUTTON)
         self.bt_proceed.clicked.connect(self.save)
 
-        self.bt_exit = QPushButton(i18n['exit'].capitalize())
+        self.bt_exit = QPushButton(i18n['close'].capitalize())
         self.bt_exit.clicked.connect(self.exit)
 
         self.gem_map = {}
