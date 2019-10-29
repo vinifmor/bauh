@@ -56,6 +56,9 @@ class SnapApplication(SoftwarePackage):
     def get_disk_cache_path(self):
         return super(SnapApplication, self).get_disk_cache_path() + '/installed/' + self.name
 
+    def is_trustable(self) -> bool:
+        return self.verified_publisher
+
     def get_data_to_cache(self):
         return {
             "icon_url": self.icon_url,

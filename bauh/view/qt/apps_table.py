@@ -76,6 +76,7 @@ class AppsTable(QTableWidget):
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
+        self.pixmap_verified = QPixmap(resource.get_path('img/verified.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon_and_cache)
@@ -372,7 +373,9 @@ class AppsTable(QTableWidget):
         self.setItem(pkg.table_index, col, item)
 
     def _set_col_publisher(self, col: int, pkg: PackageView):
-        item = QLabel()
+        item = QWidget()
+        item.setLayout(QHBoxLayout())
+        item.layout().setContentsMargins(1, 1, 1, 1)
 
         publisher = pkg.model.get_publisher()
         full_publisher = None
@@ -384,21 +387,34 @@ class AppsTable(QTableWidget):
             if len(publisher) > PUBLISHER_MAX_SIZE:
                 publisher = full_publisher[0: PUBLISHER_MAX_SIZE - 3] + '...'
 
-            if len(publisher) < PUBLISHER_MAX_SIZE:
-                publisher = publisher + ' ' * (PUBLISHER_MAX_SIZE - len(publisher))
-
         if not publisher:
             if not pkg.model.installed:
                 item.setStyleSheet('QLabel { color: red; }')
 
             publisher = self.i18n['unknown']
 
-        item.setText('  {}  '.format(publisher))
+        lb_name = QLabel('  {}'.format(publisher))
+        lb_name.setStyleSheet('QLabel { margin-right: 0px}')
+        item.layout().addWidget(lb_name)
 
         if publisher and full_publisher:
-            item.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
+            lb_name.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
+
+            if pkg.model.is_trustable():
+                lb_verified = QLabel()
+                lb_verified.setPixmap(self.pixmap_verified)
+                lb_verified.setToolTip(self.i18n['publisher.verified'].capitalize())
+                item.layout().addWidget(lb_verified)
+            else:
+                lb_name.setText(lb_name.text() + "   ")
 
         self.setCellWidget(pkg.table_index, col, item)
+
+    def _set_col_verified(self, col: int, pkg: PackageView):
+        item = QTableWidgetItem()
+
+        if pkg.model.is_trustable():
+            item.setIcon()
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
