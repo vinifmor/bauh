@@ -11,10 +11,10 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
-from bauh.view.util import resource
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.util import resource
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
@@ -373,9 +373,7 @@ class AppsTable(QTableWidget):
         self.setItem(pkg.table_index, col, item)
 
     def _set_col_publisher(self, col: int, pkg: PackageView):
-        item = QWidget()
-        item.setLayout(QHBoxLayout())
-        item.layout().setContentsMargins(1, 1, 1, 1)
+        item = QToolBar()
 
         publisher = pkg.model.get_publisher()
         full_publisher = None
@@ -394,8 +392,7 @@ class AppsTable(QTableWidget):
             publisher = self.i18n['unknown']
 
         lb_name = QLabel('  {}'.format(publisher))
-        lb_name.setStyleSheet('QLabel { margin-right: 0px}')
-        item.layout().addWidget(lb_name)
+        item.addWidget(lb_name)
 
         if publisher and full_publisher:
             lb_name.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
@@ -404,17 +401,11 @@ class AppsTable(QTableWidget):
                 lb_verified = QLabel()
                 lb_verified.setPixmap(self.pixmap_verified)
                 lb_verified.setToolTip(self.i18n['publisher.verified'].capitalize())
-                item.layout().addWidget(lb_verified)
+                item.addWidget(lb_verified)
             else:
                 lb_name.setText(lb_name.text() + "   ")
 
         self.setCellWidget(pkg.table_index, col, item)
-
-    def _set_col_verified(self, col: int, pkg: PackageView):
-        item = QTableWidgetItem()
-
-        if pkg.model.is_trustable():
-            item.setIcon()
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
