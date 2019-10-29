@@ -45,7 +45,8 @@ class SnapManager(SoftwareManager):
                               name=app_json.get('name'),
                               version=app_json.get('version'),
                               latest_version=app_json.get('version'),
-                              description=app_json.get('description', app_json.get('summary')))
+                              description=app_json.get('description', app_json.get('summary')),
+                              verified_publisher=app_json.get('developer_validation', '') == 'verified')
 
         if app.publisher and app.publisher.endswith('*'):
             app.verified_publisher = True
