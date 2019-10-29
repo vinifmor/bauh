@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Snap
     - not showing **License** in the info window if it defined as **unset**
+- showing suggestions if the user changes the application types available and there are no applications installed    
 - i18n: spanish contributions by [fitojb](https://github.com/fitojb)
 - minor labels improvements
 

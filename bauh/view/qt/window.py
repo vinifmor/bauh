@@ -284,6 +284,7 @@ class ManageWindow(QWidget):
         self.progress_controll_enabled = True
         self.recent_installation = False
         self.recent_uninstall = False
+        self.types_changed = False
 
         self.dialog_about = None
         self.first_refresh = suggestions
@@ -474,6 +475,7 @@ class ManageWindow(QWidget):
         self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall and res['types'])
         self.first_refresh = False
         self.recent_uninstall = False
+        self.types_changed = False
         self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
@@ -640,7 +642,7 @@ class ManageWindow(QWidget):
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
         if pkgs_info['apps_count'] == 0:
-            if self.first_refresh:
+            if self.first_refresh or self.types_changed:
                 self._begin_search('')
                 self.thread_suggestions.start()
                 return
