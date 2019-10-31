@@ -9,7 +9,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion
 from bauh.api.abstract.view import MessageType
-from bauh.commons.html import strip_html
+from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.flatpak import flatpak, suggestions
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -253,7 +253,8 @@ class FlatpakManager(SoftwareManager):
     def list_warnings(self, internet_available: bool) -> List[str]:
         if flatpak.is_installed():
             if not flatpak.has_remotes_set():
-                return [self.i18n['flatpak.notification.no_remotes']]
+                return [self.i18n['flatpak.notification.no_remotes'],
+                        self.i18n['flatpak.notification.disable'].format(bold('Flatpak'), bold(self.i18n['manage_window.settings.gems']))]
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()

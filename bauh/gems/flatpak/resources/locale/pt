@@ -19,6 +19,7 @@ flatpak.info.subject=assunto
 flatpak.info.type=tipo
 flatpak.info.version=versão
 flatpak.notification.no_remotes=Não há repositórios (remotes) Flatpak configurados. Não será possível buscar aplicativos Flatpak.
+flatpak.notification.disable=Se não deseja usar aplicativos Flatpak, desmarque {} em {}
 flatpak.downgrade.impossible.title=Erro
 flatpak.downgrade.impossible.body=Impossível reverter a versão: o aplicativo está na sua primeira versão
 flatpak.history.date=data
