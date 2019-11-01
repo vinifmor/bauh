@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.7.2]
+## [0.7.2] 2019-11-01
 ### Improvements
 - Snap
     - not showing **License** in the info window if it defined as **unset**
