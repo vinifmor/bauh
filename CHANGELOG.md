@@ -14,12 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - i18n: spanish contributions by [fitojb](https://github.com/fitojb)
 - minor labels improvements
 
-### Fixes:
+### UI
+- Displaying a **verified** green icon next to a verified publisher's name
+
+### Fixes
 - Snap
     - The application crashes due to Snap API checking when snap is not installed ( introduced in **0.7.1** )
     
-### UI:
-- Displaying a **verified** green icon next to a verified publisher's name
 
 ## [0.7.1] 2019-10-25
 ### Features
