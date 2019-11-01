@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes:
 - Snap
-    - The application crashes due to Snap API checking when snap is not installed
+    - The application crashes due to Snap API checking when snap is not installed ( introduced in **0.7.1** )
     
 ### UI:
 - Displaying a **verified** green icon next to a verified publisher's name
