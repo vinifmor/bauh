@@ -147,3 +147,5 @@ screenshots.download.no_content=No content to display
 screenshots.download.no_response=Image not found
 continue=continue
 stable=stable
+close=close
+publisher.verified=verified

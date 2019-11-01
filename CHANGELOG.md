@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.2] 2019-11-01
+### Improvements
+- Snap
+    - not showing **License** in the info window if it defined as **unset**
+- Flatpak:
+    - "Remotes not set" warning informing to the user that Flatpak support can be disabled  
+- showing suggestions if the user changes the application types available and there are no applications installed    
+- i18n: spanish contributions by [fitojb](https://github.com/fitojb)
+- minor labels improvements
+
+### UI
+- Displaying a **verified** green icon next to a verified publisher's name
+
+### Fixes
+- Snap
+    - The application crashes due to Snap API checking when snap is not installed ( introduced in **0.7.1** )
+    
+
 ## [0.7.1] 2019-10-25
 ### Features
 - Snap:

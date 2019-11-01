@@ -11,10 +11,10 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
-from bauh.view.util import resource
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.util import resource
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
@@ -76,6 +76,7 @@ class AppsTable(QTableWidget):
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
+        self.pixmap_verified = QPixmap(resource.get_path('img/verified.svg'))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon_and_cache)
@@ -372,7 +373,7 @@ class AppsTable(QTableWidget):
         self.setItem(pkg.table_index, col, item)
 
     def _set_col_publisher(self, col: int, pkg: PackageView):
-        item = QLabel()
+        item = QToolBar()
 
         publisher = pkg.model.get_publisher()
         full_publisher = None
@@ -384,19 +385,25 @@ class AppsTable(QTableWidget):
             if len(publisher) > PUBLISHER_MAX_SIZE:
                 publisher = full_publisher[0: PUBLISHER_MAX_SIZE - 3] + '...'
 
-            if len(publisher) < PUBLISHER_MAX_SIZE:
-                publisher = publisher + ' ' * (PUBLISHER_MAX_SIZE - len(publisher))
-
         if not publisher:
             if not pkg.model.installed:
                 item.setStyleSheet('QLabel { color: red; }')
 
             publisher = self.i18n['unknown']
 
-        item.setText('  {}  '.format(publisher))
+        lb_name = QLabel('  {}'.format(publisher))
+        item.addWidget(lb_name)
 
         if publisher and full_publisher:
-            item.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
+            lb_name.setToolTip(self.i18n['publisher'].capitalize() + ((': ' + full_publisher) if full_publisher else ''))
+
+            if pkg.model.is_trustable():
+                lb_verified = QLabel()
+                lb_verified.setPixmap(self.pixmap_verified)
+                lb_verified.setToolTip(self.i18n['publisher.verified'].capitalize())
+                item.addWidget(lb_verified)
+            else:
+                lb_name.setText(lb_name.text() + "   ")
 
         self.setCellWidget(pkg.table_index, col, item)
 
