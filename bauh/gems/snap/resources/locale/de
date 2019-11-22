@@ -1,0 +1,8 @@
+gem.snap.info=Anwendungen von https://snapcraft.io/store
+snap.notification.snapd_unavailable={} wurde nicht gestartet oder ist deaktiviert. {} Pakete werden nicht verfügbar sein.
+snap.notification.snap.disable=Um keine Snap Anwerndungen zu nutzen deaktivieren {} unter {}
+snap.notifications.api.unavailable=Es scheint als ob die {} API aktuell nicht verfügbar ist. Die Suche nach neuen {} Anwendungen ist nicht möglich.
+snap.action.refresh.status=Erneuern
+snap.action.refresh.label=Erneuern
+snap.install.available_channels.title=Verfügbare Channels
+snap.install.available_channels.body=Es ist kein {} Channel verfügbar für {}. Es gibt jedoch folgende (wähle einen aus um fortzufahren)
