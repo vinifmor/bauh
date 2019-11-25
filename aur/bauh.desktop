@@ -12,6 +12,6 @@ Comment[pt]=Instale e remova aplicativos ( AppImage, AUR, Flatpak, Snap )
 Comment[es]=Instalar y eliminar aplicaciones ( AppImage, AUR, Flatpak, Snap )
 Comment[it]=Installa e rimuovi applicazioni ( AppImage, AUR, Flatpak, Snap )
 Comment[de]=Anwendungen installieren und entfernen ( AppImage, AUR, Flatpak, Snap )
-Comment[ca]=Instal lar i eliminar aplicacions ( AppImage, AUR, Flatpak, Snap )
+Comment[ca]=Instal·lar i eliminar aplicacions ( AppImage, AUR, Flatpak, Snap )
 Exec=/usr/bin/bauh
 Icon=bauh
