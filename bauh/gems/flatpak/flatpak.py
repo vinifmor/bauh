@@ -144,7 +144,7 @@ def update(app_ref: str):
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'update', '-y', app_ref])
+    return new_subprocess([BASE_CMD, 'update', '--no-related', '-y', app_ref])
 
 
 def uninstall(app_ref: str):
@@ -158,7 +158,7 @@ def uninstall(app_ref: str):
 
 def list_updates_as_str(version: str):
     if version < '1.2':
-        return run_cmd('{} update'.format(BASE_CMD), ignore_return_code=True)
+        return run_cmd('{} update --no-related'.format(BASE_CMD), ignore_return_code=True)
     else:
         updates = new_subprocess([BASE_CMD, 'update']).stdout
 

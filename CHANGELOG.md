@@ -8,8 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Not breaking the application when a i18n (translation) key was not found
 - Adding all english (**en**) i18n keys to help people with the application translation
-- AppImage:
+- AppImage
     - AppImage updater daemon replaced by a default Python thread to reduce memory usage
+
+### Fixes
+- Flatpak
+    - Ignoring no related updates ( there are some scenarios the updates are not listed due to warnings / suggestions related to some specific runtimes if the param **--no-related** is not informed )
 
 ## [0.7.2] 2019-11-01
 ### Improvements
