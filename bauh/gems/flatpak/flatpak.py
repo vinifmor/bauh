@@ -175,7 +175,7 @@ def list_updates_as_str(version: str):
 
 
 def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'update', '--commit={}'.format(commit), app_ref, '-y'], root_password)
+    return new_root_subprocess([BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y'], root_password)
 
 
 def get_app_commits(app_ref: str, origin: str) -> List[str]:
