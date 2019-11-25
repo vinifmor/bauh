@@ -4,27 +4,27 @@ import os
 import tarfile
 import time
 import traceback
-from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
 
 import requests
 
 from bauh.api.http import HttpClient
-from bauh.gems.appimage import LOCAL_PATH, db
+from bauh.gems.appimage import LOCAL_PATH
 
 
-class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Process):
+class DatabaseUpdater(Thread):
 
     URL_DB = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
     COMPRESS_FILE_PATH = LOCAL_PATH + '/db.tar.gz'
 
-    def __init__(self, http_client: HttpClient, logger: logging.Logger):
+    def __init__(self, http_client: HttpClient, logger: logging.Logger, db_locks: dict):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
         self.enabled = bool(int(os.getenv('BAUH_APPIMAGE_DB_UPDATER', 1)))
-        self.sleep = 60 * 20
+        self.db_locks = db_locks
+        self.sleep = int(os.getenv('BAUH_APPIMAGE_DB_UPDATER_TIME', 60 * 20))
 
     def _download_databases(self):
         self.logger.info('Retrieving AppImage databases')
@@ -44,9 +44,11 @@ class DatabaseUpdater(Thread if bool(int(os.getenv('BAUH_DEBUG', 0))) else Proce
             if old_db_files:
                 self.logger.info('Deleting old database files')
                 for f in old_db_files:
-                    db.acquire_lock(f)
-                    os.remove(f)
-                    db.release_lock(f)
+                    self.db_locks[f].acquire()
+                    try:
+                        os.remove(f)
+                    finally:
+                        self.db_locks[f].release()
 
                 self.logger.info('Old database files deleted')
 

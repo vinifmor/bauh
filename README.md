@@ -99,7 +99,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases updater daemon running every 20 minutes. It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
+- Databases updater daemon running every 20 minutes ( the interval in SECONDS can be changed with the environment variable **BAUH_APPIMAGE_DB_UPDATER_TIME** ). It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
 - All supported application names can be found at: https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt
 
 Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.

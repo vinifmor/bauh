@@ -7,6 +7,7 @@ import subprocess
 import traceback
 from datetime import datetime
 from pathlib import Path
+from threading import Lock
 from typing import Set, Type, List
 
 from bauh.api.abstract.context import ApplicationContext
@@ -18,7 +19,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, db
+from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
@@ -43,18 +44,19 @@ class AppImageManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
         self.file_downloader = context.file_downloader
-        self.dbs_updater = DatabaseUpdater(http_client=context.http_client, logger=context.logger)
+        self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
+        self.dbs_updater = DatabaseUpdater(http_client=context.http_client, logger=context.logger, db_locks=self.db_locks)
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
-            db.acquire_lock(db_path)
+            self.db_locks[db_path].acquire()
             return sqlite3.connect(db_path)
         else:
             self.logger.warning("Could not get a database connection. File '{}' not found".format(db_path))
 
     def _close_connection(self, db_path: str, con: sqlite3.Connection):
         con.close()
-        db.release_lock(db_path)
+        self.db_locks[db_path].release()
 
     def _gen_app_key(self, app: AppImage):
         return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
@@ -380,9 +382,6 @@ class AppImageManager(SoftwareManager):
         return False
 
     def prepare(self):
-        for path in (DB_APPS_PATH, DB_RELEASES_PATH):
-            db.release_lock(path)
-
         self.dbs_updater.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
