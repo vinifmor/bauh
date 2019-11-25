@@ -9,11 +9,12 @@ from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.util import resource
 from bauh.view.qt import qt_utils, css
 from bauh.view.qt.components import MultipleSelectQt, CheckboxQt, new_spacer
+from bauh.view.util.translation import I18n
 
 
 class GemSelectorPanel(QWidget):
 
-    def __init__(self, window: QWidget, manager: GenericSoftwareManager, i18n: dict, config: Configuration, show_panel_after_restart: bool = False):
+    def __init__(self, window: QWidget, manager: GenericSoftwareManager, i18n: I18n, config: Configuration, show_panel_after_restart: bool = False):
         super(GemSelectorPanel, self).__init__()
         self.window = window
         self.manager = manager

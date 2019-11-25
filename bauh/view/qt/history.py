@@ -7,11 +7,12 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
+from bauh.view.util.translation import I18n
 
 
 class HistoryDialog(QDialog):
 
-    def __init__(self, history: PackageHistory, icon_cache: MemoryCache, i18n: dict):
+    def __init__(self, history: PackageHistory, icon_cache: MemoryCache, i18n: I18n):
         super(HistoryDialog, self).__init__()
         self.setWindowFlags(self.windowFlags() | Qt.WindowSystemMenuHint | Qt.WindowMinMaxButtonsHint)
 

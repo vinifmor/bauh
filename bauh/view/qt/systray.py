@@ -14,6 +14,7 @@ from bauh.api.abstract.model import PackageUpdate
 from bauh.view.util import util, resource
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.window import ManageWindow
+from bauh.view.util.translation import I18n
 
 
 class UpdateCheck(QThread):
@@ -35,7 +36,7 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, i18n: dict, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
         super(TrayIcon, self).__init__()
         self.i18n = i18n
         self.manager = manager

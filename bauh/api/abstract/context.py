@@ -1,16 +1,16 @@
 import logging
-import platform
 import sys
 
 from bauh.api.abstract.cache import MemoryCacheFactory
 from bauh.api.abstract.disk import DiskCacheLoaderFactory
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.http import HttpClient
+from bauh.view.util.translation import I18n
 
 
 class ApplicationContext:
 
-    def __init__(self, disk_cache: bool, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: dict,
+    def __init__(self, disk_cache: bool, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: I18n,
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
                  logger: logging.Logger, file_downloader: FileDownloader, distro: str):
         """
@@ -18,7 +18,7 @@ class ApplicationContext:
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
         :param app_root_dir: GUI root dir
-        :param i18n: the i18n dictionary keys
+        :param i18n: the translation keys
         :param cache_factory:
         :param disk_loader_factory:
         :param logger: a logger instance

@@ -8,11 +8,12 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
+from bauh.view.util.translation import I18n
 
 
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: dict, http_client: HttpClient):
+    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
         self.i18n = i18n

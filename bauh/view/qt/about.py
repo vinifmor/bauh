@@ -1,11 +1,12 @@
 from glob import glob
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
 LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.format(__app_name__)
@@ -13,9 +14,9 @@ LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.for
 
 class AboutDialog(QDialog):
 
-    def __init__(self, locale_keys: dict):
+    def __init__(self, i18n: I18n):
         super(AboutDialog, self).__init__()
-        self.setWindowTitle(locale_keys['tray.action.about'])
+        self.setWindowTitle(i18n['tray.action.about'])
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -33,7 +34,7 @@ class AboutDialog(QDialog):
 
         line_desc = QLabel(self)
         line_desc.setStyleSheet('font-size: 12px; font-weight: bold;')
-        line_desc.setText(locale_keys['about.info.desc'])
+        line_desc.setText(i18n['about.info.desc'])
         line_desc.setAlignment(Qt.AlignCenter)
         line_desc.setMinimumWidth(400)
         layout.addWidget(line_desc)
@@ -55,21 +56,21 @@ class AboutDialog(QDialog):
         layout.addWidget(gems_widget)
         layout.addWidget(QLabel(''))
 
-        label_version = QLabel(locale_keys['version'].lower() + ' ' + __version__)
+        label_version = QLabel(i18n['version'].lower() + ' ' + __version__)
         label_version.setStyleSheet('QLabel { font-size: 11px; font-weight: bold }')
         label_version.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_version)
 
         label_more_info = QLabel()
         label_more_info.setStyleSheet('font-size: 11px;')
-        label_more_info.setText(locale_keys['about.info.link'] + ": <a href='{url}'>{url}</a>".format(url=PROJECT_URL))
+        label_more_info.setText(i18n['about.info.link'] + ": <a href='{url}'>{url}</a>".format(url=PROJECT_URL))
         label_more_info.setOpenExternalLinks(True)
         label_more_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_more_info)
 
         label_license = QLabel()
         label_license.setStyleSheet('font-size: 11px;')
-        label_license.setText("<a href='{}'>{}</a>".format(LICENSE_URL, locale_keys['about.info.license']))
+        label_license.setText("<a href='{}'>{}</a>".format(LICENSE_URL, i18n['about.info.license']))
         label_license.setOpenExternalLinks(True)
         label_license.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_license)
@@ -78,7 +79,7 @@ class AboutDialog(QDialog):
 
         label_rate = QLabel()
         label_rate.setStyleSheet('font-size: 11px; font-weight: bold;')
-        label_rate.setText(locale_keys['about.info.rate'] + ' :)')
+        label_rate.setText(i18n['about.info.rate'] + ' :)')
         label_rate.setOpenExternalLinks(True)
         label_rate.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_rate)

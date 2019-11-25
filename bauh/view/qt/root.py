@@ -7,13 +7,14 @@ from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
 from bauh.view.qt.dialog import show_message
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 
 def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(i18n: dict):
+def ask_root_password(i18n: I18n):
     diag = QInputDialog()
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
     diag.setInputMode(QInputDialog.TextInput)

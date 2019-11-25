@@ -5,6 +5,8 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
+To contribute with this project, have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
+
 
 ![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
 
@@ -65,13 +67,13 @@ If you do not want to clone / download this repository, go to your **Home** fold
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
 ### Gems ( package technology support )
-#### Flatpak ( flatpak gem )
+#### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-#### Snap ( snap gem )
+#### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-#### AUR ( arch gem )
+#### AUR ( arch )
 - It is **not enabled by default**
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
@@ -90,7 +92,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 
-#### AppImage ( appimage gem )
+#### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.

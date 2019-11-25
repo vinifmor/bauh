@@ -4,13 +4,14 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 
 from bauh.api.abstract.cache import MemoryCache
+from bauh.view.util.translation import I18n
 
 IGNORED_ATTRS = {'name', '__app__'}
 
 
 class InfoDialog(QDialog):
 
-    def __init__(self, app: dict, icon_cache: MemoryCache, i18n: dict, screen_size: QSize()):
+    def __init__(self, app: dict, icon_cache: MemoryCache, i18n: I18n, screen_size: QSize()):
         super(InfoDialog, self).__init__()
         self.setWindowTitle(str(app['__app__']))
         self.screen_size = screen_size

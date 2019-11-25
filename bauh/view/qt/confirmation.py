@@ -1,22 +1,23 @@
 from typing import List
 
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget
+
 from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
 from bauh.view.qt import css
-
 from bauh.view.qt.components import MultipleSelectQt, new_single_select
+from bauh.view.util.translation import I18n
 
 
 class ConfirmationDialog(QMessageBox):
 
-    def __init__(self, title: str, body: str, locale_keys: dict, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None):
+    def __init__(self, title: str, body: str, i18n: I18n, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None):
         super(ConfirmationDialog, self).__init__()
         self.setWindowTitle(title)
         self.setStyleSheet('QLabel { margin-right: 25px; }')
-        self.bt_yes = self.addButton(locale_keys['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)
+        self.bt_yes = self.addButton(i18n['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)
         self.bt_yes.setStyleSheet(css.OK_BUTTON)
 
-        self.addButton(locale_keys['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
+        self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 
         if body:
             if not components:

@@ -2,11 +2,11 @@ from typing import Set
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
-
 from bauh.commons.html import bold
+from bauh.view.util.translation import I18n
 
 
-def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: dict) -> Set[str]:
+def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
     opts = [InputOption('{}{} ( {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', d['mirror'].upper()), p) for p, d in pkg_mirrors.items()]
     view_opts = MultipleSelectComponent(label='',
                                         options=opts,
@@ -21,7 +21,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: dict) -> bool:
+def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> bool:
     deps_str = ''.join(['<br/><span style="font-weight:bold">  - {} ( {} )</span>'.format(d, m.upper()) for d, m in pkg_mirrors.items()])
     msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(bold(pkgname)) + ':<br/>' + deps_str)
     msg += i18n['ask.continue']

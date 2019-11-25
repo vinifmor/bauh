@@ -12,9 +12,9 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
-from bauh.api.http import HttpClient
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
+from bauh.view.util.translation import I18n
 
 RE_VERSION_IN_NAME = re.compile(r'\s+version\s+[\w\.]+\s*$')
 
@@ -76,12 +76,12 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpdateSelectedApps(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, locale_keys: dict, apps_to_update: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, apps_to_update: List[PackageView] = None):
         super(UpdateSelectedApps, self).__init__()
         self.apps_to_update = apps_to_update
         self.manager = manager
         self.root_password = None
-        self.locale_keys = locale_keys
+        self.i18n = i18n
 
     def run(self):
 
@@ -93,7 +93,7 @@ class UpdateSelectedApps(AsyncAction):
 
                 name = app.model.name if not RE_VERSION_IN_NAME.findall(app.model.name) else app.model.name.split('version')[0].strip()
 
-                self.change_status('{} {} {}...'.format(self.locale_keys['manage_window.status.upgrading'], name, app.model.version))
+                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, app.model.version))
                 success = bool(self.manager.update(app.model, self.root_password, self))
                 self.change_substatus('')
 
@@ -168,11 +168,11 @@ class UninstallApp(AsyncAction):
 
 class DowngradeApp(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, app: PackageView = None):
         super(DowngradeApp, self).__init__()
         self.manager = manager
         self.app = app
-        self.locale_keys = locale_keys
+        self.i18n = i18n
         self.root_password = None
 
     def run(self):
@@ -182,7 +182,7 @@ class DowngradeApp(AsyncAction):
                 success = self.manager.downgrade(self.app.model, self.root_password, self)
             except (requests.exceptions.ConnectionError, NoInternetException) as e:
                 success = False
-                self.print(self.locale_keys['internet.required'])
+                self.print(self.i18n['internet.required'])
             finally:
                 self.notify_finished({'app': self.app, 'success': success})
                 self.app = None
@@ -206,18 +206,18 @@ class GetAppInfo(AsyncAction):
 
 class GetAppHistory(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, locale_keys: dict, app: PackageView = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, app: PackageView = None):
         super(GetAppHistory, self).__init__()
         self.app = app
         self.manager = manager
-        self.locale_keys = locale_keys
+        self.i18n = i18n
 
     def run(self):
         if self.app:
             try:
                 self.notify_finished({'history': self.manager.get_history(self.app.model)})
             except (requests.exceptions.ConnectionError, NoInternetException) as e:
-                self.notify_finished({'error': self.locale_keys['internet.required']})
+                self.notify_finished({'error': self.i18n['internet.required']})
             finally:
                 self.app = None
 
@@ -246,13 +246,13 @@ class SearchPackages(AsyncAction):
 
 class InstallPackage(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: MemoryCache, locale_keys: dict, pkg: PackageView = None):
+    def __init__(self, manager: SoftwareManager, disk_cache: bool, icon_cache: MemoryCache, i18n: I18n, pkg: PackageView = None):
         super(InstallPackage, self).__init__()
         self.pkg = pkg
         self.manager = manager
         self.icon_cache = icon_cache
         self.disk_cache = disk_cache
-        self.locale_keys = locale_keys
+        self.i18n = i18n
         self.root_password = None
 
     def run(self):
@@ -272,7 +272,7 @@ class InstallPackage(AsyncAction):
                                                    only_icon=False)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
-                self.print(self.locale_keys['internet.required'])
+                self.print(self.i18n['internet.required'])
             finally:
                 self.signal_finished.emit({'success': success, 'pkg': self.pkg})
                 self.pkg = None
@@ -403,9 +403,9 @@ class ListWarnings(QThread):
 
     signal_warnings = pyqtSignal(list)
 
-    def __init__(self, man: SoftwareManager, locale_keys: dict):
+    def __init__(self, man: SoftwareManager, i18n: I18n):
         super(QThread, self).__init__()
-        self.locale_keys = locale_keys
+        self.i18n = i18n
         self.man = man
 
     def run(self):
@@ -464,12 +464,13 @@ class ApplyFilters(AsyncAction):
 
 class CustomAction(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, custom_action: PackageAction = None, pkg: PackageView = None, root_password: str = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: PackageAction = None, pkg: PackageView = None, root_password: str = None):
         super(CustomAction, self).__init__()
         self.manager = manager
         self.pkg = pkg
         self.custom_action = custom_action
         self.root_password = root_password
+        self.i18n = i18n
 
     def run(self):
         success = True
@@ -481,7 +482,7 @@ class CustomAction(AsyncAction):
                                                              watcher=self)
             except (requests.exceptions.ConnectionError, NoInternetException):
                 success = False
-                self.signal_output.emit(self.locale_keys['internet.required'])
+                self.signal_output.emit(self.i18n['internet.required'])
 
         self.notify_finished({'success': success, 'pkg': self.pkg})
         self.pkg = None
