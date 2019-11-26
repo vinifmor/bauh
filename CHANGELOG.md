@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Flatpak
     - Ignoring no related updates ( there are some scenarios the updates are not listed due to warnings / suggestions related to some specific runtimes if the param **--no-related** is not informed )
+- AUR
+    - Removing repeated **prepare** step that was delaying the build and preventing some packages to install (e.g: xdman )
 
 ## [0.7.2] 2019-11-01
 ### Improvements
