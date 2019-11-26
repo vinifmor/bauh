@@ -22,7 +22,7 @@ The way to go here is to ask yourself if the improvement would be useful for mor
 * Follow the [PEP 8](https://www.python.org/dev/peps/pep-0008/) code style to keep the code consistent.
 
 # Adding a new translation
-* To add a new translation, you will have to create a file in each directory listed below named as the first two letters in the ISO format (e.g: for 'english' would be 'en'):
+* To add a new translation, you will have to create a file in each directory listed below named as the first two letters of the language in the ISO format (e.g: for 'english' would be 'en'):
 - **bauh/view/resources/locale**
 - **bauh/gems/appimage/resources/locale**
 - **bauh/gems/arch/resources/locale**
