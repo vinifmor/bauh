@@ -16,7 +16,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
     opts = []
 
     for p, d in pkg_mirrors.items():
-        op = InputOption('{}{} ( {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', d['mirror'].upper()), p)
+        op = InputOption('{}{} ( {}: {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', i18n['mirror'], d['mirror'].upper()), p)
         op.icon_path = _get_mirror_icon(d['mirror'])
         opts.append(op)
 
@@ -39,13 +39,11 @@ def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: Proce
 
     opts = []
     for p, m in pkg_mirrors.items():
-        op = InputOption('{} ( {} )'.format(p, m), p)
+        op = InputOption('{} ( {}: {} )'.format(p, i18n['mirror'], m.upper()), p)
         op.read_only = True
         op.icon_path = _get_mirror_icon(m)
         opts.append(op)
 
-    comps = [
-        MultipleSelectComponent(label='', options=opts, default_options=set(opts))
-    ]
+    comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
 
-    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, comps, confirmation_label=i18n['continue'].capitalize())
+    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize())
