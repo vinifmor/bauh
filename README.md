@@ -53,15 +53,15 @@ It may require **sudo**, but prefer the **Manual installation** described below 
 
 
 ### Manual installation:
-If you prefer a manual and isolated installation, type the following commands within the cloned project folder:
+If you prefer a manual and isolated installation, open your favorite terminal application and type the following commands:
 
 ```
-python3 -m venv env ( creates a virtualenv in a folder called **env** )
-env/bin/pip install . ( installs the application code inside the **env** )
-env/bin/bauh  ( launches the application )
+python3 -m venv bauh_env ( creates a virtualenv in a folder called **bauh_env** )
+bauh_env/bin/pip install bauh ( installs bauh in the isolated environment )
+bauh_env/bin/bauh  ( launches bauh )
 ```
 
-If you do not want to clone / download this repository, go to your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
+P.S: if you want to launch it attached to your system tray, replace the last command by: ```bauh_env/bin/bauh --tray=1```
 
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
