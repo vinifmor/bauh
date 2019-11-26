@@ -11,7 +11,7 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 ![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
 
 
-### Developed with:
+### Developed with
 - Python3 and Qt5.
 
 ### Requirements
@@ -63,7 +63,7 @@ bauh_env/bin/bauh  ( launches bauh )
 # P.S: if you want to launch it attached to your system tray, replace the last command by: bauh_env/bin/bauh --tray=1
 ```
 
-- To update you isolated bauh to latest version:
+- To update your isolated bauh to the latest version:
 ```
 bauh_env/bin/pip install bauh --upgrade
 ```
