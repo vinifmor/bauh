@@ -60,17 +60,17 @@ python3 -m venv bauh_env ( creates a virtualenv in a folder called **bauh_env** 
 bauh_env/bin/pip install bauh ( installs bauh in the isolated environment )
 bauh_env/bin/bauh  ( launches bauh )
 ```
-
-P.S: if you want to launch it attached to your system tray, replace the last command by: ```bauh_env/bin/bauh --tray=1```
+    - P.S: if you want to launch it attached to your system tray, replace the last command by: ```bauh_env/bin/bauh --tray=1```
 
 - To update it to latest version:
 ```
 bauh_env/bin/pip install bauh --upgrade
 ```
 
-- To uninstall it, just remove the **bauh_env** folder.
+- To uninstall it:
+    - Just remove the **bauh_env** folder
 
-- To create a shortcut ( desktop entry ) in your system menu, create a file called **bauh.desktop** in **~/.local/share/applications** with the following content ( I assume in this example you created the isolated environment in your home folder using Python 3.7 ):
+- To create a shortcut ( desktop entry ) for bauh in your system menu: create a file called **bauh.desktop** in **~/.local/share/applications** with the following content ( I assume in this example you created the isolated environment in your home folder using Python 3.7 ):
 ```
 [Desktop Entry]
 Type=Application
@@ -79,10 +79,8 @@ Comment=Install and remove applications ( AppImage, AUR, Flatpak, Snap )
 Exec=/home/$USER/bauh_env/bin/bauh
 Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/logo.svg
 ```
-
-If you want a shortcut to the tray, put the **--tray=1** in the end of the **Exec** line ( e.g: Exec=/home/$USER/bauh_env/bin/bauh --tray=1 ) 
-
-P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
+    - If you want a shortcut to the tray, put the **--tray=1** in the end of the **Exec** line ( e.g: **Exec=/home/$USER/bauh_env/bin/bauh --tray=1** ) 
+    - P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
 
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
