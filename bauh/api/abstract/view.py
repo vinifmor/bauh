@@ -28,7 +28,7 @@ class InputOption:
     Represents a select component option.
     """
 
-    def __init__(self, label: str, value: object, tooltip: str = None, icon_path: str = None):
+    def __init__(self, label: str, value: object, tooltip: str = None, icon_path: str = None, read_only: bool = False):
         """
         :param label: the string that will be shown to the user
         :param value: the option value (not shown)
@@ -45,6 +45,7 @@ class InputOption:
         self.value = value
         self.tooltip = tooltip
         self.icon_path = icon_path
+        self.read_only = read_only
 
     def __hash__(self):
         return hash(self.label) + hash(self.value)

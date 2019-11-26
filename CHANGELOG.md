@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Ignoring no related updates ( there are some scenarios the updates are not listed due to warnings / suggestions related to some specific runtimes if the param **--no-related** is not informed )
 - AUR
     - Removing repeated **prepare** step that was delaying the build and preventing some packages to install (e.g: xdman )
+    
+### UI
+- AUR
+    - Textual dependencies replaced by read-only checkboxes on Required Dependencies confirmation dialog
+    - Optional Dependencies installation dialog now has a type icon beside the dependency name
 
 ## [0.7.2] 2019-11-01
 ### Improvements
