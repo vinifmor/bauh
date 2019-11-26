@@ -29,6 +29,7 @@ class FlatpakManager(SoftwareManager):
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
         self.enabled = True
         self.http_client = context.http_client
+        self.suggestions_cache = context.cache_factory.new()
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -264,12 +265,18 @@ class FlatpakManager(SoftwareManager):
         sugs.sort(key=lambda t: t[1].value, reverse=True)
 
         for sug in sugs:
-
             if limit <= 0 or len(res) < limit:
-                app_json = flatpak.search(cli_version, sug[0], app_id=True)
+                cached_sug = self.suggestions_cache.get(sug[0])
 
-                if app_json:
-                    res.append(PackageSuggestion(self._map_to_model(app_json[0], False, None), sug[1]))
+                if cached_sug:
+                    res.append(cached_sug)
+                else:
+                    app_json = flatpak.search(cli_version, sug[0], app_id=True)
+
+                    if app_json:
+                        model = PackageSuggestion(self._map_to_model(app_json[0], False, None), sug[1])
+                        self.suggestions_cache.add(sug[0], model)
+                        res.append(model)
             else:
                 break
 

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Adding all english (**en**) i18n keys to help people with the application translation
 - AppImage
     - AppImage updater daemon replaced by a default Python thread to reduce memory usage
+- Caching Snap and Flatpak suggestions (https://github.com/vinifmor/bauh/issues/23)
+- i18n:
+    - Italian contributions by [albanobattistella](https://github.com/albanobattistella)    
 
 ### Fixes
 - Flatpak

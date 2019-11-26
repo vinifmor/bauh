@@ -35,6 +35,7 @@ class SnapManager(SoftwareManager):
         self.categories = {}
         self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
                                                           URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
+        self.suggestions_cache = context.cache_factory.new()
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -222,7 +223,9 @@ class SnapManager(SoftwareManager):
             pkg['rev'] = pkg['revision']
             pkg['name'] = pkg_name
 
-            out.append(PackageSuggestion(self.map_json(pkg, installed=False, disk_loader=None), priority))
+            sug = PackageSuggestion(self.map_json(pkg, installed=False, disk_loader=None), priority)
+            self.suggestions_cache.add(pkg_name, sug)
+            out.append(sug)
         else:
             self.logger.warning("Could not retrieve suggestion '{}'".format(pkg_name))
 
@@ -239,10 +242,15 @@ class SnapManager(SoftwareManager):
             for sug in sugs:
 
                 if limit <= 0 or len(res) < limit:
-                    t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
-                    t.start()
-                    threads.append(t)
-                    time.sleep(0.001)  # to avoid being blocked
+                    cached_sug = self.suggestions_cache.get(sug[0])
+
+                    if cached_sug:
+                        res.append(cached_sug)
+                    else:
+                        t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
+                        t.start()
+                        threads.append(t)
+                        time.sleep(0.001)  # to avoid being blocked
                 else:
                     break
 
