@@ -12,8 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - AppImage updater daemon replaced by a default Python thread to reduce memory usage
 - Caching Snap and Flatpak suggestions [#23](https://github.com/vinifmor/bauh/issues/23)
 - i18n:
-    - Italian contributions by [albanobattistella](https://github.com/albanobattistella)    
-
+    - Catalan contributions by [fitojb](https://github.com/fitojb)
+    - Italian contributions by [albanobattistella](https://github.com/albanobattistella)   
+     
 ### Fixes
 - Flatpak
     - Ignoring no related updates ( there are some scenarios the updates are not listed due to warnings / suggestions related to some specific runtimes if the param **--no-related** is not informed )
