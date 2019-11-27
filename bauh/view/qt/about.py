@@ -86,6 +86,22 @@ class AboutDialog(QDialog):
 
         layout.addWidget(QLabel(''))
 
+        label_trouble_question = QLabel()
+        label_trouble_question.setStyleSheet('font-size: 10px;')
+        label_trouble_question.setText(i18n['about.info.trouble.question'])
+        label_trouble_question.setOpenExternalLinks(True)
+        label_trouble_question.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_trouble_question)
+
+        label_trouble_body = QLabel()
+        label_trouble_body.setStyleSheet('font-size: 10px;')
+        label_trouble_body.setText(i18n['about.info.trouble.body'])
+        label_trouble_body.setOpenExternalLinks(True)
+        label_trouble_body.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_trouble_body)
+
+        layout.addWidget(QLabel(''))
+
         self.adjustSize()
         self.setFixedSize(self.size())
 
