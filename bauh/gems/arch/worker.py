@@ -83,7 +83,7 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
             self.logger.info("Arch packages compilation optimization is disabled. Aborting...")
         else:
             try:
-                ncpus = ceil(os.cpu_count() * 1.5)
+                ncpus = os.cpu_count()
             except:
                 self.logger.error('Could not determine the number of processors. Aborting...')
                 ncpus = None

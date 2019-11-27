@@ -747,7 +747,7 @@ class ArchManager(SoftwareManager):
         return res
 
     def is_default_enabled(self) -> bool:
-        return False
+        return True
 
     def launch(self, pkg: ArchPackage):
         if pkg.command:

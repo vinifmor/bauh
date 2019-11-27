@@ -174,9 +174,16 @@ class AppsTable(QTableWidget):
 
     def _install_app(self, pkgv: PackageView):
 
+        body = self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))
+
+        warning = self.i18n.get('gem.{}.install.warning'.format(pkgv.model.get_type().lower()))
+
+        if warning:
+            body += '<br/><br/> {}'.format('<br/>'.join(('{}.'.format(phrase) for phrase in warning.split('.') if phrase)))
+
         if dialog.ask_confirmation(
                 title=self.i18n['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self._parag(self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))),
+                body=self._parag(body),
                 i18n=self.i18n):
 
             self.window.install(pkgv)
@@ -267,6 +274,7 @@ class AppsTable(QTableWidget):
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
+
             item = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
             item = None

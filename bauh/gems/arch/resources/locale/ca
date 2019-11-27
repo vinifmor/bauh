@@ -1,5 +1,6 @@
 gem.arch.label=AUR
 gem.arch.info=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
+gem.aur.install.warning=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
 aur.info.architecture=arquitectura
 aur.info.architecture.any=qualsevol
 aur.info.build date=data de compilació

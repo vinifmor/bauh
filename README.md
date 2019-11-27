@@ -94,25 +94,6 @@ In order to autostart the application, use your Desktop Environment settings to 
 #### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-#### AUR ( arch )
-- It is **not enabled by default**
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
-- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
-will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
-- Automatically makes simple package compilation improvements:
-
-    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
-    then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
-    the number of your machine processors (**-j${nproc}**).
-
-    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
-
-    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
-- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
-- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
@@ -124,6 +105,24 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - All supported application names can be found at: https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt
 
 Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+
+#### AUR ( arch )
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
+- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
+- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
+- Automatically makes simple package compilation improvements:
+
+    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
+    then a copy of **/etc/makepkg.conf** will be generated at **~/.config/bauh/arch/makepkg.conf** defining MAKEFLAGS to work with
+    the number of your machine processors (**-j${nproc}**).
+
+    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+
+    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
+    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 
 
 ### General settings

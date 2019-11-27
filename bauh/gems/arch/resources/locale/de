@@ -1,5 +1,6 @@
 gem.arch.label=AUR
 gem.arch.info=AUR Pakete werden von einer unabhängigen Nutzergemeinschaft geflegt. Es keine Garantie das sie funktionieren oder kein Schaden verursachen.
+gem.aur.install.warning=AUR Pakete werden von einer unabhängigen Nutzergemeinschaft geflegt. Es keine Garantie das sie funktionieren oder kein Schaden verursachen.
 arch.install.conflict.popup.title=Konflikt entdeckt
 arch.install.conflict.popup.body=Die Anwendungen {} können nicht gleichzeitig installiert sein. Du musst eine deinstallieren um die andere zu installieren. Fortfahren?
 arch.missing_deps.title=Fehlende Abhängigkeiten
