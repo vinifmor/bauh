@@ -36,6 +36,7 @@ def read() -> Namespace:
     parser.add_argument('--logs', action="store", default=int(os.getenv('BAUH_LOGS', 0)), choices=[0, 1], type=int, help='If the application logs should be displayed. Default: %(default)s')
     parser.add_argument('--show-panel', action="store_true", help='Shows the management panel after the app icon is attached to the tray.')
     parser.add_argument('-dmt', '--download-mthread', action="store", default=os.getenv('BAUH_DOWNLOAD_MULTITHREAD', 1), choices=[0, 1], type=int, help='If installation files should be downloaded using multi-threads (only possible if aria2c is installed). Not all gems support this feature. Check README.md. Default: %(default)s')
+    parser.add_argument('--clean', action="store_true", help='Removes all configuration and cache files')
     return parser.parse_args()
     
     

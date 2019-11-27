@@ -1,10 +1,12 @@
 import os
+import shutil
 import subprocess
 import sys
 
 from PyQt5.QtCore import QCoreApplication
 
 from bauh import __app_name__
+from bauh.api.constants import CACHE_PATH, CONFIG_PATH
 from bauh.commons.system import run_cmd
 from bauh.view.util import resource
 
@@ -36,3 +38,12 @@ def get_distro():
             return 'ubuntu'
 
     return 'unknown'
+
+
+def clean_app_files():
+    print('[bauh] Cleaning configuration and cache files')
+    for path in (CACHE_PATH, CONFIG_PATH):
+        print('[bauh] Deleting directory {}'.format(path))
+        if os.path.exists(path):
+            shutil.rmtree(path)
+    print('[bauh] Cleaning finished')

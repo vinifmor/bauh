@@ -25,8 +25,13 @@ def main():
         os.environ['PYTHONUNBUFFERED'] = '1'
 
     args = app_args.read()
+
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
+
+    if args.clean:
+        util.clean_app_files()
+        exit(0)
 
     i18n_key, current_i18n = translation.get_locale_keys(args.locale)
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}

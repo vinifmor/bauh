@@ -19,7 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - i18n:
     - Catalan contributions by [fitojb](https://github.com/fitojb)
     - German contributions by [JonasLoos](https://github.com/JonasLoos)
-    - Italian contributions by [albanobattistella](https://github.com/albanobattistella)   
+    - Italian contributions by [albanobattistella](https://github.com/albanobattistella)
+    
+### Features
+- New command line argument to clean the configuration and cache files: `--clean`   
      
 ### Fixes
 - Flatpak

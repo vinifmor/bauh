@@ -87,6 +87,9 @@ Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/lo
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
+### Uninstallation
+Before uninstalling bauh via your package manager, consider executing `bauh --clean` to remove configuration and cache files stored in your **HOME** folder.
+
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
