@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Caching Snap and Flatpak suggestions [#23](https://github.com/vinifmor/bauh/issues/23)
 - i18n:
     - Catalan contributions by [fitojb](https://github.com/fitojb)
+    - German contributions by [JonasLoos](https://github.com/JonasLoos)
     - Italian contributions by [albanobattistella](https://github.com/albanobattistella)   
      
 ### Fixes
