@@ -94,7 +94,15 @@ class ManageWindow(QWidget):
         self.toolbar_search.setContentsMargins(0, 0, 0, 0)
 
         label_pre_search = QLabel()
-        label_pre_search.setStyleSheet("background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
+        label_pre_search.setStyleSheet("""
+            background: white; 
+            border-top-left-radius: 5px; 
+            border-bottom-left-radius: 5px;
+            border-left: 1px solid lightgrey; 
+            border-top: 1px solid lightgrey; 
+            border-bottom: 1px solid lightgrey;
+        """)
+
         self.toolbar_search.addWidget(label_pre_search)
 
         self.input_search = QLineEdit()
@@ -102,13 +110,31 @@ class ManageWindow(QWidget):
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
-        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0; height: 30px; font-size: 12px; width: 300px}")
+        self.input_search.setStyleSheet("""QLineEdit { 
+                background-color: white; 
+                color: black; 
+                spacing: 0; 
+                height: 30px; 
+                font-size: 12px; 
+                width: 300px; 
+                border-bottom: 1px solid lightgrey; 
+                border-top: 1px solid lightgrey; 
+        } 
+        """)
         self.input_search.returnPressed.connect(self.search)
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
         label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
-        label_pos_search.setStyleSheet("background: white; padding-right: 10px; border-top-right-radius: 5px; border-bottom-right-radius: 5px;")
+        label_pos_search.setStyleSheet("""
+            background: white; padding-right: 10px; 
+            border-top-right-radius: 5px; 
+            border-bottom-right-radius: 5px; 
+            border-right: 1px solid lightgrey; 
+            border-top: 1px solid lightgrey; 
+            border-bottom: 1px solid lightgrey;
+        """)
+
         self.toolbar_search.addWidget(label_pos_search)
 
         self.ref_toolbar_search = self.toolbar_top.addWidget(self.toolbar_search)
@@ -369,6 +395,7 @@ class ManageWindow(QWidget):
 
     def show(self):
         super(ManageWindow, self).show()
+
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
