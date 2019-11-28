@@ -16,12 +16,13 @@ def is_root():
 
 def ask_root_password(i18n: I18n):
     diag = QInputDialog()
-    diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
+    diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
     diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
     diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
+    diag.setOkButtonText(i18n['continue'].capitalize())
     diag.setCancelButtonText(i18n['popup.button.cancel'])
     diag.resize(400, 200)
 
