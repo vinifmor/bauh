@@ -1,10 +1,11 @@
 import os
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialogButtonBox, QPushButton
 
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
+from bauh.view.qt import css
 from bauh.view.qt.dialog import show_message
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
@@ -23,8 +24,16 @@ def ask_root_password(i18n: I18n):
     diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
     diag.setOkButtonText(i18n['popup.root.continue'].capitalize())
-    diag.setCancelButtonText(i18n['popup.button.cancel'])
+    diag.setCancelButtonText(i18n['popup.button.cancel'].capitalize())
     diag.resize(400, 200)
+
+    bts = diag.findChildren(QPushButton)
+
+    for bt in bts:
+        if bt.text() == i18n['popup.root.continue'].capitalize():
+            bt.setStyleSheet(css.OK_BUTTON)
+
+        bt.setIcon(QIcon())
 
     for attempt in range(3):
 
