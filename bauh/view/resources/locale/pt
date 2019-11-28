@@ -37,6 +37,7 @@ manage_window.bt.installed.text=instalados
 manage_window.bt.installed.tooltip=Clique aqui para exibir os aplicativos instalados
 manage_window.checkbox.show_details=Mostrar detalhes
 popup.root.title=Requer sua senha para prosseguir
+popup.root.continue=prosseguir
 popup.root.bad_password.title=Erro
 popup.root.bad_password.body=Senha incorreta
 popup.root.bad_password.last_try=Tentativas finalizadas. Ação cancelada.

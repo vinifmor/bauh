@@ -22,7 +22,7 @@ def ask_root_password(i18n: I18n):
     diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
     diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
-    diag.setOkButtonText(i18n['continue'].capitalize())
+    diag.setOkButtonText(i18n['popup.root.continue'].capitalize())
     diag.setCancelButtonText(i18n['popup.button.cancel'])
     diag.resize(400, 200)
 

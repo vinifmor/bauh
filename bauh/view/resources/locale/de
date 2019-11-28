@@ -36,6 +36,7 @@ manage_window.bt.installed.text=installiert
 manage_window.bt.installed.tooltip=Hier klicken um die installierten Anwendungen anzuzeigen
 manage_window.checkbox.show_details=Details anzeigen
 popup.root.title=Zum Fortfahren wird das Passwort benötigt
+popup.root.continue=fortfahren
 popup.root.bad_password.title=Fehler
 popup.root.bad_password.body=Falsches Passwort
 popup.root.bad_password.last_try=Zu viele Versuche. Aktion abgebrochen. 

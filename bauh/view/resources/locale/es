@@ -37,6 +37,7 @@ manage_window.bt.installed.text=instaladas
 manage_window.bt.installed.tooltip==Pulse aquí para mostrar las aplicaciones instaladas
 manage_window.checkbox.show_details=Mostrar detalles
 popup.root.title=Proporcione su contraseña para continuar
+popup.root.continue=continuar
 popup.root.bad_password.title=Error
 popup.root.bad_password.body=Contraseña incorrecta
 popup.root.bad_password.last_try=Intentos finalizados. Acción cancelada.

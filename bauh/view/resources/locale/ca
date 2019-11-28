@@ -36,6 +36,7 @@ manage_window.bt.installed.text=instal·lada
 manage_window.bt.installed.tooltip=Feu clic aquí per a mostrar les aplicacions instal·lades
 manage_window.checkbox.show_details=Mostra detalls
 popup.root.title=Requireix la vostra contrasenya per a continuar
+popup.root.continue=continuar
 popup.root.bad_password.title=Error
 popup.root.bad_password.body=La contrasenya és incorrecta
 popup.root.bad_password.last_try=S’han acabat els intents. S’ha cancel·lat l’operació.

@@ -36,6 +36,7 @@ manage_window.bt.installed.text=installed
 manage_window.bt.installed.tooltip=Click here to show the installed applications
 manage_window.checkbox.show_details=Show details
 popup.root.title=Requires your password to continue
+popup.root.continue=continue
 popup.root.bad_password.title=Error
 popup.root.bad_password.body=Wrong password
 popup.root.bad_password.last_try=Attempts finished. Action cancelled.
