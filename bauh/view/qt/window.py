@@ -112,7 +112,7 @@ class ManageWindow(QWidget):
         self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
         self.input_search.setStyleSheet("""QLineEdit { 
                 background-color: white; 
-                color: black; 
+                color: grey; 
                 spacing: 0; 
                 height: 30px; 
                 font-size: 12px; 

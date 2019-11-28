@@ -12,7 +12,7 @@ RE_UNKNOWN_GPG_KEY = re.compile(r'\(unknown public key (\w+)\)')
 def check(pkgdir: str, handler: ProcessHandler) -> dict:
     res = {}
 
-    cmd = ['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild']
+    cmd = ['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild', '--noprepare']
 
     if os.path.exists(CUSTOM_MAKEPKG_PATH):
         handler.watcher.print('Using custom makepkg.conf -> {}'.format(CUSTOM_MAKEPKG_PATH))
@@ -35,7 +35,7 @@ def check(pkgdir: str, handler: ProcessHandler) -> dict:
 
 
 def make(pkgdir: str, handler: ProcessHandler) -> Tuple[bool, str]:
-    cmd = ['makepkg', '-ALcsmf', '--noprepare']
+    cmd = ['makepkg', '-ALcsmf']
 
     if os.path.exists(CUSTOM_MAKEPKG_PATH):
         handler.watcher.print('Using custom makepkg.conf -> {}'.format(CUSTOM_MAKEPKG_PATH))
