@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.7.3] 2019-11
+## [0.7.3] 2019-11-29
 ### Improvements
 - Not breaking the application when a i18n (translation) key was not found
 - Adding all english (**en**) i18n keys to help people with the application translation
