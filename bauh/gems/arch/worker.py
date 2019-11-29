@@ -138,3 +138,11 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
                         f.write(custom_makepkg)
 
                     self.logger.info("A custom optimized 'makepkg.conf' was generated at '{}'".format(CUSTOM_MAKEPKG_PATH))
+                else:
+                    self.logger.info("No optimizations are necessary")
+
+                    if os.path.exists(CUSTOM_MAKEPKG_PATH):
+                        self.logger.info("Removing old optimized 'makepkg.conf' at '{}'".format(CUSTOM_MAKEPKG_PATH))
+                        os.remove(CUSTOM_MAKEPKG_PATH)
+
+                self.logger.info('Finished')
