@@ -59,6 +59,7 @@ aur.info.00_pkg_build=pkgbuild
 aur.info.01_id=id
 aur.info.02_name=nome
 aur.info.03_version=versão
+aur.info.03_description=descrição
 aur.info.04_popularity=popularidade
 aur.info.05_votes=votos
 aur.info.06_package_base=pacote base

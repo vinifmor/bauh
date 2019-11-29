@@ -294,6 +294,7 @@ class ArchManager(SoftwareManager):
             info = {
                 '01_id': pkg.id,
                 '02_name': pkg.name,
+                '03_description': pkg.description,
                 '03_version': pkg.version,
                 '04_popularity': pkg.popularity,
                 '05_votes': pkg.votes,
