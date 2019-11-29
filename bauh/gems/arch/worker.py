@@ -11,7 +11,7 @@ import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, should_optimize_compilation
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -75,12 +75,17 @@ class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else P
     def __init__(self, logger: logging.Logger):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
-        self.compilation_optimizations = bool(int(os.getenv('BAUH_ARCH_OPTIMIZE', 1)))
 
     def run(self):
 
-        if not self.compilation_optimizations:
-            self.logger.info("Arch packages compilation optimization is disabled. Aborting...")
+        if not should_optimize_compilation():
+            self.logger.info("Arch packages compilation optimization is disabled")
+
+            if os.path.exists(CUSTOM_MAKEPKG_PATH):
+                self.logger.info("Removing custom 'makepkg.conf' -> '{}'".format(CUSTOM_MAKEPKG_PATH))
+                os.remove(CUSTOM_MAKEPKG_PATH)
+
+            self.logger.info('Finished')
         else:
             try:
                 ncpus = os.cpu_count()
