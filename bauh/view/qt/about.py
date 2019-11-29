@@ -1,11 +1,12 @@
 from glob import glob
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
 LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.format(__app_name__)
@@ -13,13 +14,13 @@ LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.for
 
 class AboutDialog(QDialog):
 
-    def __init__(self, locale_keys: dict):
+    def __init__(self, i18n: I18n):
         super(AboutDialog, self).__init__()
-        self.setWindowTitle(locale_keys['tray.action.about'])
+        self.setWindowTitle(i18n['tray.action.about'])
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        label_logo = QLabel(self)
+        label_logo = QLabel()
         label_logo.setPixmap(QPixmap(resource.get_path('img/logo.svg')))
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
@@ -29,11 +30,15 @@ class AboutDialog(QDialog):
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)
 
+        label_version = QLabel(i18n['version'].lower() + ' ' + __version__)
+        label_version.setStyleSheet('QLabel { font-size: 10px; font-weight: bold }')
+        label_version.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_version)
+
         layout.addWidget(QLabel(''))
 
-        line_desc = QLabel(self)
+        line_desc = QLabel(i18n['about.info.desc'])
         line_desc.setStyleSheet('font-size: 12px; font-weight: bold;')
-        line_desc.setText(locale_keys['about.info.desc'])
         line_desc.setAlignment(Qt.AlignCenter)
         line_desc.setMinimumWidth(400)
         layout.addWidget(line_desc)
@@ -55,33 +60,45 @@ class AboutDialog(QDialog):
         layout.addWidget(gems_widget)
         layout.addWidget(QLabel(''))
 
-        label_version = QLabel(locale_keys['version'].lower() + ' ' + __version__)
-        label_version.setStyleSheet('QLabel { font-size: 11px; font-weight: bold }')
-        label_version.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label_version)
-
         label_more_info = QLabel()
         label_more_info.setStyleSheet('font-size: 11px;')
-        label_more_info.setText(locale_keys['about.info.link'] + ": <a href='{url}'>{url}</a>".format(url=PROJECT_URL))
+        label_more_info.setText(i18n['about.info.link'] + " <a href='{url}'>{url}</a>".format(url=PROJECT_URL))
         label_more_info.setOpenExternalLinks(True)
         label_more_info.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_more_info)
 
         label_license = QLabel()
         label_license.setStyleSheet('font-size: 11px;')
-        label_license.setText("<a href='{}'>{}</a>".format(LICENSE_URL, locale_keys['about.info.license']))
+        label_license.setText("<a href='{}'>{}</a>".format(LICENSE_URL, i18n['about.info.license']))
         label_license.setOpenExternalLinks(True)
         label_license.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_license)
 
         layout.addWidget(QLabel(''))
 
-        label_rate = QLabel()
-        label_rate.setStyleSheet('font-size: 11px; font-weight: bold;')
-        label_rate.setText(locale_keys['about.info.rate'] + ' :)')
-        label_rate.setOpenExternalLinks(True)
-        label_rate.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label_rate)
+        label_trouble_question = QLabel(i18n['about.info.trouble.question'])
+        label_trouble_question.setStyleSheet('font-size: 10px; font-weight: bold')
+        label_trouble_question.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(label_trouble_question)
+
+        label_trouble_answer = QLabel(i18n['about.info.trouble.answer'])
+        label_trouble_answer.setStyleSheet('font-size: 10px;')
+        label_trouble_answer.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(label_trouble_answer)
+
+        layout.addWidget(QLabel(''))
+
+        label_rate_question = QLabel(i18n['about.info.rate.question'])
+        label_rate_question.setStyleSheet('font-size: 10px; font-weight: bold;')
+        label_rate_question.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_rate_question)
+
+        label_rate_answer = QLabel(i18n['about.info.rate.answer'])
+        label_rate_answer.setStyleSheet('font-size: 10px;')
+        label_rate_answer.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label_rate_answer)
 
         layout.addWidget(QLabel(''))
 

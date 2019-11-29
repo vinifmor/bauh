@@ -36,6 +36,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
 from bauh.view.qt.view_model import PackageView
 from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
+from bauh.view.util.translation import I18n
 
 DARK_ORANGE = '#FF4500'
 
@@ -50,7 +51,7 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: dict, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
                  download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
                  context: ApplicationContext, notifications: bool, http_client: HttpClient, logger: logging.Logger,
                  tray_icon=None):
@@ -93,7 +94,15 @@ class ManageWindow(QWidget):
         self.toolbar_search.setContentsMargins(0, 0, 0, 0)
 
         label_pre_search = QLabel()
-        label_pre_search.setStyleSheet("background: white; border-top-left-radius: 5px; border-bottom-left-radius: 5px;")
+        label_pre_search.setStyleSheet("""
+            background: white; 
+            border-top-left-radius: 5px; 
+            border-bottom-left-radius: 5px;
+            border-left: 1px solid lightgrey; 
+            border-top: 1px solid lightgrey; 
+            border-bottom: 1px solid lightgrey;
+        """)
+
         self.toolbar_search.addWidget(label_pre_search)
 
         self.input_search = QLineEdit()
@@ -101,13 +110,31 @@ class ManageWindow(QWidget):
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
-        self.input_search.setStyleSheet("QLineEdit { background-color: white; color: gray; spacing: 0; height: 30px; font-size: 12px; width: 300px}")
+        self.input_search.setStyleSheet("""QLineEdit { 
+                background-color: white; 
+                color: grey; 
+                spacing: 0; 
+                height: 30px; 
+                font-size: 12px; 
+                width: 300px; 
+                border-bottom: 1px solid lightgrey; 
+                border-top: 1px solid lightgrey; 
+        } 
+        """)
         self.input_search.returnPressed.connect(self.search)
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
         label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
-        label_pos_search.setStyleSheet("background: white; padding-right: 10px; border-top-right-radius: 5px; border-bottom-right-radius: 5px;")
+        label_pos_search.setStyleSheet("""
+            background: white; padding-right: 10px; 
+            border-top-right-radius: 5px; 
+            border-bottom-right-radius: 5px; 
+            border-right: 1px solid lightgrey; 
+            border-top: 1px solid lightgrey; 
+            border-bottom: 1px solid lightgrey;
+        """)
+
         self.toolbar_search.addWidget(label_pos_search)
 
         self.ref_toolbar_search = self.toolbar_top.addWidget(self.toolbar_search)
@@ -231,7 +258,7 @@ class ManageWindow(QWidget):
         self.thread_downgrade = self._bind_async_action(DowngradeApp(self.manager, self.i18n), finished_call=self._finish_downgrade)
         self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_run_app = self._bind_async_action(LaunchApp(self.manager), finished_call=self._finish_run_app, only_finished=False)
-        self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager), finished_call=self._finish_custom_action)
+        self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager, i18n=self.i18n), finished_call=self._finish_custom_action)
         self.thread_screenshots = self._bind_async_action(GetScreenshots(self.manager), finished_call=self._finish_get_screenshots)
 
         self.thread_apply_filters = ApplyFilters()
@@ -239,7 +266,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, locale_keys=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, i18n=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -289,7 +316,7 @@ class ManageWindow(QWidget):
         self.dialog_about = None
         self.first_refresh = suggestions
 
-        self.thread_warnings = ListWarnings(man=manager, locale_keys=i18n)
+        self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
 
     def set_tray_icon(self, tray_icon):
@@ -349,7 +376,7 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.pause()
         diag = ConfirmationDialog(title=msg['title'],
                                   body=msg['body'],
-                                  locale_keys=self.i18n,
+                                  i18n=self.i18n,
                                   components=msg['components'],
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'])
@@ -368,6 +395,7 @@ class ManageWindow(QWidget):
 
     def show(self):
         super(ManageWindow, self).show()
+
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
@@ -792,7 +820,7 @@ class ManageWindow(QWidget):
 
             if to_update and dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
                                                      body=self.i18n['manage_window.upgrade_all.popup.body'],
-                                                     locale_keys=self.i18n,
+                                                     i18n=self.i18n,
                                                      widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
                 pwd = None
 

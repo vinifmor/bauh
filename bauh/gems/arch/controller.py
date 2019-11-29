@@ -294,6 +294,7 @@ class ArchManager(SoftwareManager):
             info = {
                 '01_id': pkg.id,
                 '02_name': pkg.name,
+                '03_description': pkg.description,
                 '03_version': pkg.version,
                 '04_popularity': pkg.popularity,
                 '05_votes': pkg.votes,
@@ -435,7 +436,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt, output = handler.handle_simple(SimpleProcess(['makepkg', '-ALcsmf'], cwd=project_dir))
+        pkgbuilt, output = makepkg.make(project_dir, handler)
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -747,7 +748,7 @@ class ArchManager(SoftwareManager):
         return res
 
     def is_default_enabled(self) -> bool:
-        return False
+        return True
 
     def launch(self, pkg: ArchPackage):
         if pkg.command:

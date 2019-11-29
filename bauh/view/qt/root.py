@@ -7,21 +7,23 @@ from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
 from bauh.view.qt.dialog import show_message
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 
 def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(i18n: dict):
+def ask_root_password(i18n: I18n):
     diag = QInputDialog()
-    diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px }""")
+    diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
     diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
     diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
-    diag.setCancelButtonText(i18n['popup.button.cancel'])
+    diag.setOkButtonText(i18n['popup.root.continue'].capitalize())
+    diag.setCancelButtonText(i18n['popup.button.cancel'].capitalize())
     diag.resize(400, 200)
 
     for attempt in range(3):

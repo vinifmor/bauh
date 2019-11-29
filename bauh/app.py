@@ -12,9 +12,12 @@ from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
-from bauh.view.util import util, logs, resource
+from bauh.view.util import util, logs, resource, translation
 from bauh.view.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
+from bauh.view.util.translation import I18n
+
+DEFAULT_I18N_KEY = 'en'
 
 
 def main():
@@ -22,10 +25,17 @@ def main():
         os.environ['PYTHONUNBUFFERED'] = '1'
 
     args = app_args.read()
+
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
 
-    i18n_key, i18n = util.get_locale_keys(args.locale)
+    if args.clean:
+        util.clean_app_files()
+        exit(0)
+
+    i18n_key, current_i18n = translation.get_locale_keys(args.locale)
+    default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
+    i18n = I18n(current_i18n, default_i18n)
 
     cache_cleaner = CacheCleaner()
     cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
@@ -57,7 +67,7 @@ def main():
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
 
-    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config)
+    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config, default_locale=DEFAULT_I18N_KEY)
 
     manager = GenericSoftwareManager(managers, context=context, app_args=args)
     manager.prepare()

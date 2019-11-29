@@ -6,6 +6,7 @@ from bauh.api.abstract.view import MessageType
 
 from bauh.view.util import resource
 from bauh.view.qt import css
+from bauh.view.util.translation import I18n
 
 MSG_TYPE_MAP = {
     MessageType.ERROR: QMessageBox.Critical,
@@ -26,7 +27,7 @@ def show_message(title: str, body: str, type_: MessageType, icon: QIcon = QIcon(
     popup.exec_()
 
 
-def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIcon(resource.get_path('img/logo.svg')), widgets: List[QWidget] = None):
+def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')), widgets: List[QWidget] = None):
     diag = QMessageBox()
     diag.setIcon(QMessageBox.Question)
     diag.setWindowTitle(title)
@@ -42,10 +43,10 @@ def ask_confirmation(title: str, body: str, locale_keys: dict, icon: QIcon = QIc
 
     diag.layout().addWidget(wbody, 0, 1)
 
-    bt_yes = diag.addButton(locale_keys['popup.button.yes'], QMessageBox.YesRole)
+    bt_yes = diag.addButton(i18n['popup.button.yes'], QMessageBox.YesRole)
     bt_yes.setStyleSheet(css.OK_BUTTON)
 
-    diag.addButton(locale_keys['popup.button.no'], QMessageBox.NoRole)
+    diag.addButton(i18n['popup.button.no'], QMessageBox.NoRole)
 
     if icon:
         diag.setWindowIcon(icon)

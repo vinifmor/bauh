@@ -5,11 +5,13 @@ It has a **tray mode** (see **Settings** below) that attaches the application ic
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
+To contribute with this project, have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
+
 
 ![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
 
 
-### Developed with:
+### Developed with
 - Python3 and Qt5.
 
 ### Requirements
@@ -50,57 +52,80 @@ As [**bauh**](https://aur.archlinux.org/packages/bauh) package. There is also a 
 It may require **sudo**, but prefer the **Manual installation** described below to not mess up with your system libraries.
 
 
-### Manual installation:
-If you prefer a manual and isolated installation, type the following commands within the cloned project folder:
+### Manual installation
+- If you prefer a manual and isolated installation, open your favorite terminal application and type the following commands:
 
 ```
-python3 -m venv env ( creates a virtualenv in a folder called **env** )
-env/bin/pip install . ( installs the application code inside the **env** )
-env/bin/bauh  ( launches the application )
+python3 -m venv bauh_env ( creates a virtualenv in a folder called **bauh_env** )
+bauh_env/bin/pip install bauh ( installs bauh in the isolated environment )
+bauh_env/bin/bauh  ( launches bauh )
+
+# P.S: if you want to launch it attached to your system tray, replace the last command by: bauh_env/bin/bauh --tray=1
 ```
 
-If you do not want to clone / download this repository, go to your **Home** folder and execute the commands above, but replace the second by ```env/bin/pip install bauh```.
+- To update your isolated bauh to the latest version:
+```
+bauh_env/bin/pip install bauh --upgrade
+```
+
+- To uninstall it just remove the **bauh_env** folder
+
+- To create a shortcut ( desktop entry ) for it in your system menu ( assuming you created the isolated environment in your home folder using Python 3.7 ):
+    - Create a file called **bauh.desktop** in **~/.local/share/applications** with the following content
+```
+[Desktop Entry]
+Type=Application
+Name=bauh
+Comment=Install and remove applications ( AppImage, AUR, Flatpak, Snap )
+Exec=/home/$USER/bauh_env/bin/bauh
+Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/logo.svg
+```
+
+- If you want a shortcut to the tray, put the **--tray=1** parameter in the end of the **Exec** line of the example above ( e.g: **Exec=/home/$USER/bauh_env/bin/bauh --tray=1** )
+- P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
 
 ### Autostart
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
+### Uninstallation
+Before uninstalling bauh via your package manager, consider executing `bauh --clean` to remove configuration and cache files stored in your **HOME** folder.
+
 ### Gems ( package technology support )
-#### Flatpak ( flatpak gem )
+#### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-#### Snap ( snap gem )
+#### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-#### AUR ( arch gem )
-- It is **not enabled by default**
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
-- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
-will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
-- Automatically makes simple package compilation improvements:
-
-    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf** and **~/.makepkg.conf** does not exist,
-    then a copy of **/etc/makepkg.conf** will be generated at **~/.makepkg.conf** defining MAKEFLAGS to work with
-    the number of your machine processors (**-j${nproc}**).
-
-    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
-
-    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, check: https://wiki.archlinux.org/index.php/Makepkg )
-- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
-- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-
-#### AppImage ( appimage gem )
+#### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases updater daemon running every 20 minutes. It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
+- Databases updater daemon running every 20 minutes ( the interval in SECONDS can be changed with the environment variable **BAUH_APPIMAGE_DB_UPDATER_TIME** ). It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
 - All supported application names can be found at: https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt
 
 Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+
+#### AUR ( arch )
+- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
+- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
+- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
+will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
+- Automatically makes simple package compilation improvements:
+
+    a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
+    then a copy of **/etc/makepkg.conf** will be generated at **~/.config/bauh/arch/makepkg.conf** defining MAKEFLAGS to work with
+    the number of your machine processors (**-j${nproc}**).
+
+    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+
+    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
+    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 
 
 ### General settings

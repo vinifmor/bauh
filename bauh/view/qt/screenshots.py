@@ -12,6 +12,7 @@ from bauh.view.qt import qt_utils
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.thread import AnimateProgress
 from bauh.view.qt.view_model import PackageView
+from bauh.view.util.translation import I18n
 
 
 class ScreenshotsDialog(QDialog):
@@ -19,7 +20,7 @@ class ScreenshotsDialog(QDialog):
     MAX_HEIGHT = 600
     MAX_WIDTH = 800
 
-    def __init__(self, pkg: PackageView, http_client: HttpClient, icon_cache: MemoryCache, i18n: dict, screenshots: List[QPixmap], logger: logging.Logger):
+    def __init__(self, pkg: PackageView, http_client: HttpClient, icon_cache: MemoryCache, i18n: I18n, screenshots: List[QPixmap], logger: logging.Logger):
         super(ScreenshotsDialog, self).__init__()
         self.setWindowTitle(str(pkg))
         self.screenshots = screenshots

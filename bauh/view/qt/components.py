@@ -15,6 +15,10 @@ class RadioButtonQt(QRadioButton):
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
 
+        if self.model.read_only:
+            self.setAttribute(Qt.WA_TransparentForMouseEvents)
+            self.setFocusPolicy(Qt.NoFocus)
+
     def _set_checked(self, checked: bool):
         if checked:
             self.model_parent.value = self.model
@@ -33,6 +37,10 @@ class CheckboxQt(QCheckBox):
 
         if model.icon_path:
             self.setIcon(QIcon(model.icon_path))
+
+        if model.read_only:
+            self.setAttribute(Qt.WA_TransparentForMouseEvents)
+            self.setFocusPolicy(Qt.NoFocus)
 
     def _set_checked(self, state):
         checked = state == 2

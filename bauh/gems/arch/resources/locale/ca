@@ -1,5 +1,6 @@
 gem.arch.label=AUR
 gem.arch.info=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
+gem.aur.install.warning=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
 aur.info.architecture=arquitectura
 aur.info.architecture.any=qualsevol
 aur.info.build date=data de compilació
@@ -58,6 +59,7 @@ aur.info.00_pkg_build=pkgbuild
 aur.info.01_id=id
 aur.info.02_name=nom
 aur.info.03_version=versió
+aur.info.03_description=descripció
 aur.info.04_popularity=popularitat
 aur.info.05_votes=vots
 aur.info.06_package_base=paquet base

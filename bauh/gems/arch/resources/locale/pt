@@ -1,5 +1,6 @@
 gem.arch.label=AUR
 gem.arch.info=Pacotes do AUR são mantidos por uma comunidade de usuários independente. Não há garantia que funcionarão ou que não prejudicarão o seus sistema.
+gem.aur.install.warning=Pacotes do AUR são mantidos por uma comunidade de usuários independente. Não há garantia que funcionarão ou que não prejudicarão o seus sistema.
 aur.info.architecture=arquitetura
 aur.info.architecture.any=qualquer
 aur.info.build date=data de construção
@@ -58,6 +59,7 @@ aur.info.00_pkg_build=pkgbuild
 aur.info.01_id=id
 aur.info.02_name=nome
 aur.info.03_version=versão
+aur.info.03_description=descrição
 aur.info.04_popularity=popularidade
 aur.info.05_votes=votos
 aur.info.06_package_base=pacote base

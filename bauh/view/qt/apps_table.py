@@ -15,6 +15,7 @@ from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
@@ -25,7 +26,7 @@ PUBLISHER_MAX_SIZE = 25
 
 class UpdateToggleButton(QWidget):
 
-    def __init__(self, app_view: PackageView, root: QWidget, i18n: dict, checked: bool = True, clickable: bool = True):
+    def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
 
         self.app_view = app_view
@@ -113,7 +114,7 @@ class AppsTable(QTableWidget):
                     if dialog.ask_confirmation(
                             title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
                             body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkg)))),
-                            locale_keys=self.i18n):
+                            i18n=self.i18n):
                         self.window.downgrade(pkg)
 
                 action_downgrade.triggered.connect(downgrade)
@@ -131,7 +132,7 @@ class AppsTable(QTableWidget):
                     if dialog.ask_confirmation(
                             title=self.i18n[action.i18_label_key],
                             body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
-                            locale_keys=self.i18n):
+                            i18n=self.i18n):
                         self.window.execute_custom_action(pkg, action)
 
                 item.triggered.connect(custom_action)
@@ -162,7 +163,7 @@ class AppsTable(QTableWidget):
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
                                    body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
-                                   locale_keys=self.i18n):
+                                   i18n=self.i18n):
             self.window.uninstall_app(app_v)
 
     def _bold(self, text: str) -> str:
@@ -173,10 +174,17 @@ class AppsTable(QTableWidget):
 
     def _install_app(self, pkgv: PackageView):
 
+        body = self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))
+
+        warning = self.i18n.get('gem.{}.install.warning'.format(pkgv.model.get_type().lower()))
+
+        if warning:
+            body += '<br/><br/> {}'.format('<br/>'.join(('{}.'.format(phrase) for phrase in warning.split('.') if phrase)))
+
         if dialog.ask_confirmation(
                 title=self.i18n['manage_window.apps_table.row.actions.install.popup.title'],
-                body=self._parag(self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))),
-                locale_keys=self.i18n):
+                body=self._parag(body),
+                i18n=self.i18n):
 
             self.window.install(pkgv)
 
@@ -266,6 +274,7 @@ class AppsTable(QTableWidget):
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
+
             item = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
         else:
             item = None

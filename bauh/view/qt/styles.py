@@ -5,11 +5,12 @@ from bauh.commons.html import bold
 from bauh.view.core import config
 from bauh.view.util import util
 from bauh.view.qt import dialog
+from bauh.view.util.translation import I18n
 
 
 class StylesComboBox(QComboBox):
 
-    def __init__(self, parent: QWidget, i18n: dict, show_panel_after_restart: bool):
+    def __init__(self, parent: QWidget, i18n: I18n, show_panel_after_restart: bool):
         super(StylesComboBox, self).__init__(parent=parent)
         self.app = QApplication.instance()
         self.styles = []
