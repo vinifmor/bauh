@@ -1,6 +1,6 @@
 import re
 from threading import Thread
-from typing import List, Set
+from typing import List, Set, Tuple
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess
 
@@ -11,6 +11,17 @@ RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 def is_enabled() -> bool:
     res = run_cmd('which pacman')
     return res and not res.strip().startswith('which ')
+
+
+def get_mirror(pkg: str) -> Tuple[str, str]:
+    res = run_cmd('pacman -Ss {}'.format(pkg))
+
+    if res:
+        lines = res.split('\n')
+
+        if lines:
+            data = lines[0].split('/')
+            return data[1].split(' ')[0], data[0]
 
 
 def get_mirrors(pkgs: Set[str]) -> dict:
@@ -25,6 +36,15 @@ def get_mirrors(pkgs: Set[str]) -> dict:
             for p in pkgs:
                 if p in match:
                     mirrors[p] = match.split('/')[0]
+
+    not_found = {pkg for pkg in pkgs if pkg not in mirrors}
+
+    if not_found:  # if there are any not found, try to find via the single method:
+        for dep in not_found:
+            mirror_data = get_mirror(dep)
+
+            if mirror_data:
+                mirrors[mirror_data[0]] = mirror_data[1]
 
     return mirrors
 

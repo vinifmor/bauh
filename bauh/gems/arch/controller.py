@@ -355,21 +355,18 @@ class ArchManager(SoftwareManager):
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def _install_deps(self, deps: Set[str], pkg_mirrors: dict, root_password: str, handler: ProcessHandler, change_progress: bool = False) -> str:
+    def _install_deps(self, pkg_mirrors: dict, root_password: str, handler: ProcessHandler, change_progress: bool = False) -> str:
         """
-        :param deps:
         :param pkg_mirrors:
         :param root_password:
         :param handler:
         :return: not installed dependency
         """
-        progress_increment = int(100 / len(deps))
+        progress_increment = int(100 / len(pkg_mirrors))
         progress = 0
         self._update_progress(handler.watcher, 1, change_progress)
 
-        for pkgname in deps:
-
-            mirror = pkg_mirrors[pkgname]
+        for pkgname, mirror in pkg_mirrors.items():
             handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(pkgname, mirror))))
             if mirror == 'aur':
                 installed = self._install_from_aur(pkgname=pkgname, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
@@ -387,7 +384,7 @@ class ArchManager(SoftwareManager):
     def _map_mirrors(self, pkgnames: Set[str]) -> dict:
         pkg_mirrors = pacman.get_mirrors(pkgnames)  # getting mirrors set
 
-        if len(pkgnames) != pkg_mirrors:  # checking if any dep not found in the distro mirrors are from AUR
+        if len(pkgnames) != len(pkg_mirrors):  # checking if any dep not found in the distro mirrors are from AUR
             nomirrors = {p for p in pkgnames if p not in pkg_mirrors}
             for pkginfo in self.aur_client.get_info(nomirrors):
                 if pkginfo.get('Name') in nomirrors:
@@ -470,10 +467,11 @@ class ArchManager(SoftwareManager):
                 depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in check_res['missing_deps']}
                 dep_mirrors = self._map_mirrors(depnames)
 
-                for dep in depnames:  # cheking if a dependency could not be found in any mirror
-                    if dep not in dep_mirrors:
-                        message.show_dep_not_found(dep, self.i18n, handler.watcher)
-                        return False
+                if len(depnames) != len(dep_mirrors):  # cheking if a dependency could not be found in any mirror
+                    for dep in depnames:
+                        if dep not in dep_mirrors:
+                            message.show_dep_not_found(dep, self.i18n, handler.watcher)
+                            return False
 
                 handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
 
@@ -481,7 +479,7 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
-                dep_not_installed = self._install_deps(depnames, dep_mirrors, root_password, handler, change_progress=False)
+                dep_not_installed = self._install_deps(dep_mirrors, root_password, handler, change_progress=False)
 
                 if dep_not_installed:
                     message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
@@ -525,14 +523,14 @@ class ArchManager(SoftwareManager):
         pkg_mirrors = self._map_mirrors(to_install)
 
         if pkg_mirrors:
-            final_optdeps = {dep: {'desc': odeps.get(dep), 'mirror': pkg_mirrors.get(dep)} for dep in to_install if dep in pkg_mirrors}
+            final_optdeps = {dep: {'desc': odeps.get(dep), 'mirror': pkg_mirrors.get(dep)} for dep, mirror in pkg_mirrors.items()}
 
             deps_to_install = confirmation.request_optional_deps(pkgname, final_optdeps, handler.watcher, self.i18n)
 
             if not deps_to_install:
                 return True
             else:
-                dep_not_installed = self._install_deps(deps_to_install, pkg_mirrors, root_password, handler, change_progress=True)
+                dep_not_installed = self._install_deps(pkg_mirrors, root_password, handler, change_progress=True)
 
                 if dep_not_installed:
                     message.show_optdep_not_installed(dep_not_installed, handler.watcher, self.i18n)

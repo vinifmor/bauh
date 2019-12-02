@@ -123,7 +123,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
     b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
 
     Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg) )
 - Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 

@@ -25,7 +25,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
                                         default_options=None)
 
     install = watcher.request_confirmation(title=i18n['arch.install.optdeps.request.title'],
-                                           body='<p>{}</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)) + ':'),
+                                           body='<p>{}.</p><p>{}.</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)), i18n['arch.install.optdeps.request.help']),
                                            components=[view_opts],
                                            confirmation_label=i18n['install'],
                                            deny_label=i18n['cancel'])
