@@ -5,10 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.7.4] 2019-12
+### Improvements
+- Some AUR labels have been changed to not confuse the user
+
 ### Fixes
 - AUR:
     - not finding some dependencies declared as files instead of the package names (e.g: dolphin-emu-git )
-
+    
 
 ## [0.7.3] 2019-11-29
 ### Improvements

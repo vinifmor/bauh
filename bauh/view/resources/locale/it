@@ -155,3 +155,4 @@ close=vicino
 publisher.verified=verificato
 mirror=specchio
 emulator=emulatore
+do_not.install=non installare
