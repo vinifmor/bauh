@@ -35,7 +35,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
 
 
 def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(bold(pkgname)) + ':')
+    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(bold(pkgname)))
 
     opts = []
     for p, m in pkg_mirrors.items():
@@ -46,4 +46,4 @@ def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: Proce
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
 
-    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize())
+    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize())
