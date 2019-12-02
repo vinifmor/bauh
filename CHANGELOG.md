@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AUR:
     - not finding some dependencies declared as files instead of the package names (e.g: dolphin-emu-git )
+    - replaces the wrong term **mirror** by **repository**
     
 
 ## [0.7.3] 2019-11-29

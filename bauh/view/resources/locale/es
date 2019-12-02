@@ -200,3 +200,4 @@ publisher.verified=verificado
 mirror=espejo
 emulator=emulador
 do_not.install=no instalar
+repository=repositorio

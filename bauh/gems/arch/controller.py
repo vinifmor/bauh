@@ -428,7 +428,7 @@ class ArchManager(SoftwareManager):
         self._pre_download_source(pkgname, project_dir, handler.watcher)
 
         self._update_progress(handler.watcher, 50, change_progress)
-        if not self._install_missings_deps_and_keys(pkgname, root_password, handler, project_dir):
+        if not self._check_deps(pkgname, root_password, handler, project_dir):
             return False
 
         # building main package
@@ -458,7 +458,7 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _install_missings_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
+    def _check_deps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
         check_res = makepkg.check(pkgdir, handler)
 
@@ -486,7 +486,7 @@ class ArchManager(SoftwareManager):
                     return False
 
                 # it is necessary to re-check because missing PGP keys are only notified when there are none missing
-                return self._install_missings_deps_and_keys(pkgname, root_password, handler, pkgdir)
+                return self._check_deps(pkgname, root_password, handler, pkgdir)
 
             if check_res.get('gpg_key'):
                 if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],

@@ -203,3 +203,4 @@ publisher.verified=verificado
 mirror=espelho
 emulator=emulador
 do_not.install=não instalar
+repository=repositório
