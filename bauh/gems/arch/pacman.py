@@ -39,7 +39,7 @@ def get_mirrors(pkgs: Set[str]) -> dict:
 
     not_found = {pkg for pkg in pkgs if pkg not in mirrors}
 
-    if not_found:  # if there are any not found, try to find via the single method:
+    if not_found:  # if there are some packages not found, try to find via the single method:
         for dep in not_found:
             mirror_data = get_mirror(dep)
 
