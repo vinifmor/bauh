@@ -463,7 +463,7 @@ class ArchManager(SoftwareManager):
 
                 handler.watcher.change_substatus(self.i18n['arch.optdeps.checking'].format(bold(pkgname)))
 
-                if self._install_optdeps(pkgname, root_password, handler, project_dir, change_progress=change_progress):
+                if self._install_optdeps(pkgname, root_password, handler, project_dir):
                     return True
 
         return False
@@ -557,7 +557,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, change_progress: bool = True) -> bool:
+    def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         with open('{}/.SRCINFO'.format(pkgdir)) as f:
             odeps = pkgbuild.read_optdeps_as_dict(f.read())
 
@@ -579,7 +579,17 @@ class ArchManager(SoftwareManager):
             if not deps_to_install:
                 return True
             else:
-                dep_not_installed = self._install_deps(pkg_mirrors, root_password, handler, change_progress=True)
+                aur_deps, repo_deps = [], []
+
+                for dep in deps_to_install:
+                    mirror = pkg_mirrors[dep]
+
+                    if mirror == 'aur':
+                        aur_deps.append((dep, mirror))
+                    else:
+                        repo_deps.append((dep, mirror))
+
+                dep_not_installed = self._install_deps([*repo_deps, *aur_deps], root_password, handler, change_progress=True)
 
                 if dep_not_installed:
                     message.show_optdep_not_installed(dep_not_installed, handler.watcher, self.i18n)
