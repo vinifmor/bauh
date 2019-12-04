@@ -15,4 +15,5 @@ snap.notifications.api.unavailable=Sembla que l’API de {} no està disponible 
 snap.action.refresh.status=S’està actualitzant
 snap.action.refresh.label=Actualitza
 snap.install.available_channels.title=Canals disponibles
-snap.install.available_channels.body=No hi ha un canal {} (stable) disponible per a {}. Però més avall n’hi ha els següents (seleccioneu-ne un si voleu continuar)
+snap.install.available_channels.message=No hi ha un canal {} (stable) disponible per a {}. Però més avall n’hi ha els següents
+snap.install.available_channels.help=Seleccioneu-ne un si voleu continuar

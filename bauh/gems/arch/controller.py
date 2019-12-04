@@ -6,7 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 import requests
 
@@ -22,6 +22,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH
 from bauh.gems.arch.aur import AURClient
+from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
@@ -62,6 +63,7 @@ class ArchManager(SoftwareManager):
         self.categories_mapper = CategoriesDownloader('AUR', context.http_client, context.logger, self, self.context.disk_cache,
                                                       URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH)
         self.categories = {}
+        self.deps_analyser = DependenciesAnalyser(self.aur_client)
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -219,7 +221,7 @@ class ArchManager(SoftwareManager):
                                             break
 
                                     watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
-                                    return self._make_pkg(pkg.name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
+                                    return self._build(pkg.name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
                                 else:
                                     watcher.show_message(title=self.i18n['arch.downgrade.error'],
                                                          body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
@@ -308,11 +310,17 @@ class ArchManager(SoftwareManager):
             srcinfo = self.aur_client.get_src_info(pkg.name)
 
             if srcinfo:
+                if srcinfo.get('makedepends'):
+                    info['12_makedepends'] = srcinfo['makedepends']
+
                 if srcinfo.get('depends'):
-                    info['11_dependson'] = srcinfo['depends']
+                    info['13_dependson'] = srcinfo['depends']
 
                 if srcinfo.get('optdepends'):
-                    info['12_optdepends'] = srcinfo['optdepends']
+                    info['14_optdepends'] = srcinfo['optdepends']
+
+                if srcinfo.get('checkdepends'):
+                    info['15_checkdepends'] = srcinfo['checkdepends']
 
             if pkg.pkgbuild:
                 info['00_pkg_build'] = pkg.pkgbuild
@@ -355,34 +363,34 @@ class ArchManager(SoftwareManager):
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def _install_deps(self, pkg_mirrors: dict, root_password: str, handler: ProcessHandler, change_progress: bool = False) -> str:
+    def _install_deps(self, deps: List[Tuple[str, str]], root_password: str, handler: ProcessHandler, change_progress: bool = False) -> str:
         """
-        :param pkg_mirrors:
+        :param pkgs_repos:
         :param root_password:
         :param handler:
         :return: not installed dependency
         """
-        progress_increment = int(100 / len(pkg_mirrors))
+        progress_increment = int(100 / len(deps))
         progress = 0
         self._update_progress(handler.watcher, 1, change_progress)
 
-        for pkgname, mirror in pkg_mirrors.items():
-            handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(pkgname, mirror))))
-            if mirror == 'aur':
-                installed = self._install_from_aur(pkgname=pkgname, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
+        for dep in deps:
+            handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(dep[0], dep[1]))))
+            if dep[1] == 'aur':
+                installed = self._install_from_aur(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
-                installed = self._install(pkgname=pkgname, maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=mirror, change_progress=False)
+                installed = self._install(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
 
             if not installed:
-                return pkgname
+                return dep[0]
 
             progress += progress_increment
             self._update_progress(handler.watcher, progress, change_progress)
 
         self._update_progress(handler.watcher, 100, change_progress)
 
-    def _map_mirrors(self, pkgnames: Set[str]) -> dict:
-        pkg_mirrors = pacman.get_mirrors(pkgnames)  # getting mirrors set
+    def _map_repos(self, pkgnames: Set[str]) -> dict:
+        pkg_mirrors = pacman.get_repositories(pkgnames)  # getting mirrors set
 
         if len(pkgnames) != len(pkg_mirrors):  # checking if any dep not found in the distro mirrors are from AUR
             nomirrors = {p for p in pkgnames if p not in pkg_mirrors}
@@ -423,12 +431,14 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _make_pkg(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+    def _build(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
         self._pre_download_source(pkgname, project_dir, handler.watcher)
 
         self._update_progress(handler.watcher, 50, change_progress)
-        if not self._check_deps(pkgname, root_password, handler, project_dir):
+
+        check_subdeps = bool(int(os.getenv('BAUH_ARCH_CHECK_SUBDEPS', 1)))
+        if not self._handle_deps_and_keys(pkgname, root_password, handler, project_dir, check_subdeps=check_subdeps):
             return False
 
         # building main package
@@ -458,35 +468,74 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _check_deps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
+    def _map_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
+        depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
+        dep_repos = self._map_repos(depnames)
+
+        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any mirror
+            for dep in depnames:
+                if dep not in dep_repos:
+                    message.show_dep_not_found(dep, self.i18n, watcher)
+                    return
+
+        sorted_deps = []  # it will hold the proper order to install the missing dependencies
+
+        repo_deps, aur_deps = set(), set()
+
+        for dep, repo in dep_repos.items():
+            if repo == 'aur':
+                aur_deps.add(dep)
+            else:
+                repo_deps.add(dep)
+
+        if check_subdeps:
+            for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
+                if deps[0]:
+                    missing_subdeps = self.deps_analyser.get_missing_dependencies_from(deps[0], deps[1])
+
+                    if missing_subdeps:
+                        for dep in missing_subdeps:
+                            if not dep[1]:
+                                message.show_dep_not_found(dep[0], self.i18n, watcher)
+                                return
+
+                        for dep in missing_subdeps:
+                            sorted_deps.append(dep)
+
+        for dep, repo in dep_repos.items():
+            if repo != 'aur':
+                sorted_deps.append((dep, repo))
+
+        for dep in aur_deps:
+            sorted_deps.append((dep, 'aur'))
+
+        return sorted_deps
+
+    def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
         check_res = makepkg.check(pkgdir, handler)
 
         if check_res:
             if check_res.get('missing_deps'):
-                depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in check_res['missing_deps']}
-                dep_mirrors = self._map_mirrors(depnames)
+                sorted_deps = self._map_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
 
-                if len(depnames) != len(dep_mirrors):  # checking if a dependency could not be found in any mirror
-                    for dep in depnames:
-                        if dep not in dep_mirrors:
-                            message.show_dep_not_found(dep, self.i18n, handler.watcher)
-                            return False
+                if sorted_deps is None:
+                    return False
 
                 handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
 
-                if not confirmation.request_install_missing_deps(pkgname, dep_mirrors, handler.watcher, self.i18n):
+                if not confirmation.request_install_missing_deps(pkgname, sorted_deps, handler.watcher, self.i18n):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
-                dep_not_installed = self._install_deps(dep_mirrors, root_password, handler, change_progress=False)
+                dep_not_installed = self._install_deps(sorted_deps, root_password, handler, change_progress=False)
 
                 if dep_not_installed:
                     message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
                     return False
 
                 # it is necessary to re-check because missing PGP keys are only notified when there are none missing
-                return self._check_deps(pkgname, root_password, handler, pkgdir)
+                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
 
             if check_res.get('gpg_key'):
                 if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
@@ -520,7 +569,7 @@ class ArchManager(SoftwareManager):
         if not to_install:
             return True
 
-        pkg_mirrors = self._map_mirrors(to_install)
+        pkg_mirrors = self._map_repos(to_install)
 
         if pkg_mirrors:
             final_optdeps = {dep: {'desc': odeps.get(dep), 'mirror': pkg_mirrors.get(dep)} for dep, mirror in pkg_mirrors.items()}
@@ -642,15 +691,15 @@ class ArchManager(SoftwareManager):
 
                         if uncompress:
                             uncompress_dir = '{}/{}'.format(app_build_dir, pkgname)
-                            return self._make_pkg(pkgname=pkgname,
-                                                  maintainer=maintainer,
-                                                  root_password=root_password,
-                                                  handler=handler,
-                                                  build_dir=app_build_dir,
-                                                  project_dir=uncompress_dir,
-                                                  dependency=dependency,
-                                                  skip_optdeps=skip_optdeps,
-                                                  change_progress=change_progress)
+                            return self._build(pkgname=pkgname,
+                                               maintainer=maintainer,
+                                               root_password=root_password,
+                                               handler=handler,
+                                               build_dir=app_build_dir,
+                                               project_dir=uncompress_dir,
+                                               dependency=dependency,
+                                               skip_optdeps=skip_optdeps,
+                                               change_progress=change_progress)
         finally:
             if os.path.exists(app_build_dir):
                 handler.handle(SystemProcess(new_subprocess(['rm', '-rf', app_build_dir])))

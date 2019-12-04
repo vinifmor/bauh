@@ -1,4 +1,4 @@
-from typing import Set
+from typing import Set, List, Tuple
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
@@ -25,7 +25,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
                                         default_options=None)
 
     install = watcher.request_confirmation(title=i18n['arch.install.optdeps.request.title'],
-                                           body='<p>{}.</p><p>{}.</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)), i18n['arch.install.optdeps.request.help']),
+                                           body='<p>{}.</p><p>{}:</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)), i18n['arch.install.optdeps.request.help']),
                                            components=[view_opts],
                                            confirmation_label=i18n['install'].capitalize(),
                                            deny_label=i18n['do_not.install'].capitalize())
@@ -34,14 +34,14 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(bold(pkgname)))
+def request_install_missing_deps(pkgname: str, deps: List[Tuple[str,str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
+    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname), deps=bold(len(deps))))
 
     opts = []
-    for p, m in pkg_mirrors.items():
-        op = InputOption('{} ( {}: {} )'.format(p, i18n['repository'], m.upper()), p)
+    for dep in deps:
+        op = InputOption('{} ( {}: {} )'.format(dep[0], i18n['repository'], dep[1].upper()), dep[0])
         op.read_only = True
-        op.icon_path = _get_mirror_icon(m)
+        op.icon_path = _get_mirror_icon(dep[1])
         opts.append(op)
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))

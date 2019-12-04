@@ -379,7 +379,8 @@ class ManageWindow(QWidget):
                                   i18n=self.i18n,
                                   components=msg['components'],
                                   confirmation_label=msg['confirmation_label'],
-                                  deny_label=msg['deny_label'])
+                                  deny_label=msg['deny_label'],
+                                  screen_size=self.screen_size)
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
