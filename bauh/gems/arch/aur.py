@@ -4,6 +4,7 @@ from typing import Set, List
 from bauh.api.http import HttpClient
 import urllib.parse
 
+from bauh.gems.arch import pacman
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
@@ -57,7 +58,7 @@ class AURClient:
 
         for attr in ('makedepends', 'depends', 'checkdepends'):
             if info.get(attr):
-                deps.update(info[attr])
+                deps.update([pacman.RE_DEP_OPERATORS.split(dep)[0] for dep in info[attr]])
 
         return deps
 

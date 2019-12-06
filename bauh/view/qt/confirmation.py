@@ -49,10 +49,7 @@ class ConfirmationDialog(QMessageBox):
                 height += inst.sizeHint().height()
                 comps_container.layout().addWidget(inst)
 
-            height = height if height < screen_size.height() / 2 else height / 2
-
-            if height < 100:
-                height = 100
+            height = height if height < int(screen_size.height() / 2.5) else int(screen_size.height() / 2.5)
 
             scroll.setFixedHeight(height)
             self.layout().addWidget(scroll, 1, 1)

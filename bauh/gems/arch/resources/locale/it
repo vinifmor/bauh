@@ -13,6 +13,7 @@ aur.history.3_date=data
 arch.downloading.package=Download del pacchetto
 arch.uncompressing.package=Non comprimere il pacchetto
 arch.checking.deps=Verifica di {} dipendenze
+arch.checking.missing_deps=Verifica delle dipendenze mancanti di {}
 arch.missing_deps_found=Dipendenze mancanti per {}
 arch.building.package=Pacchetto costruito {}
 arch.checking.conflicts=Verifica di eventuali conflitti con {}

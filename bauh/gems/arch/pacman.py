@@ -8,22 +8,12 @@ from bauh.gems.arch.exceptions import PackageNotFoundException
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
+RE_DEP_OPERATORS = re.compile(r'[<>=]')
 
 
 def is_enabled() -> bool:
     res = run_cmd('which pacman')
     return res and not res.strip().startswith('which ')
-
-
-def get_configured_repository(pkg: str) -> Tuple[str, str]:
-    res = run_cmd('pacman -Ss {}'.format(pkg))
-
-    if res:
-        lines = res.split('\n')
-
-        if lines:
-            data = lines[0].split('/')
-            return data[1].split(' ')[0], data[0]
 
 
 def get_repositories(pkgs: Set[str]) -> dict:
@@ -39,11 +29,11 @@ def get_repositories(pkgs: Set[str]) -> dict:
                 if p in match:
                     mirrors[p] = match.split('/')[0]
 
-    not_found = {pkg for pkg in pkgs if pkg not in mirrors}
+    not_found = {pkg for pkg in pkgs if pkg and pkg not in mirrors}
 
     if not_found:  # if there are some packages not found, try to find via the single method:
         for dep in not_found:
-            mirror_data = get_configured_repository(dep)
+            mirror_data = guess_repository(dep)
 
             if mirror_data:
                 mirrors[mirror_data[0]] = mirror_data[1]
@@ -250,7 +240,7 @@ def check_missing(names: Set[str]) -> Set[str]:
             err_line = o.decode()
 
             if err_line:
-                not_found = RE_DEP_NOTFOUND.findall(err_line)
+                not_found = [n for n in RE_DEP_NOTFOUND.findall(err_line) if n]
 
                 if not_found:
                     not_installed.update(not_found)
@@ -284,14 +274,59 @@ def read_repository_from_info(name: str) -> str:
 
 
 def guess_repository(name: str) -> Tuple[str, str]:
-    res = run_cmd('pacman -Ss {}'.format(name.split('=')[0] if '=' in name else name))
+
+    if not name:
+        raise Exception("'name' cannot be None or blank")
+
+    only_name = RE_DEP_OPERATORS.split(name)[0]
+    res = run_cmd('pacman -Ss {}'.format(only_name))
 
     if res:
         lines = res.split('\n')
 
         if lines:
-            data = lines[0].split('/')
-            return data[1].split(' ')[0], data[0]
+            for line in lines:
+                if line and not line.startswith(' '):
+                    data = line.split('/')
+                    line_name, line_repo = data[1].split(' ')[0], data[0]
+
+                    provided = read_provides(line_name)
+
+                    if provided:
+                        found = {p for p in provided if only_name == RE_DEP_OPERATORS.split(p)[0]}
+
+                        if found:
+                            return line_name, line_repo
+
+
+def read_provides(name: str) -> Set[str]:
+    dep_info = new_subprocess(['pacman', '-Si', name])
+
+    not_found = False
+
+    for o in dep_info.stderr:
+        if o:
+            err_line = o.decode()
+
+            if err_line:
+                if RE_DEP_NOTFOUND.findall(err_line):
+                    not_found = True
+
+    if not_found:
+        raise PackageNotFoundException(name)
+
+    provides = None
+
+    for out in new_subprocess(['grep', '-Po', 'Provides\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
+        if out:
+            provided_names = [p.strip() for p in out.decode().strip().split(' ') if p]
+
+            if provided_names[0].lower() == 'none':
+                provides = {name}
+            else:
+                provides = set(provided_names)
+
+    return provides
 
 
 def read_dependencies(name: str) -> Set[str]:
@@ -316,63 +351,6 @@ def read_dependencies(name: str) -> Set[str]:
             line = out.decode().strip()
 
             if line:
-                depends_on.update(line.split(' '))
+                depends_on.update([d for d in line.split(' ') if d and d.lower() != 'none'])
 
     return depends_on
-
-"""
-def check_uninstalled(names: List[str], stop_recursion_if_no_mirror: bool = True) -> Dict[str, str]:
-    missing = {}
-    installed = new_subprocess(['pacman', '-Qq', *names])
-
-    not_installed = []
-
-    for o in installed.stderr:
-        if o:
-            err_line = o.decode()
-
-            if err_line:
-                not_found = RE_DEP_NOTFOUND.findall(err_line)
-
-                if not_found:
-                    not_installed.extend(not_found)
-
-    if not_installed:
-        missing_mirrors = False
-
-        for dep in not_installed:
-            pkgname = dep
-            not_installed_info = new_subprocess(['pacman', '-Si', dep])
-
-            mirror = None
-            for o in new_subprocess(['grep', '-Po', "Repository\s+:\s+\K.+"], stdin=not_installed_info.stdout).stdout:
-                if o:
-                    line = o.decode().strip()
-
-                    if line:
-                        mirror = line
-
-            if not mirror:
-                mirror_data = get_configured_repository(dep)
-
-                if mirror_data:
-                    pkgname = mirror_data[0]
-                    mirror = mirror_data[1]
-
-            missing[pkgname] = mirror
-
-            if mirror is None:
-                missing_mirrors = True
-
-        if stop_recursion_if_no_mirror and missing_mirrors:
-            return missing
-
-        subdeps_mirrors = dict()
-
-        for pkg in missing:
-            subdeps_mirrors.update(check_uninstalled(pkg))
-
-        missing.update(subdeps_mirrors, stop_recursion_if_no_mirror=stop_recursion_if_no_mirror)
-
-    return missing
-"""

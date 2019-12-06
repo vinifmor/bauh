@@ -13,6 +13,7 @@ aur.history.3_date=Datum
 arch.downloading.package=Paket herunterladen
 arch.uncompressing.package=Paket entpacken
 arch.checking.deps={} Abhängigkeiten überprüfen
+arch.checking.missing_deps=Überprüfen der fehlenden Abhängigkeiten von {}
 arch.missing_deps_found=Fehlende Abhängigkeiten für {}
 arch.building.package=Paket {} erstellen
 arch.checking.conflicts=Konflikte mit {} überprüfen

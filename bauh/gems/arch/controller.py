@@ -6,7 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Dict
 
 import requests
 
@@ -431,14 +431,16 @@ class ArchManager(SoftwareManager):
 
         return True
 
+    def _should_check_subdeps(self):
+        return bool(int(os.getenv('BAUH_ARCH_CHECK_SUBDEPS', 1)))
+
     def _build(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
         self._pre_download_source(pkgname, project_dir, handler.watcher)
 
         self._update_progress(handler.watcher, 50, change_progress)
 
-        check_subdeps = bool(int(os.getenv('BAUH_ARCH_CHECK_SUBDEPS', 1)))
-        if not self._handle_deps_and_keys(pkgname, root_password, handler, project_dir, check_subdeps=check_subdeps):
+        if not self._handle_deps_and_keys(pkgname, root_password, handler, project_dir, check_subdeps=self._should_check_subdeps()):
             return False
 
         # building main package
@@ -468,21 +470,12 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _map_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
-        depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
-        dep_repos = self._map_repos(depnames)
-
-        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any mirror
-            for dep in depnames:
-                if dep not in dep_repos:
-                    message.show_dep_not_found(dep, self.i18n, watcher)
-                    return
-
+    def _map_known_missing_deps(self, known_deps: Dict[str, str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         repo_deps, aur_deps = set(), set()
 
-        for dep, repo in dep_repos.items():
+        for dep, repo in known_deps.items():
             if repo == 'aur':
                 aur_deps.add(dep)
             else:
@@ -491,7 +484,7 @@ class ArchManager(SoftwareManager):
         if check_subdeps:
             for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
                 if deps[0]:
-                    missing_subdeps = self.deps_analyser.get_missing_dependencies_from(deps[0], deps[1])
+                    missing_subdeps = self.deps_analyser.get_missing_subdeps_of(deps[0], deps[1])
 
                     if missing_subdeps:
                         for dep in missing_subdeps:
@@ -502,7 +495,7 @@ class ArchManager(SoftwareManager):
                         for dep in missing_subdeps:
                             sorted_deps.append(dep)
 
-        for dep, repo in dep_repos.items():
+        for dep, repo in known_deps.items():
             if repo != 'aur':
                 sorted_deps.append((dep, repo))
 
@@ -511,13 +504,26 @@ class ArchManager(SoftwareManager):
 
         return sorted_deps
 
+    def _map_unknown_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
+        depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
+        dep_repos = self._map_repos(depnames)
+
+        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any mirror
+            for dep in depnames:
+                if dep not in dep_repos:
+                    message.show_dep_not_found(dep, self.i18n, watcher)
+                    return
+
+        return self._map_known_missing_deps(dep_repos, watcher, check_subdeps)
+
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
         check_res = makepkg.check(pkgdir, handler)
 
         if check_res:
             if check_res.get('missing_deps'):
-                sorted_deps = self._map_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                handler.watcher.change_substatus(self.i18n['arch.checking.missing_deps'].format(bold(pkgname)))
+                sorted_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
 
                 if sorted_deps is None:
                     return False
@@ -579,17 +585,37 @@ class ArchManager(SoftwareManager):
             if not deps_to_install:
                 return True
             else:
-                aur_deps, repo_deps = [], []
+                sorted_deps = []
 
-                for dep in deps_to_install:
-                    mirror = pkg_mirrors[dep]
+                if self._should_check_subdeps():
+                    missing_deps = self._map_known_missing_deps({d: pkg_mirrors[d] for d in deps_to_install}, handler.watcher)
 
-                    if mirror == 'aur':
-                        aur_deps.append((dep, mirror))
-                    else:
-                        repo_deps.append((dep, mirror))
+                    if missing_deps is None:
+                        return True  # because the main package installation was successful
 
-                dep_not_installed = self._install_deps([*repo_deps, *aur_deps], root_password, handler, change_progress=True)
+                    if missing_deps:
+                        same_as_selected = len(deps_to_install) == len(missing_deps) and deps_to_install == {d[0] for d in missing_deps}
+
+                        if not same_as_selected and not confirmation.request_install_missing_deps(None, missing_deps, handler.watcher, self.i18n):
+                            handler.watcher.print(self.i18n['action.cancelled'])
+                            return True  # because the main package installation was successful
+
+                        sorted_deps.extend(missing_deps)
+                else:
+                    aur_deps, repo_deps = [], []
+
+                    for dep in deps_to_install:
+                        mirror = pkg_mirrors[dep]
+
+                        if mirror == 'aur':
+                            aur_deps.append((dep, mirror))
+                        else:
+                            repo_deps.append((dep, mirror))
+
+                    sorted_deps.extend(repo_deps)
+                    sorted_deps.extend(aur_deps)
+
+                dep_not_installed = self._install_deps(sorted_deps, root_password, handler, change_progress=True)
 
                 if dep_not_installed:
                     message.show_optdep_not_installed(dep_not_installed, handler.watcher, self.i18n)

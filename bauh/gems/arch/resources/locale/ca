@@ -45,6 +45,7 @@ aur.history.3_date=data
 arch.downloading.package=S’està baixant el paquet
 arch.uncompressing.package=S’està descomprimint el paquet
 arch.checking.deps=S’estan comprovant les dependències de {}
+arch.checking.missing_deps=Verificació de les dependències que falten de {}
 arch.missing_deps_found=Dependències mancants per a {}
 arch.building.package=S’està compilant el paquet {}
 arch.checking.conflicts=S’està comprovant si hi ha conflictes amb {}

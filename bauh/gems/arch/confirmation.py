@@ -34,11 +34,15 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: str, deps: List[Tuple[str,str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname), deps=bold(len(deps))))
+def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
+    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname) if pkgname else '', deps=bold(str(len(deps)))))
 
     opts = []
-    for dep in deps:
+
+    sorted_deps = [*deps]
+    sorted_deps.sort(key=lambda e: e[0])
+
+    for dep in sorted_deps:
         op = InputOption('{} ( {}: {} )'.format(dep[0], i18n['repository'], dep[1].upper()), dep[0])
         op.read_only = True
         op.icon_path = _get_mirror_icon(dep[1])
