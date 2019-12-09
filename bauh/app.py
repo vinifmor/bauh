@@ -29,7 +29,7 @@ def main():
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
 
-    if args.clean:
+    if args.reset:
         util.clean_app_files()
         exit(0)
 

@@ -88,7 +88,10 @@ Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/lo
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
 ### Uninstallation
-Before uninstalling bauh via your package manager, consider executing `bauh --clean` to remove configuration and cache files stored in your **HOME** folder.
+Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cache files stored in your **HOME** folder.
+
+### Theme issues
+If bauh is not starting properly after changing its style, execute `bauh --reset` to reset its configuration or just delete the **style** key from the file **~/.config/bauh/config.json**.
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
@@ -123,10 +126,10 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
     b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
 
     Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg) )
 - Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-
+- Transitive dependencies checking can be disabled through the environment variable **BAUH_ARCH_CHECK_SUBDEPS=0**. The dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
 
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).

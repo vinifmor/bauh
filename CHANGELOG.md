@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.4] 2019-12-09
+### Improvements
+- AUR
+    - retrieving and displaying all transitive required dependencies ( it can be disabled via the new environment variable **BAUH_ARCH_CHECK_SUBDEPS=0** )
+    - displaying **makedepends** and **checkdepends** in the info window
+    - Some AUR labels have been changed to not confuse the user
+- **--clean** param renamed to **--reset**
+- Minor UI improvements
+
+### Fixes
+- AUR
+    - not finding some dependencies declared as files instead of the package names (e.g: dolphin-emu-git )
+    - replaces the term **mirror** by **repository**
+    
+
 ## [0.7.3] 2019-11-29
 ### Improvements
 - Not breaking the application when a i18n (translation) key was not found

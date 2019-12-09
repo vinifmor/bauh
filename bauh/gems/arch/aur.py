@@ -4,6 +4,9 @@ from typing import Set, List
 from bauh.api.http import HttpClient
 import urllib.parse
 
+from bauh.gems.arch import pacman
+from bauh.gems.arch.exceptions import PackageNotFoundException
+
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
 URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 URL_SEARCH = 'https://aur.archlinux.org/rpc/?v=5&type=search&arg='
@@ -45,6 +48,19 @@ class AURClient:
                     info[field[0]].append(field[1])
 
             return info
+
+    def get_all_dependencies(self, name: str) -> Set[str]:
+        deps = set()
+        info = self.get_src_info(name)
+
+        if not info:
+            raise PackageNotFoundException(name)
+
+        for attr in ('makedepends', 'depends', 'checkdepends'):
+            if info.get(attr):
+                deps.update([pacman.RE_DEP_OPERATORS.split(dep)[0] for dep in info[attr]])
+
+        return deps
 
     def _map_names_as_queries(self, names) -> str:
         return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])

@@ -154,3 +154,6 @@ stable=stable
 close=close
 publisher.verified=verified
 mirror=mirror
+emulator=emulator
+do_not.install=don't install
+repository=repository

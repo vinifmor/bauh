@@ -1,6 +1,7 @@
 from typing import List
 
-from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
 from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
 from bauh.view.qt import css
@@ -10,7 +11,8 @@ from bauh.view.util.translation import I18n
 
 class ConfirmationDialog(QMessageBox):
 
-    def __init__(self, title: str, body: str, i18n: I18n, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None):
+    def __init__(self, title: str, body: str, i18n: I18n, screen_size: QSize,  components: List[ViewComponent] = None,
+                 confirmation_label: str = None, deny_label: str = None):
         super(ConfirmationDialog, self).__init__()
         self.setWindowTitle(title)
         self.setStyleSheet('QLabel { margin-right: 25px; }')
@@ -26,8 +28,15 @@ class ConfirmationDialog(QMessageBox):
             self.layout().addWidget(QLabel(body), 0, 1)
 
         if components:
-            comps_container = QWidget(parent=self)
+            scroll = QScrollArea(self)
+            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+
+            comps_container = QWidget()
             comps_container.setLayout(QVBoxLayout())
+            scroll.setWidget(comps_container)
+
+            height = 0
 
             for idx, comp in enumerate(components):
                 if isinstance(comp, SingleSelectComponent):
@@ -37,9 +46,13 @@ class ConfirmationDialog(QMessageBox):
                 else:
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 
+                height += inst.sizeHint().height()
                 comps_container.layout().addWidget(inst)
 
-            self.layout().addWidget(comps_container, 1, 1)
+            height = height if height < int(screen_size.height() / 2.5) else int(screen_size.height() / 2.5)
+
+            scroll.setFixedHeight(height)
+            self.layout().addWidget(scroll, 1, 1)
 
         self.exec_()
 

@@ -161,8 +161,11 @@ class SnapManager(SoftwareManager):
                 if channels:
                     opts = [InputOption(label=c[0], value=c[1]) for c in channels]
                     channel_select = SingleSelectComponent(type_=SelectViewType.RADIO, label='', options=opts, default_option=opts[0])
+                    body = '<p>{}.</p>'.format(self.i18n['snap.install.available_channels.message'].format(bold(self.i18n['stable']), bold(pkg.name)))
+                    body += '<p>{}:</p>'.format(self.i18n['snap.install.available_channels.help'])
+
                     if watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
-                                                    body=self.i18n['snap.install.available_channels.body'].format(bold(self.i18n['stable']), bold(pkg.name)) + ':',
+                                                    body=body,
                                                     components=[channel_select],
                                                     confirmation_label=self.i18n['continue'],
                                                     deny_label=self.i18n['cancel']):

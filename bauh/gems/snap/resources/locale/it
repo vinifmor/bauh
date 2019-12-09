@@ -5,4 +5,5 @@ snap.notifications.api.unavailable=Sembra che l'API {} non sia al momento dispon
 snap.action.refresh.status=Ripristinare
 snap.action.refresh.label=Ripristina
 snap.install.available_channels.title=Canali disponibili
-snap.install.available_channels.body=Non esiste un {} canale disponibile per {}. Ma ci sono questi sotto (selezionane uno se vuoi continuare)
+snap.install.available_channels.message=Non esiste un {} canale disponibile per {}. Ma ci sono questi sotto
+snap.install.available_channels.help=Selezionane uno se vuoi continuare
