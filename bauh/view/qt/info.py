@@ -28,6 +28,7 @@ class InfoDialog(QDialog):
 
         # shows complete field string
         self.text_field = QPlainTextEdit()
+        self.text_field.setReadOnly(True)
         self.layout().addWidget(self.text_field)
         self.text_field.hide()
 
