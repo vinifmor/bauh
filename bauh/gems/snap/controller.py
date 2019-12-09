@@ -84,7 +84,10 @@ class SnapManager(SoftwareManager):
 
         return app
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
+
         if snap.is_snapd_running():
             installed = self.read_installed(disk_loader).installed
 

@@ -79,7 +79,10 @@ class ArchManager(SoftwareManager):
 
         Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
+
         self.comp_optimizer.join()
 
         downgrade_enabled = git.is_enabled()

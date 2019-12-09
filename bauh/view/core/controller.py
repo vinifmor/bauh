@@ -1,3 +1,4 @@
+import re
 import time
 import traceback
 from argparse import Namespace
@@ -10,6 +11,8 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+
+RE_IS_URL = re.compile(r'^https?://.+')
 
 SUGGESTIONS_LIMIT = 5
 
@@ -79,17 +82,17 @@ class GenericSoftwareManager(SoftwareManager):
 
         return available
 
-    def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
+    def _search(self, word: str, is_url: bool, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):
             mti = time.time()
-            apps_found = man.search(words=word, disk_loader=disk_loader)
+            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
             mtf = time.time()
             self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
 
-    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1) -> SearchResult:
+    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1, is_url: bool = False) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
 
@@ -97,13 +100,15 @@ class GenericSoftwareManager(SoftwareManager):
 
         if internet.is_available(self.context.http_client, self.context.logger):
             norm_word = word.strip().lower()
+
+            url_words = RE_IS_URL.match(norm_word)
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
 
             threads = []
 
             for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, man, disk_loader, res))
+                t = Thread(target=self._search, args=(norm_word, url_words, man, disk_loader, res))
                 t.start()
                 threads.append(t)
 

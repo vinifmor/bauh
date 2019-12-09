@@ -13,7 +13,7 @@ SNAPD_RUNNING_STATUS = {'listening', 'running'}
 
 
 def is_installed():
-    res = run_cmd('which snap')
+    res = run_cmd('which snap', print_error=False)
     return res and not res.strip().startswith('which ')
 
 

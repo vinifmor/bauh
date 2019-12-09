@@ -106,7 +106,6 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(label_pre_search)
 
         self.input_search = QLineEdit()
-        self.input_search.setMaxLength(20)
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])

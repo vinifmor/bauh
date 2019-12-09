@@ -56,7 +56,9 @@ class FlatpakManager(SoftwareManager):
 
         return app
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
 
         res = SearchResult([], [], 0)
         apps_found = flatpak.search(flatpak.get_version(), words)
