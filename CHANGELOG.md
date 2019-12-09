@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - retrieving and displaying all transitive required dependencies ( it can be disabled via the new environment variable **BAUH_ARCH_CHECK_SUBDEPS=0** )
     - displaying **makedepends** and **checkdepends** in the info window
     - Some AUR labels have been changed to not confuse the user
+- **--clean** para renamed to **--reset**    
 - Minor UI improvements
 
 ### Fixes

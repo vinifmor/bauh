@@ -88,7 +88,10 @@ Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/lo
 In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
 
 ### Uninstallation
-Before uninstalling bauh via your package manager, consider executing `bauh --clean` to remove configuration and cache files stored in your **HOME** folder.
+Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cache files stored in your **HOME** folder.
+
+### Theme issues
+If bauh is not starting properly after changing its style, execute `bauh --reset` to reset its configuration or just delete the **style** key from the file **~/.config/bauh/config.json**.
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
