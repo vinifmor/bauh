@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import tarfile
-import traceback
 from pathlib import Path
 
 import requests
@@ -19,18 +18,13 @@ from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NPM_BIN_PATH, 
 from bauh.view.util.translation import I18n
 
 
-class NodeUpdater:
+class EnvironmentUpdater:
 
     def __init__(self, logger: logging.Logger, http_client: HttpClient, file_downloader: FileDownloader, i18n: I18n):
         self.logger = logger
         self.file_downloader = file_downloader
         self.i18n = i18n
         self.http_client = http_client
-
-    def _is_internet_available(self) -> bool:
-        self.logger.info('Checking internet connection')
-        # TODO
-        return True
 
     def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading NodeJS {}: {}".format(version, version_url))

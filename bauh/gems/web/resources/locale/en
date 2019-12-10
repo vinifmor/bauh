@@ -1,2 +1,5 @@
 gem.web.info=It allows to install Web applications on your system
 web.environment.install=Installing {}
+web.waiting.env_updater=Updating environment
+web.env.checking=Checking the Web application installation environment
+web.env.error=It seems there are issues with the Web application installation environment. It wil not be possible to install {}.

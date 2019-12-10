@@ -1,2 +1,5 @@
 gem.web.info=Permite instalar aplicações Web no seu sistema
 web.environment.nativefier=Instalando {}
+web.waiting.env_updater=Atualizando ambiente
+web.env.checking=Verificando o ambiente de instalação para aplicativos Web
+web.env.error=Parece haver problemas com o ambiente de instalação para aplicativos Web. Não sera possível instalar {}.
