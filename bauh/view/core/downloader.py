@@ -91,7 +91,9 @@ class AdaptableFileDownloader(FileDownloader):
 
             file_size = self.http_client.get_content_length(file_url)
             msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {} )'.format(file_size) if file_size else '')
-            watcher.change_substatus(msg)
+
+            if watcher:
+                watcher.change_substatus(msg)
 
             if isinstance(process, SimpleProcess):
                 success = handler.handle_simple(process)

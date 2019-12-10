@@ -1,3 +1,5 @@
+import os
+from threading import Thread
 from typing import List, Type, Set
 
 from bauh.api.abstract.context import ApplicationContext
@@ -6,6 +8,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.gems.web import npm
+from bauh.gems.web.environment import NodeUpdater
 from bauh.gems.web.model import WebApplication
 
 try:
@@ -27,6 +30,7 @@ class WebApplicationManager(SoftwareManager):
     def __init__(self, context: ApplicationContext):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
+        self.node_updater = NodeUpdater(logger=context.logger, file_downloader=context.file_downloader, i18n=context.i18n)
         self.enabled = True
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
@@ -87,13 +91,14 @@ class WebApplicationManager(SoftwareManager):
         self.enabled = enabled
 
     def can_work(self) -> bool:
-        return BS4_AVAILABLE and LXML_AVAILABLE and npm.is_available()
+        return BS4_AVAILABLE and LXML_AVAILABLE
 
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
     def prepare(self):
-        pass
+        if bool(int(os.getenv('BAUH_WEB_UPDATE_NODE', 1))):
+            Thread(daemon=True, target=self.node_updater.update_node).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
