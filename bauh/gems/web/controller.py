@@ -98,7 +98,7 @@ class WebApplicationManager(SoftwareManager):
 
     def prepare(self):
         if bool(int(os.getenv('BAUH_WEB_UPDATE_NODE', 1))):
-            Thread(daemon=True, target=self.node_updater.update_node).start()
+            Thread(daemon=True, target=self.node_updater.update_environment).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass

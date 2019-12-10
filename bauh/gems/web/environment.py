@@ -2,13 +2,15 @@ import logging
 import os
 import shutil
 import tarfile
+import traceback
 from pathlib import Path
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.exception import NoInternetException
 from bauh.commons import system
-from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH
+from bauh.commons.system import new_subprocess, SimpleProcess, ProcessHandler
+from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NPM_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH
 from bauh.view.util.translation import I18n
 
 
@@ -42,7 +44,7 @@ class NodeUpdater:
                 extracted_file = '{}/{}'.format(BIN_PATH, tf.getnames()[0])
 
                 os.rename(extracted_file, NODE_DIR_PATH)
-
+                return True
             except:
                 self.logger.error('Could not extract {}'.format(tarf_path))
                 return False
@@ -88,3 +90,53 @@ class NodeUpdater:
                 except:
                     self.logger.error('Could not delete the dir {}'.format(NODE_DIR_PATH))
                     return False
+
+    def _install_nativefier(self, handler: ProcessHandler) -> bool:
+        self.logger.info("Installing nativefier")
+        # TODO freeze specific version
+        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier'], cwd=BIN_PATH)
+
+        if handler:
+            return handler.handle_simple(proc)[0]
+        else:
+            proc.instance.wait()
+
+            if self._is_nativefier_installed():
+                self.logger.info("nativefier installed")
+                return True
+            else:
+                self.logger.error("Could not install nativefier")
+                return False
+
+    def _is_nativefier_installed(self) -> bool:
+        try:
+            return bool(system.run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH)))
+        except:
+            self.logger.error("Could not determine the installed nativefier version")
+            traceback.print_exc()
+            return False
+
+    def install_nativefier(self, remove_modules: bool = False, handler: ProcessHandler = None) -> bool:
+        self.logger.info("Preparing to install nativefier")
+
+        if remove_modules and os.path.exists(NODE_MODULES_PATH):
+            self.logger.info('Removing old dir {}'.format(NODE_MODULES_PATH))
+            try:
+                shutil.rmtree(NODE_MODULES_PATH)
+            except:
+                self.logger.error('Could not remove dir {}. Aborting...'.format(NODE_MODULES_PATH))
+                return False
+
+            return self._install_nativefier(handler)
+        else:
+            if not self._is_nativefier_installed():
+                return self._install_nativefier(handler)
+
+            self.logger.info("Nativefier is already installed")
+            return True
+
+    def update_environment(self, handler: ProcessHandler = None):
+        if not self.update_node(handler.watcher if handler else None):
+            return False
+
+        return self.install_nativefier(handler=handler)
