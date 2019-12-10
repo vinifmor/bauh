@@ -74,7 +74,7 @@ class NodeUpdater:
                 if installed_version.startswith('v'):
                     installed_version = installed_version[1:]
 
-                self.logger.info('Node -> installed: {}. cloud: {}.'.format(installed_version, version))
+                self.logger.info('Node versions: installed ({}), cloud ({})'.format(installed_version, version))
 
                 if version != installed_version:
                     self.logger.info("The NodeJs installed version is different from the Cloud.")
