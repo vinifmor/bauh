@@ -96,9 +96,12 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
+    def _update_environment(self):
+        self.node_updater.update_environment(self.context.is_system_x86_64())
+
     def prepare(self):
         if bool(int(os.getenv('BAUH_WEB_UPDATE_NODE', 1))):
-            Thread(daemon=True, target=self.node_updater.update_environment).start()
+            Thread(daemon=True, target=self._update_environment).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass

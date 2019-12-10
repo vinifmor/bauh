@@ -9,8 +9,9 @@ from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.exception import NoInternetException
 from bauh.commons import system
-from bauh.commons.system import new_subprocess, SimpleProcess, ProcessHandler
-from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NPM_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH
+from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
+from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NPM_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
+    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, ELECTRON_VERSION
 from bauh.view.util.translation import I18n
 
 
@@ -135,8 +136,75 @@ class NodeUpdater:
             self.logger.info("Nativefier is already installed")
             return True
 
-    def update_environment(self, handler: ProcessHandler = None):
-        if not self.update_node(handler.watcher if handler else None):
+    def _download_electron(self, version: str, is_x86_x64_arch: bool, watcher: ProcessWatcher) -> bool:
+        self.logger.info("Downloading Electron {}".format(version))
+        arch = 'ia32' if not is_x86_x64_arch else 'x64'
+
+        Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
+
+        electron_url = ELECTRON_DOWNLOAD_URL.format(arch=arch, version=version)
+        electron_path = '{}/{}'.format(ELECTRON_PATH, electron_url.split('/')[-1])
+
+        return self.file_downloader.download(file_url=electron_url, watcher=watcher, output_path=electron_path,cwd=ELECTRON_PATH)
+
+    def _download_electron_sha256(self, version: str, watcher: ProcessWatcher) -> bool:
+        self.logger.info("Downloading Electron {} sha526".format(version))
+
+        Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
+
+        sha256_url = ELECTRON_SHA256_URL.format(version=version)
+        sha256_path = '{}/{}'.format(ELECTRON_PATH, sha256_url.split('/')[-1])
+        return self.file_downloader.download(file_url=sha256_url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_PATH)
+
+    def install_electron(self, version: str, is_x86_x64_arch: bool, watcher: ProcessWatcher) -> bool:
+        self.logger.info("Checking installed Electron")
+
+        if not os.path.exists(ELECTRON_PATH):
+            self.logger.info("Electron is not installed")
+            self._download_electron(version=version, is_x86_x64_arch=is_x86_x64_arch, watcher=watcher)
+        else:
+            files = run_cmd('ls', print_error=False, cwd=ELECTRON_PATH)
+
+            if files:
+                file_list = files.split('\n')
+                file_name = ELECTRON_DOWNLOAD_URL.format(version=version, arch='x64' if is_x86_x64_arch else 'ia32').split('/')[-1]
+                electron_file = [f for f in file_list if f == file_name]
+
+                if electron_file:
+                    self.logger.info("Electron {} already downloaded".format(version))
+                else:
+                    if not self._download_electron(version=version, is_x86_x64_arch=is_x86_x64_arch, watcher=watcher):
+                        return False
+
+                file_name = ELECTRON_SHA256_URL.split('/')[-1]
+                sha256_file = [f for f in file_list if f == file_name]
+
+                if sha256_file:
+                    self.logger.info("Electron {} sha256 already downloaded".format(version))
+                    return True
+                else:
+                    return self._download_electron_sha256(version=version, watcher=watcher)
+
+            self.logger.info('No Electron file found')
+            if self._download_electron(version=version, is_x86_x64_arch=is_x86_x64_arch, watcher=watcher):
+                return self._download_electron_sha256(version=version, watcher=watcher)
+
             return False
 
-        return self.install_nativefier(handler=handler)
+    def update_environment(self, is_x86_x64_arch: bool, handler: ProcessHandler = None):
+        if not self.update_node(handler.watcher if handler else None):
+            self.logger.warning('Could not update the environment')
+            return False
+
+        if not self.install_nativefier(handler=handler):
+            self.logger.warning('Could not update the environment')
+            return False
+
+        res = self.install_electron(version=ELECTRON_VERSION, is_x86_x64_arch=is_x86_x64_arch, watcher=handler.watcher if handler else None)
+
+        if res:
+            self.logger.info('Environment updated')
+        else:
+            self.logger.warning('Could not update the environment')
+
+        return res

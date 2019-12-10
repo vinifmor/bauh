@@ -65,7 +65,7 @@ class AdaptableFileDownloader(FileDownloader):
             self.logger.info('Removing downloaded file {}'.format(to_delete))
             os.remove(to_delete)
 
-    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str, cwd: str) -> bool:
+    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None) -> bool:
         self.logger.info('Downloading {}'.format(file_url))
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]

@@ -9,4 +9,7 @@ NODE_BIN_PATH = '{}/bin/node'.format(NODE_DIR_PATH)
 NPM_BIN_PATH = '{}/bin/npm'.format(NODE_DIR_PATH)
 NODE_MODULES_PATH = '{}/node_modules'.format(BIN_PATH)
 NATIVEFIER_BIN_PATH = '{}/.bin/nativefier'.format(NODE_MODULES_PATH)
-
+ELECTRON_PATH = '{}/.cache/electron'.format(HOME_PATH)
+ELECTRON_DOWNLOAD_URL = 'https://github.com/electron/electron/releases/download/v{version}/electron-v{version}-linux-{arch}.zip'
+ELECTRON_SHA256_URL = 'https://github.com/electron/electron/releases/download/v{version}/SHASUMS256.txt'
+ELECTRON_VERSION = '0.5.12'
