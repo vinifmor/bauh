@@ -26,6 +26,7 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 - **python-requests**
 - **python-pip**
 - **python-pyqt5**
+- **python-yaml**
 
 ##### Optional
 - **flatpak**: to be able to handle Flatpak applications

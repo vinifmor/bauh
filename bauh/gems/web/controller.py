@@ -30,7 +30,8 @@ class WebApplicationManager(SoftwareManager):
     def __init__(self, context: ApplicationContext):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
-        self.node_updater = NodeUpdater(logger=context.logger, file_downloader=context.file_downloader, i18n=context.i18n)
+        self.node_updater = NodeUpdater(logger=context.logger, http_client=context.http_client,
+                                        file_downloader=context.file_downloader, i18n=context.i18n)
         self.enabled = True
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:

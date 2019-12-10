@@ -1,1 +1,2 @@
 gem.web.info=It allows to install Web applications on your system
+web.environment.install=Installing {}
