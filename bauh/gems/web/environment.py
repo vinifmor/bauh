@@ -66,10 +66,13 @@ class NodeUpdater:
         if not os.path.exists(NODE_DIR_PATH):
             return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
         else:
-            installed_version = system.run_cmd('{} --version'.format(NODE_BIN_PATH))
+            installed_version = system.run_cmd('{} --version'.format(NODE_BIN_PATH), print_error=False)
 
             if installed_version:
                 installed_version = installed_version.strip()
+
+                if installed_version.startswith('v'):
+                    installed_version = installed_version[1:]
 
                 self.logger.info('Node -> installed: {}. cloud: {}.'.format(installed_version, version))
 
@@ -128,7 +131,17 @@ class NodeUpdater:
             if not self._is_nativefier_installed():
                 return self._install_nativefier(version=version, handler=handler)
 
-            self.logger.info("Nativefier is already installed")
+            installed_version = run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH), print_error=False)
+
+            if installed_version:
+                installed_version = installed_version.strip()
+
+            self.logger.info("Nativefier versions: installed ({}), cloud ({})".format(installed_version, version))
+            if version != installed_version:
+                self.logger.info("Installed nativefier version is different from cloud's. Changing version.")
+                return self._install_nativefier(version=version, handler=handler)
+
+            self.logger.info("Nativefier is already installed and up to date")
             return True
 
     def _download_electron(self, version: str, is_x86_x64_arch: bool, watcher: ProcessWatcher) -> bool:
