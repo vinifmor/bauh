@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import re
 import shutil
 import subprocess
 import traceback
@@ -14,7 +15,6 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType
-from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
@@ -34,6 +34,8 @@ try:
 except:
     LXML_AVAILABLE = False
 
+RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
+
 
 class WebApplicationManager(SoftwareManager):
 
@@ -52,6 +54,17 @@ class WebApplicationManager(SoftwareManager):
         res = SearchResult([], [], 0)
 
         if is_url:
+
+            installed = self.read_installed(disk_loader=disk_loader, limit=limit).installed
+
+            url_no_protocol = RE_PROTOCOL_STRIP.split(words)[0].strip().lower()
+
+            installed_matches = [app for app in installed if RE_PROTOCOL_STRIP.split(app.url)[0].lower() == url_no_protocol]
+
+            if installed_matches:
+                res.installed.extend(installed_matches)
+                return res
+
             url_res = self.http_client.get(words)
 
             if url_res:
@@ -164,10 +177,11 @@ class WebApplicationManager(SoftwareManager):
             if not os.path.exists(app_dir):
                 break
             else:
-                app_name_id += str(counter)
+                app_name_id = pkg_name + str(counter)
                 app_dir = '{}/{}'.format(INSTALLED_PATH, app_name_id)
                 counter += 1
 
+        watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('Nativefier')))
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=pkg_name, output_dir=app_dir,
                                                              electron_version=self.env_settings['electron']['version'], cwd=INSTALLED_PATH))
 
@@ -201,16 +215,24 @@ class WebApplicationManager(SoftwareManager):
                 pkg.version = f.read().strip()
                 pkg.latest_version = pkg.version
 
-        desktop_entry = DESKTOP_ENTRY_PATH_PATTERN.format(name=app_name_id)
-        entry_content = self._gen_desktop_entry_content(pkg)
+        watcher.change_substatus(self.i18n['web.install.substatus.shortcut'])
 
-        # TODO check if the desktop entry exists
+        entry_id = app_name_id
+        desktop_entry = DESKTOP_ENTRY_PATH_PATTERN.format(name=entry_id)
+        while True:
+            if not os.path.exists(desktop_entry):
+                break
+            else:
+                counter += 1
+                entry_id = pkg_name + str(counter)
+                desktop_entry += DESKTOP_ENTRY_PATH_PATTERN.format(name=entry_id)
+
+        entry_content = self._gen_desktop_entry_content(pkg)
 
         with open(desktop_entry, 'w+') as f:
             f.write(entry_content)
 
         pkg.desktop_entry = desktop_entry
-
         return True
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
