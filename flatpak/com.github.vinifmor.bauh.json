@@ -167,13 +167,33 @@
       "name": "install-bauh",
       "buildsystem": "simple",
       "build-commands": [
-        "pip3 install --prefix=/app --no-deps bauh-0.7.4-py3-none-any.whl"
+        "pip3 install -e bauh/setup.py --prefix=/app"
       ],
       "sources": [
         {
+          "type": "dir",
+          "path": "../bauh/",
+          "dest": "bauh/bauh"
+        },
+        {
           "type": "file",
-          "url": "https://files.pythonhosted.org/packages/82/92/5231d702c5d82f765be58b7ed84a1c8227fbfc90f069423e48464baa17ec/bauh-0.7.4-py3-none-any.whl",
-          "sha256": "994c69ab7313d0b12a667acb4a7f098647c949c6eb27434c7add43918d815767"
+          "path": "../setup.cfg",
+          "dest": "bauh/setup.cfg"
+        },
+        {
+          "type": "file",
+          "path": "../setup.py",
+          "dest": "bauh/setup.py"
+        },
+        {
+          "type": "file",
+          "path": "../MANIFEST.in",
+          "dest": "bauh/MANIFEST.in"
+        },
+        {
+          "type": "file",
+          "path": "../requirements.txt",
+          "dest": "bauh/requirements.txt"
         }
       ]
     }

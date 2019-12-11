@@ -7,7 +7,7 @@ from typing import List
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess
 
-BASE_CMD = 'flatpak'
+BASE_CMD = '/usr/bin/flatpak'
 
 
 def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_runtime: bool = False):
