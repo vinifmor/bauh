@@ -7,3 +7,4 @@ dist
 *.egg-info
 build
 *.db
+flatpak/.flatpak-builder

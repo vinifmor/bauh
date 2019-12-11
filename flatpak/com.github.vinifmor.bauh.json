@@ -1,0 +1,181 @@
+{
+  "app-id": "com.github.vinifmor.bauh",
+  "runtime": "org.kde.Platform",
+  "runtime-version": "5.13",
+  "sdk": "org.kde.Sdk",
+  "command": "bauh",
+  "finish-args": [
+    "--socket=wayland",
+    "--socket=x11",
+    "--device=dri",
+    "--filesystem=home",
+    "--filesystem=/usr/bin",
+    "--share=network",
+    "--socket=system-bus",
+    "--socket=session-bus"
+  ],
+  "modules": [
+    {
+      "name": "copy-icons",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -Dm0644 32x32.png /app/share/icons/hicolor/32x32/apps/com.github.vinifmor.bauh.png",
+        "install -Dm0644 48x48.png /app/share/icons/hicolor/48x48/apps/com.github.vinifmor.bauh.png",
+        "install -Dm0644 48x48.png /app/share/icons/hicolor/64x64/apps/com.github.vinifmor.bauh.png"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "../aur/icons/32x32.png"
+        },
+        {
+          "type": "file",
+          "path": "../aur/icons/48x48.png"
+        },
+        {
+          "type": "file",
+          "path": "../aur/icons/64x64.png"
+        }
+      ]
+    },
+    {
+      "name": "desktop-entry",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -D com.github.vinifmor.bauh.desktop /app/share/applications/com.github.vinifmor.bauh.desktop"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "path": "com.github.vinifmor.bauh.desktop"
+        }
+      ]
+    },
+    {
+      "name": "install-colorama",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps colorama-0.4.3-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/c9/dc/45cdef1b4d119eb96316b3117e6d5708a08029992b2fee2c143c7a0a5cc5/colorama-0.4.3-py2.py3-none-any.whl",
+          "sha256": "7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff"
+        }
+      ]
+    },
+    {
+      "name": "install-certifi",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps certifi-2019.11.28-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/b9/63/df50cac98ea0d5b006c55a399c3bf1db9da7b5a24de7890bc9cfd5dd9e99/certifi-2019.11.28-py2.py3-none-any.whl",
+          "sha256": "017c25db2a153ce562900032d5bc68e9f191e44e9a0f762f373977de9df1fbb3"
+        }
+      ]
+    },
+    {
+      "name": "install-chardet",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps chardet-3.0.4-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/bc/a9/01ffebfb562e4274b6487b4bb1ddec7ca55ec7510b22e4c51f14098443b8/chardet-3.0.4-py2.py3-none-any.whl",
+          "sha256": "fc323ffcaeaed0e0a02bf4d117757b98aed530d9ed4531e3e15460124c106691"
+        }
+      ]
+    },
+    {
+      "name": "install-idna",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps idna-2.8-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/14/2c/cd551d81dbe15200be1cf41cd03869a46fe7226e7450af7a6545bfc474c9/idna-2.8-py2.py3-none-any.whl",
+          "sha256": "ea8b7f6188e6fa117537c3df7da9fc686d485087abf6ac197f9c46432f7e4a3c"
+        }
+      ]
+    },
+    {
+      "name": "install-urlib3",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps urllib3-1.25.7-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/b4/40/a9837291310ee1ccc242ceb6ebfd9eb21539649f193a7c8c86ba15b98539/urllib3-1.25.7-py2.py3-none-any.whl",
+          "sha256": "a8a318824cc77d1fd4b2bec2ded92646630d7fe8619497b142c84a9e6f5a7293"
+        }
+      ]
+    },
+    {
+      "name": "install-requests",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps requests-2.22.0-py2.py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/51/bd/23c926cd341ea6b7dd0b2a00aba99ae0f828be89d72b2190f27c11d4b7fb/requests-2.22.0-py2.py3-none-any.whl",
+          "sha256": "9cf5292fcd0f598c671cfc1e0d7d1a7f13bb8085e9a590f48c010551dc6c4b31"
+        }
+      ]
+    },
+    {
+      "name": "install-pyqt5-sip",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps PyQt5_sip-4.19.19-cp37-cp37m-manylinux1_x86_64.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/bf/63/d363b567237375235d270049fd6416c83949f470bb51539458966cd7a38c/PyQt5_sip-4.19.19-cp37-cp37m-manylinux1_x86_64.whl",
+          "sha256": "7b3b8c015e545fa30e42205fc1115b7c6afcb6acec790ce3f330a06323730523"
+        }
+      ]
+    },
+    {
+      "name": "install-pyqt5",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps PyQt5-5.13.2-5.13.2-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/ec/cc/b727405bc393c0dc1fbb2b928017f9cb6ea8b557070028edf1743ec14689/PyQt5-5.13.2-5.13.2-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl",
+          "sha256": "1936c321301f678d4e6703d52860e1955e5c4964e6fd00a1f86725ce5c29083c"
+        }
+      ]
+    },
+    {
+      "name": "install-bauh",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps bauh-0.7.4-py3-none-any.whl"
+      ],
+      "sources": [
+        {
+          "type": "file",
+          "url": "https://files.pythonhosted.org/packages/82/92/5231d702c5d82f765be58b7ed84a1c8227fbfc90f069423e48464baa17ec/bauh-0.7.4-py3-none-any.whl",
+          "sha256": "994c69ab7313d0b12a667acb4a7f098647c949c6eb27434c7add43918d815767"
+        }
+      ]
+    }
+  ]
+}
