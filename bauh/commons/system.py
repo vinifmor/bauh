@@ -22,6 +22,8 @@ if GLOBAL_PY_LIBS not in PATH:
 
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
+SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
+
 
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG) -> dict:
     res = {}
@@ -219,3 +221,25 @@ def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
 
 def notify_user(msg: str, app_name: str, icon_path: str):
     os.system("notify-send -a {} {} '{}'".format(app_name, "-i {}".format(icon_path) if icon_path else '', msg))
+
+
+def get_dir_size(start_path='.'):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
+
+
+def get_human_size_str(size) -> str:
+    int_size = int(size)
+    for m in SIZE_MULTIPLIERS:
+        size_str = str(int_size * m[0])
+
+        if len(size_str.split('.')[0]) < 4:
+            return '{0:.2f}'.format(float(size_str)) + ' ' + m[1]
+    return str(int_size)

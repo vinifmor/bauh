@@ -16,7 +16,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import bold
-from bauh.commons.system import ProcessHandler
+from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
@@ -150,6 +150,10 @@ class WebApplicationManager(SoftwareManager):
             info = {'{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'installation_dir', 'desktop_entry'))}
             info['6_exec_file'] = pkg.get_exec_path()
             info['7_icon_path'] = pkg.get_disk_icon_path()
+
+            if os.path.exists(pkg.installation_dir):
+                info['8_size'] = get_human_size_str(get_dir_size(pkg.installation_dir))
+
             return info
 
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:

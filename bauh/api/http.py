@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
+from bauh.commons import system
 
 
 class HttpClient:
@@ -64,10 +64,4 @@ class HttpClient:
             size = res.headers.get('Content-Length')
 
             if size is not None:
-                size = int(size)
-                for m in SIZE_MULTIPLIERS:
-                    size_str = str(size * m[0])
-
-                    if len(size_str.split('.')[0]) < 4:
-                        return '{0:.2f}'.format(float(size_str)) + ' ' +  m[1]
-                return str(size)
+                return system.get_human_size_str(size)
