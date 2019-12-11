@@ -160,6 +160,17 @@ class WebApplicationManager(SoftwareManager):
         pass
 
     def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+
+        watcher.change_substatus(self.i18n['web.install.substatus.options'])
+
+        bt_continue = self.i18n['continue'].capitalize()
+        if not watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
+                                            body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
+                                            components=[],
+                                            confirmation_label=bt_continue,
+                                            deny_label=self.i18n['cancel'].capitalize()):
+            return False
+
         if self.env_updater and self.env_updater.is_alive():
             watcher.change_substatus(self.i18n['web.waiting.env_updater'])
             self.env_updater.join()
