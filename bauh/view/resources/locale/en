@@ -157,3 +157,4 @@ mirror=mirror
 emulator=emulator
 do_not.install=don't install
 repository=repository
+details=details

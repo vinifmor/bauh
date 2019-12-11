@@ -163,12 +163,11 @@ class EnvironmentUpdater:
             if self._download_electron(version=version, is_x86_x64_arch=is_x86_x64_arch, watcher=watcher):
                 return self._download_electron_sha256(version=version, watcher=watcher)
         else:
-            files = run_cmd('ls', print_error=False, cwd=ELECTRON_PATH)
+            files = os.listdir(ELECTRON_PATH)
 
             if files:
-                file_list = files.split('\n')
                 file_name = ELECTRON_DOWNLOAD_URL.format(version=version, arch='x64' if is_x86_x64_arch else 'ia32').split('/')[-1]
-                electron_file = [f for f in file_list if f == file_name]
+                electron_file = [f for f in files if f == file_name]
 
                 if electron_file:
                     self.logger.info("Electron {} already downloaded".format(version))
@@ -177,7 +176,7 @@ class EnvironmentUpdater:
                         return False
 
                 file_name = ELECTRON_SHA256_URL.split('/')[-1]
-                sha256_file = [f for f in file_list if f == file_name]
+                sha256_file = [f for f in files if f == file_name]
 
                 if sha256_file:
                     self.logger.info("Electron {} sha256 already downloaded".format(version))
@@ -191,37 +190,44 @@ class EnvironmentUpdater:
 
             return False
 
-    def update_environment(self, is_x86_x64_arch: bool, handler: ProcessHandler = None) -> bool:
+    def get_environment(self) -> dict:
         try:
             res = self.http_client.get(URL_ENVIRONMENT_SETTINGS)
 
             if not res:
                 self.logger.warning('Could not retrieve the environments settings from the cloud')
-                return False
+                return
 
             try:
-                settings = yaml.safe_load(res.content)
+                return yaml.safe_load(res.content)
             except yaml.YAMLError:
                 self.logger.error('Could not parse environment settings: {}'.format(res.text))
-                return False
-
-            if not self.update_node(version=settings['nodejs']['version'], version_url=settings['nodejs']['url'],
-                                    watcher=handler.watcher if handler else None):
-                self.logger.warning('Could not install / update NodeJS')
-                return False
-
-            if not self.install_nativefier(version=settings['nativefier']['version'], handler=handler):
-                self.logger.warning('Could not install / update nativefier')
-                return False
-
-            res = self.install_electron(version=settings['electron']['version'], is_x86_x64_arch=is_x86_x64_arch,
-                                        watcher=handler.watcher if handler else None)
-
-            if res:
-                self.logger.info('Environment updated')
-            else:
-                self.logger.warning('Could not update the environment')
-
-            return res
+                return
         except requests.exceptions.ConnectionError:
-            return False
+            return
+
+    def update_environment(self, is_x86_x64_arch: bool, handler: ProcessHandler = None) -> dict:
+
+        settings = self.get_environment()
+
+        if settings is None:
+            return
+
+        if not self.update_node(version=settings['nodejs']['version'], version_url=settings['nodejs']['url'],
+                                watcher=handler.watcher if handler else None):
+            self.logger.warning('Could not install / update NodeJS')
+            return
+
+        if not self.install_nativefier(version=settings['nativefier']['version'], handler=handler):
+            self.logger.warning('Could not install / update nativefier')
+            return
+
+        res = self.install_electron(version=settings['electron']['version'], is_x86_x64_arch=is_x86_x64_arch,
+                                    watcher=handler.watcher if handler else None)
+
+        if res:
+            self.logger.info('Environment updated')
+        else:
+            self.logger.warning('Could not update the environment')
+
+        return settings

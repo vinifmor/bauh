@@ -3,11 +3,11 @@ import os
 from setuptools import setup, find_packages
 
 DESCRIPTION = (
-    "Graphical interface to manage Flatpak, Snap, AppImage and AUR packages"
+    "Graphical interface to manage Flatpak, Snap, AppImage, AUR and Web applications"
 )
 
-AUTHOR = "Vinicius Moreira"
-AUTHOR_EMAIL = "vinicius_fmoreira@hotmail.com"
+AUTHOR = "bauh developers"
+AUTHOR_EMAIL = "bauh4linux@gmail.com"
 NAME = 'bauh'
 URL = "https://github.com/vinifmor/" + NAME
 

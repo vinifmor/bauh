@@ -1,4 +1,10 @@
+import glob
+import json
 import os
+import shutil
+import subprocess
+import traceback
+from pathlib import Path
 from threading import Thread
 from typing import List, Type, Set
 
@@ -8,8 +14,10 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType
+from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -37,6 +45,8 @@ class WebApplicationManager(SoftwareManager):
         self.enabled = True
         self.i18n = context.i18n
         self.env_updater = env_updater
+        self.env_settings = {}
+        self.logger = context.logger
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -56,7 +66,13 @@ class WebApplicationManager(SoftwareManager):
                 icon_tag = soup.head.find('link', attrs={"rel": "icon"})
                 icon_url = icon_tag.get('href') if icon_tag else None
 
-                res.new = [WebApplication(url=words, name=name, description=desc, icon_url=icon_url)]
+                app = WebApplication(url=words, name=name, description=desc, icon_url=icon_url)
+
+                if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
+                    app.version = self.env_settings['electron']['version']
+                    app.latest_version = app.version
+
+                res.new = [app]
                 res.total = 1
         else:
             # TODO
@@ -65,8 +81,15 @@ class WebApplicationManager(SoftwareManager):
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
-        # TODO
-        return SearchResult([], [], 0)
+        res = SearchResult([], [], 0)
+
+        if os.path.exists(INSTALLED_PATH):
+            for data_path in glob.glob('{}/*/*data.json'.format(INSTALLED_PATH)):
+                with open(data_path, 'r') as f:
+                    res.installed.append(WebApplication(installed=True, **json.loads(f.read())))
+                    res.total += 1
+
+        return res
 
     def downgrade(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         pass
@@ -74,14 +97,47 @@ class WebApplicationManager(SoftwareManager):
     def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
-        pass
+    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        self.logger.info("Checking if {} installation directory {} exists".format(pkg.name, pkg.installation_dir))
+
+        if not os.path.exists(pkg.installation_dir):
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['web.uninstall.error.install_dir.not_found'].format(bold(pkg.installation_dir)),
+                                 type_=MessageType.ERROR)
+            return False
+
+        self.logger.info("Removing {} installation directory {}".format(pkg.name, pkg.installation_dir))
+        try:
+            shutil.rmtree(pkg.installation_dir)
+        except:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.installation_dir)),
+                                 type_=MessageType.ERROR)
+            traceback.print_exc()
+            return False
+
+        self.logger.info("Checking if {} desktop entry file {} exists".format(pkg.name, pkg.desktop_entry))
+        if os.path.exists(pkg.desktop_entry):
+            try:
+                os.remove(pkg.desktop_entry)
+            except:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.desktop_entry)),
+                                     type_=MessageType.ERROR)
+                traceback.print_exc()
+                return False
+
+        return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {WebApplication}
 
-    def get_info(self, pkg: SoftwarePackage) -> dict:
-        pass
+    def get_info(self, pkg: WebApplication) -> dict:
+        if pkg.installed:
+            info = {'{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'installation_dir', 'desktop_entry'))}
+            info['6_exec_file'] = pkg.get_exec_path()
+            info['7_icon_path'] = pkg.get_disk_icon_path()
+            return info
 
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
@@ -97,7 +153,77 @@ class WebApplicationManager(SoftwareManager):
             watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
             return False
 
+        Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
+
+        pkg_name = pkg.name.lower()
+
+        app_name_id, app_dir = pkg_name, '{}/{}'.format(INSTALLED_PATH, pkg_name)
+
+        counter = 1
+        while True:
+            if not os.path.exists(app_dir):
+                break
+            else:
+                app_name_id += str(counter)
+                app_dir = '{}/{}'.format(INSTALLED_PATH, app_name_id)
+                counter += 1
+
+        installed = handler.handle_simple(nativefier.install(url=pkg.url, name=pkg_name, output_dir=app_dir,
+                                                             electron_version=self.env_settings['electron']['version'], cwd=INSTALLED_PATH))
+
+        if not installed:
+            msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
+                                  self.i18n['web.install.nativefier.error.unknown'].format(bold(self.i18n['details'].capitalize())))
+            watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
+            return False
+
+        inner_dir = os.listdir(app_dir)
+
+        if not inner_dir:
+            msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
+                                  self.i18n['web.install.nativefier.error.inner_dir'].format(bold(app_dir)))
+            watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
+            return False
+
+        # bringing the inner app folder to the 'installed' folder level:
+        inner_dir = '{}/{}'.format(app_dir, inner_dir[0])
+        temp_dir = '{}/tmp_{}'.format(INSTALLED_PATH, app_name_id)
+        os.rename(inner_dir, temp_dir)
+        shutil.rmtree(app_dir)
+        os.rename(temp_dir, app_dir)
+
+        pkg.installation_dir = app_dir
+
+        version_path = '{}/version'.format(app_dir)
+
+        if os.path.exists(version_path):
+            with open(version_path, 'r') as f:
+                pkg.version = f.read().strip()
+                pkg.latest_version = pkg.version
+
+        desktop_entry = DESKTOP_ENTRY_PATH_PATTERN.format(name=app_name_id)
+        entry_content = self._gen_desktop_entry_content(pkg)
+
+        # TODO check if the desktop entry exists
+
+        with open(desktop_entry, 'w+') as f:
+            f.write(entry_content)
+
+        pkg.desktop_entry = desktop_entry
+
         return True
+
+    def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
+        return """
+        [Desktop Entry]
+        Type=Application
+        Name={name} ( web )
+        Categories=Applications;
+        Comment={desc}
+        Icon={icon}
+        Exec={exec_path}
+        """.format(name=pkg.name, exec_path=pkg.get_exec_path(),
+                   desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path())
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -112,7 +238,13 @@ class WebApplicationManager(SoftwareManager):
         return False
 
     def _update_environment(self, handler: ProcessHandler = None) -> bool:
-        return self.node_updater.update_environment(self.context.is_system_x86_64(), handler=handler)
+        updated_settings = self.node_updater.update_environment(self.context.is_system_x86_64(), handler=handler)
+
+        if updated_settings is not None:
+            self.env_settings = updated_settings
+            return True
+
+        return False
 
     def prepare(self):
         if bool(int(os.getenv('BAUH_WEB_UPDATE_NODE', 1))):
@@ -134,8 +266,8 @@ class WebApplicationManager(SoftwareManager):
     def is_default_enabled(self) -> bool:
         return True
 
-    def launch(self, pkg: SoftwarePackage):
-        pass
+    def launch(self, pkg: WebApplication):
+        subprocess.Popen(pkg.get_exec_path())
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass

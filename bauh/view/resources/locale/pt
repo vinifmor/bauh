@@ -204,3 +204,4 @@ mirror=espelho
 emulator=emulador
 do_not.install=não instalar
 repository=repositório
+details=detalhes
