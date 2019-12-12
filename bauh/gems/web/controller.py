@@ -165,16 +165,15 @@ class WebApplicationManager(SoftwareManager):
 
         bt_continue = self.i18n['continue'].capitalize()
 
-        option_single_instance = InputOption(label="Single", value="--single-instance", tooltip="It will not allow the application to be opened again if it is already opened")
-        option_maximized = InputOption(label="Open maximized", value="--maximize", tooltip="If the installed app should always open maximized")
-        option_fullscren = InputOption(label="Fullscreen", value="--full-screen",
-                                       tooltip="If the installed app should always open in fullscreen mode")
-        option_no_frame = InputOption(label="No frame", value="--hide-window-frame", tooltip="If the installed app should not have a frame around it like browsers have")
+        option_single_instance = InputOption(label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
+        option_maximized = InputOption(label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
+        option_fullscren = InputOption(label=self.i18n['web.install.option.fullscreen.label'], value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
+        option_no_frame = InputOption(label=self.i18n['web.install.option.noframe.label'], value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
 
-        tray_option_off = InputOption(label="Off", value=0, tooltip="Tray mode disabled")
-        tray_option_default = InputOption(label="Default", value='--tray', tooltip="The app icon will be attached to the system tray")
-        tray_option_min = InputOption(label="Start minimzed", value='--tray=start-in-tray', tooltip="The app will start minized as an icon in the system tray")
-        input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_option_off, tray_option_default, tray_option_min], label="Tray mode")
+        tray_option_off = InputOption(label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
+        tray_option_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
+        tray_option_min = InputOption(label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
+        input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_option_off, tray_option_default, tray_option_min], label=self.i18n['web.install.option.tray.label'])
         check_options = MultipleSelectComponent(options=[option_single_instance, option_maximized, option_fullscren, option_no_frame],
                                                 default_options={option_single_instance}, label='')
 
