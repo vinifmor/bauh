@@ -59,34 +59,56 @@ class WebApplicationManager(SoftwareManager):
         except:
             return 'en_US'
 
+    def _get_app_name(self, url_no_protocol: str, soup: BeautifulSoup) -> str:
+        name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
+        name = name_tag.get('content') if name_tag else None
+
+        if not name:
+            name_tag = soup.head.find('title')
+            name = name_tag.text.strip() if name_tag else None
+
+        if not name:
+            name = url_no_protocol.split('.')[0]
+
+        return name
+
+    def _get_app_icon_url(self, url: str, soup: BeautifulSoup) -> str:
+        icon_tag = soup.head.find('link', attrs={"rel": "icon"})
+        icon_url = icon_tag.get('href') if icon_tag else None
+
+        if icon_url and icon_url.startswith('/'):
+            icon_url = url + icon_url
+
+        return icon_url
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
 
         installed = self.read_installed(disk_loader=disk_loader, limit=limit).installed
 
         if is_url:
-            url_no_protocol = RE_PROTOCOL_STRIP.split(words)[1].strip().lower()
+            url = words[0:-1] if words.endswith('/') else words
+
+            url_no_protocol = RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
 
             installed_matches = [app for app in installed if RE_PROTOCOL_STRIP.split(app.url)[1].strip().lower() == url_no_protocol]
 
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                url_res = self.http_client.get(words, headers={'Accept-language': self._get_lang_header()})
+                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()})
 
                 if url_res:
                     soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
 
-                    name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
-                    name = name_tag.get('content') if name_tag else words.split('.')[0].split('://')[1]
+                    name = self._get_app_name(url_no_protocol, soup)
 
                     desc_tag = soup.head.find('meta', attrs={'name': 'description'})
                     desc = desc_tag.get('content') if desc_tag else words
 
-                    icon_tag = soup.head.find('link', attrs={"rel": "icon"})
-                    icon_url = icon_tag.get('href') if icon_tag else None
+                    icon_url = self._get_app_icon_url(url, soup)
 
-                    app = WebApplication(url=words, name=name, description=desc, icon_url=icon_url)
+                    app = WebApplication(url=url, name=name, description=desc, icon_url=icon_url)
 
                     if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
                         app.version = self.env_settings['electron']['version']
@@ -175,14 +197,14 @@ class WebApplicationManager(SoftwareManager):
 
         bt_continue = self.i18n['continue'].capitalize()
 
-        op_single = InputOption(label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
-        op_max = InputOption(label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
-        op_fs = InputOption(label=self.i18n['web.install.option.fullscreen.label'], value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
-        op_nframe = InputOption(label=self.i18n['web.install.option.noframe.label'], value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
-        op_allow_urls = InputOption(label=self.i18n['web.install.option.allow_urls.label'], value='--internal-urls=.*', tooltip=self.i18n['web.install.option.allow_urls.tip'])
-        op_ncache = InputOption(label=self.i18n['web.install.option.nocache.label'], value="--clear-cache", tooltip=self.i18n['web.install.option.nocache.tip'])
-        op_insecure = InputOption(label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
-        op_igcert = InputOption(label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
+        op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
+        op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
+        op_fs = InputOption(id_='fullscreen', label=self.i18n['web.install.option.fullscreen.label'], value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
+        op_nframe = InputOption(id_='no_frame', label=self.i18n['web.install.option.noframe.label'], value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
+        op_allow_urls = InputOption(id_='allow_urls', label=self.i18n['web.install.option.allow_urls.label'], value='--internal-urls=.*', tooltip=self.i18n['web.install.option.allow_urls.tip'])
+        op_ncache = InputOption(id_='no_cache', label=self.i18n['web.install.option.nocache.label'], value="--clear-cache", tooltip=self.i18n['web.install.option.nocache.tip'])
+        op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
+        op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
         tray_op_off = InputOption(label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
         tray_op_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
