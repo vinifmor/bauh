@@ -3,9 +3,9 @@ from typing import List
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
-from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
+from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent
 from bauh.view.qt import css
-from bauh.view.qt.components import MultipleSelectQt, new_single_select
+from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt
 from bauh.view.util.translation import I18n
 
 
@@ -43,6 +43,8 @@ class ConfirmationDialog(QMessageBox):
                     inst = new_single_select(comp)
                 elif isinstance(comp, MultipleSelectComponent):
                     inst = MultipleSelectQt(comp, None)
+                elif isinstance(comp, TextInputComponent):
+                    inst = TextInputQt(comp)
                 else:
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 

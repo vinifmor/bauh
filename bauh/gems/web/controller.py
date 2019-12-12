@@ -16,7 +16,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType
+    SelectViewType, TextInputComponent
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
@@ -179,6 +179,7 @@ class WebApplicationManager(SoftwareManager):
         op_max = InputOption(label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
         op_fs = InputOption(label=self.i18n['web.install.option.fullscreen.label'], value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
         op_nframe = InputOption(label=self.i18n['web.install.option.noframe.label'], value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
+        op_allow_urls = InputOption(label=self.i18n['web.install.option.allow_urls.label'], value='--internal-urls=.*', tooltip=self.i18n['web.install.option.allow_urls.tip'])
         op_ncache = InputOption(label=self.i18n['web.install.option.nocache.label'], value="--clear-cache", tooltip=self.i18n['web.install.option.nocache.tip'])
         op_insecure = InputOption(label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
@@ -187,10 +188,9 @@ class WebApplicationManager(SoftwareManager):
         tray_op_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
         tray_op_min = InputOption(label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
 
-        check_options = MultipleSelectComponent(options=[op_single, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
+        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
         input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_op_off, tray_op_default, tray_op_min], label=self.i18n['web.install.option.tray.label'])
 
-        # input_internal_urls = TextInput()
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
                                            components=[check_options, input_tray],
@@ -203,8 +203,9 @@ class WebApplicationManager(SoftwareManager):
             if check_options.values:
                 selected.extend(check_options.get_selected_values())
 
-            if input_tray.value:
-                selected.append(input_tray.get_selected_value())
+            tray_mode = input_tray.get_selected_value()
+            if tray_mode is not None and tray_mode != 0:
+                selected.append(tray_mode)
 
             return res, selected
 

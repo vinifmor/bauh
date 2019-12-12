@@ -97,3 +97,19 @@ class TextComponent(ViewComponent):
     def __init__(self, html: str, id_: str = None):
         super(TextComponent, self).__init__(id_=id_)
         self.value = html
+
+
+class TextInputComponent(ViewComponent):
+
+    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, id_: str = None):
+        super(TextInputComponent, self).__init__(id_=id_)
+        self.label = label
+        self.value = value
+        self.tooltip = tooltip
+        self.placeholder = placeholder
+
+    def get_value(self) -> str:
+        if self.value is not None:
+            return self.value.strip()
+        else:
+            return ''

@@ -3,7 +3,8 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout
 
-from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType
+from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
+    TextInputComponent
 from bauh.view.util import resource
 
 
@@ -113,6 +114,31 @@ class ComboSelectQt(QGroupBox):
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
         self.layout().addWidget(ComboBoxQt(model), 0, 1)
+
+
+class TextInputQt(QGroupBox):
+
+    def __init__(self, model: TextInputComponent):
+        super(TextInputQt, self).__init__()
+        self.model = model
+        self.setLayout(QGridLayout())
+        self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
+        self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
+
+        self.text_input = QLineEdit()
+
+        if model.placeholder:
+            self.text_input.setPlaceholderText(model.placeholder)
+
+        if model.tooltip:
+            self.text_input.setToolTip(model.tooltip)
+
+        self.text_input.textChanged.connect(self._update_model)
+
+        self.layout().addWidget(self.text_input, 0, 1)
+
+    def _update_model(self, text: str):
+        self.model.value = text
 
 # class ComboSelectQt(QGroupBox):
 #
