@@ -38,7 +38,7 @@ class InputOption:
         if not label:
             raise Exception("'label' must be a not blank string")
 
-        if not value:
+        if value is None:
             raise Exception("'value' must be a not blank string")
 
         self.label = label
@@ -66,6 +66,10 @@ class SingleSelectComponent(InputViewComponent):
         self.value = default_option
         self.max_per_line = max_per_line
 
+    def get_selected_value(self):
+        if self.value:
+            return self.value.value
+
 
 class MultipleSelectComponent(InputViewComponent):
 
@@ -79,6 +83,13 @@ class MultipleSelectComponent(InputViewComponent):
         self.label = label
         self.values = default_options if default_options else set()
         self.max_per_line = max_per_line
+
+    def get_selected_values(self) -> list:
+        selected = []
+        if self.values:
+            selected.extend([op.value for op in self.values])
+
+        return selected
 
 
 class TextComponent(ViewComponent):

@@ -1,5 +1,6 @@
+import re
+
 from bauh.api.abstract.model import SoftwarePackage
-from bauh.api.constants import CACHE_PATH
 from bauh.commons import resource
 from bauh.gems.web import ROOT_DIR
 

@@ -7,14 +7,15 @@ import subprocess
 import traceback
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set
+from typing import List, Type, Set, Tuple
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
-from bauh.api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
+    SelectViewType
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
@@ -159,16 +160,54 @@ class WebApplicationManager(SoftwareManager):
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-
+    def _ask_install_options(self, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
         bt_continue = self.i18n['continue'].capitalize()
-        if not watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
-                                            body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
-                                            components=[],
-                                            confirmation_label=bt_continue,
-                                            deny_label=self.i18n['cancel'].capitalize()):
+
+        option_single_instance = InputOption(label="Single", value="--single-instance", tooltip="It will not allow the application to be opened again if it is already opened")
+        option_maximized = InputOption(label="Open maximized", value="--maximize", tooltip="If the installed app should always open maximized")
+        option_fullscren = InputOption(label="Fullscreen", value="--full-screen",
+                                       tooltip="If the installed app should always open in fullscreen mode")
+        option_no_frame = InputOption(label="No frame", value="--hide-window-frame", tooltip="If the installed app should not have a frame around it like browsers have")
+
+        tray_option_off = InputOption(label="Off", value=0, tooltip="Tray mode disabled")
+        tray_option_default = InputOption(label="Default", value='--tray', tooltip="The app icon will be attached to the system tray")
+        tray_option_min = InputOption(label="Start minimzed", value='--tray=start-in-tray', tooltip="The app will start minized as an icon in the system tray")
+        input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_option_off, tray_option_default, tray_option_min], label="Tray mode")
+        check_options = MultipleSelectComponent(options=[option_single_instance, option_maximized, option_fullscren, option_no_frame],
+                                                default_options={option_single_instance}, label='')
+
+        # input_internal_urls = TextInput()
+        components = [
+            check_options,
+            input_tray
+        ]
+        res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
+                                           body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
+                                           components=components,
+                                           confirmation_label=bt_continue,
+                                           deny_label=self.i18n['cancel'].capitalize())
+
+        if res:
+            selected = []
+
+            if check_options.values:
+                selected.extend(check_options.get_selected_values())
+
+            if input_tray.value != 0:
+                selected.append(input_tray.get_selected_value())
+
+            return res, selected
+
+        return False, []
+
+    def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+
+        continue_install, install_options = self._ask_install_options(watcher)
+
+        if not continue_install:
+            watcher.print("Installation aborted by the user")
             return False
 
         if self.env_updater and self.env_updater.is_alive():
@@ -196,9 +235,11 @@ class WebApplicationManager(SoftwareManager):
                 app_dir = '{}/{}'.format(INSTALLED_PATH, app_name_id)
                 counter += 1
 
-        watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('Nativefier')))
+        watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=pkg_name, output_dir=app_dir,
-                                                             electron_version=self.env_settings['electron']['version'], cwd=INSTALLED_PATH))
+                                                             electron_version=self.env_settings['electron']['version'],
+                                                             cwd=INSTALLED_PATH,
+                                                             extra_options=install_options))
 
         if not installed:
             msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),

@@ -63,6 +63,9 @@ class ComboBoxQt(QComboBox):
         for idx, op in enumerate(self.model.options):
             self.addItem(op.label, op.value)
 
+            if op.tooltip:
+                self.setItemData(idx, op.tooltip, Qt.ToolTipRole)
+
             if model.value and model.value == op:  # default
                 self.setCurrentIndex(idx)
 
