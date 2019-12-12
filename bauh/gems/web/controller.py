@@ -76,8 +76,8 @@ class WebApplicationManager(SoftwareManager):
         icon_tag = soup.head.find('link', attrs={"rel": "icon"})
         icon_url = icon_tag.get('href') if icon_tag else None
 
-        if icon_url and icon_url.startswith('/'):
-            icon_url = url + icon_url
+        if icon_url and not icon_url.startswith('http'):
+            icon_url = url + (icon_url if icon_url.startswith('/') else '/{}'.format(icon_url))
 
         return icon_url
 
