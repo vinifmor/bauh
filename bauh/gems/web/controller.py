@@ -62,44 +62,46 @@ class WebApplicationManager(SoftwareManager):
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
 
+        installed = self.read_installed(disk_loader=disk_loader, limit=limit).installed
+
         if is_url:
+            url_no_protocol = RE_PROTOCOL_STRIP.split(words)[1].strip().lower()
 
-            installed = self.read_installed(disk_loader=disk_loader, limit=limit).installed
-
-            url_no_protocol = RE_PROTOCOL_STRIP.split(words)[0].strip().lower()
-
-            installed_matches = [app for app in installed if RE_PROTOCOL_STRIP.split(app.url)[0].lower() == url_no_protocol]
+            installed_matches = [app for app in installed if RE_PROTOCOL_STRIP.split(app.url)[1].strip().lower() == url_no_protocol]
 
             if installed_matches:
                 res.installed.extend(installed_matches)
-                return res
+            else:
+                url_res = self.http_client.get(words, headers={'Accept-language': self._get_lang_header()})
 
-            url_res = self.http_client.get(words, headers={'Accept-language': self._get_lang_header()})
+                if url_res:
+                    soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
 
-            if url_res:
-                soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+                    name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
+                    name = name_tag.get('content') if name_tag else words.split('.')[0].split('://')[1]
 
-                name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
-                name = name_tag.get('content') if name_tag else words.split('.')[0].split('://')[1]
+                    desc_tag = soup.head.find('meta', attrs={'name': 'description'})
+                    desc = desc_tag.get('content') if desc_tag else words
 
-                desc_tag = soup.head.find('meta', attrs={'name': 'description'})
-                desc = desc_tag.get('content') if desc_tag else words
+                    icon_tag = soup.head.find('link', attrs={"rel": "icon"})
+                    icon_url = icon_tag.get('href') if icon_tag else None
 
-                icon_tag = soup.head.find('link', attrs={"rel": "icon"})
-                icon_url = icon_tag.get('href') if icon_tag else None
+                    app = WebApplication(url=words, name=name, description=desc, icon_url=icon_url)
 
-                app = WebApplication(url=words, name=name, description=desc, icon_url=icon_url)
+                    if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
+                        app.version = self.env_settings['electron']['version']
+                        app.latest_version = app.version
 
-                if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
-                    app.version = self.env_settings['electron']['version']
-                    app.latest_version = app.version
-
-                res.new = [app]
-                res.total = 1
+                    res.new = [app]
         else:
-            # TODO
-            pass
+            lower_words = words.lower().strip()
+            installed_matches = [app for app in installed if lower_words in app.name.lower()]
 
+            if installed_matches:
+                res.installed.extend(installed_matches)
+
+        res.total += len(res.installed)
+        res.total += len(res.new)
         return res
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
