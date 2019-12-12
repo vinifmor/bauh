@@ -1,5 +1,6 @@
 import glob
 import json
+import locale
 import os
 import re
 import shutil
@@ -51,6 +52,13 @@ class WebApplicationManager(SoftwareManager):
         self.env_settings = {}
         self.logger = context.logger
 
+    def _get_lang_header(self) -> str:
+        try:
+            system_locale = locale.getdefaultlocale()
+            return system_locale[0] if system_locale else 'en_US'
+        except:
+            return 'en_US'
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
 
@@ -66,7 +74,7 @@ class WebApplicationManager(SoftwareManager):
                 res.installed.extend(installed_matches)
                 return res
 
-            url_res = self.http_client.get(words)
+            url_res = self.http_client.get(words, headers={'Accept-language': self._get_lang_header()})
 
             if url_res:
                 soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
