@@ -16,10 +16,10 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent
+    SelectViewType
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -81,6 +81,15 @@ class WebApplicationManager(SoftwareManager):
 
         return icon_url
 
+    def _get_fix_for(self, url_no_protocol: str) -> str:
+        res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
+
+        if res:
+            return res.text
+
+    def _strip_url_protocol(self, url: str) -> str:
+        return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
 
@@ -89,9 +98,9 @@ class WebApplicationManager(SoftwareManager):
         if is_url:
             url = words[0:-1] if words.endswith('/') else words
 
-            url_no_protocol = RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
+            url_no_protocol = self._strip_url_protocol(url)
 
-            installed_matches = [app for app in installed if RE_PROTOCOL_STRIP.split(app.url)[1].strip().lower() == url_no_protocol]
+            installed_matches = [app for app in installed if self._strip_url_protocol(app.url)== url_no_protocol]
 
             if installed_matches:
                 res.installed.extend(installed_matches)
@@ -265,6 +274,13 @@ class WebApplicationManager(SoftwareManager):
                 app_name_id = pkg_name + str(counter)
                 app_dir = '{}/{}'.format(INSTALLED_PATH, app_name_id)
                 counter += 1
+
+        watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
+        fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
+
+        if fix:
+            watcher.print('Fix found for {}'.format(pkg.url))
+            print(fix)
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=pkg_name, output_dir=app_dir,

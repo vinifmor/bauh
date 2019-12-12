@@ -1,0 +1,17 @@
+youtube:
+  url: https://youtube.com
+
+facebook:
+  url: https://facebook.com
+
+outlook:
+  url: https://outlook.live.com
+  options:
+    - allow_urls
+
+twitch:
+  url: https://twitch.tv
+
+whatsapp:
+  url: https://web.whatsapp.com
+  icon_url:

@@ -11,6 +11,7 @@ web.install.nativefier.error.inner_dir=The app installation directory was not fo
 web.install.substatus.call_nativefier=Running {}
 web.install.substatus.shortcut=Generating a menu shortcut
 web.install.substatus.options=Waiting for the installation options
+web.install.substatus.checking_fixes=Checking if there are published fixes
 web.install.option.single.label=Single
 web.install.option.single.tip=It will not allow the app to be opened again if it is already opened
 web.install.option.max.label=Open maximized

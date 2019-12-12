@@ -11,6 +11,7 @@ web.install.nativefier.error.inner_dir=O diretório de instalação do aplicativ
 web.install.substatus.call_nativefier=Executando {}
 web.install.substatus.shortcut=Criando um atalho no menu
 web.install.substatus.options=Aguardando as opções de instalação
+web.install.substatus.checking_fixes=Verificando se há correções publicadas
 web.install.option.single.label=Único
 web.install.option.single.tip=Não permitirá que o aplicativo seja aberto novamente caso o mesmo já esteja
 web.install.option.max.label=Abrir maximizado
