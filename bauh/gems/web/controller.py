@@ -19,7 +19,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent
-from bauh.api.constants import HOME_PATH
+from bauh.api.constants import HOME_PATH, DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
@@ -395,6 +395,8 @@ class WebApplicationManager(SoftwareManager):
         desktop_entry_path = self._gen_desktop_entry_path(app_id)
 
         entry_content = self._gen_desktop_entry_content(pkg)
+
+        Path(DESKTOP_ENTRIES_DIR).mkdir(parents=True, exist_ok=True)
 
         with open(desktop_entry_path, 'w+') as f:
             f.write(entry_content)
