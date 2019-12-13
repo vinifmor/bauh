@@ -1,7 +1,7 @@
 from typing import List
 
 from bauh.commons.system import SimpleProcess
-from bauh.gems.web import NATIVEFIER_BIN_PATH
+from bauh.gems.web import NATIVEFIER_BIN_PATH, NODE_PATHS
 
 
 def install(url: str, name: str, output_dir: str, electron_version: str, cwd: str, extra_options: List[str] = None) -> SimpleProcess:
@@ -10,4 +10,4 @@ def install(url: str, name: str, output_dir: str, electron_version: str, cwd: st
     if extra_options:
         cmd.extend(extra_options)
 
-    return SimpleProcess(cmd, cwd=cwd)
+    return SimpleProcess(cmd, cwd=cwd, extra_paths=NODE_PATHS)

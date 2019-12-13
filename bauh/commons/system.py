@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -25,7 +25,7 @@ USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
 
 
-def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG) -> dict:
+def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set[str] = None) -> dict:
     res = {}
 
     if lang:
@@ -35,6 +35,9 @@ def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG) -> dict:
         res['PATH'] = GLOBAL_INTERPRETER_PATH
     else:
         res['PATH'] = PATH
+
+    if extra_paths:
+        res['PATH'] += ':' + ':'.join(extra_paths)
 
     return res
 
@@ -60,8 +63,9 @@ class SystemProcess:
 
 class SimpleProcess:
 
-    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None, global_interpreter: bool = USE_GLOBAL_INTERPRETER,
-                 lang: str = DEFAULT_LANG, root_password: str = None):
+    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None,
+                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
+                 extra_paths: Set[str] = None):
         pwdin, final_cmd = None, []
 
         if root_password is not None:
@@ -70,17 +74,17 @@ class SimpleProcess:
 
         final_cmd.extend(cmd)
 
-        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin)
+        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths)
         self.expected_code = expected_code
 
-    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None) -> subprocess.Popen:
+    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None, extra_paths: Set[str] = None) -> subprocess.Popen:
 
         args = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
             "bufsize": -1,
             "cwd": cwd,
-            "env": gen_env(global_interpreter, lang)
+            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths)
         }
 
         if stdin:
@@ -166,7 +170,7 @@ class ProcessHandler:
 
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
-            cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER) -> str:
+            cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None) -> str:
     """
     runs a given command and returns its default output
     :param cmd:
@@ -179,7 +183,7 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
     args = {
         "shell": True,
         "stdout": PIPE,
-        "env": gen_env(global_interpreter),
+        "env": gen_env(global_interpreter, extra_paths=extra_paths),
         'cwd': cwd
     }
 

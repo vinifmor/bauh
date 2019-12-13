@@ -13,8 +13,8 @@ from bauh.api.http import HttpClient
 from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
-from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NPM_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
-    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS
+from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
+    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS
 from bauh.view.util.translation import I18n
 
 
@@ -92,10 +92,15 @@ class EnvironmentUpdater:
         if handler and handler.watcher:
             handler.watcher.change_substatus(self.i18n['web.environment.install'].format(bold('nativefier')))
 
-        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier@{}'.format(version)], cwd=BIN_PATH)
+        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier@{}'.format(version)], cwd=BIN_PATH, extra_paths=NODE_PATHS)
 
         if handler:
-            return handler.handle_simple(proc)[0]
+            installed = handler.handle_simple(proc)[0]
+
+            if installed:
+                self.logger.info("nativifier {} successfully installed".format(version))
+
+            return installed
         else:
             proc.instance.wait()
 
@@ -104,6 +109,10 @@ class EnvironmentUpdater:
                 return True
             else:
                 self.logger.error("Could not install nativefier {}".format(version))
+                for err in proc.instance.stdout:
+                    if err:
+                        print(err.decode())
+
                 return False
 
     def _is_nativefier_installed(self) -> bool:
@@ -125,7 +134,7 @@ class EnvironmentUpdater:
             if not self._is_nativefier_installed():
                 return self._install_nativefier(version=version, handler=handler)
 
-            installed_version = run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH), print_error=False)
+            installed_version = run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH), print_error=False, extra_paths=NODE_PATHS)
 
             if installed_version:
                 installed_version = installed_version.strip()
