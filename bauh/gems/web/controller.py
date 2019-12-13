@@ -81,13 +81,15 @@ class WebApplicationManager(SoftwareManager):
         return name
 
     def _get_app_icon_url(self, url: str, soup: BeautifulSoup) -> str:
-        icon_tag = soup.head.find('link', attrs={"rel": "icon"})
-        icon_url = icon_tag.get('href') if icon_tag else None
+        for rel in ('icon', 'ICON'):
+            icon_tag = soup.head.find('link', attrs={"rel": rel})
+            icon_url = icon_tag.get('href') if icon_tag else None
 
-        if icon_url and not icon_url.startswith('http'):
-            icon_url = url + (icon_url if icon_url.startswith('/') else '/{}'.format(icon_url))
+            if icon_url and not icon_url.startswith('http'):
+                icon_url = url + (icon_url if icon_url.startswith('/') else '/{}'.format(icon_url))
 
-        return icon_url
+            if icon_url:
+                return icon_url
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
         res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
