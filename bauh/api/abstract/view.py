@@ -114,3 +114,11 @@ class TextInputComponent(ViewComponent):
             return self.value.strip()
         else:
             return ''
+
+
+class FormComponent(ViewComponent):
+
+    def __init__(self, components: List[ViewComponent], label: str = None, id_: str = None):
+        super(FormComponent, self).__init__(id_=id_)
+        self.label = label
+        self.components = components

@@ -1,10 +1,12 @@
+from typing import Tuple
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent
+    TextInputComponent, FormComponent
 from bauh.view.util import resource
 
 
@@ -135,6 +137,7 @@ class TextInputQt(QGroupBox):
 
         if model.value:
             self.text_input.setText(model.value)
+            self.text_input.setCursorPosition(0)
 
         self.text_input.textChanged.connect(self._update_model)
 
@@ -240,6 +243,45 @@ class IconButton(QWidget):
         layout.setAlignment(align)
         layout.addWidget(self.bt)
         self.setLayout(layout)
+
+
+class FormQt(QGroupBox):
+
+    def __init__(self, model: FormComponent):
+        super(FormQt, self).__init__()
+        self.model = model
+        self.setLayout(QFormLayout())
+        self.setStyleSheet('QLabel { font-weight: bold; }')
+
+        for c in model.components:
+            if isinstance(c, TextInputComponent):
+                label, field = self._new_text_input(c)
+                self.layout().addRow(label, field)
+            elif isinstance(c, SingleSelectComponent):
+                label = QLabel(c.label.capitalize() + ':' if c.label else '')
+                field = ComboBoxQt(c)
+                self.layout().addRow(label, field)
+            else:
+                raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
+
+    def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
+        line_edit = QLineEdit()
+
+        if c.tooltip:
+            line_edit.setToolTip(c.tooltip)
+
+        if c.placeholder:
+            line_edit.setPlaceholderText(c.placeholder)
+
+        if c.value:
+            line_edit.setText(c.value)
+            line_edit.setCursorPosition(0)
+
+        def update_model(text: str):
+            c.value = text
+
+        line_edit.textChanged.connect(update_model)
+        return QLabel(c.label.capitalize() + ':' if c.label else ''), line_edit
 
 
 def new_single_select(model: SingleSelectComponent):

@@ -17,7 +17,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent
+    SelectViewType, TextInputComponent, FormComponent
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
@@ -215,6 +215,17 @@ class WebApplicationManager(SoftwareManager):
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
         inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
+        inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
+
+        tray_op_off = InputOption(label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
+        tray_op_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
+        tray_op_min = InputOption(label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
+
+        inp_tray = SingleSelectComponent(type_=SelectViewType.COMBO,
+                                         options=[tray_op_off, tray_op_default, tray_op_min],
+                                         label=self.i18n['web.install.option.tray.label'])
+
+        form_1 = FormComponent(components=[inp_name, inp_desc, inp_tray])
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -225,17 +236,12 @@ class WebApplicationManager(SoftwareManager):
         op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
-        tray_op_off = InputOption(label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
-        tray_op_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
-        tray_op_min = InputOption(label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
-
         check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
-        input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_op_off, tray_op_default, tray_op_min], label=self.i18n['web.install.option.tray.label'])
 
         bt_continue = self.i18n['continue'].capitalize()
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
-                                           components=[inp_name, check_options, input_tray],
+                                           components=[form_1, check_options],
                                            confirmation_label=bt_continue,
                                            deny_label=self.i18n['cancel'].capitalize())
 
@@ -245,7 +251,7 @@ class WebApplicationManager(SoftwareManager):
             if check_options.values:
                 selected.extend(check_options.get_selected_values())
 
-            tray_mode = input_tray.get_selected_value()
+            tray_mode = inp_tray.get_selected_value()
             if tray_mode is not None and tray_mode != 0:
                 selected.append(tray_mode)
 
@@ -253,6 +259,11 @@ class WebApplicationManager(SoftwareManager):
 
             if custom_name:
                 app.name = custom_name
+
+            custom_desc = inp_desc.get_value()
+
+            if custom_desc:
+                app.description = inp_desc.get_value()
 
             return res, selected
 
