@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
@@ -86,3 +87,7 @@ class WebApplication(SoftwarePackage):
 
     def has_screenshots(self) -> bool:
         return False
+
+    def get_autostart_path(self) -> str:
+        if self.desktop_entry:
+            return '{}/.config/autostart/{}'.format(Path.home(), self.desktop_entry.split('/')[-1])

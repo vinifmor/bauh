@@ -19,6 +19,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent
+from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
@@ -189,7 +190,16 @@ class WebApplicationManager(SoftwareManager):
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.desktop_entry)),
                                      type_=MessageType.ERROR)
                 traceback.print_exc()
-                return False
+
+        autostart_path = pkg.get_autostart_path()
+        if os.path.exists(autostart_path):
+            try:
+                os.remove(autostart_path)
+            except:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['web.uninstall.error.remove'].format(bold(autostart_path)),
+                                     type_=MessageType.ERROR)
+                traceback.print_exc()
 
         return True
 
@@ -390,6 +400,14 @@ class WebApplicationManager(SoftwareManager):
             f.write(entry_content)
 
         pkg.desktop_entry = desktop_entry_path
+
+        if '--tray=start-in-tray' in install_options:
+            autostart_dir = '{}/.config/autostart'.format(Path.home())
+            Path(autostart_dir).mkdir(parents=True, exist_ok=True)
+
+            with open(pkg.get_autostart_path(), 'w+') as f:
+                f.write(entry_content)
+
         return True
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
