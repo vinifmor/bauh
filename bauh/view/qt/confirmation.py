@@ -1,12 +1,12 @@
 from typing import List
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
 from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent, \
     FormComponent
 from bauh.view.qt import css
-from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt
+from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt, new_spacer
 from bauh.view.util.translation import I18n
 
 
@@ -28,6 +28,7 @@ class ConfirmationDialog(QMessageBox):
 
             self.layout().addWidget(QLabel(body), 0, 1)
 
+        width = 0
         if components:
             scroll = QScrollArea(self)
             scroll.setFrameShape(QFrame.NoFrame)
@@ -52,12 +53,20 @@ class ConfirmationDialog(QMessageBox):
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 
                 height += inst.sizeHint().height()
+
+                if inst.sizeHint().width() > width:
+                    width = inst.sizeHint().width()
+
                 comps_container.layout().addWidget(inst)
 
             height = height if height < int(screen_size.height() / 2.5) else int(screen_size.height() / 2.5)
 
             scroll.setFixedHeight(height)
+
             self.layout().addWidget(scroll, 1, 1)
+
+        if not body and width > 0:
+            self.layout().addWidget(QLabel(' ' * int(width / 2)), 0, 1)
 
         self.exec_()
 

@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Set, Type
 
+import yaml
+
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -178,8 +180,15 @@ class SoftwareManager(ABC):
             data = pkg.get_data_to_cache()
 
             if data:
-                with open(pkg.get_disk_data_path(), 'w+') as f:
-                    f.write(json.dumps(data))
+                disk_path = pkg.get_disk_data_path()
+                ext = disk_path.split('.')[-1]
+
+                if ext == 'json':
+                    with open(disk_path, 'w+') as f:
+                        f.write(json.dumps(data))
+                elif ext in ('yml', 'yaml'):
+                    with open(disk_path, 'w+') as f:
+                        f.write(yaml.dump(data))
 
         if icon_bytes:
             Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,5 @@
 import re
+from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
@@ -8,9 +9,11 @@ from bauh.gems.web import ROOT_DIR
 class WebApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, url: str = None, name: str = None, description: str = None, icon_url: str = None,
-                 installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None):
+                 installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None,
+                 categories: List[str] = None):
         super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
-                                             icon_url=icon_url, installed=installed, version=version)
+                                             icon_url=icon_url, installed=installed, version=version,
+                                             categories=categories)
         self.url = url
         self.installation_dir = installation_dir
         self.desktop_entry = desktop_entry
@@ -23,7 +26,7 @@ class WebApplication(SoftwarePackage):
 
     @staticmethod
     def _get_cached_attrs() -> tuple:
-        return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', 'desktop_entry'
+        return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', 'desktop_entry', 'categories'
 
     def can_be_downgraded(self):
         return False
@@ -40,6 +43,9 @@ class WebApplication(SoftwarePackage):
 
     def get_default_icon_path(self) -> str:
         return resource.get_path('img/web.png', ROOT_DIR)
+
+    def get_disk_data_path(self):
+        return '{}/data.yml'.format(self.get_disk_cache_path())
 
     def is_application(self):
         return True

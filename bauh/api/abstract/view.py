@@ -67,7 +67,7 @@ class SingleSelectComponent(InputViewComponent):
         self.value = default_option
         self.max_per_line = max_per_line
 
-    def get_selected_value(self):
+    def get_selected(self):
         if self.value:
             return self.value.value
 
@@ -102,12 +102,13 @@ class TextComponent(ViewComponent):
 
 class TextInputComponent(ViewComponent):
 
-    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, id_: str = None):
+    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False, id_: str = None):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
         self.tooltip = tooltip
         self.placeholder = placeholder
+        self.read_only = read_only
 
     def get_value(self) -> str:
         if self.value is not None:

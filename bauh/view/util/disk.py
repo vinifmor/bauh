@@ -5,6 +5,8 @@ import time
 from threading import Thread, Lock
 from typing import Type, Dict
 
+import yaml
+
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.disk import DiskCacheLoader, DiskCacheLoaderFactory
 from bauh.api.abstract.model import SoftwarePackage
@@ -52,16 +54,25 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
     def _fill_cached_data(self, pkg: SoftwarePackage) -> bool:
         if self.enabled:
             if os.path.exists(pkg.get_disk_data_path()):
-                with open(pkg.get_disk_data_path()) as f:
-                    cached_data = json.loads(f.read())
-                    if cached_data:
-                        pkg.fill_cached_data(cached_data)
-                        cache = self.cache_map.get(pkg.__class__)\
+                disk_path = pkg.get_disk_data_path()
+                ext = disk_path.split('.')[-1]
 
-                        if cache:
-                            cache.add_non_existing(pkg.id, cached_data)
+                with open(disk_path) as f:
+                    if ext == 'json':
+                        cached_data = json.loads(f.read())
+                    elif ext in {'yml', 'yaml'}:
+                        cached_data = yaml.load(f.read())
+                    else:
+                        raise Exception('The cached data file {} has an unsupported format'.format(disk_path))
 
-                        return True
+                if cached_data:
+                    pkg.fill_cached_data(cached_data)
+                    cache = self.cache_map.get(pkg.__class__)
+
+                    if cache:
+                        cache.add_non_existing(pkg.id, cached_data)
+
+                    return True
         return False
 
 

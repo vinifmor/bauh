@@ -36,6 +36,8 @@ class ApplicationContext:
         self.file_downloader = file_downloader
         self.arch_x86_64 = sys.maxsize > 2**32
         self.distro = distro
+        self.default_categories = ('AudioVideo', 'Audio', 'Video', 'Development', 'Education', 'Game',
+                                   'Graphics', 'Network', 'Office', 'Science', 'Settings', 'System', 'Utility')
 
     def is_system_x86_64(self):
         return self.arch_x86_64

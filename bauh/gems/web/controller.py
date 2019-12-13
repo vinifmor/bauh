@@ -1,5 +1,4 @@
 import glob
-import json
 import locale
 import os
 import re
@@ -10,6 +9,8 @@ import traceback
 from pathlib import Path
 from threading import Thread
 from typing import List, Type, Set, Tuple
+
+import yaml
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -39,6 +40,7 @@ except:
 
 RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
 RE_SEVERAL_SPACES = re.compile(r'\s+')
+RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s]')
 
 
 class WebApplicationManager(SoftwareManager):
@@ -70,13 +72,10 @@ class WebApplicationManager(SoftwareManager):
             name = name_tag.text.strip() if name_tag else None
 
         if not name:
-            name = url_no_protocol.split('.')[0]
+            name = url_no_protocol.split('.')[0].strip()
 
         if name:
-            name = name.replace('|', '').replace('_', ' ')
-
-            if ' ' in name:
-                name = RE_SEVERAL_SPACES.sub(' ', name)
+            name = RE_SYMBOLS_SPLIT.split(name)[0].strip()
 
         return name
 
@@ -115,7 +114,7 @@ class WebApplicationManager(SoftwareManager):
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()}, ignore_ssl=True)
+                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()}, ignore_ssl=True, single_call=True)
 
                 if url_res:
                     soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
@@ -149,9 +148,9 @@ class WebApplicationManager(SoftwareManager):
         res = SearchResult([], [], 0)
 
         if os.path.exists(INSTALLED_PATH):
-            for data_path in glob.glob('{}/*/*data.json'.format(INSTALLED_PATH)):
+            for data_path in glob.glob('{}/*/*data.yml'.format(INSTALLED_PATH)):
                 with open(data_path, 'r') as f:
-                    res.installed.append(WebApplication(installed=True, **json.loads(f.read())))
+                    res.installed.append(WebApplication(installed=True, **yaml.safe_load(f.read())))
                     res.total += 1
 
         return res
@@ -199,12 +198,15 @@ class WebApplicationManager(SoftwareManager):
 
     def get_info(self, pkg: WebApplication) -> dict:
         if pkg.installed:
-            info = {'{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'installation_dir', 'desktop_entry'))}
-            info['6_exec_file'] = pkg.get_exec_path()
-            info['7_icon_path'] = pkg.get_disk_icon_path()
+            info = {'{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories', 'installation_dir', 'desktop_entry'))}
+            info['7_exec_file'] = pkg.get_exec_path()
+            info['8_icon_path'] = pkg.get_disk_icon_path()
 
             if os.path.exists(pkg.installation_dir):
-                info['8_size'] = get_human_size_str(get_dir_size(pkg.installation_dir))
+                info['9_size'] = get_human_size_str(get_dir_size(pkg.installation_dir))
+
+            if info.get('4_categories'):
+                info['4_categories'] = [self.i18n[c.lower()].capitalize() for c in info['4_categories']]
 
             return info
 
@@ -214,8 +216,14 @@ class WebApplicationManager(SoftwareManager):
     def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
+        inp_url = TextInputComponent(label=self.i18n['address'], value=app.url, read_only=True)
         inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
         inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
+
+        cat_ops = [InputOption(label=self.i18n['web.install.option.category.none'].capitalize(), value=0)]
+        cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
+
+        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=cat_ops[0])
 
         tray_op_off = InputOption(label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
         tray_op_default = InputOption(label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
@@ -225,7 +233,7 @@ class WebApplicationManager(SoftwareManager):
                                          options=[tray_op_off, tray_op_default, tray_op_min],
                                          label=self.i18n['web.install.option.tray.label'])
 
-        form_1 = FormComponent(components=[inp_name, inp_desc, inp_tray])
+        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_tray])
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -238,11 +246,10 @@ class WebApplicationManager(SoftwareManager):
 
         check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
 
-        bt_continue = self.i18n['continue'].capitalize()
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
-                                           body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
+                                           body=None,
                                            components=[form_1, check_options],
-                                           confirmation_label=bt_continue,
+                                           confirmation_label=self.i18n['continue'].capitalize(),
                                            deny_label=self.i18n['cancel'].capitalize())
 
         if res:
@@ -251,7 +258,7 @@ class WebApplicationManager(SoftwareManager):
             if check_options.values:
                 selected.extend(check_options.get_selected_values())
 
-            tray_mode = inp_tray.get_selected_value()
+            tray_mode = inp_tray.get_selected()
             if tray_mode is not None and tray_mode != 0:
                 selected.append(tray_mode)
 
@@ -264,6 +271,11 @@ class WebApplicationManager(SoftwareManager):
 
             if custom_desc:
                 app.description = inp_desc.get_value()
+
+            cat = inp_cat.get_selected()
+
+            if cat != 0:
+                app.categories = [cat]
 
             return res, selected
 
@@ -385,12 +397,13 @@ class WebApplicationManager(SoftwareManager):
         [Desktop Entry]
         Type=Application
         Name={name} ( web )
-        Categories=Applications;
         Comment={desc}
         Icon={icon}
         Exec={exec_path}
+        {categories}
         """.format(name=pkg.name, exec_path=pkg.get_exec_path(),
-                   desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path())
+                   desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path(),
+                   categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '')
 
     def is_enabled(self) -> bool:
         return self.enabled

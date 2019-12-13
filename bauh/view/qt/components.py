@@ -277,6 +277,9 @@ class FormQt(QGroupBox):
             line_edit.setText(c.value)
             line_edit.setCursorPosition(0)
 
+        if c.read_only:
+            line_edit.setEnabled(False)
+
         def update_model(text: str):
             c.value = text
 
