@@ -14,4 +14,16 @@ twitch:
 
 whatsapp:
   url: https://web.whatsapp.com
-  icon_url:
+  options:
+    - tray_min
+
+telegram:
+  url: https://web.whatsapp.com
+  options:
+    - tray_min
+
+slack:
+  name: Slack
+  url: https://slack.com
+  options:
+    - tray_min
