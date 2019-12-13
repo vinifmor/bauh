@@ -64,7 +64,7 @@ class WebApplicationManager(SoftwareManager):
         except:
             return 'en_US'
 
-    def _get_app_name(self, url_no_protocol: str, soup: BeautifulSoup) -> str:
+    def _get_app_name(self, url_no_protocol: str, soup: "BeautifulSoup") -> str:
         name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
         name = name_tag.get('content') if name_tag else None
 
@@ -80,7 +80,7 @@ class WebApplicationManager(SoftwareManager):
 
         return name
 
-    def _get_app_icon_url(self, url: str, soup: BeautifulSoup) -> str:
+    def _get_app_icon_url(self, url: str, soup: "BeautifulSoup") -> str:
         for rel in ('icon', 'ICON'):
             icon_tag = soup.head.find('link', attrs={"rel": rel})
             icon_url = icon_tag.get('href') if icon_tag else None
