@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import traceback
 from pathlib import Path
 from threading import Thread
@@ -16,7 +17,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType
+    SelectViewType, TextInputComponent
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
@@ -37,6 +38,7 @@ except:
     LXML_AVAILABLE = False
 
 RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
+RE_SEVERAL_SPACES = re.compile(r'\s+')
 
 
 class WebApplicationManager(SoftwareManager):
@@ -70,6 +72,12 @@ class WebApplicationManager(SoftwareManager):
         if not name:
             name = url_no_protocol.split('.')[0]
 
+        if name:
+            name = name.replace('|', '').replace('_', ' ')
+
+            if ' ' in name:
+                name = RE_SEVERAL_SPACES.sub(' ', name)
+
         return name
 
     def _get_app_icon_url(self, url: str, soup: BeautifulSoup) -> str:
@@ -100,12 +108,12 @@ class WebApplicationManager(SoftwareManager):
 
             url_no_protocol = self._strip_url_protocol(url)
 
-            installed_matches = [app for app in installed if self._strip_url_protocol(app.url)== url_no_protocol]
+            installed_matches = [app for app in installed if self._strip_url_protocol(app.url) == url_no_protocol]
 
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()})
+                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()}, ignore_ssl=True)
 
                 if url_res:
                     soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
@@ -201,10 +209,10 @@ class WebApplicationManager(SoftwareManager):
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def _ask_install_options(self, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
+    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
-        bt_continue = self.i18n['continue'].capitalize()
+        inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -222,9 +230,10 @@ class WebApplicationManager(SoftwareManager):
         check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
         input_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=[tray_op_off, tray_op_default, tray_op_min], label=self.i18n['web.install.option.tray.label'])
 
+        bt_continue = self.i18n['continue'].capitalize()
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=self.i18n['web.install.options_dialog.body'].format(bold(bt_continue)),
-                                           components=[check_options, input_tray],
+                                           components=[inp_name, check_options, input_tray],
                                            confirmation_label=bt_continue,
                                            deny_label=self.i18n['cancel'].capitalize())
 
@@ -238,13 +247,41 @@ class WebApplicationManager(SoftwareManager):
             if tray_mode is not None and tray_mode != 0:
                 selected.append(tray_mode)
 
+            custom_name = inp_name.get_value()
+
+            if custom_name:
+                app.name = custom_name
+
             return res, selected
 
         return False, []
 
+    def _gen_app_id(self, name: str) -> Tuple[str, str]:
+
+        treated_name = name.lower().strip().replace(' ', '-')
+
+        while True:
+            random_number = str(int(time.time()))
+            app_id = '{}-{}'.format(random_number, treated_name)
+
+            if not os.path.exists('{}/{}'.format(INSTALLED_PATH, app_id)):
+                return app_id, treated_name
+
+    def _gen_desktop_entry_path(self, app_id: str) -> str:
+        base_id = app_id
+        counter = 1
+
+        while True:
+            desk_path = DESKTOP_ENTRY_PATH_PATTERN.format(name=base_id)
+            if not os.path.exists(desk_path):
+                return desk_path
+            else:
+                base_id = '{}_{}'.format(app_id, counter)
+                counter += 1
+
     def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
 
-        continue_install, install_options = self._ask_install_options(watcher)
+        continue_install, install_options = self._ask_install_options(pkg, watcher)
 
         if not continue_install:
             watcher.print("Installation aborted by the user")
@@ -262,28 +299,22 @@ class WebApplicationManager(SoftwareManager):
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
 
-        pkg_name = pkg.name.lower()
-
-        app_name_id, app_dir = pkg_name, '{}/{}'.format(INSTALLED_PATH, pkg_name)
-
-        counter = 1
-        while True:
-            if not os.path.exists(app_dir):
-                break
-            else:
-                app_name_id = pkg_name + str(counter)
-                app_dir = '{}/{}'.format(INSTALLED_PATH, app_name_id)
-                counter += 1
+        app_id, treated_name = self._gen_app_id(pkg.name)
+        pkg.id = app_id
+        app_dir = '{}/{}'.format(INSTALLED_PATH, app_id)
 
         watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
         fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
+        fix_path = '{}/fix.js'.format(app_dir)
 
         if fix:
+            # just adding the fix as an installation option. The file will be written later
+            self.logger.info('Fix found for {}'.format(pkg.url))
             watcher.print('Fix found for {}'.format(pkg.url))
-            print(fix)
+            install_options.append('--inject={}'.format(fix_path))
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
-        installed = handler.handle_simple(nativefier.install(url=pkg.url, name=pkg_name, output_dir=app_dir,
+        installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=self.env_settings['electron']['version'],
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
@@ -304,10 +335,16 @@ class WebApplicationManager(SoftwareManager):
 
         # bringing the inner app folder to the 'installed' folder level:
         inner_dir = '{}/{}'.format(app_dir, inner_dir[0])
-        temp_dir = '{}/tmp_{}'.format(INSTALLED_PATH, app_name_id)
+        temp_dir = '{}/tmp_{}'.format(INSTALLED_PATH, treated_name)
         os.rename(inner_dir, temp_dir)
         shutil.rmtree(app_dir)
         os.rename(temp_dir, app_dir)
+
+        # injecting a fix
+        if fix:
+            self.logger.info('Writting JS fix at {}'.format(fix_path))
+            with open(fix_path, 'w+') as f:
+                f.write(fix)
 
         pkg.installation_dir = app_dir
 
@@ -320,22 +357,14 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.shortcut'])
 
-        entry_id = app_name_id
-        desktop_entry = DESKTOP_ENTRY_PATH_PATTERN.format(name=entry_id)
-        while True:
-            if not os.path.exists(desktop_entry):
-                break
-            else:
-                counter += 1
-                entry_id = pkg_name + str(counter)
-                desktop_entry += DESKTOP_ENTRY_PATH_PATTERN.format(name=entry_id)
+        desktop_entry_path = self._gen_desktop_entry_path(app_id)
 
         entry_content = self._gen_desktop_entry_content(pkg)
 
-        with open(desktop_entry, 'w+') as f:
+        with open(desktop_entry_path, 'w+') as f:
             f.write(entry_content)
 
-        pkg.desktop_entry = desktop_entry
+        pkg.desktop_entry = desktop_entry_path
         return True
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:

@@ -7,9 +7,9 @@ from bauh.gems.web import ROOT_DIR
 
 class WebApplication(SoftwarePackage):
 
-    def __init__(self, url: str = None, name: str = None, description: str = None, icon_url: str = None,
+    def __init__(self, id: str = None, url: str = None, name: str = None, description: str = None, icon_url: str = None,
                  installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None):
-        super(WebApplication, self).__init__(id=url, name=name, description=description,
+        super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
                                              icon_url=icon_url, installed=installed, version=version)
         self.url = url
         self.installation_dir = installation_dir
@@ -23,14 +23,14 @@ class WebApplication(SoftwarePackage):
 
     @staticmethod
     def _get_cached_attrs() -> tuple:
-        return 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', 'desktop_entry'
+        return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', 'desktop_entry'
 
     def can_be_downgraded(self):
         return False
 
     def get_exec_path(self) -> str:
         if self.installation_dir:
-            return '{}/{}'.format(self.installation_dir, self.installation_dir.split('/')[-1])
+            return '{}/{}'.format(self.installation_dir, self.id)
 
     def get_type(self):
         return 'web'

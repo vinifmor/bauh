@@ -16,7 +16,7 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False):
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
@@ -30,6 +30,9 @@ class HttpClient:
 
                 if headers:
                     args['headers'] = headers
+
+                if ignore_ssl:
+                    args['verify'] = False
 
                 res = self.session.get(url, **args)
 

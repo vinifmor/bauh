@@ -123,7 +123,7 @@ class TextInputQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
+        self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
 
         self.text_input = QLineEdit()
 
@@ -132,6 +132,9 @@ class TextInputQt(QGroupBox):
 
         if model.tooltip:
             self.text_input.setToolTip(model.tooltip)
+
+        if model.value:
+            self.text_input.setText(model.value)
 
         self.text_input.textChanged.connect(self._update_model)
 
