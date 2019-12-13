@@ -19,7 +19,7 @@ class I18n(dict):
             if self.default:
                 return self.default.__getitem__(item)
             else:
-                raise
+                return item
 
     def get(self, *args, **kwargs):
         res = self.current.get(args[0])
