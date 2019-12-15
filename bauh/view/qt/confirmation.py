@@ -1,7 +1,7 @@
 from typing import List
 
 from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
+from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame, QSizePolicy
 
 from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent, \
     FormComponent
@@ -63,10 +63,10 @@ class ConfirmationDialog(QMessageBox):
 
             scroll.setFixedHeight(height)
 
-            self.layout().addWidget(scroll, 1, 1)
+            self.layout().addWidget(scroll, 1 if body else 0, 1)
 
         if not body and width > 0:
-            self.layout().addWidget(QLabel(' ' * int(width / 2)), 0, 1)
+            self.layout().addWidget(QLabel(' ' * int(width / 2)), 1, 1)
 
         self.exec_()
 

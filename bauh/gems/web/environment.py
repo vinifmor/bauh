@@ -199,7 +199,7 @@ class EnvironmentUpdater:
 
             return False
 
-    def get_environment(self) -> dict:
+    def read_settings(self) -> dict:
         try:
             res = self.http_client.get(URL_ENVIRONMENT_SETTINGS)
 
@@ -217,7 +217,7 @@ class EnvironmentUpdater:
 
     def update_environment(self, is_x86_x64_arch: bool, handler: ProcessHandler = None) -> dict:
 
-        settings = self.get_environment()
+        settings = self.read_settings()
 
         if settings is None:
             return

@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 
 from bauh.api.constants import HOME_PATH, DESKTOP_ENTRIES_DIR
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-BIN_PATH = '{}/.local/share/bauh/web'.format(HOME_PATH)
-INSTALLED_PATH = '{}/installed'.format(BIN_PATH)
+WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
+INSTALLED_PATH = '{}/installed'.format(WEB_PATH)
+BIN_PATH = '{}/runtime'.format(WEB_PATH)
 NODE_DIR_PATH = '{}/node'.format(BIN_PATH)
 NODE_PATHS = {NODE_DIR_PATH + '/bin'}
 NODE_BIN_PATH = '{}/bin/node'.format(NODE_DIR_PATH)

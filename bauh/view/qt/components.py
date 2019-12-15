@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent
+from bauh.view.qt import css
 from bauh.view.util import resource
 
 
@@ -160,12 +161,18 @@ class MultipleSelectQt(QGroupBox):
 
     def __init__(self, model: MultipleSelectComponent, callback):
         super(MultipleSelectQt, self).__init__(model.label if model.label else None)
-        self.setStyleSheet("QGroupBox { font-weight: bold }")
+        self.setStyleSheet(css.GROUP_BOX)
         self.model = model
         self._layout = QGridLayout()
         self.setLayout(self._layout)
 
-        line, col = 0, 0
+        if model.label:
+            line = 1
+            self.layout().addWidget(QLabel(), 0, 1)
+        else:
+            line = 0
+
+        col = 0
 
         pixmap_help = QPixmap()
 
@@ -199,6 +206,9 @@ class MultipleSelectQt(QGroupBox):
                 col = 0
             else:
                 col += 1
+
+        if model.label:
+            self.layout().addWidget(QLabel(), line + 1, 1)
 
 
 class InputFilter(QLineEdit):
@@ -248,21 +258,25 @@ class IconButton(QWidget):
 class FormQt(QGroupBox):
 
     def __init__(self, model: FormComponent):
-        super(FormQt, self).__init__()
+        super(FormQt, self).__init__(model.label if model.label else '')
         self.model = model
         self.setLayout(QFormLayout())
-        self.setStyleSheet('QLabel { font-weight: bold; }')
+        self.setStyleSheet(css.GROUP_BOX)
+
+        self.layout().addRow(QLabel(), QLabel())
 
         for c in model.components:
             if isinstance(c, TextInputComponent):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
-                label = QLabel(c.label.capitalize() + ':' if c.label else '')
+                label = QLabel(c.label.capitalize() if c.label else '')
                 field = ComboBoxQt(c)
                 self.layout().addRow(label, field)
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
+
+        self.layout().addRow(QLabel(), QLabel())
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         line_edit = QLineEdit()
@@ -284,7 +298,7 @@ class FormQt(QGroupBox):
             c.value = text
 
         line_edit.textChanged.connect(update_model)
-        return QLabel(c.label.capitalize() + ':' if c.label else ''), line_edit
+        return QLabel(c.label.capitalize() if c.label else ''), line_edit
 
 
 def new_single_select(model: SingleSelectComponent):

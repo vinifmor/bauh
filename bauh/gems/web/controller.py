@@ -19,10 +19,10 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent
-from bauh.api.constants import HOME_PATH, DESKTOP_ENTRIES_DIR
+from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, environment
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -243,7 +243,7 @@ class WebApplicationManager(SoftwareManager):
                                          options=[tray_op_off, tray_op_default, tray_op_min],
                                          label=self.i18n['web.install.option.tray.label'])
 
-        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_tray])
+        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_tray], label="Basic")
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -254,7 +254,7 @@ class WebApplicationManager(SoftwareManager):
         op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
-        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='')
+        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='Advanced')
 
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=None,
@@ -447,9 +447,7 @@ class WebApplicationManager(SoftwareManager):
         return False
 
     def prepare(self):
-        if bool(int(os.getenv('BAUH_WEB_UPDATE_NODE', 1))):
-            self.env_updater = Thread(daemon=True, target=self._update_environment)
-            self.env_updater.start()
+        Thread(target=self._update_environment).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
