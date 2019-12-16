@@ -10,7 +10,7 @@ class WebApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, url: str = None, name: str = None, description: str = None, icon_url: str = None,
                  installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None,
-                 categories: List[str] = None, custom_icon: str = None):
+                 categories: List[str] = None, custom_icon: str = None, preset_options: List[str] = None):
         super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
                                              icon_url=icon_url, installed=installed, version=version,
                                              categories=categories)
@@ -18,6 +18,7 @@ class WebApplication(SoftwarePackage):
         self.installation_dir = installation_dir
         self.desktop_entry = desktop_entry
         self.set_custom_icon(custom_icon)
+        self.preset_categories = preset_options
 
     def has_history(self):
         return False
@@ -92,7 +93,7 @@ class WebApplication(SoftwarePackage):
         return False
 
     def get_publisher(self) -> str:
-        pass
+        return 'bauh'
 
     def has_screenshots(self) -> bool:
         return False

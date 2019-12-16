@@ -17,13 +17,16 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
+from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory, \
+    SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
+from bauh.commons import resource
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
+    ROOT_DIR
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -42,7 +45,7 @@ except:
 
 RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
 RE_SEVERAL_SPACES = re.compile(r'\s+')
-RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:]')
+RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
 
 class WebApplicationManager(SoftwareManager):
@@ -57,6 +60,7 @@ class WebApplicationManager(SoftwareManager):
         self.env_updater = env_updater
         self.env_settings = {}
         self.logger = context.logger
+        self.env_thread = None
 
     def _get_lang_header(self) -> str:
         try:
@@ -87,14 +91,22 @@ class WebApplicationManager(SoftwareManager):
             icon_url = icon_tag.get('href') if icon_tag else None
 
             if icon_url and not icon_url.startswith('http'):
-                icon_url = url + (icon_url if icon_url.startswith('/') else '/{}'.format(icon_url))
+                if icon_url.startswith('//'):
+                    icon_url = 'https:{}'.format(icon_url)
+                elif icon_url.startswith('/'):
+                    icon_url = url + icon_url
+                else:
+                    icon_url = url + '/{}'.format(icon_url)
+
+            if icon_url:
+                return icon_url
 
         if not icon_url:
             icon_tag = soup.head.find('meta', attrs={"property": 'og:image'})
             icon_url = icon_tag.get('content') if icon_tag else None
 
-        if icon_url:
-            return icon_url
+            if icon_url:
+                return icon_url
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
         res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
@@ -107,6 +119,14 @@ class WebApplicationManager(SoftwareManager):
 
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
+
+    def _map_url(self, url: str) -> BeautifulSoup:
+        url_res = self.http_client.get(url,
+                                       headers={'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME},
+                                       ignore_ssl=True, single_call=True)
+
+        if url_res:
+            return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -123,11 +143,9 @@ class WebApplicationManager(SoftwareManager):
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}, ignore_ssl=True, single_call=True)
+                soup = self._map_url(url)
 
-                if url_res:
-                    soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
-
+                if soup:
                     name = self._get_app_name(url_no_protocol, soup)
 
                     desc_tag = soup.head.find('meta', attrs={'name': 'description'})
@@ -461,7 +479,8 @@ class WebApplicationManager(SoftwareManager):
         return False
 
     def prepare(self):
-        Thread(target=self._update_environment).start()
+        self.env_thread = Thread(target=self._update_environment)
+        self.env_thread.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -469,8 +488,59 @@ class WebApplicationManager(SoftwareManager):
     def list_warnings(self, internet_available: bool) -> List[str]:
         pass
 
+    def _fill_suggestion(self, app: WebApplication):
+        soup = self._map_url(app.url)
+
+        if soup:
+            if not app.name:
+                app.name = self._get_app_name(app.url, soup)
+
+            if not app.description:
+                desc_tag = soup.head.find('meta', attrs={'name': 'description'})
+
+                if desc_tag:
+                    app.description = desc_tag.get('content')
+
+                if not app.description:
+                    desc_tag = soup.find('title')
+                    app.description = desc_tag.text if desc_tag else app.url
+
+            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url))
+
+            if find_url:
+                app.icon_url = self._get_app_icon_url(app.url, soup)
+
+        app.status = PackageStatus.READY
+
+    def _map_suggestion(self, suggestion: dict) -> PackageSuggestion:
+        app = WebApplication(name=suggestion.get('name'),
+                             url=suggestion.get('url'),
+                             icon_url=suggestion.get('icon_url'),
+                             categories=[suggestion['category']] if suggestion.get('category') else None,
+                             preset_options=suggestion.get('options'))
+        app.status = PackageStatus.LOADING_DATA
+
+        Thread(target=self._fill_suggestion, args=(app,)).start()
+
+        return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
+
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        pass
+        with open(resource.get_path('suggestions.yml', ROOT_DIR), 'r') as f:
+            suggestions = yaml.safe_load(f.read())
+
+        if suggestions:
+            suggestions = list(suggestions.values())
+            suggestions.sort(key=lambda s: s.get('priority', 0), reverse=True)
+            to_map = suggestions if limit <= 0 else suggestions[0:limit]
+            res = [self._map_suggestion(s) for s in to_map]
+            self.env_thread.join()
+
+            if self.env_settings:
+                for s in res:
+                    s.package.version = self.env_settings['electron']['version']
+                    s.package.latest_version = s.package.version
+
+            return res
 
     def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
