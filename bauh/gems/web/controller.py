@@ -22,13 +22,13 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSugge
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
-from bauh.commons import resource, internet
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    ROOT_DIR
+    URL_SUGGESTIONS
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
+from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
 
 try:
     from bs4 import BeautifulSoup, SoupStrainer
@@ -50,7 +50,8 @@ RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
 class WebApplicationManager(SoftwareManager):
 
-    def __init__(self, context: ApplicationContext, env_updater: Thread = None):
+    def __init__(self, context: ApplicationContext, env_updater: Thread = None,
+                 suggestions_downloader: Thread = None, suggestions: dict = None):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
         self.node_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
@@ -61,6 +62,8 @@ class WebApplicationManager(SoftwareManager):
         self.env_settings = {}
         self.logger = context.logger
         self.env_thread = None
+        self.suggestions_downloader = suggestions_downloader
+        self.suggestions = suggestions
 
     def _get_lang_header(self) -> str:
         try:
@@ -176,6 +179,10 @@ class WebApplicationManager(SoftwareManager):
 
             if installed_matches:
                 res.installed.extend(installed_matches)
+
+            if self.search_index:
+                # TODO
+                pass
 
         res.total += len(res.installed)
         res.total += len(res.new)
@@ -514,9 +521,20 @@ class WebApplicationManager(SoftwareManager):
 
         return False
 
+    def _download_suggestions(self):
+        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client)
+        self.suggestions = downloader.download()
+
+        if self.suggestions:
+            index_gen = SearchIndexGenerator(logger=self.logger)
+            Thread(target=index_gen.generate_index, args=(self.suggestions,)).start()
+
     def prepare(self):
         self.env_thread = Thread(target=self._update_environment)
         self.env_thread.start()
+
+        self.suggestions_downloader = Thread(target=self._download_suggestions)
+        self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -554,15 +572,27 @@ class WebApplicationManager(SoftwareManager):
         return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        with open(resource.get_path('suggestions.yml', ROOT_DIR), 'r') as f:
-            suggestions = yaml.safe_load(f.read())
+
+        if self.suggestions:
+            suggestions = self.suggestions
+        elif self.suggestions_downloader:
+            self.suggestions_downloader.join(5)
+            suggestions = self.suggestions
+        else:
+            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client).download()
+
+        # cleaning memory
+        self.suggestions_downloader = None
+        self.suggestions = None
 
         if suggestions:
-            suggestions = list(suggestions.values())
-            suggestions.sort(key=lambda s: s.get('priority', 0), reverse=True)
-            to_map = suggestions if limit <= 0 else suggestions[0:limit]
+            suggestion_list = list(suggestions.values())
+            suggestion_list.sort(key=lambda s: s.get('priority', 0), reverse=True)
+            to_map = suggestion_list if limit <= 0 else suggestion_list[0:limit]
             res = [self._map_suggestion(s) for s in to_map]
-            self.env_thread.join()
+
+            if not self.env_settings:
+                self.env_thread.join()
 
             if self.env_settings:
                 for s in res:

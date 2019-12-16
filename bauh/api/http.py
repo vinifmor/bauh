@@ -3,6 +3,7 @@ import time
 import traceback
 
 import requests
+import yaml
 
 from bauh.commons import system
 
@@ -58,6 +59,10 @@ class HttpClient:
     def get_json(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
         res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects)
         return res.json() if res else None
+
+    def get_yaml(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
+        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects)
+        return yaml.safe_load(res.text) if res else None
 
     def get_content_length(self, url: str) -> str:
         """

@@ -1,6 +1,7 @@
 import os
 import sys
 
+import urllib3
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
@@ -23,6 +24,8 @@ DEFAULT_I18N_KEY = 'en'
 def main():
     if not os.getenv('PYTHONUNBUFFERED'):
         os.environ['PYTHONUNBUFFERED'] = '1'
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     args = app_args.read()
 
