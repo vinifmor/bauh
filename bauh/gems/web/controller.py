@@ -25,7 +25,7 @@ from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    URL_SUGGESTIONS
+    URL_SUGGESTIONS, SEARCH_INDEX_FILE
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
@@ -180,13 +180,31 @@ class WebApplicationManager(SoftwareManager):
             if installed_matches:
                 res.installed.extend(installed_matches)
 
-            if self.search_index:
-                # TODO
-                pass
+            index = self._read_search_index()
+
+            if index:
+                split_words = lower_words.split(' ')
+                singleword = ''.join(lower_words)
+
+                app_keys = set()
+                for word in (*split_words, singleword):
+                    indexed = index.get(word)
+                    if indexed:
+                        app_keys.update(indexed)
+
+                print(indexed)
+                # TODO stopped here -> write suggestions to disk and read them here
 
         res.total += len(res.installed)
         res.total += len(res.new)
         return res
+
+    def _read_search_index(self) -> dict:
+        if os.path.exists(SEARCH_INDEX_FILE):
+            with open(SEARCH_INDEX_FILE) as f:
+                return yaml.safe_load(f.read())
+        else:
+            self.logger.warning("No search index found at {}".format(SEARCH_INDEX_FILE))
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -591,8 +609,9 @@ class WebApplicationManager(SoftwareManager):
             to_map = suggestion_list if limit <= 0 else suggestion_list[0:limit]
             res = [self._map_suggestion(s) for s in to_map]
 
-            if not self.env_settings:
+            if not self.env_settings and self.env_thread:
                 self.env_thread.join()
+                self.env_thread = None  # cleaning memory
 
             if self.env_settings:
                 for s in res:

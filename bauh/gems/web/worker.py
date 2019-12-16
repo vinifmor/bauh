@@ -40,16 +40,15 @@ class SearchIndexGenerator:
             name = sug.get('name')
 
             if name:
-                split_name = name.split(' ')
+                split_name = name.lower().strip().split(' ')
                 single_name = ''.join(split_name)
 
                 for word in (*split_name, single_name):
-                    word_key = word.lower().strip()
-                    mapped = index.get(word_key)
+                    mapped = index.get(word)
 
                     if not mapped:
                         mapped = set()
-                        index[word_key] = mapped
+                        index[word] = mapped
 
                     mapped.add(key)
 
