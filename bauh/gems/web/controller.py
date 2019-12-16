@@ -23,8 +23,7 @@ from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOp
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, environment, \
-    ENV_PATH
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -43,7 +42,7 @@ except:
 
 RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
 RE_SEVERAL_SPACES = re.compile(r'\s+')
-RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s]')
+RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:]')
 
 
 class WebApplicationManager(SoftwareManager):
@@ -90,8 +89,12 @@ class WebApplicationManager(SoftwareManager):
             if icon_url and not icon_url.startswith('http'):
                 icon_url = url + (icon_url if icon_url.startswith('/') else '/{}'.format(icon_url))
 
-            if icon_url:
-                return icon_url
+        if not icon_url:
+            icon_tag = soup.head.find('meta', attrs={"property": 'og:image'})
+            icon_url = icon_tag.get('content') if icon_tag else None
+
+        if icon_url:
+            return icon_url
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
         res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
@@ -120,7 +123,7 @@ class WebApplicationManager(SoftwareManager):
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header()}, ignore_ssl=True, single_call=True)
+                url_res = self.http_client.get(url, headers={'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}, ignore_ssl=True, single_call=True)
 
                 if url_res:
                     soup = BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))

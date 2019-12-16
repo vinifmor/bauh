@@ -1,29 +1,72 @@
 youtube:
+  name: YouTube
   url: https://youtube.com
+  category: Network
 
 facebook:
+  name: Facebook
   url: https://facebook.com
+  category: Network
+  options:
+    - tray_min
 
 outlook:
+  name: Outlook
   url: https://outlook.live.com
+  category: Network
   options:
     - allow_urls
 
 twitch:
+  name: Twitch
   url: https://twitch.tv
+  category: Network
 
 whatsapp:
+  name: WhatsApp
   url: https://web.whatsapp.com
+  category: Network
   options:
     - tray_min
 
 telegram:
-  url: https://web.whatsapp.com
+  name: Telegram
+  url: https://web.telegram.org
+  category: Network
   options:
     - tray_min
 
 slack:
   name: Slack
   url: https://slack.com
+  category: Network
+  options:
+    - tray_min
+
+hangouts:
+  name: Hangouts
+  url: https://hangouts.google.com
+  category: Network
+  options:
+    - tray_min
+
+office:
+  name: Microsoft Office
+  url: https://office.com
+  category: office
+  options:
+    - allow_urls
+
+reddit:
+  name: Reddit
+  url: https://reddit.com
+  category: network
+  options:
+    - tray_min
+
+google-drive:
+  name: Drive
+  url: https://drive.google.com
+  category: Utility
   options:
     - tray_min
