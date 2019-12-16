@@ -48,7 +48,7 @@ class ConfirmationDialog(QMessageBox):
                 elif isinstance(comp, TextInputComponent):
                     inst = TextInputQt(comp)
                 elif isinstance(comp, FormComponent):
-                    inst = FormQt(comp)
+                    inst = FormQt(comp, i18n)
                 else:
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 

@@ -164,3 +164,7 @@ communication=comunicazione
 administration=amministrazione
 settings=impostazioni
 address=indirizzo
+view.components.file_chooser.placeholder=Fai clic qui per selezionare
+files=files
+all_files=tutti i files
+file_chooser.title=Selettore file

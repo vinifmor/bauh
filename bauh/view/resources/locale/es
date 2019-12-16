@@ -208,3 +208,7 @@ communication=comunicación
 administration=administración
 settings=configuraciones
 address=dirección
+view.components.file_chooser.placeholder=Pulse aquí para seleccionar
+files=archivos
+all_files=todos los archivos
+file_chooser.title=Selector de archivos

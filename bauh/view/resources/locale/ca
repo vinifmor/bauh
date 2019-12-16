@@ -209,3 +209,7 @@ communication=comunicació
 administration=administració
 settings=configuració
 address=adreça
+view.components.file_chooser.placeholder=Feu clic aquí per seleccionar
+files=fitxers
+all_files=tots els fitxers
+file_chooser.title=Selector de fitxers

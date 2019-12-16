@@ -18,7 +18,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
@@ -99,6 +99,9 @@ class WebApplicationManager(SoftwareManager):
 
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
+
+    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+        super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -243,7 +246,9 @@ class WebApplicationManager(SoftwareManager):
                                          options=[tray_op_off, tray_op_default, tray_op_min],
                                          label=self.i18n['web.install.option.tray.label'])
 
-        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_tray], label="Basic")
+        icon_chooser = FileChooserComponent(allowed_extensions={'png'}, label=self.i18n['web.install.option.icon.label'])
+
+        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -254,7 +259,7 @@ class WebApplicationManager(SoftwareManager):
         op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
-        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label='Advanced')
+        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label=self.i18n['web.install.options.advanced'].capitalize())
 
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=None,
@@ -286,6 +291,10 @@ class WebApplicationManager(SoftwareManager):
 
             if cat != 0:
                 app.categories = [cat]
+
+            if icon_chooser.file_path:
+                app.set_custom_icon(icon_chooser.file_path)
+                selected.append('--icon={}'.format(icon_chooser.file_path))
 
             return res, selected
 

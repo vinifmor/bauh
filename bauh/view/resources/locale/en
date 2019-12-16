@@ -167,3 +167,7 @@ audio=audio
 video=video
 settings=settings
 address=address
+view.components.file_chooser.placeholder=Click here to select
+files=files
+all_files=all files
+file_chooser.title=File selector

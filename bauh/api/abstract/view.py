@@ -123,3 +123,12 @@ class FormComponent(ViewComponent):
         super(FormComponent, self).__init__(id_=id_)
         self.label = label
         self.components = components
+
+
+class FileChooserComponent(ViewComponent):
+
+    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, id_: str = None):
+        super(FileChooserComponent, self).__init__(id_=id_)
+        self.label = label
+        self.allowed_extensions = allowed_extensions
+        self.file_path = None

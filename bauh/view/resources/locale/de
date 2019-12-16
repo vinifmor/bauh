@@ -163,3 +163,7 @@ communication=Kommunikation
 administration=Verwaltung
 settings=Einstellungen
 address=Adresse
+view.components.file_chooser.placeholder=Klicken Sie hier, um auszuwählen
+files=Dateien
+all_files=Alle Dateien
+file_chooser.title=Dateiauswahl

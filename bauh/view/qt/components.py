@@ -1,14 +1,16 @@
+from pathlib import Path
 from typing import Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent, FormComponent
+    TextInputComponent, FormComponent, FileChooserComponent
 from bauh.view.qt import css
 from bauh.view.util import resource
+from bauh.view.util.translation import I18n
 
 
 class RadioButtonQt(QRadioButton):
@@ -257,9 +259,10 @@ class IconButton(QWidget):
 
 class FormQt(QGroupBox):
 
-    def __init__(self, model: FormComponent):
+    def __init__(self, model: FormComponent, i18n: I18n):
         super(FormQt, self).__init__(model.label if model.label else '')
         self.model = model
+        self.i18n = i18n
         self.setLayout(QFormLayout())
         self.setStyleSheet(css.GROUP_BOX)
 
@@ -272,6 +275,9 @@ class FormQt(QGroupBox):
             elif isinstance(c, SingleSelectComponent):
                 label = QLabel(c.label.capitalize() if c.label else '')
                 field = ComboBoxQt(c)
+                self.layout().addRow(label, field)
+            elif isinstance(c, FileChooserComponent):
+                label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
@@ -299,6 +305,35 @@ class FormQt(QGroupBox):
 
         line_edit.textChanged.connect(update_model)
         return QLabel(c.label.capitalize() if c.label else ''), line_edit
+
+    def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
+        chooser = QLineEdit()
+        chooser.setReadOnly(True)
+
+        chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
+
+        def open_chooser(e):
+            options = QFileDialog.Options()
+
+            if c.allowed_extensions:
+                exts = ';;'.join({'{} {} (*.{})'.format(self.i18n['files'].capitalize(), e.upper(), e) for e in c.allowed_extensions})
+            else:
+                exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
+
+            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], str(Path.home()), exts, options=options)
+
+            if file_path:
+                c.file_path = file_path
+                chooser.setText(file_path)
+            else:
+                c.file_path = None
+                chooser.setText('')
+
+            chooser.setCursorPosition(0)
+
+        chooser.mousePressEvent = open_chooser
+
+        return QLabel(c.label if c.label else ''), chooser
 
 
 def new_single_select(model: SingleSelectComponent):
