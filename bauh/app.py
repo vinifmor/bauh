@@ -29,10 +29,6 @@ def main():
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
 
-    if args.reset:
-        util.clean_app_files()
-        exit(0)
-
     i18n_key, current_i18n = translation.get_locale_keys(args.locale)
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
     i18n = I18n(current_i18n, default_i18n)
@@ -56,6 +52,15 @@ def main():
                                                                          i18n, http_client))
     user_config = config.read()
 
+    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config, default_locale=DEFAULT_I18N_KEY)
+
+    if args.reset:
+        util.clean_app_files(managers)
+        exit(0)
+
+    manager = GenericSoftwareManager(managers, context=context, app_args=args)
+    manager.prepare()
+
     app = QApplication(sys.argv)
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
@@ -66,11 +71,6 @@ def main():
     else:
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
-
-    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config, default_locale=DEFAULT_I18N_KEY)
-
-    manager = GenericSoftwareManager(managers, context=context, app_args=args)
-    manager.prepare()
 
     manage_window = ManageWindow(i18n=i18n,
                                  manager=manager,

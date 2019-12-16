@@ -11,6 +11,7 @@ from threading import Thread
 from typing import List, Type, Set, Tuple
 
 import yaml
+from colorama import Fore
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -22,7 +23,8 @@ from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOp
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, environment
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, environment, \
+    ENV_PATH
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 
@@ -478,3 +480,14 @@ class WebApplicationManager(SoftwareManager):
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
+
+    def clear_data(self):
+        if os.path.exists(ENV_PATH):
+            print('[bauh][web] Deleting directory {}'.format(ENV_PATH))
+
+            try:
+                shutil.rmtree(ENV_PATH)
+                print('{}[bauh][web] Directory {} deleted{}'.format(Fore.YELLOW, ENV_PATH, Fore.RESET))
+            except:
+                print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
+                traceback.print_exc()

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.0] 2019-12
+### Features
+- Native Web applications support:
+    - if an URL is typed in the search, a native web application result will be displayed in the results table.
+    - bauh relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to install the Web applications, but there is no need to have them installed on your system. Bauh will create its own installation environment with these technologies in **~/.local/share/bauh/web/env**.
+    - requires only **python-beautifulsoup4** and **python-lxml** to be enabled
+
+
 ## [0.7.4] 2019-12-09
 ### Improvements
 - AUR

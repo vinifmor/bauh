@@ -2,10 +2,14 @@ import os
 import shutil
 import subprocess
 import sys
+import traceback
+from typing import List
 
 from PyQt5.QtCore import QCoreApplication
+from colorama import Fore
 
 from bauh import __app_name__
+from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.constants import CACHE_PATH, CONFIG_PATH
 from bauh.commons.system import run_cmd
 from bauh.view.util import resource
@@ -40,10 +44,20 @@ def get_distro():
     return 'unknown'
 
 
-def clean_app_files():
+def clean_app_files(managers: List[SoftwareManager]):
     print('[bauh] Cleaning configuration and cache files')
     for path in (CACHE_PATH, CONFIG_PATH):
         print('[bauh] Deleting directory {}'.format(path))
         if os.path.exists(path):
-            shutil.rmtree(path)
+            try:
+                shutil.rmtree(path)
+                print('{}[bauh] Directory {} deleted{}'.format(Fore.YELLOW, path, Fore.RESET))
+            except:
+                print('{}[bauh] An exception has happened when deleting {}{}'.format(Fore.RED, path, Fore.RESET))
+                traceback.print_exc()
+
+    if managers:
+        for m in managers:
+            m.clear_data()
+
     print('[bauh] Cleaning finished')

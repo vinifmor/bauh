@@ -265,3 +265,9 @@ class SoftwareManager(ABC):
         :return: screenshot urls for the given package
         """
         pass
+
+    def clear_data(self):
+        """
+        Removes all data created by the SoftwareManager instance
+        """
+        pass

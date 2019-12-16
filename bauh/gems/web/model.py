@@ -51,8 +51,9 @@ class WebApplication(SoftwarePackage):
     def get_disk_icon_path(self) -> str:
         if self.custom_icon:
             return self.custom_icon
-        else:
-            super(WebApplication, self).get_disk_icon_path()
+
+        if self.installation_dir:
+            return '{}/resources/app/icon.png'.format(self.installation_dir)
 
     def is_application(self):
         return True

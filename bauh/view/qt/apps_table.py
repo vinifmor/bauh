@@ -214,7 +214,7 @@ class AppsTable(QTableWidget):
                 col_name = self.item(idx, 0)
                 col_name.setIcon(icon_data['icon'])
 
-                if self.disk_cache and app.model.supports_disk_cache():
+                if self.disk_cache and app.model.supports_disk_cache() and app.model.get_disk_icon_path():
                     if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                         self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 

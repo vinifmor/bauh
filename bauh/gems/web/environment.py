@@ -13,7 +13,7 @@ from bauh.api.http import HttpClient
 from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
-from bauh.gems.web import BIN_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
+from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS
 from bauh.view.util.translation import I18n
 
@@ -29,8 +29,8 @@ class EnvironmentUpdater:
     def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading NodeJS {}: {}".format(version, version_url))
 
-        tarf_path = '{}/{}'.format(BIN_PATH, version_url.split('/')[-1])
-        downloaded = self.file_downloader.download(version_url, watcher=watcher, output_path=tarf_path, cwd=BIN_PATH)
+        tarf_path = '{}/{}'.format(ENV_PATH, version_url.split('/')[-1])
+        downloaded = self.file_downloader.download(version_url, watcher=watcher, output_path=tarf_path, cwd=ENV_PATH)
 
         if not downloaded:
             self.logger.error("Could not download '{}'. Aborting...".format(version_url))
@@ -38,9 +38,9 @@ class EnvironmentUpdater:
         else:
             try:
                 tf = tarfile.open(tarf_path)
-                tf.extractall(path=BIN_PATH)
+                tf.extractall(path=ENV_PATH)
 
-                extracted_file = '{}/{}'.format(BIN_PATH, tf.getnames()[0])
+                extracted_file = '{}/{}'.format(ENV_PATH, tf.getnames()[0])
 
                 os.rename(extracted_file, NODE_DIR_PATH)
                 return True
@@ -55,7 +55,7 @@ class EnvironmentUpdater:
                         self.logger.error('Could not delete file {}'.format(tarf_path))
 
     def update_node(self, version: str, version_url: str, watcher: ProcessWatcher = None) -> bool:
-        Path(BIN_PATH).mkdir(parents=True, exist_ok=True)
+        Path(ENV_PATH).mkdir(parents=True, exist_ok=True)
 
         if not os.path.exists(NODE_DIR_PATH):
             return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
@@ -92,7 +92,7 @@ class EnvironmentUpdater:
         if handler and handler.watcher:
             handler.watcher.change_substatus(self.i18n['web.environment.install'].format(bold('nativefier')))
 
-        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier@{}'.format(version)], cwd=BIN_PATH, extra_paths=NODE_PATHS)
+        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier@{}'.format(version)], cwd=ENV_PATH, extra_paths=NODE_PATHS)
 
         if handler:
             installed = handler.handle_simple(proc)[0]
