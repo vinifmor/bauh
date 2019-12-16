@@ -73,6 +73,5 @@ class HttpClient:
                 return system.get_human_size_str(size)
 
     def exists(self, url: str) -> bool:
-        res = self.session.get(url=url, allow_redirects=True, ignore_ssl=True)
+        res = self.session.head(url=url, allow_redirects=True, verify=False, timeout=5)
         return res.status_code == 200
-

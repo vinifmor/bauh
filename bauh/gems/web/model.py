@@ -18,7 +18,7 @@ class WebApplication(SoftwarePackage):
         self.installation_dir = installation_dir
         self.desktop_entry = desktop_entry
         self.set_custom_icon(custom_icon)
-        self.preset_categories = preset_options
+        self.preset_options = preset_options
 
     def has_history(self):
         return False

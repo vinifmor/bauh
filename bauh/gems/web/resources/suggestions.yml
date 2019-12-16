@@ -21,6 +21,9 @@ whatsapp:
   priority: 3
   url: https://web.whatsapp.com
   category: Network
+  options:
+    - allow_urls
+    - tray_min
 
 telegram:
   name: Telegram
@@ -28,6 +31,7 @@ telegram:
   url: https://web.telegram.org
   category: Network
   options:
+    - allow_urls
     - tray_min
 
 slack:
@@ -35,6 +39,8 @@ slack:
   priority: 3
   url: https://slack.com
   category: Network
+    - allow_urls
+    - tray_min
 
 
 office:
@@ -79,6 +85,7 @@ ms_outlook:
   category: Network
   options:
     - allow_urls
+    - tray_min
 
 ms_drive:
   name: Microsoft One Drive
@@ -110,6 +117,7 @@ google-keep:
   category: Utility
   options:
     - allow_urls
+    - tray_min
 
 google-cal:
   name: Google Calendar
@@ -119,6 +127,7 @@ google-cal:
   category: Utility
   options:
     - allow_urls
+    - tray_min
 
 google-sheets:
   name: Google Sheets
@@ -154,6 +163,7 @@ google-hangouts:
   category: Network
   options:
     - allow_urls
+    - tray_min
 
 gmail:
   name: GMail
@@ -163,6 +173,7 @@ gmail:
   category: Network
   options:
     - allow_urls
+    - tray_min
 
 mega:
   name: Mega

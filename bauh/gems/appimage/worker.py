@@ -10,6 +10,7 @@ from threading import Thread
 import requests
 
 from bauh.api.http import HttpClient
+from bauh.commons import internet
 from bauh.gems.appimage import LOCAL_PATH
 
 
@@ -73,7 +74,8 @@ class DatabaseUpdater(Thread):
         if self.enabled:
             while True:
                 try:
-                    self._download_databases()
+                    if internet.is_available(self.http_client, self.logger):
+                        self._download_databases()
                 except requests.exceptions.ConnectionError:
                     self.logger.warning('The internet connection seems to be off.')
 

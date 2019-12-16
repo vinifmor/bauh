@@ -1,4 +1,5 @@
 gem.web.info=Permite instalar aplicações Web no seu sistema através dos seus endereços ( URLs )
+gem.web.install.warning=Esse aplicativo não é oficialmente distribuído pelo proprietário do domínio
 web.environment.nativefier=Instalando {}
 web.waiting.env_updater=Atualizando ambiente
 web.env.checking=Verificando o ambiente de instalação Web

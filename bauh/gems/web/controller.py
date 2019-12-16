@@ -22,7 +22,7 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSugge
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
-from bauh.commons import resource
+from bauh.commons import resource, internet
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
@@ -108,6 +108,19 @@ class WebApplicationManager(SoftwareManager):
             if icon_url:
                 return icon_url
 
+    def _get_app_description(self, url: str,  soup: "BeautifulSoup") -> str:
+        description = None
+        desc_tag = soup.head.find('meta', attrs={'name': 'description'})
+
+        if desc_tag:
+            description = desc_tag.get('content')
+
+        if not description:
+            desc_tag = soup.find('title')
+            description = desc_tag.text if desc_tag else url
+
+        return description
+
     def _get_fix_for(self, url_no_protocol: str) -> str:
         res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
 
@@ -120,7 +133,7 @@ class WebApplicationManager(SoftwareManager):
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _map_url(self, url: str) -> BeautifulSoup:
+    def _map_url(self, url: str) -> "BeautifulSoup":
         url_res = self.http_client.get(url,
                                        headers={'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME},
                                        ignore_ssl=True, single_call=True)
@@ -147,10 +160,7 @@ class WebApplicationManager(SoftwareManager):
 
                 if soup:
                     name = self._get_app_name(url_no_protocol, soup)
-
-                    desc_tag = soup.head.find('meta', attrs={'name': 'description'})
-                    desc = desc_tag.get('content') if desc_tag else words
-
+                    desc = self._get_app_description(url, soup)
                     icon_url = self._get_app_icon_url(url, soup)
 
                     app = WebApplication(url=url, name=name, description=desc, icon_url=icon_url)
@@ -259,14 +269,32 @@ class WebApplicationManager(SoftwareManager):
         cat_ops = [InputOption(label=self.i18n['web.install.option.category.none'].capitalize(), value=0)]
         cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
 
-        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=cat_ops[0])
+        def_cat = cat_ops[0]
+
+        if app.categories:
+            for opt in cat_ops:
+                if opt.value == app.categories[0]:
+                    def_cat = opt
+                    break
+
+        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=def_cat)
 
         tray_op_off = InputOption(id_='tray_off', label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
         tray_op_default = InputOption(id_='tray_def', label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
         tray_op_min = InputOption(id_='tray_min', label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
 
+        tray_opts = [tray_op_off, tray_op_default, tray_op_min]
+        def_tray_opt = None
+
+        if app.preset_options:
+            for opt in tray_opts:
+                if opt.id in app.preset_options:
+                    def_tray_opt = opt
+                    break
+
         inp_tray = SingleSelectComponent(type_=SelectViewType.COMBO,
-                                         options=[tray_op_off, tray_op_default, tray_op_min],
+                                         options=tray_opts,
+                                         default_option=def_tray_opt,
                                          label=self.i18n['web.install.option.tray.label'])
 
         icon_chooser = FileChooserComponent(allowed_extensions={'png'}, label=self.i18n['web.install.option.icon.label'])
@@ -282,7 +310,15 @@ class WebApplicationManager(SoftwareManager):
         op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
-        check_options = MultipleSelectComponent(options=[op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert], default_options={op_single}, label=self.i18n['web.install.options.advanced'].capitalize())
+        adv_opts = [op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert]
+        def_adv_opts = {op_single}
+
+        if app.preset_options:
+            for opt in adv_opts:
+                if opt.id in app.preset_options:
+                    def_adv_opts.add(opt)
+
+        check_options = MultipleSelectComponent(options=adv_opts, default_options=def_adv_opts, label=self.i18n['web.install.options.advanced'].capitalize())
 
         res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                            body=None,
@@ -496,14 +532,7 @@ class WebApplicationManager(SoftwareManager):
                 app.name = self._get_app_name(app.url, soup)
 
             if not app.description:
-                desc_tag = soup.head.find('meta', attrs={'name': 'description'})
-
-                if desc_tag:
-                    app.description = desc_tag.get('content')
-
-                if not app.description:
-                    desc_tag = soup.find('title')
-                    app.description = desc_tag.text if desc_tag else app.url
+                app.description = self._get_app_description(app.url, soup)
 
             find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url))
 

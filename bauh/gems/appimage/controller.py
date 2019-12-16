@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import re
@@ -10,6 +11,8 @@ from pathlib import Path
 from threading import Lock
 from typing import Set, Type, List
 
+from colorama import Fore
+
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -19,7 +22,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions
+from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, LOCAL_PATH
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
@@ -446,3 +449,13 @@ class AppImageManager(SoftwareManager):
             return [pkg.url_screenshot]
 
         return []
+
+    def clear_data(self):
+        for f in glob.glob('{}/*.db'.format(LOCAL_PATH)):
+            try:
+                print('[bauh][appimage] Deleting {}'.format(f))
+                os.remove(f)
+                print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
+            except:
+                print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, Fore.RESET))
+                traceback.print_exc()
