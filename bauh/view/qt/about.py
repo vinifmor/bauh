@@ -45,17 +45,19 @@ class AboutDialog(QDialog):
 
         layout.addWidget(QLabel(''))
 
-        available_gems = [f for f in glob('{}/gems/*'.format(ROOT_DIR)) if not f.endswith('.py')]
+        available_gems = [f for f in glob('{}/gems/*'.format(ROOT_DIR)) if not f.endswith('.py') and not f.endswith('__pycache__')]
         available_gems.sort()
 
         gems_widget = QWidget()
         gems_widget.setLayout(QHBoxLayout())
 
+        gems_widget.layout().addWidget(QLabel())
         for gem_path in available_gems:
             icon = QLabel()
             pxmap = QPixmap(gem_path + '/resources/img/{}.png'.format(gem_path.split('/')[-1]))
             icon.setPixmap(pxmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             gems_widget.layout().addWidget(icon)
+        gems_widget.layout().addWidget(QLabel())
 
         layout.addWidget(gems_widget)
         layout.addWidget(QLabel(''))

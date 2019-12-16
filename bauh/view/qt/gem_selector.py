@@ -40,7 +40,10 @@ class GemSelectorPanel(QWidget):
         gem_options = []
         default = set()
 
-        for m in manager.managers:
+        managers = [*manager.managers]
+        managers.sort(key=lambda c: c.__class__.__name__)
+
+        for m in managers:
             if m.can_work():
                 modname = m.__module__.split('.')[-2]
                 op = InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
