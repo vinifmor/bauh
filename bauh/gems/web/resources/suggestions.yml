@@ -3,44 +3,42 @@ youtube:
   priority: 1
   url: https://youtube.com
   category: Network
+  options: [allow_urls]
 
 facebook:
   name: Facebook
   priority: 3
   url: https://facebook.com
   category: Network
+  options: [allow_urls]
 
 twitch:
   name: Twitch
   priority: 2
   url: https://twitch.tv
   category: Network
+  options: [allow_urls]
 
 whatsapp:
   name: WhatsApp
   priority: 3
   url: https://web.whatsapp.com
   category: Network
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 telegram:
   name: Telegram
   priority: 3
   url: https://web.telegram.org
   category: Network
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 slack:
   name: Slack
   priority: 3
   url: https://slack.com
   category: Network
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 
 office:
@@ -48,8 +46,7 @@ office:
   priority: 0
   url: https://office.com
   category: office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 ms_excel:
   name: Microsoft Excel
@@ -57,8 +54,7 @@ ms_excel:
   url: https://www.office.com/launch/excel
   icon_url: https://blobs.officehome.msocdn.com/images/content/images/favicons/favicon-excel-svg-29b733e1d7.ico
   category: office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 ms_word:
   name: Microsoft Word
@@ -66,8 +62,7 @@ ms_word:
   url: https://www.office.com/launch/word
   icon_url: https://blobs.officehome.msocdn.com/images/content/images/favicons/favicon-word-svg-8eedb3d95e.ico
   category: office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 ms_pp:
   name: Microsoft Powerpoint
@@ -75,39 +70,35 @@ ms_pp:
   url: https://www.office.com/launch/powerpoint
   icon_url: https://blobs.officehome.msocdn.com/images/content/images/favicons/favicon-powerpoint-svg-f44c23dac7.ico
   category: office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 ms_outlook:
   name: Microsoft Outlook
   priority: 3
   url: https://outlook.live.com
   category: Network
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 ms_drive:
   name: Microsoft One Drive
   priority: 0
   url: https://onedrive.live.com
   category: Utility
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 reddit:
   name: Reddit
   priority: 1
   url: https://reddit.com
   category: network
+  options: [allow_urls]
 
 google-drive:
   name: Google Drive
   priority: 1
   url: https://drive.google.com
   category: Utility
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 google-keep:
   name: Google Keep
@@ -115,9 +106,7 @@ google-keep:
   url: https://keep.google.com
   icon_url: https://ssl.gstatic.com/keep/icon_128.png
   category: Utility
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 google-cal:
   name: Google Calendar
@@ -125,9 +114,7 @@ google-cal:
   url: https://calendar.google.com
   icon_url: https://calendar.google.com/googlecalendar/images/favicon_v2014_16.ico
   category: Utility
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 google-sheets:
   name: Google Sheets
@@ -135,8 +122,7 @@ google-sheets:
   url: https://docs.google.com/spreadsheets/
   icon_url: https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico
   category: Office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 google-docs:
   name: Google Docs
@@ -144,8 +130,7 @@ google-docs:
   url: https://docs.google.com/document
   icon_url: https://ssl.gstatic.com/docs/documents/images/kix-favicon7.ico
   category: Office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 google-pres:
   name: Google Presentation
@@ -153,17 +138,14 @@ google-pres:
   url: https://docs.google.com/presentation
   icon_url: https://ssl.gstatic.com/docs/presentations/images/favicon5.ico
   category: Office
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 google-hangouts:
   name: Google Hangouts
   priority: 2
   url: https://hangouts.google.com
   category: Network
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 gmail:
   name: GMail
@@ -171,30 +153,25 @@ gmail:
   url: https://gmail.com
   icon_url: https://ssl.gstatic.com/ui/v1/icons/mail/images/favicon5.ico
   category: Network
-  options:
-    - allow_urls
-    - tray_min
+  options: [allow_urls,tray_min]
 
 mega:
   name: Mega
   priority: 0
   url: https://mega.nz
   category: Utility
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 tweetdeck:
   name: TweetDeck
   priority: 3
   url: https://tweetdeck.twitter.com
   category: Network
-  options:
-    - allow_urls
+  options: [allow_urls]
 
 twitter:
   name: Twitter
   url: https://twitter.com
   priority: 3
   category: Network
-  options:
-    - allow_urls
+  options: [allow_urls]
