@@ -50,20 +50,19 @@ RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
 class WebApplicationManager(SoftwareManager):
 
-    def __init__(self, context: ApplicationContext, env_updater: Thread = None,
-                 suggestions_downloader: Thread = None, suggestions: dict = None):
+    def __init__(self, context: ApplicationContext, suggestions_downloader: Thread = None):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
         self.node_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
                                                file_downloader=context.file_downloader, i18n=context.i18n)
         self.enabled = True
         self.i18n = context.i18n
-        self.env_updater = env_updater
         self.env_settings = {}
         self.logger = context.logger
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
-        self.suggestions = suggestions
+        self.suggestions = {}
+        self.config = {}
 
     def _get_lang_header(self) -> str:
         try:
@@ -460,10 +459,6 @@ class WebApplicationManager(SoftwareManager):
             watcher.print("Installation aborted by the user")
             return False
 
-        if self.env_updater and self.env_updater.is_alive():
-            watcher.change_substatus(self.i18n['web.waiting.env_updater'])
-            self.env_updater.join()
-
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
         if not self._update_environment(handler=handler):
@@ -584,6 +579,9 @@ class WebApplicationManager(SoftwareManager):
 
         return False
 
+    def _update_env_settings(self):
+        self.env_settings = self.node_updater.read_settings()
+
     def _download_suggestions(self):
         downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client)
         self.suggestions = downloader.download()
@@ -593,7 +591,7 @@ class WebApplicationManager(SoftwareManager):
             Thread(target=index_gen.generate_index, args=(self.suggestions,)).start()
 
     def prepare(self):
-        self.env_thread = Thread(target=self._update_environment)
+        self.env_thread = Thread(target=self._update_env_settings())
         self.env_thread.start()
 
         self.suggestions_downloader = Thread(target=self._download_suggestions)

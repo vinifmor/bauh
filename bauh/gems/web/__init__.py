@@ -24,3 +24,4 @@ UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gec
 TEMP_PATH = '/tmp/bauh/web'
 SEARCH_INDEX_FILE = '{}/index.yaml'.format(TEMP_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.yaml'.format(TEMP_PATH)
+CONFIG_FILE = '{}/.config/bauh/web/config.yaml'.format(Path.home())
