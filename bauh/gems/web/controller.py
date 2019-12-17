@@ -489,8 +489,18 @@ class WebApplicationManager(SoftwareManager):
         if system_env:
             self.logger.warning("Using system's nativefier to install {}".format(pkg.url))
 
+        electron_version = self.env_settings['electron']['version']
+
+        if pkg.version and pkg.version != electron_version:
+            self.logger.info('A preset Electron version is defined for {}: {}'.format(pkg.url, pkg.version))
+            electron_version = pkg.version
+
+        if config['environment']['electron']['version']:
+            self.logger.warning("A custom Electron version will be used {} to install {}".format(electron_version, pkg.url))
+            electron_version = config['environment']['electron']['version']
+
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
-                                                             electron_version=self.env_settings['electron']['version'],
+                                                             electron_version=electron_version,
                                                              system=system_env,
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
@@ -644,6 +654,8 @@ class WebApplicationManager(SoftwareManager):
                              categories=[suggestion['category']] if suggestion.get('category') else None,
                              preset_options=suggestion.get('options'))
 
+        app.set_version(suggestion.get('version'))
+
         description = suggestion.get('description')
 
         if isinstance(description, dict):
@@ -651,7 +663,7 @@ class WebApplicationManager(SoftwareManager):
         elif isinstance(description, str):
             app.description = description
 
-        if self.env_settings and self.env_settings.get('electron'):
+        if not app.version and self.env_settings and self.env_settings.get('electron'):
             app.version = self.env_settings['electron']['version']
             app.latest_version = app.version
 

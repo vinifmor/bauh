@@ -20,6 +20,10 @@ class WebApplication(SoftwarePackage):
         self.set_custom_icon(custom_icon)
         self.preset_options = preset_options
 
+    def set_version(self, version: str):
+        self.version = str(version) if version else None
+        self.latest_version = version
+
     def has_history(self):
         return False
 
