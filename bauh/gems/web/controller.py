@@ -190,13 +190,18 @@ class WebApplicationManager(SoftwareManager):
                 split_words = lower_words.split(' ')
                 singleword = ''.join(lower_words)
 
-                index_match_keys = set()
-                for word in (*split_words, singleword):
-                    indexed = index.get(word)
-                    if indexed:
-                        index_match_keys.update(indexed)
+                query_list = [*split_words, singleword]
 
-                if index_match_keys:
+                index_match_keys = set()
+                for key in index:
+                    for query in query_list:
+                        if query in key:
+                            index_match_keys.update(index[key])
+
+                if not index_match_keys:
+                    self.logger.info("Query '{}' was not found in the suggestion's index".format(words))
+                    res.installed.extend(installed_matches)
+                else:
                     if not os.path.exists(SUGGESTIONS_CACHE_FILE):
                         # if the suggestions cache was not found, it will not be possible to retrieve the matched apps
                         # so only the installed matches will be returned
@@ -224,7 +229,7 @@ class WebApplicationManager(SoftwareManager):
                                     # checking if any of the installed matches is one of the matched suggestions
 
                                     for sug in matched_suggestions:
-                                        found = (installed for installed in installed_matches if i.url == sug.get('url'))
+                                        found = [i for i in installed_matches if i.url == sug.get('url')]
 
                                         if found:
                                             res.installed.extend(found)
@@ -376,7 +381,7 @@ class WebApplicationManager(SoftwareManager):
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
         adv_opts = [op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert]
-        def_adv_opts = {op_single}
+        def_adv_opts = {op_single, op_allow_urls}
 
         if app.preset_options:
             for opt in adv_opts:
@@ -623,6 +628,18 @@ class WebApplicationManager(SoftwareManager):
                              icon_url=suggestion.get('icon_url'),
                              categories=[suggestion['category']] if suggestion.get('category') else None,
                              preset_options=suggestion.get('options'))
+
+        description = suggestion.get('description')
+
+        if isinstance(description, dict):
+            app.description = description.get(self.i18n.current_key, description.get(self.i18n.default_key))
+        elif isinstance(description, str):
+            app.description = description
+
+        if self.env_settings and self.env_settings.get('electron'):
+            app.version = self.env_settings['electron']['version']
+            app.latest_version = app.version
+
         app.status = PackageStatus.LOADING_DATA
 
         Thread(target=self._fill_suggestion, args=(app,)).start()

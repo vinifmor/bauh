@@ -34,7 +34,7 @@ def main():
 
     i18n_key, current_i18n = translation.get_locale_keys(args.locale)
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
-    i18n = I18n(current_i18n, default_i18n)
+    i18n = I18n(i18n_key, current_i18n, DEFAULT_I18N_KEY, default_i18n)
 
     cache_cleaner = CacheCleaner()
     cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)

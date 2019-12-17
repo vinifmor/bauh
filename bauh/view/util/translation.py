@@ -7,9 +7,11 @@ from bauh.view.util import resource
 
 class I18n(dict):
 
-    def __init__(self, current_locale: dict, default_locale: dict):
+    def __init__(self, current_key: str, current_locale: dict, default_key: str, default_locale: dict):
         super(I18n, self).__init__()
+        self.current_key = current_key
         self.current = current_locale
+        self.default_key = default_key
         self.default = default_locale
 
     def __getitem__(self, item):
