@@ -236,7 +236,14 @@ class EnvironmentUpdater:
             self.logger.warning('Could not install / update nativefier')
             return
 
-        res = self.install_electron(version=settings['electron']['version'], is_x86_x64_arch=is_x86_x64_arch,
+        electron_version = current_config['environment']['electron']['version']
+
+        if electron_version:
+            self.logger.warning("Using custom Electron version {}".format(electron_version))
+        else:
+            electron_version = settings['electron']['version']
+
+        res = self.install_electron(version=electron_version, is_x86_x64_arch=is_x86_x64_arch,
                                     watcher=handler.watcher if handler else None)
 
         if res:

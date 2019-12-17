@@ -574,7 +574,7 @@ class WebApplicationManager(SoftwareManager):
 
     def can_work(self) -> bool:
         if BS4_AVAILABLE and LXML_AVAILABLE:
-            config = read_config()
+            config = read_config(update_file=True)
             use_system_env = config['environment']['system']
 
             if not use_system_env:
