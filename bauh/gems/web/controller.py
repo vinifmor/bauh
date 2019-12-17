@@ -26,6 +26,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
     SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE
+from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
@@ -62,7 +63,6 @@ class WebApplicationManager(SoftwareManager):
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
         self.suggestions = {}
-        self.config = {}
 
     def _get_lang_header(self) -> str:
         try:
@@ -143,9 +143,8 @@ class WebApplicationManager(SoftwareManager):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
     def _map_url(self, url: str) -> "BeautifulSoup":
-        url_res = self.http_client.get(url,
-                                       headers={'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME},
-                                       ignore_ssl=True, single_call=True)
+        headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
+        url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True)
 
         if url_res:
             return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
@@ -481,9 +480,18 @@ class WebApplicationManager(SoftwareManager):
             watcher.print('Fix found for {}'.format(pkg.url))
             install_options.append('--inject={}'.format(fix_path))
 
+        config = read_config()
+
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
+
+        system_env = config['environment'].get('system', False)
+
+        if system_env:
+            self.logger.warning("Using system's nativefier to install {}".format(pkg.url))
+
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=self.env_settings['electron']['version'],
+                                                             system=system_env,
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
 
@@ -565,7 +573,16 @@ class WebApplicationManager(SoftwareManager):
         self.enabled = enabled
 
     def can_work(self) -> bool:
-        return BS4_AVAILABLE and LXML_AVAILABLE
+        if BS4_AVAILABLE and LXML_AVAILABLE:
+            config = read_config()
+            use_system_env = config['environment']['system']
+
+            if not use_system_env:
+                return True
+
+            return nativefier.is_available()
+
+        return False
 
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False

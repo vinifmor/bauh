@@ -12,9 +12,11 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons import system
 from bauh.commons.html import bold
-from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
+from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
-    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS
+    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
+    nativefier
+from bauh.gems.web.config import read_config
 from bauh.view.util.translation import I18n
 
 
@@ -134,7 +136,7 @@ class EnvironmentUpdater:
             if not self._is_nativefier_installed():
                 return self._install_nativefier(version=version, handler=handler)
 
-            installed_version = run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH), print_error=False, extra_paths=NODE_PATHS)
+            installed_version = nativefier.get_version()
 
             if installed_version:
                 installed_version = installed_version.strip()
@@ -215,19 +217,22 @@ class EnvironmentUpdater:
         except requests.exceptions.ConnectionError:
             return
 
-    def update_environment(self, is_x86_x64_arch: bool, handler: ProcessHandler = None) -> dict:
+    def update_environment(self, is_x86_x64_arch: bool, config: dict = None, handler: ProcessHandler = None) -> dict:
 
         settings = self.read_settings()
 
         if settings is None:
             return
 
-        if not self.update_node(version=settings['nodejs']['version'], version_url=settings['nodejs']['url'],
-                                watcher=handler.watcher if handler else None):
+        current_config = config if config else read_config()
+        system_env = current_config['environment']['system']
+
+        if not system_env and not self.update_node(version=settings['nodejs']['version'], version_url=settings['nodejs']['url'],
+                                                   watcher=handler.watcher if handler else None):
             self.logger.warning('Could not install / update NodeJS')
             return
 
-        if not self.install_nativefier(version=settings['nativefier']['version'], handler=handler):
+        if not system_env and not self.install_nativefier(version=settings['nativefier']['version'], handler=handler):
             self.logger.warning('Could not install / update nativefier')
             return
 

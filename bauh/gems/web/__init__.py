@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from bauh.api.constants import HOME_PATH, DESKTOP_ENTRIES_DIR
+from bauh.api.constants import HOME_PATH, DESKTOP_ENTRIES_DIR, CONFIG_PATH
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
@@ -24,4 +24,4 @@ UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gec
 TEMP_PATH = '/tmp/bauh/web'
 SEARCH_INDEX_FILE = '{}/index.yaml'.format(TEMP_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.yaml'.format(TEMP_PATH)
-CONFIG_FILE = '{}/.config/bauh/web/config.yaml'.format(Path.home())
+CONFIG_FILE = '{}/web.yaml'.format(CONFIG_PATH)
