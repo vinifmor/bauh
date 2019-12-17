@@ -25,3 +25,5 @@ TEMP_PATH = '/tmp/bauh/web'
 SEARCH_INDEX_FILE = '{}/index.yml'.format(TEMP_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.yml'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
+NATIVEFIER_URL = 'https://github.com/jiahaog/nativefier/archive/v7.7.0.tar.gz'
+

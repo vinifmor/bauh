@@ -22,12 +22,13 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSugge
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
+from bauh.commons import resource
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR
 from bauh.gems.web.config import read_config
-from bauh.gems.web.environment import EnvironmentUpdater
+from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
 from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
 
@@ -54,8 +55,8 @@ class WebApplicationManager(SoftwareManager):
     def __init__(self, context: ApplicationContext, suggestions_downloader: Thread = None):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
-        self.node_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
-                                               file_downloader=context.file_downloader, i18n=context.i18n)
+        self.env_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
+                                              file_downloader=context.file_downloader, i18n=context.i18n)
         self.enabled = True
         self.i18n = context.i18n
         self.env_settings = {}
@@ -450,6 +451,20 @@ class WebApplicationManager(SoftwareManager):
                 base_id = '{}_{}'.format(app_id, counter)
                 counter += 1
 
+    def _ask_update_permission(self, to_update: List[EnvironmentComponent], watcher: ProcessWatcher) -> bool:
+
+        icon = resource.get_path('img/web.png', ROOT_DIR)
+        opts = [InputOption(label='{} ( {} )'.format(f.name, f.size or '?'),
+                            tooltip=f.url, icon_path=icon, read_only=True, value=f.name) for f in to_update]
+
+        comps = MultipleSelectComponent(label=None, options=opts, default_options=set(opts))
+
+        return watcher.request_confirmation(title=self.i18n['web.install.env_update.title'],
+                                            body=self.i18n['web.install.env_update.body'],
+                                            components=[comps],
+                                            confirmation_label=self.i18n['continue'].capitalize(),
+                                            deny_label=self.i18n['cancel'].capitalize())
+
     def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
 
         continue_install, install_options = self._ask_install_options(pkg, watcher)
@@ -460,9 +475,18 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
-        if not self._update_environment(handler=handler):
+
+        env_settings, to_update = self.env_updater.check_environment(app=pkg, is_x86_x64_arch=self.context.is_system_x86_64())
+
+        if to_update:
+            if not self._ask_update_permission(to_update, watcher):
+                return False
+
+        if not self.env_updater.update(components=to_update,  handler=handler):
             watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
             return False
+
+        # TODO stopped here
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
 
@@ -480,24 +504,7 @@ class WebApplicationManager(SoftwareManager):
             watcher.print('Fix found for {}'.format(pkg.url))
             install_options.append('--inject={}'.format(fix_path))
 
-        config = read_config()
-
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
-
-        system_env = config['environment'].get('system', False)
-
-        if system_env:
-            self.logger.warning("Using system's nativefier to install {}".format(pkg.url))
-
-        electron_version = self.env_settings['electron']['version']
-
-        if pkg.version and pkg.version != electron_version:
-            self.logger.info('A preset Electron version is defined for {}: {}'.format(pkg.url, pkg.version))
-            electron_version = pkg.version
-
-        if config['environment']['electron']['version']:
-            self.logger.warning("A custom Electron version will be used {} to install {}".format(electron_version, pkg.url))
-            electron_version = config['environment']['electron']['version']
 
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version,
@@ -597,17 +604,17 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
-    def _update_environment(self, handler: ProcessHandler = None) -> bool:
-        updated_settings = self.node_updater.update_environment(self.context.is_system_x86_64(), handler=handler)
-
-        if updated_settings is not None:
-            self.env_settings = updated_settings
-            return True
-
-        return False
+    # def _update_environment(self, handler: ProcessHandler = None) -> bool:
+    #     updated_settings = self.env_updater.update_environment(self.context.is_system_x86_64(), handler=handler)
+    #
+    #     if updated_settings is not None:
+    #         self.env_settings = updated_settings
+    #         return True
+    #
+    #     return False
 
     def _update_env_settings(self):
-        self.env_settings = self.node_updater.read_settings()
+        self.env_settings = self.env_updater.read_settings()
 
     def _download_suggestions(self):
         downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client)
