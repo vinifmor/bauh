@@ -14,7 +14,7 @@ from bauh.commons import internet
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
-SUGGESTIONS_LIMIT = 5
+SUGGESTIONS_LIMIT = 10
 
 
 class GenericSoftwareManager(SoftwareManager):

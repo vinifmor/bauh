@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from bauh.api.http import HttpClient
-from bauh.gems.web import URL_SUGGESTIONS, TEMP_PATH, SEARCH_INDEX_FILE
+from bauh.gems.web import URL_SUGGESTIONS, TEMP_PATH, SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE
 
 
 class SuggestionsDownloader:
@@ -33,7 +33,26 @@ class SearchIndexGenerator:
         self.logger = logger
 
     def generate_index(self, suggestions: dict):
-        self.logger.info('Indexing {} app suggestions'.format(len(suggestions)))
+        self.logger.info('Caching {} suggestions to the disk'.format(len(suggestions)))
+
+        try:
+            Path(TEMP_PATH).mkdir(parents=True, exist_ok=True)
+        except:
+            self.logger.error("Could not generate the directory {}".format(TEMP_PATH))
+            traceback.print_exc()
+            return
+
+        try:
+            with open(SUGGESTIONS_CACHE_FILE, 'w+') as f:
+                f.write(yaml.safe_dump(suggestions))
+
+            self.logger.info('{} successfully cached to the disk as {}'.format(len(suggestions), SUGGESTIONS_CACHE_FILE))
+        except:
+            self.logger.error("Could write to {}".format(SUGGESTIONS_CACHE_FILE))
+            traceback.print_exc()
+            return
+
+        self.logger.info('Indexing suggestions')
         index = {}
 
         for key, sug in suggestions.items():
@@ -57,13 +76,6 @@ class SearchIndexGenerator:
 
             for key in index.keys():
                 index[key] = list(index[key])
-
-            try:
-                Path(TEMP_PATH).mkdir(parents=True, exist_ok=True)
-            except:
-                self.logger.error("Could not generate the directory {}".format(TEMP_PATH))
-                traceback.print_exc()
-                return
 
             try:
                 self.logger.info('Writing {} indexed keys as {}'.format(len(index), SEARCH_INDEX_FILE))

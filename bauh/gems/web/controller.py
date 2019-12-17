@@ -25,7 +25,7 @@ from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    URL_SUGGESTIONS, SEARCH_INDEX_FILE
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE
 from bauh.gems.web.environment import EnvironmentUpdater
 from bauh.gems.web.model import WebApplication
 from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
@@ -122,6 +122,13 @@ class WebApplicationManager(SoftwareManager):
             desc_tag = soup.find('title')
             description = desc_tag.text if desc_tag else url
 
+        if description:
+            try:
+                utf8_desc = description.encode('iso-8859-1').decode('utf-8')
+                description = utf8_desc
+            except:
+                pass
+
         return description
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
@@ -177,23 +184,56 @@ class WebApplicationManager(SoftwareManager):
             lower_words = words.lower().strip()
             installed_matches = [app for app in installed if lower_words in app.name.lower()]
 
-            if installed_matches:
-                res.installed.extend(installed_matches)
-
             index = self._read_search_index()
 
             if index:
                 split_words = lower_words.split(' ')
                 singleword = ''.join(lower_words)
 
-                app_keys = set()
+                index_match_keys = set()
                 for word in (*split_words, singleword):
                     indexed = index.get(word)
                     if indexed:
-                        app_keys.update(indexed)
+                        index_match_keys.update(indexed)
 
-                print(indexed)
-                # TODO stopped here -> write suggestions to disk and read them here
+                if index_match_keys:
+                    if not os.path.exists(SUGGESTIONS_CACHE_FILE):
+                        # if the suggestions cache was not found, it will not be possible to retrieve the matched apps
+                        # so only the installed matches will be returned
+                        self.logger.warning("Suggestion cached file {} was not found".format(SUGGESTIONS_CACHE_FILE))
+                        res.installed.extend(installed_matches)
+                    else:
+                        with open(SUGGESTIONS_CACHE_FILE) as f:
+                            cached_suggestions = yaml.safe_load(f.read())
+
+                        if not cached_suggestions:
+                            # if no suggestion is found, it will not be possible to retrieve the matched apps
+                            # so only the installed matches will be returned
+                            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_CACHE_FILE))
+                            res.installed.extend(installed_matches)
+                        else:
+                            matched_suggestions = [cached_suggestions[key] for key in index_match_keys if cached_suggestions.get(key)]
+
+                            if not matched_suggestions:
+                                self.logger.warning("No suggestion found for the search index keys: {}".format(index_match_keys))
+                                res.installed.extend(installed_matches)
+                            else:
+                                matched_suggestions.sort(key=lambda s: s.get('priority', 0), reverse=True)
+
+                                if installed_matches:
+                                    # checking if any of the installed matches is one of the matched suggestions
+
+                                    for sug in matched_suggestions:
+                                        found = (installed for installed in installed_matches if i.url == sug.get('url'))
+
+                                        if found:
+                                            res.installed.extend(found)
+                                        else:
+                                            res.new.append(self._map_suggestion(sug).package)
+
+                                else:
+                                    for sug in matched_suggestions:
+                                        res.new.append(self._map_suggestion(sug).package)
 
         res.total += len(res.installed)
         res.total += len(res.new)
