@@ -37,7 +37,7 @@ def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set
         res['PATH'] = PATH
 
     if extra_paths:
-        res['PATH'] += ':' + ':'.join(extra_paths)
+        res['PATH'] = ':'.join(extra_paths) + ':' + res['PATH']
 
     return res
 
