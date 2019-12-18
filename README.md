@@ -128,7 +128,7 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
     Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
     ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg) )
-- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
+- During bauh initialization the a full AUR normalized index is saved at /tmp/bauh/arch/aur.txt, and it will only be used if the AUR Api cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 - Transitive dependencies checking can be disabled through the environment variable **BAUH_ARCH_CHECK_SUBDEPS=0**. The dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
 

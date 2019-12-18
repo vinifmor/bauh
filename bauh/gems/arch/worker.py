@@ -1,8 +1,6 @@
 import logging
 import os
 import re
-import time
-from math import ceil
 from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
@@ -10,8 +8,8 @@ from threading import Thread
 import requests
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, should_optimize_compilation
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, should_optimize_compilation, BUILD_DIR, \
+    AUR_INDEX_FILE
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -20,35 +18,36 @@ GLOBAL_MAKEPKG = '/etc/makepkg.conf'
 
 RE_MAKE_FLAGS = re.compile(r'#?\s*MAKEFLAGS\s*=\s*.+\s*')
 RE_COMPRESS_XZ = re.compile(r'#?\s*COMPRESSXZ\s*=\s*.+')
+RE_CLEAR_REPLACE = re.compile(r'[\-_.]')
 
 
 class AURIndexUpdater(Thread):
 
-    def __init__(self, context: ApplicationContext, man: SoftwareManager):
+    def __init__(self, context: ApplicationContext):
         super(AURIndexUpdater, self).__init__(daemon=True)
         self.http_client = context.http_client
         self.logger = context.logger
-        self.man = man
-        self.enabled = bool(int(os.getenv('BAUH_ARCH_AUR_INDEX_UPDATER', 1)))
 
     def run(self):
-        if self.enabled:
-            while True:
-                self.logger.info('Pre-indexing AUR packages in memory')
-                try:
-                    res = self.http_client.get(URL_INDEX)
+        self.logger.info('Pre-indexing AUR packages')
+        try:
+            res = self.http_client.get(URL_INDEX)
 
-                    if res and res.text:
-                        self.man.names_index = {n.replace('-', '').replace('_', '').replace('.', ''): n for n in res.text.split('\n') if n and not n.startswith('#')}
-                        self.logger.info('Pre-indexed {} AUR package names in memory'.format(len(self.man.names_index)))
-                    else:
-                        self.logger.warning('No data returned from: {}'.format(URL_INDEX))
-                except requests.exceptions.ConnectionError:
-                    self.logger.warning('No internet connection: could not pre-index packages')
+            if res and res.text:
+                indexed = 0
+                Path(BUILD_DIR).mkdir(parents=True, exist_ok=True)
 
-                time.sleep(60 * 20)  # updates every 20 minutes
-        else:
-            self.logger.info("AUR index updater disabled")
+                with open(AUR_INDEX_FILE, 'w+') as f:
+                    for n in res.text.split('\n'):
+                        if n and not n.startswith('#'):
+                            f.write('{}={}\n'.format(RE_CLEAR_REPLACE.sub('', n), n))
+                            indexed += 1
+
+                self.logger.info('Pre-indexed {} AUR package names at {}'.format(indexed, AUR_INDEX_FILE))
+            else:
+                self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('No internet connection: could not pre-index packages')
 
 
 class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):

@@ -14,6 +14,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
+- AUR:
+    - The AUR indexer daemon is not running every 20 minutes anymore. It will only run during the boot, and will generate the optimized index
+    at **/tmp/bauh/arch/aur.txt**. This new behavior does not harm the current experience, and reduces memory usage. More information about this behavior in [README](https://github.com/vinifmor/bauh/blob/master/README.md).
+
+### Fixes
+- AUR:
+    - an exception happens when retrieving matches from the cached AUR index
 
 
 ## [0.7.4] 2019-12-09

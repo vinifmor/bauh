@@ -52,9 +52,7 @@ class ArchManager(SoftwareManager):
 
         self.mapper = ArchDataMapper(http_client=context.http_client)
         self.i18n = context.i18n
-        self.aur_client = AURClient(context.http_client)
-        self.names_index = {}
-        self.aur_index_updater = AURIndexUpdater(context, self)
+        self.aur_client = AURClient(context.http_client, context.logger)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
         self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
@@ -103,10 +101,11 @@ class ArchManager(SoftwareManager):
                 self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
         else:  # if there are no results from the API (it could be because there were too many), tries the names index:
-            if self.names_index:
-
+            aur_index = self.aur_client.read_local_index()
+            if aur_index:
+                self.logger.info("Querying through the local AUR index")
                 to_query = set()
-                for norm_name, real_name in self.names_index.items():
+                for norm_name, real_name in aur_index.items():
                     if words in norm_name:
                         to_query.add(real_name)
 
@@ -119,7 +118,7 @@ class ArchManager(SoftwareManager):
                     read_installed.join()
 
                     for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, installed, res)
+                        self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
         res.total = len(res.installed) + len(res.new)
         return res
@@ -790,8 +789,8 @@ class ArchManager(SoftwareManager):
     def prepare(self):
         self.dcache_updater.start()
         self.comp_optimizer.start()
-        self.aur_index_updater.start()
         self.categories_mapper.start()
+        AURIndexUpdater(self.context).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
