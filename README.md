@@ -156,7 +156,7 @@ environment:
 ```
 - Required packages: 
     - Arch systems: **python-lxml**, **python-beautifulsoup4**
-    - Debian systems: you will need to install the following packages with pip -> **beautifulsoup4**, **lxml** 
+    - Debian systems ( using pip ): **beautifulsoup4**, **lxml** 
 
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
