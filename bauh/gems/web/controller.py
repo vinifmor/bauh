@@ -465,6 +465,27 @@ class WebApplicationManager(SoftwareManager):
                                             confirmation_label=self.i18n['continue'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize())
 
+    def _download_suggestion_icon(self, pkg: WebApplication, app_dir: str) -> Tuple[str, bytes]:
+        try:
+            if self.http_client.exists(pkg.icon_url):
+                icon_path = '{}/{}'.format(app_dir, pkg.icon_url.split('/')[-1])
+
+                try:
+                    res = self.http_client.get(pkg.icon_url)
+                    if not res:
+                        self.logger.info('Could not download the icon {}'.format(pkg.icon_url))
+                    else:
+                        return icon_path, res.content
+                except:
+                    self.logger.error("An exception has happened when downloading {}".format(pkg.icon_url))
+                    traceback.print_exc()
+            else:
+                self.logger.warning('Could no retrieve the icon {} defined for the suggestion {}'.format(pkg.icon_url, pkg.name))
+        except:
+            self.logger.warning('An exception happened when trying to retrieve the icon {} for the suggestion {}'.format(pkg.icon_url,
+                                                                                                         pkg.name))
+            traceback.print_exc()
+
     def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
 
         continue_install, install_options = self._ask_install_options(pkg, watcher)
@@ -504,6 +525,23 @@ class WebApplicationManager(SoftwareManager):
             watcher.print('Fix found for {}'.format(pkg.url))
             install_options.append('--inject={}'.format(fix_path))
 
+        # if a custom icon is defined for an app suggestion:
+        icon_path, icon_bytes = None, None
+        if pkg.is_suggestion and pkg.icon_url and not {o for o in install_options if o.startswith('--icon')}:
+            download = self._download_suggestion_icon(pkg, app_dir)
+
+            if download and download[1]:
+                icon_path, icon_bytes = download[0], download[1]
+                pkg.custom_icon = icon_path
+
+                # writting the icon in a temporary folder to be used by the nativefier process
+                temp_icon_path = '/tmp/bauh/web/{}'.format(pkg.icon_url.split('/')[-1])
+                install_options.append('--icon={}'.format(temp_icon_path))
+
+                self.logger.info("Writting a temp suggestion icon at {}".format(temp_icon_path))
+                with open(temp_icon_path, 'wb+') as f:
+                    f.write(icon_bytes)
+
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
         electron_version = next((c for c in env_components if c.id == 'electron')).version
@@ -539,6 +577,12 @@ class WebApplicationManager(SoftwareManager):
             self.logger.info('Writting JS fix at {}'.format(fix_path))
             with open(fix_path, 'w+') as f:
                 f.write(fix)
+
+        # persisting the custom suggestion icon in the defitive directory
+        if icon_bytes:
+            self.logger.info("Writting the final custom suggestion icon at {}".format(icon_path))
+            with open(icon_path, 'wb+') as f:
+                f.write(icon_bytes)
 
         pkg.installation_dir = app_dir
 
@@ -660,7 +704,8 @@ class WebApplicationManager(SoftwareManager):
                              url=suggestion.get('url'),
                              icon_url=suggestion.get('icon_url'),
                              categories=[suggestion['category']] if suggestion.get('category') else None,
-                             preset_options=suggestion.get('options'))
+                             preset_options=suggestion.get('options'),
+                             is_suggestion=True)
 
         app.set_version(suggestion.get('version'))
 
