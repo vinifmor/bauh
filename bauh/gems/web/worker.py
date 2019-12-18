@@ -2,6 +2,7 @@ import logging
 import traceback
 from pathlib import Path
 
+import requests
 import yaml
 
 from bauh.api.http import HttpClient
@@ -17,12 +18,17 @@ class SuggestionsDownloader:
 
     def download(self) -> dict:
         self.logger.info("Reading suggestions from {}".format(URL_SUGGESTIONS))
-        suggestions = self.http_client.get_yaml(URL_SUGGESTIONS)
+        try:
+            suggestions = self.http_client.get_yaml(URL_SUGGESTIONS)
 
-        if suggestions:
-            self.logger.info("{} suggestions successfully read".format(len(suggestions)))
-        else:
-            self.logger.warning("Could not read suggestions from {}".format(URL_SUGGESTIONS))
+            if suggestions:
+                self.logger.info("{} suggestions successfully read".format(len(suggestions)))
+            else:
+                self.logger.warning("Could not read suggestions from {}".format(URL_SUGGESTIONS))
+
+        except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+            self.logger.warning("Internet seems to be off: it was not possible to retrieve the suggestions")
+            return {}
 
         return suggestions
 
