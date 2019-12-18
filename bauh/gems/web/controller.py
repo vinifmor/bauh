@@ -84,7 +84,12 @@ class WebApplicationManager(SoftwareManager):
             name = url_no_protocol.split('.')[0].strip()
 
         if name:
-            name = RE_SYMBOLS_SPLIT.split(name)[0].strip()
+            name_split = [token for token in RE_SYMBOLS_SPLIT.split(name) if token]
+
+            if len(name_split) == 1:
+                name = name_split[0].strip()
+            else:
+                name = url_no_protocol
 
         return name
 
