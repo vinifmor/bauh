@@ -1,3 +1,5 @@
+import glob
+import os
 from pathlib import Path
 from typing import List
 
@@ -112,4 +114,15 @@ class WebApplication(SoftwarePackage):
 
         if custom_icon:
             self.icon_url = custom_icon
+
+    def get_config_dir(self) -> str:
+        if self.installation_dir:
+            config_path = '{}/.config'.format(Path.home())
+
+            if os.path.exists(config_path):
+                config_dirs = glob.glob('{}/{}-nativefier-*'.format(config_path, self.installation_dir.split('/')[-1]))
+
+                if config_dirs:
+                    return config_dirs[0]
+
 

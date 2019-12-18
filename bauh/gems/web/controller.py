@@ -308,7 +308,18 @@ class WebApplicationManager(SoftwareManager):
             except:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(autostart_path)),
-                                     type_=MessageType.ERROR)
+                                     type_=MessageType.WARNING)
+                traceback.print_exc()
+
+        config_path = pkg.get_config_dir()
+
+        if os.path.exists(config_path):
+            try:
+                shutil.rmtree(config_path)
+            except:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['web.uninstall.error.remove'].format(bold(config_path)),
+                                     type_=MessageType.WARNING)
                 traceback.print_exc()
 
         return True
@@ -318,15 +329,20 @@ class WebApplicationManager(SoftwareManager):
 
     def get_info(self, pkg: WebApplication) -> dict:
         if pkg.installed:
-            info = {'{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories', 'installation_dir', 'desktop_entry'))}
-            info['7_exec_file'] = pkg.get_exec_path()
-            info['8_icon_path'] = pkg.get_disk_icon_path()
+            info = {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories', 'installation_dir', 'desktop_entry'))}
+            info['07_exec_file'] = pkg.get_exec_path()
+            info['08_icon_path'] = pkg.get_disk_icon_path()
 
             if os.path.exists(pkg.installation_dir):
-                info['9_size'] = get_human_size_str(get_dir_size(pkg.installation_dir))
+                info['09_size'] = get_human_size_str(get_dir_size(pkg.installation_dir))
 
-            if info.get('4_categories'):
-                info['4_categories'] = [self.i18n[c.lower()].capitalize() for c in info['4_categories']]
+            config_dir = pkg.get_config_dir()
+
+            if config_dir:
+                info['10_config_dir'] = config_dir
+
+            if info.get('04_categories'):
+                info['04_categories'] = [self.i18n[c.lower()].capitalize() for c in info['04_categories']]
 
             return info
 
