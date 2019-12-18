@@ -41,6 +41,7 @@ web.install.option.tray.min.label=Iniciar minimizado
 web.install.option.tray.min.tip=La aplicación se iniciará minimizada como un ícono en la bandeja del sistema
 web.install.option.category.none=ninguna
 web.install.option.icon.label=Icono personalizado
+web.install.global_nativefier.unavailable={n} parece no estar instalado en su sistema. No será posible instalar {app}
 web.uninstall.error.install_dir.not_found=No se encontró el directorio de instalación {}
 web.uninstall.error.remove_dir=No fue posible eliminar {}
 web.info.1_url=URL

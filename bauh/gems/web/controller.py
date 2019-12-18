@@ -504,7 +504,15 @@ class WebApplicationManager(SoftwareManager):
 
         env_settings = self.env_updater.read_settings()
         local_config = read_config()
+
+        if local_config['environment']['system'] and not nativefier.is_available():
+            watcher.show_message(title=self.i18n['error'].capitalize(),
+                                 body=self.i18n['web.install.global_nativefier.unavailable'].format(n=bold('Nativefier'), app=bold(pkg.name)) + '.',
+                                 type_=MessageType.ERROR)
+            return False
+
         env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings, is_x86_x64_arch=self.context.is_system_x86_64())
+
         comps_to_update = [c for c in env_components if c.update]
 
         if comps_to_update and not self._ask_update_permission(comps_to_update, watcher):

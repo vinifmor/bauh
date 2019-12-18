@@ -41,6 +41,7 @@ web.install.option.tray.min.label=Start minimized
 web.install.option.tray.min.tip=The app will be started minimized as an icon in the system tray
 web.install.option.category.none=none
 web.install.option.icon.label=Custom icon
+web.install.global_nativefier.unavailable={n} seems not to be installed on your system. It will not be possible to install {app}
 web.uninstall.error.install_dir.not_found=The installation directory {} was not found
 web.uninstall.error.remove_dir=It was not possible to remove {}
 web.info.1_url=URL
