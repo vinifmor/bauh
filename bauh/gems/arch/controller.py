@@ -20,7 +20,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
     SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
-    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
@@ -758,6 +758,10 @@ class ArchManager(SoftwareManager):
         if not self.local_config:
             self.local_config = read_config()
             clean_config = True
+
+        if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
+            watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
+            ArchCompilationOptimizer(self.context.logger).optimize()
 
         res = self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
 

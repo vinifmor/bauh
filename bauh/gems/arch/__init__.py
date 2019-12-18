@@ -9,6 +9,6 @@ CATEGORIES_CACHE_DIR = ARCH_CACHE_PATH + '/categories'
 CATEGORIES_FILE_PATH = CATEGORIES_CACHE_DIR + '/aur.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/aur/categories.txt'
 CONFIG_DIR = '{}/.config/bauh/arch'.format(HOME_PATH)
-CUSTOM_MAKEPKG_PATH = '{}/makepkg.conf'.format(CONFIG_DIR)
+CUSTOM_MAKEPKG_FILE = '{}/makepkg.conf'.format(CONFIG_DIR)
 AUR_INDEX_FILE = '{}/aur.txt'.format(BUILD_DIR)
 CONFIG_FILE = '{}/arch.yml'.format(CONFIG_PATH)

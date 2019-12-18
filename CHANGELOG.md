@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AUR:
     - an exception happens when retrieving matches from the cached AUR index
-
+    - not using the optimized compilation settings if the custom makepkg file is not found during the installation process
 
 ## [0.7.4] 2019-12-09
 ### Improvements

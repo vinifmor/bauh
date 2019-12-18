@@ -101,3 +101,4 @@ arch.aur.install.unknown_key.receive_error=No s’ha pogut rebre la clau públic
 arch.install.aur.unknown_key.body=Per a continuar amb la instal·lació de {} cal confiar en la clau pública següent {}
 arch.aur.install.validity_check.title=Problemes d’integritat
 arch.aur.install.validity_check.body=Alguns dels fitxers font necessaris per a la instal·lació de {} són malmesos. La instal·lació es cancel·larà per a evitar danys al vostre sistema.
+arch.makepkg.optimizing=Optimitzant la recopilació
