@@ -154,7 +154,9 @@ environment:
     version: null  # set a custom Electron version here ( e.g: '6.1.4' )
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
 ```
-- Required packages: Arch systems ( **python-lxml**, **python-beautifulsoup4** ), Debian systems ( you will need to install the following packages with pip: **beautifulsoup4**, **lxml** ) 
+- Required packages: 
+    - Arch systems: **python-lxml**, **python-beautifulsoup4**
+    - Debian systems: you will need to install the following packages with pip -> **beautifulsoup4**, **lxml** 
 
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
