@@ -1,4 +1,4 @@
-gem.web.info=Permite instalar aplicações Web no seu sistema através dos seus endereços ( URLs )
+gem.web.info=Permite instalar aplicações Web através dos seus endereços ( URLs )
 gem.web.install.warning=Esse aplicativo não é oficialmente distribuído pelo proprietário do domínio
 web.environment.nativefier=Instalando {}
 web.waiting.env_updater=Atualizando ambiente
@@ -23,7 +23,7 @@ web.install.option.max.tip=Se o aplicativo deve sempre ser aberto maximizado
 web.install.option.fullscreen.label=Abrir em tela cheia
 web.install.option.fullscreen.tip=Se o aplicativo sempre deve ser aberto em tela cheia ( a tecla Alt abre o menu superior )
 web.install.option.noframe.label=Sem moldura
-web.install.option.noframe.tip=Se o aplicativo não deve ter uma moldura ( como presente nos navegadores )
+web.install.option.noframe.tip=Se o aplicativo não deve ter uma moldura
 web.install.option.nocache.label=Sem cache
 web.install.option.nocache.tip=Dados de sessão não serão armazenados após o aplicativo ser fechado
 web.install.option.insecure.label=Permitir conteúdo não confiável
