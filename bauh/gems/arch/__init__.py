@@ -12,7 +12,3 @@ CONFIG_DIR = '{}/.config/bauh/arch'.format(HOME_PATH)
 CUSTOM_MAKEPKG_PATH = '{}/makepkg.conf'.format(CONFIG_DIR)
 AUR_INDEX_FILE = '{}/aur.txt'.format(BUILD_DIR)
 CONFIG_FILE = '{}/arch.yml'.format(CONFIG_PATH)
-
-
-def should_optimize_compilation() -> bool:
-    return bool(int(os.getenv('BAUH_ARCH_OPTIMIZE', 1)))

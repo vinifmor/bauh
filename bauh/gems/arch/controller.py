@@ -528,7 +528,7 @@ class ArchManager(SoftwareManager):
 
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check(pkgdir, handler)
+        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):

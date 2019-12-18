@@ -8,7 +8,7 @@ from threading import Thread
 import requests
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, should_optimize_compilation, BUILD_DIR, \
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, config
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
