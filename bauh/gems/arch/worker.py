@@ -9,7 +9,7 @@ import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_PATH, CONFIG_DIR, should_optimize_compilation, BUILD_DIR, \
-    AUR_INDEX_FILE
+    AUR_INDEX_FILE, config
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -69,16 +69,17 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
             self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))
 
 
-class ArchCompilationOptimizer(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
+class ArchCompilationOptimizer(Thread):
 
     def __init__(self, logger: logging.Logger):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
 
     def run(self):
+        local_config = config.read_config(update_file=True)
 
-        if not should_optimize_compilation():
-            self.logger.info("Arch packages compilation optimization is disabled")
+        if not local_config['optimize']:
+            self.logger.info("Arch packages compilation optimizations are disabled")
 
             if os.path.exists(CUSTOM_MAKEPKG_PATH):
                 self.logger.info("Removing custom 'makepkg.conf' -> '{}'".format(CUSTOM_MAKEPKG_PATH))

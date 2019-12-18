@@ -1,6 +1,6 @@
 import os
 
-from bauh.api.constants import CACHE_PATH, HOME_PATH
+from bauh.api.constants import CACHE_PATH, HOME_PATH, CONFIG_PATH
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = '/tmp/bauh/aur'
@@ -11,6 +11,7 @@ URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/mas
 CONFIG_DIR = '{}/.config/bauh/arch'.format(HOME_PATH)
 CUSTOM_MAKEPKG_PATH = '{}/makepkg.conf'.format(CONFIG_DIR)
 AUR_INDEX_FILE = '{}/aur.txt'.format(BUILD_DIR)
+CONFIG_FILE = '{}/arch.yml'.format(CONFIG_PATH)
 
 
 def should_optimize_compilation() -> bool:

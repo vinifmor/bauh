@@ -37,10 +37,10 @@ def check(pkgdir: str, handler: ProcessHandler) -> dict:
     return res
 
 
-def make(pkgdir: str, handler: ProcessHandler) -> Tuple[bool, str]:
+def make(pkgdir: str, optimize: bool, handler: ProcessHandler) -> Tuple[bool, str]:
     cmd = ['makepkg', '-ALcsmf']
 
-    if should_optimize_compilation():
+    if optimize:
         if os.path.exists(CUSTOM_MAKEPKG_PATH):
             handler.watcher.print('Using custom makepkg.conf -> {}'.format(CUSTOM_MAKEPKG_PATH))
             cmd.append('--config={}'.format(CUSTOM_MAKEPKG_PATH))

@@ -114,6 +114,7 @@ If bauh is not starting properly after changing its style, execute `bauh --reset
 Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
 
 #### AUR ( arch )
+- Only available for Arch-based systems
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
 - If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
@@ -126,11 +127,20 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
     b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
 
-    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg) )
-- During bauh initialization the a full AUR normalized index is saved at /tmp/bauh/arch/aur.txt, and it will only be used if the AUR Api cannot handle the number of matches for a given query.
+    Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+- During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-- Transitive dependencies checking can be disabled through the environment variable **BAUH_ARCH_CHECK_SUBDEPS=0**. The dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+- The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
+```
+optimize: true  # if false: disables the auto-compilation improvements
+transitive_checking: true  # if false: the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+``` 
+- Required dependencies:
+    - **pacman**
+    - **wget**
+- Optional dependencies:
+    - **git**: allows to retrieve packages release history and downgrading
+    - **aria2**: provides faster and multi-threaded downloads
 
 #### Web Applications ( web )
 - It allows the installation of native Web applications by typing an address / URL in the search bar.
@@ -154,7 +164,7 @@ environment:
     version: null  # set a custom Electron version here ( e.g: '6.1.4' )
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
 ```
-- Required packages: 
+- Required dependencies: 
     - Arch systems: **python-lxml**, **python-beautifulsoup4**
     - Debian systems ( using pip ): **beautifulsoup4**, **lxml** 
 

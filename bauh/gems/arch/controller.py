@@ -22,6 +22,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH
 from bauh.gems.arch.aur import AURClient
+from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -54,7 +55,6 @@ class ArchManager(SoftwareManager):
         self.i18n = context.i18n
         self.aur_client = AURClient(context.http_client, context.logger)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
-        self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
@@ -62,6 +62,7 @@ class ArchManager(SoftwareManager):
                                                       URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH)
         self.categories = {}
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
+        self.local_config = None
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -182,6 +183,7 @@ class ArchManager(SoftwareManager):
         return SearchResult(apps, None, len(apps))
 
     def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        self.local_config = read_config()
 
         handler = ProcessHandler(watcher)
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
@@ -237,6 +239,8 @@ class ArchManager(SoftwareManager):
             if os.path.exists(app_build_dir):
                 handler.handle(SystemProcess(subproc=new_subprocess(['rm', '-rf', app_build_dir])))
 
+            self.local_config = None
+
         return False
 
     def clean_cache_for(self, pkg: ArchPackage):
@@ -244,7 +248,11 @@ class ArchManager(SoftwareManager):
             shutil.rmtree(pkg.get_disk_cache_path())
 
     def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
-        return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
+        self.local_config = read_config()
+        try:
+            return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
+        finally:
+            self.local_config = None
 
     def _uninstall(self, pkg_name: str, root_password: str, handler: ProcessHandler) -> bool:
         res = handler.handle(SystemProcess(new_root_subprocess(['pacman', '-R', pkg_name, '--noconfirm'], root_password)))
@@ -260,6 +268,7 @@ class ArchManager(SoftwareManager):
         return res
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        self.local_config = read_config()
         handler = ProcessHandler(watcher)
 
         watcher.change_progress(10)
@@ -274,6 +283,7 @@ class ArchManager(SoftwareManager):
 
         uninstalled = self._uninstall(pkg.name, root_password, handler)
         watcher.change_progress(100)
+        self.local_config = None
         return uninstalled
 
     def get_managed_types(self) -> Set["type"]:
@@ -434,7 +444,7 @@ class ArchManager(SoftwareManager):
         return True
 
     def _should_check_subdeps(self):
-        return bool(int(os.getenv('BAUH_ARCH_CHECK_SUBDEPS', 1)))
+        return self.local_config['transitive_checking']
 
     def _build(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
@@ -447,7 +457,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt, output = makepkg.make(project_dir, handler)
+        pkgbuilt, output = makepkg.make(project_dir, optimize=self.local_config['optimize'], handler=handler)
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -745,6 +755,12 @@ class ArchManager(SoftwareManager):
         return False
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
+        clean_config = False
+
+        if not self.local_config:
+            self.local_config = read_config()
+            clean_config = True
+
         res = self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
 
         if res:
@@ -754,6 +770,9 @@ class ArchManager(SoftwareManager):
                     if data:
                         data = json.loads(data)
                         pkg.fill_cached_data(data)
+
+        if clean_config:
+            self.local_config = None
 
         return res
 
@@ -788,7 +807,7 @@ class ArchManager(SoftwareManager):
 
     def prepare(self):
         self.dcache_updater.start()
-        self.comp_optimizer.start()
+        ArchCompilationOptimizer(self.context.logger).start()
         self.categories_mapper.start()
         AURIndexUpdater(self.context).start()
 

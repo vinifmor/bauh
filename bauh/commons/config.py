@@ -3,12 +3,13 @@ from pathlib import Path
 
 import yaml
 
+from bauh.api.constants import CONFIG_PATH
 from bauh.commons import util
 
 
 def read_config(file_path: str, template: dict, update_file: bool = False) -> dict:
     if not os.path.exists(file_path):
-        Path(file_path).mkdir(parents=True, exist_ok=True)
+        Path(CONFIG_PATH).mkdir(parents=True, exist_ok=True)
 
         with open(file_path, 'w+') as f:
             f.write(yaml.dump(template))
