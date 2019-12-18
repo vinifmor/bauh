@@ -82,8 +82,6 @@ class ArchManager(SoftwareManager):
         if is_url:
             return SearchResult([], [], 0)
 
-        self.comp_optimizer.join()
-
         downgrade_enabled = git.is_enabled()
         res = SearchResult([], [], 0)
 
