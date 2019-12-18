@@ -25,12 +25,13 @@ from bauh.view.util.translation import I18n
 
 class EnvironmentComponent:
 
-    def __init__(self, id: str, name: str, size: str, version: str, url: str):
+    def __init__(self, id: str, name: str, size: str, version: str, url: str, update: bool = False):
         self.id = id
         self.name = name
         self.size = size
         self.version = version
         self.url = url
+        self.update = update
 
 
 class EnvironmentUpdater:
@@ -77,7 +78,6 @@ class EnvironmentUpdater:
                         os.remove(tarf_path)
                     except:
                         self.logger.error('Could not delete file {}'.format(tarf_path))
-
 
     def check_node_installed(self, version: str) -> bool:
         if not os.path.exists(NODE_DIR_PATH):
@@ -135,34 +135,27 @@ class EnvironmentUpdater:
                     self.logger.error('Could not delete the dir {}'.format(NODE_DIR_PATH))
                     return False
 
-    def _install_nativefier(self, version: str, handler: ProcessHandler) -> bool:
-        self.logger.info("Installing nativefier")
+    def _install_node_lib(self, name: str, version: str, handler: ProcessHandler):
+        lib_repr = '{}{}'.format(name, '@{}'.format(version) if version else '')
+        self.logger.info("Installing {}".format(lib_repr))
 
         if handler and handler.watcher:
-            handler.watcher.change_substatus(self.i18n['web.environment.install'].format(bold('nativefier')))
+            handler.watcher.change_substatus(self.i18n['web.environment.install'].format(bold(lib_repr)))
 
-        proc = SimpleProcess([NPM_BIN_PATH, 'install', 'nativefier@{}'.format(version)], cwd=ENV_PATH, extra_paths=NODE_PATHS)
+        proc = SimpleProcess([NPM_BIN_PATH, 'install', lib_repr], cwd=ENV_PATH, extra_paths=NODE_PATHS)
 
-        if handler:
-            installed = handler.handle_simple(proc)[0]
+        installed = handler.handle_simple(proc)[0]
 
-            if installed:
-                self.logger.info("nativifier {} successfully installed".format(version))
+        if installed:
+            self.logger.info("{} successfully installed".format(lib_repr))
 
-            return installed
-        else:
-            proc.instance.wait()
+        return installed
 
-            if self._is_nativefier_installed():
-                self.logger.info("nativefier {} installed".format(version))
-                return True
-            else:
-                self.logger.error("Could not install nativefier {}".format(version))
-                for err in proc.instance.stdout:
-                    if err:
-                        print(err.decode())
+    def _install_nativefier(self, version: str, handler: ProcessHandler) -> bool:
+        success = self._install_node_lib('nativefier', version, handler)
 
-                return False
+        if success:
+            return self._is_nativefier_installed()
 
     def _is_nativefier_installed(self) -> bool:
         return os.path.exists(NATIVEFIER_BIN_PATH)
@@ -197,19 +190,20 @@ class EnvironmentUpdater:
             return True
 
     def download_electron(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
+        Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
         self.logger.info("Downloading Electron {}".format(version))
         electron_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1])
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_PATH)
 
     def download_electron_sha256(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading Electron {} sha526".format(version))
-        sha256_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1])
+        sha256_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1]) + '-{}'.format(version)
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_PATH)
 
     def _get_electron_url(self, version: str, is_x86_x64_arch: bool) -> str:
         return ELECTRON_DOWNLOAD_URL.format(version=version, arch='x64' if is_x86_x64_arch else 'ia32')
 
-    def check_installed_electron(self, version: str, is_x86_x64_arch: bool) -> Dict[str, bool]:
+    def check_electron_installed(self, version: str, is_x86_x64_arch: bool) -> Dict[str, bool]:
         self.logger.info("Checking if Electron {} is installed".format(version))
         res = {'electron': False, 'sha256': False}
 
@@ -222,8 +216,11 @@ class EnvironmentUpdater:
                 file_name = self._get_electron_url(version, is_x86_x64_arch).split('/')[-1]
                 res['electron'] = bool([f for f in files if f == file_name])
 
-                file_name = ELECTRON_SHA256_URL.split('/')[-1]
-                res['sha256'] = bool([f for f in files if f == file_name])
+                if not res['electron']:
+                    res['sha256'] = True
+                else:
+                    file_name = ELECTRON_SHA256_URL.split('/')[-1] + '-{}'.format(version)
+                    res['sha256'] = bool([f for f in files if f == file_name])
             else:
                 self.logger.info('No Electron file found in {}'.format(ELECTRON_PATH))
 
@@ -249,23 +246,7 @@ class EnvironmentUpdater:
         except requests.exceptions.ConnectionError:
             return
 
-    def _fill_electron_to_install(self, electron_version: str, x86_x64: bool, output: List[EnvironmentComponent]):
-        electron_url = self._get_electron_url(version=electron_version, is_x86_x64_arch=x86_x64)
-        output.append(EnvironmentComponent(name=electron_url.split('/')[-1],
-                                           version=electron_version,
-                                           url=electron_url,
-                                           size=self.http_client.get_content_length(electron_url),
-                                           id='electron'))
-
-    def _fill_electron_sha256_to_install(self, electron_version: str, output: List[EnvironmentComponent]):
-        sha_url = ELECTRON_SHA256_URL.format(version=electron_version)
-        output.append(EnvironmentComponent(name=sha_url.split('/')[-1],
-                                           version=electron_version,
-                                           url=sha_url,
-                                           size=self.http_client.get_content_length(sha_url),
-                                           id='electron_sha256'))
-
-    def _check_electron_async(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, output: List[EnvironmentComponent]):
+    def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, output: List[EnvironmentComponent]):
         electron_version = env['electron']['version']
 
         if pkg.version and pkg.version != electron_version:
@@ -276,33 +257,40 @@ class EnvironmentUpdater:
             self.logger.warning("A custom Electron version will be used {} to install {}".format(electron_version, pkg.url))
             electron_version = local_config['environment']['electron']['version']
 
-        electron_status = self.check_installed_electron(version=electron_version, is_x86_x64_arch=x86_x64)
-        threads = []
+        electron_status = self.check_electron_installed(version=electron_version, is_x86_x64_arch=x86_x64)
 
-        if not electron_status['electron']:
-            t = Thread(target=self._fill_electron_to_install, args=(electron_version, x86_x64, output))
-            t.start()
-            threads.append(t)
+        electron_url = self._get_electron_url(version=electron_version, is_x86_x64_arch=x86_x64)
+        output.append(EnvironmentComponent(name=electron_url.split('/')[-1],
+                                           version=electron_version,
+                                           url=electron_url,
+                                           size=self.http_client.get_content_length(electron_url),
+                                           id='electron',
+                                           update=not electron_status['electron']))
 
-        if not electron_status['sha256']:
-            t = Thread(target=self._fill_electron_sha256_to_install, args=(electron_version, output))
-            t.start()
-            threads.append(t)
+        sha_url = ELECTRON_SHA256_URL.format(version=electron_version)
+        output.append(EnvironmentComponent(name=sha_url.split('/')[-1],
+                                           version=electron_version,
+                                           url=sha_url,
+                                           size=self.http_client.get_content_length(sha_url),
+                                           id='electron_sha256',
+                                           update=not electron_status['electron'] or not electron_status['sha256']))
 
-        for t in threads:
-            t.join()
+    def _check_and_fill_node(self, env: dict, output: List[EnvironmentComponent]):
+        node = EnvironmentComponent(name=env['nodejs']['url'].split('/')[-1],
+                                    url=env['nodejs']['url'],
+                                    size=self.http_client.get_content_length(env['nodejs']['url']),
+                                    version=env['nodejs']['version'],
+                                    id='nodejs')
+        output.append(node)
 
-    def _check_node_async(self, env: dict, output: List[EnvironmentComponent]):
+        native = self._map_nativefier_file(env['nativefier'])
+        output.append(native)
+
         if not self.check_node_installed(env['nodejs']['version']):
-            output.append(EnvironmentComponent(name=env['nodejs']['url'].split('/')[-1],
-                                               url=env['nodejs']['url'],
-                                               size=self.http_client.get_content_length(env['nodejs']['url']),
-                                               version=env['nodejs']['version'],
-                                               id='nodejs'))
-            output.append(self._map_nativefier_file(env['nativefier']))
+            node.update, native.update = True, True
         else:
             if not self._check_nativefier_installed(env['nativefier']):
-                output.append(self._map_nativefier_file(env['nativefier']))
+                native.update = True
 
     def _check_nativefier_installed(self, nativefier_settings: dict) -> bool:
         if not os.path.exists(NODE_MODULES_PATH):
@@ -334,81 +322,39 @@ class EnvironmentUpdater:
                                     version=nativefier_settings['version'],
                                     id='nativefier')
 
-    def check_environment(self, app: WebApplication, is_x86_x64_arch: bool) -> Tuple[dict, List[EnvironmentComponent]]:
-        to_update, check_threads = [], []
-
-        env = self.read_settings()
-        local_config = read_config()
+    def check_environment(self, env: dict, local_config: dict, app: WebApplication, is_x86_x64_arch: bool) -> List[EnvironmentComponent]:
+        """
+        :param app:
+        :param is_x86_x64_arch:
+        :return: the environment settings
+        """
+        components, check_threads = [], []
 
         system_env = local_config['environment'].get('system', False)
 
         if system_env:
             self.logger.warning("Using system's nativefier to install {}".format(app.url))
         else:
-            node_check = Thread(target=self._check_node_async, args=(env, to_update))
+            node_check = Thread(target=self._check_and_fill_node, args=(env, components))
             node_check.start()
             check_threads.append(node_check)
 
-        elec_check = Thread(target=self._check_electron_async, args=(app, env, local_config, is_x86_x64_arch, to_update))
+        elec_check = Thread(target=self._check_and_fill_electron, args=(app, env, local_config, is_x86_x64_arch, components))
         elec_check.start()
         check_threads.append(elec_check)
 
         for t in check_threads:
             t.join()
 
-        return env, to_update
-
-    def update_environment(self, is_x86_x64_arch: bool, config: dict = None, handler: ProcessHandler = None) -> dict:
-        settings = self.read_settings()
-
-        if settings is None:
-            return
-
-        current_config = config if config else read_config()
-        system_env = current_config['environment']['system']
-        watcher = handler.watcher if handler else None
-
-        if not system_env and not self.update_node(version=settings['nodejs']['version'], version_url=settings['nodejs']['url'],
-                                                   watcher=watcher):
-            self.logger.warning('Could not install / update NodeJS')
-            return
-
-        if not system_env and not self.install_nativefier(version=settings['nativefier']['version'], handler=handler):
-            self.logger.warning('Could not install / update nativefier')
-            return
-
-        electron_version = current_config['environment']['electron']['version']
-
-        if electron_version:
-            self.logger.warning("Using custom Electron version {}".format(electron_version))
-        else:
-            electron_version = settings['electron']['version']
-
-        installed = self.check_installed_electron(version=electron_version, is_x86_x64_arch=is_x86_x64_arch)
-
-        if not installed['electron']:
-            if self.download_electron(version=electron_version, is_x86_x64_arch=is_x86_x64_arch, watcher=watcher):
-                res = self.download_electron_sha256(version=electron_version, watcher=watcher)
-            else:
-                res = False
-        elif not installed['sha256']:
-            res = self.download_electron_sha256(version=electron_version, watcher=watcher)
-        else:
-            res = True
-
-        if res:
-            self.logger.info('Environment updated')
-        else:
-            self.logger.warning('Could not update the environment')
-
-        return settings
+        return components
 
     def update(self, components: List[EnvironmentComponent], handler: ProcessHandler) -> bool:
         self.logger.info('Updating  environment')
+        Path(ENV_PATH).mkdir(parents=True, exist_ok=True)
 
         comp_map = {c.id: c for c in components}
 
-        node_data = comp_map.get('node')
+        node_data = comp_map.get('nodejs')
         nativefier_data = comp_map.get('nativefier')
 
         if node_data:

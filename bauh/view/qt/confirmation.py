@@ -22,11 +22,12 @@ class ConfirmationDialog(QMessageBox):
 
         self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 
+        label = None
         if body:
             if not components:
                 self.setIcon(QMessageBox.Question)
-
-            self.layout().addWidget(QLabel(body), 0, 1)
+            label = QLabel(body)
+            self.layout().addWidget(label, 0, 1)
 
         width = 0
         if components:
@@ -65,6 +66,8 @@ class ConfirmationDialog(QMessageBox):
 
             self.layout().addWidget(scroll, 1 if body else 0, 1)
 
+            if label and comps_container.sizeHint().width() > label.sizeHint().width():
+                label.setText(label.text() + (' ' * int(comps_container.sizeHint().width() - label.sizeHint().width())))
         if not body and width > 0:
             self.layout().addWidget(QLabel(' ' * int(width / 2)), 1, 1)
 

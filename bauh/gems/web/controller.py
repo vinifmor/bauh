@@ -476,17 +476,17 @@ class WebApplicationManager(SoftwareManager):
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
 
-        env_settings, to_update = self.env_updater.check_environment(app=pkg, is_x86_x64_arch=self.context.is_system_x86_64())
+        env_settings = self.env_updater.read_settings()
+        local_config = read_config()
+        env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings, is_x86_x64_arch=self.context.is_system_x86_64())
+        comps_to_update = [c for c in env_components if c.update]
 
-        if to_update:
-            if not self._ask_update_permission(to_update, watcher):
-                return False
-
-        if not self.env_updater.update(components=to_update,  handler=handler):
-            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
+        if comps_to_update and not self._ask_update_permission(comps_to_update, watcher):
             return False
 
-        # TODO stopped here
+        if not self.env_updater.update(components=comps_to_update,  handler=handler):
+            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
+            return False
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
 
@@ -506,9 +506,10 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
+        electron_version = next((c for c in env_components if c.id == 'electron')).version
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version,
-                                                             system=system_env,
+                                                             system=local_config['environment']['system'],
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
 
