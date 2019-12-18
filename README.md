@@ -132,6 +132,30 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 - Transitive dependencies checking can be disabled through the environment variable **BAUH_ARCH_CHECK_SUBDEPS=0**. The dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
 
+#### Web Applications ( web )
+- It allows the installation of native Web applications by typing an address / URL in the search bar.
+- It also offers the possibility to customize the app to be generated the way you want: [TODO image or video]
+- It also provides some suggestions coming with predefined settings, and they also can be retrieved by searching their names. They are
+defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
+- It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
+will be generated at **~/.local/share/bauh/web/env**.
+- The isolated environment is generated based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
+ that is downloaded during runtime.
+- Some applications require Javascript fixes to properly work. If it is a known fix, bauh will download the file JS file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
+install it with the generated app.
+- The installed applications are located at **~/.local/share/bauh/installed**.
+- A desktop entry / shortcut will generated for the installed applications at **~/.local/share/application**
+- When the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
+allowing the application to launch automatically attached to system tray after the boot. 
+- The configuration file for the Web apps support is located at **~/.config/bauh/web.yml** and it allows the following customizations:
+`
+environment:
+  electron:
+    version: null  # set a custom Electron version here ( e.g: '6.1.4' )
+  system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
+`
+- Required packages: Arch systems ( **python-lxml**, **python-beautifulsoup4** ), Debian systems ( you will need to install the following packages with pip: **beautifulsoup4**, **lxml** ) 
+
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
 - **BAUH_SYSTEM_NOTIFICATIONS**: enable or disable system notifications. Use **0** (disable) or **1** (enable, default).

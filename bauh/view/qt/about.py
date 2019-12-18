@@ -31,7 +31,7 @@ class AboutDialog(QDialog):
         layout.addWidget(label_name)
 
         label_version = QLabel(i18n['version'].lower() + ' ' + __version__)
-        label_version.setStyleSheet('QLabel { font-size: 10px; font-weight: bold }')
+        label_version.setStyleSheet('QLabel { font-size: 11px; font-weight: bold }')
         label_version.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_version)
 
