@@ -312,7 +312,7 @@ class WebApplicationManager(SoftwareManager):
 
         config_path = pkg.get_config_dir()
 
-        if os.path.exists(config_path):
+        if config_path and os.path.exists(config_path):
             try:
                 shutil.rmtree(config_path)
             except:
@@ -344,6 +344,8 @@ class WebApplicationManager(SoftwareManager):
                 info['04_categories'] = [self.i18n[c.lower()].capitalize() for c in info['04_categories']]
 
             return info
+        else:
+            return {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories'))}
 
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
@@ -561,7 +563,7 @@ class WebApplicationManager(SoftwareManager):
 
         # if a custom icon is defined for an app suggestion:
         icon_path, icon_bytes = None, None
-        if pkg.is_suggestion and pkg.icon_url and not {o for o in install_options if o.startswith('--icon')}:
+        if pkg.icon_url and pkg.save_icon and not {o for o in install_options if o.startswith('--icon')}:
             download = self._download_suggestion_icon(pkg, app_dir)
 
             if download and download[1]:
@@ -683,15 +685,6 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
-    # def _update_environment(self, handler: ProcessHandler = None) -> bool:
-    #     updated_settings = self.env_updater.update_environment(self.context.is_system_x86_64(), handler=handler)
-    #
-    #     if updated_settings is not None:
-    #         self.env_settings = updated_settings
-    #         return True
-    #
-    #     return False
-
     def _update_env_settings(self):
         self.env_settings = self.env_updater.read_settings()
 
@@ -739,7 +732,7 @@ class WebApplicationManager(SoftwareManager):
                              icon_url=suggestion.get('icon_url'),
                              categories=[suggestion['category']] if suggestion.get('category') else None,
                              preset_options=suggestion.get('options'),
-                             is_suggestion=True)
+                             save_icon=suggestion.get('save_icon', False))
 
         app.set_version(suggestion.get('version'))
 
