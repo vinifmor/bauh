@@ -74,11 +74,13 @@ class ComboBoxQt(QComboBox):
 
             if model.value and model.value == op:  # default
                 self.setCurrentIndex(idx)
+                self.setToolTip(model.value.tooltip)
 
         self.currentIndexChanged.connect(self._set_selected)
 
     def _set_selected(self, idx: int):
         self.model.value = self.model.options[idx]
+        self.setToolTip(self.model.value.tooltip)
 
 
 class RadioSelectQt(QGroupBox):

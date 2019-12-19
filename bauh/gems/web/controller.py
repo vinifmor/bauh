@@ -388,9 +388,19 @@ class WebApplicationManager(SoftwareManager):
                                          default_option=def_tray_opt,
                                          label=self.i18n['web.install.option.tray.label'])
 
+        icon_op_ded = InputOption(id_='icon_ded', label=self.i18n['web.install.option.wicon.deducted.label'], value=0,
+                                  tooltip=self.i18n['web.install.option.wicon.deducted.tip'].format('Nativefier'))
+        icon_op_disp = InputOption(id_='icon_disp', label=self.i18n['web.install.option.wicon.displayed.label'],
+                                   value=1, tooltip=self.i18n['web.install.option.wicon.displayed.tip'])
+
+        inp_icon = SingleSelectComponent(type_=SelectViewType.COMBO,
+                                         options=[icon_op_disp, icon_op_ded],
+                                         default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
+                                         label=self.i18n['web.install.option.wicon.label'])
+
         icon_chooser = FileChooserComponent(allowed_extensions={'png'}, label=self.i18n['web.install.option.icon.label'])
 
-        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
+        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
 
         op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
         op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
@@ -445,6 +455,8 @@ class WebApplicationManager(SoftwareManager):
             if icon_chooser.file_path:
                 app.set_custom_icon(icon_chooser.file_path)
                 selected.append('--icon={}'.format(icon_chooser.file_path))
+
+            app.save_icon = inp_icon.value == icon_op_disp
 
             return res, selected
 
