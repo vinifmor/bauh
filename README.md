@@ -97,9 +97,13 @@ If bauh is not starting properly after changing its style, execute `bauh --reset
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+- Required dependencies:
+    - Any distro: **flatpak**
 
 #### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
+- Required dependencies:
+    - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
