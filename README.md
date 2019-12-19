@@ -155,22 +155,22 @@ transitive_checking: true  # if 'false': the dependency checking process will be
     - **git**: allows to retrieve packages release history and downgrading
     - **aria2**: provides faster, multi-threaded downloads for required source files ( if the param )
 
-#### Web Applications ( web )
-- It allows the installation of native Web applications by typing an address / URL in the search bar.
-- It also offers the possibility to customize the generated app the way you want: [TODO image or video]
-- It also provides some suggestions coming with predefined settings, and they also can be retrieved by searching their names. They are
+#### Native Web Applications ( web )
+- It allows the installation of native Web applications by typing their addresses / URLs on the search bar
+- It offers the possibility to customize the generated app the way you want: [TODO image or video]
+- It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
 will be generated at **~/.local/share/bauh/web/env**.
 - The isolated environment is created based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
  ( downloaded during runtime ).
-- Some applications require Javascript fixes to properly work. If it is a known fix, bauh will download the file JS file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
-install it with the generated app.
+- Some applications require Javascript fixes to properly work. If it is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
+attach it to the generated app.
 - The installed applications are located at **~/.local/share/bauh/installed**.
-- A desktop entry / shortcut will generated for the installed applications at **~/.local/share/application**
-- When the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
-allowing the application to launch automatically attached to system tray after the boot. 
-- The configuration file for the Web apps support is located at **~/.config/bauh/web.yml** and it allows the following customizations:
+- A desktop entry / shortcut will be generated for the installed applications at **~/.local/share/application**
+- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
+allowing the application to launch automatically after the system's boot attached to the tray. 
+- The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```
 environment:
   electron:
