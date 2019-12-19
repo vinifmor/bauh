@@ -1,7 +1,7 @@
-**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap, AppImage and AUR packaging types. When you launch **bauh** you will see
-a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the package technology.
+**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications / packages ( formerly known as **fpakman** ). It currently supports Flatpak, Snap, AppImage, AUR and native Web Applications. When you launch **bauh** you will see
+a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the application technology.
 
-It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
+It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
@@ -12,14 +12,17 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 
 
 ### Developed with
-- Python3 and Qt5.
+- Python3 and Qt5
 
-### Requirements
+### Basic requirements
 
 #### Debian-based distros
 - **python3.5** or above
 - **pip3**
-- **python3-venv** ( only for **Manual installation** described below )
+- **python3-requests**
+- **python-yaml**
+- **python3-venv** ( only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation) )
+- **libappindicator3** ( for the **tray mode** in GTK3 desktop environments )
 
 #### Arch-based distros
 - **python**
@@ -27,20 +30,11 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 - **python-pip**
 - **python-pyqt5**
 - **python-yaml**
+- **libappindicator-gtk3** ( for the **tray mode** in GTK3 desktop environments )
 
-##### Optional
-- **flatpak**: to be able to handle Flatpak applications
-- **snapd**: to be able to handle Snap applications
-- **pacman**: to be able to handle AUR packages
-- **wget**: to be able to handle AppImage and AUR packages
-- **sqlite3**: to be able to handle AppImage applications
-- **git**: to be able to downgrade AUR packages
-- **aria2**: faster AppImage and AUR source files downloading ( reduces packages installation time. More information below. )
-- **libappindicator3**: for the **tray mode** in GTK3 desktop environments
+The other requirements depend on which type of applications you want to manage ( see [Gems](https://github.com/vinifmor/bauh/tree/wgem#gems--package-technology-support-) ).
 
-- [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
-
-### Distribution
+### Installation
 
 **AUR**
 
@@ -86,10 +80,17 @@ Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/lo
 - P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
 
 ### Autostart
-In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
+In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**). Or
+create a file named **bauh.desktop** in **~/.config/autostart** with the content below:
+```
+[Desktop Entry]
+Type=Application
+Name=bauh ( tray )
+Exec=/home/$USER/bauh_env/bin/bauh --tray=1
+```
 
 ### Uninstallation
-Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cache files stored in your **HOME** folder.
+Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cached files stored in your **HOME** folder.
 
 ### Theme issues
 If bauh is not starting properly after changing its style, execute `bauh --reset` to reset its configuration or just delete the **style** key from the file **~/.config/bauh/config.json**.
@@ -124,7 +125,8 @@ db_updater:
 - Required dependencies
     - Arch-based systems: **sqlite**, **wget** ( or **aria2** for faster multi-threaded downloads )
     - Debian-based systems: **sqlite3**, **wget** ( or **aria2** for faster multi-threaded downloads )
-    - **aria2 will only be used if the multi-threaded download settings are enabled**
+    - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system
+    - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
 #### AUR ( arch )
 - Only available for Arch-based systems
