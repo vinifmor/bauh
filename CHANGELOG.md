@@ -12,6 +12,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - requires only **python-beautifulsoup4** and **python-lxml** to be enabled
 
 ### Improvements
+- configuration file **~/.config/bauh/config.json** renamed to **~/.config/bauh/config.yml**
+- some parameters were moved to the configuration file ( **~/.config/bauh/config.yml** ):
+    - `--cache-exp` and `--icon-exp` became:
+        ```cache: 
+                data_expiration:
+                icon_expiration:
+        ```
+    - `--locale` 
+    - `--check-interval` became:
+        ```
+            updates:
+                check_interval:
+        ```
+    - `--system-notifications` -> `system_notifications`
+    - `--disk-cache`
+    - `--download-icons`
+    - `--check-packaging-once`
+    - `--sugs` ( renamed as `suggestions` )
+    - `--max-displayed`
+    - `--download-mthread`
+- some settings from **~/.config/bauh/config.json** were renamed in **~/.config/bauh/config.yml**:
+    - `enabled_gems` -> `gems`
+- some environment variables were moved as fields in **~/.config/bauh/config.yml**:
+    - `BAUH_TRAY_DEFAULT_ICON_PATH` and `BAUH_TRAY_UPDATES_ICON_PATH` became:
+        ```
+        tray:
+            icon_default: null,  # path to the icon representing the default state 
+            icon_updates: null  # path to the icon representing the "new updates" state
+        ```
+    
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
     - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**

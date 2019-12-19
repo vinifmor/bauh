@@ -51,10 +51,8 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
-                 download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
-                 context: ApplicationContext, notifications: bool, http_client: HttpClient, logger: logging.Logger,
-                 tray_icon=None):
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: Configuration,
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.logger = logger
@@ -64,14 +62,11 @@ class ManageWindow(QWidget):
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
-        self.display_limit = display_limit
+        self.display_limit = config.max_displayed
         self.icon_cache = icon_cache
-        self.disk_cache = disk_cache
-        self.download_icons = download_icons
         self.screen_size = screen_size
         self.config = config
         self.context = context
-        self.notifications = notifications
         self.http_client = http_client
 
         self.icon_app = QIcon(resource.get_path('img/logo.svg'))
@@ -213,7 +208,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar)
 
-        self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.disk_cache, download_icons=self.download_icons)
+        self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.config.disk_cache, download_icons=self.config.download_icons)
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -265,7 +260,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, i18n=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.config.disk_cache, icon_cache=self.icon_cache, i18n=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -313,7 +308,7 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
         self.dialog_about = None
-        self.first_refresh = suggestions
+        self.first_refresh = config.suggestions
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
@@ -545,7 +540,7 @@ class ManageWindow(QWidget):
             self.checkbox_console.setChecked(True)
 
     def _can_notify_user(self):
-        return self.notifications and (self.isHidden() or self.isMinimized())
+        return self.config.system_notifications and (self.isHidden() or self.isMinimized())
 
     def _finish_downgrade(self, res: dict):
         self.finish_action()

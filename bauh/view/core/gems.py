@@ -44,10 +44,10 @@ def load_managers(locale: str, context: ApplicationContext, config: Configuratio
 
                     man = manager_class(context=context)
 
-                    if config.enabled_gems is None:
+                    if config.gems is None:
                         man.set_enabled(man.is_default_enabled())
                     else:
-                        man.set_enabled(f.name in config.enabled_gems)
+                        man.set_enabled(f.name in config.gems)
 
                     managers.append(man)
 

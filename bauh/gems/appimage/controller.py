@@ -399,7 +399,7 @@ class AppImageManager(SoftwareManager):
             updater.download_databases()  # only once
 
     def prepare(self):
-        Thread(target=self._start_updater()).start()
+        Thread(target=self._start_updater, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)

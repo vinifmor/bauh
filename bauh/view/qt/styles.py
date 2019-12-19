@@ -34,7 +34,7 @@ class StylesComboBox(QComboBox):
             self.last_index = idx
             style = self.styles[idx]
 
-            user_config = config.read()
+            user_config = config.read_config()
             user_config.style = style
             config.save(user_config)
 

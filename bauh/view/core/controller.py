@@ -11,6 +11,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.view.core.config import Configuration
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
@@ -19,11 +20,11 @@ SUGGESTIONS_LIMIT = 10
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, app_args: Namespace):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: Configuration):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._available_cache = {} if app_args.check_packaging_once else None
+        self._available_cache = {} if config.check_packaging_once else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory

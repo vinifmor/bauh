@@ -1,5 +1,6 @@
 import os
 import sys
+from threading import Thread
 
 import urllib3
 from PyQt5.QtGui import QIcon
@@ -32,36 +33,38 @@ def main():
     logger = logs.new_logger(__app_name__, bool(args.logs))
     app_args.validate(args, logger)
 
-    i18n_key, current_i18n = translation.get_locale_keys(args.locale)
+    local_config = config.read_config(update_file=True)
+    config.validate(local_config, logger)
+
+    i18n_key, current_i18n = translation.get_locale_keys(local_config.locale)
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
     i18n = I18n(i18n_key, current_i18n, DEFAULT_I18N_KEY, default_i18n)
 
     cache_cleaner = CacheCleaner()
-    cache_factory = DefaultMemoryCacheFactory(expiration_time=args.cache_exp, cleaner=cache_cleaner)
-    icon_cache = cache_factory.new(args.icon_exp)
+    cache_factory = DefaultMemoryCacheFactory(expiration_time=local_config.cache_exp, cleaner=cache_cleaner)
+    icon_cache = cache_factory.new(local_config.icon_exp)
 
     http_client = HttpClient(logger)
 
     context = ApplicationContext(i18n=i18n,
                                  http_client=http_client,
-                                 disk_cache=args.disk_cache,
-                                 download_icons=args.download_icons,
+                                 disk_cache=local_config.disk_cache,
+                                 download_icons=local_config.download_icons,
                                  app_root_dir=ROOT_DIR,
                                  cache_factory=cache_factory,
-                                 disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=args.disk_cache, logger=logger),
+                                 disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=local_config.disk_cache, logger=logger),
                                  logger=logger,
                                  distro=util.get_distro(),
-                                 file_downloader=AdaptableFileDownloader(logger, bool(args.download_mthread),
+                                 file_downloader=AdaptableFileDownloader(logger, local_config.download_mthread,
                                                                          i18n, http_client))
-    user_config = config.read()
 
-    managers = gems.load_managers(context=context, locale=i18n_key, config=user_config, default_locale=DEFAULT_I18N_KEY)
+    managers = gems.load_managers(context=context, locale=i18n_key, config=local_config, default_locale=DEFAULT_I18N_KEY)
 
     if args.reset:
         util.clean_app_files(managers)
         exit(0)
 
-    manager = GenericSoftwareManager(managers, context=context, app_args=args)
+    manager = GenericSoftwareManager(managers, context=context, config=local_config)
     manager.prepare()
 
     app = QApplication(sys.argv)
@@ -69,8 +72,8 @@ def main():
     app.setApplicationVersion(__version__)
     app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
 
-    if user_config.style:
-        app.setStyle(user_config.style)
+    if local_config.style:
+        app.setStyle(local_config.style)
     else:
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
@@ -78,23 +81,18 @@ def main():
     manage_window = ManageWindow(i18n=i18n,
                                  manager=manager,
                                  icon_cache=icon_cache,
-                                 disk_cache=args.disk_cache,
-                                 download_icons=bool(args.download_icons),
                                  screen_size=app.primaryScreen().size(),
-                                 suggestions=args.sugs,
-                                 display_limit=args.max_displayed,
-                                 config=user_config,
+                                 config=local_config,
                                  context=context,
                                  http_client=http_client,
-                                 logger=logger,
-                                 notifications=bool(args.system_notifications))
+                                 logger=logger)
 
     if args.tray:
         tray_icon = TrayIcon(i18n=i18n,
                              manager=manager,
                              manage_window=manage_window,
-                             check_interval=args.check_interval,
-                             update_notification=bool(args.system_notifications))
+                             check_interval=local_config.update_check_interval,
+                             update_notification=local_config.system_notifications)
         manage_window.set_tray_icon(tray_icon)
         tray_icon.show()
 
@@ -105,6 +103,7 @@ def main():
         manage_window.show()
 
     cache_cleaner.start()
+    Thread(target=config.remove_old_config, args=(logger,), daemon=True).start()
     sys.exit(app.exec_())
 
 

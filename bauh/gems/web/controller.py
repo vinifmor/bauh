@@ -706,13 +706,13 @@ class WebApplicationManager(SoftwareManager):
 
         if self.suggestions:
             index_gen = SearchIndexGenerator(logger=self.logger)
-            Thread(target=index_gen.generate_index, args=(self.suggestions,)).start()
+            Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
 
     def prepare(self):
-        self.env_thread = Thread(target=self._update_env_settings())
+        self.env_thread = Thread(target=self._update_env_settings, daemon=True)
         self.env_thread.start()
 
-        self.suggestions_downloader = Thread(target=self._download_suggestions)
+        self.suggestions_downloader = Thread(target=self._download_suggestions, daemon=True)
         self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
@@ -761,7 +761,7 @@ class WebApplicationManager(SoftwareManager):
 
         app.status = PackageStatus.LOADING_DATA
 
-        Thread(target=self._fill_suggestion, args=(app,)).start()
+        Thread(target=self._fill_suggestion, args=(app,), daemon=True).start()
 
         return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
 

@@ -183,19 +183,8 @@ environment:
 
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
-- **BAUH_SYSTEM_NOTIFICATIONS**: enable or disable system notifications. Use **0** (disable) or **1** (enable, default).
-- **BAUH_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
-- **BAUH_LOCALE**: define a custom app translation for a given locale key (e.g: 'pt', 'en', 'es', ...). Default: system locale.
-- **BAUH_CACHE_EXPIRATION**: define a custom expiration time in SECONDS for cached API data. Default: 3600 (1 hour).
-- **BAUH_ICON_EXPIRATION**: define a custom expiration time in SECONDS for cached icons. Default: 300 (5 minutes).
-- **BAUH_DISK_CACHE**: enables / disables disk cache. When disk cache is enabled, the installed packages data are loaded faster. Use **0** (disable) or **1** (enable, default).
-- **BAUH_DOWNLOAD_ICONS**: Enables / disables applications icons downloading. It may improve the application speed depending on how applications data are being retrieved. Use **0** (disable) or **1** (enable, default).
-- **BAUH_CHECK_PACKAGING_ONCE**: If the availabilty of the supported packaging types should be checked only once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a new supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
 - **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
-- **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no package considered an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
-- **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
 - **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **aria2** is installed ). This feature reduces the application installation time. Use **0** (disable) or **1** (enabled, default).
 - **BAUH_TRAY_DEFAULT_ICON_PATH**: define a custom icon for the tray mode ( absolute path)
 - **BAUH_TRAY_UPDATES_ICON_PATH** define a custom updates icon for the tray mode ( absolute path)
 
