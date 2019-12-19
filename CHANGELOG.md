@@ -14,9 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
+    - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**
 - AUR:
     - The AUR indexer daemon is not running every 20 minutes anymore. It will only run during the boot, and will generate the optimized index
     at **/tmp/bauh/arch/aur.txt**. This new behavior does not harm the current experience, and reduces memory usage. More information about this behavior in [README](https://github.com/vinifmor/bauh/blob/master/README.md).
+    - Environment variable **BAUH_ARCH_AUR_INDEX_UPDATER** dropped in favor of the behavior described above.
+    - Environment variables **BAUH_ARCH_OPTIMIZE** and **BAUH_ARCH_CHECK_SUBDEPS** dropped in favor of the new configuration file located at **~/.config/bauh/arch.yml**  
 - Minor memory improvements
 ### Fixes
 - AUR:

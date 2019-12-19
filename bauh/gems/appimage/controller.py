@@ -8,7 +8,7 @@ import subprocess
 import traceback
 from datetime import datetime
 from pathlib import Path
-from threading import Lock
+from threading import Lock, Thread
 from typing import Set, Type, List
 
 from colorama import Fore
@@ -23,6 +23,7 @@ from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, LOCAL_PATH
+from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
@@ -48,7 +49,6 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
-        self.dbs_updater = DatabaseUpdater(http_client=context.http_client, logger=context.logger, db_locks=self.db_locks)
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
@@ -387,8 +387,19 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: str, pkg: AppImage):
         return False
 
+    def _start_updater(self):
+        local_config = read_config(update_file=True)
+        interval = local_config['db_updater']['interval'] or 20 * 60
+
+        updater = DatabaseUpdater(http_client=self.context.http_client, logger=self.context.logger,
+                                  db_locks=self.db_locks, interval=interval)
+        if local_config['db_updater']['enabled']:
+            updater.start()
+        else:
+            updater.download_databases()  # only once
+
     def prepare(self):
-        self.dbs_updater.start()
+        Thread(target=self._start_updater()).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)

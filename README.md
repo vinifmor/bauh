@@ -104,21 +104,28 @@ If bauh is not starting properly after changing its style, execute `bauh --reset
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
-- Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases updater daemon running every 20 minutes ( the interval in SECONDS can be changed with the environment variable **BAUH_APPIMAGE_DB_UPDATER_TIME** ). It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
+- Databases are always updated when bauh starts
+- Databases updater daemon running every 20 minutes ( it can be customized via the configuration file described below )
+- Crashes may happen during an AppImage installation if **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an application.
 - All supported application names can be found at: https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt
-
-Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+- The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
+```
+db_updater:
+  enabled: true  # if 'false': disables the daemon database updater ( bauh will not be able to see if there are updates for your already installed AppImages )
+  interval: 1200  # the databases update interval in SECONDS ( 1200 == 20 minutes )
+```
+- Required dependencies
+    - Arch-based systems: **sqlite**, **wget** ( or **aria2** for faster multi-threaded downloads )
+    - Debian-based systems: **sqlite3**, **wget** ( or **aria2** for faster multi-threaded downloads )
+    - **aria2 will only be used if the multi-threaded download settings are enabled**
 
 #### AUR ( arch )
 - Only available for Arch-based systems
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
+- The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
-will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
 - Automatically makes simple package compilation improvements:
 
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
@@ -132,15 +139,15 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
-optimize: true  # if false: disables the auto-compilation improvements
-transitive_checking: true  # if false: the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+optimize: true  # if 'false': disables the auto-compilation improvements
+transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
 ``` 
 - Required dependencies:
     - **pacman**
     - **wget**
 - Optional dependencies:
     - **git**: allows to retrieve packages release history and downgrading
-    - **aria2**: provides faster and multi-threaded downloads
+    - **aria2**: provides faster, multi-threaded downloads for required source files ( if the param )
 
 #### Web Applications ( web )
 - It allows the installation of native Web applications by typing an address / URL in the search bar.
@@ -165,8 +172,8 @@ environment:
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
 ```
 - Required dependencies: 
-    - Arch systems: **python-lxml**, **python-beautifulsoup4**
-    - Debian systems ( using pip ): **beautifulsoup4**, **lxml** 
+    - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
+    - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
 ### General settings
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).

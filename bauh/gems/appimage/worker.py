@@ -15,19 +15,24 @@ from bauh.gems.appimage import LOCAL_PATH
 
 
 class DatabaseUpdater(Thread):
-
     URL_DB = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
     COMPRESS_FILE_PATH = LOCAL_PATH + '/db.tar.gz'
 
-    def __init__(self, http_client: HttpClient, logger: logging.Logger, db_locks: dict):
+    def __init__(self, http_client: HttpClient, logger: logging.Logger, db_locks: dict, interval: int):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
-        self.enabled = bool(int(os.getenv('BAUH_APPIMAGE_DB_UPDATER', 1)))
         self.db_locks = db_locks
-        self.sleep = int(os.getenv('BAUH_APPIMAGE_DB_UPDATER_TIME', 60 * 20))
+        self.sleep = interval
 
-    def _download_databases(self):
+    def download_databases(self):
+        try:
+            if not internet.is_available(self.http_client, self.logger):
+                return
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('The internet connection seems to be off.')
+            return
+
         self.logger.info('Retrieving AppImage databases')
 
         res = self.http_client.get(self.URL_DB)
@@ -71,15 +76,7 @@ class DatabaseUpdater(Thread):
             self.logger.warning('Could not download the database file {}'.format(self.URL_DB))
 
     def run(self):
-        if self.enabled:
-            while True:
-                try:
-                    if internet.is_available(self.http_client, self.logger):
-                        self._download_databases()
-                except requests.exceptions.ConnectionError:
-                    self.logger.warning('The internet connection seems to be off.')
-
-                self.logger.info('Sleeping')
-                time.sleep(self.sleep)
-        else:
-            self.logger.warning('AppImage database updater disabled')
+        while True:
+            self.download_databases()
+            self.logger.info('Sleeping')
+            time.sleep(self.sleep)
