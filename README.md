@@ -86,7 +86,7 @@ create a file named **bauh.desktop** in **~/.config/autostart** with the content
 [Desktop Entry]
 Type=Application
 Name=bauh ( tray )
-Exec=/home/$USER/bauh_env/bin/bauh --tray=1
+Exec=/path/to/bauh --tray=1
 ```
 
 ### Uninstallation
