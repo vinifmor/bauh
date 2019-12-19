@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import subprocess
-import time
 import traceback
 from pathlib import Path
 from threading import Thread
@@ -451,14 +450,20 @@ class WebApplicationManager(SoftwareManager):
 
     def _gen_app_id(self, name: str) -> Tuple[str, str]:
 
-        treated_name = name.lower().strip().replace(' ', '-')
+        treated_name = RE_SYMBOLS_SPLIT.sub('-', name.lower().strip())
+        config_path = '{}/.config'.format(Path.home())
 
+        counter = 0
         while True:
-            random_number = str(int(time.time()))
-            app_id = '{}-{}'.format(random_number, treated_name)
+            app_id = '{}{}'.format(treated_name, '-{}'.format(counter) if counter else '')
 
             if not os.path.exists('{}/{}'.format(INSTALLED_PATH, app_id)):
-                return app_id, treated_name
+                # checking if there is no config folder associated with the id
+                if os.path.exists(config_path):
+                    if not glob.glob('{}/{}-nativefier-*'.format(config_path, app_id)):
+                        return app_id, treated_name
+
+            counter += 1
 
     def _gen_desktop_entry_path(self, app_id: str) -> str:
         base_id = app_id
