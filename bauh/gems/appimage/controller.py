@@ -22,7 +22,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions, LOCAL_PATH
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -421,21 +421,26 @@ class AppImageManager(SoftwareManager):
         connection = self._get_db_connection(DB_APPS_PATH)
 
         if connection:
-            try:
-                sugs = [(i, p) for i, p in suggestions.ALL.items()]
-                sugs.sort(key=lambda t: t[1].value, reverse=True)
+            file = self.http_client.get(SUGGESTIONS_FILE)
 
-                if limit > 0:
-                    sugs = sugs[0:limit]
+            if not file or not file.text:
+                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+                return res
+            else:
+                try:
+                   for line in file.text.split('\n'):
+                       if line:  # TODO stopped here
+                            if limit > 0:
+                                sugs = sugs[0:limit]
 
-                cursor = connection.cursor()
-                cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s[0]) for s in sugs])))
+                            cursor = connection.cursor()
+                            cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s[0]) for s in sugs])))
 
-                for t in cursor.fetchall():
-                    app = AppImage(*t)
-                    res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
-            finally:
-                self._close_connection(DB_APPS_PATH, connection)
+                            for t in cursor.fetchall():
+                                app = AppImage(*t)
+                                res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
+                finally:
+                    self._close_connection(DB_APPS_PATH, connection)
 
         return res
 
