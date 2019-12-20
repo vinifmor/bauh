@@ -187,9 +187,9 @@ environment:
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
 - `BAUH_TRAY (--tray )`: If the tray icon and update-check daemon should be created. Use `0` (disable, default) or `1` (enable).
 - `BAUH_LOGS (--logs )`: enable **bauh** logs (for debugging purposes). Use: `0` (disable, default) or `1` (enable)
-- `--reset`: cleans all configurations and cached data stored in HOME directory
+- `--reset`: cleans all configurations and cached data stored in the HOME directory
 
-#### General configuration file ( **/.config/bauh/config.yml** )
+#### General configuration file ( **~/.config/bauh/config.yml** )
 ```
 disk_cache:
   enabled: true  # allows bauh to save applications icons and data to the disk to load them faster when needed
