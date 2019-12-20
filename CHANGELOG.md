@@ -56,6 +56,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - an exception happens when retrieving matches from the cached AUR index
     - not using the optimized compilation settings if the custom makepkg file is not found during the installation process
 
+## [0.7.5] 2019-12-20
+### Fixes
+- Fix missing i18n keys when there are no mapped translations for the system's default locale [#40](https://github.com/vinifmor/bauh/issues/40)
+
 ## [0.7.4] 2019-12-09
 ### Improvements
 - AUR
