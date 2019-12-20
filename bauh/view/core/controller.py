@@ -1,7 +1,6 @@
 import re
 import time
 import traceback
-from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
 
@@ -11,26 +10,24 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
-from bauh.view.core.config import Configuration
 
 RE_IS_URL = re.compile(r'^https?://.+')
-
-SUGGESTIONS_LIMIT = 10
 
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: Configuration):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._available_cache = {} if config.check_packaging_once else None
+        self._available_cache = {} if config['system']['single_dependency_checking'] else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
         self.logger = context.logger
         self._already_prepared = []
         self.working_managers = []
+        self.config = config
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -345,20 +342,22 @@ class GenericSoftwareManager(SoftwareManager):
                 suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        if self.managers and internet.is_available(self.context.http_client, self.context.logger):
-            suggestions, threads = [], []
-            for man in self.managers:
-                t = Thread(target=self._fill_suggestions, args=(suggestions, man, SUGGESTIONS_LIMIT))
-                t.start()
-                threads.append(t)
+        if bool(self.config['suggestions']['enabled']):
+            if self.managers and internet.is_available(self.context.http_client, self.context.logger):
+                suggestions, threads = [], []
+                for man in self.managers:
+                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type'])))
+                    t.start()
+                    threads.append(t)
 
-            for t in threads:
-                t.join()
+                for t in threads:
+                    t.join()
 
-            if suggestions:
-                suggestions.sort(key=lambda s: s.priority.value, reverse=True)
+                if suggestions:
+                    suggestions.sort(key=lambda s: s.priority.value, reverse=True)
 
-            return suggestions
+                return suggestions
+        return []
 
     def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
         man = self._get_manager_for(pkg)

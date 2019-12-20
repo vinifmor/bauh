@@ -1,5 +1,5 @@
 # Changelog
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file.uh-staging
 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
@@ -13,35 +13,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - configuration file **~/.config/bauh/config.json** renamed to **~/.config/bauh/config.yml**
-- some parameters were moved to the configuration file ( **~/.config/bauh/config.yml** ):
-    - `--cache-exp` and `--icon-exp` became:
-        ```cache: 
-                data_expiration:
-                icon_expiration:
-        ```
-    - `--locale` 
-    - `--check-interval` became:
-        ```
-            updates:
-                check_interval:
-        ```
-    - `--system-notifications` -> `system_notifications`
-    - `--disk-cache`
-    - `--download-icons`
-    - `--check-packaging-once`
-    - `--sugs` ( renamed as `suggestions` )
-    - `--max-displayed`
-    - `--download-mthread`
-- some settings from **~/.config/bauh/config.json** were renamed in **~/.config/bauh/config.yml**:
-    - `enabled_gems` -> `gems`
-- some environment variables were moved as fields in **~/.config/bauh/config.yml**:
-    - `BAUH_TRAY_DEFAULT_ICON_PATH` and `BAUH_TRAY_UPDATES_ICON_PATH` became:
-        ```
-        tray:
-            icon_default: null,  # path to the icon representing the default state 
-            icon_updates: null  # path to the icon representing the "new updates" state
-        ```
-    
+- some parameters and environment variable were moved to the configuration file ( **~/.config/bauh/config.yml** )
+```
+disk_cache:  # old '--disk_cache'
+  enabled: true
+download:
+  icons: true # old '--download-icons'
+  multithreaded: true  # old '--download-mthread'
+gems: null 
+locale: null  # old '--locale'
+memory_cache:
+  data_expiration: 3600 # old '--cache-exp'
+  icon_expiration: 300  # old '--icon-exp'
+suggestions:
+  by_type: 10  # new -> defines the max number of suggestions by package type
+  enabled: true  # old '--sugs'
+system:
+  notifications: true  # old '--system-notifications'
+  single_dependency_checking: false  # old '---check-packaging-once'
+ui:
+  style: null  
+  table:
+    max_displayed: 50  # old '--max-displayed'
+  tray:
+    default_icon: null  # old environment variable 'BAUH_TRAY_DEFAULT_ICON_PATH'
+    updates_icon: null  # old environment variable 'BAUH_TRAY_UPDATES_ICON_PATH'
+updates:
+  check_interval: 30  # old '--check-interval'
+
+```
+- The default update checking interval is now 30 seconds    
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
     - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**

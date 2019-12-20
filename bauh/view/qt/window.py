@@ -17,7 +17,6 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.view.core.config import Configuration
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -51,7 +50,7 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: Configuration,
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
@@ -62,7 +61,7 @@ class ManageWindow(QWidget):
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
-        self.display_limit = config.max_displayed
+        self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
         self.screen_size = screen_size
         self.config = config
@@ -208,7 +207,9 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar)
 
-        self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.config.disk_cache, download_icons=self.config.download_icons)
+        self.table_apps = AppsTable(self, self.icon_cache,
+                                    disk_cache=bool(self.config['disk_cache']['enabled']),
+                                    download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -260,7 +261,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.config.disk_cache, icon_cache=self.icon_cache, i18n=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, disk_cache=bool(self.config['disk_cache']['enabled']), icon_cache=self.icon_cache, i18n=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -308,7 +309,7 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
         self.dialog_about = None
-        self.first_refresh = config.suggestions
+        self.first_refresh = bool(config['suggestions']['enabled'])
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
@@ -533,6 +534,9 @@ class ManageWindow(QWidget):
             only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
             self.recent_uninstall = True
             self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+
+            if self.tray_icon:
+                self.tray_icon.verify_updates()
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
@@ -540,7 +544,7 @@ class ManageWindow(QWidget):
             self.checkbox_console.setChecked(True)
 
     def _can_notify_user(self):
-        return self.config.system_notifications and (self.isHidden() or self.isMinimized())
+        return bool(self.config['system']['notifications']) and (self.isHidden() or self.isMinimized())
 
     def _finish_downgrade(self, res: dict):
         self.finish_action()

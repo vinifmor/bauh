@@ -182,21 +182,51 @@ environment:
     - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
 ### General settings
-You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
-- **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
-- **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-- **BAUH_TRAY_DEFAULT_ICON_PATH**: define a custom icon for the tray mode ( absolute path)
-- **BAUH_TRAY_UPDATES_ICON_PATH** define a custom updates icon for the tray mode ( absolute path)
 
-### How to improve **bauh** performance
+#### Environment variables / parameters
+You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
+- `BAUH_TRAY (--tray )`: If the tray icon and update-check daemon should be created. Use `0` (disable, default) or `1` (enable).
+- `BAUH_LOGS (--logs )`: enable **bauh** logs (for debugging purposes). Use: `0` (disable, default) or `1` (enable)
+- `--reset`: cleans all configurations and cached data stored in HOME directory
+
+#### General configuration file ( **/.config/bauh/config.yml** )
+```
+disk_cache:
+  enabled: true  # allows bauh to save applications icons and data to the disk to load them faster when needed
+download:
+  icons: true # allows bauh to download the applications icons when they are not saved on the disk
+  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
+gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
+locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
+memory_cache:
+  data_expiration: 3600 # the interval in SECONDS that data cached in memory will live
+  icon_expiration: 300  # the interval in SECONDS that icons cached in memory will live
+suggestions:
+  by_type: 10  # the maximum number of application suggestions that must be retrieved per type
+  enabled: true  # if suggestions must be displayed when no application is installed
+system:
+  notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
+  single_dependency_checking: false  # if bauh should check only once if for the available technologies on the system.
+ui:
+  style: null  # the bauh QT styles. a null value will map to 'Fusion' or 'Breeze' ( depending on what is installed )  
+  table:
+    max_displayed: 50  # defines the maximum number of displayed applications on the table.
+  tray:  # system tray settings
+    default_icon: null  # defines a path to a custom icon
+    updates_icon: null  # defines a path to a custom icon indicating updates
+updates:
+  check_interval: 30  # the updates checking interval in SECONDS
+
+```
+
+### How to improve the performance
 - Disable package types that you do not want to deal with ( via GUI )
-- If you don't care about restarting the app every time a new supported packaging technology is installed, set "check-packaging-once=1" (**bauh --check-packaging-once=1**). This can reduce the application response time up in some scenarios, since it won't need to recheck if the packaging type is available for every action you request.
-- If you don't mind to see the applications icons, you can set "download-icons=0" (**bauh --download-icons=0**). The application may have a slight response improvement, since it will reduce the parallelism within it.
-- Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
+- If you don't care about restarting the app every time a new supported packaging technology is installed, enable `single_dependency_checking`. This can reduce the application response time up in some scenarios, since it won't need to recheck if required technologies are available for every action you request.
+- If you don't mind to see the applications icons, you can disable `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
+- Let the `disk_cache` always enabled so **bauh** does not need to dynamically retrieve data every time you launch it.
 
 
 ### Files and Logs
-- Some application settings are stored in **~/.config/bauh/config.json**
 - Installation logs are saved at **/tmp/bauh/logs/install**
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
 

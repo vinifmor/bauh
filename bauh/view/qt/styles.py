@@ -35,7 +35,7 @@ class StylesComboBox(QComboBox):
             style = self.styles[idx]
 
             user_config = config.read_config()
-            user_config.style = style
+            user_config['ui']['style'] = style
             config.save(user_config)
 
             util.restart_app(self.show_panel_after_restart)

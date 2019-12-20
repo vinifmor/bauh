@@ -36,13 +36,13 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, config: dict):
         super(TrayIcon, self).__init__()
         self.i18n = i18n
         self.manager = manager
 
-        self.icon_default = QIcon(os.getenv('BAUH_TRAY_DEFAULT_ICON_PATH', resource.get_path('img/logo.png')))
-        self.icon_update = QIcon(os.getenv('BAUH_TRAY_UPDATES_ICON_PATH', resource.get_path('img/logo_update.png')))
+        self.icon_default = QIcon(config['ui']['tray']['default_icon'] or resource.get_path('img/logo.png'))
+        self.icon_update = QIcon(config['ui']['tray']['updates_icon'] or resource.get_path('img/logo_update.png'))
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
@@ -60,12 +60,12 @@ class TrayIcon(QSystemTrayIcon):
 
         self.manage_window = None
         self.dialog_about = None
-        self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
+        self.check_thread = UpdateCheck(check_interval=int(config['updates']['check_interval']), manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
         self.last_updates = set()
-        self.update_notification = update_notification
+        self.update_notification = bool(config['system']['notifications'])
         self.lock_notify = Lock()
 
         self.activated.connect(self.handle_click)
