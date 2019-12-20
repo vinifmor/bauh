@@ -218,6 +218,11 @@ updates:
   check_interval: 30  # the updates checking interval in SECONDS
 
 ```
+#### Tray icons
+Priority: 
+    1) Icon paths defined in **~/.config/bauh/config.yml**
+    2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
+    3) Own packaged icons
 
 ### How to improve the performance
 - Disable package types that you do not want to deal with ( via GUI )

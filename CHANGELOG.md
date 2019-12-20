@@ -42,7 +42,11 @@ updates:
   check_interval: 30  # old '--check-interval'
 
 ```
-- The default update checking interval is now 30 seconds    
+- The default update checking interval is now 30 seconds
+- New tray icons loading priority: 
+    1) Icon paths defined in **~/.config/bauh/config.yml**
+    2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
+    3) Own packaged icons
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
     - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**

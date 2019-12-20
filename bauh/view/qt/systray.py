@@ -41,8 +41,22 @@ class TrayIcon(QSystemTrayIcon):
         self.i18n = i18n
         self.manager = manager
 
-        self.icon_default = QIcon(config['ui']['tray']['default_icon'] or resource.get_path('img/logo.png'))
-        self.icon_update = QIcon(config['ui']['tray']['updates_icon'] or resource.get_path('img/logo_update.png'))
+        if config['ui']['tray']['default_icon']:
+            self.icon_default = QIcon(config['ui']['tray']['default_icon'])
+        else:
+            self.icon_default = QIcon.fromTheme('bauh_tray_default')
+
+        if self.icon_default.isNull():
+            self.icon_default = QIcon(resource.get_path('img/logo.png'))
+
+        if config['ui']['tray']['updates_icon']:
+            self.icon_updates = QIcon(config['ui']['tray']['updates_icon'])
+        else:
+            self.icon_updates = QIcon.fromTheme('bauh_tray_updates')
+
+        if self.icon_updates.isNull():
+            self.icon_updates = QIcon(resource.get_path('img/logo_update.png'))
+
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
@@ -94,7 +108,7 @@ class TrayIcon(QSystemTrayIcon):
             if len(updates) > 0:
                 update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
 
-                new_icon = self.icon_update
+                new_icon = self.icon_updates
 
                 if update_keys.difference(self.last_updates):
                     self.last_updates = update_keys
