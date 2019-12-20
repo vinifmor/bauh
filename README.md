@@ -166,6 +166,9 @@ transitive_checking: true  # if 'false': the dependency checking process will be
 
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
+
+![suggestions](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/suggestions.gif)
+
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
 will be generated at **~/.local/share/bauh/web/env**.
 - The isolated environment is created based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
