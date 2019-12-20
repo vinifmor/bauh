@@ -221,7 +221,7 @@ updates:
 
 ### How to improve the performance
 - Disable package types that you do not want to deal with ( via GUI )
-- If you don't care about restarting the app every time a new supported packaging technology is installed, enable `single_dependency_checking`. This can reduce the application response time up in some scenarios, since it won't need to recheck if required technologies are available for every action you request.
+- If you don't care about restarting the app every time a new supported packaging technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if required technologies are available for every action you request.
 - If you don't mind to see the applications icons, you can disable `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
 - Let the `disk_cache` always enabled so **bauh** does not need to dynamically retrieve data every time you launch it.
 
