@@ -92,8 +92,6 @@ Exec=/path/to/bauh --tray=1
 ### Uninstallation
 Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cached files stored in your **HOME** folder.
 
-### Theme issues
-If bauh is not starting properly after changing its style, execute `bauh --reset` to reset its configuration or just delete the **style** key from the file **~/.config/bauh/config.json**.
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
@@ -220,7 +218,7 @@ system:
   notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
   single_dependency_checking: false  # if bauh should check only once if for the available technologies on the system.
 ui:
-  style: null  # the bauh QT styles. a null value will map to 'Fusion' or 'Breeze' ( depending on what is installed )  
+  style: null  # the current QT style set. A null value will map to 'Fusion' or 'Breeze' ( depending on what is installed )  
   table:
     max_displayed: 50  # defines the maximum number of displayed applications on the table.
   tray:  # system tray settings
