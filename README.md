@@ -157,6 +157,7 @@ transitive_checking: true  # if 'false': the dependency checking process will be
 
 #### Native Web Applications ( web )
 - It allows the installation of native Web applications by typing their addresses / URLs on the search bar
+![url_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif)
 - It offers the possibility to customize the generated app the way you want: [TODO image or video]
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
