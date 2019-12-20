@@ -162,7 +162,7 @@ transitive_checking: true  # if 'false': the dependency checking process will be
 
 - It offers the possibility to customize the generated app the way you want:
 
-![options](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/options.png){style="display: block; margin: 0 auto" }
+![options](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/options.png)
 
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
@@ -180,7 +180,7 @@ attach it to the generated app.
 - If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
 allowing the application to launch automatically after the system's boot attached to the tray.
 
-![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/tray.gif){style="display: block; margin: 0 auto" }
+![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/tray.gif)
  
 - The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```
