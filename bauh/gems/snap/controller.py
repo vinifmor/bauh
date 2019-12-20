@@ -253,15 +253,14 @@ class SnapManager(SoftwareManager):
 
                 for l in file.text.split('\n'):
                     if l:
-                        lsplit = l.strip().split('=')
-
                         if limit <= 0 or len(suggestions) < limit:
-                            cached_sug = self.suggestions_cache.get(lsplit[1])
+                            sug = l.strip().split('=')
+                            cached_sug = self.suggestions_cache.get(sug[1])
 
                             if cached_sug:
                                 res.append(cached_sug)
                             else:
-                                t = Thread(target=self._fill_suggestion, args=(lsplit[1], SuggestionPriority(int(lsplit[0])), res))
+                                t = Thread(target=self._fill_suggestion, args=(sug[1], SuggestionPriority(int(sug[0])), res))
                                 t.start()
                                 threads.append(t)
                                 time.sleep(0.001)  # to avoid being blocked

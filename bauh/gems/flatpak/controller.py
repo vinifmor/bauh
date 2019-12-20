@@ -1,4 +1,3 @@
-import json
 import traceback
 from datetime import datetime
 from threading import Thread
@@ -7,11 +6,12 @@ from typing import List, Set, Type
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion
+from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
+    SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, suggestions
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
@@ -30,6 +30,7 @@ class FlatpakManager(SoftwareManager):
         self.enabled = True
         self.http_client = context.http_client
         self.suggestions_cache = context.cache_factory.new()
+        self.logger = context.logger
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -263,26 +264,35 @@ class FlatpakManager(SoftwareManager):
         cli_version = flatpak.get_version()
         res = []
 
-        sugs = [(i, p) for i, p in suggestions.ALL.items()]
-        sugs.sort(key=lambda t: t[1].value, reverse=True)
+        self.logger.info("Downloading the suggestions file {}".format(SUGGESTIONS_FILE))
+        file = self.http_client.get(SUGGESTIONS_FILE)
 
-        for sug in sugs:
-            if limit <= 0 or len(res) < limit:
-                cached_sug = self.suggestions_cache.get(sug[0])
+        if not file or not file.text:
+            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+            return res
+        else:
+            self.logger.info("Mapping suggestions")
 
-                if cached_sug:
-                    res.append(cached_sug)
-                else:
-                    app_json = flatpak.search(cli_version, sug[0], app_id=True)
+            for line in file.text.split('\n'):
+                if line:
+                    if limit <= 0 or len(res) < limit:
+                        sug = line.split('=')
+                        appid, priority = sug[1], SuggestionPriority(int(sug[0]))
+                        cached_sug = self.suggestions_cache.get(appid)
 
-                    if app_json:
-                        model = PackageSuggestion(self._map_to_model(app_json[0], False, None), sug[1])
-                        self.suggestions_cache.add(sug[0], model)
-                        res.append(model)
-            else:
-                break
+                        if cached_sug:
+                            res.append(cached_sug)
+                        else:
+                            app_json = flatpak.search(cli_version, appid, app_id=True)
 
-        res.sort(key=lambda s: s.priority.value, reverse=True)
+                            if app_json:
+                                model = PackageSuggestion(self._map_to_model(app_json[0], False, None), priority)
+                                self.suggestions_cache.add(appid, model)
+                                res.append(model)
+                    else:
+                        break
+
+            res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:
