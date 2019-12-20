@@ -539,6 +539,9 @@ class ManageWindow(QWidget):
             only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
             self.recent_uninstall = True
             self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+
+            if self.tray_icon:
+                self.tray_icon.verify_updates()
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
