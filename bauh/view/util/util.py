@@ -3,9 +3,10 @@ import shutil
 import subprocess
 import sys
 import traceback
-from typing import List
+from typing import List, Tuple
 
 from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtGui import QIcon
 from colorama import Fore
 
 from bauh import __app_name__
@@ -15,8 +16,22 @@ from bauh.commons.system import run_cmd
 from bauh.view.util import resource
 
 
-def notify_user(msg: str, icon_path: str = resource.get_path('img/logo.svg')):
-    os.system("notify-send -a {} {} '{}'".format(__app_name__, "-i {}".format(icon_path) if icon_path else '', msg))
+def notify_user(msg: str, icon_path: str = None):
+    icon_id = icon_path
+
+    if not icon_id:
+        icon_id = get_default_icon()[0]
+
+    os.system("notify-send -a {} {} '{}'".format(__app_name__, "-i {}".format(icon_id) if icon_id else '', msg))
+
+
+def get_default_icon() -> Tuple[str, QIcon]:
+    system_icon = QIcon.fromTheme(__app_name__)
+    if not system_icon.isNull():
+        return system_icon.name(), system_icon
+    else:
+        path = resource.get_path('img/logo.svg')
+        return path, QIcon(path)
 
 
 def restart_app(show_panel: bool):

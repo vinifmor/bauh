@@ -51,7 +51,7 @@ class ManageWindow(QWidget):
     signal_table_update = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
-                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, tray_icon=None):
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.logger = logger
@@ -68,7 +68,7 @@ class ManageWindow(QWidget):
         self.context = context
         self.http_client = http_client
 
-        self.icon_app = QIcon(resource.get_path('img/logo.svg'))
+        self.icon_app = icon
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
         self.setWindowIcon(self.icon_app)
 

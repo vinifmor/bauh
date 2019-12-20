@@ -47,6 +47,7 @@ updates:
     1) Icon paths defined in **~/.config/bauh/config.yml**
     2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
     3) Own packaged icons
+- Now bauh considers the default system icon for the notifications and panel. If there is none, then it will use its own.
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
     - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**

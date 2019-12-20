@@ -69,7 +69,8 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
-    app.setWindowIcon(QIcon(resource.get_path('img/logo.svg')))
+    app_icon = util.get_default_icon()[1]
+    app.setWindowIcon(app_icon)
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))
@@ -84,6 +85,7 @@ def main():
                                  config=local_config,
                                  context=context,
                                  http_client=http_client,
+                                 icon=app_icon,
                                  logger=logger)
 
     if args.tray:
