@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.7.5] 2019-12-20
+### Fixes
+- Fix missing i18n keys when there are no mapped translations for the system's default locale [#40](https://github.com/vinifmor/bauh/issues/40)
+- Tray icon is not updating its status after an application is uninstalled
+
 ## [0.7.4] 2019-12-09
 ### Improvements
 - AUR

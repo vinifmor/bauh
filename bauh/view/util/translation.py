@@ -53,7 +53,7 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
                 break
 
     if not locale_path:
-        return key, {}
+        return current_locale if current_locale else key, {}
 
     with open(locale_path, 'r') as f:
         locale_keys = f.readlines()
