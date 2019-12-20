@@ -157,8 +157,13 @@ transitive_checking: true  # if 'false': the dependency checking process will be
 
 #### Native Web Applications ( web )
 - It allows the installation of native Web applications by typing their addresses / URLs on the search bar
+
 ![url_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/url_search.gif)
-- It offers the possibility to customize the generated app the way you want: [TODO image or video]
+
+- It offers the possibility to customize the generated app the way you want:
+
+![options](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/options.png)
+
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
