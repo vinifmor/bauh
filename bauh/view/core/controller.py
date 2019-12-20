@@ -336,7 +336,7 @@ class GenericSoftwareManager(SoftwareManager):
             self.logger.info(man.__class__.__name__ + ' took {0:.2f} seconds'.format(mtf - mti))
 
             if man_sugs:
-                if len(man_sugs) > limit:
+                if 0 < limit < len(man_sugs):
                     man_sugs = man_sugs[0:limit]
 
                 suggestions.extend(man_sugs)

@@ -23,7 +23,7 @@ URL_SUGGESTIONS = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/
 UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'
 TEMP_PATH = '/tmp/bauh/web'
 SEARCH_INDEX_FILE = '{}/index.yml'.format(TEMP_PATH)
-SUGGESTIONS_CACHE_FILE = '{}/suggestions.yml'.format(TEMP_PATH)
+SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
 NATIVEFIER_URL = 'https://github.com/jiahaog/nativefier/archive/v7.7.0.tar.gz'
 

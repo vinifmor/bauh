@@ -61,6 +61,7 @@ updates:
 - AUR:
     - an exception happens when retrieving matches from the cached AUR index
     - not using the optimized compilation settings if the custom makepkg file is not found during the installation process
+- minor fixes
 
 ## [0.7.5] 2019-12-20
 ### Fixes

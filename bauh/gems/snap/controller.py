@@ -13,7 +13,7 @@ from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputO
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
-from bauh.gems.snap import snap, suggestions, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
@@ -239,31 +239,39 @@ class SnapManager(SoftwareManager):
         res = []
 
         if snap.is_snapd_running():
-            sugs = [(i, p) for i, p in suggestions.ALL.items()]
-            sugs.sort(key=lambda t: t[1].value, reverse=True)
+            self.logger.info('Downloading suggestions file {}'.format(SUGGESTIONS_FILE))
+            file = self.http_client.get(SUGGESTIONS_FILE)
 
-            threads = []
-            self.categories_downloader.join()
+            if not file or not file.text:
+                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+                return res
+            else:
+                self.logger.info('Mapping suggestions')
+                self.categories_downloader.join()
 
-            for sug in sugs:
+                suggestions, threads = [], []
 
-                if limit <= 0 or len(res) < limit:
-                    cached_sug = self.suggestions_cache.get(sug[0])
+                for l in file.text.split('\n'):
+                    if l:
+                        lsplit = l.strip().split('=')
 
-                    if cached_sug:
-                        res.append(cached_sug)
-                    else:
-                        t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
-                        t.start()
-                        threads.append(t)
-                        time.sleep(0.001)  # to avoid being blocked
-                else:
-                    break
+                        if limit <= 0 or len(suggestions) < limit:
+                            cached_sug = self.suggestions_cache.get(lsplit[1])
 
-            for t in threads:
-                t.join()
+                            if cached_sug:
+                                res.append(cached_sug)
+                            else:
+                                t = Thread(target=self._fill_suggestion, args=(lsplit[1], SuggestionPriority(int(lsplit[0])), res))
+                                t.start()
+                                threads.append(t)
+                                time.sleep(0.001)  # to avoid being blocked
+                        else:
+                            break
 
-            res.sort(key=lambda s: s.priority.value, reverse=True)
+                for t in threads:
+                    t.join()
+
+                res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:

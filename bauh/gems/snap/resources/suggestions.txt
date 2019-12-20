@@ -1,0 +1,10 @@
+3=skype
+2=drawing
+2=obs-studio
+2=eclispe
+1=krita
+1=audacity
+0=supertuxkart
+0=retroarch
+0=chromium
+0=matroska-tools
