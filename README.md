@@ -178,7 +178,10 @@ attach it to the generated app.
 - The installed applications are located at **~/.local/share/bauh/installed**.
 - A desktop entry / shortcut will be generated for the installed applications at **~/.local/share/application**
 - If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
-allowing the application to launch automatically after the system's boot attached to the tray. 
+allowing the application to launch automatically after the system's boot attached to the tray.
+
+![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/tray.gif)
+ 
 - The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```
 environment:
