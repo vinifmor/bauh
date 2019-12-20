@@ -5,7 +5,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
-from bauh.view.util import resource
+from bauh.view.util import resource, util
 from bauh.view.util.translation import I18n
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
@@ -21,7 +21,8 @@ class AboutDialog(QDialog):
         self.setLayout(layout)
 
         label_logo = QLabel()
-        label_logo.setPixmap(QPixmap(resource.get_path('img/logo.svg')))
+        icon = util.get_default_icon()[1].pixmap(64, 64)
+        label_logo.setPixmap(icon)
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
