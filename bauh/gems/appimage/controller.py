@@ -17,7 +17,8 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion
+from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
+    SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
@@ -427,18 +428,28 @@ class AppImageManager(SoftwareManager):
                 self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
                 return res
             else:
+                self.logger.info("Mapping suggestions")
                 try:
-                   for line in file.text.split('\n'):
-                       if line:  # TODO stopped here
-                            if limit > 0:
-                                sugs = sugs[0:limit]
+                    sugs = [l for l in file.text.split('\n') if l]
 
-                            cursor = connection.cursor()
-                            cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s[0]) for s in sugs])))
+                    if 0 < limit < len(sugs):
+                        sugs = sugs[0:limit]
 
-                            for t in cursor.fetchall():
-                                app = AppImage(*t)
-                                res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
+                    sugs_map = {}
+
+                    for s in sugs:
+                        lsplit = s.split('=')
+                        sugs_map[lsplit[1]] = SuggestionPriority(int(lsplit[0]))
+
+                    cursor = connection.cursor()
+                    cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
+
+                    for t in cursor.fetchall():
+                        app = AppImage(*t)
+                        res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
+                    self.logger.info("Mapped {} suggestions".format(len(res)))
+                except:
+                    traceback.print_exc()
                 finally:
                     self._close_connection(DB_APPS_PATH, connection)
 
