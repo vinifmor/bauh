@@ -674,6 +674,9 @@ class WebApplicationManager(SoftwareManager):
             with open(pkg.get_autostart_path(), 'w+') as f:
                 f.write(entry_content)
 
+        if install_options:
+            pkg.options_set = install_options
+
         return True
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:

@@ -12,7 +12,8 @@ class WebApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, url: str = None, name: str = None, description: str = None, icon_url: str = None,
                  installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None,
-                 categories: List[str] = None, custom_icon: str = None, preset_options: List[str] = None, save_icon: bool = True):
+                 categories: List[str] = None, custom_icon: str = None, preset_options: List[str] = None, save_icon: bool = True,
+                 options_set: List[str] = None):
         super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
                                              icon_url=icon_url, installed=installed, version=version,
                                              categories=categories)
@@ -22,6 +23,7 @@ class WebApplication(SoftwarePackage):
         self.set_custom_icon(custom_icon)
         self.preset_options = preset_options
         self.save_icon = save_icon  # if the icon_url should be used instead of the one retrieved by nativefier
+        self.options_set = options_set
 
     def set_version(self, version: str):
         self.version = str(version) if version else None
@@ -35,7 +37,8 @@ class WebApplication(SoftwarePackage):
 
     @staticmethod
     def _get_cached_attrs() -> tuple:
-        return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', 'desktop_entry', 'categories', 'custom_icon'
+        return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', \
+               'desktop_entry', 'categories', 'custom_icon', 'options_set'
 
     def can_be_downgraded(self):
         return False
