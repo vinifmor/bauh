@@ -138,6 +138,9 @@ db_updater:
 #### AUR ( arch )
 - Only available for Arch-based systems
 - The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
+
+![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/aur/search.gif)
+
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
 - Automatically makes simple package compilation improvements:
 
