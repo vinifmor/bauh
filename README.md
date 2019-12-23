@@ -104,11 +104,17 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 
 #### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
+
+![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/snap/search.gif)
+
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+
+![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/appimage/search.gif)
+
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
