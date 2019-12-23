@@ -64,6 +64,7 @@ updates:
     - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/snap/suggestions.txt)
   
 - Minor memory improvements
+
 ### Fixes
 - AUR:
     - an exception happens when retrieving matches from the cached AUR index

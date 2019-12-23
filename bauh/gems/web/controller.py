@@ -784,17 +784,23 @@ class WebApplicationManager(SoftwareManager):
             suggestion_list.sort(key=lambda s: s.get('priority', 0), reverse=True)
 
             if filter_installed:
-                installed = self.read_installed(disk_loader=None)
-                url_map = {self._strip_url_protocol(s['url']): idx for idx, s in enumerate(suggestion_list)}
+                installed = {self._strip_url_protocol(i.url) for i in self.read_installed(disk_loader=None).installed}
+            else:
+                installed = None
 
-                if installed.installed:
-                    for i in installed.installed:
-                        s_url = self._strip_url_protocol(i.url)
-                        if s_url in url_map:
-                            suggestion_list.pop(url_map[s_url])
+            res = []
 
-            to_map = suggestion_list if limit <= 0 else suggestion_list[0:limit]
-            res = [self._map_suggestion(s) for s in to_map]
+            for s in suggestion_list:
+                if limit <= 0 or len(res) < limit:
+                    if installed:
+                        surl = self._strip_url_protocol(s['url'])
+
+                        if surl in installed:
+                            continue
+
+                    res.append(self._map_suggestion(s))
+                else:
+                    break
 
             if not self.env_settings and self.env_thread:
                 self.env_thread.join()
