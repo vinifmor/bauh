@@ -155,6 +155,10 @@ class WebApplicationManager(SoftwareManager):
             return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        local_config = {}
+        thread_config = Thread(target=self._fill_config_async, args=(local_config,))
+        thread_config.start()
+
         res = SearchResult([], [], 0)
 
         installed = self.read_installed(disk_loader=disk_loader, limit=limit).installed
@@ -245,6 +249,15 @@ class WebApplicationManager(SoftwareManager):
 
         res.total += len(res.installed)
         res.total += len(res.new)
+
+        if res.new:
+            thread_config.join()
+
+            if local_config['environment']['electron']['version']:
+                for app in res.new:
+                    app.version = local_config['environment']['electron']['version']
+                    app.latest_version = app.version
+
         return res
 
     def _read_search_index(self) -> dict:
@@ -765,7 +778,14 @@ class WebApplicationManager(SoftwareManager):
 
         return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
 
+    def _fill_config_async(self, output: dict):
+        output.update(read_config())
+
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+        local_config = {}
+
+        thread_config = Thread(target=self._fill_config_async, args=(local_config,))
+        thread_config.start()
 
         if self.suggestions:
             suggestions = self.suggestions
@@ -802,14 +822,21 @@ class WebApplicationManager(SoftwareManager):
                 else:
                     break
 
-            if not self.env_settings and self.env_thread:
-                self.env_thread.join()
-                self.env_thread = None  # cleaning memory
+            if res:
+                if not self.env_settings and self.env_thread:
+                    self.env_thread.join()
+                    self.env_thread = None  # cleaning memory
 
-            if self.env_settings:
-                for s in res:
-                    s.package.version = self.env_settings['electron']['version']
-                    s.package.latest_version = s.package.version
+                if self.env_settings:
+                    for s in res:
+                        s.package.version = self.env_settings['electron']['version']
+                        s.package.latest_version = s.package.version
+
+                thread_config.join()
+                if local_config and local_config['environment']['electron']['version']:
+                    for s in res:
+                        s.package.version = local_config['environment']['electron']['version']
+                        s.package.latest_version = s.package.version
 
             return res
 
