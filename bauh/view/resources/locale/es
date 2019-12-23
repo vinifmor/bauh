@@ -29,12 +29,15 @@ manage_window.status.installing=Instalando
 manage_window.status.refreshing_app=Actualizando
 manage_window.status.running_app=Ejecutando {}
 manage_window.status.filtering=Filtrando
+manage_window.status.suggestions=Buscando sugerencias
 manage_window.bt.refresh.text=Recargar
 manage_window.bt.refresh.tooltip=Recarga los datos sobre las aplicaciones instaladas
 manage_window.bt.upgrade.text=Actualizar
 manage_window.bt.upgrade.tooltip=Actualiza todas las aplicaciones marcadas
 manage_window.bt.installed.text=instaladas
 manage_window.bt.installed.tooltip==Pulse aquí para mostrar las aplicaciones instaladas
+manage_window.bt.suggestions.text=Sugerencias
+manage_window.bt.suggestions.tooltip=Pulse aquí para mostrar algunas sugerencias de aplicaciones
 manage_window.checkbox.show_details=Mostrar detalles
 popup.root.title=Proporcione su contraseña para continuar
 popup.root.continue=continuar

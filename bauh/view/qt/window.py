@@ -186,7 +186,7 @@ class ManageWindow(QWidget):
         self.bt_installed = QPushButton()
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
-        self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize() + '  ')
+        self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
@@ -194,7 +194,8 @@ class ManageWindow(QWidget):
 
         if config['suggestions']['enabled']:
             self.bt_suggestions = QPushButton()
-            self.bt_suggestions.setText('Suggestions')
+            self.bt_installed.setToolTip(self.i18n['manage_window.bt.suggestions.tooltip'])
+            self.bt_suggestions.setText(self.i18n['manage_window.bt.suggestions.text'].capitalize())
             self.bt_suggestions.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
             self.bt_suggestions.setStyleSheet(toolbar_button_style('#FF8000'))
             self.bt_suggestions.clicked.connect(self.read_suggestions)
@@ -526,7 +527,7 @@ class ManageWindow(QWidget):
         self._handle_console_option(False)
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action('Retrieving suggestions', keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+        self._begin_action(self.i18n['manage_window.status.suggestions'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
         self.thread_suggestions.filter_installed = True
         self.thread_suggestions.start()
 
