@@ -38,7 +38,7 @@ class WebApplication(SoftwarePackage):
     @staticmethod
     def _get_cached_attrs() -> tuple:
         return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', \
-               'desktop_entry', 'categories', 'custom_icon', 'options_set'
+               'desktop_entry', 'categories', 'custom_icon', 'options_set', 'save_icon'
 
     def can_be_downgraded(self):
         return False
