@@ -1113,6 +1113,10 @@ class ManageWindow(QWidget):
     def _show_settings_menu(self):
         menu_row = QMenu()
 
+        # TODO
+        # action_suggestions = QAction(self.i18n['manage_window.settings.suggestions'])
+        # action_suggestions.setIcon(QIcon())
+
         if isinstance(self.manager, GenericSoftwareManager):
             action_gems = QAction(self.i18n['manage_window.settings.gems'])
             action_gems.setIcon(self.icon_app)

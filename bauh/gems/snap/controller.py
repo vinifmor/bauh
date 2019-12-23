@@ -235,7 +235,7 @@ class SnapManager(SoftwareManager):
         else:
             self.logger.warning("Could not retrieve suggestion '{}'".format(pkg_name))
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
         if snap.is_snapd_running():

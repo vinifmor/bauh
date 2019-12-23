@@ -416,7 +416,7 @@ class AppImageManager(SoftwareManager):
     def list_warnings(self, internet_available: bool) -> List[str]:
         pass
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
         connection = self._get_db_connection(DB_APPS_PATH)

@@ -765,7 +765,7 @@ class WebApplicationManager(SoftwareManager):
 
         return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
 
         if self.suggestions:
             suggestions = self.suggestions

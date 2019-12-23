@@ -834,7 +834,7 @@ class ArchManager(SoftwareManager):
 
         return warnings
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
         file = self.http_client.get(SUGGESTIONS_FILE)
 

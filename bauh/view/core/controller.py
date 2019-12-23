@@ -341,7 +341,7 @@ class GenericSoftwareManager(SoftwareManager):
 
                 suggestions.extend(man_sugs)
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         if bool(self.config['suggestions']['enabled']):
             if self.managers and internet.is_available(self.context.http_client, self.context.logger):
                 suggestions, threads = [], []

@@ -260,7 +260,7 @@ class FlatpakManager(SoftwareManager):
                 return [self.i18n['flatpak.notification.no_remotes'],
                         self.i18n['flatpak.notification.disable'].format(bold('Flatpak'), bold(self.i18n['manage_window.settings.gems']))]
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()
         res = []
 
