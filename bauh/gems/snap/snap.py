@@ -37,7 +37,7 @@ def is_snapd_running() -> bool:
                     socket = True
                     socket_running = running
 
-    return socket and socket_running and (not service or (service and service_running))
+    return socket and socket_running and (not service or service_running)
 
 
 def app_str_to_json(app: str) -> dict:
