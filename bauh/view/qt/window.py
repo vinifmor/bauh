@@ -181,13 +181,16 @@ class ManageWindow(QWidget):
 
         self.toolbar.addWidget(new_spacer())
 
+        toolbar_bts = []
+
         self.bt_installed = QPushButton()
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
-        self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
+        self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize() + '  ')
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
+        toolbar_bts.append(self.bt_installed)
 
         if config['suggestions']['enabled']:
             self.bt_suggestions = QPushButton()
@@ -196,6 +199,7 @@ class ManageWindow(QWidget):
             self.bt_suggestions.setStyleSheet(toolbar_button_style('#FF8000'))
             self.bt_suggestions.clicked.connect(self.read_suggestions)
             self.ref_bt_suggestions = self.toolbar.addWidget(self.bt_suggestions)
+            toolbar_bts.append(self.bt_suggestions)
         else:
             self.bt_suggestions = None
             self.ref_bt_suggestions = None
@@ -206,6 +210,7 @@ class ManageWindow(QWidget):
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
+        toolbar_bts.append(self.bt_refresh)
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
@@ -214,7 +219,20 @@ class ManageWindow(QWidget):
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
         self.bt_upgrade.setStyleSheet(toolbar_button_style('#20A435'))
         self.bt_upgrade.clicked.connect(self.update_selected)
+        toolbar_bts.append(self.bt_upgrade)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
+
+        # setting all buttons to the same size:
+        bt_biggest_size = 0
+        for bt in toolbar_bts:
+            bt_width = bt.sizeHint().width()
+            if bt_width > bt_biggest_size:
+                bt_biggest_size = bt_width
+
+        for bt in toolbar_bts:
+            bt_width = bt.sizeHint().width()
+            if bt_biggest_size > bt_width:
+                bt.setFixedWidth(bt_biggest_size)
 
         self.layout.addWidget(self.toolbar)
 
