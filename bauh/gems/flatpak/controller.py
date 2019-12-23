@@ -147,7 +147,12 @@ class FlatpakManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref)))
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref)))
+        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref)))
+
+        if self.suggestions_cache:
+            self.suggestions_cache.delete(pkg.id)
+
+        return uninstalled
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
@@ -272,12 +277,19 @@ class FlatpakManager(SoftwareManager):
             return res
         else:
             self.logger.info("Mapping suggestions")
+            installed = {i.id for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
 
             for line in file.text.split('\n'):
                 if line:
                     if limit <= 0 or len(res) < limit:
                         sug = line.split('=')
-                        appid, priority = sug[1], SuggestionPriority(int(sug[0]))
+                        appid = sug[1].strip()
+
+                        if installed and appid in installed:
+                            continue
+
+                        priority = SuggestionPriority(int(sug[0]))
+
                         cached_sug = self.suggestions_cache.get(appid)
 
                         if cached_sug:

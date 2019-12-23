@@ -782,6 +782,17 @@ class WebApplicationManager(SoftwareManager):
         if suggestions:
             suggestion_list = list(suggestions.values())
             suggestion_list.sort(key=lambda s: s.get('priority', 0), reverse=True)
+
+            if filter_installed:
+                installed = self.read_installed(disk_loader=None)
+                url_map = {self._strip_url_protocol(s['url']): idx for idx, s in enumerate(suggestion_list)}
+
+                if installed.installed:
+                    for i in installed.installed:
+                        s_url = self._strip_url_protocol(i.url)
+                        if s_url in url_map:
+                            suggestion_list.pop(url_map[s_url])
+
             to_map = suggestion_list if limit <= 0 else suggestion_list[0:limit]
             res = [self._map_suggestion(s) for s in to_map]
 

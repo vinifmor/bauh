@@ -189,6 +189,17 @@ class ManageWindow(QWidget):
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
 
+        if config['suggestions']['enabled']:
+            self.bt_suggestions = QPushButton()
+            self.bt_suggestions.setText('Suggestions')
+            self.bt_suggestions.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
+            self.bt_suggestions.setStyleSheet(toolbar_button_style('#FF8000'))
+            self.bt_suggestions.clicked.connect(self.read_suggestions)
+            self.ref_bt_suggestions = self.toolbar.addWidget(self.bt_suggestions)
+        else:
+            self.bt_suggestions = None
+            self.ref_bt_suggestions = None
+
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
@@ -492,6 +503,15 @@ class ManageWindow(QWidget):
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
+    def read_suggestions(self):
+        self.input_search.clear()
+        self._handle_console_option(False)
+        self.ref_checkbox_updates.setVisible(False)
+        self.ref_checkbox_only_apps.setVisible(False)
+        self._begin_action('Retrieving suggestions', keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+        self.thread_suggestions.filter_installed = True
+        self.thread_suggestions.start()
+
     def _finish_refresh_apps(self, res: dict, as_installed: bool = True):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
@@ -671,6 +691,7 @@ class ManageWindow(QWidget):
         if pkgs_info['apps_count'] == 0:
             if self.first_refresh or self.types_changed:
                 self._begin_search('')
+                self.thread_suggestions.filter_installed = False
                 self.thread_suggestions.start()
                 return
             else:
@@ -870,6 +891,10 @@ class ManageWindow(QWidget):
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
         self.ref_bt_refresh.setVisible(False)
+
+        if self.ref_bt_suggestions:
+            self.ref_bt_suggestions.setVisible(False)
+
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
@@ -912,6 +937,9 @@ class ManageWindow(QWidget):
         self.combo_filter_type.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
         self.progress_controll_enabled = True
+
+        if self.ref_bt_suggestions:
+            self.ref_bt_suggestions.setVisible(True)
 
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)
@@ -1112,10 +1140,6 @@ class ManageWindow(QWidget):
 
     def _show_settings_menu(self):
         menu_row = QMenu()
-
-        # TODO
-        # action_suggestions = QAction(self.i18n['manage_window.settings.suggestions'])
-        # action_suggestions.setIcon(QIcon())
 
         if isinstance(self.manager, GenericSoftwareManager):
             action_gems = QAction(self.i18n['manage_window.settings.gems'])

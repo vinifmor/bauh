@@ -328,10 +328,10 @@ class GenericSoftwareManager(SoftwareManager):
 
         return warnings
 
-    def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int):
+    def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int, filter_installed: bool):
         if self._can_work(man):
             mti = time.time()
-            man_sugs = man.list_suggestions(limit)
+            man_sugs = man.list_suggestions(limit=limit, filter_installed=filter_installed)
             mtf = time.time()
             self.logger.info(man.__class__.__name__ + ' took {0:.2f} seconds'.format(mtf - mti))
 
@@ -346,7 +346,7 @@ class GenericSoftwareManager(SoftwareManager):
             if self.managers and internet.is_available(self.context.http_client, self.context.logger):
                 suggestions, threads = [], []
                 for man in self.managers:
-                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type'])))
+                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
                     t.start()
                     threads.append(t)
 

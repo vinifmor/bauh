@@ -26,6 +26,7 @@ from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, r
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
+from bauh.gems.appimage.query import FIND_APPS_BY_NAME, FIND_APPS_BY_NAME_ONLY_NAME
 from bauh.gems.appimage.worker import DatabaseUpdater
 
 DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
@@ -104,7 +105,8 @@ class AppImageManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False,
+                       pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, connection: sqlite3.Connection = None) -> SearchResult:
         res = SearchResult([], [], 0)
 
         if os.path.exists(INSTALLATION_PATH):
@@ -122,7 +124,7 @@ class AppImageManager(SoftwareManager):
                         names.add("'{}'".format(app.name.lower()))
 
                 if res.installed:
-                    con = self._get_db_connection(DB_APPS_PATH)
+                    con = self._get_db_connection(DB_APPS_PATH) if not connection else connection
 
                     if con:
                         try:
@@ -142,7 +144,8 @@ class AppImageManager(SoftwareManager):
                         except:
                             traceback.print_exc()
                         finally:
-                            self._close_connection(DB_APPS_PATH, con)
+                            if not connection:
+                                self._close_connection(DB_APPS_PATH, con)
 
         res.total = len(res.installed)
         return res
@@ -432,14 +435,23 @@ class AppImageManager(SoftwareManager):
                 try:
                     sugs = [l for l in file.text.split('\n') if l]
 
-                    if 0 < limit < len(sugs):
-                        sugs = sugs[0:limit]
+                    if filter_installed:
+                        installed = {i.name.lower() for i in self.read_installed(disk_loader=None, connection=connection).installed}
+                    else:
+                        installed = None
 
                     sugs_map = {}
 
                     for s in sugs:
                         lsplit = s.split('=')
-                        sugs_map[lsplit[1].strip()] = SuggestionPriority(int(lsplit[0]))
+
+                        name = lsplit[1].strip()
+
+                        if limit <= 0 or len(sugs_map) < limit:
+                            if not installed or not name.lower() in installed:
+                                sugs_map[name] = SuggestionPriority(int(lsplit[0]))
+                        else:
+                            break
 
                     cursor = connection.cursor()
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))

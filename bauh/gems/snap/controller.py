@@ -126,7 +126,12 @@ class SnapManager(SoftwareManager):
         raise Exception("'update' is not supported by {}".format(pkg.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
+        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
+
+        if self.suggestions_cache:
+            self.suggestions_cache.delete(pkg.name)
+
+        return uninstalled
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {SnapApplication}
@@ -250,20 +255,24 @@ class SnapManager(SoftwareManager):
                 self.categories_downloader.join()
 
                 suggestions, threads = [], []
+                installed = {i.name.lower() for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
 
                 for l in file.text.split('\n'):
                     if l:
                         if limit <= 0 or len(suggestions) < limit:
                             sug = l.strip().split('=')
-                            cached_sug = self.suggestions_cache.get(sug[1])
+                            name = sug[1]
 
-                            if cached_sug:
-                                res.append(cached_sug)
-                            else:
-                                t = Thread(target=self._fill_suggestion, args=(sug[1], SuggestionPriority(int(sug[0])), res))
-                                t.start()
-                                threads.append(t)
-                                time.sleep(0.001)  # to avoid being blocked
+                            if not installed or name not in installed:
+                                cached_sug = self.suggestions_cache.get(name)
+
+                                if cached_sug:
+                                    res.append(cached_sug)
+                                else:
+                                    t = Thread(target=self._fill_suggestion, args=(name, SuggestionPriority(int(sug[0])), res))
+                                    t.start()
+                                    threads.append(t)
+                                    time.sleep(0.001)  # to avoid being blocked
                         else:
                             break
 

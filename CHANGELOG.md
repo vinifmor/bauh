@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - bauh relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to install the Web applications, but there is no need to have them installed on your system. Bauh will create its own installation environment with these technologies in **~/.local/share/bauh/web/env**.
     - suggestions are retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml)
     - requires only **python-beautifulsoup4** and **python-lxml** to be enabled
+- **Suggestions** button: it allows retrieving the application suggestions any time
 
 ### Improvements
 - configuration file **~/.config/bauh/config.json** renamed to **~/.config/bauh/config.yml**

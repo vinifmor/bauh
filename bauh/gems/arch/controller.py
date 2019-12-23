@@ -848,7 +848,10 @@ class ArchManager(SoftwareManager):
                 if l:
                     if limit <= 0 or len(suggestions) < limit:
                         lsplit = l.split('=')
-                        suggestions[lsplit[1].strip()] = SuggestionPriority(int(lsplit[0]))
+                        name = lsplit[1].strip()
+
+                        if not filter_installed or not pacman.check_installed(name):
+                            suggestions[name] = SuggestionPriority(int(lsplit[0]))
 
             api_res = self.aur_client.get_info(suggestions.keys())
 

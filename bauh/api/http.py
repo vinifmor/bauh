@@ -17,7 +17,7 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False):
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False) -> requests.Request:
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
