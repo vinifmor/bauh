@@ -13,14 +13,15 @@ import requests
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
+from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
+    SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
     SimpleProcess
-from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
-    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE
+from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
@@ -63,6 +64,7 @@ class ArchManager(SoftwareManager):
         self.categories = {}
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
         self.local_config = None
+        self.http_client = context.http_client
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -833,25 +835,32 @@ class ArchManager(SoftwareManager):
         return warnings
 
     def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        res = []
+        self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
+        file = self.http_client.get(SUGGESTIONS_FILE)
 
-        sugs = [(i, p) for i, p in suggestions.ALL.items()]
-        sugs.sort(key=lambda t: t[1].value, reverse=True)
+        if not file or not file.text:
+            self.logger.warning("No suggestion could be read from {}".format(SUGGESTIONS_FILE))
+        else:
+            self.logger.info("Mapping suggestions")
+            suggestions = {}
 
-        if limit > 0:
-            sugs = sugs[0:limit]
+            for l in file.text.split('\n'):
+                if l:
+                    if limit <= 0 or len(suggestions) < limit:
+                        lsplit = l.split('=')
+                        suggestions[lsplit[1].strip()] = SuggestionPriority(int(lsplit[0]))
 
-        sug_names = {s[0] for s in sugs}
+            api_res = self.aur_client.get_info(suggestions.keys())
 
-        api_res = self.aur_client.get_info(sug_names)
+            if api_res:
+                res = []
+                self.categories_mapper.join()
+                for pkg in api_res:
+                    if pkg.get('Name') in suggestions:
+                        res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions[pkg['Name']]))
 
-        if api_res:
-            self.categories_mapper.join()
-            for pkg in api_res:
-                if pkg.get('Name') in sug_names:
-                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions.ALL.get(pkg['Name'])))
-
-        return res
+                self.logger.info("Mapped {} suggestions".format(len(suggestions)))
+                return res
 
     def is_default_enabled(self) -> bool:
         return True

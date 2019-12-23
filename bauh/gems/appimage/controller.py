@@ -439,7 +439,7 @@ class AppImageManager(SoftwareManager):
 
                     for s in sugs:
                         lsplit = s.split('=')
-                        sugs_map[lsplit[1]] = SuggestionPriority(int(lsplit[0]))
+                        sugs_map[lsplit[1].strip()] = SuggestionPriority(int(lsplit[0]))
 
                     cursor = connection.cursor()
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
