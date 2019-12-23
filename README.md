@@ -96,6 +96,9 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+
+![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/flatpak/search.gif)
+
 - Required dependencies:
     - Any distro: **flatpak**
 

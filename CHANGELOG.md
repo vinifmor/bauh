@@ -1,5 +1,5 @@
 # Changelog
-All notable changes to this project will be documented in this file.uh-staging
+All notable changes to this project will be documented in this file.
 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
@@ -7,15 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.8.0] 2019-12
 ### Features
 - Native Web applications support:
-    - if an URL is typed in the search, a native web application result will be displayed in the results table.
+    - if an URL is typed in the search bar, a native web application result will be displayed in the results table.
     - bauh relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to install the Web applications, but there is no need to have them installed on your system. Bauh will create its own installation environment with these technologies in **~/.local/share/bauh/web/env**.
     - suggestions are retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml)
     - requires only **python-beautifulsoup4** and **python-lxml** to be enabled
-- **Suggestions** button: it allows retrieving the application suggestions any time
+- **Suggestions** button: it shows some application suggestions 
 
 ### Improvements
 - configuration file **~/.config/bauh/config.json** renamed to **~/.config/bauh/config.yml**
-- some parameters and environment variable were moved to the configuration file ( **~/.config/bauh/config.yml** )
+- some parameters and environment variables were moved to the configuration file ( **~/.config/bauh/config.yml** )
 ```
 disk_cache:  # old '--disk_cache'
   enabled: true
@@ -53,11 +53,13 @@ updates:
 - AppImage:
     - cleaning the downloaded database files when **--reset** is passed as parameter
     - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/suggestions.txt)
 - AUR:
     - The AUR indexer daemon is not running every 20 minutes anymore. It will only run during the boot, and will generate the optimized index
     at **/tmp/bauh/arch/aur.txt**. This new behavior does not harm the current experience, and reduces memory usage. More information about this behavior in [README](https://github.com/vinifmor/bauh/blob/master/README.md).
     - Environment variable **BAUH_ARCH_AUR_INDEX_UPDATER** dropped in favor of the behavior described above.
-    - Environment variables **BAUH_ARCH_OPTIMIZE** and **BAUH_ARCH_CHECK_SUBDEPS** dropped in favor of the new configuration file located at **~/.config/bauh/arch.yml**  
+    - Environment variables **BAUH_ARCH_OPTIMIZE** and **BAUH_ARCH_CHECK_SUBDEPS** dropped in favor of the new configuration file located at **~/.config/bauh/arch.yml**
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/aur/suggestions.txt)  
 - Flatpak:
     - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/flatpak/suggestions.txt)
 - Snap:
