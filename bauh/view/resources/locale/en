@@ -174,3 +174,5 @@ view.components.file_chooser.placeholder=Click here to select
 files=files
 all_files=all files
 file_chooser.title=File selector
+message.file.not_exist=File does not exist
+message.file.not_exist.body=The file {} seems not to exist

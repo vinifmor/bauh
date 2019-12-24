@@ -215,3 +215,5 @@ view.components.file_chooser.placeholder=Pulse aquí para seleccionar
 files=archivos
 all_files=todos los archivos
 file_chooser.title=Selector de archivos
+message.file.not_exist=Archivo no existe
+message.file.not_exist.body=El archivo {} parece no existir

@@ -216,3 +216,5 @@ view.components.file_chooser.placeholder=Feu clic aquí per seleccionar
 files=fitxers
 all_files=tots els fitxers
 file_chooser.title=Selector de fitxers
+message.file.not_exist=Fitxer no existeix
+message.file.not_exist.body=El fitxer {} sembla no existir

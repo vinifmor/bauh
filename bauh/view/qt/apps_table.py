@@ -299,7 +299,7 @@ class AppsTable(QTableWidget):
         self.setCellWidget(pkg.table_index, col, item)
 
     def _set_col_version(self, col: int, pkg: PackageView):
-        label_version = QLabel(pkg.model.version if pkg.model.version else '?')
+        label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
         label_version.setAlignment(Qt.AlignCenter)
 
         item = QWidget()

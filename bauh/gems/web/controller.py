@@ -255,7 +255,7 @@ class WebApplicationManager(SoftwareManager):
 
             if local_config['environment']['electron']['version']:
                 for app in res.new:
-                    app.version = local_config['environment']['electron']['version']
+                    app.version = str(local_config['environment']['electron']['version'])
                     app.latest_version = app.version
 
         return res
@@ -605,10 +605,10 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
-        electron_version = next((c for c in env_components if c.id == 'electron')).version
+        electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version,
-                                                             system=local_config['environment']['system'],
+                                                             system=bool(local_config['environment']['system']),
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
 
@@ -838,7 +838,7 @@ class WebApplicationManager(SoftwareManager):
                 thread_config.join()
                 if local_config and local_config['environment']['electron']['version']:
                     for s in res:
-                        s.package.version = local_config['environment']['electron']['version']
+                        s.package.version = str(local_config['environment']['electron']['version'])
                         s.package.latest_version = s.package.version
 
             return res

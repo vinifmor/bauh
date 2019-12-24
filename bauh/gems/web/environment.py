@@ -11,6 +11,7 @@ import yaml
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import system
 from bauh.commons.html import bold
@@ -193,11 +194,27 @@ class EnvironmentUpdater:
         Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
         self.logger.info("Downloading Electron {}".format(version))
         electron_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1])
+
+        if not self.http_client.exists(url):
+            self.logger.warning("The file {} seems not to exist".format(url))
+            watcher.show_message(title=self.i18n['message.file.not_exist'],
+                                 body=self.i18n['message.file.not_exist.body'].format(bold(url)),
+                                 type_=MessageType.ERROR)
+            return False
+
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_PATH)
 
     def download_electron_sha256(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading Electron {} sha526".format(version))
         sha256_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1]) + '-{}'.format(version)
+
+        if not self.http_client.exists(url):
+            self.logger.warning("The file {} seems not to exist".format(url))
+            watcher.show_message(title=self.i18n['message.file.not_exist'],
+                                 body=self.i18n['message.file.not_exist.body'].format(bold(url)),
+                                 type_=MessageType.ERROR)
+            return False
+
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_PATH)
 
     def _get_electron_url(self, version: str, is_x86_x64_arch: bool) -> str:
