@@ -79,4 +79,4 @@ class HttpClient:
 
     def exists(self, url: str) -> bool:
         res = self.session.head(url=url, allow_redirects=True, verify=False, timeout=5)
-        return res.status_code == 200
+        return res.status_code in (200, 403)
