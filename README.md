@@ -97,7 +97,7 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 #### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/flatpak/search.gif)
+![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
 
 - Required dependencies:
     - Any distro: **flatpak**
@@ -105,7 +105,7 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 #### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/snap/search.gif)
+![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif)
 
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
@@ -113,7 +113,7 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/appimage/search.gif)
+![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif)
 
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
@@ -139,7 +139,7 @@ db_updater:
 - Only available for **Arch-based systems**
 - The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
 
-![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/aur/search.gif)
+![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/aur/search.gif)
 
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
 - Automatically makes simple package compilation improvements:
@@ -168,16 +168,16 @@ transitive_checking: true  # if 'false': the dependency checking process will be
 #### Native Web Applications ( web )
 - It allows the installation of native Web applications by typing their addresses / URLs on the search bar
 
-![url_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/url_search.gif)
+![url_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif)
 
 - It offers the possibility to customize the generated app the way you want:
 
-![options](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/options.png)
+![options](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/options.png)
 
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
 
-![suggestions](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/suggestions.gif)
+![suggestions](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/suggestions.gif)
 
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
 will be generated at **~/.local/share/bauh/web/env**.
@@ -190,7 +190,7 @@ attach it to the generated app.
 - If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
 allowing the application to launch automatically after the system's boot attached to the tray.
 
-![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/web/tray.gif)
+![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif)
  
 - The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```
