@@ -1,4 +1,4 @@
 pyqt5>=5.12
-requests>=2.22
-colorama>=0.4.1
-pyyaml>=5.1
+requests>=2.18
+colorama>=0.3.8
+pyyaml>=3.13
