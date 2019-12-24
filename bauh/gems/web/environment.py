@@ -4,7 +4,7 @@ import shutil
 import tarfile
 from pathlib import Path
 from threading import Thread
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import requests
 import yaml
@@ -18,8 +18,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, NATIVEFIER_URL
-from bauh.gems.web.config import read_config
+    nativefier, URL_NATIVEFIER
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
@@ -153,6 +152,16 @@ class EnvironmentUpdater:
         return installed
 
     def _install_nativefier(self, version: str, handler: ProcessHandler) -> bool:
+        self.logger.info("Checking if nativefier@{} exists".format(version))
+
+        url = URL_NATIVEFIER.format(version=version)
+        if not self.http_client.exists(url):
+            self.logger.warning("The file {} seems not to exist".format(url))
+            handler.watcher.show_message(title=self.i18n['message.file.not_exist'],
+                                         body=self.i18n['message.file.not_exist.body'].format(bold(url)),
+                                         type_=MessageType.ERROR)
+            return False
+
         success = self._install_node_lib('nativefier', version, handler)
 
         if success:
@@ -160,35 +169,6 @@ class EnvironmentUpdater:
 
     def _is_nativefier_installed(self) -> bool:
         return os.path.exists(NATIVEFIER_BIN_PATH)
-
-    def install_nativefier(self, version: str, remove_modules: bool = False, handler: ProcessHandler = None) -> bool:
-        self.logger.info("Preparing to install nativefier {}".format(version))
-
-        if remove_modules and os.path.exists(NODE_MODULES_PATH):
-            self.logger.info('Removing old dir {}'.format(NODE_MODULES_PATH))
-            try:
-                shutil.rmtree(NODE_MODULES_PATH)
-            except:
-                self.logger.error('Could not remove dir {}. Aborting...'.format(NODE_MODULES_PATH))
-                return False
-
-            return self._install_nativefier(version=version, handler=handler)
-        else:
-            if not self._is_nativefier_installed():
-                return self._install_nativefier(version=version, handler=handler)
-
-            installed_version = nativefier.get_version()
-
-            if installed_version:
-                installed_version = installed_version.strip()
-
-            self.logger.info("Nativefier versions: installed ({}), cloud ({})".format(installed_version, version))
-            if version != installed_version:
-                self.logger.info("Installed nativefier version is different from cloud's. Changing version.")
-                return self._install_nativefier(version=version, handler=handler)
-
-            self.logger.info("Nativefier is already installed and up to date")
-            return True
 
     def download_electron(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
         Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
@@ -332,7 +312,7 @@ class EnvironmentUpdater:
             return True
 
     def _map_nativefier_file(self, nativefier_settings: dict) -> EnvironmentComponent:
-        url = NATIVEFIER_URL.format(version=nativefier_settings['version'])
+        url = URL_NATIVEFIER.format(version=nativefier_settings['version'])
         return EnvironmentComponent(name='nativefier@{}'.format(nativefier_settings['version']),
                                     url=url,
                                     size=self.http_client.get_content_length(url),
