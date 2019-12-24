@@ -411,7 +411,7 @@ class WebApplicationManager(SoftwareManager):
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
                                          label=self.i18n['web.install.option.wicon.label'])
 
-        icon_chooser = FileChooserComponent(allowed_extensions={'png'}, label=self.i18n['web.install.option.icon.label'])
+        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico'}, label=self.i18n['web.install.option.icon.label'])
 
         form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
 
