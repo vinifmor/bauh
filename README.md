@@ -1,7 +1,7 @@
-**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications / packages ( formerly known as **fpakman** ). It currently supports Flatpak, Snap, AppImage, AUR and native Web Applications. When you launch **bauh** you will see
-a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the application technology.
+**bauh** ( ba-oo ) is a graphical interface for managing your Linux applications / packages. It was formerly known as **fpakman**. It is able to manage AUR, AppImage, Flatpak and Snap applications, and also to generate native Web applications. When you launch **bauh** you will see
+a management panel where you can search, update, install, uninstall and launch applications. Downgrading is also possible in some cases.
 
-It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
+It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches itself to the system tray. The attached bauh icon will get red when updates are available.
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
@@ -136,7 +136,7 @@ db_updater:
     - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
 #### AUR ( arch )
-- Only available for Arch-based systems
+- Only available for **Arch-based systems**
 - The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
 
 ![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/wgem/pictures/aur/search.gif)
@@ -183,7 +183,7 @@ defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/
 will be generated at **~/.local/share/bauh/web/env**.
 - The isolated environment is created based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
  ( downloaded during runtime ).
-- Some applications require Javascript fixes to properly work. If it is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
+- Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
 attach it to the generated app.
 - The installed applications are located at **~/.local/share/bauh/installed**.
 - A desktop entry / shortcut will be generated for the installed applications at **~/.local/share/application**
@@ -242,23 +242,23 @@ updates:
 ```
 #### Tray icons
 Priority: 
-    1) Icon paths defined in **~/.config/bauh/config.yml**
-    2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
-    3) Own packaged icons
+  1) Icon paths defined in **~/.config/bauh/config.yml**
+  2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
+  3) Own packaged icons
 
 ### How to improve the performance
-- Disable package types that you do not want to deal with ( via GUI )
-- If you don't care about restarting the app every time a new supported packaging technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if required technologies are available for every action you request.
-- If you don't mind to see the applications icons, you can disable `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
+- Disable the application types you do not want to deal with
+- If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
+- If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
 - Let the `disk_cache` always enabled so **bauh** does not need to dynamically retrieve data every time you launch it.
 
 
 ### Files and Logs
-- Installation logs are saved at **/tmp/bauh/logs/install**
+- Installation logs and temporary files are saved at **/tmp/bauh**
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
 
 ### [bauh-files](https://github.com/vinifmor/bauh-files)
-- It is a separate repository with some files downloaded by **bauh** during runtime.
+- It is a separate repository with some files downloaded during runtime.
 
 ### Code structure
 #### Modules
