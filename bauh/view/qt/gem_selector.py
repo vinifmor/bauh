@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QGridLayout, QPushButton
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption
-from bauh.view.core.config import Configuration, save
+from bauh.view.core.config import save
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.util import resource
 from bauh.view.qt import qt_utils, css
@@ -14,7 +14,7 @@ from bauh.view.util.translation import I18n
 
 class GemSelectorPanel(QWidget):
 
-    def __init__(self, window: QWidget, manager: GenericSoftwareManager, i18n: I18n, config: Configuration, show_panel_after_restart: bool = False):
+    def __init__(self, window: QWidget, manager: GenericSoftwareManager, i18n: I18n, config: dict, show_panel_after_restart: bool = False):
         super(GemSelectorPanel, self).__init__()
         self.window = window
         self.manager = manager
@@ -40,7 +40,10 @@ class GemSelectorPanel(QWidget):
         gem_options = []
         default = set()
 
-        for m in manager.managers:
+        managers = [*manager.managers]
+        managers.sort(key=lambda c: c.__class__.__name__)
+
+        for m in managers:
             if m.can_work():
                 modname = m.__module__.split('.')[-2]
                 op = InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
@@ -54,8 +57,8 @@ class GemSelectorPanel(QWidget):
                 if m.is_enabled() and m in manager.working_managers:
                     default.add(op)
 
-        if self.config.enabled_gems:
-            default_ops = {o for o in gem_options if o.value in self.config.enabled_gems}
+        if self.config['gems']:
+            default_ops = {o for o in gem_options if o.value in self.config['gems']}
         else:
             default_ops = default
 
@@ -86,7 +89,7 @@ class GemSelectorPanel(QWidget):
             enabled = module in enabled_gems
             man.set_enabled(enabled)
 
-        self.config.enabled_gems = enabled_gems
+        self.config['gems'] = enabled_gems
         save(self.config)
 
         self.manager.reset_cache()

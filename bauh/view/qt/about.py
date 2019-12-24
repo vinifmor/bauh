@@ -5,7 +5,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
-from bauh.view.util import resource
+from bauh.view.util import resource, util
 from bauh.view.util.translation import I18n
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
@@ -21,7 +21,8 @@ class AboutDialog(QDialog):
         self.setLayout(layout)
 
         label_logo = QLabel()
-        label_logo.setPixmap(QPixmap(resource.get_path('img/logo.svg')))
+        icon = util.get_default_icon()[1].pixmap(64, 64)
+        label_logo.setPixmap(icon)
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
 
@@ -31,7 +32,7 @@ class AboutDialog(QDialog):
         layout.addWidget(label_name)
 
         label_version = QLabel(i18n['version'].lower() + ' ' + __version__)
-        label_version.setStyleSheet('QLabel { font-size: 10px; font-weight: bold }')
+        label_version.setStyleSheet('QLabel { font-size: 11px; font-weight: bold }')
         label_version.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_version)
 
@@ -45,17 +46,19 @@ class AboutDialog(QDialog):
 
         layout.addWidget(QLabel(''))
 
-        available_gems = [f for f in glob('{}/gems/*'.format(ROOT_DIR)) if not f.endswith('.py')]
+        available_gems = [f for f in glob('{}/gems/*'.format(ROOT_DIR)) if not f.endswith('.py') and not f.endswith('__pycache__')]
         available_gems.sort()
 
         gems_widget = QWidget()
         gems_widget.setLayout(QHBoxLayout())
 
+        gems_widget.layout().addWidget(QLabel())
         for gem_path in available_gems:
             icon = QLabel()
             pxmap = QPixmap(gem_path + '/resources/img/{}.png'.format(gem_path.split('/')[-1]))
             icon.setPixmap(pxmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             gems_widget.layout().addWidget(icon)
+        gems_widget.layout().addWidget(QLabel())
 
         layout.addWidget(gems_widget)
         layout.addWidget(QLabel(''))

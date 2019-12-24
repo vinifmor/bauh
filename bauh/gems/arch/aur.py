@@ -1,10 +1,12 @@
+import logging
+import os
 import re
 from typing import Set, List
 
 from bauh.api.http import HttpClient
 import urllib.parse
 
-from bauh.gems.arch import pacman
+from bauh.gems.arch import pacman, AUR_INDEX_FILE
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
@@ -22,9 +24,9 @@ def map_pkgbuild(pkgbuild: str) -> dict:
 
 class AURClient:
 
-    def __init__(self, http_client: HttpClient):
+    def __init__(self, http_client: HttpClient, logger: logging.Logger):
         self.http_client = http_client
-        self.names_index = set()
+        self.logger = logger
 
     def search(self, words: str) -> dict:
         return self.http_client.get_json(URL_SEARCH + words)
@@ -64,3 +66,17 @@ class AURClient:
 
     def _map_names_as_queries(self, names) -> str:
         return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])
+
+    def read_local_index(self) -> dict:
+        self.logger.info('Checking if the AUR index file exists')
+        if os.path.exists(AUR_INDEX_FILE):
+            self.logger.info('Reading AUR index file from {}'.format(AUR_INDEX_FILE))
+            index = {}
+            with open(AUR_INDEX_FILE) as f:
+                for l in f.readlines():
+                    if l:
+                        lsplit = l.split('=')
+                        index[lsplit[0]] = lsplit[1].strip()
+            self.logger.info("AUR index file read")
+            return index
+        self.logger.warning('The AUR index file was not found')

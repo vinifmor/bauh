@@ -101,3 +101,4 @@ arch.aur.install.unknown_key.status=Recebendo a chave pública {}
 arch.aur.install.unknown_key.receive_error=Não fui possível receber a chave pública {}
 arch.aur.install.validity_check.title=Problemas de integridade
 arch.aur.install.validity_check.body=Alguns dos arquivos-fonte necessários para instalação de {} não estão íntegros. A instalação será cancelada para evitar danos no seu sistema.
+arch.makepkg.optimizing=Otimizando a compilação

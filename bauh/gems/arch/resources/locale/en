@@ -101,3 +101,4 @@ aur.info.validpgpkeys=valid PGP keys
 aur.info.options=options
 aur.info.provides=provides
 aur.info.conflicts with=conflicts with
+arch.makepkg.optimizing=Optimizing the compilation

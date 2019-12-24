@@ -1,7 +1,7 @@
-**bauh** ( ba-oo ) is a graphical user interface to manage your Linux applications ( packages ) ( old **fpakman** ). It currently supports Flatpak, Snap, AppImage and AUR packaging types. When you launch **bauh** you will see
-a management panel where you can search, update, install, uninstall and launch applications. You can also downgrade some applications depending on the package technology.
+**bauh** ( ba-oo ) is a graphical interface for managing your Linux applications / packages. It was formerly known as **fpakman**. It is able to manage AUR, AppImage, Flatpak and Snap applications, and also to generate native Web applications. When you launch **bauh** you will see
+a management panel where you can search, update, install, uninstall and launch applications. Downgrading is also possible in some cases.
 
-It has a **tray mode** (see **Settings** below) that attaches the application icon to the system tray providing a quick way to launch it. Also the icon will get red when updates are available.
+It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches itself to the system tray. The attached bauh icon will get red when updates are available.
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
@@ -12,34 +12,29 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 
 
 ### Developed with
-- Python3 and Qt5.
+- Python3 and Qt5
 
-### Requirements
+### Basic requirements
 
 #### Debian-based distros
 - **python3.5** or above
 - **pip3**
-- **python3-venv** ( only for **Manual installation** described below )
+- **python3-requests**
+- **python-yaml**
+- **python3-venv** ( only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation) )
+- **libappindicator3** ( for the **tray mode** in GTK3 desktop environments )
 
 #### Arch-based distros
 - **python**
 - **python-requests**
 - **python-pip**
 - **python-pyqt5**
+- **python-yaml**
+- **libappindicator-gtk3** ( for the **tray mode** in GTK3 desktop environments )
 
-##### Optional
-- **flatpak**: to be able to handle Flatpak applications
-- **snapd**: to be able to handle Snap applications
-- **pacman**: to be able to handle AUR packages
-- **wget**: to be able to handle AppImage and AUR packages
-- **sqlite3**: to be able to handle AppImage applications
-- **git**: to be able to downgrade AUR packages
-- **aria2**: faster AppImage and AUR source files downloading ( reduces packages installation time. More information below. )
-- **libappindicator3**: for the **tray mode** in GTK3 desktop environments
+The other requirements depend on which type of applications you want to manage ( see [Gems](https://github.com/vinifmor/bauh/tree/wgem#gems--package-technology-support-) ).
 
-- [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system.
-
-### Distribution
+### Installation
 
 **AUR**
 
@@ -85,38 +80,68 @@ Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/lo
 - P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
 
 ### Autostart
-In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**).
+In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**). Or
+create a file named **bauh.desktop** in **~/.config/autostart** with the content below:
+```
+[Desktop Entry]
+Type=Application
+Name=bauh ( tray )
+Exec=/path/to/bauh --tray=1
+```
 
 ### Uninstallation
-Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cache files stored in your **HOME** folder.
+Before uninstalling bauh via your package manager, consider executing `bauh --reset` to remove configuration and cached files stored in your **HOME** folder.
 
-### Theme issues
-If bauh is not starting properly after changing its style, execute `bauh --reset` to reset its configuration or just delete the **style** key from the file **~/.config/bauh/config.json**.
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
+![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
+
+- Required dependencies:
+    - Any distro: **flatpak**
+
 #### Snap ( snap )
 - The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
+![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif)
+
+- Required dependencies:
+    - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
+
 #### AppImage ( appimage )
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
+
+![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif)
+
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
-- Faster downloads if **aria2c** is installed. Same behavior described in the **AUR support** section.
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases updater daemon running every 20 minutes ( the interval in SECONDS can be changed with the environment variable **BAUH_APPIMAGE_DB_UPDATER_TIME** ). It can be disabled via the environment variable **BAUH_APPIMAGE_DB_UPDATER=0**.
-- All supported application names can be found at: https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt
-
-Obs: There are some crashes when **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an AppImage application.
+- Databases are always updated when bauh starts
+- Databases updater daemon running every 20 minutes ( it can be customized via the configuration file described below )
+- Crashes may happen during an AppImage installation if **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an application.
+- All supported application names can be found at [apps.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt)
+- The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
+```
+db_updater:
+  enabled: true  # if 'false': disables the daemon database updater ( bauh will not be able to see if there are updates for your already installed AppImages )
+  interval: 1200  # the databases update interval in SECONDS ( 1200 == 20 minutes )
+```
+- Required dependencies
+    - Arch-based systems: **sqlite**, **wget** ( or **aria2** for faster multi-threaded downloads )
+    - Debian-based systems: **sqlite3**, **wget** ( or **aria2** for faster multi-threaded downloads )
+    - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system
+    - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
 #### AUR ( arch )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the packages history
+- Only available for **Arch-based systems**
+- The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
+
+![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/aur/search.gif)
+
 - It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
-- If [**aria2**](https://github.com/aria2/aria2) is installed on your system and multi-threaded downloads are enabled ( see **BAUH_DOWNLOAD_MULTITHREAD** ), the source packages
-will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings ).
 - Automatically makes simple package compilation improvements:
 
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
@@ -125,44 +150,115 @@ will be pre-downloaded faster ( it does **NOT** modify your **pacman** settings 
 
     b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
 
-    Obs: this feature can be disabled through the environment variable **BAUH_ARCH_OPTIMIZE=0**
-    ( For more information about these optimizations, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg) )
-- Arch package memory-indexer running every 20 minutes. This memory index is used when AUR Api cannot handle the amount of results found for a given search. It can be disabled via the environment variable **BAUH_ARCH_AUR_INDEX_UPDATER=0**.
+    Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
+- During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-- Transitive dependencies checking can be disabled through the environment variable **BAUH_ARCH_CHECK_SUBDEPS=0**. The dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+- The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
+```
+optimize: true  # if 'false': disables the auto-compilation improvements
+transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+``` 
+- Required dependencies:
+    - **pacman**
+    - **wget**
+- Optional dependencies:
+    - **git**: allows to retrieve packages release history and downgrading
+    - **aria2**: provides faster, multi-threaded downloads for required source files ( if the param )
+
+#### Native Web Applications ( web )
+- It allows the installation of native Web applications by typing their addresses / URLs on the search bar
+
+![url_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif)
+
+- It offers the possibility to customize the generated app the way you want:
+
+![options](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/options.png)
+
+- It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
+defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
+
+![suggestions](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/suggestions.gif)
+
+- It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
+will be generated at **~/.local/share/bauh/web/env**.
+- The isolated environment is created based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
+ ( downloaded during runtime ).
+- Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
+attach it to the generated app.
+- The installed applications are located at **~/.local/share/bauh/installed**.
+- A desktop entry / shortcut will be generated for the installed applications at **~/.local/share/application**
+- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
+allowing the application to launch automatically after the system's boot attached to the tray.
+
+![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif)
+ 
+- The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
+```
+environment:
+  electron:
+    version: null  # set a custom Electron version here ( e.g: '6.1.4' )
+  system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
+```
+- Required dependencies: 
+    - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
+    - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
 ### General settings
-You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
-- **BAUH_SYSTEM_NOTIFICATIONS**: enable or disable system notifications. Use **0** (disable) or **1** (enable, default).
-- **BAUH_CHECK_INTERVAL**: define the updates check interval in seconds. Default: 60.
-- **BAUH_LOCALE**: define a custom app translation for a given locale key (e.g: 'pt', 'en', 'es', ...). Default: system locale.
-- **BAUH_CACHE_EXPIRATION**: define a custom expiration time in SECONDS for cached API data. Default: 3600 (1 hour).
-- **BAUH_ICON_EXPIRATION**: define a custom expiration time in SECONDS for cached icons. Default: 300 (5 minutes).
-- **BAUH_DISK_CACHE**: enables / disables disk cache. When disk cache is enabled, the installed packages data are loaded faster. Use **0** (disable) or **1** (enable, default).
-- **BAUH_DOWNLOAD_ICONS**: Enables / disables applications icons downloading. It may improve the application speed depending on how applications data are being retrieved. Use **0** (disable) or **1** (enable, default).
-- **BAUH_CHECK_PACKAGING_ONCE**: If the availabilty of the supported packaging types should be checked only once. It improves the application speed if enabled, but can generate errors if you uninstall any packaging technology while using it, and every time a new supported packaging type is installed it will only be available after a restart. Use **0** (disable, default) or **1** (enable).
-- **BAUH_TRAY**: If the tray icon and update-check daemon should be created. Use **0** (disable, default) or **1** (enable).
-- **BAUH_SUGGESTIONS**: If application suggestions should be displayed if no package considered an application is installed (runtimes / libraries do not count as applications). Use **0** (disable) or **1** (enable, default).
-- **BAUH_MAX_DISPLAYED**: Maximum number of displayed packages in the management panel table. Default: 50.
-- **BAUH_LOGS**: enable **bauh** logs (for debugging purposes). Use: **0** (disable, default) or **1** (enable)
-- **BAUH_DOWNLOAD_MULTITHREAD**: enable multi-threaded download for installation files ( only possible if **aria2** is installed ). This feature reduces the application installation time. Use **0** (disable) or **1** (enabled, default).
-- **BAUH_TRAY_DEFAULT_ICON_PATH**: define a custom icon for the tray mode ( absolute path)
-- **BAUH_TRAY_UPDATES_ICON_PATH** define a custom updates icon for the tray mode ( absolute path)
 
-### How to improve **bauh** performance
-- Disable package types that you do not want to deal with ( via GUI )
-- If you don't care about restarting the app every time a new supported packaging technology is installed, set "check-packaging-once=1" (**bauh --check-packaging-once=1**). This can reduce the application response time up in some scenarios, since it won't need to recheck if the packaging type is available for every action you request.
-- If you don't mind to see the applications icons, you can set "download-icons=0" (**bauh --download-icons=0**). The application may have a slight response improvement, since it will reduce the parallelism within it.
-- Let the disk cache always enabled so **bauh** does not need to dynamically retrieve some data every time you launch it.
+#### Environment variables / parameters
+You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
+- `BAUH_TRAY (--tray )`: If the tray icon and update-check daemon should be created. Use `0` (disable, default) or `1` (enable).
+- `BAUH_LOGS (--logs )`: enable **bauh** logs (for debugging purposes). Use: `0` (disable, default) or `1` (enable)
+- `--reset`: cleans all configurations and cached data stored in the HOME directory
+
+#### General configuration file ( **~/.config/bauh/config.yml** )
+```
+disk_cache:
+  enabled: true  # allows bauh to save applications icons and data to the disk to load them faster when needed
+download:
+  icons: true # allows bauh to download the applications icons when they are not saved on the disk
+  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
+gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
+locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
+memory_cache:
+  data_expiration: 3600 # the interval in SECONDS that data cached in memory will live
+  icon_expiration: 300  # the interval in SECONDS that icons cached in memory will live
+suggestions:
+  by_type: 10  # the maximum number of application suggestions that must be retrieved per type
+  enabled: true  # if suggestions must be displayed when no application is installed
+system:
+  notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
+  single_dependency_checking: false  # if bauh should check only once if for the available technologies on the system.
+ui:
+  style: null  # the current QT style set. A null value will map to 'Fusion' or 'Breeze' ( depending on what is installed )  
+  table:
+    max_displayed: 50  # defines the maximum number of displayed applications on the table.
+  tray:  # system tray settings
+    default_icon: null  # defines a path to a custom icon
+    updates_icon: null  # defines a path to a custom icon indicating updates
+updates:
+  check_interval: 30  # the updates checking interval in SECONDS
+
+```
+#### Tray icons
+Priority: 
+  1) Icon paths defined in **~/.config/bauh/config.yml**
+  2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
+  3) Own packaged icons
+
+### How to improve the performance
+- Disable the application types you do not want to deal with
+- If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
+- If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
+- Let the `disk_cache` always enabled so **bauh** does not need to dynamically retrieve data every time you launch it.
 
 
 ### Files and Logs
-- Some application settings are stored in **~/.config/bauh/config.json**
-- Installation logs are saved at **/tmp/bauh/logs/install**
+- Installation logs and temporary files are saved at **/tmp/bauh**
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
 
 ### [bauh-files](https://github.com/vinifmor/bauh-files)
-- It is a separate repository with some files downloaded by **bauh** during runtime.
+- It is a separate repository with some files downloaded during runtime.
 
 ### Code structure
 #### Modules

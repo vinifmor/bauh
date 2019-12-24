@@ -100,4 +100,5 @@ aur.info.license=Lizenz
 aur.info.validpgpkeys=gültige PGP Schlüssel
 aur.info.options=Optionen
 aur.info.provides=stellt bereit
-aur.info.conflicts with=Konflikt mit  
+aur.info.conflicts with=Konflikt mit
+arch.makepkg.optimizing=Optimiert die Zusammenstellung

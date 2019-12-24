@@ -4,6 +4,76 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.0] 2019-12-24
+### Features
+- Native Web applications support:
+    - if an URL is typed in the search bar, a native web application result will be displayed in the results table.
+    - bauh relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to install the Web applications, but there is no need to have them installed on your system. Bauh will create its own installation environment with these technologies in **~/.local/share/bauh/web/env**.
+    - suggestions are retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml)
+    - requires only **python-beautifulsoup4** and **python-lxml** to be enabled
+- **Suggestions** button: it shows some application suggestions 
+
+### Improvements
+- configuration file **~/.config/bauh/config.json** renamed to **~/.config/bauh/config.yml**
+- some parameters and environment variables were moved to the configuration file ( **~/.config/bauh/config.yml** )
+```
+disk_cache:  # old '--disk_cache'
+  enabled: true
+download:
+  icons: true # old '--download-icons'
+  multithreaded: true  # old '--download-mthread'
+gems: null 
+locale: null  # old '--locale'
+memory_cache:
+  data_expiration: 3600 # old '--cache-exp'
+  icon_expiration: 300  # old '--icon-exp'
+suggestions:
+  by_type: 10  # new -> defines the max number of suggestions by package type
+  enabled: true  # old '--sugs'
+system:
+  notifications: true  # old '--system-notifications'
+  single_dependency_checking: false  # old '---check-packaging-once'
+ui:
+  style: null  
+  table:
+    max_displayed: 50  # old '--max-displayed'
+  tray:
+    default_icon: null  # old environment variable 'BAUH_TRAY_DEFAULT_ICON_PATH'
+    updates_icon: null  # old environment variable 'BAUH_TRAY_UPDATES_ICON_PATH'
+updates:
+  check_interval: 30  # old '--check-interval'
+
+```
+- The default update checking interval is now 30 seconds
+- New tray icons loading priority: 
+    1) Icon paths defined in **~/.config/bauh/config.yml**
+    2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
+    3) Own packaged icons
+- Now bauh considers the default system icon for the notifications and panel. If there is none, then it will use its own.
+- AppImage:
+    - cleaning the downloaded database files when **--reset** is passed as parameter
+    - environment variables **BAUH_APPIMAGE_DB_UPDATER** and **BAUH_APPIMAGE_DB_UPDATER_TIME** dropped in favor of the new configuration file located at **~/.config/bauh/appimage.yml**
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/suggestions.txt)
+- AUR:
+    - The AUR indexer daemon is not running every 20 minutes anymore. It will only run during the boot, and will generate the optimized index
+    at **/tmp/bauh/arch/aur.txt**. This new behavior does not harm the current experience, and reduces memory usage. More information about this behavior in [README](https://github.com/vinifmor/bauh/blob/master/README.md).
+    - Environment variable **BAUH_ARCH_AUR_INDEX_UPDATER** dropped in favor of the behavior described above.
+    - Environment variables **BAUH_ARCH_OPTIMIZE** and **BAUH_ARCH_CHECK_SUBDEPS** dropped in favor of the new configuration file located at **~/.config/bauh/arch.yml**
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/aur/suggestions.txt)  
+- Flatpak:
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/flatpak/suggestions.txt)
+- Snap:
+    - suggestions are now retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/snap/suggestions.txt)
+  
+- Minor memory improvements
+- Minor UI improvements
+
+### Fixes
+- AUR:
+    - an exception happens when retrieving matches from the cached AUR index
+    - not using the optimized compilation settings if the custom makepkg file is not found during the installation process
+- minor fixes
+
 ## [0.7.5] 2019-12-20
 ### Fixes
 - Fix missing i18n keys when there are no mapped translations for the system's default locale [#40](https://github.com/vinifmor/bauh/issues/40)

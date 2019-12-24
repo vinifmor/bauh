@@ -17,7 +17,6 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.view.core.config import Configuration
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -51,10 +50,8 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_table_update = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, disk_cache: bool,
-                 download_icons: bool, screen_size, suggestions: bool, display_limit: int, config: Configuration,
-                 context: ApplicationContext, notifications: bool, http_client: HttpClient, logger: logging.Logger,
-                 tray_icon=None):
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon, tray_icon=None):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.logger = logger
@@ -64,17 +61,14 @@ class ManageWindow(QWidget):
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
-        self.display_limit = display_limit
+        self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
-        self.disk_cache = disk_cache
-        self.download_icons = download_icons
         self.screen_size = screen_size
         self.config = config
         self.context = context
-        self.notifications = notifications
         self.http_client = http_client
 
-        self.icon_app = QIcon(resource.get_path('img/logo.svg'))
+        self.icon_app = icon
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
         self.setWindowIcon(self.icon_app)
 
@@ -106,7 +100,6 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(label_pre_search)
 
         self.input_search = QLineEdit()
-        self.input_search.setMaxLength(20)
         self.input_search.setFrame(False)
         self.input_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
         self.input_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
@@ -188,6 +181,8 @@ class ManageWindow(QWidget):
 
         self.toolbar.addWidget(new_spacer())
 
+        toolbar_bts = []
+
         self.bt_installed = QPushButton()
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
@@ -195,6 +190,20 @@ class ManageWindow(QWidget):
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
+        toolbar_bts.append(self.bt_installed)
+
+        if config['suggestions']['enabled']:
+            self.bt_suggestions = QPushButton()
+            self.bt_installed.setToolTip(self.i18n['manage_window.bt.suggestions.tooltip'])
+            self.bt_suggestions.setText(self.i18n['manage_window.bt.suggestions.text'].capitalize())
+            self.bt_suggestions.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
+            self.bt_suggestions.setStyleSheet(toolbar_button_style('#FF8000'))
+            self.bt_suggestions.clicked.connect(self.read_suggestions)
+            self.ref_bt_suggestions = self.toolbar.addWidget(self.bt_suggestions)
+            toolbar_bts.append(self.bt_suggestions)
+        else:
+            self.bt_suggestions = None
+            self.ref_bt_suggestions = None
 
         self.bt_refresh = QPushButton()
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
@@ -202,6 +211,7 @@ class ManageWindow(QWidget):
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(toolbar_button_style('#2368AD'))
         self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
+        toolbar_bts.append(self.bt_refresh)
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
@@ -210,11 +220,26 @@ class ManageWindow(QWidget):
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
         self.bt_upgrade.setStyleSheet(toolbar_button_style('#20A435'))
         self.bt_upgrade.clicked.connect(self.update_selected)
+        toolbar_bts.append(self.bt_upgrade)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
+
+        # setting all buttons to the same size:
+        bt_biggest_size = 0
+        for bt in toolbar_bts:
+            bt_width = bt.sizeHint().width()
+            if bt_width > bt_biggest_size:
+                bt_biggest_size = bt_width
+
+        for bt in toolbar_bts:
+            bt_width = bt.sizeHint().width()
+            if bt_biggest_size > bt_width:
+                bt.setFixedWidth(bt_biggest_size)
 
         self.layout.addWidget(self.toolbar)
 
-        self.table_apps = AppsTable(self, self.icon_cache, disk_cache=self.disk_cache, download_icons=self.download_icons)
+        self.table_apps = AppsTable(self, self.icon_cache,
+                                    disk_cache=bool(self.config['disk_cache']['enabled']),
+                                    download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -266,7 +291,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallPackage(manager=self.manager, disk_cache=self.disk_cache, icon_cache=self.icon_cache, i18n=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, disk_cache=bool(self.config['disk_cache']['enabled']), icon_cache=self.icon_cache, i18n=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
@@ -314,7 +339,7 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
         self.dialog_about = None
-        self.first_refresh = suggestions
+        self.first_refresh = bool(config['suggestions']['enabled'])
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
@@ -497,6 +522,15 @@ class ManageWindow(QWidget):
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
+    def read_suggestions(self):
+        self.input_search.clear()
+        self._handle_console_option(False)
+        self.ref_checkbox_updates.setVisible(False)
+        self.ref_checkbox_only_apps.setVisible(False)
+        self._begin_action(self.i18n['manage_window.status.suggestions'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+        self.thread_suggestions.filter_installed = True
+        self.thread_suggestions.start()
+
     def _finish_refresh_apps(self, res: dict, as_installed: bool = True):
         self.finish_action()
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
@@ -549,7 +583,7 @@ class ManageWindow(QWidget):
             self.checkbox_console.setChecked(True)
 
     def _can_notify_user(self):
-        return self.notifications and (self.isHidden() or self.isMinimized())
+        return bool(self.config['system']['notifications']) and (self.isHidden() or self.isMinimized())
 
     def _finish_downgrade(self, res: dict):
         self.finish_action()
@@ -676,6 +710,7 @@ class ManageWindow(QWidget):
         if pkgs_info['apps_count'] == 0:
             if self.first_refresh or self.types_changed:
                 self._begin_search('')
+                self.thread_suggestions.filter_installed = False
                 self.thread_suggestions.start()
                 return
             else:
@@ -875,6 +910,10 @@ class ManageWindow(QWidget):
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
         self.ref_bt_refresh.setVisible(False)
+
+        if self.ref_bt_suggestions:
+            self.ref_bt_suggestions.setVisible(False)
+
         self.checkbox_only_apps.setEnabled(False)
         self.table_apps.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
@@ -917,6 +956,9 @@ class ManageWindow(QWidget):
         self.combo_filter_type.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
         self.progress_controll_enabled = True
+
+        if self.ref_bt_suggestions:
+            self.ref_bt_suggestions.setVisible(True)
 
         if self.pkgs:
             self.ref_input_name_filter.setVisible(True)

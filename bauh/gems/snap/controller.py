@@ -13,7 +13,7 @@ from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputO
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
-from bauh.gems.snap import snap, suggestions, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
@@ -84,7 +84,10 @@ class SnapManager(SoftwareManager):
 
         return app
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
+
         if snap.is_snapd_running():
             installed = self.read_installed(disk_loader).installed
 
@@ -123,7 +126,12 @@ class SnapManager(SoftwareManager):
         raise Exception("'update' is not supported by {}".format(pkg.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
+        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
+
+        if self.suggestions_cache:
+            self.suggestions_cache.delete(pkg.name)
+
+        return uninstalled
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {SnapApplication}
@@ -232,35 +240,46 @@ class SnapManager(SoftwareManager):
         else:
             self.logger.warning("Could not retrieve suggestion '{}'".format(pkg_name))
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
         if snap.is_snapd_running():
-            sugs = [(i, p) for i, p in suggestions.ALL.items()]
-            sugs.sort(key=lambda t: t[1].value, reverse=True)
+            self.logger.info('Downloading suggestions file {}'.format(SUGGESTIONS_FILE))
+            file = self.http_client.get(SUGGESTIONS_FILE)
 
-            threads = []
-            self.categories_downloader.join()
+            if not file or not file.text:
+                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+                return res
+            else:
+                self.logger.info('Mapping suggestions')
+                self.categories_downloader.join()
 
-            for sug in sugs:
+                suggestions, threads = [], []
+                installed = {i.name.lower() for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
 
-                if limit <= 0 or len(res) < limit:
-                    cached_sug = self.suggestions_cache.get(sug[0])
+                for l in file.text.split('\n'):
+                    if l:
+                        if limit <= 0 or len(suggestions) < limit:
+                            sug = l.strip().split('=')
+                            name = sug[1]
 
-                    if cached_sug:
-                        res.append(cached_sug)
-                    else:
-                        t = Thread(target=self._fill_suggestion, args=(sug[0], sug[1], res))
-                        t.start()
-                        threads.append(t)
-                        time.sleep(0.001)  # to avoid being blocked
-                else:
-                    break
+                            if not installed or name not in installed:
+                                cached_sug = self.suggestions_cache.get(name)
 
-            for t in threads:
-                t.join()
+                                if cached_sug:
+                                    res.append(cached_sug)
+                                else:
+                                    t = Thread(target=self._fill_suggestion, args=(name, SuggestionPriority(int(sug[0])), res))
+                                    t.start()
+                                    threads.append(t)
+                                    time.sleep(0.001)  # to avoid being blocked
+                        else:
+                            break
 
-            res.sort(key=lambda s: s.priority.value, reverse=True)
+                for t in threads:
+                    t.join()
+
+                res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:

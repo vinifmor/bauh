@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List, Set, Type
 
+import yaml
+
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -37,11 +39,12 @@ class SoftwareManager(ABC):
         self.context = context
 
     @abstractmethod
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int, is_url: bool) -> SearchResult:
         """
         :param words: the words typed by the user
         :param disk_loader: a running disk loader thread that loads package data from the disk asynchronously
         :param limit: the max number of packages to be retrieved. <= 1 should retrieve everything
+        :param is_url: if "words" is a URL
         :return:
         """
         pass
@@ -177,8 +180,15 @@ class SoftwareManager(ABC):
             data = pkg.get_data_to_cache()
 
             if data:
-                with open(pkg.get_disk_data_path(), 'w+') as f:
-                    f.write(json.dumps(data))
+                disk_path = pkg.get_disk_data_path()
+                ext = disk_path.split('.')[-1]
+
+                if ext == 'json':
+                    with open(disk_path, 'w+') as f:
+                        f.write(json.dumps(data))
+                elif ext in ('yml', 'yaml'):
+                    with open(disk_path, 'w+') as f:
+                        f.write(yaml.dump(data))
 
         if icon_bytes:
             Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
@@ -221,9 +231,10 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         """
         :param limit: max suggestions to be returned. If limit < 0, it should not be considered
+        :param filter_installed: if the installed suggestions should not be retrieved
         :return: a list of package suggestions
         """
         pass
@@ -253,5 +264,11 @@ class SoftwareManager(ABC):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         """
         :return: screenshot urls for the given package
+        """
+        pass
+
+    def clear_data(self):
+        """
+        Removes all data created by the SoftwareManager instance
         """
         pass

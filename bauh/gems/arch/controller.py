@@ -13,15 +13,17 @@ import requests
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus
+from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
+    SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
     SimpleProcess
-from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, suggestions, \
-    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH
+from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE
 from bauh.gems.arch.aur import AURClient
+from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -52,11 +54,8 @@ class ArchManager(SoftwareManager):
 
         self.mapper = ArchDataMapper(http_client=context.http_client)
         self.i18n = context.i18n
-        self.aur_client = AURClient(context.http_client)
-        self.names_index = {}
-        self.aur_index_updater = AURIndexUpdater(context, self)
+        self.aur_client = AURClient(context.http_client, context.logger)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
-        self.comp_optimizer = ArchCompilationOptimizer(context.logger)
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
@@ -64,6 +63,8 @@ class ArchManager(SoftwareManager):
                                                       URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH)
         self.categories = {}
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
+        self.local_config = None
+        self.http_client = context.http_client
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -79,8 +80,9 @@ class ArchManager(SoftwareManager):
 
         Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
-        self.comp_optimizer.join()
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
 
         downgrade_enabled = git.is_enabled()
         res = SearchResult([], [], 0)
@@ -100,10 +102,11 @@ class ArchManager(SoftwareManager):
                 self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
         else:  # if there are no results from the API (it could be because there were too many), tries the names index:
-            if self.names_index:
-
+            aur_index = self.aur_client.read_local_index()
+            if aur_index:
+                self.logger.info("Querying through the local AUR index")
                 to_query = set()
-                for norm_name, real_name in self.names_index.items():
+                for norm_name, real_name in aur_index.items():
                     if words in norm_name:
                         to_query.add(real_name)
 
@@ -116,7 +119,7 @@ class ArchManager(SoftwareManager):
                     read_installed.join()
 
                     for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, installed, res)
+                        self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
         res.total = len(res.installed) + len(res.new)
         return res
@@ -180,6 +183,7 @@ class ArchManager(SoftwareManager):
         return SearchResult(apps, None, len(apps))
 
     def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        self.local_config = read_config()
 
         handler = ProcessHandler(watcher)
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
@@ -235,6 +239,8 @@ class ArchManager(SoftwareManager):
             if os.path.exists(app_build_dir):
                 handler.handle(SystemProcess(subproc=new_subprocess(['rm', '-rf', app_build_dir])))
 
+            self.local_config = None
+
         return False
 
     def clean_cache_for(self, pkg: ArchPackage):
@@ -242,7 +248,11 @@ class ArchManager(SoftwareManager):
             shutil.rmtree(pkg.get_disk_cache_path())
 
     def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
-        return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
+        self.local_config = read_config()
+        try:
+            return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
+        finally:
+            self.local_config = None
 
     def _uninstall(self, pkg_name: str, root_password: str, handler: ProcessHandler) -> bool:
         res = handler.handle(SystemProcess(new_root_subprocess(['pacman', '-R', pkg_name, '--noconfirm'], root_password)))
@@ -258,6 +268,7 @@ class ArchManager(SoftwareManager):
         return res
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        self.local_config = read_config()
         handler = ProcessHandler(watcher)
 
         watcher.change_progress(10)
@@ -272,6 +283,7 @@ class ArchManager(SoftwareManager):
 
         uninstalled = self._uninstall(pkg.name, root_password, handler)
         watcher.change_progress(100)
+        self.local_config = None
         return uninstalled
 
     def get_managed_types(self) -> Set["type"]:
@@ -432,7 +444,7 @@ class ArchManager(SoftwareManager):
         return True
 
     def _should_check_subdeps(self):
-        return bool(int(os.getenv('BAUH_ARCH_CHECK_SUBDEPS', 1)))
+        return self.local_config['transitive_checking']
 
     def _build(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
@@ -445,7 +457,7 @@ class ArchManager(SoftwareManager):
 
         # building main package
         handler.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(pkgname)))
-        pkgbuilt, output = makepkg.make(project_dir, handler)
+        pkgbuilt, output = makepkg.make(project_dir, optimize=self.local_config['optimize'], handler=handler)
         self._update_progress(handler.watcher, 65, change_progress)
 
         if pkgbuilt:
@@ -518,7 +530,7 @@ class ArchManager(SoftwareManager):
 
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check(pkgdir, handler)
+        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):
@@ -743,6 +755,16 @@ class ArchManager(SoftwareManager):
         return False
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
+        clean_config = False
+
+        if not self.local_config:
+            self.local_config = read_config()
+            clean_config = True
+
+        if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
+            watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
+            ArchCompilationOptimizer(self.context.logger).optimize()
+
         res = self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
 
         if res:
@@ -752,6 +774,9 @@ class ArchManager(SoftwareManager):
                     if data:
                         data = json.loads(data)
                         pkg.fill_cached_data(data)
+
+        if clean_config:
+            self.local_config = None
 
         return res
 
@@ -786,9 +811,9 @@ class ArchManager(SoftwareManager):
 
     def prepare(self):
         self.dcache_updater.start()
-        self.comp_optimizer.start()
-        self.aur_index_updater.start()
+        ArchCompilationOptimizer(self.context.logger).start()
         self.categories_mapper.start()
+        AURIndexUpdater(self.context).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
@@ -809,26 +834,36 @@ class ArchManager(SoftwareManager):
 
         return warnings
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        res = []
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+        self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
+        file = self.http_client.get(SUGGESTIONS_FILE)
 
-        sugs = [(i, p) for i, p in suggestions.ALL.items()]
-        sugs.sort(key=lambda t: t[1].value, reverse=True)
+        if not file or not file.text:
+            self.logger.warning("No suggestion could be read from {}".format(SUGGESTIONS_FILE))
+        else:
+            self.logger.info("Mapping suggestions")
+            suggestions = {}
 
-        if limit > 0:
-            sugs = sugs[0:limit]
+            for l in file.text.split('\n'):
+                if l:
+                    if limit <= 0 or len(suggestions) < limit:
+                        lsplit = l.split('=')
+                        name = lsplit[1].strip()
 
-        sug_names = {s[0] for s in sugs}
+                        if not filter_installed or not pacman.check_installed(name):
+                            suggestions[name] = SuggestionPriority(int(lsplit[0]))
 
-        api_res = self.aur_client.get_info(sug_names)
+            api_res = self.aur_client.get_info(suggestions.keys())
 
-        if api_res:
-            self.categories_mapper.join()
-            for pkg in api_res:
-                if pkg.get('Name') in sug_names:
-                    res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions.ALL.get(pkg['Name'])))
+            if api_res:
+                res = []
+                self.categories_mapper.join()
+                for pkg in api_res:
+                    if pkg.get('Name') in suggestions:
+                        res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions[pkg['Name']]))
 
-        return res
+                self.logger.info("Mapped {} suggestions".format(len(suggestions)))
+                return res
 
     def is_default_enabled(self) -> bool:
         return True

@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import re
@@ -7,20 +8,25 @@ import subprocess
 import traceback
 from datetime import datetime
 from pathlib import Path
-from threading import Lock
+from threading import Lock, Thread
 from typing import Set, Type, List
+
+from colorama import Fore
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion
+from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
+    SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, suggestions
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
+from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
+from bauh.gems.appimage.query import FIND_APPS_BY_NAME, FIND_APPS_BY_NAME_ONLY_NAME
 from bauh.gems.appimage.worker import DatabaseUpdater
 
 DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
@@ -45,7 +51,6 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
-        self.dbs_updater = DatabaseUpdater(http_client=context.http_client, logger=context.logger, db_locks=self.db_locks)
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
@@ -61,7 +66,10 @@ class AppImageManager(SoftwareManager):
     def _gen_app_key(self, app: AppImage):
         return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
+
         res = SearchResult([], [], 0)
         connection = self._get_db_connection(DB_APPS_PATH)
 
@@ -97,7 +105,8 @@ class AppImageManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False,
+                       pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, connection: sqlite3.Connection = None) -> SearchResult:
         res = SearchResult([], [], 0)
 
         if os.path.exists(INSTALLATION_PATH):
@@ -115,7 +124,7 @@ class AppImageManager(SoftwareManager):
                         names.add("'{}'".format(app.name.lower()))
 
                 if res.installed:
-                    con = self._get_db_connection(DB_APPS_PATH)
+                    con = self._get_db_connection(DB_APPS_PATH) if not connection else connection
 
                     if con:
                         try:
@@ -135,7 +144,8 @@ class AppImageManager(SoftwareManager):
                         except:
                             traceback.print_exc()
                         finally:
-                            self._close_connection(DB_APPS_PATH, con)
+                            if not connection:
+                                self._close_connection(DB_APPS_PATH, con)
 
         res.total = len(res.installed)
         return res
@@ -381,8 +391,19 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: str, pkg: AppImage):
         return False
 
+    def _start_updater(self):
+        local_config = read_config(update_file=True)
+        interval = local_config['db_updater']['interval'] or 20 * 60
+
+        updater = DatabaseUpdater(http_client=self.context.http_client, logger=self.context.logger,
+                                  db_locks=self.db_locks, interval=interval)
+        if local_config['db_updater']['enabled']:
+            updater.start()
+        else:
+            updater.download_databases()  # only once
+
     def prepare(self):
-        self.dbs_updater.start()
+        Thread(target=self._start_updater, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
@@ -398,27 +419,51 @@ class AppImageManager(SoftwareManager):
     def list_warnings(self, internet_available: bool) -> List[str]:
         pass
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
         connection = self._get_db_connection(DB_APPS_PATH)
 
         if connection:
-            try:
-                sugs = [(i, p) for i, p in suggestions.ALL.items()]
-                sugs.sort(key=lambda t: t[1].value, reverse=True)
+            file = self.http_client.get(SUGGESTIONS_FILE)
 
-                if limit > 0:
-                    sugs = sugs[0:limit]
+            if not file or not file.text:
+                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+                return res
+            else:
+                self.logger.info("Mapping suggestions")
+                try:
+                    sugs = [l for l in file.text.split('\n') if l]
 
-                cursor = connection.cursor()
-                cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s[0]) for s in sugs])))
+                    if filter_installed:
+                        installed = {i.name.lower() for i in self.read_installed(disk_loader=None, connection=connection).installed}
+                    else:
+                        installed = None
 
-                for t in cursor.fetchall():
-                    app = AppImage(*t)
-                    res.append(PackageSuggestion(app, suggestions.ALL.get(app.name.lower())))
-            finally:
-                self._close_connection(DB_APPS_PATH, connection)
+                    sugs_map = {}
+
+                    for s in sugs:
+                        lsplit = s.split('=')
+
+                        name = lsplit[1].strip()
+
+                        if limit <= 0 or len(sugs_map) < limit:
+                            if not installed or not name.lower() in installed:
+                                sugs_map[name] = SuggestionPriority(int(lsplit[0]))
+                        else:
+                            break
+
+                    cursor = connection.cursor()
+                    cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
+
+                    for t in cursor.fetchall():
+                        app = AppImage(*t)
+                        res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
+                    self.logger.info("Mapped {} suggestions".format(len(res)))
+                except:
+                    traceback.print_exc()
+                finally:
+                    self._close_connection(DB_APPS_PATH, connection)
 
         return res
 
@@ -443,3 +488,13 @@ class AppImageManager(SoftwareManager):
             return [pkg.url_screenshot]
 
         return []
+
+    def clear_data(self):
+        for f in glob.glob('{}/*.db'.format(LOCAL_PATH)):
+            try:
+                print('[bauh][appimage] Deleting {}'.format(f))
+                os.remove(f)
+                print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
+            except:
+                print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, Fore.RESET))
+                traceback.print_exc()

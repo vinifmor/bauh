@@ -393,9 +393,10 @@ class FindSuggestions(AsyncAction):
     def __init__(self, man: SoftwareManager):
         super(FindSuggestions, self).__init__()
         self.man = man
+        self.filter_installed = False
 
     def run(self):
-        sugs = self.man.list_suggestions(limit=-1)
+        sugs = self.man.list_suggestions(limit=-1, filter_installed=self.filter_installed)
         self.notify_finished({'pkgs_found': [s.package for s in sugs] if sugs is not None else [], 'error': None})
 
 

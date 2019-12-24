@@ -36,13 +36,27 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, check_interval: int = 60, update_notification: bool = True):
+    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, config: dict):
         super(TrayIcon, self).__init__()
         self.i18n = i18n
         self.manager = manager
 
-        self.icon_default = QIcon(os.getenv('BAUH_TRAY_DEFAULT_ICON_PATH', resource.get_path('img/logo.png')))
-        self.icon_update = QIcon(os.getenv('BAUH_TRAY_UPDATES_ICON_PATH', resource.get_path('img/logo_update.png')))
+        if config['ui']['tray']['default_icon']:
+            self.icon_default = QIcon(config['ui']['tray']['default_icon'])
+        else:
+            self.icon_default = QIcon.fromTheme('bauh_tray_default')
+
+        if self.icon_default.isNull():
+            self.icon_default = QIcon(resource.get_path('img/logo.png'))
+
+        if config['ui']['tray']['updates_icon']:
+            self.icon_updates = QIcon(config['ui']['tray']['updates_icon'])
+        else:
+            self.icon_updates = QIcon.fromTheme('bauh_tray_updates')
+
+        if self.icon_updates.isNull():
+            self.icon_updates = QIcon(resource.get_path('img/logo_update.png'))
+
         self.setIcon(self.icon_default)
 
         self.menu = QMenu()
@@ -60,12 +74,12 @@ class TrayIcon(QSystemTrayIcon):
 
         self.manage_window = None
         self.dialog_about = None
-        self.check_thread = UpdateCheck(check_interval=check_interval, manager=self.manager)
+        self.check_thread = UpdateCheck(check_interval=int(config['updates']['check_interval']), manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
         self.last_updates = set()
-        self.update_notification = update_notification
+        self.update_notification = bool(config['system']['notifications'])
         self.lock_notify = Lock()
 
         self.activated.connect(self.handle_click)
@@ -94,7 +108,7 @@ class TrayIcon(QSystemTrayIcon):
             if len(updates) > 0:
                 update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
 
-                new_icon = self.icon_update
+                new_icon = self.icon_updates
 
                 if update_keys.difference(self.last_updates):
                     self.last_updates = update_keys

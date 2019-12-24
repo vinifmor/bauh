@@ -1,11 +1,12 @@
 from typing import List
 
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame, QSizePolicy
 
-from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent
+from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent, \
+    FormComponent
 from bauh.view.qt import css
-from bauh.view.qt.components import MultipleSelectQt, new_single_select
+from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt, new_spacer
 from bauh.view.util.translation import I18n
 
 
@@ -21,12 +22,14 @@ class ConfirmationDialog(QMessageBox):
 
         self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 
+        label = None
         if body:
             if not components:
                 self.setIcon(QMessageBox.Question)
+            label = QLabel(body)
+            self.layout().addWidget(label, 0, 1)
 
-            self.layout().addWidget(QLabel(body), 0, 1)
-
+        width = 0
         if components:
             scroll = QScrollArea(self)
             scroll.setFrameShape(QFrame.NoFrame)
@@ -43,16 +46,30 @@ class ConfirmationDialog(QMessageBox):
                     inst = new_single_select(comp)
                 elif isinstance(comp, MultipleSelectComponent):
                     inst = MultipleSelectQt(comp, None)
+                elif isinstance(comp, TextInputComponent):
+                    inst = TextInputQt(comp)
+                elif isinstance(comp, FormComponent):
+                    inst = FormQt(comp, i18n)
                 else:
                     raise Exception("Cannot render instances of " + comp.__class__.__name__)
 
                 height += inst.sizeHint().height()
+
+                if inst.sizeHint().width() > width:
+                    width = inst.sizeHint().width()
+
                 comps_container.layout().addWidget(inst)
 
             height = height if height < int(screen_size.height() / 2.5) else int(screen_size.height() / 2.5)
 
             scroll.setFixedHeight(height)
-            self.layout().addWidget(scroll, 1, 1)
+
+            self.layout().addWidget(scroll, 1 if body else 0, 1)
+
+            if label and comps_container.sizeHint().width() > label.sizeHint().width():
+                label.setText(label.text() + (' ' * int(comps_container.sizeHint().width() - label.sizeHint().width())))
+        if not body and width > 0:
+            self.layout().addWidget(QLabel(' ' * int(width / 2)), 1, 1)
 
         self.exec_()
 

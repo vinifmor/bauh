@@ -203,20 +203,22 @@ class AppsTable(QTableWidget):
 
             icon_was_cached = False
             pixmap = QPixmap()
-
             pixmap.loadFromData(icon_bytes)
-            icon = QIcon(pixmap)
-            icon_data = {'icon': icon, 'bytes': icon_bytes}
-            self.icon_cache.add(icon_url, icon_data)
 
-        for idx, app in enumerate(self.window.pkgs):
-            if app.model.icon_url == icon_url:
-                col_name = self.item(idx, 0)
-                col_name.setIcon(icon_data['icon'])
+            if not pixmap.isNull():
+                icon = QIcon(pixmap)
+                icon_data = {'icon': icon, 'bytes': icon_bytes}
+                self.icon_cache.add(icon_url, icon_data)
 
-                if self.disk_cache and app.model.supports_disk_cache():
-                    if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
-                        self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
+        if icon_data:
+            for idx, app in enumerate(self.window.pkgs):
+                if app.model.icon_url == icon_url:
+                    col_name = self.item(idx, 0)
+                    col_name.setIcon(icon_data['icon'])
+
+                    if self.disk_cache and app.model.supports_disk_cache() and app.model.get_disk_icon_path():
+                        if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
+                            self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
     def update_pkgs(self, pkg_views: List[PackageView], update_check_enabled: bool = True):
         self.setRowCount(len(pkg_views) if pkg_views else 0)
@@ -297,7 +299,7 @@ class AppsTable(QTableWidget):
         self.setCellWidget(pkg.table_index, col, item)
 
     def _set_col_version(self, col: int, pkg: PackageView):
-        label_version = QLabel(pkg.model.version if pkg.model.version else '?')
+        label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
         label_version.setAlignment(Qt.AlignCenter)
 
         item = QWidget()

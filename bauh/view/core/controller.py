@@ -1,6 +1,6 @@
+import re
 import time
 import traceback
-from argparse import Namespace
 from threading import Thread
 from typing import List, Set, Type
 
@@ -11,22 +11,23 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 
-SUGGESTIONS_LIMIT = 5
+RE_IS_URL = re.compile(r'^https?://.+')
 
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, app_args: Namespace):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
-        self._available_cache = {} if app_args.check_packaging_once else None
+        self._available_cache = {} if config['system']['single_dependency_checking'] else None
         self.thread_prepare = None
         self.i18n = context.i18n
         self.disk_loader_factory = context.disk_loader_factory
         self.logger = context.logger
         self._already_prepared = []
         self.working_managers = []
+        self.config = config
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -79,17 +80,17 @@ class GenericSoftwareManager(SoftwareManager):
 
         return available
 
-    def _search(self, word: str, man: SoftwareManager, disk_loader, res: SearchResult):
+    def _search(self, word: str, is_url: bool, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):
             mti = time.time()
-            apps_found = man.search(words=word, disk_loader=disk_loader)
+            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
             mtf = time.time()
             self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
 
-    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1) -> SearchResult:
+    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1, is_url: bool = False) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
 
@@ -97,13 +98,15 @@ class GenericSoftwareManager(SoftwareManager):
 
         if internet.is_available(self.context.http_client, self.context.logger):
             norm_word = word.strip().lower()
+
+            url_words = RE_IS_URL.match(norm_word)
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
 
             threads = []
 
             for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, man, disk_loader, res))
+                t = Thread(target=self._search, args=(norm_word, url_words, man, disk_loader, res))
                 t.start()
                 threads.append(t)
 
@@ -325,34 +328,36 @@ class GenericSoftwareManager(SoftwareManager):
 
         return warnings
 
-    def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int):
+    def _fill_suggestions(self, suggestions: list, man: SoftwareManager, limit: int, filter_installed: bool):
         if self._can_work(man):
             mti = time.time()
-            man_sugs = man.list_suggestions(limit)
+            man_sugs = man.list_suggestions(limit=limit, filter_installed=filter_installed)
             mtf = time.time()
             self.logger.info(man.__class__.__name__ + ' took {0:.2f} seconds'.format(mtf - mti))
 
             if man_sugs:
-                if len(man_sugs) > limit:
+                if 0 < limit < len(man_sugs):
                     man_sugs = man_sugs[0:limit]
 
                 suggestions.extend(man_sugs)
 
-    def list_suggestions(self, limit: int) -> List[PackageSuggestion]:
-        if self.managers and internet.is_available(self.context.http_client, self.context.logger):
-            suggestions, threads = [], []
-            for man in self.managers:
-                t = Thread(target=self._fill_suggestions, args=(suggestions, man, SUGGESTIONS_LIMIT))
-                t.start()
-                threads.append(t)
+    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+        if bool(self.config['suggestions']['enabled']):
+            if self.managers and internet.is_available(self.context.http_client, self.context.logger):
+                suggestions, threads = [], []
+                for man in self.managers:
+                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
+                    t.start()
+                    threads.append(t)
 
-            for t in threads:
-                t.join()
+                for t in threads:
+                    t.join()
 
-            if suggestions:
-                suggestions.sort(key=lambda s: s.priority.value, reverse=True)
+                if suggestions:
+                    suggestions.sort(key=lambda s: s.priority.value, reverse=True)
 
-            return suggestions
+                return suggestions
+        return []
 
     def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
         man = self._get_manager_for(pkg)
