@@ -2,7 +2,7 @@ import os
 from threading import Lock
 from typing import List
 
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
@@ -77,7 +77,7 @@ class AppsTable(QTableWidget):
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
-        self.pixmap_verified = QPixmap(resource.get_path('img/verified.svg'))
+        self.pixmap_verified = QIcon(resource.get_path('img/verified.svg')).pixmap(QSize(10, 10))
 
         self.network_man = QNetworkAccessManager()
         self.network_man.finished.connect(self._load_icon_and_cache)
@@ -426,7 +426,7 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            item.addWidget(IconButton(icon_path=resource.get_path('img/app_play.svg'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
         if pkg.model.has_info():
 

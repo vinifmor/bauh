@@ -3,6 +3,7 @@ import sys
 from threading import Thread
 
 import urllib3
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
@@ -71,6 +72,7 @@ def main():
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]
     app.setWindowIcon(app_icon)
+    app.setAttribute(Qt.AA_UseHighDpiPixmaps) # This fix images on HDPI resolution, not tested on non HDPI
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))
