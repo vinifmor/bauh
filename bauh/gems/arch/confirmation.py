@@ -9,7 +9,7 @@ from bauh.view.util.translation import I18n
 
 
 def _get_mirror_icon(mirror: str):
-    return resource.get_path('img/{}.png'.format('arch' if mirror == 'aur' else 'mirror'), ROOT_DIR)
+    return resource.get_path('img/{}.svg'.format('arch' if mirror == 'aur' else 'mirror'), ROOT_DIR)
 
 
 def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:

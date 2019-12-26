@@ -185,7 +185,7 @@ class ManageWindow(QWidget):
 
         self.bt_installed = QPushButton()
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
-        self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
+        self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
@@ -318,7 +318,7 @@ class ManageWindow(QWidget):
         self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
-        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'),
+        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])

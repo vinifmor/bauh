@@ -14,6 +14,7 @@ from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -426,26 +427,26 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_play.png'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            item.addWidget(IconButton(load_icon(resource.get_path('img/app_play.svg'), 12), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
         if pkg.model.has_info():
 
             def get_info():
                 self.window.get_app_info(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
+            item.addWidget(IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
 
         if pkg.model.has_screenshots():
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/camera.svg'), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+            item.addWidget(IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
         if self.has_any_settings(pkg):
-            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
             item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)

@@ -49,7 +49,7 @@ class GemSelectorPanel(QWidget):
                 op = InputOption(label=i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
                                  tooltip=i18n.get('gem.{}.info'.format(modname)),
                                  value=modname,
-                                 icon_path='{r}/gems/{n}/resources/img/{n}.png'.format(r=ROOT_DIR, n=modname))
+                                 icon_path='{r}/gems/{n}/resources/img/{n}.svg'.format(r=ROOT_DIR, n=modname))
 
                 gem_options.append(op)
                 self.gem_map[modname] = m

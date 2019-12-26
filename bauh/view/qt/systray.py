@@ -47,7 +47,7 @@ class TrayIcon(QSystemTrayIcon):
             self.icon_default = QIcon.fromTheme('bauh_tray_default')
 
         if self.icon_default.isNull():
-            self.icon_default = QIcon(resource.get_path('img/logo.png'))
+            self.icon_default = QIcon(resource.get_path('img/logo.svg'))
 
         if config['ui']['tray']['updates_icon']:
             self.icon_updates = QIcon(config['ui']['tray']['updates_icon'])
@@ -55,7 +55,7 @@ class TrayIcon(QSystemTrayIcon):
             self.icon_updates = QIcon.fromTheme('bauh_tray_updates')
 
         if self.icon_updates.isNull():
-            self.icon_updates = QIcon(resource.get_path('img/logo_update.png'))
+            self.icon_updates = QIcon(resource.get_path('img/logo_update.svg'))
 
         self.setIcon(self.icon_default)
 

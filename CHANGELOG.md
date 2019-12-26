@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.1]
+### Improvements
+- All icons are now SVG files
+
 ## [0.8.0] 2019-12-24
 ### Features
 - Native Web applications support:
