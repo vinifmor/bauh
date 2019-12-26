@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageUpdate
+from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.window import ManageWindow
@@ -47,7 +48,7 @@ class TrayIcon(QSystemTrayIcon):
             self.icon_default = QIcon.fromTheme('bauh_tray_default')
 
         if self.icon_default.isNull():
-            self.icon_default = QIcon(resource.get_path('img/logo.svg'))
+            self.icon_default = load_resource_icon('img/logo.svg', 24)
 
         if config['ui']['tray']['updates_icon']:
             self.icon_updates = QIcon(config['ui']['tray']['updates_icon'])
@@ -55,7 +56,7 @@ class TrayIcon(QSystemTrayIcon):
             self.icon_updates = QIcon.fromTheme('bauh_tray_updates')
 
         if self.icon_updates.isNull():
-            self.icon_updates = QIcon(resource.get_path('img/logo_update.svg'))
+            self.icon_updates = load_resource_icon('img/logo_update.svg', 24)
 
         self.setIcon(self.icon_default)
 

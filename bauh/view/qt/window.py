@@ -33,7 +33,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon
+from bauh.view.qt.view_utils import load_icon, load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -157,7 +157,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n['type'].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_resource_icon('img/logo.svg', 14), self.i18n['type'].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.any_category_filter = 'any'

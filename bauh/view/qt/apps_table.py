@@ -14,7 +14,7 @@ from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
-from bauh.view.qt.view_utils import load_icon
+from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -427,7 +427,7 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(load_icon(resource.get_path('img/app_play.svg'), 12), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            item.addWidget(IconButton(load_resource_icon('img/app_play.svg', 12), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
         if pkg.model.has_info():
 
