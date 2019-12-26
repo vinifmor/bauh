@@ -347,7 +347,7 @@ class AppsTable(QTableWidget):
                 icon_bytes = f.read()
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
-                icon = QIcon(pixmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                icon = QIcon(pixmap)
                 self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
 
         elif not pkg.model.icon_url:
