@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.8.1]
 ### Improvements
 - All icons are now SVG files
+- HDPI support ( by [octopusSD](https://github.com/octopusSD) )
 
 ### Fixes
 - not verifying if an icon path is a file
