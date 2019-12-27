@@ -341,8 +341,9 @@ class AppsTable(QTableWidget):
 
         item.setText(name)
 
-        if self.disk_cache and pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and os.path.exists(pkg.model.get_disk_icon_path()):
-            with open(pkg.model.get_disk_icon_path(), 'rb') as f:
+        icon_path = pkg.model.get_disk_icon_path()
+        if self.disk_cache and pkg.model.supports_disk_cache() and icon_path and os.path.isfile(icon_path):
+            with open(icon_path, 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
