@@ -427,26 +427,26 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_play.svg'), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            item.addWidget(IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
 
         if pkg.model.has_info():
 
             def get_info():
                 self.window.get_app_info(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/app_info.svg'), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
+            item.addWidget(IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
 
         if pkg.model.has_screenshots():
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            item.addWidget(IconButton(icon_path=resource.get_path('img/camera.svg'), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+            item.addWidget(IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
         if self.has_any_settings(pkg):
-            bt = IconButton(icon_path=resource.get_path('img/app_settings.svg'), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
             item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)

@@ -8,7 +8,7 @@ from typing import List, Type, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -152,6 +152,7 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
@@ -319,7 +320,7 @@ class ManageWindow(QWidget):
         self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
-        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'),
+        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
@@ -778,7 +779,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 14)
+                        icon = load_icon(icon_path, 18)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
