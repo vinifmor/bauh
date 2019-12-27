@@ -11,6 +11,7 @@ from typing import List, Type, Set, Tuple
 
 import yaml
 from colorama import Fore
+from requests import exceptions
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -136,10 +137,14 @@ class WebApplicationManager(SoftwareManager):
         return description
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
-        res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
+        try:
+            fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
+            res = self.http_client.get(fix_url)
 
-        if res:
-            return res.text
+            if res:
+                return res.text
+        except Exception as e:
+            self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
 
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
@@ -149,10 +154,14 @@ class WebApplicationManager(SoftwareManager):
 
     def _map_url(self, url: str) -> "BeautifulSoup":
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
-        url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True)
 
-        if url_res:
-            return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+        try:
+            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True)
+
+            if url_res:
+                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+        except exceptions.ConnectionError as e:
+            self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}

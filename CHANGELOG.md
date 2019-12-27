@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - All icons are now SVG files
 
+### Fixes
+- not verifying if an icon path is a file
+- Web:
+    - not handling HTTP connection issues
+
 ## [0.8.0] 2019-12-24
 ### Features
 - Native Web applications support:
