@@ -118,7 +118,8 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
-        label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        # label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10,10)))
         label_pos_search.setStyleSheet("""
             background: white; padding-right: 10px; 
             border-top-right-radius: 5px; 
@@ -157,7 +158,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_resource_icon('img/logo.svg', 14), self.i18n['type'].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem(load_resource_icon('img/logo.svg', 48), self.i18n['type'].capitalize(), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.any_category_filter = 'any'
@@ -318,7 +319,7 @@ class ManageWindow(QWidget):
         self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
-        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
+        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
