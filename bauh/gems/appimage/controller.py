@@ -27,11 +27,10 @@ from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
 
-HOME_PATH = str(Path.home())
-DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
-DB_RELEASES_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/releases.db')
+DB_APPS_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/apps.db')
+DB_RELEASES_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/releases.db')
 
-DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(HOME_PATH)
+DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 
 RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
@@ -298,7 +297,7 @@ class AppImageManager(SoftwareManager):
 
         file_path = out_dir + '/' + file_name
         downloaded = self.file_downloader.download(file_url=pkg.url_download, watcher=watcher,
-                                                   output_path=file_path, cwd=HOME_PATH)
+                                                   output_path=file_path, cwd=str(Path.home()))
 
         if downloaded:
             watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
