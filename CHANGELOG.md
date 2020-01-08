@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.1]
+### Improvements
+- Web:
+    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event. 
+    
 ### Fixes
 - not verifying if an icon path is a file
 - Web:
