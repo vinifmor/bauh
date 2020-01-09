@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not handling HTTP connection issues
 - not passing the Home path as a String ( does not work in Python 3.5 )
 
+### UI
+- Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
+
 ## [0.8.0] 2019-12-24
 ### Features
 - Native Web applications support:
