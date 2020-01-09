@@ -118,8 +118,7 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
-        # label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
-        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10,10)))
+        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10, 10)))
         label_pos_search.setStyleSheet("""
             background: white; padding-right: 10px; 
             border-top-right-radius: 5px; 
