@@ -54,7 +54,7 @@ class WebApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def get_default_icon_path(self) -> str:
-        return resource.get_path('img/web.png', ROOT_DIR)
+        return resource.get_path('img/web.svg', ROOT_DIR)
 
     def get_disk_data_path(self) -> str:
         return '{}/data.yml'.format(self.get_disk_cache_path())

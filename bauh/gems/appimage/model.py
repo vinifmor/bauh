@@ -46,7 +46,7 @@ class AppImage(SoftwarePackage):
         return self.get_type_icon_path()
 
     def get_type_icon_path(self):
-        return resource.get_path('img/appimage.png', ROOT_DIR)
+        return resource.get_path('img/appimage.svg', ROOT_DIR)
 
     def is_application(self):
         return True

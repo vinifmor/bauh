@@ -13,13 +13,12 @@
    id="Capa_1"
    x="0px"
    y="0px"
-   viewBox="0 0 24 24"
+   viewBox="0 0 24.000261 23.700262"
    xml:space="preserve"
-   sodipodi:docname="disc_2.svg"
-   width="24"
-   height="24"
+   sodipodi:docname="disc.svg"
+   width="24.000261"
+   height="23.700262"
    inkscape:version="0.92.4 5da689c313, 2019-01-14"
-   inkscape:export-filename="/home/vinicius.moreira/shared_vb/disk_2.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"><metadata
    id="metadata858"><rdf:RDF><cc:Work
@@ -38,88 +37,90 @@
    guidetolerance="10"
    inkscape:pageopacity="0"
    inkscape:pageshadow="2"
-   inkscape:window-width="1366"
-   inkscape:window-height="739"
+   inkscape:window-width="1360"
+   inkscape:window-height="644"
    id="namedview854"
    showgrid="false"
    showborder="false"
    fit-margin-top="0"
    fit-margin-left="0"
    fit-margin-right="0"
-   fit-margin-bottom="0"
+   fit-margin-bottom="-0.3"
    inkscape:zoom="4.5416668"
-   inkscape:cx="55.143096"
-   inkscape:cy="1.6145437"
+   inkscape:cx="55.143227"
+   inkscape:cy="1.3146742"
    inkscape:window-x="0"
-   inkscape:window-y="432"
+   inkscape:window-y="0"
    inkscape:window-maximized="1"
    inkscape:current-layer="Capa_1" />
 
 <g
    id="g823"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g825"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g827"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g829"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g831"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g833"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g835"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g837"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g839"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g841"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g843"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g845"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g847"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g849"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
    id="g851"
-   transform="translate(-8.9954491,-22.380699)">
+   transform="translate(-8.9953185,-22.380568)">
 </g>
 <g
-   id="g1005"><path
+   id="g1005"
+   transform="translate(1.3061933e-4,1.3061933e-4)"><path
      id="path920"
-     d="M 12 0.27929688 A 11.720572 11.720572 0 0 0 0.27929688 12 A 11.720572 11.720572 0 0 0 12 23.720703 A 11.720572 11.720572 0 0 0 23.720703 12 A 11.720572 11.720572 0 0 0 12 0.27929688 z M 12 8.59375 A 3.4069197 3.4069195 0 0 1 15.40625 12 A 3.4069197 3.4069195 0 0 1 12 15.40625 A 3.4069197 3.4069195 0 0 1 8.59375 12 A 3.4069197 3.4069195 0 0 1 12 8.59375 z "
-     style="fill:#ffffff;stroke:#cccccc;stroke-width:0.558855;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.94117647" /><ellipse
+     d="M 12,0.27929688 A 11.720572,11.720572 0 0 0 0.27929688,12 11.720572,11.720572 0 0 0 12,23.720703 11.720572,11.720572 0 0 0 23.720703,12 11.720572,11.720572 0 0 0 12,0.27929688 Z M 12,8.59375 A 3.4069197,3.4069195 0 0 1 15.40625,12 3.4069197,3.4069195 0 0 1 12,15.40625 3.4069197,3.4069195 0 0 1 8.59375,12 3.4069197,3.4069195 0 0 1 12,8.59375 Z"
+     style="fill:#ffffff;stroke:#cccccc;stroke-width:0.558855;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.94117647"
+     inkscape:connector-curvature="0" /><ellipse
      cy="12"
      cx="12"
      id="ellipse998"

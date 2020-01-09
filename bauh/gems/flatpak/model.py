@@ -38,7 +38,7 @@ class FlatpakApplication(SoftwarePackage):
         return 'flatpak'
 
     def get_default_icon_path(self):
-        return resource.get_path('img/flathub.svg', ROOT_DIR)
+        return resource.get_path('img/flatpak.svg', ROOT_DIR)
 
     def get_type_icon_path(self):
         return self.get_default_icon_path()

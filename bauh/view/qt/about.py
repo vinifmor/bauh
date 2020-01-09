@@ -55,7 +55,7 @@ class AboutDialog(QDialog):
         gems_widget.layout().addWidget(QLabel())
         for gem_path in available_gems:
             icon = QLabel()
-            pxmap = QPixmap(gem_path + '/resources/img/{}.png'.format(gem_path.split('/')[-1]))
+            pxmap = QPixmap(gem_path + '/resources/img/{}.svg'.format(gem_path.split('/')[-1]))
             icon.setPixmap(pxmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             gems_widget.layout().addWidget(icon)
         gems_widget.layout().addWidget(QLabel())
