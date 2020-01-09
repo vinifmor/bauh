@@ -318,7 +318,7 @@ class FormQt(QGroupBox):
             options = QFileDialog.Options()
 
             if c.allowed_extensions:
-                exts = ';;'.join({'{} {} (*.{})'.format(self.i18n['files'].capitalize(), e.upper(), e) for e in c.allowed_extensions})
+                exts = ';;'.join({'*.{}'.format(e) for e in c.allowed_extensions})
             else:
                 exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
 
