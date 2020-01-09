@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - All icons are now SVG files
 - HDPI support ( by [octopusSD](https://github.com/octopusSD) )
 - Web:
-    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event. 
+    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
+    - supporting JPEG images as custom icons
     
 ### Fixes
 - missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
