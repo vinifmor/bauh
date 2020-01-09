@@ -45,7 +45,7 @@ class SnapApplication(SoftwarePackage):
         return 'snap'
 
     def get_default_icon_path(self):
-        return resource.get_path('img/snap.png', ROOT_DIR)
+        return resource.get_path('img/snap.svg', ROOT_DIR)
 
     def get_type_icon_path(self):
         return self.get_default_icon_path()

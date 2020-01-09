@@ -11,6 +11,7 @@ from typing import List, Type, Set, Tuple
 
 import yaml
 from colorama import Fore
+from requests import exceptions
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -136,10 +137,14 @@ class WebApplicationManager(SoftwareManager):
         return description
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
-        res = self.http_client.get(URL_FIX_PATTERN.format(url=url_no_protocol))
+        fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
 
-        if res:
-            return res.text
+        try:
+            res = self.http_client.get(fix_url, session=False)
+            if res:
+                return res.text
+        except Exception as e:
+            self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
 
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
@@ -149,10 +154,14 @@ class WebApplicationManager(SoftwareManager):
 
     def _map_url(self, url: str) -> "BeautifulSoup":
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
-        url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True)
 
-        if url_res:
-            return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+        try:
+            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False)
+
+            if url_res:
+                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+        except exceptions.ConnectionError as e:
+            self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}
@@ -411,7 +420,7 @@ class WebApplicationManager(SoftwareManager):
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
                                          label=self.i18n['web.install.option.wicon.label'])
 
-        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico'}, label=self.i18n['web.install.option.icon.label'])
+        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico', 'xpm'}, label=self.i18n['web.install.option.icon.label'])
 
         form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
 
@@ -506,7 +515,7 @@ class WebApplicationManager(SoftwareManager):
 
     def _ask_update_permission(self, to_update: List[EnvironmentComponent], watcher: ProcessWatcher) -> bool:
 
-        icon = resource.get_path('img/web.png', ROOT_DIR)
+        icon = resource.get_path('img/web.svg', ROOT_DIR)
         opts = [InputOption(label='{} ( {} )'.format(f.name, f.size or '?'),
                             tooltip=f.url, icon_path=icon, read_only=True, value=f.name) for f in to_update]
 
@@ -520,11 +529,11 @@ class WebApplicationManager(SoftwareManager):
 
     def _download_suggestion_icon(self, pkg: WebApplication, app_dir: str) -> Tuple[str, bytes]:
         try:
-            if self.http_client.exists(pkg.icon_url):
+            if self.http_client.exists(pkg.icon_url, session=False):
                 icon_path = '{}/{}'.format(app_dir, pkg.icon_url.split('/')[-1])
 
                 try:
-                    res = self.http_client.get(pkg.icon_url)
+                    res = self.http_client.get(pkg.icon_url, session=False)
                     if not res:
                         self.logger.info('Could not download the icon {}'.format(pkg.icon_url))
                     else:
@@ -747,7 +756,7 @@ class WebApplicationManager(SoftwareManager):
             if not app.description:
                 app.description = self._get_app_description(app.url, soup)
 
-            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url))
+            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
 
             if find_url:
                 app.icon_url = self._get_app_icon_url(app.url, soup)

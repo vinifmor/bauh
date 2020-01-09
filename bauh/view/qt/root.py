@@ -1,12 +1,11 @@
 import os
 
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
 from bauh.view.qt.dialog import show_message
-from bauh.view.util import resource
+from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util.translation import I18n
 
 
@@ -19,7 +18,7 @@ def ask_root_password(i18n: I18n):
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
-    diag.setWindowIcon(QIcon(resource.get_path('img/lock.png')))
+    diag.setWindowIcon(load_resource_icon('img/lock.svg', 20, 24))
     diag.setWindowTitle(i18n['popup.root.title'])
     diag.setLabelText('')
     diag.setOkButtonText(i18n['popup.root.continue'].capitalize())

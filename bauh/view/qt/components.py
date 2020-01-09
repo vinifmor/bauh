@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent
-from bauh.view.qt import css
+from bauh.view.qt import css, view_utils
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -182,8 +182,9 @@ class MultipleSelectQt(QGroupBox):
 
         for op in model.options:  # loads the help icon if at least one option has a tooltip
             if op.tooltip:
-                with open(resource.get_path('img/help.png'), 'rb') as f:
+                with open(resource.get_path('img/about.svg'), 'rb') as f:
                     pixmap_help.loadFromData(f.read())
+                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 break
 
         for op in model.options:
@@ -240,10 +241,10 @@ class InputFilter(QLineEdit):
 
 class IconButton(QWidget):
 
-    def __init__(self, icon_path: str, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
+    def __init__(self, icon: QIcon, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
         super(IconButton, self).__init__()
         self.bt = QToolButton()
-        self.bt.setIcon(QIcon(icon_path))
+        self.bt.setIcon(icon)
         self.bt.clicked.connect(action)
 
         if background:

@@ -61,7 +61,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/arch.png', ROOT_DIR)  # TODO change icon when from mirrors
+        return resource.get_path('img/arch.svg', ROOT_DIR)  # TODO change icon when from mirrors
 
     def is_application(self):
         return self.can_be_run()

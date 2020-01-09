@@ -20,15 +20,14 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType
-from bauh.api.constants import HOME_PATH
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
-from bauh.gems.appimage.query import FIND_APPS_BY_NAME, FIND_APPS_BY_NAME_ONLY_NAME
 from bauh.gems.appimage.worker import DatabaseUpdater
 
+HOME_PATH = str(Path.home())
 DB_APPS_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/apps.db')
 DB_RELEASES_PATH = '{}/{}'.format(HOME_PATH, '.local/share/bauh/appimage/releases.db')
 

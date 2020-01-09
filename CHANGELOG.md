@@ -4,10 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.1]
+### Improvements
+- All icons are now SVG files
+- HDPI support ( by [octopusSD](https://github.com/octopusSD) )
+- Web:
+    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event. 
+    
+### Fixes
+- missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
+- not verifying if an icon path is a file
+- Web:
+    - not handling HTTP connection issues
+- not passing the Home path as a String ( does not work in Python 3.5 )
+
+### UI
+- Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
+
 ## [0.8.0] 2019-12-24
 ### Features
 - Native Web applications support:
-    - if an URL is typed in the search bar, a native web application result will be displayed in the results table.
+    - if an URL is typed on the search bar, a native web application result will be displayed on the table.
     - bauh relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to install the Web applications, but there is no need to have them installed on your system. Bauh will create its own installation environment with these technologies in **~/.local/share/bauh/web/env**.
     - suggestions are retrieved from [suggestions.txt](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml)
     - requires only **python-beautifulsoup4** and **python-lxml** to be enabled

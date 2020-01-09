@@ -17,7 +17,7 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False) -> requests.Request:
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False, session: bool = True) -> requests.Response:
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
@@ -35,7 +35,10 @@ class HttpClient:
                 if ignore_ssl:
                     args['verify'] = False
 
-                res = self.session.get(url, **args)
+                if session:
+                    res = self.session.get(url, **args)
+                else:
+                    res = requests.get(url, **args)
 
                 if res.status_code == 200:
                     return res
@@ -56,20 +59,20 @@ class HttpClient:
 
             self.logger.warning("Could not retrieve data from '{}'".format(url))
 
-    def get_json(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
-        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects)
+    def get_json(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, session: bool = True):
+        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects, session=session)
         return res.json() if res else None
 
-    def get_yaml(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True):
-        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects)
+    def get_yaml(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, session: bool = True):
+        res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects, session=session)
         return yaml.safe_load(res.text) if res else None
 
-    def get_content_length(self, url: str) -> str:
-        """
-        :param url:
-        :return:
-        """
-        res = self.session.get(url, allow_redirects=True, stream=True)
+    def get_content_length(self, url: str, session: bool = True) -> str:
+        params = {'url': url, 'allow_redirects': True, 'stream': True}
+        if session:
+            res = self.session.get(**params)
+        else:
+            res = requests.get(**params)
 
         if res.status_code == 200:
             size = res.headers.get('Content-Length')
@@ -77,6 +80,11 @@ class HttpClient:
             if size is not None:
                 return system.get_human_size_str(size)
 
-    def exists(self, url: str) -> bool:
-        res = self.session.head(url=url, allow_redirects=True, verify=False, timeout=5)
+    def exists(self, url: str, session: bool = True) -> bool:
+        params = {'url': url, 'allow_redirects': True, 'verify': False, 'timeout': 5}
+        if session:
+            res = self.session.head(**params)
+        else:
+            res = self.session.get(**params)
+
         return res.status_code in (200, 403)

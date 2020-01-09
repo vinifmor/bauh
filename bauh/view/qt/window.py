@@ -8,7 +8,7 @@ from typing import List, Type, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -33,7 +33,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon
+from bauh.view.qt.view_utils import load_icon, load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -118,7 +118,8 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
-        label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        # label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
+        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10,10)))
         label_pos_search.setStyleSheet("""
             background: white; padding-right: 10px; 
             border-top-right-radius: 5px; 
@@ -151,13 +152,15 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_filter_type.setIconSize(QSize(14,14))
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 14), self.i18n['type'].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.any_category_filter = 'any'
@@ -185,7 +188,7 @@ class ManageWindow(QWidget):
 
         self.bt_installed = QPushButton()
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
-        self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.png')))
+        self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._show_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
@@ -318,7 +321,7 @@ class ManageWindow(QWidget):
         self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
-        bt_settings = IconButton(icon_path=resource.get_path('img/app_settings.svg'),
+        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
@@ -777,7 +780,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 14)
+                        icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)

@@ -19,7 +19,10 @@ class I18n(dict):
             return self.current.__getitem__(item)
         except KeyError:
             if self.default:
-                return self.default.__getitem__(item)
+                try:
+                    return self.default.__getitem__(item)
+                except KeyError:
+                    return item
             else:
                 return item
 
