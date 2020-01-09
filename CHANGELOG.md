@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### UI
 - Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
+- Only centralizing the panel for the first refresh
 
 ## [0.8.0] 2019-12-24
 ### Features

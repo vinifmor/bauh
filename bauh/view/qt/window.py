@@ -843,7 +843,8 @@ class ManageWindow(QWidget):
             if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
                 self.adjustSize()
 
-        qt_utils.centralize(self)
+        if self.first_refresh:
+            qt_utils.centralize(self)
 
     def update_selected(self):
         if self.pkgs:
