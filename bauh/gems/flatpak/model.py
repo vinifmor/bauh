@@ -7,7 +7,8 @@ from bauh.gems.flatpak import ROOT_DIR
 class FlatpakApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None, description: str = None,
-                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None):
+                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None,
+                 installation: str = None):
         super(FlatpakApplication, self).__init__(id=id, name=name, version=version,
                                                  latest_version=latest_version, description=description)
         self.ref = ref
@@ -16,6 +17,7 @@ class FlatpakApplication(SoftwarePackage):
         self.origin = origin
         self.runtime = runtime
         self.commit = commit
+        self.installation = installation
 
         if runtime:
             self.categories = ['runtime']

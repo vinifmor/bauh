@@ -96,6 +96,7 @@ def list_installed(version: str) -> List[dict]:
                     'description': None,
                     'origin': data[1],
                     'runtime': runtime,
+                    'installation': 'user' if 'user' in data[5] else 'system',
                     'version': ref_split[2] if runtime else None
                 })
 
@@ -135,6 +136,7 @@ def list_installed(version: str) -> List[dict]:
                              'description': data[4],
                              'origin': data[5],
                              'runtime': runtime,
+                             'installation': 'user' if 'user' in data[6] else 'system',
                              'version': app_ver})
     return apps
 
@@ -158,10 +160,16 @@ def uninstall(app_ref: str):
 
 
 def list_updates_as_str(version: str):
+    updates = read_updates(version, 'system')
+    updates += read_updates(version, 'user')
+    return updates
+
+
+def read_updates(version: str, installation: str) -> str:
     if version < '1.2':
-        return run_cmd('{} update --no-related'.format(BASE_CMD), ignore_return_code=True)
+        return run_cmd('{} update --no-related --{}'.format(BASE_CMD, installation), ignore_return_code=True)
     else:
-        updates = new_subprocess([BASE_CMD, 'update']).stdout
+        updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
 
         out = StringIO()
 
@@ -175,12 +183,17 @@ def list_updates_as_str(version: str):
         return out.read()
 
 
-def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y'], root_password)
+def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
+    cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y']
+
+    if installation == 'system':
+        return new_root_subprocess(cmd, root_password)
+    else:
+        return new_subprocess(cmd)
 
 
-def get_app_commits(app_ref: str, origin: str) -> List[str]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if log:
         return re.findall(r'Commit+:\s(.+)', log)
@@ -188,8 +201,8 @@ def get_app_commits(app_ref: str, origin: str) -> List[str]:
         raise NoInternetException()
 
 
-def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[dict]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if not log:
         raise NoInternetException()
@@ -294,7 +307,7 @@ def search(version: str, word: str, app_id: bool = False) -> List[dict]:
 
 
 def install(app_id: str, origin: str):
-    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y'])
+    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--user'])
 
 
 def set_default_remotes():
