@@ -2,7 +2,7 @@ import re
 import subprocess
 from datetime import datetime
 from io import StringIO
-from typing import List
+from typing import List, Dict
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess
@@ -157,22 +157,31 @@ def uninstall(app_ref: str):
     return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
 
 
-def list_updates_as_str(version: str):
+def list_updates_as_str(version: str) -> Dict[str, set]:
     if version < '1.2':
+        # TODO
         return run_cmd('{} update --no-related'.format(BASE_CMD), ignore_return_code=True)
     else:
         updates = new_subprocess([BASE_CMD, 'update']).stdout
 
-        out = StringIO()
+        reg = r'[0-9]+\.\s+.+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
 
-        reg = r'[0-9]+\.\s+(\w+|\.)+\s+(\w|\.)+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
+        res = {'partial': set(), 'full': set()}
 
         for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
             if o:
-                out.write('/'.join(o.decode().strip().split('\t')[2:]) + '\n')
+                line_split = o.decode().strip().split('\t')
+                update_id = line_split[2] + '/' + line_split[3]
 
-        out.seek(0)
-        return out.read()
+                if len(line_split) == 7:
+                    if line_split[4] != 'i':
+                        if '(partial)' in line_split[6]:
+                            res['partial'].add(update_id)
+                        else:
+                            res['full'].add(update_id)
+                else:
+                    res['full'].add(update_id)
+        return res
 
 
 def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:

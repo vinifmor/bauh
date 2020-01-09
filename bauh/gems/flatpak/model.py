@@ -1,3 +1,6 @@
+import copy
+from typing import Set
+
 from bauh.api.abstract.model import SoftwarePackage
 
 from bauh.commons import resource
@@ -16,6 +19,7 @@ class FlatpakApplication(SoftwarePackage):
         self.origin = origin
         self.runtime = runtime
         self.commit = commit
+        self.partial = False
 
         if runtime:
             self.categories = ['runtime']
@@ -24,13 +28,13 @@ class FlatpakApplication(SoftwarePackage):
         return self.description is None and self.icon_url
 
     def has_history(self):
-        return self.installed and self.ref
+        return not self.partial and self.installed and self.ref
 
     def has_info(self):
         return bool(self.id)
 
     def can_be_downgraded(self):
-        return self.installed and self.ref
+        return not self.partial and self.installed and self.ref
 
     def get_type(self):
         return 'flatpak'
@@ -63,7 +67,21 @@ class FlatpakApplication(SoftwarePackage):
                 setattr(self, attr, data[attr])
 
     def can_be_run(self) -> bool:
-        return self.installed and not self.runtime
+        return self.installed and not self.runtime and not self.partial
 
     def get_publisher(self):
         return self.origin
+
+    def can_be_uninstalled(self):
+        return self.installed and not self.partial
+
+    def gen_partial(self, partial_id: str) -> "FlatpakApplication":
+        partial = copy.deepcopy(self)
+        partial.id = partial_id
+
+        if self.ref:
+            ref_split = self.ref.split('/')
+            partial.ref = '/'.join((ref_split[0], partial_id, *ref_split[2:]))
+
+        partial.partial = True
+        return partial

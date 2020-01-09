@@ -104,15 +104,28 @@ class FlatpakManager(SoftwareManager):
             if thread_updates:
                 thread_updates.join()
 
+            update_map = updates[0]
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True,
                                            disk_loader=disk_loader, internet=internet_available)
-                if version >= '1.5.0':
-                    model.update = '{}/{}'.format(app_json['id'], app_json['branch']) in updates[0] if updates else None
-                else:
-                    model.update = app_json['ref'] in updates[0] if updates else None
-
+                model.update = None
                 models.append(model)
+
+                if update_map['full'] or update_map['partial']:
+                    if version >= '1.5.0':
+                        update_id = '{}/{}'.format(app_json['id'], app_json['branch'])
+
+                        if update_map['full'] and update_id in update_map['full']:
+                            model.update = True
+
+                        if update_map['partial']:
+                            for partial in update_map['partial']:
+                                if app_json['id'] in partial and '/' + app_json['branch'] in partial:
+                                    partial_model = model.gen_partial(partial.split('/')[0])
+                                    partial_model.update = True
+                                    models.append(partial_model)
+                    else:
+                        model.update = app_json['ref'] in updates[0] if updates else None
 
         return SearchResult(models, None, len(models))
 

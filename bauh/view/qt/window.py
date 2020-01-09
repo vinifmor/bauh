@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView, \
+    QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -33,7 +34,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon, load_resource_icon
+from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -829,19 +830,20 @@ class ManageWindow(QWidget):
                 self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        if self.pkgs:
-            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
-
-            if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
-                new_width *= 1.07
-        else:
-            new_width = self.toolbar_top.width()
-
-        if accept_lower_width or new_width > self.width():
-            self.resize(new_width, self.height())
-
-            if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
-                self.adjustSize()
+        self.setMinimumWidth(self.layout.sizeHint().width())
+        # if self.pkgs:
+        #     new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
+        #
+        #     if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
+        #         new_width *= 1.07
+        # else:
+        #     new_width = self.toolbar_top.width()
+        #
+        # if accept_lower_width or new_width > self.width():
+        #     self.resize(new_width, self.height())
+        #
+        #     if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
+        #         self.adjustSize()
 
         if self.first_refresh:
             qt_utils.centralize(self)
