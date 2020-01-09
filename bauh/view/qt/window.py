@@ -158,7 +158,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
-        self.combo_filter_type.addItem(load_icon(resource.get_path('img/logo.svg'), 48), self.i18n['type'].capitalize(), self.any_type_filter)
+        self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
         self.any_category_filter = 'any'
@@ -778,7 +778,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 18)
+                        icon = load_icon(icon_path, 14)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
