@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event. 
     
 ### Fixes
+- missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
 - not verifying if an icon path is a file
 - Web:
     - not handling HTTP connection issues
