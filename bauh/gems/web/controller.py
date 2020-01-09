@@ -137,10 +137,10 @@ class WebApplicationManager(SoftwareManager):
         return description
 
     def _get_fix_for(self, url_no_protocol: str) -> str:
-        try:
-            fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
-            res = self.http_client.get(fix_url)
+        fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
 
+        try:
+            res = self.http_client.get(fix_url, session=False)
             if res:
                 return res.text
         except Exception as e:
@@ -156,7 +156,7 @@ class WebApplicationManager(SoftwareManager):
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
-            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True)
+            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False)
 
             if url_res:
                 return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
@@ -529,11 +529,11 @@ class WebApplicationManager(SoftwareManager):
 
     def _download_suggestion_icon(self, pkg: WebApplication, app_dir: str) -> Tuple[str, bytes]:
         try:
-            if self.http_client.exists(pkg.icon_url):
+            if self.http_client.exists(pkg.icon_url, session=False):
                 icon_path = '{}/{}'.format(app_dir, pkg.icon_url.split('/')[-1])
 
                 try:
-                    res = self.http_client.get(pkg.icon_url)
+                    res = self.http_client.get(pkg.icon_url, session=False)
                     if not res:
                         self.logger.info('Could not download the icon {}'.format(pkg.icon_url))
                     else:
@@ -756,7 +756,7 @@ class WebApplicationManager(SoftwareManager):
             if not app.description:
                 app.description = self._get_app_description(app.url, soup)
 
-            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url))
+            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
 
             if find_url:
                 app.icon_url = self._get_app_icon_url(app.url, soup)

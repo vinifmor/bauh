@@ -172,3 +172,4 @@ all_files=Alle Dateien
 file_chooser.title=Dateiauswahl
 message.file.not_exist=Datei existiert nicht
 message.file.not_exist.body=Die Datei {} scheint nicht zu existieren
+development=Entwicklung

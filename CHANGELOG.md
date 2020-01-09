@@ -8,11 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - All icons are now SVG files
 - HDPI support ( by [octopusSD](https://github.com/octopusSD) )
-
+- Web:
+    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event. 
+    
 ### Fixes
+- missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
 - not verifying if an icon path is a file
 - Web:
     - not handling HTTP connection issues
+- not passing the Home path as a String ( does not work in Python 3.5 )
 
 ## [0.8.0] 2019-12-24
 ### Features
