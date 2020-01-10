@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView, \
+    QSizePolicy, QMainWindow
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -33,7 +34,7 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon, load_resource_icon
+from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -135,6 +136,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
@@ -829,19 +831,14 @@ class ManageWindow(QWidget):
                 self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        if self.pkgs:
-            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
+        table_width = self.table_apps.get_width()
+        toolbar_width = self.toolbar.sizeHint().width()
+        topbar_width = self.toolbar_top.sizeHint().width()
 
-            if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
-                new_width *= 1.07
-        else:
-            new_width = self.toolbar_top.width()
+        new_width = max(table_width, toolbar_width, topbar_width)
 
         if accept_lower_width or new_width > self.width():
             self.resize(new_width, self.height())
-
-            if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
-                self.adjustSize()
 
         if self.first_refresh:
             qt_utils.centralize(self)

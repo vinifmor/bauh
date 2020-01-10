@@ -456,3 +456,9 @@ class AppsTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             header_horizontal.setSectionResizeMode(i, policy)
+
+    def get_width(self):
+        w = self.verticalHeader().width() + 4  # +4 seems to be needed
+        for i in range(self.columnCount()):
+            w += self.columnWidth(i)  # seems to include gridline (on my machine)
+        return w
