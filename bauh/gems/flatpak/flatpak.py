@@ -203,7 +203,11 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
     cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y']
-    return new_root_subprocess(cmd, root_password)
+
+    if installation == 'system':
+        return new_root_subprocess(cmd, root_password)
+    else:
+        return new_subprocess(cmd)
 
 
 def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
