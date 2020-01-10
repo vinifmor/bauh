@@ -837,7 +837,7 @@ class ManageWindow(QWidget):
 
         new_width = max(table_width, toolbar_width, topbar_width)
 
-        if accept_lower_width or new_width > self.width():
+        if (self.pkgs and accept_lower_width) or new_width > self.width():
             self.resize(new_width, self.height())
 
         if self.first_refresh:

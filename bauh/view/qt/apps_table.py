@@ -14,7 +14,6 @@ from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
-from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -154,7 +153,9 @@ class AppsTable(QTableWidget):
                 if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
 
                     if self.download_icons:
-                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.icon_url)))
+                        icon_request = QNetworkRequest(QUrl(app_v.model.icon_url))
+                        icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+                        self.network_man.get(icon_request)
 
                     self._update_row(app_v, change_update_col=False)
                     app_v.status = PackageViewStatus.READY
