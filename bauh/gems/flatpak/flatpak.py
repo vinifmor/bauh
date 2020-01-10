@@ -1,5 +1,6 @@
 import re
 import subprocess
+import traceback
 from datetime import datetime
 from io import StringIO
 from typing import List, Dict
@@ -168,19 +169,23 @@ def list_updates_as_str(version: str) -> Dict[str, set]:
 
         res = {'partial': set(), 'full': set()}
 
-        for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
-            if o:
-                line_split = o.decode().strip().split('\t')
-                update_id = line_split[2] + '/' + line_split[3]
+        try:
+            for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
+                if o:
+                    line_split = o.decode().strip().split('\t')
+                    update_id = line_split[2] + '/' + line_split[3]
 
-                if len(line_split) == 7:
-                    if line_split[4] != 'i':
-                        if '(partial)' in line_split[6]:
-                            res['partial'].add(update_id)
-                        else:
-                            res['full'].add(update_id)
-                else:
-                    res['full'].add(update_id)
+                    if len(line_split) == 7:
+                        if line_split[4] != 'i':
+                            if '(partial)' in line_split[6]:
+                                res['partial'].add(update_id)
+                            else:
+                                res['full'].add(update_id)
+                    else:
+                        res['full'].add(update_id)
+        except:
+            traceback.print_exc()
+
         return res
 
 
@@ -302,8 +307,8 @@ def search(version: str, word: str, app_id: bool = False) -> List[dict]:
     return found
 
 
-def install(app_id: str, origin: str):
-    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y'])
+def install(app_id: str, origin: str, installation: str):
+    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--{}'.format(installation)])
 
 
 def set_default_remotes():

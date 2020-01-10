@@ -252,7 +252,7 @@ class AppsTable(QTableWidget):
         col = QWidget()
         col_bt = QPushButton()
         col_bt.setText(text)
-        col_bt.setStyleSheet('QPushButton { ' + style + '}')
+        col_bt.setStyleSheet('QPushButton { ' + style + '} QPushButton:disabled { background: grey }')
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
@@ -265,16 +265,11 @@ class AppsTable(QTableWidget):
 
     def _set_col_installed(self, col: int, pkg: PackageView):
         if pkg.model.installed:
-            if pkg.model.can_be_uninstalled():
-                def uninstall():
-                    self._uninstall_app(pkg)
+            def uninstall():
+                self._uninstall_app(pkg)
 
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
-            else:
-                item = QLabel()
-                item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
-                item.setAlignment(Qt.AlignCenter)
-                item.setToolTip(self.i18n['installed'])
+            item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+            item.setEnabled(pkg.model.can_be_uninstalled())
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
@@ -423,31 +418,36 @@ class AppsTable(QTableWidget):
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
 
-        if pkg.model.can_be_run():
-
+        if pkg.model.installed:
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
+            bt.setEnabled(pkg.model.can_be_run())
+            item.addWidget(bt)
 
-        if pkg.model.has_info():
+        def get_info():
+            self.window.get_app_info(pkg)
 
-            def get_info():
-                self.window.get_app_info(pkg)
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
+        bt.setEnabled(bool(pkg.model.has_info()))
+        item.addWidget(bt)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
-
-        if pkg.model.has_screenshots():
+        if not pkg.model.installed:
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt.setEnabled(bool(pkg.model.has_screenshots()))
+            item.addWidget(bt)
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
-        if self.has_any_settings(pkg):
+        settings = self.has_any_settings(pkg)
+        if pkg.model.installed or settings:
             bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+            bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)

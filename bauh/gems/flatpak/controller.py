@@ -101,17 +101,18 @@ class FlatpakManager(SoftwareManager):
         models = []
 
         if installed:
+            update_map = None
             if thread_updates:
                 thread_updates.join()
+                update_map = updates[0]
 
-            update_map = updates[0]
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True,
                                            disk_loader=disk_loader, internet=internet_available)
                 model.update = None
                 models.append(model)
 
-                if update_map['full'] or update_map['partial']:
+                if update_map and (update_map['full'] or update_map['partial']):
                     if version >= '1.5.0':
                         update_id = '{}/{}'.format(app_json['id'], app_json['branch'])
 
@@ -218,7 +219,7 @@ class FlatpakManager(SoftwareManager):
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
     def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin), wrong_error_phrase='Warning'))
+        res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
         if res:
             try:

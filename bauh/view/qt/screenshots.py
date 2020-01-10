@@ -53,7 +53,7 @@ class ScreenshotsDialog(QDialog):
 
         self.bottom_bar = QToolBar()
 
-        self.bt_back = QPushButton(self.i18n['screenshots.bt_back.label'].capitalize())
+        self.bt_back = QPushButton(' < ' + self.i18n['screenshots.bt_back.label'].capitalize())
         self.bt_back.clicked.connect(self.back)
         self.ref_bt_back = self.bottom_bar.addWidget(self.bt_back)
         self.bottom_bar.addWidget(new_spacer(50))
@@ -65,7 +65,7 @@ class ScreenshotsDialog(QDialog):
         self.ref_progress_bar = self.bottom_bar.addWidget(self.progress_bar)
         self.bottom_bar.addWidget(new_spacer(50))
 
-        self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize())
+        self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize() + ' > ')
         self.bt_next.clicked.connect(self.next)
         self.ref_bt_next = self.bottom_bar.addWidget(self.bt_next)
 

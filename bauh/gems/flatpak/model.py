@@ -1,8 +1,6 @@
 import copy
-from typing import Set
 
 from bauh.api.abstract.model import SoftwarePackage
-
 from bauh.commons import resource
 from bauh.gems.flatpak import ROOT_DIR
 
@@ -20,14 +18,15 @@ class FlatpakApplication(SoftwarePackage):
         self.runtime = runtime
         self.commit = commit
         self.partial = False
+        self.installation = 'system'
 
         if runtime:
             self.categories = ['runtime']
 
-    def is_incomplete(self):
+    def is_incomplete(self) -> bool:
         return self.description is None and self.icon_url
 
-    def has_history(self):
+    def has_history(self) -> bool:
         return not self.partial and self.installed and self.ref
 
     def has_info(self):
@@ -72,7 +71,7 @@ class FlatpakApplication(SoftwarePackage):
     def get_publisher(self):
         return self.origin
 
-    def can_be_uninstalled(self):
+    def can_be_uninstalled(self) -> bool:
         return self.installed and not self.partial
 
     def gen_partial(self, partial_id: str) -> "FlatpakApplication":
@@ -80,8 +79,7 @@ class FlatpakApplication(SoftwarePackage):
         partial.id = partial_id
 
         if self.ref:
-            ref_split = self.ref.split('/')
-            partial.ref = '/'.join((ref_split[0], partial_id, *ref_split[2:]))
+            partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
 
         partial.partial = True
         return partial
