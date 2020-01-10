@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.8.1]
 ### Improvements
 - All icons are now SVG files
-- HDPI support ( by [octopusSD](https://github.com/octopusSD) )
+- HDPI support improvements ( by [octopusSD](https://github.com/octopusSD) )
 - Web:
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
     - supporting JPEG images as custom icons
@@ -17,10 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### Fixes
 - missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
-- not verifying if an icon path is a file
 - Web:
     - not handling HTTP connection issues
 - not passing the Home path as a String ( does not work in Python 3.5 )
+- UI:
+    - not verifying if an icon path is a file
+    - minor fixes
 
 ### UI
 - Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
