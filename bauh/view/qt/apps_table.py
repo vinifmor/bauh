@@ -1,4 +1,6 @@
+import operator
 import os
+from functools import reduce
 from threading import Lock
 from typing import List
 
@@ -6,7 +8,7 @@ from PyQt5.QtCore import Qt, QUrl, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
+    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
@@ -28,7 +30,7 @@ class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
-
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.app_view = app_view
         self.root = root
 
@@ -73,9 +75,11 @@ class AppsTable(QTableWidget):
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
+        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
         self.pixmap_verified = QIcon(resource.get_path('img/verified.svg')).pixmap(QSize(10, 10))
 
@@ -450,6 +454,7 @@ class AppsTable(QTableWidget):
             bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
+        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setCellWidget(pkg.table_index, col, item)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
@@ -458,7 +463,4 @@ class AppsTable(QTableWidget):
             header_horizontal.setSectionResizeMode(i, policy)
 
     def get_width(self):
-        w = self.verticalHeader().width() + 4  # +4 seems to be needed
-        for i in range(self.columnCount()):
-            w += self.columnWidth(i)  # seems to include gridline (on my machine)
-        return w
+        return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])
