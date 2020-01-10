@@ -97,6 +97,7 @@ def list_installed(version: str) -> List[dict]:
                     'description': None,
                     'origin': data[1],
                     'runtime': runtime,
+                    'installation': 'user' if 'user' in data[5] else 'system',
                     'version': ref_split[2] if runtime else None
                 })
 
@@ -136,6 +137,7 @@ def list_installed(version: str) -> List[dict]:
                              'description': data[4],
                              'origin': data[5],
                              'runtime': runtime,
+                             'installation': 'user' if 'user' in data[6] else 'system',
                              'version': app_ver})
     return apps
 
@@ -159,11 +161,21 @@ def uninstall(app_ref: str):
 
 
 def list_updates_as_str(version: str) -> Dict[str, set]:
+    updates = read_updates(version, 'system')
+    user_updates = read_updates(version, 'user')
+
+    for attr in ('full', 'partial'):
+        updates[attr].update(user_updates[attr])
+
+    return updates
+
+
+def read_updates(version: str, installation: str) -> Dict[str, set]:
     if version < '1.2':
         # TODO
-        return run_cmd('{} update --no-related'.format(BASE_CMD), ignore_return_code=True)
+        return run_cmd('{} update --no-related --{}'.format(BASE_CMD, installation), ignore_return_code=True)
     else:
-        updates = new_subprocess([BASE_CMD, 'update']).stdout
+        updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
 
         reg = r'[0-9]+\.\s+.+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
 
@@ -189,12 +201,13 @@ def list_updates_as_str(version: str) -> Dict[str, set]:
         return res
 
 
-def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y'], root_password)
+def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
+    cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y']
+    return new_root_subprocess(cmd, root_password)
 
 
-def get_app_commits(app_ref: str, origin: str) -> List[str]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if log:
         return re.findall(r'Commit+:\s(.+)', log)
@@ -202,8 +215,8 @@ def get_app_commits(app_ref: str, origin: str) -> List[str]:
         raise NoInternetException()
 
 
-def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[dict]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if not log:
         raise NoInternetException()

@@ -135,7 +135,7 @@ class FlatpakManager(SoftwareManager):
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin)
+        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation)
 
         commit_idx = commits.index(pkg.commit)
 
@@ -147,7 +147,7 @@ class FlatpakManager(SoftwareManager):
         commit = commits[commit_idx + 1]
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, root_password),
+        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
                                                                success_phrases=['Changes complete.', 'Updates complete.'],
                                                                wrong_error_phrase='Warning'))
         watcher.change_progress(100)
@@ -208,7 +208,7 @@ class FlatpakManager(SoftwareManager):
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
-        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin)
+        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
         status_idx = 0
 
         for idx, data in enumerate(commits):
@@ -243,7 +243,7 @@ class FlatpakManager(SoftwareManager):
         return flatpak.is_installed()
 
     def requires_root(self, action: str, pkg: FlatpakApplication):
-        return action == 'downgrade'
+        return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self):
         pass

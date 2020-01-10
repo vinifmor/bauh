@@ -8,7 +8,8 @@ from bauh.gems.flatpak import ROOT_DIR
 class FlatpakApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None, description: str = None,
-                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None):
+                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None,
+                 installation: str = None):
         super(FlatpakApplication, self).__init__(id=id, name=name, version=version,
                                                  latest_version=latest_version, description=description)
         self.ref = ref
@@ -23,7 +24,7 @@ class FlatpakApplication(SoftwarePackage):
         if runtime:
             self.categories = ['runtime']
 
-    def is_incomplete(self) -> bool:
+    def is_incomplete(self):
         return self.description is None and self.icon_url
 
     def has_history(self) -> bool:
@@ -70,9 +71,6 @@ class FlatpakApplication(SoftwarePackage):
 
     def get_publisher(self):
         return self.origin
-
-    def can_be_uninstalled(self) -> bool:
-        return self.installed and not self.partial
 
     def gen_partial(self, partial_id: str) -> "FlatpakApplication":
         partial = copy.deepcopy(self)
