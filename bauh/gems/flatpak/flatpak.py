@@ -6,7 +6,7 @@ from io import StringIO
 from typing import List, Dict
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
 
 BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
@@ -142,22 +142,31 @@ def list_installed(version: str) -> List[dict]:
     return apps
 
 
-def update(app_ref: str):
+def update(app_ref: str, installation: str):
     """
     Updates the app reference
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'update', '--no-related', '-y', app_ref])
+    return new_subprocess([BASE_CMD, 'update', '--no-related', '-y', app_ref, '--{}'.format(installation)])
 
 
-def uninstall(app_ref: str):
+def register_flathub(installation: str) -> SimpleProcess:
+    return SimpleProcess([BASE_CMD,
+                          'remote-add',
+                          '--if-not-exists',
+                          'flathub',
+                          'https://flathub.org/repo/flathub.flatpakrepo',
+                          '--{}'.format(installation)])
+
+
+def uninstall(app_ref: str, installation: str):
     """
     Removes the app by its reference
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
+    return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y', '--{}'.format(installation)])
 
 
 def list_updates_as_str(version: str) -> Dict[str, set]:

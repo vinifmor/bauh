@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.1]
+### Features:
+- Flatpak:
+    - allow the user to choose the installation level: user or system
+    - able to deal with user and system applications / runtimes
+    
 ### Improvements
 - All icons are now SVG files
 - HDPI support improvements ( by [octopusSD](https://github.com/octopusSD) )

@@ -421,6 +421,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
+        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         if pkg.model.installed:
             def run():
@@ -454,7 +455,6 @@ class AppsTable(QTableWidget):
             bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
-        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setCellWidget(pkg.table_index, col, item)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):

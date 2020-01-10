@@ -10,7 +10,7 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler
+from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -158,10 +158,10 @@ class FlatpakManager(SoftwareManager):
         self.api_cache.delete(pkg.id)
 
     def update(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref)))
+        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref, pkg.installation)))
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref)))
+        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
 
         if self.suggestions_cache:
             self.suggestions_cache.delete(pkg.id)
@@ -219,11 +219,25 @@ class FlatpakManager(SoftwareManager):
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
     def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
+
+        user_level = watcher.request_confirmation(title=self.i18n['flatpak.install.install_level.title'],
+                                                  body=self.i18n['flatpak.install.install_level.body'].format(bold(pkg.name)),
+                                                  confirmation_label=self.i18n['no'].capitalize(),
+                                                  deny_label=self.i18n['yes'].capitalize())
+
+        pkg.installation = 'user' if user_level else 'system'
+
+        handler = ProcessHandler(watcher)
+
+        if user_level:
+            if not handler.handle_simple(flatpak.register_flathub('user')):
+                return False
+
+        res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
         if res:
             try:
-                fields = flatpak.get_fields(pkg.id, pkg.branch, ['Ref', 'Branch'])
+                fields = flatpak.get_fields(str(pkg.id), pkg.branch, ['Ref', 'Branch'])
 
                 if fields:
                     pkg.ref = fields[0]
@@ -324,7 +338,7 @@ class FlatpakManager(SoftwareManager):
     def is_default_enabled(self) -> bool:
         return True
 
-    def launch(self, pkg: SoftwarePackage):
+    def launch(self, pkg: FlatpakApplication):
         flatpak.run(str(pkg.id))
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:

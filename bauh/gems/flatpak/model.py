@@ -19,7 +19,7 @@ class FlatpakApplication(SoftwarePackage):
         self.runtime = runtime
         self.commit = commit
         self.partial = False
-        self.installation = 'system'
+        self.installation = installation if installation else 'system'
 
         if runtime:
             self.categories = ['runtime']
