@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web:
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
     - supporting JPEG images as custom icons
+- UI:
+    - widgets visibility settings ( the main widgets now should always be visible ( e.g: toolbar buttons )
+    - only centralizing the panel for the first refresh
     
 ### Fixes
 - missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
@@ -21,7 +24,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### UI
 - Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
-- Only centralizing the panel for the first refresh
 
 ## [0.8.0] 2019-12-24
 ### Features

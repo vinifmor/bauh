@@ -136,6 +136,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
@@ -830,20 +831,14 @@ class ManageWindow(QWidget):
                 self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        self.setMinimumWidth(self.layout.sizeHint().width())
-        # if self.pkgs:
-        #     new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
-        #
-        #     if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
-        #         new_width *= 1.07
-        # else:
-        #     new_width = self.toolbar_top.width()
-        #
-        # if accept_lower_width or new_width > self.width():
-        #     self.resize(new_width, self.height())
-        #
-        #     if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
-        #         self.adjustSize()
+        table_width = self.table_apps.get_width()
+        toolbar_width = self.toolbar.sizeHint().width()
+        topbar_width = self.toolbar_top.sizeHint().width()
+
+        new_width = max(table_width, toolbar_width, topbar_width)
+
+        if accept_lower_width or new_width > self.width():
+            self.resize(new_width, self.height())
 
         if self.first_refresh:
             qt_utils.centralize(self)
