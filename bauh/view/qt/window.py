@@ -322,6 +322,7 @@ class ManageWindow(QWidget):
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
+                                 i18n=self.i18n,
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
@@ -837,8 +838,8 @@ class ManageWindow(QWidget):
 
         new_width = max(table_width, toolbar_width, topbar_width)
 
-        if self.bt_upgrade.isVisible():
-            new_width *= 1.03  # this extra size is not because of the toolbar button, but the table upgrade buttons
+        # if self.bt_upgrade.isVisible():
+        #     new_width *= 1.03  # this extra size is not because of the toolbar button, but the table upgrade buttons
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
             self.resize(new_width, self.height())

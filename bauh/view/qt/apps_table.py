@@ -426,14 +426,14 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
             bt.setEnabled(pkg.model.can_be_run())
             item.addWidget(bt)
 
         def get_info():
             self.window.get_app_info(pkg)
 
-        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
         bt.setEnabled(bool(pkg.model.has_info()))
         item.addWidget(bt)
 
@@ -441,7 +441,7 @@ class AppsTable(QTableWidget):
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
@@ -449,8 +449,8 @@ class AppsTable(QTableWidget):
             self.show_pkg_settings(pkg)
 
         settings = self.has_any_settings(pkg)
-        if pkg.model.installed or settings:
-            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+        if pkg.model.installed:
+            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), i18n=self.i18n, action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
             bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
