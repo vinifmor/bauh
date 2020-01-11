@@ -22,4 +22,4 @@ flatpak.info.installation=installazione
 flatpak.info.installation.user=utente
 flatpak.info.installation.system=sistema
 flatpak.install.install_level.title=Tipo di installazione
-flatpak.install.install_level.body={} deve essere installato per tutti gli utenti del sistema?
+flatpak.install.install_level.body={} deve essere installato per tutti gli utenti del dispositivo ( sistema ) ?

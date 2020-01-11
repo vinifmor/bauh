@@ -42,4 +42,4 @@ flatpak.info.version=version
 flatpak.history.date=date
 flatpak.history.commit=commit
 flatpak.install.install_level.title=Installation type
-flatpak.install.install_level.body=Should {} be installed for all the system users ?
+flatpak.install.install_level.body=Should {} be installed for all the device users ( system ) ?

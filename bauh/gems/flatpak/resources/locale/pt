@@ -43,4 +43,4 @@ flatpak.info.projectlicense=licença
 flatpak.info.translateurl=tradução
 flatpak.info.developername=desenvolvedor
 flatpak.install.install_level.title=Tipo de instalação
-flatpak.install.install_level.body={} deve ser instalado para todos os usuários do sistema ?
+flatpak.install.install_level.body={} deve ser instalado para todos os usuários desse dispositivo ( sistema ) ?
