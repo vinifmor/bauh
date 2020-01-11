@@ -44,3 +44,4 @@ flatpak.info.translateurl=Traducció
 flatpak.info.developername=desenvolupador
 flatpak.install.install_level.title=Tipus d'instal·lació
 flatpak.install.install_level.body=S'ha d'instal·lar {} per a tots els usuaris del dispositiu ( sistema ) ?
+flatpak.install.bad_install_level.body=Valor invàlid per a {field} al fitxer de configuració {file}

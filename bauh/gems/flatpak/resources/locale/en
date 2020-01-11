@@ -43,3 +43,4 @@ flatpak.history.date=date
 flatpak.history.commit=commit
 flatpak.install.install_level.title=Installation type
 flatpak.install.install_level.body=Should {} be installed for all the device users ( system ) ?
+flatpak.install.bad_install_level.body=Invalid value for {field} in the configuration file {file}

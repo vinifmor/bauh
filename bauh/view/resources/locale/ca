@@ -219,3 +219,4 @@ file_chooser.title=Selector de fitxers
 message.file.not_exist=Fitxer no existeix
 message.file.not_exist.body=El fitxer {} sembla no existir
 icon_button.tooltip.disabled=Aquesta acció no està disponible
+user=usuari

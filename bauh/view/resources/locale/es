@@ -218,3 +218,4 @@ file_chooser.title=Selector de archivos
 message.file.not_exist=Archivo no existe
 message.file.not_exist.body=El archivo {} parece no existir
 icon_button.tooltip.disabled=This action is unavailable
+user=usuario

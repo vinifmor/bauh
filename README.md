@@ -99,6 +99,11 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 
 ![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
 
+- The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
+```
+installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
+```
+
 - Required dependencies:
     - Any distro: **flatpak**
 

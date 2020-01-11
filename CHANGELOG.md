@@ -7,8 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.8.1]
 ### Features:
 - Flatpak:
-    - allow the user to choose the installation level: user or system
+    - allow the user to choose the installation level: **user** or **system**
     - able to deal with user and system applications / runtimes
+    - new configuration file located at **~/.config/bauh/flatpak.yml** ( it allows to define a default installation level )
     
 ### Improvements
 - All icons are now SVG files

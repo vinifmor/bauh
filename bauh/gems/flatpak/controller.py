@@ -11,7 +11,8 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
+from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
@@ -220,16 +221,31 @@ class FlatpakManager(SoftwareManager):
 
     def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
 
-        user_level = watcher.request_confirmation(title=self.i18n['flatpak.install.install_level.title'],
-                                                  body=self.i18n['flatpak.install.install_level.body'].format(bold(pkg.name)),
-                                                  confirmation_label=self.i18n['no'].capitalize(),
-                                                  deny_label=self.i18n['yes'].capitalize())
+        config = read_config()
 
-        pkg.installation = 'user' if user_level else 'system'
+        install_level = config['installation_level']
+
+        if install_level is not None:
+            self.logger.info("Default Flaptak installation level defined: {}".format(install_level))
+
+            if install_level not in ('user', 'system'):
+                watcher.show_message(title=self.i18n['error'].capitalize(),
+                                     body=self.i18n['flatpak.install.bad_install_level.body'].format(field=bold('installation_level'),
+                                                                                                     file=bold(CONFIG_FILE)),
+                                     type_=MessageType.ERROR)
+                return False
+
+            pkg.installation = install_level
+        else:
+            user_level = watcher.request_confirmation(title=self.i18n['flatpak.install.install_level.title'],
+                                                      body=self.i18n['flatpak.install.install_level.body'].format(bold(pkg.name)),
+                                                      confirmation_label=self.i18n['no'].capitalize(),
+                                                      deny_label=self.i18n['yes'].capitalize())
+            pkg.installation = 'user' if user_level else 'system'
 
         handler = ProcessHandler(watcher)
 
-        if user_level:
+        if pkg.installation == 'user':
             if not handler.handle_simple(flatpak.register_flathub('user')):
                 return False
 

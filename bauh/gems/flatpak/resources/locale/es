@@ -44,3 +44,4 @@ flatpak.info.translateurl=Traducción
 flatpak.info.developername=desarrollador
 flatpak.install.install_level.title=Tipo de instalación
 flatpak.install.install_level.body=¿Debería {} estar instalado para todos los usuarios del dispositivo ( sistema )?
+flatpak.install.bad_install_level.body=Valor inválido para {field} en el archivo de configuración {file}

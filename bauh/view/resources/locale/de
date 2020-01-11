@@ -174,3 +174,4 @@ message.file.not_exist=Datei existiert nicht
 message.file.not_exist.body=Die Datei {} scheint nicht zu existieren
 development=Entwicklung
 icon_button.tooltip.disabled=Diese Aktion ist nicht verfügbar
+user=Benutzer
