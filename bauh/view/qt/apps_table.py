@@ -30,7 +30,7 @@ class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.app_view = app_view
         self.root = root
 
@@ -75,11 +75,11 @@ class AppsTable(QTableWidget):
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
-        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
         self.pixmap_verified = QIcon(resource.get_path('img/verified.svg')).pixmap(QSize(10, 10))
 
@@ -426,6 +426,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
+        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if pkg.model.can_be_run():
 
@@ -454,7 +455,6 @@ class AppsTable(QTableWidget):
             bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
             item.addWidget(bt)
 
-        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setCellWidget(pkg.table_index, col, item)
 
     def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
