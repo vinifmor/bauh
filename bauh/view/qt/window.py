@@ -136,7 +136,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
-        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
