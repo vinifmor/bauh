@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI:
     - not verifying if an icon path is a file
     - minor fixes
+- minor bug fixes
 
 ### UI
 - Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
