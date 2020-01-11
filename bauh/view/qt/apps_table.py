@@ -30,7 +30,7 @@ class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.app_view = app_view
         self.root = root
 
@@ -75,11 +75,11 @@ class AppsTable(QTableWidget):
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
-        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
         self.pixmap_verified = QIcon(resource.get_path('img/verified.svg')).pixmap(QSize(10, 10))
 
@@ -256,7 +256,7 @@ class AppsTable(QTableWidget):
         col = QWidget()
         col_bt = QPushButton()
         col_bt.setText(text)
-        col_bt.setStyleSheet('QPushButton { ' + style + '} QPushButton:disabled { background: grey }')
+        col_bt.setStyleSheet('QPushButton { ' + style + '}')
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
@@ -269,11 +269,16 @@ class AppsTable(QTableWidget):
 
     def _set_col_installed(self, col: int, pkg: PackageView):
         if pkg.model.installed:
-            def uninstall():
-                self._uninstall_app(pkg)
+            if pkg.model.can_be_uninstalled():
+                def uninstall():
+                    self._uninstall_app(pkg)
 
-            item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
-            item.setEnabled(pkg.model.can_be_uninstalled())
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+            else:
+                item = QLabel()
+                item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
+                item.setAlignment(Qt.AlignCenter)
+                item.setToolTip(self.i18n['installed'])
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
@@ -421,7 +426,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
-        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if pkg.model.installed:
             def run():

@@ -136,7 +136,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
-        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
 
         self.checkbox_updates = QCheckBox()
@@ -322,9 +322,9 @@ class ManageWindow(QWidget):
         self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
-                                 i18n=self.i18n,
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
+                                 i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
