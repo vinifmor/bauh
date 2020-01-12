@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - supporting JPEG images as custom icons
 - UI:
     - widgets visibility settings ( the main widgets now should always be visible ( e.g: toolbar buttons )
-    - only centralizing the panel for the first refresh
+    - scaling
     
 ### Fixes
 - missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
