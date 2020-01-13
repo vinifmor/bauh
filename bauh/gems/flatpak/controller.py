@@ -58,12 +58,27 @@ class FlatpakManager(SoftwareManager):
 
         return app
 
+    def _get_search_remote(self) -> str:
+        remotes = flatpak.list_remotes()
+
+        if remotes['system']:
+            remote_level = 'system'
+        elif remotes['user']:
+            remote_level = 'user'
+        else:
+            remote_level = 'user'
+            flatpak.set_default_remotes(remote_level)
+
+        return remote_level
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
             return SearchResult([], [], 0)
 
+        remote_level = self._get_search_remote()
+
         res = SearchResult([], [], 0)
-        apps_found = flatpak.search(flatpak.get_version(), words)
+        apps_found = flatpak.search(flatpak.get_version(), words, remote_level)
 
         if apps_found:
             already_read = set()
@@ -310,10 +325,7 @@ class FlatpakManager(SoftwareManager):
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        if flatpak.is_installed():
-            if not flatpak.has_remotes_set():
-                return [self.i18n['flatpak.notification.no_remotes'],
-                        self.i18n['flatpak.notification.disable'].format(bold('Flatpak'), bold(self.i18n['manage_window.settings.gems']))]
+        return []
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()
@@ -327,6 +339,7 @@ class FlatpakManager(SoftwareManager):
             return res
         else:
             self.logger.info("Mapping suggestions")
+            remote_level = self._get_search_remote()
             installed = {i.id for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
 
             for line in file.text.split('\n'):
@@ -345,7 +358,7 @@ class FlatpakManager(SoftwareManager):
                         if cached_sug:
                             res.append(cached_sug)
                         else:
-                            app_json = flatpak.search(cli_version, appid, app_id=True)
+                            app_json = flatpak.search(cli_version, appid, remote_level, app_id=True)
 
                             if app_json:
                                 model = PackageSuggestion(self._map_to_model(app_json[0], False, None), priority)

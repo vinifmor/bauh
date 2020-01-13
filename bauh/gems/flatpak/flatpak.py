@@ -3,7 +3,7 @@ import subprocess
 import traceback
 from datetime import datetime
 from io import StringIO
-from typing import List, Dict
+from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
@@ -260,9 +260,9 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[d
     return commits
 
 
-def search(version: str, word: str, app_id: bool = False) -> List[dict]:
+def search(version: str, word: str, installation: str, app_id: bool = False) -> List[dict]:
 
-    res = run_cmd('{} search {}'.format(BASE_CMD, word))
+    res = run_cmd('{} search {} --{}'.format(BASE_CMD, word, installation))
 
     found = []
 
@@ -343,12 +343,30 @@ def install(app_id: str, origin: str, installation: str):
     return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--{}'.format(installation)])
 
 
-def set_default_remotes():
-    run_cmd('{} remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo'.format(BASE_CMD))
+def set_default_remotes(installation: str):
+    run_cmd('{} remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo --{}'.format(BASE_CMD, installation))
 
 
 def has_remotes_set() -> bool:
     return bool(run_cmd('{} remotes'.format(BASE_CMD)).strip())
+
+
+def list_remotes() -> Dict[str, Set[str]]:
+    res = {'system': set(), 'user': set()}
+    output = run_cmd('{} remotes'.format(BASE_CMD)).strip()
+
+    if output:
+        lines = output.split('\n')
+
+        for line in lines:
+            remote = line.split('\t')
+
+            if 'system' in remote[1]:
+                res['system'].add(remote[0].strip())
+            elif 'user' in remote[1]:
+                res['user'].add(remote[0].strip())
+
+    return res
 
 
 def run(app_id: str):
