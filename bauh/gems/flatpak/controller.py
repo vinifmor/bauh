@@ -287,10 +287,6 @@ class FlatpakManager(SoftwareManager):
                         watcher.print("Operation cancelled")
                         return False
 
-        if pkg.installation == 'user':
-            if not handler.handle_simple(flatpak.register_flathub('user')):
-                return False
-
         res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
         if res:

@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### Fixes
 - missing categories i18n [#48](https://github.com/vinifmor/bauh/issues/48)
+- Flatpak:
+    - updating application dependencies during updating and downgrading
 - Web:
     - not handling HTTP connection issues
 - not passing the Home path as a String ( an exception happens for Python 3.5 )

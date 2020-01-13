@@ -148,7 +148,7 @@ def update(app_ref: str, installation: str):
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'update', '--no-related', '-y', app_ref, '--{}'.format(installation)])
+    return new_subprocess([BASE_CMD, 'update', '--no-related', '--no-deps', '-y', app_ref, '--{}'.format(installation)])
 
 
 def register_flathub(installation: str) -> SimpleProcess:
@@ -221,7 +221,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
-    cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
+    cmd = [BASE_CMD, 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     if installation == 'system':
         return new_root_subprocess(cmd, root_password)
