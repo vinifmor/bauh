@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - All icons are now SVG files
 - HDPI support improvements ( by [octopusSD](https://github.com/octopusSD) )
+- Flatpak:
+    - the application name tooltip now displays the installation level. e.g: **gedit ( system )**
+    - info window displaying the installation level
 - Web:
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
     - supporting JPEG images as custom icons

@@ -38,7 +38,7 @@ class FlatpakManager(SoftwareManager):
 
     def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader, internet: bool = True) -> FlatpakApplication:
 
-        app = FlatpakApplication(**app_json)
+        app = FlatpakApplication(**app_json, i18n=self.i18n)
         app.installed = installed
         api_data = self.api_cache.get(app_json['id'])
 

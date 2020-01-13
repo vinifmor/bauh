@@ -333,7 +333,7 @@ class AppsTable(QTableWidget):
 
         if pkg.model.name:
             name = pkg.model.name
-            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), name))
+            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
             item.setToolTip(self.i18n['app.name'].lower())
