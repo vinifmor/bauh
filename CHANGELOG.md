@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - the application name tooltip now displays the installation level. e.g: **gedit ( system )**
     - info window displaying the installation level
     - "remote not set" warning dropped in favor of the new behavior: automatically adds Flathub as the default remote at the user level
+- Snap:
+    - snapd checking routine refactored
 - Web:
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
     - supporting JPEG images as custom icons

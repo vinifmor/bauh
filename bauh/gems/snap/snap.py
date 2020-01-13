@@ -9,7 +9,7 @@ from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
 RE_SNAPD_STATUS = re.compile('\s+')
-SNAPD_RUNNING_STATUS = {'listening', 'running'}
+RE_SNAPD_SERVICES = re.compile(r'snapd\.\w+.+')
 
 
 def is_installed():
@@ -18,24 +18,23 @@ def is_installed():
 
 
 def is_snapd_running() -> bool:
-    services = new_subprocess(['systemctl', 'list-units'])
+    output = run_cmd('systemctl list-units')
 
-    service, service_running = False, False
-    socket, socket_running = False, False
-    for o in new_subprocess(['grep', '-Eo', 'snapd.+'], stdin=services.stdout).stdout:
-        if o:
-            line = o.decode().strip()
+    snapd_services = RE_SNAPD_SERVICES.findall(output)
 
-            if line:
-                line_split = RE_SNAPD_STATUS.split(line)
-                running = line_split[3] in SNAPD_RUNNING_STATUS
+    socket, socket_running, service, service_running = False, False, False, False
+    if snapd_services:
+        for service_line in snapd_services:
+            line_split = RE_SNAPD_STATUS.split(service_line)
 
-                if line_split[0] == 'snapd.service':
-                    service = True
-                    service_running = running
-                elif line_split[0] == 'snapd.socket':
-                    socket = True
-                    socket_running = running
+            running = line_split[3] in {'listening', 'running'}
+
+            if line_split[0] == 'snapd.service':
+                service = True
+                service_running = running
+            elif line_split[0] == 'snapd.socket':
+                socket = True
+                socket_running = running
 
     return socket and socket_running and (not service or service_running)
 
