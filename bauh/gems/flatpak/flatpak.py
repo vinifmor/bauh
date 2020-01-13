@@ -200,7 +200,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
             for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
                 if o:
                     line_split = o.decode().strip().split('\t')
-                    update_id = line_split[2] + '/' + line_split[3]
+                    update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
 
                     if len(line_split) == 7:
                         if line_split[4] != 'i':
@@ -217,7 +217,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
-    cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y']
+    cmd = [BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     if installation == 'system':
         return new_root_subprocess(cmd, root_password)
