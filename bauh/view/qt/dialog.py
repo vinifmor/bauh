@@ -45,6 +45,7 @@ def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(reso
 
     bt_yes = diag.addButton(i18n['popup.button.yes'], QMessageBox.YesRole)
     bt_yes.setStyleSheet(css.OK_BUTTON)
+    diag.setDefaultButton(bt_yes)
 
     diag.addButton(i18n['popup.button.no'], QMessageBox.NoRole)
 
