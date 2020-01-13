@@ -180,15 +180,21 @@ def list_updates_as_str(version: str) -> Dict[str, set]:
 
 
 def read_updates(version: str, installation: str) -> Dict[str, set]:
+    res = {'partial': set(), 'full': set()}
     if version < '1.2':
-        # TODO
-        return run_cmd('{} update --no-related --{}'.format(BASE_CMD, installation), ignore_return_code=True)
+        try:
+            output = run_cmd('{} update --no-related --no-deps --{}'.format(BASE_CMD, installation), ignore_return_code=True)
+
+            if 'Updating in {}'.format(installation) in output:
+                for line in output.split('Updating in {}:\n'.format(installation))[1].split('\n'):
+                    if not line.startswith('Is this ok'):
+                        res['full'].add('{}/{}'.format(installation, line.split('\t')[0].strip()))
+        except:
+            traceback.print_exc()
     else:
         updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
 
         reg = r'[0-9]+\.\s+.+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
-
-        res = {'partial': set(), 'full': set()}
 
         try:
             for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
@@ -207,7 +213,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
         except:
             traceback.print_exc()
 
-        return res
+    return res
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:

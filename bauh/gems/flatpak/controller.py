@@ -127,7 +127,7 @@ class FlatpakManager(SoftwareManager):
                                     partial_model.update = True
                                     models.append(partial_model)
                     else:
-                        model.update = app_json['ref'] in updates[0] if updates else None
+                        model.update = '{}/{}'.format(app_json['installation'], app_json['ref']) in update_map['full']
 
         return SearchResult(models, None, len(models))
 
@@ -175,6 +175,9 @@ class FlatpakManager(SoftwareManager):
             app_info['name'] = app.name
             app_info['type'] = 'runtime' if app.runtime else 'app'
             app_info['description'] = strip_html(app.description) if app.description else ''
+
+            if app.installation:
+                app_info['installation'] = app.installation
 
             if app_info.get('installed'):
                 app_info['installed'] = app_info['installed'].replace('?', ' ')
