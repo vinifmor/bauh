@@ -5,9 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.1]
+### Features:
+- Flatpak:
+    - allow the user to choose the application installation level: **user** or **system**
+    - able to deal with user and system applications / runtimes
+    - able to list partial updates for Flatpak >= 1.4
+    - new configuration file located at **~/.config/bauh/flatpak.yml** ( it allows to define a default installation level )
+    
 ### Improvements
 - All icons are now SVG files
 - HDPI support improvements ( by [octopusSD](https://github.com/octopusSD) )
+- Flatpak:
+    - the application name tooltip now displays the installation level. e.g: **gedit ( system )**
+    - info window displaying the installation level
+    - "remote not set" warning dropped in favor of the new behavior: automatically adds Flathub as the default remote at the user level
 - Web:
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
     - supporting JPEG images as custom icons
@@ -16,17 +27,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - scaling
     
 ### Fixes
-- missing categories i18n [48](https://github.com/vinifmor/bauh/issues/48)
+- missing categories i18n [#48](https://github.com/vinifmor/bauh/issues/48)
+- Flatpak:
+    - updating application dependencies during updating and downgrading
 - Web:
     - not handling HTTP connection issues
-- not passing the Home path as a String ( does not work in Python 3.5 )
+- not passing the Home path as a String ( an exception happens for Python 3.5 )
 - UI:
     - not verifying if an icon path is a file
     - minor fixes
-- minor bug fixes
 
 ### UI
-- Default **Type** icon removed from the Type filter to make the design more consistent with the Category filter.
+- Default **Type** icon removed from the Type filter to make the design more consistent.
 
 ## [0.8.0] 2019-12-24
 ### Features

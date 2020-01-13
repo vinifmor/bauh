@@ -4,7 +4,6 @@ from threading import Thread
 
 import urllib3
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
@@ -15,7 +14,7 @@ from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
-from bauh.view.util import util, logs, resource, translation
+from bauh.view.util import util, logs, translation
 from bauh.view.util.cache import DefaultMemoryCacheFactory, CacheCleaner
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 from bauh.view.util.translation import I18n

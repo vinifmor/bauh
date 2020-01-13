@@ -177,3 +177,5 @@ file_chooser.title=File selector
 message.file.not_exist=File does not exist
 message.file.not_exist.body=The file {} seems not to exist
 development=development
+icon_button.tooltip.disabled=This action is unavailable
+user=user

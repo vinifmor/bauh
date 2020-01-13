@@ -1,11 +1,12 @@
 import re
 import subprocess
+import traceback
 from datetime import datetime
 from io import StringIO
-from typing import List
+from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, SystemProcess
 
 BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
@@ -96,6 +97,7 @@ def list_installed(version: str) -> List[dict]:
                     'description': None,
                     'origin': data[1],
                     'runtime': runtime,
+                    'installation': 'user' if 'user' in data[5] else 'system',
                     'version': ref_split[2] if runtime else None
                 })
 
@@ -135,52 +137,100 @@ def list_installed(version: str) -> List[dict]:
                              'description': data[4],
                              'origin': data[5],
                              'runtime': runtime,
+                             'installation': 'user' if 'user' in data[6] else 'system',
                              'version': app_ver})
     return apps
 
 
-def update(app_ref: str):
+def update(app_ref: str, installation: str):
     """
     Updates the app reference
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'update', '--no-related', '-y', app_ref])
+    return new_subprocess([BASE_CMD, 'update', '--no-related', '--no-deps', '-y', app_ref, '--{}'.format(installation)])
 
 
-def uninstall(app_ref: str):
+def register_flathub(installation: str) -> SimpleProcess:
+    return SimpleProcess([BASE_CMD,
+                          'remote-add',
+                          '--if-not-exists',
+                          'flathub',
+                          'https://flathub.org/repo/flathub.flatpakrepo',
+                          '--{}'.format(installation)])
+
+
+def uninstall(app_ref: str, installation: str):
     """
     Removes the app by its reference
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y'])
+    return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y', '--{}'.format(installation)])
 
 
-def list_updates_as_str(version: str):
+def list_updates_as_str(version: str) -> Dict[str, set]:
+    updates = read_updates(version, 'system')
+    user_updates = read_updates(version, 'user')
+
+    for attr in ('full', 'partial'):
+        updates[attr].update(user_updates[attr])
+
+    return updates
+
+
+def read_updates(version: str, installation: str) -> Dict[str, set]:
+    res = {'partial': set(), 'full': set()}
     if version < '1.2':
-        return run_cmd('{} update --no-related'.format(BASE_CMD), ignore_return_code=True)
+        try:
+            output = run_cmd('{} update --no-related --no-deps --{}'.format(BASE_CMD, installation), ignore_return_code=True)
+
+            if 'Updating in {}'.format(installation) in output:
+                for line in output.split('Updating in {}:\n'.format(installation))[1].split('\n'):
+                    if not line.startswith('Is this ok'):
+                        res['full'].add('{}/{}'.format(installation, line.split('\t')[0].strip()))
+        except:
+            traceback.print_exc()
     else:
-        updates = new_subprocess([BASE_CMD, 'update']).stdout
+        updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
 
-        out = StringIO()
+        reg = r'[0-9]+\.\s+.+'
 
-        reg = r'[0-9]+\.\s+(\w+|\.)+\s+(\w|\.)+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
+        try:
+            for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
+                if o:
+                    line_split = o.decode().strip().split('\t')
 
-        for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
-            if o:
-                out.write('/'.join(o.decode().strip().split('\t')[2:]) + '\n')
+                    if version >= '1.5.0':
+                        update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
+                    else:
+                        update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
 
-        out.seek(0)
-        return out.read()
+                    if len(line_split) >= 6:
+                        if line_split[4] != 'i':
+                            if '(partial)' in line_split[-1]:
+                                res['partial'].add(update_id)
+                            else:
+                                res['full'].add(update_id)
+                    else:
+                        res['full'].add(update_id)
+        except:
+            traceback.print_exc()
+
+    return res
 
 
-def downgrade(app_ref: str, commit: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'update', '--no-related', '--commit={}'.format(commit), app_ref, '-y'], root_password)
+def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
+    cmd = [BASE_CMD, 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
+
+    if installation == 'system':
+        return new_root_subprocess(cmd, root_password)
+    else:
+        return new_subprocess(cmd)
 
 
-def get_app_commits(app_ref: str, origin: str) -> List[str]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if log:
         return re.findall(r'Commit+:\s(.+)', log)
@@ -188,8 +238,8 @@ def get_app_commits(app_ref: str, origin: str) -> List[str]:
         raise NoInternetException()
 
 
-def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
-    log = run_cmd('{} remote-info --log {} {}'.format(BASE_CMD, origin, app_ref))
+def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[dict]:
+    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
 
     if not log:
         raise NoInternetException()
@@ -214,9 +264,9 @@ def get_app_commits_data(app_ref: str, origin: str) -> List[dict]:
     return commits
 
 
-def search(version: str, word: str, app_id: bool = False) -> List[dict]:
+def search(version: str, word: str, installation: str, app_id: bool = False) -> List[dict]:
 
-    res = run_cmd('{} search {}'.format(BASE_CMD, word))
+    res = run_cmd('{} search {} --{}'.format(BASE_CMD, word, installation))
 
     found = []
 
@@ -293,16 +343,35 @@ def search(version: str, word: str, app_id: bool = False) -> List[dict]:
     return found
 
 
-def install(app_id: str, origin: str):
-    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y'])
+def install(app_id: str, origin: str, installation: str):
+    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--{}'.format(installation)])
 
 
-def set_default_remotes():
-    run_cmd('{} remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo'.format(BASE_CMD))
+def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
+    cmd = [BASE_CMD, 'remote-add', '--if-not-exists', 'flathub', 'https://flathub.org/repo/flathub.flatpakrepo', '--{}'.format(installation)]
+    return SimpleProcess(cmd, root_password=root_password)
 
 
 def has_remotes_set() -> bool:
     return bool(run_cmd('{} remotes'.format(BASE_CMD)).strip())
+
+
+def list_remotes() -> Dict[str, Set[str]]:
+    res = {'system': set(), 'user': set()}
+    output = run_cmd('{} remotes'.format(BASE_CMD)).strip()
+
+    if output:
+        lines = output.split('\n')
+
+        for line in lines:
+            remote = line.split('\t')
+
+            if 'system' in remote[1]:
+                res['system'].add(remote[0].strip())
+            elif 'user' in remote[1]:
+                res['user'].add(remote[0].strip())
+
+    return res
 
 
 def run(app_id: str):

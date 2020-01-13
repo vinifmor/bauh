@@ -220,3 +220,5 @@ all_files=todos os arquivos
 file_chooser.title=Seletor arquivos
 message.file.not_exist=Arquivo não existe
 message.file.not_exist.body=O arquivo {} parece não existir
+icon_button.tooltip.disabled=Esta ação está indisponível
+user=usuário

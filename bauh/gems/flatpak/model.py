@@ -1,13 +1,16 @@
-from bauh.api.abstract.model import SoftwarePackage
+import copy
 
+from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.flatpak import ROOT_DIR
+from bauh.view.util.translation import I18n
 
 
 class FlatpakApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None, description: str = None,
-                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None):
+                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None,
+                 installation: str = None, i18n: I18n = None):
         super(FlatpakApplication, self).__init__(id=id, name=name, version=version,
                                                  latest_version=latest_version, description=description)
         self.ref = ref
@@ -16,6 +19,9 @@ class FlatpakApplication(SoftwarePackage):
         self.origin = origin
         self.runtime = runtime
         self.commit = commit
+        self.partial = False
+        self.installation = installation if installation else 'system'
+        self.i18n = i18n
 
         if runtime:
             self.categories = ['runtime']
@@ -23,14 +29,14 @@ class FlatpakApplication(SoftwarePackage):
     def is_incomplete(self):
         return self.description is None and self.icon_url
 
-    def has_history(self):
-        return self.installed and self.ref
+    def has_history(self) -> bool:
+        return not self.partial and self.installed and self.ref
 
     def has_info(self):
         return bool(self.id)
 
     def can_be_downgraded(self):
-        return self.installed and self.ref
+        return not self.partial and self.installed and self.ref
 
     def get_type(self):
         return 'flatpak'
@@ -63,7 +69,23 @@ class FlatpakApplication(SoftwarePackage):
                 setattr(self, attr, data[attr])
 
     def can_be_run(self) -> bool:
-        return self.installed and not self.runtime
+        return self.installed and not self.runtime and not self.partial
 
     def get_publisher(self):
         return self.origin
+
+    def gen_partial(self, partial_id: str) -> "FlatpakApplication":
+        partial = copy.deepcopy(self)
+        partial.id = partial_id
+
+        if self.ref:
+            partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
+
+        partial.partial = True
+        return partial
+
+    def get_name_tooltip(self) -> str:
+        if self.installation and self.i18n is not None:
+            return '{} ( {} )'.format(self.name, self.i18n[self.installation.lower()])
+
+        return self.name

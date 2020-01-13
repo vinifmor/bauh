@@ -241,14 +241,20 @@ class InputFilter(QLineEdit):
 
 class IconButton(QWidget):
 
-    def __init__(self, icon: QIcon, action, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
+    def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
         super(IconButton, self).__init__()
         self.bt = QToolButton()
         self.bt.setIcon(icon)
         self.bt.clicked.connect(action)
+        self.i18n = i18n
+        self.default_tootip = tooltip
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         if background:
-            self.bt.setStyleSheet('QToolButton { color: white; background: ' + background + '}')
+            style = 'QToolButton { color: white; background: ' + background + '} '
+            style += 'QToolButton:disabled { color: white; background: grey }'
+            self.bt.setStyleSheet(style)
 
         if tooltip:
             self.bt.setToolTip(tooltip)
@@ -258,6 +264,14 @@ class IconButton(QWidget):
         layout.setAlignment(align)
         layout.addWidget(self.bt)
         self.setLayout(layout)
+
+    def setEnabled(self, enabled):
+        super(IconButton, self).setEnabled(enabled)
+
+        if not enabled:
+            self.bt.setToolTip(self.i18n['icon_button.tooltip.disabled'])
+        else:
+            self.bt.setToolTip(self.default_tootip)
 
 
 class FormQt(QGroupBox):

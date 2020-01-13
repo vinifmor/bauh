@@ -174,3 +174,5 @@ file_chooser.title=Selettore file
 message.file.not_exist=File non esiste
 message.file.not_exist.body=Il file {} sembra non esistere
 development=sviluppo
+icon_button.tooltip.disabled=Questa azione non è disponibile
+user=utente

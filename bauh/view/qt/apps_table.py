@@ -333,7 +333,7 @@ class AppsTable(QTableWidget):
 
         if pkg.model.name:
             name = pkg.model.name
-            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), name))
+            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
             item.setToolTip(self.i18n['app.name'].lower())
@@ -428,31 +428,36 @@ class AppsTable(QTableWidget):
         item = QToolBar()
         item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
-        if pkg.model.can_be_run():
-
+        if pkg.model.installed:
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
+            bt.setEnabled(pkg.model.can_be_run())
+            item.addWidget(bt)
 
-        if pkg.model.has_info():
+        def get_info():
+            self.window.get_app_info(pkg)
 
-            def get_info():
-                self.window.get_app_info(pkg)
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
+        bt.setEnabled(bool(pkg.model.has_info()))
+        item.addWidget(bt)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
-
-        if pkg.model.has_screenshots():
+        if not pkg.model.installed:
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt.setEnabled(bool(pkg.model.has_screenshots()))
+            item.addWidget(bt)
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
-        if self.has_any_settings(pkg):
-            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+        settings = self.has_any_settings(pkg)
+        if pkg.model.installed:
+            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), i18n=self.i18n, action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+            bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)

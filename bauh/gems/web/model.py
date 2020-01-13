@@ -97,7 +97,7 @@ class WebApplication(SoftwarePackage):
         self.set_custom_icon(self.custom_icon)
 
     def can_be_run(self) -> bool:
-        return self.installed and self.installation_dir
+        return self.installed and bool(self.installation_dir)
 
     def is_trustable(self) -> bool:
         return False
