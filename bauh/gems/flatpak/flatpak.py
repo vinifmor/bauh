@@ -194,17 +194,21 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
     else:
         updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
 
-        reg = r'[0-9]+\.\s+.+' if version >= '1.5.0' else r'[0-9]+\.\s+(\w+|\.)+\s+\w+\s+(\w|\.)+'
+        reg = r'[0-9]+\.\s+.+'
 
         try:
             for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
                 if o:
                     line_split = o.decode().strip().split('\t')
-                    update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
 
-                    if len(line_split) == 7:
+                    if version >= '1.5.0':
+                        update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
+                    else:
+                        update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
+
+                    if len(line_split) >= 6:
                         if line_split[4] != 'i':
-                            if '(partial)' in line_split[6]:
+                            if '(partial)' in line_split[-1]:
                                 res['partial'].add(update_id)
                             else:
                                 res['full'].add(update_id)

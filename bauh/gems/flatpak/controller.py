@@ -130,7 +130,7 @@ class FlatpakManager(SoftwareManager):
                 models.append(model)
 
                 if update_map and (update_map['full'] or update_map['partial']):
-                    if version >= '1.5.0':
+                    if version >= '1.4.0':
                         update_id = '{}/{}/{}'.format(app_json['id'], app_json['branch'], app_json['installation'])
 
                         if update_map['full'] and update_id in update_map['full']:

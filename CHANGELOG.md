@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak:
     - allow the user to choose the application installation level: **user** or **system**
     - able to deal with user and system applications / runtimes
-    - able to handle partial updates for Flatpak >= 1.5
+    - able to list partial updates for Flatpak >= 1.4
     - new configuration file located at **~/.config/bauh/flatpak.yml** ( it allows to define a default installation level )
     
 ### Improvements
