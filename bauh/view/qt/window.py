@@ -845,9 +845,7 @@ class ManageWindow(QWidget):
         topbar_width = self.toolbar_top.sizeHint().width()
 
         new_width = max(table_width, toolbar_width, topbar_width)
-
-        if self.bt_upgrade.isVisible():
-            new_width *= 1.07  # this extra size is not because of the toolbar button, but the table upgrade buttons
+        new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
             self.resize(new_width, self.height())
