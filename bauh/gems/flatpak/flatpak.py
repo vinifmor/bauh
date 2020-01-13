@@ -2,18 +2,17 @@ import re
 import subprocess
 import traceback
 from datetime import datetime
-from io import StringIO
 from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, SystemProcess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
 
 BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 
 
-def get_app_info_fields(app_id: str, branch: str, fields: List[str] = [], check_runtime: bool = False):
-    info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch))
+def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
+    info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch, installation))
     data = {}
     fields_to_retrieve = len(fields) + (1 if check_runtime and 'ref' not in fields else 0)
 
@@ -63,12 +62,12 @@ def get_version():
     return res.split(' ')[1].strip() if res else None
 
 
-def get_app_info(app_id: str, branch: str):
-    return run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch))
+def get_app_info(app_id: str, branch: str, installation: str):
+    return run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch, '--{}'.format(installation)))
 
 
-def get_commit(app_id: str, branch: str) -> str:
-    info = new_subprocess([BASE_CMD, 'info', app_id, branch])
+def get_commit(app_id: str, branch: str, installation: str) -> str:
+    info = new_subprocess([BASE_CMD, 'info', app_id, branch, '--{}'.format(installation)])
 
     for o in new_subprocess(['grep', 'Commit:', '--color=never'], stdin=info.stdout).stdout:
         if o:

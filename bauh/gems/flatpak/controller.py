@@ -151,7 +151,7 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
@@ -190,7 +190,7 @@ class FlatpakManager(SoftwareManager):
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
-            app_info = flatpak.get_app_info_fields(app.id, app.branch)
+            app_info = flatpak.get_app_info_fields(app.id, app.branch, app.installation)
             app_info['name'] = app.name
             app_info['type'] = 'runtime' if app.runtime else 'app'
             app_info['description'] = strip_html(app.description) if app.description else ''
@@ -230,7 +230,7 @@ class FlatpakManager(SoftwareManager):
                 return {}
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
         status_idx = 0
 
