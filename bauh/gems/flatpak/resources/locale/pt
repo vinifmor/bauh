@@ -45,3 +45,4 @@ flatpak.info.developername=desenvolvedor
 flatpak.install.install_level.title=Tipo de instalação
 flatpak.install.install_level.body={} deve ser instalado para todos os usuários desse dispositivo ( sistema ) ?
 flatpak.install.bad_install_level.body=Valor inválido para {field} no arquivo de configuração {file}
+flatpak.remotes.system_flathub.error=Não foi possível adicionar o Flathub como um repositório do sistema ( remote )

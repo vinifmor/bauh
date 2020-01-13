@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from bauh.api.abstract.view import MessageType, ViewComponent
 
@@ -64,4 +64,10 @@ class ProcessWatcher:
     def should_stop(self) -> bool:
         """
         :return: if the use requested to stop the process.
+        """
+
+    def request_root_password(self) -> Tuple[str, bool]:
+        """
+        asks the root password for the user
+        :return: a tuple with the typed password and if it is valid
         """

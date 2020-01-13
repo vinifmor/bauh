@@ -9,6 +9,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType
+from bauh.commons import user
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
@@ -67,7 +68,7 @@ class FlatpakManager(SoftwareManager):
             remote_level = 'user'
         else:
             remote_level = 'user'
-            flatpak.set_default_remotes(remote_level)
+            ProcessHandler().handle_simple(flatpak.set_default_remotes(remote_level))
 
         return remote_level
 
@@ -264,7 +265,27 @@ class FlatpakManager(SoftwareManager):
                                                       deny_label=self.i18n['yes'].capitalize())
             pkg.installation = 'user' if user_level else 'system'
 
+        remotes = flatpak.list_remotes()
+
         handler = ProcessHandler(watcher)
+
+        if pkg.installation == 'user' and not remotes['user']:
+            handler.handle_simple(flatpak.set_default_remotes('user'))
+        elif pkg.installation == 'system' and not remotes['system']:
+            if user.is_root():
+                handler.handle_simple(flatpak.set_default_remotes('system'))
+            else:
+                user_password, valid = watcher.request_root_password()
+                if not valid:
+                    watcher.print('Operation aborted')
+                    return False
+                else:
+                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password)):
+                        watcher.show_message(title=self.i18n['error'].capitalize(),
+                                             body=self.i18n['flatpak.remotes.system_flathub.error'],
+                                             type_=MessageType.ERROR)
+                        watcher.print("Operation cancelled")
+                        return False
 
         if pkg.installation == 'user':
             if not handler.handle_simple(flatpak.register_flathub('user')):
@@ -318,7 +339,7 @@ class FlatpakManager(SoftwareManager):
                 loader.join()
 
             for app in to_update:
-                updates.append(PackageUpdate(pkg_id='{}:{}'.format(app.id, app.branch),
+                updates.append(PackageUpdate(pkg_id='{}:{}:{}'.format(app.id, app.branch, app.installation),
                                              pkg_type='flatpak',
                                              version=app.version))
 

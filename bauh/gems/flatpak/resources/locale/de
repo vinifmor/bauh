@@ -44,3 +44,4 @@ flatpak.history.commit=Commit
 flatpak.install.install_level.title=Installationstyp
 flatpak.install.install_level.body=Sollte {} für alle Gerätebenutzer installiert werden ( system ) ?
 flatpak.install.bad_install_level.body=Ungültiger Wert für {field} in der Konfigurationsdatei {file}
+flatpak.remotes.system_flathub.error=Flathub konnte nicht als System-Repository ( remote ) hinzugefügt werden

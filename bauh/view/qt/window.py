@@ -1,7 +1,5 @@
 import logging
-import operator
 import time
-from functools import reduce
 from pathlib import Path
 from typing import List, Type, Set
 
@@ -17,9 +15,10 @@ from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
+from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.qt import dialog, commons, qt_utils
+from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
@@ -27,7 +26,7 @@ from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
-from bauh.view.qt.root import is_root, ask_root_password
+from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
@@ -49,6 +48,7 @@ class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
     signal_user_res = pyqtSignal(bool)
+    signal_root_password = pyqtSignal(str, bool)
     signal_table_update = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
@@ -396,8 +396,10 @@ class ManageWindow(QWidget):
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             action.signal_progress.connect(self._update_process_progress)
+            action.signal_root_password.connect(self._ask_root_password)
 
             self.signal_user_res.connect(action.confirm)
+            self.signal_root_password.connect(action.set_root_password)
 
         return action
 
@@ -413,6 +415,12 @@ class ManageWindow(QWidget):
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
+
+    def _ask_root_password(self):
+        self.thread_animate_progress.pause()
+        password, valid = root.ask_root_password(self.i18n)
+        self.thread_animate_progress.animate()
+        self.signal_root_password.emit(password, valid)
 
     def _show_message(self, msg: dict):
         self.thread_animate_progress.pause()
@@ -549,7 +557,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('uninstall', app.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -865,7 +873,7 @@ class ManageWindow(QWidget):
                                                      widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
                 pwd = None
 
-                if not is_root() and requires_root:
+                if not user.is_root() and requires_root:
                     pwd, ok = ask_root_password(self.i18n)
 
                     if not ok:
@@ -983,7 +991,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('downgrade', pkgv.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -1076,7 +1084,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('install', pkg.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -1131,7 +1139,7 @@ class ManageWindow(QWidget):
     def execute_custom_action(self, pkg: PackageView, action: PackageAction):
         pwd = None
 
-        if not is_root() and action.requires_root:
+        if not user.is_root() and action.requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:

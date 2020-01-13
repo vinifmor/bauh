@@ -6,7 +6,7 @@ from io import StringIO
 from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, SystemProcess
 
 BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
@@ -343,8 +343,9 @@ def install(app_id: str, origin: str, installation: str):
     return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--{}'.format(installation)])
 
 
-def set_default_remotes(installation: str):
-    run_cmd('{} remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo --{}'.format(BASE_CMD, installation))
+def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
+    cmd = [BASE_CMD, 'remote-add', '--if-not-exists', 'flathub', 'https://flathub.org/repo/flathub.flatpakrepo', '--{}'.format(installation)]
+    return SimpleProcess(cmd, root_password=root_password)
 
 
 def has_remotes_set() -> bool:
