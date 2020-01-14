@@ -7,8 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.8.1]
 ### Features:
 - Flatpak:
-    - allow the user to choose the application installation level: **user** or **system**
-    - able to deal with user and system applications / runtimes
+    - allow the user to choose the application installation level: **user** or **system** [#47](https://github.com/vinifmor/bauh/issues/47)
+    - able to deal with user and system applications / runtimes [#47](https://github.com/vinifmor/bauh/issues/47)
     - able to list partial updates for Flatpak >= 1.4
     - new configuration file located at **~/.config/bauh/flatpak.yml** ( it allows to define a default installation level )
     
@@ -22,10 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap:
     - snapd checking routine refactored
 - Web:
-    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event.
+    - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event
     - supporting JPEG images as custom icons
 - UI:
-    - widgets visibility settings ( the main widgets now should always be visible ( e.g: toolbar buttons )
+    - widgets visibility settings: the main widgets now should always be visible ( e.g: toolbar buttons )
     - scaling
     
 ### Fixes
@@ -34,13 +34,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - updating application dependencies during updating and downgrading
 - Web:
     - not handling HTTP connection issues
-- not passing the Home path as a String ( an exception happens for Python 3.5 )
+- not passing the Home path as a String for subprocesses ( an exception happens for Python 3.5 )
 - UI:
     - not verifying if an icon path is a file
     - minor fixes
 
 ### UI
-- Default **Type** icon removed from the Type filter to make the design more consistent.
+- Default **Type** icon removed from the Type filter to make the design more consistent
 
 ## [0.8.0] 2019-12-24
 ### Features
