@@ -175,6 +175,12 @@ class SoftwarePackage(ABC):
         """
         return not self.installed
 
+    def get_name_tooltip(self) -> str:
+        """
+        :return: the application name that should be displayed on the UI tooltips.
+        """
+        return self.name
+
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.id, self.name)
 

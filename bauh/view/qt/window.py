@@ -1,12 +1,10 @@
 import logging
-import operator
 import time
-from functools import reduce
 from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
 
@@ -16,9 +14,10 @@ from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
+from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.qt import dialog, commons, qt_utils
+from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
@@ -26,14 +25,14 @@ from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
-from bauh.view.qt.root import is_root, ask_root_password
+from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon, load_resource_icon
+from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -48,6 +47,7 @@ class ManageWindow(QWidget):
     __BASE_HEIGHT__ = 400
 
     signal_user_res = pyqtSignal(bool)
+    signal_root_password = pyqtSignal(str, bool)
     signal_table_update = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
@@ -118,8 +118,7 @@ class ManageWindow(QWidget):
         self.toolbar_search.addWidget(self.input_search)
 
         label_pos_search = QLabel()
-        # label_pos_search.setPixmap(QPixmap(resource.get_path('img/search.svg')))
-        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10,10)))
+        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10, 10)))
         label_pos_search.setStyleSheet("""
             background: white; padding-right: 10px; 
             border-top-right-radius: 5px; 
@@ -158,7 +157,6 @@ class ManageWindow(QWidget):
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
-        self.combo_filter_type.setIconSize(QSize(14,14))
         self.combo_filter_type.activated.connect(self._handle_type_filter)
         self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
@@ -324,6 +322,7 @@ class ManageWindow(QWidget):
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
+                                 i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
@@ -395,8 +394,10 @@ class ManageWindow(QWidget):
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             action.signal_progress.connect(self._update_process_progress)
+            action.signal_root_password.connect(self._ask_root_password)
 
             self.signal_user_res.connect(action.confirm)
+            self.signal_root_password.connect(action.set_root_password)
 
         return action
 
@@ -412,6 +413,12 @@ class ManageWindow(QWidget):
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
+
+    def _ask_root_password(self):
+        self.thread_animate_progress.pause()
+        password, valid = root.ask_root_password(self.i18n)
+        self.thread_animate_progress.animate()
+        self.signal_root_password.emit(password, valid)
 
     def _show_message(self, msg: dict):
         self.thread_animate_progress.pause()
@@ -548,7 +555,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('uninstall', app.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -780,7 +787,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = QIcon(icon_path)
+                        icon = load_icon(icon_path, 14)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
@@ -831,19 +838,15 @@ class ManageWindow(QWidget):
                 self.ref_combo_categories.setVisible(False)
 
     def resize_and_center(self, accept_lower_width: bool = True):
-        if self.pkgs:
-            new_width = reduce(operator.add, [self.table_apps.columnWidth(i) for i in range(self.table_apps.columnCount())])
+        table_width = self.table_apps.get_width()
+        toolbar_width = self.toolbar.sizeHint().width()
+        topbar_width = self.toolbar_top.sizeHint().width()
 
-            if self.ref_bt_upgrade.isVisible() or self.ref_bt_settings.isVisible():
-                new_width *= 1.07
-        else:
-            new_width = self.toolbar_top.width()
+        new_width = max(table_width, toolbar_width, topbar_width)
+        new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
 
-        if accept_lower_width or new_width > self.width():
+        if (self.pkgs and accept_lower_width) or new_width > self.width():
             self.resize(new_width, self.height())
-
-            if self.ref_bt_upgrade.isVisible() and self.bt_upgrade.visibleRegion().isEmpty():
-                self.adjustSize()
 
         qt_utils.centralize(self)
 
@@ -866,7 +869,7 @@ class ManageWindow(QWidget):
                                                      widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
                 pwd = None
 
-                if not is_root() and requires_root:
+                if not user.is_root() and requires_root:
                     pwd, ok = ask_root_password(self.i18n)
 
                     if not ok:
@@ -984,7 +987,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('downgrade', pkgv.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -1077,7 +1080,7 @@ class ManageWindow(QWidget):
         pwd = None
         requires_root = self.manager.requires_root('install', pkg.model)
 
-        if not is_root() and requires_root:
+        if not user.is_root() and requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:
@@ -1132,7 +1135,7 @@ class ManageWindow(QWidget):
     def execute_custom_action(self, pkg: PackageView, action: PackageAction):
         pwd = None
 
-        if not is_root() and action.requires_root:
+        if not user.is_root() and action.requires_root:
             pwd, ok = ask_root_password(self.i18n)
 
             if not ok:

@@ -21,6 +21,7 @@ To contribute with this project, have a look at [CONTRIBUTING.md](https://github
 - **pip3**
 - **python3-requests**
 - **python-yaml**
+- **qt5dxcb-plugin**
 - **python3-venv** ( only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation) )
 - **libappindicator3** ( for the **tray mode** in GTK3 desktop environments )
 
@@ -98,6 +99,11 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 - The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
 ![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
+
+- The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
+```
+installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
+```
 
 - Required dependencies:
     - Any distro: **flatpak**

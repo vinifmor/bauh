@@ -9,9 +9,11 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType
+from bauh.commons import user
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE
+from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
+from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
@@ -37,7 +39,7 @@ class FlatpakManager(SoftwareManager):
 
     def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader, internet: bool = True) -> FlatpakApplication:
 
-        app = FlatpakApplication(**app_json)
+        app = FlatpakApplication(**app_json, i18n=self.i18n)
         app.installed = installed
         api_data = self.api_cache.get(app_json['id'])
 
@@ -57,12 +59,27 @@ class FlatpakManager(SoftwareManager):
 
         return app
 
+    def _get_search_remote(self) -> str:
+        remotes = flatpak.list_remotes()
+
+        if remotes['system']:
+            remote_level = 'system'
+        elif remotes['user']:
+            remote_level = 'user'
+        else:
+            remote_level = 'user'
+            ProcessHandler().handle_simple(flatpak.set_default_remotes(remote_level))
+
+        return remote_level
+
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
             return SearchResult([], [], 0)
 
+        remote_level = self._get_search_remote()
+
         res = SearchResult([], [], 0)
-        apps_found = flatpak.search(flatpak.get_version(), words)
+        apps_found = flatpak.search(flatpak.get_version(), words, remote_level)
 
         if apps_found:
             already_read = set()
@@ -101,27 +118,44 @@ class FlatpakManager(SoftwareManager):
         models = []
 
         if installed:
+            update_map = None
             if thread_updates:
                 thread_updates.join()
+                update_map = updates[0]
 
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True,
                                            disk_loader=disk_loader, internet=internet_available)
-                if version >= '1.5.0':
-                    model.update = '{}/{}'.format(app_json['id'], app_json['branch']) in updates[0] if updates else None
-                else:
-                    model.update = app_json['ref'] in updates[0] if updates else None
-
+                model.update = None
                 models.append(model)
+
+                if update_map and (update_map['full'] or update_map['partial']):
+                    if version >= '1.4.0':
+                        update_id = '{}/{}/{}'.format(app_json['id'], app_json['branch'], app_json['installation'])
+
+                        if update_map['full'] and update_id in update_map['full']:
+                            model.update = True
+
+                        if update_map['partial']:
+                            for partial in update_map['partial']:
+                                partial_data = partial.split('/')
+                                if app_json['id'] in partial_data[0] and\
+                                        app_json['branch'] == partial_data[1] and\
+                                        app_json['installation'] == partial_data[2]:
+                                    partial_model = model.gen_partial(partial.split('/')[0])
+                                    partial_model.update = True
+                                    models.append(partial_model)
+                    else:
+                        model.update = '{}/{}'.format(app_json['installation'], app_json['ref']) in update_map['full']
 
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin)
+        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation)
 
         commit_idx = commits.index(pkg.commit)
 
@@ -133,7 +167,7 @@ class FlatpakManager(SoftwareManager):
         commit = commits[commit_idx + 1]
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, root_password),
+        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
                                                                success_phrases=['Changes complete.', 'Updates complete.'],
                                                                wrong_error_phrase='Warning'))
         watcher.change_progress(100)
@@ -144,10 +178,10 @@ class FlatpakManager(SoftwareManager):
         self.api_cache.delete(pkg.id)
 
     def update(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref)))
+        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref, pkg.installation)))
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref)))
+        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
 
         if self.suggestions_cache:
             self.suggestions_cache.delete(pkg.id)
@@ -156,10 +190,13 @@ class FlatpakManager(SoftwareManager):
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
-            app_info = flatpak.get_app_info_fields(app.id, app.branch)
+            app_info = flatpak.get_app_info_fields(app.id, app.branch, app.installation)
             app_info['name'] = app.name
             app_info['type'] = 'runtime' if app.runtime else 'app'
             app_info['description'] = strip_html(app.description) if app.description else ''
+
+            if app.installation:
+                app_info['installation'] = app.installation
 
             if app_info.get('installed'):
                 app_info['installed'] = app_info['installed'].replace('?', ' ')
@@ -193,8 +230,8 @@ class FlatpakManager(SoftwareManager):
                 return {}
 
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch)
-        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin)
+        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
+        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
         status_idx = 0
 
         for idx, data in enumerate(commits):
@@ -205,11 +242,56 @@ class FlatpakManager(SoftwareManager):
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
     def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.install(pkg.id, pkg.origin), wrong_error_phrase='Warning'))
+
+        config = read_config()
+
+        install_level = config['installation_level']
+
+        if install_level is not None:
+            self.logger.info("Default Flaptak installation level defined: {}".format(install_level))
+
+            if install_level not in ('user', 'system'):
+                watcher.show_message(title=self.i18n['error'].capitalize(),
+                                     body=self.i18n['flatpak.install.bad_install_level.body'].format(field=bold('installation_level'),
+                                                                                                     file=bold(CONFIG_FILE)),
+                                     type_=MessageType.ERROR)
+                return False
+
+            pkg.installation = install_level
+        else:
+            user_level = watcher.request_confirmation(title=self.i18n['flatpak.install.install_level.title'],
+                                                      body=self.i18n['flatpak.install.install_level.body'].format(bold(pkg.name)),
+                                                      confirmation_label=self.i18n['no'].capitalize(),
+                                                      deny_label=self.i18n['yes'].capitalize())
+            pkg.installation = 'user' if user_level else 'system'
+
+        remotes = flatpak.list_remotes()
+
+        handler = ProcessHandler(watcher)
+
+        if pkg.installation == 'user' and not remotes['user']:
+            handler.handle_simple(flatpak.set_default_remotes('user'))
+        elif pkg.installation == 'system' and not remotes['system']:
+            if user.is_root():
+                handler.handle_simple(flatpak.set_default_remotes('system'))
+            else:
+                user_password, valid = watcher.request_root_password()
+                if not valid:
+                    watcher.print('Operation aborted')
+                    return False
+                else:
+                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password)):
+                        watcher.show_message(title=self.i18n['error'].capitalize(),
+                                             body=self.i18n['flatpak.remotes.system_flathub.error'],
+                                             type_=MessageType.ERROR)
+                        watcher.print("Operation cancelled")
+                        return False
+
+        res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
         if res:
             try:
-                fields = flatpak.get_fields(pkg.id, pkg.branch, ['Ref', 'Branch'])
+                fields = flatpak.get_fields(str(pkg.id), pkg.branch, ['Ref', 'Branch'])
 
                 if fields:
                     pkg.ref = fields[0]
@@ -229,7 +311,7 @@ class FlatpakManager(SoftwareManager):
         return flatpak.is_installed()
 
     def requires_root(self, action: str, pkg: FlatpakApplication):
-        return action == 'downgrade'
+        return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self):
         pass
@@ -253,17 +335,14 @@ class FlatpakManager(SoftwareManager):
                 loader.join()
 
             for app in to_update:
-                updates.append(PackageUpdate(pkg_id='{}:{}'.format(app.id, app.branch),
+                updates.append(PackageUpdate(pkg_id='{}:{}:{}'.format(app.id, app.branch, app.installation),
                                              pkg_type='flatpak',
                                              version=app.version))
 
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        if flatpak.is_installed():
-            if not flatpak.has_remotes_set():
-                return [self.i18n['flatpak.notification.no_remotes'],
-                        self.i18n['flatpak.notification.disable'].format(bold('Flatpak'), bold(self.i18n['manage_window.settings.gems']))]
+        return []
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()
@@ -277,6 +356,7 @@ class FlatpakManager(SoftwareManager):
             return res
         else:
             self.logger.info("Mapping suggestions")
+            remote_level = self._get_search_remote()
             installed = {i.id for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
 
             for line in file.text.split('\n'):
@@ -295,7 +375,7 @@ class FlatpakManager(SoftwareManager):
                         if cached_sug:
                             res.append(cached_sug)
                         else:
-                            app_json = flatpak.search(cli_version, appid, app_id=True)
+                            app_json = flatpak.search(cli_version, appid, remote_level, app_id=True)
 
                             if app_json:
                                 model = PackageSuggestion(self._map_to_model(app_json[0], False, None), priority)
@@ -310,7 +390,7 @@ class FlatpakManager(SoftwareManager):
     def is_default_enabled(self) -> bool:
         return True
 
-    def launch(self, pkg: SoftwarePackage):
+    def launch(self, pkg: FlatpakApplication):
         flatpak.run(str(pkg.id))
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:

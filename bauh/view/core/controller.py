@@ -157,6 +157,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         disk_loader = None
 
+        internet_available = None
         if not pkg_types:  # any type
             for man in self.managers:
                 if self._can_work(man):
@@ -164,11 +165,12 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    if thread_internet_check.isAlive():
+                    if internet_available is None:
                         thread_internet_check.join()
+                        internet_available = net_check.get('available', True)
 
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_check['available'])
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available)
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -185,9 +187,12 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    thread_internet_check.join()
+                    if internet_available is None:
+                        thread_internet_check.join()
+                        internet_available = net_check.get('available', True)
+
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_check['available'])
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available)
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 

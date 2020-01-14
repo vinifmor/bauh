@@ -1,12 +1,12 @@
 from typing import List
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame, QSizePolicy
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
 from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent, \
     FormComponent
 from bauh.view.qt import css
-from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt, new_spacer
+from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt
 from bauh.view.util.translation import I18n
 
 
@@ -19,6 +19,7 @@ class ConfirmationDialog(QMessageBox):
         self.setStyleSheet('QLabel { margin-right: 25px; }')
         self.bt_yes = self.addButton(i18n['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)
         self.bt_yes.setStyleSheet(css.OK_BUTTON)
+        self.setDefaultButton(self.bt_yes)
 
         self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 

@@ -1,4 +1,6 @@
+import operator
 import os
+from functools import reduce
 from threading import Lock
 from typing import List
 
@@ -6,7 +8,7 @@ from PyQt5.QtCore import Qt, QUrl, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar
+    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
@@ -14,7 +16,6 @@ from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
-from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -29,7 +30,7 @@ class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
-
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.app_view = app_view
         self.root = root
 
@@ -74,9 +75,11 @@ class AppsTable(QTableWidget):
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
+        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.icon_logo = QIcon(resource.get_path('img/logo.svg'))
         self.pixmap_verified = QIcon(resource.get_path('img/verified.svg')).pixmap(QSize(10, 10))
 
@@ -154,7 +157,9 @@ class AppsTable(QTableWidget):
                 if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
 
                     if self.download_icons:
-                        self.network_man.get(QNetworkRequest(QUrl(app_v.model.icon_url)))
+                        icon_request = QNetworkRequest(QUrl(app_v.model.icon_url))
+                        icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+                        self.network_man.get(icon_request)
 
                     self._update_row(app_v, change_update_col=False)
                     app_v.status = PackageViewStatus.READY
@@ -289,7 +294,7 @@ class AppsTable(QTableWidget):
         pixmap = self.cache_type_icon.get(pkg.model.get_type())
 
         if not pixmap:
-            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(14,14))
+            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(16, 16))
             self.cache_type_icon[pkg.model.get_type()] = pixmap
 
         item = QLabel()
@@ -328,7 +333,7 @@ class AppsTable(QTableWidget):
 
         if pkg.model.name:
             name = pkg.model.name
-            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), name))
+            item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
             item.setToolTip(self.i18n['app.name'].lower())
@@ -341,8 +346,9 @@ class AppsTable(QTableWidget):
 
         item.setText(name)
 
-        if self.disk_cache and pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and os.path.exists(pkg.model.get_disk_icon_path()):
-            with open(pkg.model.get_disk_icon_path(), 'rb') as f:
+        icon_path = pkg.model.get_disk_icon_path()
+        if self.disk_cache and pkg.model.supports_disk_cache() and icon_path and os.path.isfile(icon_path):
+            with open(icon_path, 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()
                 pixmap.loadFromData(icon_bytes)
@@ -420,32 +426,38 @@ class AppsTable(QTableWidget):
 
     def _set_col_settings(self, col: int, pkg: PackageView):
         item = QToolBar()
+        item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
-        if pkg.model.can_be_run():
-
+        if pkg.model.installed:
             def run():
                 self.window.run_app(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_play.svg')), action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
+            bt.setEnabled(pkg.model.can_be_run())
+            item.addWidget(bt)
 
-        if pkg.model.has_info():
+        def get_info():
+            self.window.get_app_info(pkg)
 
-            def get_info():
-                self.window.get_app_info(pkg)
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
+        bt.setEnabled(bool(pkg.model.has_info()))
+        item.addWidget(bt)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/app_info.svg')), action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip']))
-
-        if pkg.model.has_screenshots():
+        if not pkg.model.installed:
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            item.addWidget(IconButton(QIcon(resource.get_path('img/camera.svg')), action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip']))
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt.setEnabled(bool(pkg.model.has_screenshots()))
+            item.addWidget(bt)
 
         def handle_click():
             self.show_pkg_settings(pkg)
 
-        if self.has_any_settings(pkg):
-            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+        settings = self.has_any_settings(pkg)
+        if pkg.model.installed:
+            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), i18n=self.i18n, action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
+            bt.setEnabled(bool(settings))
             item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)
@@ -454,3 +466,6 @@ class AppsTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             header_horizontal.setSectionResizeMode(i, policy)
+
+    def get_width(self):
+        return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])

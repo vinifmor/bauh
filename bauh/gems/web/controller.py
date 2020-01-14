@@ -9,6 +9,7 @@ from pathlib import Path
 from threading import Thread
 from typing import List, Type, Set, Tuple
 
+import requests
 import yaml
 from colorama import Fore
 from requests import exceptions
@@ -152,14 +153,14 @@ class WebApplicationManager(SoftwareManager):
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _map_url(self, url: str) -> "BeautifulSoup":
+    def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
             url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False)
 
             if url_res:
-                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head'))
+                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
         except exceptions.ConnectionError as e:
             self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
 
@@ -182,14 +183,21 @@ class WebApplicationManager(SoftwareManager):
             if installed_matches:
                 res.installed.extend(installed_matches)
             else:
-                soup = self._map_url(url)
+                soup_map = self._map_url(url)
 
-                if soup:
+                if soup_map:
+                    soup, response = soup_map[0], soup_map[1]
+
+                    final_url = response.url
+
+                    if final_url.endswith('/'):
+                        final_url = final_url[0:-1]
+
                     name = self._get_app_name(url_no_protocol, soup)
-                    desc = self._get_app_description(url, soup)
-                    icon_url = self._get_app_icon_url(url, soup)
+                    desc = self._get_app_description(final_url, soup)
+                    icon_url = self._get_app_icon_url(final_url, soup)
 
-                    app = WebApplication(url=url, name=name, description=desc, icon_url=icon_url)
+                    app = WebApplication(url=final_url, name=name, description=desc, icon_url=icon_url)
 
                     if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
                         app.version = self.env_settings['electron']['version']
@@ -420,7 +428,7 @@ class WebApplicationManager(SoftwareManager):
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
                                          label=self.i18n['web.install.option.wicon.label'])
 
-        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico', 'xpm'}, label=self.i18n['web.install.option.icon.label'])
+        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico', 'jpg', 'jpeg'}, label=self.i18n['web.install.option.icon.label'])
 
         form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
 
@@ -515,7 +523,7 @@ class WebApplicationManager(SoftwareManager):
 
     def _ask_update_permission(self, to_update: List[EnvironmentComponent], watcher: ProcessWatcher) -> bool:
 
-        icon = resource.get_path('img/web.svg', ROOT_DIR)
+        icon = resource.get_path('img/web.png', ROOT_DIR)
         opts = [InputOption(label='{} ( {} )'.format(f.name, f.size or '?'),
                             tooltip=f.url, icon_path=icon, read_only=True, value=f.name) for f in to_update]
 
@@ -747,9 +755,16 @@ class WebApplicationManager(SoftwareManager):
         pass
 
     def _fill_suggestion(self, app: WebApplication):
-        soup = self._map_url(app.url)
+        soup_map = self._map_url(app.url)
 
-        if soup:
+        if soup_map:
+            soup, res = soup_map[0], soup_map[1]
+
+            app.url = res.url
+
+            if app.url.endswith('/'):
+                app.url = app.url[0:-1]
+
             if not app.name:
                 app.name = self._get_app_name(app.url, soup)
 

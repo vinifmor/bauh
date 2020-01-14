@@ -1,7 +1,7 @@
 import re
 import time
 from datetime import datetime, timedelta
-from typing import List, Type, Set
+from typing import List, Type, Set, Tuple
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -28,11 +28,13 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_status = pyqtSignal(str)  # changes the GUI status message
     signal_substatus = pyqtSignal(str)  # changes the GUI substatus message
     signal_progress = pyqtSignal(int)
+    signal_root_password = pyqtSignal()
 
     def __init__(self):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
+        self.root_password = None
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[InputViewComponent] = None, confirmation_label: str = None, deny_label: str = None) -> bool:
@@ -41,8 +43,20 @@ class AsyncAction(QThread, ProcessWatcher):
         self.wait_user()
         return self.confirmation_res
 
+    def request_root_password(self) -> Tuple[str, bool]:
+        self.wait_confirmation = True
+        self.signal_root_password.emit()
+        self.wait_user()
+        res = self.root_password
+        self.root_password = None
+        return res
+
     def confirm(self, res: bool):
         self.confirmation_res = res
+        self.wait_confirmation = False
+
+    def set_root_password(self, password: str, valid: bool):
+        self.root_password = (password, valid)
         self.wait_confirmation = False
 
     def wait_user(self):
