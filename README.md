@@ -1,11 +1,11 @@
-**bauh** ( ba-oo ) is a graphical interface for managing your Linux applications / packages. It was formerly known as **fpakman**. It is able to manage AUR, AppImage, Flatpak and Snap applications, and also to generate native Web applications. When you launch **bauh** you will see
-a management panel where you can search, update, install, uninstall and launch applications. Downgrading is also possible in some cases.
+**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications / packages. It is able to manage AUR, AppImage, Flatpak, Snap and native Web applications. When you launch **bauh** 
+a management panel will be displayed where you can search, update, install, uninstall and launch applications ( downgrading is also possible in some cases ).
 
-It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches itself to the system tray. The attached bauh icon will get red when updates are available.
+It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches itself as an icon to the system tray. The attached icon will get red when updates are available.
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
-To contribute with this project, have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
+To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
 
 
 ![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
