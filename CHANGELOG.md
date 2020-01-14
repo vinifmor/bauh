@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - not treating **makedepends' as a list during dependency checking ( **anbox-git** installation was crashing )
     - not considering the package name itself as *provided** during dependency checking ( **anbox-git** installation was crashing )
+    - not pre-downloading some source files ( e.g: from **anbox-image** )
 
 ## [0.8.1] 2020-01-14
 ### Features:

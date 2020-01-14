@@ -36,7 +36,8 @@ URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 RE_SPLIT_VERSION = re.compile(r'(=|>|<)')
 
 SOURCE_FIELDS = ('source', 'source_x86_64')
-RE_PRE_DOWNLOADABLE_FILES = re.compile(r'(https?|ftp)://.+\.\w+[^gpg|git]$')
+RE_PRE_DOWNLOAD_WL_PROTOCOLS = re.compile(r'^(.+::)?(https?|ftp)://.+')
+RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
 
 SEARCH_OPTIMIZED_MAP = {
     'google chrome': 'google-chrome',
@@ -424,7 +425,7 @@ class ArchManager(SoftwareManager):
                         continue
                     else:
                         for f in srcinfo[attr]:
-                            if RE_PRE_DOWNLOADABLE_FILES.findall(f):
+                            if RE_PRE_DOWNLOAD_WL_PROTOCOLS.match(f) and not RE_PRE_DOWNLOAD_BL_EXT.match(f):
                                 pre_download_files.append(f)
 
             if pre_download_files:
