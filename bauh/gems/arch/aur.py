@@ -15,7 +15,7 @@ URL_SEARCH = 'https://aur.archlinux.org/rpc/?v=5&type=search&arg='
 
 RE_SRCINFO_KEYS = re.compile(r'(\w+)\s+=\s+(.+)\n')
 
-KNOWN_LIST_FIELDS = ('validpgpkeys', 'depends', 'optdepends', 'sha512sums', 'sha512sums_x86_64', 'source', 'source_x86_64')
+KNOWN_LIST_FIELDS = ('validpgpkeys', 'depends', 'optdepends', 'sha512sums', 'sha512sums_x86_64', 'source', 'source_x86_64', 'makedepends')
 
 
 def map_pkgbuild(pkgbuild: str) -> dict:

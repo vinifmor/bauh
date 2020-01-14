@@ -324,7 +324,7 @@ def read_provides(name: str) -> Set[str]:
             if provided_names[0].lower() == 'none':
                 provides = {name}
             else:
-                provides = set(provided_names)
+                provides = {name, *provided_names}
 
     return provides
 

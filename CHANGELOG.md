@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.2]
+### Fixes
+- AUR:
+    - not treating **makedepends' as a list during dependency checking ( **anbox-git** installation was crashing )
+    - not considering the package name itself as *provided** during dependency checking ( **anbox-git** installation was crashing )
+
 ## [0.8.1] 2020-01-14
 ### Features:
 - Flatpak:
