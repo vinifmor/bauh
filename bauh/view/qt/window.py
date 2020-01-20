@@ -158,6 +158,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.lineEdit().setReadOnly(True)
         self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
+        self.combo_filter_type.setIconSize(QSize(14,14))
         self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.ref_combo_filter_type = self.toolbar.addWidget(self.combo_filter_type)
 
@@ -787,7 +788,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 14)
+                        icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)

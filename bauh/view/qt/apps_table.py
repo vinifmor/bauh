@@ -294,7 +294,7 @@ class AppsTable(QTableWidget):
         pixmap = self.cache_type_icon.get(pkg.model.get_type())
 
         if not pixmap:
-            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(16, 16))
+            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(14,14))
             self.cache_type_icon[pkg.model.get_type()] = pixmap
 
         item = QLabel()
