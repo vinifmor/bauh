@@ -151,11 +151,15 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation)
+        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation, handler)
+
+        if commits is None:
+            return False
 
         commit_idx = commits.index(pkg.commit)
 
@@ -167,9 +171,9 @@ class FlatpakManager(SoftwareManager):
         commit = commits[commit_idx + 1]
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
-                                                               success_phrases=['Changes complete.', 'Updates complete.'],
-                                                               wrong_error_phrase='Warning'))
+        success = handler.handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
+                                               success_phrases=['Changes complete.', 'Updates complete.'],
+                                               wrong_error_phrase='Warning'))
         watcher.change_progress(100)
         return success
 

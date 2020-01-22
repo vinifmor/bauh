@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
 
 BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
@@ -150,15 +150,6 @@ def update(app_ref: str, installation: str):
     return new_subprocess([BASE_CMD, 'update', '--no-related', '--no-deps', '-y', app_ref, '--{}'.format(installation)])
 
 
-def register_flathub(installation: str) -> SimpleProcess:
-    return SimpleProcess([BASE_CMD,
-                          'remote-add',
-                          '--if-not-exists',
-                          'flathub',
-                          'https://flathub.org/repo/flathub.flatpakrepo',
-                          '--{}'.format(installation)])
-
-
 def uninstall(app_ref: str, installation: str):
     """
     Removes the app by its reference
@@ -228,12 +219,15 @@ def downgrade(app_ref: str, commit: str, installation: str, root_password: str) 
         return new_subprocess(cmd)
 
 
-def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
-    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
-
-    if log:
-        return re.findall(r'Commit+:\s(.+)', log)
-    else:
+def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> List[str]:
+    try:
+        p = SimpleProcess(['flatpak', 'remote-info', '--log', origin, app_ref, '--{}'.format(installation)])
+        success, output = handler.handle_simple(p)
+        if output.startswith('error:'):
+            return
+        else:
+            return re.findall(r'Commit+:\s(.+)', output)
+    except:
         raise NoInternetException()
 
 
