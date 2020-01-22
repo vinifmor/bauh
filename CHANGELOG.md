@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.2]
+### Improvements
+- Flatpak:
+    - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
 ### Fixes
 - AUR:
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )

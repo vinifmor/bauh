@@ -314,7 +314,7 @@ class FlatpakManager(SoftwareManager):
         return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self):
-        pass
+        Thread(target=read_config, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
