@@ -2,11 +2,15 @@ import os
 import re
 from typing import Tuple
 
-from bauh.commons.system import SimpleProcess, ProcessHandler
+from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
 from bauh.gems.arch import CUSTOM_MAKEPKG_FILE
 
 RE_DEPS_PATTERN = re.compile(r'\n?\s+->\s(.+)\n')
 RE_UNKNOWN_GPG_KEY = re.compile(r'\(unknown public key (\w+)\)')
+
+
+def gen_srcinfo(build_dir: str) -> str:
+    return run_cmd('makepkg --printsrcinfo', cwd=build_dir)
 
 
 def check(pkgdir: str, optimize: bool, handler: ProcessHandler) -> dict:

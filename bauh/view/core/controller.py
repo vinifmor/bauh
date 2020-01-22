@@ -211,7 +211,11 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
-            return man.downgrade(app, root_password, handler)
+            mti = time.time()
+            res = man.downgrade(app, root_password, handler)
+            mtf = time.time()
+            self.logger.info('Took {0:.2f} seconds'.format(mtf - mti))
+            return res
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
@@ -258,7 +262,11 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man:
-            return man.get_history(app)
+            mti = time.time()
+            history = man.get_history(app)
+            mtf = time.time()
+            self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+            return history
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         pass

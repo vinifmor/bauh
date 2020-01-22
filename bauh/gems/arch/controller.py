@@ -196,13 +196,14 @@ class ArchManager(SoftwareManager):
 
                 if build_dir:
                     watcher.change_progress(10)
+                    base_name = pkg.get_base_name()
                     watcher.change_substatus(self.i18n['arch.clone'].format(bold(pkg.name)))
-                    clone = handler.handle(SystemProcess(subproc=new_subprocess(['git', 'clone', URL_GIT.format(pkg.name)], cwd=app_build_dir), check_error_output=False))
+                    clone = handler.handle(SystemProcess(subproc=new_subprocess(['git', 'clone', URL_GIT.format(base_name)], cwd=app_build_dir), check_error_output=False))
                     watcher.change_progress(30)
                     if clone:
                         watcher.change_substatus(self.i18n['arch.downgrade.reading_commits'])
-                        clone_path = '{}/{}'.format(app_build_dir, pkg.name)
-                        pkgbuild_path = '{}/PKGBUILD'.format(clone_path)
+                        clone_path = '{}/{}'.format(app_build_dir, base_name)
+                        srcinfo_path = '{}/.SRCINFO'.format(clone_path)
 
                         commits = run_cmd("git log", cwd=clone_path)
                         watcher.change_progress(40)
@@ -211,22 +212,24 @@ class ArchManager(SoftwareManager):
                             commit_list = re.findall(r'commit (.+)\n', commits)
                             if commit_list:
                                 if len(commit_list) > 1:
+                                    srcfields = {'pkgver', 'pkgrel'}
+
                                     for idx in range(1, len(commit_list)):
                                         commit = commit_list[idx]
-                                        with open(pkgbuild_path) as f:
-                                            pkgdict = aur.map_pkgbuild(f.read())
+                                        with open(srcinfo_path) as f:
+                                            pkgsrc = aur.map_srcinfo(f.read(), srcfields)
 
                                         if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit], cwd=clone_path), check_error_output=False)):
                                             watcher.print('Could not downgrade anymore. Aborting...')
                                             return False
 
-                                        if '{}-{}'.format(pkgdict.get('pkgver'), pkgdict.get('pkgrel')) == pkg.version:
+                                        if '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                                             # current version found
                                             watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
                                             break
 
                                     watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
-                                    return self._build(pkg.name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
+                                    return self._build(pkg.name, base_name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
                                 else:
                                     watcher.show_message(title=self.i18n['arch.downgrade.error'],
                                                          body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
@@ -347,24 +350,26 @@ class ArchManager(SoftwareManager):
 
         try:
             Path(temp_dir).mkdir(parents=True)
-            run_cmd('git clone ' + URL_GIT.format(pkg.name), print_error=False, cwd=temp_dir)
+            base_name = pkg.get_base_name()
+            run_cmd('git clone ' + URL_GIT.format(base_name), print_error=False, cwd=temp_dir)
 
-            clone_path = '{}/{}'.format(temp_dir, pkg.name)
-            pkgbuild_path = '{}/PKGBUILD'.format(clone_path)
+            clone_path = '{}/{}'.format(temp_dir, base_name)
+            srcinfo_path = '{}/.SRCINFO'.format(clone_path)
 
             commits = git.list_commits(clone_path)
 
             if commits:
+                srcfields = {'pkgver', 'pkgrel'}
                 history, status_idx = [], -1
 
                 for idx, commit in enumerate(commits):
-                    with open(pkgbuild_path) as f:
-                        pkgdict = aur.map_pkgbuild(f.read())
+                    with open(srcinfo_path) as f:
+                        pkgsrc = aur.map_srcinfo(f.read(), srcfields)
 
-                    if status_idx < 0 and '{}-{}'.format(pkgdict.get('pkgver'), pkgdict.get('pkgrel')) == pkg.version:
+                    if status_idx < 0 and '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                         status_idx = idx
 
-                    history.append({'1_version': pkgdict['pkgver'], '2_release': pkgdict['pkgrel'],
+                    history.append({'1_version': pkgsrc['pkgver'], '2_release': pkgsrc['pkgrel'],
                                     '3_date': commit['date']})  # the number prefix is to ensure the rendering order
 
                     if idx + 1 < len(commits):
@@ -390,7 +395,7 @@ class ArchManager(SoftwareManager):
         for dep in deps:
             handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(dep[0], dep[1]))))
             if dep[1] == 'aur':
-                installed = self._install_from_aur(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
+                installed = self._install_from_aur(pkgname=dep[0], pkgbase=None, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
                 installed = self._install(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
 
@@ -413,9 +418,10 @@ class ArchManager(SoftwareManager):
 
         return pkg_mirrors
 
-    def _pre_download_source(self, pkgname: str, project_dir: str, watcher: ProcessWatcher) -> bool:
+    def _pre_download_source(self, project_dir: str, watcher: ProcessWatcher) -> bool:
         if self.context.file_downloader.is_multithreaded():
-            srcinfo = self.aur_client.get_src_info(pkgname)
+            with open('{}/.SRCINFO'.format(project_dir)) as f:
+                srcinfo = aur.map_srcinfo(f.read())
 
             pre_download_files = []
 
@@ -447,9 +453,9 @@ class ArchManager(SoftwareManager):
     def _should_check_subdeps(self):
         return self.local_config['transitive_checking']
 
-    def _build(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+    def _build(self, pkgname: str, base_name: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
 
-        self._pre_download_source(pkgname, project_dir, handler.watcher)
+        self._pre_download_source(project_dir, handler.watcher)
 
         self._update_progress(handler.watcher, 50, change_progress)
 
@@ -718,7 +724,7 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
 
-    def _install_from_aur(self, pkgname: str, maintainer: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+    def _install_from_aur(self, pkgname: str, pkgbase: str, maintainer: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
@@ -727,20 +733,22 @@ class ArchManager(SoftwareManager):
                 self._update_progress(handler.watcher, 10, change_progress)
 
                 if build_dir:
-                    file_url = URL_PKG_DOWNLOAD.format(pkgname)
+                    base_name = pkgbase if pkgbase else pkgname
+                    file_url = URL_PKG_DOWNLOAD.format(base_name)
                     file_name = file_url.split('/')[-1]
                     handler.watcher.change_substatus('{} {}'.format(self.i18n['arch.downloading.package'], bold(file_name)))
                     download = handler.handle(SystemProcess(new_subprocess(['wget', file_url], cwd=app_build_dir), check_error_output=False))
 
                     if download:
                         self._update_progress(handler.watcher, 30, change_progress)
-                        handler.watcher.change_substatus('{} {}'.format(self.i18n['arch.uncompressing.package'], bold(file_name)))
-                        uncompress = handler.handle(SystemProcess(new_subprocess(['tar', 'xvzf', '{}.tar.gz'.format(pkgname)], cwd=app_build_dir)))
+                        handler.watcher.change_substatus('{} {}'.format(self.i18n['arch.uncompressing.package'], bold(base_name)))
+                        uncompress = handler.handle(SystemProcess(new_subprocess(['tar', 'xvzf', '{}.tar.gz'.format(base_name)], cwd=app_build_dir)))
                         self._update_progress(handler.watcher, 40, change_progress)
 
                         if uncompress:
-                            uncompress_dir = '{}/{}'.format(app_build_dir, pkgname)
+                            uncompress_dir = '{}/{}'.format(app_build_dir, base_name)
                             return self._build(pkgname=pkgname,
+                                               base_name=base_name,
                                                maintainer=maintainer,
                                                root_password=root_password,
                                                handler=handler,
@@ -766,7 +774,7 @@ class ArchManager(SoftwareManager):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
             ArchCompilationOptimizer(self.context.logger).optimize()
 
-        res = self._install_from_aur(pkg.name, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
+        res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
 
         if res:
             if os.path.exists(pkg.get_disk_data_path()):

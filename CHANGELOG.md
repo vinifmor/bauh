@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Flatpak:
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
+- AUR:
+    - downgrading time reduced due to the fix described in ***Fixes***.
 - UI:
     - it's possible to disabled the HDPI improvements via the main configuration file ( **~/.config/bauh/config.yml** ):
     ```
@@ -19,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )
     - not considering the package name itself as **provided** during dependency checking ( **anbox-git** installation was crashing )
     - not pre-downloading some source files ( e.g: from **anbox-image** )
+    - not able to install packages based on other packages ( package name != package base )
+    - downgrade: pre-downloading sources from the latest version instead of the older
 - UI:
     - **About** window icons scaling
 

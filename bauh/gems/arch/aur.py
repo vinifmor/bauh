@@ -22,6 +22,30 @@ def map_pkgbuild(pkgbuild: str) -> dict:
     return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
 
 
+def map_srcinfo(string: str, fields: Set[str] = None) -> dict:
+    info = {}
+
+    if fields:
+        field_re = re.compile(r'({})\s+=\s+(.+)\n'.format('|'.join(fields)))
+    else:
+        field_re = RE_SRCINFO_KEYS
+
+    for match in field_re.finditer(string):
+        field = match.group(0).split('=')
+        key = field[0].strip()
+        val = field[1].strip()
+
+        if key not in info:
+            info[key] = [val] if key in KNOWN_LIST_FIELDS else val
+        else:
+            if not isinstance(info[key], list):
+                info[key] = [info[key]]
+
+            info[key].append(val)
+
+    return info
+
+
 class AURClient:
 
     def __init__(self, http_client: HttpClient, logger: logging.Logger):
@@ -39,17 +63,7 @@ class AURClient:
         res = self.http_client.get(URL_SRC_INFO + urllib.parse.quote(name))
 
         if res and res.text:
-            info = {}
-            for field in RE_SRCINFO_KEYS.findall(res.text):
-                if field[0] not in info:
-                    info[field[0]] = [field[1]] if field[0] in KNOWN_LIST_FIELDS else field[1]
-                else:
-                    if not isinstance(info[field[0]], list):
-                        info[field[0]] = [info[field[0]]]
-
-                    info[field[0]].append(field[1])
-
-            return info
+            return map_srcinfo(res.text)
 
     def get_all_dependencies(self, name: str) -> Set[str]:
         deps = set()
