@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Flatpak:
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
+- UI:
+    - it's possible to disabled the HDPI improvements via the main configuration file ( **~/.config/bauh/config.yml** ):
+    ```
+    ui:
+        hdpi: true  # 'false' will disable them
+    ```
 ### Fixes
 - AUR:
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )

@@ -43,7 +43,9 @@ def read_config(update_file: bool = False) -> dict:
                 'default_icon': None,
                 'updates_icon': None
             },
-            'style': None
+            'style': None,
+            'hdpi': True
+
         },
         'download': {
             'multithreaded': True,

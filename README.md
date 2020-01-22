@@ -242,6 +242,7 @@ ui:
   tray:  # system tray settings
     default_icon: null  # defines a path to a custom icon
     updates_icon: null  # defines a path to a custom icon indicating updates
+  hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange. 
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
 

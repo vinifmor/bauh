@@ -31,7 +31,6 @@ def main():
     args = app_args.read()
 
     logger = logs.new_logger(__app_name__, bool(args.logs))
-    app_args.validate(args, logger)
 
     local_config = config.read_config(update_file=True)
 
@@ -71,7 +70,10 @@ def main():
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]
     app.setWindowIcon(app_icon)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps) # This fix images on HDPI resolution, not tested on non HDPI
+
+    if local_config['ui']['hdpi']:
+        logger.info("HDPI settings activated")
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # This fix images on HDPI resolution, not tested on non HDPI
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))
