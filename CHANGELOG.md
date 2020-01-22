@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )
     - not considering the package name itself as **provided** during dependency checking ( **anbox-git** installation was crashing )
     - not pre-downloading some source files ( e.g: from **anbox-image** )
-    - not able to install packages based on other packages ( package name != package base )
+    - not able to install packages based on other packages ( package name != package base ). e.g: anbox-modules-dkms-git ( anbox-git )
     - downgrade: pre-downloading sources from the latest version instead of the older
 - Flatpak:
     - displaying "No Internet connection" when an error happens during commits reading within the downgrade process

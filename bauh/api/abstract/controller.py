@@ -11,6 +11,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.view import FormComponent
 
 
 class SearchResult:
@@ -270,5 +271,11 @@ class SoftwareManager(ABC):
     def clear_data(self):
         """
         Removes all data created by the SoftwareManager instance
+        """
+        pass
+
+    def get_settings(self) -> FormComponent:
+        """
+        :return: a form abstraction with all available settings
         """
         pass
