@@ -17,16 +17,17 @@ from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.qt import dialog, commons, qt_utils, root
+from bauh.view.qt import dialog, commons, qt_utils, root, view_utils
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
-from bauh.view.qt.components import new_spacer, InputFilter, IconButton
+from bauh.view.qt.components import new_spacer, InputFilter, IconButton, to_widget
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
+from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
@@ -345,6 +346,7 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+        self.settings_window = None
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
@@ -1163,6 +1165,14 @@ class ManageWindow(QWidget):
                                      show_panel_after_restart=bool(self.tray_icon))
         gem_panel.show()
 
+    def show_settings_window(self):
+        self.settings_window = SettingsWindow(self.manager, self.i18n)
+        self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+        self.settings_window.resize(self.size())
+        self.settings_window.adjustSize()
+        qt_utils.centralize(self.settings_window)
+        self.settings_window.show()
+
     def _show_settings_menu(self):
         menu_row = QMenu()
 
@@ -1172,6 +1182,10 @@ class ManageWindow(QWidget):
 
             action_gems.triggered.connect(self.show_gems_selector)
             menu_row.addAction(action_gems)
+
+        action_settings = QAction('Settings')  # TODO
+        action_settings.triggered.connect(self.show_settings_window)
+        menu_row.addAction(action_settings)
 
         action_about = QAction(self.i18n['manage_window.settings.about'])
         action_about.setIcon(QIcon(resource.get_path('img/about.svg')))

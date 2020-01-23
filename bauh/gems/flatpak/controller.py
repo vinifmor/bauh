@@ -8,7 +8,8 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
-from bauh.api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
+    ViewComponent
 from bauh.commons import user
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
@@ -415,3 +416,19 @@ class FlatpakManager(SoftwareManager):
                 traceback.print_exc()
 
         return urls
+
+    def get_settings(self) -> ViewComponent:
+        fields = []
+
+        config = read_config()
+
+        install_opts = [InputOption(label='system'.capitalize(), value='system'),
+                        InputOption(label='user'.capitalize(), value='user'),
+                        InputOption(label='ask'.capitalize(), value=None)]
+        fields.append(SingleSelectComponent(label='Level',
+                                            options=install_opts,
+                                            default_option=[o for o in install_opts if o.value == config['installation_level']][0],
+                                            max_per_line=len(install_opts),
+                                            type_=SelectViewType.RADIO))
+
+        return FormComponent([FormComponent(fields, 'Installation')])

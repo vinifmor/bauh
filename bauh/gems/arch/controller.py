@@ -15,7 +15,8 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority
-from bauh.api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
+    ViewComponent
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
@@ -883,3 +884,26 @@ class ArchManager(SoftwareManager):
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
+
+    def get_settings(self) -> ViewComponent:
+        config = read_config()
+
+        optz_opts = [InputOption(label='on'.capitalize(), value=True),
+                     InputOption(label='off'.capitalize(), value=False)]
+
+        trans_check_opts = [InputOption(label='on'.capitalize(), value=True),
+                            InputOption(label='off'.capitalize(), value=False)]
+
+        fields = [
+            SingleSelectComponent(label='Optimizations',
+                                  options=optz_opts,
+                                  default_option=[o for o in optz_opts if o.value == config['optimize']][0],
+                                  max_per_line=len(optz_opts),
+                                  type_=SelectViewType.RADIO),
+            SingleSelectComponent(label='Transitive dependency checking',
+                                  options=trans_check_opts,
+                                  default_option=[o for o in trans_check_opts if o.value == config['optimize']][0],
+                                  max_per_line=len(trans_check_opts),
+                                  type_=SelectViewType.RADIO)]
+
+        return FormComponent([FormComponent(fields, label='Installation')])

@@ -38,9 +38,6 @@ class InputOption:
         if not label:
             raise Exception("'label' must be a not blank string")
 
-        if value is None:
-            raise Exception("'value' must be a not blank string")
-
         self.id = id_
         self.label = label
         self.value = value
@@ -132,3 +129,18 @@ class FileChooserComponent(ViewComponent):
         self.label = label
         self.allowed_extensions = allowed_extensions
         self.file_path = None
+
+
+class TabComponent(ViewComponent):
+
+    def __init__(self, label: str, content: ViewComponent, id_: str = None):
+        super(TabComponent, self).__init__(id_=id_)
+        self.label = label
+        self.content = content
+
+
+class TabGroupComponent(ViewComponent):
+
+    def __init__(self, components: List[TabComponent], id_: str = None):
+        super(TabGroupComponent, self).__init__(id_=id_)
+        self.components = components

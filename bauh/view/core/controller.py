@@ -8,8 +8,11 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
+    InputOption
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.view.core import config
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
@@ -398,3 +401,15 @@ class GenericSoftwareManager(SoftwareManager):
 
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
+
+    def get_settings(self) -> ViewComponent:
+        settings_forms = []
+
+        for man in self.managers:
+            if self._can_work(man):
+                man_comp = man.get_settings()
+
+                if man_comp:
+                    settings_forms.append(TabComponent(man.__class__.__name__, man_comp))
+
+        return TabGroupComponent(settings_forms)

@@ -4,11 +4,11 @@ from typing import Tuple
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent, FormComponent, FileChooserComponent
-from bauh.view.qt import css, view_utils
+    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent
+from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -81,6 +81,34 @@ class ComboBoxQt(QComboBox):
     def _set_selected(self, idx: int):
         self.model.value = self.model.options[idx]
         self.setToolTip(self.model.value.tooltip)
+
+
+class RadioBoxQt(QWidget):
+
+    def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
+        super(RadioBoxQt, self).__init__(parent=parent)
+        self.model = model
+
+        grid = QGridLayout()
+        self.setLayout(grid)
+
+        line, col = 0, 0
+        for op in model.options:
+            comp = RadioButtonQt(op, model)
+            comp.setText(op.label)
+            comp.setToolTip(op.tooltip)
+
+            if model.value and model.value == op:
+                self.value = comp
+                comp.setChecked(True)
+
+            grid.addWidget(comp, line, col)
+
+            if col + 1 == self.model.max_per_line:
+                line += 1
+                col = 0
+            else:
+                col += 1
 
 
 class RadioSelectQt(QGroupBox):
@@ -291,11 +319,13 @@ class FormQt(QGroupBox):
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
                 label = QLabel(c.label.capitalize() if c.label else '')
-                field = ComboBoxQt(c)
+                field = ComboBoxQt(c) if c.type == SelectViewType.COMBO else RadioBoxQt(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
+            elif isinstance(c, FormComponent):
+                self.layout().addRow(FormQt(c, self.i18n))
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
@@ -353,7 +383,18 @@ class FormQt(QGroupBox):
         return QLabel(c.label if c.label else ''), chooser
 
 
-def new_single_select(model: SingleSelectComponent):
+class TabGroupQt(QTabWidget):
+
+    def __init__(self, model: TabGroupComponent, i18n: I18n, parent: QWidget = None):
+        super(TabGroupQt, self).__init__(parent=parent)
+        self.model = model
+        self.setTabPosition(QTabWidget.West)
+
+        for c in model.components:
+            self.addTab(to_widget(c.content, i18n), c.label)
+
+
+def new_single_select(model: SingleSelectComponent) -> QWidget:
     if model.type == SelectViewType.RADIO:
         return RadioSelectQt(model)
     elif model.type == SelectViewType.COMBO:
@@ -370,3 +411,18 @@ def new_spacer(min_width: int = None) -> QWidget:
 
     spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     return spacer
+
+
+def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidget:
+    if isinstance(comp, SingleSelectComponent):
+        return new_single_select(comp)
+    elif isinstance(comp, MultipleSelectComponent):
+        return MultipleSelectQt(comp, None)
+    elif isinstance(comp, TextInputComponent):
+        return TextInputQt(comp)
+    elif isinstance(comp, FormComponent):
+        return FormQt(comp, i18n)
+    elif isinstance(comp, TabGroupComponent):
+        return TabGroupQt(comp, i18n, parent)
+    else:
+        raise Exception("Cannot render instances of " + comp.__class__.__name__)
