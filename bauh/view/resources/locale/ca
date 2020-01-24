@@ -223,6 +223,7 @@ user=usuari
 example.short=ex
 core.config.tab_label=general
 core.config.locale.label=idioma
+core.config.disk_cache=Cau em disco
 locale.en=anglès
 locale.es=castellà
 locale.pt=portuguès

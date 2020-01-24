@@ -19,4 +19,5 @@ appimage.install.download.error=No s’ha pogut baixar el fitxer {}. El servidor
 appimage.install.appimagelauncher.error = {appimgl} no permet la instal·lació de {app}. Desinstal·leu {appimgl}, reinicieu el sistema i torneu a provar d’instal·lar {app}.
 appimage.config.db_updates=Actualització de la base de dades
 appimage.config.db_updates.activated=activada
+appimage.config.db_updates.activated.tip={app} és capaç de verificar si hi ha actualitzacions de les aplicacions instal·lades
 appimage.config.db_updates.interval.tip=Interval d'actualització a SECONDS

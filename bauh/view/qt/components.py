@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout
@@ -337,7 +337,19 @@ class FormQt(QGroupBox):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
-                label = QLabel(c.label.capitalize() if c.label else '')
+
+                label = QWidget()
+                label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+                label.setLayout(QHBoxLayout())
+                label_comp = QLabel()
+                label.layout().addWidget(label_comp)
+
+                if c.label:
+                    label_comp.setText(c.label.capitalize())
+
+                    if c.tooltip:
+                        label.layout().addWidget(self.gen_tip_icon(c.tooltip))
+
                 field = ComboBoxQt(c) if c.type == SelectViewType.COMBO else RadioBoxQt(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FileChooserComponent):
@@ -349,6 +361,12 @@ class FormQt(QGroupBox):
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
         self.layout().addRow(QLabel(), QLabel())
+
+    def gen_tip_icon(self, tip: str) -> QLabel:
+        tip_icon = QLabel()
+        tip_icon.setToolTip(tip.strip())
+        tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+        return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         line_edit = QLineEdit()
@@ -373,7 +391,21 @@ class FormQt(QGroupBox):
             c.value = text
 
         line_edit.textChanged.connect(update_model)
-        return QLabel(c.label.capitalize() if c.label else ''), line_edit
+
+        label = QWidget()
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setLayout(QHBoxLayout())
+
+        label_component = QLabel()
+        label.layout().addWidget(label_component)
+
+        if label:
+            label_component.setText(c.label.capitalize())
+
+            if c.tooltip:
+                label.layout().addWidget(self.gen_tip_icon(c.tooltip))
+
+        return label, line_edit
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
         chooser = QLineEdit()

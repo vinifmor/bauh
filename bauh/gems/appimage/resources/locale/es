@@ -19,4 +19,5 @@ appimage.install.download.error=No fue posible descargar el archivo {}. El servi
 appimage.install.appimagelauncher.error={appimgl} no permite la instalación de {app}. Desinstale {appimgl}, reinicie su sistema e intente instalar {app} nuevamente.
 appimage.config.db_updates=Actualización de la base de datos
 appimage.config.db_updates.activated=activada
+appimage.config.db_updates.activated.tip={app} puede verificar si hay actualizaciones para sus aplicaciones instaladas
 appimage.config.db_updates.interval.tip=Intervalo de actualización en SEGUNDOS

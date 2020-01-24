@@ -909,6 +909,7 @@ class WebApplicationManager(SoftwareManager):
                                                   options=native_opts,
                                                   default_option=[o for o in native_opts if o.value == config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
+                                                  tooltip=self.i18n['web.settings.nativefier.tip'],
                                                   id_='nativefier')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(), components=[input_electron, select_nativefier])

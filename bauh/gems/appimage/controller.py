@@ -512,6 +512,7 @@ class AppImageManager(SoftwareManager):
                                   default_option=[o for o in enabled_opts if o.value == config['db_updater']['enabled']][0],
                                   max_per_line=len(enabled_opts),
                                   type_=SelectViewType.RADIO,
+                                  tooltip=self.i18n['appimage.config.db_updates.activated.tip'].format(app=self.context.app_name),
                                   id_='up_enabled'),
             TextInputComponent(label=self.i18n['interval'],
                                value=str(config['db_updater']['interval']),

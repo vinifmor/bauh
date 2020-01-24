@@ -68,13 +68,14 @@ class SelectViewType(Enum):
 
 class SingleSelectComponent(InputViewComponent):
 
-    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None, max_per_line: int = 1, id_: str = None):
+    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None, max_per_line: int = 1, tooltip: str = None, id_: str = None):
         super(SingleSelectComponent, self).__init__(id_=id_)
         self.type = type_
         self.label = label
         self.options = options
         self.value = default_option
         self.max_per_line = max_per_line
+        self.tooltip = tooltip
 
     def get_selected(self):
         if self.value:

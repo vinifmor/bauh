@@ -19,4 +19,5 @@ appimage.install.download.error=Das Herunterladen der Datei {} ist fehlgeschlage
 appimage.install.appimagelauncher.error={appimgl} verhindert die installation von {app}. Deinstalliere {appimgl}, starte deinen Computer neu und versuche die installation von {app} erneut.
 appimage.config.db_updates=Datenbankaktualisierung
 appimage.config.db_updates.activated=aktiviert
+appimage.config.db_updates.activated.tip={app} kann überprüfen, ob Aktualisierungen für Ihre installierten Anwendungen vorhanden sind
 appimage.config.db_updates.interval.tip=Aktualisierungsintervall in SEKUNDEN

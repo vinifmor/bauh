@@ -891,11 +891,11 @@ class ArchManager(SoftwareManager):
     def get_settings(self) -> ViewComponent:
         config = read_config()
 
-        optz_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True, tooltip=self.i18n['arch.config.optimize.true.tip']),
-                     InputOption(label=self.i18n['no'].capitalize(), value=False, tooltip=self.i18n['arch.config.optimize.false.tip'])]
+        optz_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+                     InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
-        trans_check_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True, tooltip=self.i18n['arch.config.trans_dep_check.true.tip']),
-                            InputOption(label=self.i18n['no'].capitalize(), value=False, tooltip=self.i18n['arch.config.trans_dep_check.false.tip'])]
+        trans_check_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+                            InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
         fields = [
             SingleSelectComponent(label=self.i18n['arch.config.optimize'].capitalize(),
@@ -903,12 +903,14 @@ class ArchManager(SoftwareManager):
                                   default_option=[o for o in optz_opts if o.value == config['optimize']][0],
                                   max_per_line=len(optz_opts),
                                   type_=SelectViewType.RADIO,
+                                  tooltip=self.i18n['arch.config.optimize.tip'],
                                   id_='opts'),
             SingleSelectComponent(label=self.i18n['arch.config.trans_dep_check'].capitalize(),
                                   options=trans_check_opts,
                                   default_option=[o for o in trans_check_opts if o.value == config['transitive_checking']][0],
                                   max_per_line=len(trans_check_opts),
                                   type_=SelectViewType.RADIO,
+                                  tooltip=self.i18n['arch.config.trans_dep_check.tip'],
                                   id_='dep_check')]
 
         return PanelComponent([FormComponent(fields, label=self.i18n['installation'].capitalize())])

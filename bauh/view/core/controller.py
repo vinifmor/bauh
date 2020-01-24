@@ -407,7 +407,7 @@ class GenericSoftwareManager(SoftwareManager):
         return [m for m in self.managers if self._can_work(m)]
 
     def _gen_settings_panel(self) -> TabComponent:
-        # core_config = read_config()
+        core_config = read_config()
 
         current_locale = self.i18n.current_key
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
@@ -417,7 +417,20 @@ class GenericSoftwareManager(SoftwareManager):
                                               type_=SelectViewType.COMBO,
                                               id_='locale')
 
-        return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent([select_locale])]), None, 'core')
+        disk_cache = core_config['disk_cache']['enabled']
+        dcache_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+                       InputOption(label=self.i18n['no'].capitalize(), value=False)]
+
+        select_dcache = SingleSelectComponent(label=self.i18n['core.config.disk_cache'],
+                                              options=dcache_opts,
+                                              default_option=[o for o in dcache_opts if o.value == disk_cache][0],
+                                              type_=SelectViewType.RADIO,
+                                              tooltip=self.i18n['core.config.disk_cache.tip'].format(app=self.context.app_name),
+                                              max_per_line=len(dcache_opts),
+                                              id_='dcache')
+
+        sub_comps = [select_locale, select_dcache]
+        return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent(sub_comps)]), None, 'core')
 
     def _save_settings(self, panel: PanelComponent) -> Tuple[bool, List[str]]:
         core_config = config.read_config()
@@ -428,6 +441,8 @@ class GenericSoftwareManager(SoftwareManager):
         if locale != self.i18n.current_key:
             core_config['locale'] = locale
 
+        core_config['disk_cache']['enabled'] = main_form.get_component('dcache').get_selected()
+
         try:
             config.save(core_config)
             return True, None
@@ -435,7 +450,7 @@ class GenericSoftwareManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def get_settings(self) -> ViewComponent:
-        tabs = []
+        tabs = list()
 
         tabs.append(self._gen_settings_panel())
 
