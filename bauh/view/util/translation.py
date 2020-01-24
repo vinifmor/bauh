@@ -1,6 +1,9 @@
 import glob
 import locale
-from typing import Tuple
+import traceback
+from typing import Tuple, Set
+
+from colorama import Fore
 
 from bauh.view.util import resource
 
@@ -38,6 +41,11 @@ class I18n(dict):
         return res
 
 
+def get_available_keys() -> Set[str]:
+    locale_dir = resource.get_path('locale')
+    return {file.split('/')[-1] for file in glob.glob(locale_dir + '/*')}
+
+
 def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')) -> Tuple[str, dict]:
 
     locale_path = None
@@ -65,8 +73,9 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
 
     locale_obj = {}
     for line in locale_keys:
-        if line:
-            keyval = line.strip().split('=')
+        line_strip = line.strip()
+        if line_strip:
+            keyval = line_strip.split('=')
             locale_obj[keyval[0].strip()] = keyval[1].strip()
 
     return locale_path.split('/')[-1], locale_obj

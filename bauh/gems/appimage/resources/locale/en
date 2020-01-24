@@ -17,3 +17,6 @@ appimage.error.uninstall_current_version=It was not possible to uninstall the cu
 appimage.downgrade.install_version=It was not possible to install the version {} ({})
 appimage.install.download.error=It was not possible to download the file {}. The file server can be down.
 appimage.install.appimagelauncher.error={appimgl} is not allowing {app} to be installed. Uninstall {appimgl}, reboot your system and try to install {app} again.
+appimage.config.db_updates=Database update
+appimage.config.db_updates.activated=activated
+appimage.config.db_updates.interval.tip=Update interval in SECONDS

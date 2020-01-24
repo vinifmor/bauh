@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import time
+import traceback
 from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
@@ -18,11 +19,13 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons.category import CategoriesDownloader
+from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
     SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
-    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
+    CONFIG_FILE
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
@@ -888,22 +891,37 @@ class ArchManager(SoftwareManager):
     def get_settings(self) -> ViewComponent:
         config = read_config()
 
-        optz_opts = [InputOption(label='on'.capitalize(), value=True),
-                     InputOption(label='off'.capitalize(), value=False)]
+        optz_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True, tooltip=self.i18n['arch.config.optimize.true.tip']),
+                     InputOption(label=self.i18n['no'].capitalize(), value=False, tooltip=self.i18n['arch.config.optimize.false.tip'])]
 
-        trans_check_opts = [InputOption(label='on'.capitalize(), value=True),
-                            InputOption(label='off'.capitalize(), value=False)]
+        trans_check_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True, tooltip=self.i18n['arch.config.trans_dep_check.true.tip']),
+                            InputOption(label=self.i18n['no'].capitalize(), value=False, tooltip=self.i18n['arch.config.trans_dep_check.false.tip'])]
 
         fields = [
-            SingleSelectComponent(label='Optimizations',
+            SingleSelectComponent(label=self.i18n['arch.config.optimize'].capitalize(),
                                   options=optz_opts,
                                   default_option=[o for o in optz_opts if o.value == config['optimize']][0],
                                   max_per_line=len(optz_opts),
-                                  type_=SelectViewType.RADIO),
-            SingleSelectComponent(label='Transitive dependency checking',
+                                  type_=SelectViewType.RADIO,
+                                  id_='opts'),
+            SingleSelectComponent(label=self.i18n['arch.config.trans_dep_check'].capitalize(),
                                   options=trans_check_opts,
-                                  default_option=[o for o in trans_check_opts if o.value == config['optimize']][0],
+                                  default_option=[o for o in trans_check_opts if o.value == config['transitive_checking']][0],
                                   max_per_line=len(trans_check_opts),
-                                  type_=SelectViewType.RADIO)]
+                                  type_=SelectViewType.RADIO,
+                                  id_='dep_check')]
 
-        return PanelComponent([FormComponent(fields, label='Installation')])
+        return PanelComponent([FormComponent(fields, label=self.i18n['installation'].capitalize())])
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+        config = read_config()
+
+        form_install = component.components[0]
+        config['optimize'] = form_install.get_component('opts').get_selected()
+        config['transitive_checking'] = form_install.get_component('dep_check').get_selected()
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]

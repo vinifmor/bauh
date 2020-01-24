@@ -54,7 +54,8 @@ def main():
                                  logger=logger,
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(local_config['download']['multithreaded']),
-                                                                         i18n, http_client))
+                                                                         i18n, http_client),
+                                 app_name=__app_name__)
 
     managers = gems.load_managers(context=context, locale=i18n_key, config=local_config, default_locale=DEFAULT_I18N_KEY)
 

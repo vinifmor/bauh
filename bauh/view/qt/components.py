@@ -88,6 +88,7 @@ class RadioBoxQt(QWidget):
     def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
         super(RadioBoxQt, self).__init__(parent=parent)
         self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -95,6 +96,7 @@ class RadioBoxQt(QWidget):
         line, col = 0, 0
         for op in model.options:
             comp = RadioButtonQt(op, model)
+            comp.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
             comp.setText(op.label)
             comp.setToolTip(op.tooltip)
 
@@ -411,7 +413,7 @@ class TabGroupQt(QTabWidget):
         self.setTabPosition(QTabWidget.North)
 
         for c in model.tabs:
-            icon = QIcon(c.icon_path) if c.icon_path else None
+            icon = QIcon(c.icon_path) if c.icon_path else QIcon()
             self.addTab(to_widget(c.content, i18n), icon, c.label)
 
 

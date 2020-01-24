@@ -17,3 +17,6 @@ appimage.error.uninstall_current_version=Deinstallation der aktuellen Version vo
 appimage.downgrade.install_version=Die Installation der Version {} ({}) war nicht möglich
 appimage.install.download.error=Das Herunterladen der Datei {} ist fehlgeschlagen. Eventuell ist der Server nicht verfügbar
 appimage.install.appimagelauncher.error={appimgl} verhindert die installation von {app}. Deinstalliere {appimgl}, starte deinen Computer neu und versuche die installation von {app} erneut.
+appimage.config.db_updates=Datenbankaktualisierung
+appimage.config.db_updates.activated=aktiviert
+appimage.config.db_updates.interval.tip=Aktualisierungsintervall in SEKUNDEN

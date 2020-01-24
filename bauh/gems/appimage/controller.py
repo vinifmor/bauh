@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 from threading import Lock, Thread
-from typing import Set, Type, List
+from typing import Set, Type, List, Tuple
 
 from colorama import Fore
 
@@ -21,9 +21,10 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent
+from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -506,12 +507,30 @@ class AppImageManager(SoftwareManager):
                         InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
         updater_opts = [
-            SingleSelectComponent(label='Enabled',
+            SingleSelectComponent(label=self.i18n['appimage.config.db_updates.activated'],
                                   options=enabled_opts,
                                   default_option=[o for o in enabled_opts if o.value == config['db_updater']['enabled']][0],
                                   max_per_line=len(enabled_opts),
-                                  type_=SelectViewType.RADIO),
-            TextInputComponent(label='Interval', value=str(config['db_updater']['interval']), tooltip="Update interval in SECONDS", only_int=True)
+                                  type_=SelectViewType.RADIO,
+                                  id_='up_enabled'),
+            TextInputComponent(label=self.i18n['interval'],
+                               value=str(config['db_updater']['interval']),
+                               tooltip=self.i18n['appimage.config.db_updates.interval.tip'],
+                               only_int=True,
+                               id_='up_int')
         ]
 
-        return PanelComponent([FormComponent(updater_opts, 'Database updates')])
+        return PanelComponent([FormComponent(updater_opts, self.i18n['appimage.config.db_updates'])])
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+        config = read_config()
+
+        panel = component.components[0]
+        config['db_updater']['enabled'] = panel.get_component('up_enabled').get_selected()
+        config['db_updater']['interval'] = panel.get_component('up_int').get_int_value()
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]

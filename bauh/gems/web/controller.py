@@ -894,14 +894,15 @@ class WebApplicationManager(SoftwareManager):
     def get_settings(self) -> ViewComponent:
         config = read_config()
 
-        input_electron = TextInputComponent(label="Custom Electron version",
+        input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
                                             value=config['environment']['electron']['version'],
-                                            tooltip="Electron version to render the applications",
+                                            tooltip=self.i18n['web.settings.electron.version.tooltip'],
+                                            placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
                                             id_='electron_version')
 
         native_opts = [
-            InputOption(label="Environment", value=False, tooltip="If a nativefier version from the isolated environment should be used to install the applications"),
-            InputOption(label="System", value=True, tooltip="If a nativefier installed on your system should be used to install the applications")
+            InputOption(label=self.i18n['web.settings.nativefier.env'].capitalize(), value=False, tooltip=self.i18n['web.settings.nativefier.env.tooltip'].format(app=self.context.app_name)),
+            InputOption(label=self.i18n['web.settings.nativefier.system'].capitalize(), value=True, tooltip=self.i18n['web.settings.nativefier.system.tooltip'])
         ]
 
         select_nativefier = SingleSelectComponent(label="Nativefier",
@@ -910,7 +911,7 @@ class WebApplicationManager(SoftwareManager):
                                                   type_=SelectViewType.COMBO,
                                                   id_='nativefier')
 
-        form_env = FormComponent(label="Environment", components=[input_electron, select_nativefier])
+        form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(), components=[input_electron, select_nativefier])
 
         return PanelComponent([form_env])
 

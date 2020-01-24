@@ -1,7 +1,7 @@
 import traceback
 from datetime import datetime
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -11,6 +11,7 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons import user
+from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
@@ -422,13 +423,30 @@ class FlatpakManager(SoftwareManager):
 
         config = read_config()
 
-        install_opts = [InputOption(label='system'.capitalize(), value='system'),
-                        InputOption(label='user'.capitalize(), value='user'),
-                        InputOption(label='ask'.capitalize(), value=None)]
-        fields.append(SingleSelectComponent(label='Level',
+        install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
+                                    value='system',
+                                    tooltip=self.i18n['flatpak.config.install_level.system.tip']),
+                        InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
+                                    value='user',
+                                    tooltip=self.i18n['flatpak.config.install_level.user.tip']),
+                        InputOption(label=self.i18n['flatpak.config.install_level.ask'].capitalize(),
+                                    value=None,
+                                    tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
+        fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
                                             options=install_opts,
                                             default_option=[o for o in install_opts if o.value == config['installation_level']][0],
                                             max_per_line=len(install_opts),
                                             type_=SelectViewType.RADIO))
 
-        return PanelComponent([FormComponent(fields, 'Installation')])
+        return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+        config = read_config()
+        config['installation_level'] = component.components[0].components[0].get_selected()
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
+

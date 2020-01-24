@@ -1183,7 +1183,7 @@ class ManageWindow(QWidget):
             action_gems.triggered.connect(self.show_gems_selector)
             menu_row.addAction(action_gems)
 
-        action_settings = QAction('Settings')  # TODO
+        action_settings = QAction(self.i18n['settings'].capitalize())
         action_settings.triggered.connect(self.show_settings_window)
         menu_row.addAction(action_settings)
 

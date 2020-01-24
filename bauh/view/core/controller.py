@@ -10,10 +10,13 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
-    InputOption
+    InputOption, PanelComponent, SelectViewType
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.commons.config import save_config
 from bauh.view.core import config
+from bauh.view.core.config import read_config
+from bauh.view.util import translation
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
@@ -403,8 +406,38 @@ class GenericSoftwareManager(SoftwareManager):
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
 
+    def _gen_settings_panel(self) -> TabComponent:
+        # core_config = read_config()
+
+        current_locale = self.i18n.current_key
+        locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
+        select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
+                                              options=locale_opts,
+                                              default_option=[l for l in locale_opts if l.value == current_locale][0],
+                                              type_=SelectViewType.COMBO,
+                                              id_='locale')
+
+        return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent([select_locale])]), None, 'core')
+
+    def _save_settings(self, panel: PanelComponent) -> Tuple[bool, List[str]]:
+        core_config = config.read_config()
+
+        main_form = panel.components[0]
+        locale = main_form.get_component('locale').get_selected()
+
+        if locale != self.i18n.current_key:
+            core_config['locale'] = locale
+
+        try:
+            config.save(core_config)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
+
     def get_settings(self) -> ViewComponent:
-        settings_forms = []
+        tabs = []
+
+        tabs.append(self._gen_settings_panel())
 
         for man in self.managers:
             if self._can_work(man):
@@ -413,13 +446,21 @@ class GenericSoftwareManager(SoftwareManager):
                 if man_comp:
                     modname = man.__module__.split('.')[-2]
                     icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
-                    settings_forms.append(TabComponent(None, man_comp, icon_path, modname))
+                    tabs.append(TabComponent(None, man_comp, icon_path, modname))
 
-        return TabGroupComponent(settings_forms)
+        return TabGroupComponent(tabs)
 
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
 
         saved, warnings = True, []
+
+        success, errors = self._save_settings(component.get_tab('core').content)
+
+        if not success:
+            saved = False
+
+        if errors:
+            warnings.extend(errors)
 
         for man in self.managers:
             if man:
@@ -429,12 +470,15 @@ class GenericSoftwareManager(SoftwareManager):
                 if not tab:
                     self.logger.warning("Tab for {} was not found".format(man.__class__.__name__))
                 else:
-                    success, errors = man.save_settings(tab.content)
+                    res = man.save_settings(tab.content)
 
-                    if not success:
-                        saved = False
+                    if res:
+                        success, errors = res[0], res[1]
 
-                    if errors:
-                        warnings.extend(errors)
+                        if not success:
+                            saved = False
+
+                        if errors:
+                            warnings.extend(errors)
 
         return saved, warnings
