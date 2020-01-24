@@ -16,7 +16,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent
+    ViewComponent, PanelComponent
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
@@ -906,4 +906,4 @@ class ArchManager(SoftwareManager):
                                   max_per_line=len(trans_check_opts),
                                   type_=SelectViewType.RADIO)]
 
-        return FormComponent([FormComponent(fields, label='Installation')])
+        return PanelComponent([FormComponent(fields, label='Installation')])

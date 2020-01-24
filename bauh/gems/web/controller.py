@@ -21,13 +21,14 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
+from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -889,3 +890,49 @@ class WebApplicationManager(SoftwareManager):
             except:
                 print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                 traceback.print_exc()
+
+    def get_settings(self) -> ViewComponent:
+        config = read_config()
+
+        input_electron = TextInputComponent(label="Custom Electron version",
+                                            value=config['environment']['electron']['version'],
+                                            tooltip="Electron version to render the applications",
+                                            id_='electron_version')
+
+        native_opts = [
+            InputOption(label="Environment", value=False, tooltip="If a nativefier version from the isolated environment should be used to install the applications"),
+            InputOption(label="System", value=True, tooltip="If a nativefier installed on your system should be used to install the applications")
+        ]
+
+        select_nativefier = SingleSelectComponent(label="Nativefier",
+                                                  options=native_opts,
+                                                  default_option=[o for o in native_opts if o.value == config['environment']['system']][0],
+                                                  type_=SelectViewType.COMBO,
+                                                  id_='nativefier')
+
+        form_env = FormComponent(label="Environment", components=[input_electron, select_nativefier])
+
+        return PanelComponent([form_env])
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+        config = read_config()
+
+        form_env = component.components[0]
+
+        config['environment']['electron']['version'] = str(form_env.get_component('electron_version').get_value()).strip()
+
+        if len(config['environment']['electron']['version']) == 0:
+            config['environment']['electron']['version'] = None
+
+        system_nativefier = form_env.get_component('nativefier').get_selected()
+
+        if system_nativefier and not nativefier.is_available():
+            return False, ['Nativefier seems not to be installed on your system']
+
+        config['environment']['system'] = system_nativefier
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]

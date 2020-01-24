@@ -2,12 +2,12 @@ from pathlib import Path
 from typing import Tuple
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent
+    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent
 from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
@@ -162,6 +162,9 @@ class TextInputQt(QGroupBox):
 
         self.text_input = QLineEdit()
 
+        if model.only_int:
+            self.text_input.setValidator(QIntValidator())
+
         if model.placeholder:
             self.text_input.setPlaceholderText(model.placeholder)
 
@@ -302,6 +305,20 @@ class IconButton(QWidget):
             self.bt.setToolTip(self.default_tootip)
 
 
+class PanelQt(QWidget):
+
+    def __init__(self, model: PanelComponent, i18n: I18n, parent: QWidget = None):
+        super(PanelQt, self).__init__(parent=parent)
+        self.model = model
+        self.i18n = i18n
+        self.setLayout(QVBoxLayout())
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        if model.components:
+            for c in model.components:
+                self.layout().addWidget(to_widget(c, i18n))
+
+
 class FormQt(QGroupBox):
 
     def __init__(self, model: FormComponent, i18n: I18n):
@@ -333,6 +350,9 @@ class FormQt(QGroupBox):
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         line_edit = QLineEdit()
+
+        if c.only_int:
+            line_edit.setValidator(QIntValidator())
 
         if c.tooltip:
             line_edit.setToolTip(c.tooltip)
@@ -388,10 +408,11 @@ class TabGroupQt(QTabWidget):
     def __init__(self, model: TabGroupComponent, i18n: I18n, parent: QWidget = None):
         super(TabGroupQt, self).__init__(parent=parent)
         self.model = model
-        self.setTabPosition(QTabWidget.West)
+        self.setTabPosition(QTabWidget.North)
 
-        for c in model.components:
-            self.addTab(to_widget(c.content, i18n), c.label)
+        for c in model.tabs:
+            icon = QIcon(c.icon_path) if c.icon_path else None
+            self.addTab(to_widget(c.content, i18n), icon, c.label)
 
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:
@@ -424,5 +445,7 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return FormQt(comp, i18n)
     elif isinstance(comp, TabGroupComponent):
         return TabGroupQt(comp, i18n, parent)
+    elif isinstance(comp, PanelComponent):
+        return PanelQt(comp, i18n, parent)
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)

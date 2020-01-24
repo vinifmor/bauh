@@ -17,6 +17,18 @@ class ViewComponent(ABC):
         self.id = id_
 
 
+class PanelComponent(ViewComponent):
+
+    def __init__(self, components: List[ViewComponent], id_: str = None):
+        super(PanelComponent, self).__init__(id_=id_)
+        self.components = components
+        self.component_map = {c.id: c for c in components if c.id is not None} if components else None
+
+    def get_component(self, id_: str) -> ViewComponent:
+        if self.component_map:
+            return self.component_map.get(id_)
+
+
 class InputViewComponent(ViewComponent):
     """
     Represents an component which needs a user interaction to provide its value
@@ -99,19 +111,25 @@ class TextComponent(ViewComponent):
 
 class TextInputComponent(ViewComponent):
 
-    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False, id_: str = None):
+    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False, id_: str = None, only_int: bool = False):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
         self.tooltip = tooltip
         self.placeholder = placeholder
         self.read_only = read_only
+        self.only_int = only_int
 
     def get_value(self) -> str:
         if self.value is not None:
             return self.value.strip()
         else:
             return ''
+
+    def get_int_value(self) -> int:
+        if self.value is not None:
+            return int(self.value)
+        return None
 
 
 class FormComponent(ViewComponent):
@@ -120,6 +138,11 @@ class FormComponent(ViewComponent):
         super(FormComponent, self).__init__(id_=id_)
         self.label = label
         self.components = components
+        self.component_map = {c.id : c for c in components if c.id} if components else None
+
+    def get_component(self, id_: str) -> ViewComponent:
+        if self.component_map:
+            return self.component_map.get(id_)
 
 
 class FileChooserComponent(ViewComponent):
@@ -133,14 +156,20 @@ class FileChooserComponent(ViewComponent):
 
 class TabComponent(ViewComponent):
 
-    def __init__(self, label: str, content: ViewComponent, id_: str = None):
+    def __init__(self, label: str, content: ViewComponent, icon_path: str = None, id_: str = None):
         super(TabComponent, self).__init__(id_=id_)
         self.label = label
         self.content = content
+        self.icon_path = icon_path
 
 
 class TabGroupComponent(ViewComponent):
 
-    def __init__(self, components: List[TabComponent], id_: str = None):
+    def __init__(self, tabs: List[TabComponent], id_: str = None):
         super(TabGroupComponent, self).__init__(id_=id_)
-        self.components = components
+        self.tabs = tabs
+        self.tab_map = {c.id: c for c in tabs if c.id} if tabs else None
+
+    def get_tab(self, id_: str) -> TabComponent:
+        if self.tab_map:
+            return self.tab_map.get(id_)

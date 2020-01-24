@@ -9,7 +9,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
-    ViewComponent
+    ViewComponent, PanelComponent
 from bauh.commons import user
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
@@ -431,4 +431,4 @@ class FlatpakManager(SoftwareManager):
                                             max_per_line=len(install_opts),
                                             type_=SelectViewType.RADIO))
 
-        return FormComponent([FormComponent(fields, 'Installation')])
+        return PanelComponent([FormComponent(fields, 'Installation')])

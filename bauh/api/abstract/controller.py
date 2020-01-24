@@ -3,7 +3,7 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 import yaml
 
@@ -277,5 +277,11 @@ class SoftwareManager(ABC):
     def get_settings(self) -> ViewComponent:
         """
         :return: a form abstraction with all available settings
+        """
+        pass
+
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, List[str]]:
+        """
+        :return: a tuple with a bool informing if the settings were saved and a list of error messages
         """
         pass

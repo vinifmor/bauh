@@ -19,7 +19,8 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
-from bauh.api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
+    SelectViewType, TextInputComponent, PanelComponent
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE
@@ -494,5 +495,23 @@ class AppImageManager(SoftwareManager):
                 os.remove(f)
                 print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
             except:
-                print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, Fore.RESET))
+                print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, f, Fore.RESET))
                 traceback.print_exc()
+
+    def get_settings(self) -> ViewComponent:
+
+        config = read_config()
+
+        enabled_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+                        InputOption(label=self.i18n['no'].capitalize(), value=False)]
+
+        updater_opts = [
+            SingleSelectComponent(label='Enabled',
+                                  options=enabled_opts,
+                                  default_option=[o for o in enabled_opts if o.value == config['db_updater']['enabled']][0],
+                                  max_per_line=len(enabled_opts),
+                                  type_=SelectViewType.RADIO),
+            TextInputComponent(label='Interval', value=str(config['db_updater']['interval']), tooltip="Update interval in SECONDS", only_int=True)
+        ]
+
+        return PanelComponent([FormComponent(updater_opts, 'Database updates')])

@@ -2,8 +2,9 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
+from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -410,6 +411,30 @@ class GenericSoftwareManager(SoftwareManager):
                 man_comp = man.get_settings()
 
                 if man_comp:
-                    settings_forms.append(TabComponent(man.__class__.__name__, man_comp))
+                    modname = man.__module__.split('.')[-2]
+                    icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
+                    settings_forms.append(TabComponent(None, man_comp, icon_path, modname))
 
         return TabGroupComponent(settings_forms)
+
+    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
+
+        saved, warnings = True, []
+
+        for man in self.managers:
+            if man:
+                modname = man.__module__.split('.')[-2]
+                tab = component.get_tab(modname)
+
+                if not tab:
+                    self.logger.warning("Tab for {} was not found".format(man.__class__.__name__))
+                else:
+                    success, errors = man.save_settings(tab.content)
+
+                    if not success:
+                        saved = False
+
+                    if errors:
+                        warnings.extend(errors)
+
+        return saved, warnings
