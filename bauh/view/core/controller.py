@@ -454,7 +454,31 @@ class GenericSoftwareManager(SoftwareManager):
 
         form_download = FormComponent(label=self.i18n['download'].capitalize(), components=[select_dicons, select_dmthread], id_='form_download')
 
-        sub_comps = [form_general, form_download]
+        select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
+                                               tooltip=self.i18n['core.config.suggestions.activated.tip'].format(app=self.context.app_name),
+                                               id_="sugs_enabled",
+                                               value=bool(core_config['suggestions']['enabled']))
+
+        form_sugs = FormComponent(label=self.i18n['core.config.suggestions'].capitalize(),
+                                  components=[select_sugs], id_='form_sugs')
+
+        input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
+                                            tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
+                                            value=str(core_config['memory_cache']['data_expiration']),
+                                            only_int=True,
+                                            id_="data_exp")
+
+        input_icon_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.icon_exp'],
+                                            tooltip=self.i18n['core.config.mem_cache.icon_exp.tip'],
+                                            value=str(core_config['memory_cache']['icon_expiration']),
+                                            only_int=True,
+                                            id_="icon_exp")
+
+        form_cache = FormComponent(label=self.i18n['core.config.mem_cache'].capitalize(),
+                                   components=[input_data_exp, input_icon_exp],
+                                   id_='form_memcache')
+
+        sub_comps = [form_general, form_download, form_sugs, form_cache]
         return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent(sub_comps)]), None, 'core')
 
     def _save_settings(self, panel: PanelComponent) -> Tuple[bool, List[str]]:
@@ -474,6 +498,15 @@ class GenericSoftwareManager(SoftwareManager):
 
         download_mthreaded = main_form.get_component('form_download').get_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
+
+        data_exp = main_form.get_component('form_memcache').get_component('data_exp').get_int_value()
+        core_config['memory_cache']['data_expiration'] = data_exp
+
+        icon_exp = main_form.get_component('form_memcache').get_component('icon_exp').get_int_value()
+        core_config['memory_cache']['icon_expiration'] = icon_exp
+
+        sugs_enabled = main_form.get_component('form_sugs').get_component('sugs_enabled').get_value()
+        core_config['suggestions']['enabled'] = sugs_enabled
 
         try:
             config.save(core_config)
