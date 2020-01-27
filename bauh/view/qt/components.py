@@ -4,10 +4,11 @@ from typing import Tuple
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, QSlider
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent
+    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
+    TwoStateButtonComponent
 from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
@@ -59,6 +60,21 @@ class CheckboxQt(QCheckBox):
 
         if self.callback:
             self.callback(self.model, checked)
+
+
+class TwoStateButtonQt(QSlider):
+
+    def __init__(self, model: TwoStateButtonComponent):
+        super(TwoStateButtonQt, self).__init__(Qt.Horizontal)
+        self.model = model
+        self.setMaximum(1)
+        self.valueChanged.connect(self._change_state)
+
+    def mousePressEvent(self, QMouseEvent):
+        self.setValue(1 if self.value() == 0 else 0)
+
+    def _change_state(self, state: int):
+        self.model.state = bool(state)
 
 
 class ComboBoxQt(QComboBox):
@@ -337,19 +353,7 @@ class FormQt(QGroupBox):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
-
-                label = QWidget()
-                label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-                label.setLayout(QHBoxLayout())
-                label_comp = QLabel()
-                label.layout().addWidget(label_comp)
-
-                if c.label:
-                    label_comp.setText(c.label.capitalize())
-
-                    if c.tooltip:
-                        label.layout().addWidget(self.gen_tip_icon(c.tooltip))
-
+                label = self._new_label(c)
                 field = ComboBoxQt(c) if c.type == SelectViewType.COMBO else RadioBoxQt(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FileChooserComponent):
@@ -357,10 +361,28 @@ class FormQt(QGroupBox):
                 self.layout().addRow(label, field)
             elif isinstance(c, FormComponent):
                 self.layout().addRow(FormQt(c, self.i18n))
+            elif isinstance(c, TwoStateButtonComponent):
+                label = self._new_label(c)
+                self.layout().addRow(label, TwoStateButtonQt(c))
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
         self.layout().addRow(QLabel(), QLabel())
+
+    def _new_label(self, comp) -> QWidget:
+        label = QWidget()
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setLayout(QHBoxLayout())
+        label_comp = QLabel()
+        label.layout().addWidget(label_comp)
+
+        if comp.label:
+            label_comp.setText(comp.label.capitalize())
+
+            if comp.tooltip:
+                label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
+
+        return label
 
     def gen_tip_icon(self, tip: str) -> QLabel:
         tip_icon = QLabel()
@@ -481,5 +503,7 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return TabGroupQt(comp, i18n, parent)
     elif isinstance(comp, PanelComponent):
         return PanelQt(comp, i18n, parent)
+    elif isinstance(comp, TwoStateButtonComponent):
+        return TwoStateButtonQt(comp)
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)

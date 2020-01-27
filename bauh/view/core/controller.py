@@ -10,7 +10,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
-    InputOption, PanelComponent, SelectViewType
+    InputOption, PanelComponent, SelectViewType, TextInputComponent, TwoStateButtonComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.commons.config import save_config
@@ -406,42 +406,74 @@ class GenericSoftwareManager(SoftwareManager):
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
 
+    def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str) -> SingleSelectComponent:
+        opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+               InputOption(label=self.i18n['no'].capitalize(), value=False)]
+
+        return SingleSelectComponent(label=label,
+                                     options=opts,
+                                     default_option=[o for o in opts if o.value == value][0],
+                                     type_=SelectViewType.RADIO,
+                                     tooltip=tooltip,
+                                     max_per_line=len(opts),
+                                     id_=id_)
+
     def _gen_settings_panel(self) -> TabComponent:
         core_config = read_config()
-
-        current_locale = self.i18n.current_key
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
         select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
                                               options=locale_opts,
-                                              default_option=[l for l in locale_opts if l.value == current_locale][0],
+                                              default_option=[l for l in locale_opts if l.value == core_config['locale']][0],
                                               type_=SelectViewType.COMBO,
                                               id_='locale')
 
-        disk_cache = core_config['disk_cache']['enabled']
-        dcache_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
-                       InputOption(label=self.i18n['no'].capitalize(), value=False)]
+        select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
+                                                 tooltip=self.i18n['core.config.disk_cache.tip'].format(app=self.context.app_name),
+                                                 value=core_config['disk_cache']['enabled'],
+                                                 id_='dcache')
 
-        select_dcache = SingleSelectComponent(label=self.i18n['core.config.disk_cache'],
-                                              options=dcache_opts,
-                                              default_option=[o for o in dcache_opts if o.value == disk_cache][0],
-                                              type_=SelectViewType.RADIO,
-                                              tooltip=self.i18n['core.config.disk_cache.tip'].format(app=self.context.app_name),
-                                              max_per_line=len(dcache_opts),
-                                              id_='dcache')
+        input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
+                                                   tooltip=self.i18n['core.config.updates.interval.tip'],
+                                                   only_int=True,
+                                                   value=str(core_config['updates']['check_interval']),
+                                                   id_="updates_interval")
 
-        sub_comps = [select_locale, select_dcache]
+        form_general = FormComponent(label=self.i18n['core.config.tab_label'].capitalize(),
+                                     components=[select_locale, input_update_interval, select_dcache],
+                                     id_="form_general")
+
+        select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
+                                                 tooltip=self.i18n['core.config.download.icons.tip'],
+                                                 id_="down_icons",
+                                                 value=core_config['download']['icons'])
+
+        select_dmthread = self._gen_bool_component(label=self.i18n['core.config.download.multithreaded'],
+                                                   tooltip=self.i18n['core.config.download.multithreaded.tip'],
+                                                   id_="down_mthread",
+                                                   value=core_config['download']['multithreaded'])
+
+        form_download = FormComponent(label=self.i18n['download'].capitalize(), components=[select_dicons, select_dmthread], id_='form_download')
+
+        sub_comps = [form_general, form_download]
         return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent(sub_comps)]), None, 'core')
 
     def _save_settings(self, panel: PanelComponent) -> Tuple[bool, List[str]]:
         core_config = config.read_config()
 
         main_form = panel.components[0]
-        locale = main_form.get_component('locale').get_selected()
+        locale = main_form.get_component('form_general').get_component('locale').get_selected()
 
         if locale != self.i18n.current_key:
             core_config['locale'] = locale
 
-        core_config['disk_cache']['enabled'] = main_form.get_component('dcache').get_selected()
+        core_config['disk_cache']['enabled'] = main_form.get_component('form_general').get_component('dcache').get_selected()
+        core_config['updates']['check_interval'] = main_form.get_component('form_general').get_component('updates_interval').get_int_value()
+
+        download_icons = main_form.get_component('form_download').get_component('down_icons').get_selected()
+        core_config['download']['icons'] = download_icons
+
+        download_mthreaded = main_form.get_component('form_download').get_component('down_mthread').get_selected()
+        core_config['download']['multithreaded'] = download_mthreaded
 
         try:
             config.save(core_config)

@@ -110,6 +110,15 @@ class TextComponent(ViewComponent):
         self.value = html
 
 
+class TwoStateButtonComponent(ViewComponent):
+
+    def __init__(self, label: str, tooltip: str = None, state: bool = False,  id_: str = None):
+        super(TwoStateButtonComponent, self).__init__(id_=id_)
+        self.label = label
+        self.tooltip = tooltip
+        self.state = state
+
+
 class TextInputComponent(ViewComponent):
 
     def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False, id_: str = None, only_int: bool = False):
@@ -139,7 +148,7 @@ class FormComponent(ViewComponent):
         super(FormComponent, self).__init__(id_=id_)
         self.label = label
         self.components = components
-        self.component_map = {c.id : c for c in components if c.id} if components else None
+        self.component_map = {c.id: c for c in components if c.id} if components else None
 
     def get_component(self, id_: str) -> ViewComponent:
         if self.component_map:
