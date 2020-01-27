@@ -12,7 +12,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
-    InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent
+    InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent, MultipleSelectComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.view.core import config
@@ -602,15 +602,32 @@ class GenericSoftwareManager(SoftwareManager):
         tabs.append(self._gen_tray_settings(core_config))
         tabs.append(self._gen_adv_settings(core_config))
 
+        gem_opts, def_gem_opts, gem_tabs = [], set(), []
+
         for man in self.managers:
             if self._can_work(man):
                 man_comp = man.get_settings()
+                modname = man.__module__.split('.')[-2]
+                icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
                 if man_comp:
-                    modname = man.__module__.split('.')[-2]
-                    icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
-                    tabs.append(TabComponent(label=None, content=man_comp, icon_path=icon_path,
-                                             tooltip=modname.capitalize(), id_=modname))
+                    gem_tabs.append(TabComponent(label=None, content=man_comp, icon_path=icon_path, tooltip=modname.capitalize(), id_=modname))
+
+                opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
+                                  tooltip=self.i18n.get('gem.{}.info'.format(modname)),
+                                  value=modname,
+                                  icon_path='{r}/gems/{n}/resources/img/{n}.svg'.format(r=ROOT_DIR, n=modname))
+                gem_opts.append(opt)
+
+                if man.is_enabled() and man in self.working_managers:
+                    def_gem_opts.add(opt)
+
+        if gem_opts:
+            form_types = FormComponent(components=[MultipleSelectComponent(label=None, options=gem_opts, default_options=def_gem_opts)])
+            tabs.append(TabComponent(label='Types', content=PanelComponent([form_types])))
+
+        for tab in gem_tabs:
+            tabs.append(tab)
 
         return TabGroupComponent(tabs)
 
