@@ -609,7 +609,8 @@ class GenericSoftwareManager(SoftwareManager):
                 if man_comp:
                     modname = man.__module__.split('.')[-2]
                     icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
-                    tabs.append(TabComponent(None, man_comp, icon_path, modname))
+                    tabs.append(TabComponent(label=None, content=man_comp, icon_path=icon_path,
+                                             tooltip=modname.capitalize(), id_=modname))
 
         return TabGroupComponent(tabs)
 

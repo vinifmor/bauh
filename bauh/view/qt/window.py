@@ -316,10 +316,6 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(new_spacer())
 
-        self.combo_styles = StylesComboBox(parent=self, i18n=i18n, show_panel_after_restart=bool(tray_icon))
-        self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
-        self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
-
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self._show_settings_menu,
                                  background='#12ABAB',
@@ -350,7 +346,7 @@ class ManageWindow(QWidget):
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
-        self.combo_styles.show_panel_after_restart = bool(tray_icon)
+        # self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
@@ -913,7 +909,6 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
-        self.ref_combo_styles.setVisible(False)
 
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
@@ -943,7 +938,6 @@ class ManageWindow(QWidget):
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self, keep_filters: bool = False):
-        self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
         self.ref_progress_bar.setVisible(False)
@@ -1166,7 +1160,7 @@ class ManageWindow(QWidget):
         gem_panel.show()
 
     def show_settings_window(self):
-        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size)
+        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon))
         self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
         self.settings_window.resize(self.size())
         self.settings_window.adjustSize()
@@ -1185,6 +1179,7 @@ class ManageWindow(QWidget):
 
         action_settings = QAction(self.i18n['settings'].capitalize())
         action_settings.triggered.connect(self.show_settings_window)
+        action_settings.setIcon(QIcon(resource.get_path('img/tools.svg')))
         menu_row.addAction(action_settings)
 
         action_about = QAction(self.i18n['manage_window.settings.about'])

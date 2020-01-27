@@ -12,13 +12,14 @@ from bauh.view.util.translation import I18n
 
 class SettingsWindow(QWidget):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize,  parent: QWidget = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize, tray: bool, parent: QWidget = None):
         super(SettingsWindow, self).__init__(parent=parent)
         self.setWindowTitle(i18n['settings'].capitalize())
         self.setLayout(QVBoxLayout())
         self.manager = manager
         self.i18n = i18n
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.tray = tray
 
         self.settings_model = self.manager.get_settings()
 

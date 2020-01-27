@@ -167,11 +167,12 @@ class FileChooserComponent(ViewComponent):
 
 class TabComponent(ViewComponent):
 
-    def __init__(self, label: str, content: ViewComponent, icon_path: str = None, id_: str = None):
+    def __init__(self, label: str, content: ViewComponent, icon_path: str = None, tooltip: str = None, id_: str = None):
         super(TabComponent, self).__init__(id_=id_)
         self.label = label
         self.content = content
         self.icon_path = icon_path
+        self.tooltip = tooltip
 
 
 class TabGroupComponent(ViewComponent):
