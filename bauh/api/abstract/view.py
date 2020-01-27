@@ -157,11 +157,12 @@ class FormComponent(ViewComponent):
 
 class FileChooserComponent(ViewComponent):
 
-    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, id_: str = None):
+    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None, file_path: str = None, id_: str = None):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
-        self.file_path = None
+        self.file_path = file_path
+        self.tooltip = tooltip
 
 
 class TabComponent(ViewComponent):

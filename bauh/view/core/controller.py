@@ -4,16 +4,17 @@ import traceback
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
+from PyQt5.QtWidgets import QStyleFactory, QApplication
+
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
-    InputOption, PanelComponent, SelectViewType, TextInputComponent, TwoStateButtonComponent
+    InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
-from bauh.commons.config import save_config
 from bauh.view.core import config
 from bauh.view.core.config import read_config
 from bauh.view.util import translation
@@ -418,8 +419,7 @@ class GenericSoftwareManager(SoftwareManager):
                                      max_per_line=len(opts),
                                      id_=id_)
 
-    def _gen_settings_panel(self) -> TabComponent:
-        core_config = read_config()
+    def _gen_general_settings(self, core_config: dict) -> TabComponent:
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
         select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
                                               options=locale_opts,
@@ -427,40 +427,32 @@ class GenericSoftwareManager(SoftwareManager):
                                               type_=SelectViewType.COMBO,
                                               id_='locale')
 
-        select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
-                                                 tooltip=self.i18n['core.config.disk_cache.tip'].format(app=self.context.app_name),
-                                                 value=core_config['disk_cache']['enabled'],
-                                                 id_='dcache')
-
-        input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
-                                                   tooltip=self.i18n['core.config.updates.interval.tip'],
-                                                   only_int=True,
-                                                   value=str(core_config['updates']['check_interval']),
-                                                   id_="updates_interval")
-
-        form_general = FormComponent(label=self.i18n['core.config.tab_label'].capitalize(),
-                                     components=[select_locale, input_update_interval, select_dcache],
-                                     id_="form_general")
-
-        select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
-                                                 tooltip=self.i18n['core.config.download.icons.tip'],
-                                                 id_="down_icons",
-                                                 value=core_config['download']['icons'])
-
-        select_dmthread = self._gen_bool_component(label=self.i18n['core.config.download.multithreaded'],
-                                                   tooltip=self.i18n['core.config.download.multithreaded.tip'],
-                                                   id_="down_mthread",
-                                                   value=core_config['download']['multithreaded'])
-
-        form_download = FormComponent(label=self.i18n['download'].capitalize(), components=[select_dicons, select_dmthread], id_='form_download')
+        select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
+                                                    tooltip=self.i18n['core.config.system.notifications.tip'].capitalize(),
+                                                    value=bool(core_config['system']['notifications']),
+                                                    id_="sys_notify")
 
         select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
-                                               tooltip=self.i18n['core.config.suggestions.activated.tip'].format(app=self.context.app_name),
+                                               tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
                                                id_="sugs_enabled",
                                                value=bool(core_config['suggestions']['enabled']))
 
-        form_sugs = FormComponent(label=self.i18n['core.config.suggestions'].capitalize(),
-                                  components=[select_sugs], id_='form_sugs')
+        inp_sugs = TextInputComponent(label=self.i18n['core.config.suggestions.by_type'],
+                                      tooltip=self.i18n['core.config.suggestions.by_type.tip'],
+                                      value=str(core_config['suggestions']['by_type']),
+                                      only_int=True,
+                                      id_="sugs_by_type")
+
+        sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs])]
+        return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
+
+    def _gen_adv_settings(self, core_config: dict) -> TabComponent:
+
+        select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
+                                                 tooltip=self.i18n['core.config.disk_cache.tip'].format(
+                                                     app=self.context.app_name),
+                                                 value=core_config['disk_cache']['enabled'],
+                                                 id_='dcache')
 
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
@@ -474,39 +466,126 @@ class GenericSoftwareManager(SoftwareManager):
                                             only_int=True,
                                             id_="icon_exp")
 
-        form_cache = FormComponent(label=self.i18n['core.config.mem_cache'].capitalize(),
-                                   components=[input_data_exp, input_icon_exp],
-                                   id_='form_memcache')
+        select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
+                                                    tooltip=self.i18n['core.config.system.dep_checking.tip'],
+                                                    value=core_config['system']['single_dependency_checking'],
+                                                    id_='dep_check')
 
-        sub_comps = [form_general, form_download, form_sugs, form_cache]
-        return TabComponent(self.i18n['core.config.tab_label'].capitalize(), PanelComponent([FormComponent(sub_comps)]), None, 'core')
+        select_dmthread = self._gen_bool_component(label=self.i18n['core.config.download.multithreaded'],
+                                                   tooltip=self.i18n['core.config.download.multithreaded.tip'],
+                                                   id_="down_mthread",
+                                                   value=core_config['download']['multithreaded'])
 
-    def _save_settings(self, panel: PanelComponent) -> Tuple[bool, List[str]]:
+        sub_comps = [FormComponent([select_dcache, select_dmthread, select_dep_check, input_data_exp, input_icon_exp])]
+        return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
+
+    def _gen_tray_settings(self, core_config: dict) -> TabComponent:
+        input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
+                                                   tooltip=self.i18n['core.config.updates.interval.tip'],
+                                                   only_int=True,
+                                                   value=str(core_config['updates']['check_interval']),
+                                                   id_="updates_interval")
+
+        allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
+        select_def_icon = FileChooserComponent(id_='def_icon',
+                                               label=self.i18n["core.config.ui.tray.default_icon"].capitalize(),
+                                               tooltip=self.i18n["core.config.ui.tray.default_icon.tip"].capitalize(),
+                                               file_path=str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None,
+                                               allowed_extensions=allowed_exts)
+
+        select_up_icon = FileChooserComponent(id_='up_icon',
+                                              label=self.i18n["core.config.ui.tray.updates_icon"].capitalize(),
+                                              tooltip=self.i18n["core.config.ui.tray.updates_icon.tip"].capitalize(),
+                                              file_path=str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None,
+                                              allowed_extensions=allowed_exts)
+
+        sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon])]
+        return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
+
+    def _gen_ui_settings(self, core_config: dict) -> TabComponent:
+        select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
+                                               tooltip=self.i18n['core.config.ui.hdpi.tip'].format(
+                                               app=self.context.app_name),
+                                               value=bool(core_config['ui']['hdpi']),
+                                               id_='hdpi')
+
+        cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
+        style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
+        select_style = SingleSelectComponent(label=self.i18n['style'].capitalize(),
+                                             options=style_opts,
+                                             default_option=[o for o in style_opts if o.value == cur_style][0],
+                                             type_=SelectViewType.COMBO,
+                                             id_="style")
+
+        input_maxd = TextInputComponent(label=self.i18n['core.config.ui.max_displayed'].capitalize(),
+                                        tooltip=self.i18n['core.config.ui.max_displayed.tip'].capitalize(),
+                                        only_int=True,
+                                        id_="table_max",
+                                        value=str(core_config['ui']['table']['max_displayed']))
+
+        select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
+                                                 tooltip=self.i18n['core.config.download.icons.tip'],
+                                                 id_="down_icons",
+                                                 value=core_config['download']['icons'])
+
+        sub_comps = [FormComponent([select_hdpi, select_dicons, select_style, input_maxd])]
+        return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
+
+    def _save_settings(self, general: PanelComponent, advanced: PanelComponent, ui: PanelComponent, tray: PanelComponent) -> Tuple[bool, List[str]]:
         core_config = config.read_config()
 
-        main_form = panel.components[0]
-        locale = main_form.get_component('form_general').get_component('locale').get_selected()
+        # general
+        general_form = general.components[0]
+
+        locale = general_form.get_component('locale').get_selected()
 
         if locale != self.i18n.current_key:
             core_config['locale'] = locale
 
-        core_config['disk_cache']['enabled'] = main_form.get_component('form_general').get_component('dcache').get_selected()
-        core_config['updates']['check_interval'] = main_form.get_component('form_general').get_component('updates_interval').get_int_value()
+        core_config['system']['notifications'] = general_form.get_component('sys_notify').get_selected()
+        core_config['suggestions']['enabled'] = general_form.get_component('sugs_enabled').get_selected()
 
-        download_icons = main_form.get_component('form_download').get_component('down_icons').get_selected()
-        core_config['download']['icons'] = download_icons
+        sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
+        core_config['suggestions']['by_type'] = sugs_by_type
 
-        download_mthreaded = main_form.get_component('form_download').get_component('down_mthread').get_selected()
+        # advanced
+        adv_form = advanced.components[0]
+        core_config['disk_cache']['enabled'] = adv_form.get_component('dcache').get_selected()
+
+        download_mthreaded = adv_form.get_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
 
-        data_exp = main_form.get_component('form_memcache').get_component('data_exp').get_int_value()
+        single_dep_check = adv_form.get_component('dep_check').get_selected()
+        core_config['system']['single_dependency_checking'] = single_dep_check
+
+        data_exp = adv_form.get_component('data_exp').get_int_value()
         core_config['memory_cache']['data_expiration'] = data_exp
 
-        icon_exp = main_form.get_component('form_memcache').get_component('icon_exp').get_int_value()
+        icon_exp = adv_form.get_component('icon_exp').get_int_value()
         core_config['memory_cache']['icon_expiration'] = icon_exp
 
-        sugs_enabled = main_form.get_component('form_sugs').get_component('sugs_enabled').get_value()
-        core_config['suggestions']['enabled'] = sugs_enabled
+        # tray
+        tray_form = tray.components[0]
+        core_config['updates']['check_interval'] = tray_form.get_component('updates_interval').get_int_value()
+
+        def_icon_path = tray_form.get_component('def_icon').file_path
+        core_config['ui']['tray']['default_icon'] = def_icon_path if def_icon_path else None
+
+        up_icon_path = tray_form.get_component('up_icon').file_path
+        core_config['ui']['tray']['updates_icon'] = up_icon_path if up_icon_path else None
+
+        # ui
+        ui_form = ui.components[0]
+
+        core_config['download']['icons'] = ui_form.get_component('down_icons').get_selected()
+        core_config['ui']['hdpi'] = ui_form.get_component('hdpi').get_selected()
+        core_config['ui']['table']['max_displayed'] = ui_form.get_component('table_max').get_int_value()
+
+        style = ui_form.get_component('style').get_selected()
+
+        cur_style = core_config['ui']['style'] if core_config['ui']['style'] else QApplication.instance().style().objectName().lower()
+        if style != cur_style:
+            core_config['ui']['style'] = style
 
         try:
             config.save(core_config)
@@ -517,7 +596,11 @@ class GenericSoftwareManager(SoftwareManager):
     def get_settings(self) -> ViewComponent:
         tabs = list()
 
-        tabs.append(self._gen_settings_panel())
+        core_config = read_config()
+        tabs.append(self._gen_general_settings(core_config))
+        tabs.append(self._gen_ui_settings(core_config))
+        tabs.append(self._gen_tray_settings(core_config))
+        tabs.append(self._gen_adv_settings(core_config))
 
         for man in self.managers:
             if self._can_work(man):
@@ -534,7 +617,10 @@ class GenericSoftwareManager(SoftwareManager):
 
         saved, warnings = True, []
 
-        success, errors = self._save_settings(component.get_tab('core').content)
+        success, errors = self._save_settings(general=component.get_tab('core.gen').content,
+                                              advanced=component.get_tab('core.adv').content,
+                                              tray=component.get_tab('core.tray').content,
+                                              ui=component.get_tab('core.ui').content)
 
         if not success:
             saved = False

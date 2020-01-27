@@ -1,6 +1,7 @@
 from io import StringIO
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QSizePolicy, QToolButton, QPushButton
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QSizePolicy, QPushButton
 
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.view import MessageType
@@ -11,20 +12,22 @@ from bauh.view.util.translation import I18n
 
 class SettingsWindow(QWidget):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, parent: QWidget = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize,  parent: QWidget = None):
         super(SettingsWindow, self).__init__(parent=parent)
         self.setWindowTitle(i18n['settings'].capitalize())
         self.setLayout(QVBoxLayout())
         self.manager = manager
         self.i18n = i18n
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         self.settings_model = self.manager.get_settings()
 
-        self.layout().addWidget(to_widget(self.settings_model, i18n))
+        tab_group = to_widget(self.settings_model, i18n)
+        tab_group.setMinimumWidth(int(screen_size.width() / 3))
+        self.layout().addWidget(tab_group)
 
         action_bar = QToolBar()
-        action_bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        action_bar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         bt_close = QPushButton()
         bt_close.setText(self.i18n['close'].capitalize())

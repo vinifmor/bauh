@@ -1166,7 +1166,7 @@ class ManageWindow(QWidget):
         gem_panel.show()
 
     def show_settings_window(self):
-        self.settings_window = SettingsWindow(self.manager, self.i18n)
+        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size)
         self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
         self.settings_window.resize(self.size())
         self.settings_window.adjustSize()

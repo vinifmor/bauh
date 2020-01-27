@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Tuple
 
@@ -434,6 +435,9 @@ class FormQt(QGroupBox):
         chooser = QLineEdit()
         chooser.setReadOnly(True)
 
+        if c.file_path:
+            chooser.setText(c.file_path)
+
         chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
 
         def open_chooser(e):
@@ -444,7 +448,12 @@ class FormQt(QGroupBox):
             else:
                 exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
 
-            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], str(Path.home()), exts, options=options)
+            if c.file_path and os.path.isfile(c.file_path):
+                cur_path = c.file_path
+            else:
+                cur_path = str(Path.home())
+
+            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=options)
 
             if file_path:
                 c.file_path = file_path
@@ -457,7 +466,8 @@ class FormQt(QGroupBox):
 
         chooser.mousePressEvent = open_chooser
 
-        return QLabel(c.label if c.label else ''), chooser
+        label = self._new_label(c)
+        return label, chooser
 
 
 class TabGroupQt(QTabWidget):
@@ -465,6 +475,7 @@ class TabGroupQt(QTabWidget):
     def __init__(self, model: TabGroupComponent, i18n: I18n, parent: QWidget = None):
         super(TabGroupQt, self).__init__(parent=parent)
         self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setTabPosition(QTabWidget.North)
 
         for c in model.tabs:
