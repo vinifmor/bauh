@@ -12,9 +12,11 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
-    InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent, MultipleSelectComponent
+    InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent, MultipleSelectComponent, \
+    TextComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.commons.html import bold
 from bauh.view.core import config
 from bauh.view.core.config import read_config
 from bauh.view.util import translation
@@ -409,7 +411,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
-               InputOption(label=self.i18n['no'].capitalize(), value=False)]
+                InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
         return SingleSelectComponent(label=label,
                                      options=opts,
@@ -443,7 +445,7 @@ class GenericSoftwareManager(SoftwareManager):
                                       only_int=True,
                                       id_="sugs_by_type")
 
-        sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs])]
+        sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_adv_settings(self, core_config: dict) -> TabComponent:
@@ -476,7 +478,7 @@ class GenericSoftwareManager(SoftwareManager):
                                                    id_="down_mthread",
                                                    value=core_config['download']['multithreaded'])
 
-        sub_comps = [FormComponent([select_dcache, select_dmthread, select_dep_check, input_data_exp, input_icon_exp])]
+        sub_comps = [FormComponent([select_dcache, select_dmthread, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
     def _gen_tray_settings(self, core_config: dict) -> TabComponent:
@@ -499,7 +501,7 @@ class GenericSoftwareManager(SoftwareManager):
                                               file_path=str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None,
                                               allowed_extensions=allowed_exts)
 
-        sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon])]
+        sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
 
     def _gen_ui_settings(self, core_config: dict) -> TabComponent:
@@ -528,10 +530,14 @@ class GenericSoftwareManager(SoftwareManager):
                                                  id_="down_icons",
                                                  value=core_config['download']['icons'])
 
-        sub_comps = [FormComponent([select_hdpi, select_dicons, select_style, input_maxd])]
+        sub_comps = [FormComponent([select_hdpi, select_dicons, select_style, input_maxd], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
-    def _save_settings(self, general: PanelComponent, advanced: PanelComponent, ui: PanelComponent, tray: PanelComponent) -> Tuple[bool, List[str]]:
+    def _save_settings(self, general: PanelComponent,
+                       advanced: PanelComponent,
+                       ui: PanelComponent,
+                       tray: PanelComponent,
+                       gems_panel: PanelComponent) -> Tuple[bool, List[str]]:
         core_config = config.read_config()
 
         # general
@@ -587,6 +593,16 @@ class GenericSoftwareManager(SoftwareManager):
         if style != cur_style:
             core_config['ui']['style'] = style
 
+        # gems
+        checked_gems = gems_panel.get_component('gems').get_selected_values()
+
+        for man in self.managers:
+            modname = man.__module__.split('.')[-2]
+            enabled = modname in checked_gems
+            man.set_enabled(enabled)
+
+        core_config['gems'] = None if core_config['gems'] is None and len(checked_gems) == len(self.managers) else checked_gems
+
         try:
             config.save(core_config)
             return True, None
@@ -595,12 +611,6 @@ class GenericSoftwareManager(SoftwareManager):
 
     def get_settings(self) -> ViewComponent:
         tabs = list()
-
-        core_config = read_config()
-        tabs.append(self._gen_general_settings(core_config))
-        tabs.append(self._gen_ui_settings(core_config))
-        tabs.append(self._gen_tray_settings(core_config))
-        tabs.append(self._gen_adv_settings(core_config))
 
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
 
@@ -611,7 +621,7 @@ class GenericSoftwareManager(SoftwareManager):
                 icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
                 if man_comp:
-                    gem_tabs.append(TabComponent(label=None, content=man_comp, icon_path=icon_path, tooltip=modname.capitalize(), id_=modname))
+                    gem_tabs.append(TabComponent(label=modname.capitalize(), content=man_comp, icon_path=icon_path, id_=modname))
 
                 opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
                                   tooltip=self.i18n.get('gem.{}.info'.format(modname)),
@@ -622,9 +632,23 @@ class GenericSoftwareManager(SoftwareManager):
                 if man.is_enabled() and man in self.working_managers:
                     def_gem_opts.add(opt)
 
+        core_config = read_config()
+        tabs.append(self._gen_general_settings(core_config))
+
         if gem_opts:
-            form_types = FormComponent(components=[MultipleSelectComponent(label=None, options=gem_opts, default_options=def_gem_opts)])
-            tabs.append(TabComponent(label='Types', content=PanelComponent([form_types])))
+            type_help = TextComponent(html=self.i18n['core.config.types.tip'])
+            gem_selector = MultipleSelectComponent(label=None,
+                                                   tooltip=None,
+                                                   options=gem_opts,
+                                                   default_options=def_gem_opts,
+                                                   id_="gems")
+            tabs.append(TabComponent(label=self.i18n['core.config.tab.types'],
+                                     content=PanelComponent([type_help, gem_selector]),
+                                     id_='core.types'))
+
+        tabs.append(self._gen_ui_settings(core_config))
+        tabs.append(self._gen_tray_settings(core_config))
+        tabs.append(self._gen_adv_settings(core_config))
 
         for tab in gem_tabs:
             tabs.append(tab)
@@ -638,7 +662,8 @@ class GenericSoftwareManager(SoftwareManager):
         success, errors = self._save_settings(general=component.get_tab('core.gen').content,
                                               advanced=component.get_tab('core.adv').content,
                                               tray=component.get_tab('core.tray').content,
-                                              ui=component.get_tab('core.ui').content)
+                                              ui=component.get_tab('core.ui').content,
+                                              gems_panel=component.get_tab('core.types').content)
 
         if not success:
             saved = False

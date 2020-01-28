@@ -84,14 +84,17 @@ class SingleSelectComponent(InputViewComponent):
 
 class MultipleSelectComponent(InputViewComponent):
 
-    def __init__(self, label: str, options: List[InputOption], default_options: Set[InputOption] = None, max_per_line: int = 1, id_: str = None):
+    def __init__(self, label: str, options: List[InputOption], default_options: Set[InputOption] = None,
+                 max_per_line: int = 1, tooltip: str = None, spaces: bool = True, id_: str = None):
         super(MultipleSelectComponent, self).__init__(id_=id_)
 
         if not options:
             raise Exception("'options' cannot be None or empty")
 
         self.options = options
+        self.spaces= spaces
         self.label = label
+        self.tooltip = tooltip
         self.values = default_options if default_options else set()
         self.max_per_line = max_per_line
 
@@ -144,9 +147,10 @@ class TextInputComponent(ViewComponent):
 
 class FormComponent(ViewComponent):
 
-    def __init__(self, components: List[ViewComponent], label: str = None, id_: str = None):
+    def __init__(self, components: List[ViewComponent], label: str = None, spaces: bool = True, id_: str = None):
         super(FormComponent, self).__init__(id_=id_)
         self.label = label
+        self.spaces = spaces
         self.components = components
         self.component_map = {c.id: c for c in components if c.id} if components else None
 
@@ -167,12 +171,11 @@ class FileChooserComponent(ViewComponent):
 
 class TabComponent(ViewComponent):
 
-    def __init__(self, label: str, content: ViewComponent, icon_path: str = None, tooltip: str = None, id_: str = None):
+    def __init__(self, label: str, content: ViewComponent, icon_path: str = None, id_: str = None):
         super(TabComponent, self).__init__(id_=id_)
         self.label = label
         self.content = content
         self.icon_path = icon_path
-        self.tooltip = tooltip
 
 
 class TabGroupComponent(ViewComponent):

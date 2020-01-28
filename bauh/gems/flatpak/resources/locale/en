@@ -1,4 +1,4 @@
-gem.flatpak.info=Applications available in the repositories configured on your system
+gem.flatpak.info=Applications available on Flathub and other repositories configured on your system
 flatpak.notification.no_remotes=No Flatpak remotes set. It will not be possible to search for Flatpak apps.
 flatpak.notification.disable=If you do not want to use Flatpak applications, uncheck {} in {}
 flatpak.downgrade.impossible.title=Error

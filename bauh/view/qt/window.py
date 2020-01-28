@@ -16,19 +16,16 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
-from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.qt import dialog, commons, qt_utils, root, view_utils
+from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
-from bauh.view.qt.components import new_spacer, InputFilter, IconButton, to_widget
+from bauh.view.qt.components import new_spacer, InputFilter, IconButton
 from bauh.view.qt.confirmation import ConfirmationDialog
-from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
-from bauh.view.qt.styles import StylesComboBox
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
@@ -1152,13 +1149,6 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def show_gems_selector(self):
-        gem_panel = GemSelectorPanel(window=self,
-                                     manager=self.manager, i18n=self.i18n,
-                                     config=self.config,
-                                     show_panel_after_restart=bool(self.tray_icon))
-        gem_panel.show()
-
     def show_settings_window(self):
         self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon))
         self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
@@ -1169,13 +1159,6 @@ class ManageWindow(QWidget):
 
     def _show_settings_menu(self):
         menu_row = QMenu()
-
-        if isinstance(self.manager, GenericSoftwareManager):
-            action_gems = QAction(self.i18n['manage_window.settings.gems'])
-            action_gems.setIcon(self.icon_app)
-
-            action_gems.triggered.connect(self.show_gems_selector)
-            menu_row.addAction(action_gems)
 
         action_settings = QAction(self.i18n['settings'].capitalize())
         action_settings.triggered.connect(self.show_settings_window)

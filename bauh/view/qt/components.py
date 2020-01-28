@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent
+    TwoStateButtonComponent, TextComponent
 from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
@@ -267,6 +267,62 @@ class MultipleSelectQt(QGroupBox):
             self.layout().addWidget(QLabel(), line + 1, 1)
 
 
+class FormMultipleSelectQt(QWidget):
+
+    def __init__(self, model: MultipleSelectComponent, parent: QWidget = None):
+        super(FormMultipleSelectQt, self).__init__(parent=parent)
+        self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+        self._layout = QGridLayout()
+        self.setLayout(self._layout)
+
+        if model.label:
+            line = 1
+            self.layout().addWidget(QLabel(), 0, 1)
+        else:
+            line = 0
+
+        col = 0
+
+        pixmap_help = QPixmap()
+
+        for op in model.options:  # loads the help icon if at least one option has a tooltip
+            if op.tooltip:
+                with open(resource.get_path('img/about.svg'), 'rb') as f:
+                    pixmap_help.loadFromData(f.read())
+                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                break
+
+        for op in model.options:
+            comp = CheckboxQt(op, model, None)
+
+            if model.values and op in model.values:
+                self.value = comp
+                comp.setChecked(True)
+
+            widget = QWidget()
+            widget.setLayout(QHBoxLayout())
+            widget.layout().addWidget(comp)
+
+            if op.tooltip:
+                help_icon = QLabel()
+                help_icon.setPixmap(pixmap_help)
+                help_icon.setToolTip(op.tooltip)
+                widget.layout().addWidget(help_icon)
+
+            self._layout.addWidget(widget, line, col)
+
+            if col + 1 == self.model.max_per_line:
+                line += 1
+                col = 0
+            else:
+                col += 1
+
+        if model.label:
+            self.layout().addWidget(QLabel(), line + 1, 1)
+
+
 class InputFilter(QLineEdit):
 
     def __init__(self, on_key_press):
@@ -348,7 +404,8 @@ class FormQt(QGroupBox):
         self.setLayout(QFormLayout())
         self.setStyleSheet(css.GROUP_BOX)
 
-        self.layout().addRow(QLabel(), QLabel())
+        if model.spaces:
+            self.layout().addRow(QLabel(), QLabel())
 
         for c in model.components:
             if isinstance(c, TextInputComponent):
@@ -366,10 +423,14 @@ class FormQt(QGroupBox):
             elif isinstance(c, TwoStateButtonComponent):
                 label = self._new_label(c)
                 self.layout().addRow(label, TwoStateButtonQt(c))
+            elif isinstance(c, MultipleSelectComponent):
+                label = self._new_label(c)
+                self.layout().addRow(label, FormMultipleSelectQt(c))
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
-        self.layout().addRow(QLabel(), QLabel())
+        if model.spaces:
+            self.layout().addRow(QLabel(), QLabel())
 
     def _new_label(self, comp) -> QWidget:
         label = QWidget()
@@ -517,5 +578,7 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return PanelQt(comp, i18n, parent)
     elif isinstance(comp, TwoStateButtonComponent):
         return TwoStateButtonQt(comp)
+    elif isinstance(comp, TextComponent):
+        return QLabel(comp.value)
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)
