@@ -424,9 +424,19 @@ class GenericSoftwareManager(SoftwareManager):
     def _gen_general_settings(self, core_config: dict) -> TabComponent:
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
 
+        current_locale = None
+
+        if core_config['locale']:
+            current_locale = [l for l in locale_opts if l.value == core_config['locale']]
+
+        if not current_locale and self.i18n.default_key:
+            current_locale = [l for l in locale_opts if l.value == self.i18n.default_key]
+
+        current_locale = current_locale[0] if current_locale else None
+
         select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
                                               options=locale_opts,
-                                              default_option=[l for l in locale_opts if l.value == core_config['locale']][0],
+                                              default_option=current_locale,
                                               type_=SelectViewType.COMBO,
                                               max_width=150,
                                               id_='locale')
