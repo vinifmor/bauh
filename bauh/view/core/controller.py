@@ -674,7 +674,7 @@ class GenericSoftwareManager(SoftwareManager):
             gem_selector = MultipleSelectComponent(label=None,
                                                    tooltip=None,
                                                    options=gem_opts,
-                                                   max_width=floor(screen_width * 0.30),
+                                                   max_width=floor(screen_width * 0.22),
                                                    default_options=def_gem_opts,
                                                    id_="gems")
             tabs.append(TabComponent(label=self.i18n['core.config.tab.types'],
