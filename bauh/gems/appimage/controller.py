@@ -513,11 +513,13 @@ class AppImageManager(SoftwareManager):
                                   max_per_line=len(enabled_opts),
                                   type_=SelectViewType.RADIO,
                                   tooltip=self.i18n['appimage.config.db_updates.activated.tip'].format(app=self.context.app_name),
+                                  max_width=200,
                                   id_='up_enabled'),
             TextInputComponent(label=self.i18n['interval'],
                                value=str(config['db_updater']['interval']),
                                tooltip=self.i18n['appimage.config.db_updates.interval.tip'],
                                only_int=True,
+                               max_width=150,
                                id_='up_int')
         ]
 
