@@ -464,8 +464,7 @@ class GenericSoftwareManager(SoftwareManager):
     def _gen_adv_settings(self, core_config: dict) -> TabComponent:
 
         select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
-                                                 tooltip=self.i18n['core.config.disk_cache.tip'].format(
-                                                     app=self.context.app_name),
+                                                 tooltip=self.i18n['core.config.disk_cache.tip'],
                                                  value=core_config['disk_cache']['enabled'],
                                                  id_='dcache')
 

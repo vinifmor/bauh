@@ -436,6 +436,7 @@ class FlatpakManager(SoftwareManager):
                                             options=install_opts,
                                             default_option=[o for o in install_opts if o.value == config['installation_level']][0],
                                             max_per_line=len(install_opts),
+                                            max_width=300,
                                             type_=SelectViewType.RADIO))
 
         return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
