@@ -68,7 +68,8 @@ class SelectViewType(Enum):
 
 class SingleSelectComponent(InputViewComponent):
 
-    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None, max_per_line: int = 1, tooltip: str = None, id_: str = None):
+    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None,
+                 max_per_line: int = 1, tooltip: str = None, max_width: int = -1, id_: str = None):
         super(SingleSelectComponent, self).__init__(id_=id_)
         self.type = type_
         self.label = label
@@ -76,6 +77,7 @@ class SingleSelectComponent(InputViewComponent):
         self.value = default_option
         self.max_per_line = max_per_line
         self.tooltip = tooltip
+        self.max_width = max_width
 
     def get_selected(self):
         if self.value:
@@ -92,7 +94,7 @@ class MultipleSelectComponent(InputViewComponent):
             raise Exception("'options' cannot be None or empty")
 
         self.options = options
-        self.spaces= spaces
+        self.spaces = spaces
         self.label = label
         self.tooltip = tooltip
         self.values = default_options if default_options else set()
@@ -108,9 +110,10 @@ class MultipleSelectComponent(InputViewComponent):
 
 class TextComponent(ViewComponent):
 
-    def __init__(self, html: str, id_: str = None):
+    def __init__(self, html: str, max_width: int = -1, id_: str = None):
         super(TextComponent, self).__init__(id_=id_)
         self.value = html
+        self.max_width = max_width
 
 
 class TwoStateButtonComponent(ViewComponent):
@@ -124,7 +127,8 @@ class TwoStateButtonComponent(ViewComponent):
 
 class TextInputComponent(ViewComponent):
 
-    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False, id_: str = None, only_int: bool = False):
+    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
+                 id_: str = None, only_int: bool = False, max_width: int = -1):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -132,6 +136,7 @@ class TextInputComponent(ViewComponent):
         self.placeholder = placeholder
         self.read_only = read_only
         self.only_int = only_int
+        self.max_width = max_width
 
     def get_value(self) -> str:
         if self.value is not None:
@@ -161,12 +166,14 @@ class FormComponent(ViewComponent):
 
 class FileChooserComponent(ViewComponent):
 
-    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None, file_path: str = None, id_: str = None):
+    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None,
+                 file_path: str = None, max_width: int = -1, id_: str = None):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
         self.file_path = file_path
         self.tooltip = tooltip
+        self.max_width = max_width
 
 
 class TabComponent(ViewComponent):

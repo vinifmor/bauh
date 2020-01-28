@@ -16,7 +16,6 @@ from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupCompone
     TextComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
-from bauh.commons.html import bold
 from bauh.view.core import config
 from bauh.view.core.config import read_config
 from bauh.view.util import translation
@@ -409,7 +408,7 @@ class GenericSoftwareManager(SoftwareManager):
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
 
-    def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str) -> SingleSelectComponent:
+    def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
@@ -419,14 +418,17 @@ class GenericSoftwareManager(SoftwareManager):
                                      type_=SelectViewType.RADIO,
                                      tooltip=tooltip,
                                      max_per_line=len(opts),
+                                     max_width=max_width,
                                      id_=id_)
 
     def _gen_general_settings(self, core_config: dict) -> TabComponent:
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
+
         select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
                                               options=locale_opts,
                                               default_option=[l for l in locale_opts if l.value == core_config['locale']][0],
                                               type_=SelectViewType.COMBO,
+                                              max_width=150,
                                               id_='locale')
 
         select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
@@ -443,6 +445,7 @@ class GenericSoftwareManager(SoftwareManager):
                                       tooltip=self.i18n['core.config.suggestions.by_type.tip'],
                                       value=str(core_config['suggestions']['by_type']),
                                       only_int=True,
+                                      max_width=150,
                                       id_="sugs_by_type")
 
         sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
@@ -460,12 +463,14 @@ class GenericSoftwareManager(SoftwareManager):
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
                                             value=str(core_config['memory_cache']['data_expiration']),
                                             only_int=True,
+                                            max_width=150,
                                             id_="data_exp")
 
         input_icon_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.icon_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.icon_exp.tip'],
                                             value=str(core_config['memory_cache']['icon_expiration']),
                                             only_int=True,
+                                            max_width=150,
                                             id_="icon_exp")
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
@@ -486,6 +491,7 @@ class GenericSoftwareManager(SoftwareManager):
                                                    tooltip=self.i18n['core.config.updates.interval.tip'],
                                                    only_int=True,
                                                    value=str(core_config['updates']['check_interval']),
+                                                   max_width=250,
                                                    id_="updates_interval")
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
@@ -493,12 +499,14 @@ class GenericSoftwareManager(SoftwareManager):
                                                label=self.i18n["core.config.ui.tray.default_icon"].capitalize(),
                                                tooltip=self.i18n["core.config.ui.tray.default_icon.tip"].capitalize(),
                                                file_path=str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None,
+                                               max_width=250,
                                                allowed_extensions=allowed_exts)
 
         select_up_icon = FileChooserComponent(id_='up_icon',
                                               label=self.i18n["core.config.ui.tray.updates_icon"].capitalize(),
                                               tooltip=self.i18n["core.config.ui.tray.updates_icon.tip"].capitalize(),
                                               file_path=str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None,
+                                              max_width=250,
                                               allowed_extensions=allowed_exts)
 
         sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
@@ -517,12 +525,14 @@ class GenericSoftwareManager(SoftwareManager):
                                              options=style_opts,
                                              default_option=[o for o in style_opts if o.value == cur_style][0],
                                              type_=SelectViewType.COMBO,
+                                             max_width=150,
                                              id_="style")
 
         input_maxd = TextInputComponent(label=self.i18n['core.config.ui.max_displayed'].capitalize(),
                                         tooltip=self.i18n['core.config.ui.max_displayed.tip'].capitalize(),
                                         only_int=True,
                                         id_="table_max",
+                                        max_width=150,
                                         value=str(core_config['ui']['table']['max_displayed']))
 
         select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],

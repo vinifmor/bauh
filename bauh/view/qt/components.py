@@ -79,11 +79,15 @@ class TwoStateButtonQt(QSlider):
         self.model.state = bool(state)
 
 
-class ComboBoxQt(QComboBox):
+class FormComboBoxQt(QComboBox):
 
     def __init__(self, model: SingleSelectComponent):
-        super(ComboBoxQt, self).__init__()
+        super(FormComboBoxQt, self).__init__()
         self.model = model
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
         for idx, op in enumerate(self.model.options):
             self.addItem(op.label, op.value)
 
@@ -101,12 +105,15 @@ class ComboBoxQt(QComboBox):
         self.setToolTip(self.model.value.tooltip)
 
 
-class RadioBoxQt(QWidget):
+class FormRadioSelectQt(QWidget):
 
     def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
-        super(RadioBoxQt, self).__init__(parent=parent)
+        super(FormRadioSelectQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -129,6 +136,9 @@ class RadioBoxQt(QWidget):
                 col = 0
             else:
                 col += 1
+
+        if model.max_width <= 0:
+            self.setMaximumWidth(self.sizeHint().width())
 
 
 class RadioSelectQt(QGroupBox):
@@ -168,7 +178,7 @@ class ComboSelectQt(QGroupBox):
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
-        self.layout().addWidget(ComboBoxQt(model), 0, 1)
+        self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
 class TextInputQt(QGroupBox):
@@ -179,6 +189,9 @@ class TextInputQt(QGroupBox):
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
+
+        if self.model.max_width > 0:
+            self.setMaximumWidth(self.model.max_width)
 
         self.text_input = QLineEdit()
 
@@ -202,15 +215,6 @@ class TextInputQt(QGroupBox):
     def _update_model(self, text: str):
         self.model.value = text
 
-# class ComboSelectQt(QGroupBox):
-#
-#     def __init__(self, model: SingleSelectComponent):
-#         super(ComboSelectQt, self).__init__(model.label + ' :')
-#         self.model = model
-#         self.setLayout(QGridLayout())
-#         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-#         self.layout().addWidget(ComboBoxQt(model), 0, 1)
-
 
 class MultipleSelectQt(QGroupBox):
 
@@ -223,7 +227,8 @@ class MultipleSelectQt(QGroupBox):
 
         if model.label:
             line = 1
-            self.layout().addWidget(QLabel(), 0, 1)
+            pre_label = QLabel()
+            self.layout().addWidget(pre_label, 0, 1)
         else:
             line = 0
 
@@ -264,7 +269,8 @@ class MultipleSelectQt(QGroupBox):
                 col += 1
 
         if model.label:
-            self.layout().addWidget(QLabel(), line + 1, 1)
+            pos_label = QLabel()
+            self.layout().addWidget(pos_label, line + 1, 1)
 
 
 class FormMultipleSelectQt(QWidget):
@@ -413,8 +419,8 @@ class FormQt(QGroupBox):
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
                 label = self._new_label(c)
-                field = ComboBoxQt(c) if c.type == SelectViewType.COMBO else RadioBoxQt(c)
-                self.layout().addRow(label, field)
+                field = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
+                self.layout().addRow(label, self._wrap(field, c))
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
@@ -490,11 +496,24 @@ class FormQt(QGroupBox):
             if c.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(c.tooltip))
 
-        return label, line_edit
+        return label, self._wrap(line_edit, c)
+
+    def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
+        field_container = QWidget()
+        field_container.setLayout(QHBoxLayout())
+
+        if model.max_width > 0:
+            field_container.setMaximumWidth(model.max_width)
+
+        field_container.layout().addWidget(comp)
+        return field_container
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
         chooser = QLineEdit()
         chooser.setReadOnly(True)
+
+        if c.max_width > 0:
+            chooser.setMaximumWidth(c.max_width)
 
         if c.file_path:
             chooser.setText(c.file_path)
@@ -528,7 +547,7 @@ class FormQt(QGroupBox):
         chooser.mousePressEvent = open_chooser
 
         label = self._new_label(c)
-        return label, chooser
+        return label, self._wrap(chooser, c)
 
 
 class TabGroupQt(QTabWidget):
