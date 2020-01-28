@@ -24,7 +24,7 @@ class SettingsWindow(QWidget):
         self.tray = tray
         self.window = window
 
-        self.settings_model = self.manager.get_settings()
+        self.settings_model = self.manager.get_settings(screen_size.width(), screen_size.height())
 
         tab_group = to_widget(self.settings_model, i18n)
         tab_group.setMinimumWidth(int(screen_size.width() / 3))

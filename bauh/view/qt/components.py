@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent
+    TwoStateButtonComponent, TextComponent, SpacerComponent
 from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
@@ -225,6 +225,12 @@ class MultipleSelectQt(QGroupBox):
         self._layout = QGridLayout()
         self.setLayout(self._layout)
 
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
+        if model.max_height > 0:
+            self.setMaximumHeight(model.max_height)
+
         if model.label:
             line = 1
             pre_label = QLabel()
@@ -279,6 +285,12 @@ class FormMultipleSelectQt(QWidget):
         super(FormMultipleSelectQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
+        if model.max_height > 0:
+            self.setMaximumHeight(model.max_height)
 
         self._layout = QGridLayout()
         self.setLayout(self._layout)
@@ -432,6 +444,8 @@ class FormQt(QGroupBox):
             elif isinstance(c, MultipleSelectComponent):
                 label = self._new_label(c)
                 self.layout().addRow(label, FormMultipleSelectQt(c))
+            elif isinstance(c, TextComponent):
+                self.layout().addRow(self._new_label(c), QWidget())
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
@@ -445,8 +459,11 @@ class FormQt(QGroupBox):
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
 
-        if comp.label:
-            label_comp.setText(comp.label.capitalize())
+        attr = 'label' if hasattr(comp,'label') else 'value'
+        text = getattr(comp, attr)
+
+        if text:
+            label_comp.setText(text.capitalize())
 
             if comp.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
@@ -601,5 +618,7 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         label = QLabel(comp.value)
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         return label
+    elif isinstance(comp, SpacerComponent):
+        return new_spacer()
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)

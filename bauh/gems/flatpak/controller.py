@@ -1,5 +1,6 @@
 import traceback
 from datetime import datetime
+from math import floor
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
@@ -418,7 +419,7 @@ class FlatpakManager(SoftwareManager):
 
         return urls
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         fields = []
 
         config = read_config()
@@ -436,7 +437,7 @@ class FlatpakManager(SoftwareManager):
                                             options=install_opts,
                                             default_option=[o for o in install_opts if o.value == config['installation_level']][0],
                                             max_per_line=len(install_opts),
-                                            max_width=300,
+                                            max_width=floor(screen_width * 0.22),
                                             type_=SelectViewType.RADIO))
 
         return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])

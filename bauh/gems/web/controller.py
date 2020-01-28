@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import traceback
+from math import floor
 from pathlib import Path
 from threading import Thread
 from typing import List, Type, Set, Tuple
@@ -891,14 +892,15 @@ class WebApplicationManager(SoftwareManager):
                 print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                 traceback.print_exc()
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()
+        max_width = floor(screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
                                             value=config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
-                                            max_width=200,
+                                            max_width=max_width,
                                             id_='electron_version')
 
         native_opts = [
@@ -911,7 +913,7 @@ class WebApplicationManager(SoftwareManager):
                                                   default_option=[o for o in native_opts if o.value == config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
-                                                  max_width=200,
+                                                  max_width=max_width,
                                                   id_='nativefier')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(), components=[input_electron, select_nativefier])

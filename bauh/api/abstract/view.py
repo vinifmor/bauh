@@ -17,6 +17,12 @@ class ViewComponent(ABC):
         self.id = id_
 
 
+class SpacerComponent(ViewComponent):
+
+    def __init__(self):
+        super(SpacerComponent, self).__init__(id_=None)
+
+
 class PanelComponent(ViewComponent):
 
     def __init__(self, components: List[ViewComponent], id_: str = None):
@@ -87,7 +93,8 @@ class SingleSelectComponent(InputViewComponent):
 class MultipleSelectComponent(InputViewComponent):
 
     def __init__(self, label: str, options: List[InputOption], default_options: Set[InputOption] = None,
-                 max_per_line: int = 1, tooltip: str = None, spaces: bool = True, id_: str = None):
+                 max_per_line: int = 1, tooltip: str = None, spaces: bool = True, max_width: int = -1,
+                 max_height: int = -1, id_: str = None):
         super(MultipleSelectComponent, self).__init__(id_=id_)
 
         if not options:
@@ -99,6 +106,8 @@ class MultipleSelectComponent(InputViewComponent):
         self.tooltip = tooltip
         self.values = default_options if default_options else set()
         self.max_per_line = max_per_line
+        self.max_width = max_width
+        self.max_height = max_height
 
     def get_selected_values(self) -> list:
         selected = []
@@ -110,10 +119,11 @@ class MultipleSelectComponent(InputViewComponent):
 
 class TextComponent(ViewComponent):
 
-    def __init__(self, html: str, max_width: int = -1, id_: str = None):
+    def __init__(self, html: str, max_width: int = -1, tooltip: str = None, id_: str = None):
         super(TextComponent, self).__init__(id_=id_)
         self.value = html
         self.max_width = max_width
+        self.tooltip = tooltip
 
 
 class TwoStateButtonComponent(ViewComponent):

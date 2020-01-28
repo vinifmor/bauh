@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import traceback
 from datetime import datetime
+from math import floor
 from pathlib import Path
 from threading import Lock, Thread
 from typing import Set, Type, List, Tuple
@@ -499,9 +500,9 @@ class AppImageManager(SoftwareManager):
                 print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, f, Fore.RESET))
                 traceback.print_exc()
 
-    def get_settings(self) -> ViewComponent:
-
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()
+        max_width = floor(screen_width * 0.15)
 
         enabled_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                         InputOption(label=self.i18n['no'].capitalize(), value=False)]
@@ -513,13 +514,13 @@ class AppImageManager(SoftwareManager):
                                   max_per_line=len(enabled_opts),
                                   type_=SelectViewType.RADIO,
                                   tooltip=self.i18n['appimage.config.db_updates.activated.tip'],
-                                  max_width=200,
+                                  max_width=max_width,
                                   id_='up_enabled'),
             TextInputComponent(label=self.i18n['interval'],
                                value=str(config['db_updater']['interval']),
                                tooltip=self.i18n['appimage.config.db_updates.interval.tip'],
                                only_int=True,
-                               max_width=150,
+                               max_width=max_width,
                                id_='up_int')
         ]
 

@@ -1,6 +1,7 @@
 import re
 import time
 import traceback
+from math import floor
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
@@ -13,7 +14,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import FormComponent, ViewComponent, TabGroupComponent, TabComponent, SingleSelectComponent, \
     InputOption, PanelComponent, SelectViewType, TextInputComponent, FileChooserComponent, MultipleSelectComponent, \
-    TextComponent
+    TextComponent, SpacerComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.view.core import config
@@ -421,7 +422,9 @@ class GenericSoftwareManager(SoftwareManager):
                                      max_width=max_width,
                                      id_=id_)
 
-    def _gen_general_settings(self, core_config: dict) -> TabComponent:
+    def _gen_general_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+        default_width = floor(0.11 * screen_width)
+
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
 
         current_locale = None
@@ -438,30 +441,33 @@ class GenericSoftwareManager(SoftwareManager):
                                               options=locale_opts,
                                               default_option=current_locale,
                                               type_=SelectViewType.COMBO,
-                                              max_width=150,
+                                              max_width=default_width,
                                               id_='locale')
 
         select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
                                                     tooltip=self.i18n['core.config.system.notifications.tip'].capitalize(),
                                                     value=bool(core_config['system']['notifications']),
+                                                    max_width=default_width,
                                                     id_="sys_notify")
 
         select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
                                                tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
                                                id_="sugs_enabled",
+                                               max_width=default_width,
                                                value=bool(core_config['suggestions']['enabled']))
 
         inp_sugs = TextInputComponent(label=self.i18n['core.config.suggestions.by_type'],
                                       tooltip=self.i18n['core.config.suggestions.by_type.tip'],
                                       value=str(core_config['suggestions']['by_type']),
                                       only_int=True,
-                                      max_width=150,
+                                      max_width=default_width,
                                       id_="sugs_by_type")
 
         sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
-    def _gen_adv_settings(self, core_config: dict) -> TabComponent:
+    def _gen_adv_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+        default_width = floor(0.11 * screen_width)
 
         select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
                                                  tooltip=self.i18n['core.config.disk_cache.tip'],
@@ -472,35 +478,39 @@ class GenericSoftwareManager(SoftwareManager):
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
                                             value=str(core_config['memory_cache']['data_expiration']),
                                             only_int=True,
-                                            max_width=150,
+                                            max_width=default_width,
                                             id_="data_exp")
 
         input_icon_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.icon_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.icon_exp.tip'],
                                             value=str(core_config['memory_cache']['icon_expiration']),
                                             only_int=True,
-                                            max_width=150,
+                                            max_width=default_width,
                                             id_="icon_exp")
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
                                                     tooltip=self.i18n['core.config.system.dep_checking.tip'],
                                                     value=core_config['system']['single_dependency_checking'],
+                                                    max_width=default_width,
                                                     id_='dep_check')
 
         select_dmthread = self._gen_bool_component(label=self.i18n['core.config.download.multithreaded'],
                                                    tooltip=self.i18n['core.config.download.multithreaded.tip'],
                                                    id_="down_mthread",
+                                                   max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
         sub_comps = [FormComponent([select_dcache, select_dmthread, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
-    def _gen_tray_settings(self, core_config: dict) -> TabComponent:
+    def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+        default_width = floor(0.22 * screen_width)
+
         input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
                                                    tooltip=self.i18n['core.config.updates.interval.tip'],
                                                    only_int=True,
                                                    value=str(core_config['updates']['check_interval']),
-                                                   max_width=250,
+                                                   max_width=default_width,
                                                    id_="updates_interval")
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
@@ -508,24 +518,27 @@ class GenericSoftwareManager(SoftwareManager):
                                                label=self.i18n["core.config.ui.tray.default_icon"].capitalize(),
                                                tooltip=self.i18n["core.config.ui.tray.default_icon.tip"].capitalize(),
                                                file_path=str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None,
-                                               max_width=250,
+                                               max_width=default_width,
                                                allowed_extensions=allowed_exts)
 
         select_up_icon = FileChooserComponent(id_='up_icon',
                                               label=self.i18n["core.config.ui.tray.updates_icon"].capitalize(),
                                               tooltip=self.i18n["core.config.ui.tray.updates_icon.tip"].capitalize(),
                                               file_path=str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None,
-                                              max_width=250,
+                                              max_width=default_width,
                                               allowed_extensions=allowed_exts)
 
         sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
 
-    def _gen_ui_settings(self, core_config: dict) -> TabComponent:
+    def _gen_ui_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+        default_width = floor(0.11 * screen_width)
+
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
                                                tooltip=self.i18n['core.config.ui.hdpi.tip'].format(
                                                app=self.context.app_name),
                                                value=bool(core_config['ui']['hdpi']),
+                                               max_width=default_width,
                                                id_='hdpi')
 
         cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
@@ -534,19 +547,20 @@ class GenericSoftwareManager(SoftwareManager):
                                              options=style_opts,
                                              default_option=[o for o in style_opts if o.value == cur_style][0],
                                              type_=SelectViewType.COMBO,
-                                             max_width=150,
+                                             max_width=default_width,
                                              id_="style")
 
         input_maxd = TextInputComponent(label=self.i18n['core.config.ui.max_displayed'].capitalize(),
                                         tooltip=self.i18n['core.config.ui.max_displayed.tip'].capitalize(),
                                         only_int=True,
                                         id_="table_max",
-                                        max_width=150,
+                                        max_width=default_width,
                                         value=str(core_config['ui']['table']['max_displayed']))
 
         select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
                                                  tooltip=self.i18n['core.config.download.icons.tip'],
                                                  id_="down_icons",
+                                                 max_width=default_width,
                                                  value=core_config['download']['icons'])
 
         sub_comps = [FormComponent([select_hdpi, select_dicons, select_style, input_maxd], spaces=False)]
@@ -613,7 +627,7 @@ class GenericSoftwareManager(SoftwareManager):
             core_config['ui']['style'] = style
 
         # gems
-        checked_gems = gems_panel.get_component('gems').get_selected_values()
+        checked_gems = gems_panel.components[1].get_component('gems').get_selected_values()
 
         for man in self.managers:
             modname = man.__module__.split('.')[-2]
@@ -628,14 +642,14 @@ class GenericSoftwareManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         tabs = list()
 
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
 
         for man in self.managers:
             if man.can_work():
-                man_comp = man.get_settings()
+                man_comp = man.get_settings(screen_width, screen_height)
                 modname = man.__module__.split('.')[-2]
                 icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
@@ -652,7 +666,7 @@ class GenericSoftwareManager(SoftwareManager):
                     def_gem_opts.add(opt)
 
         core_config = read_config()
-        tabs.append(self._gen_general_settings(core_config))
+        tabs.append(self._gen_general_settings(core_config, screen_width, screen_height))
 
         if gem_opts:
             type_help = TextComponent(html=self.i18n['core.config.types.tip'])
@@ -660,15 +674,16 @@ class GenericSoftwareManager(SoftwareManager):
             gem_selector = MultipleSelectComponent(label=None,
                                                    tooltip=None,
                                                    options=gem_opts,
+                                                   max_width=floor(screen_width * 0.30),
                                                    default_options=def_gem_opts,
                                                    id_="gems")
             tabs.append(TabComponent(label=self.i18n['core.config.tab.types'],
-                                     content=PanelComponent([type_help, gem_selector]),
+                                     content=PanelComponent([type_help, FormComponent([gem_selector], spaces=False)]),
                                      id_='core.types'))
 
-        tabs.append(self._gen_ui_settings(core_config))
-        tabs.append(self._gen_tray_settings(core_config))
-        tabs.append(self._gen_adv_settings(core_config))
+        tabs.append(self._gen_ui_settings(core_config, screen_width, screen_height))
+        tabs.append(self._gen_tray_settings(core_config, screen_width, screen_height))
+        tabs.append(self._gen_adv_settings(core_config, screen_width, screen_height))
 
         for tab in gem_tabs:
             tabs.append(tab)

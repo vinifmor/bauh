@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import time
 import traceback
+from math import floor
 from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
@@ -888,8 +889,9 @@ class ArchManager(SoftwareManager):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()
+        max_width = floor(screen_width * 0.15)
 
         optz_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                      InputOption(label=self.i18n['no'].capitalize(), value=False)]
@@ -904,14 +906,14 @@ class ArchManager(SoftwareManager):
                                   max_per_line=len(optz_opts),
                                   type_=SelectViewType.RADIO,
                                   tooltip=self.i18n['arch.config.optimize.tip'],
-                                  max_width=200,
+                                  max_width=max_width,
                                   id_='opts'),
             SingleSelectComponent(label=self.i18n['arch.config.trans_dep_check'].capitalize(),
                                   options=trans_check_opts,
                                   default_option=[o for o in trans_check_opts if o.value == config['transitive_checking']][0],
                                   max_per_line=len(trans_check_opts),
                                   type_=SelectViewType.RADIO,
-                                  max_width=200,
+                                  max_width=max_width,
                                   tooltip=self.i18n['arch.config.trans_dep_check.tip'],
                                   id_='dep_check')]
 

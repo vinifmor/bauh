@@ -74,7 +74,8 @@ def main():
 
     if local_config['ui']['hdpi']:
         logger.info("HDPI settings activated")
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)  # This fix images on HDPI resolution, not tested on non HDPI
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        app.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))

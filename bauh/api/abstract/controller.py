@@ -274,8 +274,10 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         """
+        :param screen_width
+        :param screen_height
         :return: a form abstraction with all available settings
         """
         pass
