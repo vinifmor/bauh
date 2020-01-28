@@ -898,6 +898,7 @@ class WebApplicationManager(SoftwareManager):
                                             value=config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
+                                            max_width=200,
                                             id_='electron_version')
 
         native_opts = [
@@ -910,6 +911,7 @@ class WebApplicationManager(SoftwareManager):
                                                   default_option=[o for o in native_opts if o.value == config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
+                                                  max_width=200,
                                                   id_='nativefier')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(), components=[input_electron, select_nativefier])
