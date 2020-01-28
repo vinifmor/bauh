@@ -579,6 +579,8 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
     elif isinstance(comp, TwoStateButtonComponent):
         return TwoStateButtonQt(comp)
     elif isinstance(comp, TextComponent):
-        return QLabel(comp.value)
+        label = QLabel(comp.value)
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        return label
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)

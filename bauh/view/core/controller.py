@@ -615,7 +615,7 @@ class GenericSoftwareManager(SoftwareManager):
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
 
         for man in self.managers:
-            if self._can_work(man):
+            if man.can_work():
                 man_comp = man.get_settings()
                 modname = man.__module__.split('.')[-2]
                 icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
@@ -637,6 +637,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         if gem_opts:
             type_help = TextComponent(html=self.i18n['core.config.types.tip'])
+            gem_opts.sort(key=lambda o: o.value)
             gem_selector = MultipleSelectComponent(label=None,
                                                    tooltip=None,
                                                    options=gem_opts,

@@ -56,7 +56,7 @@ class SettingsWindow(QWidget):
         if success:
             if dialog.ask_confirmation(title=self.i18n['warning'].capitalize(),
                                        body="<p>{}</p><p>{}</p>".format(self.i18n['settings.changed.success.warning'],
-                                                                             self.i18n['settings.changed.success.reboot']),
+                                                                        self.i18n['settings.changed.success.reboot']),
                                        i18n=self.i18n):
                 util.restart_app(self.tray)
             else:
@@ -70,11 +70,10 @@ class SettingsWindow(QWidget):
                 self.close()
         else:
             msg = StringIO()
-            msg.write("<p>It was not possible to properly save the settings</p>")
+            msg.write("<p>{}</p>".format(self.i18n['settings.error']))
 
             for w in warnings:
                 msg.write('<p style="font-weight: bold">* ' + w + '</p><br/>')
 
             msg.seek(0)
-
             dialog.show_message(title="Warning", body=msg.read(), type_=MessageType.WARNING)

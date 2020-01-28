@@ -66,3 +66,4 @@ web.settings.nativefier.system=sistema
 web.settings.nativefier.env.tooltip=A versão do Nativefier instalada no ambiente isolado do {app} será utilizada para instalar aplicativos
 web.settings.nativefier.system.tooltip=A versão do Nativefier instalada no seu sistema será utilizada para instalar aplicativos
 web.settings.nativefier.tip=Define qual versão do Nativefier será utilizada para gerar os aplicativos Web
+web.settings.env.nativefier.system.not_installed={} não parece estar instalado no seu sistema

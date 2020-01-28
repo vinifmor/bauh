@@ -929,7 +929,7 @@ class WebApplicationManager(SoftwareManager):
         system_nativefier = form_env.get_component('nativefier').get_selected()
 
         if system_nativefier and not nativefier.is_available():
-            return False, ['Nativefier seems not to be installed on your system']
+            return False, [self.i18n['web.settings.env.nativefier.system.not_installed'].format('Nativefier')]
 
         config['environment']['system'] = system_nativefier
 

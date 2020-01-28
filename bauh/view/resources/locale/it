@@ -209,6 +209,7 @@ core.config.suggestions.by_type.tip=Maximum number of suggestions that should be
 core.config.types.tip=Check the application types you want to manage
 settings.changed.success.warning=Settings successfully changed. Some of them will only take effect after the restart.
 settings.changed.success.reboot=Restart now ?
+settings.error=It was not possible to properly change all the settings
 locale.en=inglese
 locale.es=spagnolo
 locale.pt=portoghese

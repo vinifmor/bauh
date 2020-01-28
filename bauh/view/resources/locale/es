@@ -257,6 +257,7 @@ core.config.suggestions.by_type.tip=Número máximo de sugerencias que deberían
 core.config.types.tip=Marque los tipos de aplicaciones que desea administrar
 settings.changed.success.warning=Las configuraciones se cambiaron con éxito. Algunas solo tendrán efecto después del reinicio.
 settings.changed.success.reboot=¿Reiniciar ahora?
+settings.error=No fue posible cambiar correctamente todas las configuraciones
 locale.es=inglés
 locale.es=español
 locale.pt=portugués
