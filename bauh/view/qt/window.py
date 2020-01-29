@@ -6,7 +6,7 @@ from typing import List, Type, Set
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -134,6 +134,7 @@ class ManageWindow(QWidget):
 
         self.toolbar = QToolBar()
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setText(self.i18n['updates'].capitalize())

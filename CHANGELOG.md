@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying "No Internet connection" when an error happens during commits reading within the downgrade process
 - UI:
     - **About** window icons scaling
+    - Toolbar buttons get hidden [#5](https://github.com/vinifmor/bauh/issues/5)
     
 ### UI
 - **Style selector** and **Aplication types** action moved to the new **Settings panel**
