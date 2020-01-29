@@ -12,7 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak:
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
 - AUR:
-    - downgrading time reduced due to the fix described in ***Fixes***.
+    - downgrading time reduced due to the fix described in ***Fixes***
+    - the custom **makepkg.conf** generated at **~/.config/bauh/arch** will enable **ccache** if available on the system
 - Configuration ( **~/.config/bauh/config.yml** )
     - new property **hdpi** allowing to disable HDPI improvements
     ```
