@@ -65,6 +65,20 @@ class AURClient:
         if res and res.text:
             return map_srcinfo(res.text)
 
+        self.logger.warning('No .SRCINFO found for {}'.format(name))
+        self.logger.info('Checking if {} is based on another package'.format(name))
+        # if was not found, it may be based on another package.
+        infos = self.get_info({name})
+
+        if infos:
+            info = infos[0]
+
+            info_name = info.get('Name')
+            info_base = info.get('PackageBase')
+            if info_name and info_base and info_name != info_base:
+                self.logger.info('{p} is based on {b}. Retrieving {b} .SRCINFO'.format(p=info_name, b=info_base))
+                return self.get_src_info(info_base)
+
     def get_all_dependencies(self, name: str) -> Set[str]:
         deps = set()
         info = self.get_src_info(name)

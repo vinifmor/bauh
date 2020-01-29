@@ -22,7 +22,7 @@ def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatch
 
     view_opts = MultipleSelectComponent(label='',
                                         options=opts,
-                                        default_options=None)
+                                        default_options=set(opts))
 
     install = watcher.request_confirmation(title=i18n['arch.install.optdeps.request.title'],
                                            body='<p>{}.</p><p>{}:</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)), i18n['arch.install.optdeps.request.help']),

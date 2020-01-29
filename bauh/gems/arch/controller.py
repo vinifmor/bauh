@@ -400,7 +400,8 @@ class ArchManager(SoftwareManager):
         for dep in deps:
             handler.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ()'.format(dep[0], dep[1]))))
             if dep[1] == 'aur':
-                installed = self._install_from_aur(pkgname=dep[0], pkgbase=None, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
+                pkgbase = self.aur_client.get_src_info(dep[0])['pkgbase']
+                installed = self._install_from_aur(pkgname=dep[0], pkgbase=pkgbase, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
                 installed = self._install(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
 
