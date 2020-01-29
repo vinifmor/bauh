@@ -10,12 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
 - AUR:
     - downgrading time reduced due to the fix described in ***Fixes***.
-- UI:
-    - it's possible to disabled the HDPI improvements via the main configuration file ( **~/.config/bauh/config.yml** ):
+- Configuration ( **~/.config/bauh/config.yml** )
+    - new property **hdpi** allowing to disable HDPI improvements
     ```
     ui:
-        hdpi: true  # 'false' will disable them
+        hdpi: true # enabled by default
     ```
+  - new property **auto_scale** that activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues 
+    for some desktop environments ( like Gnome ) [#1](https://github.com/vinifmor/bauh/issues/1)
+    ```
+     ui:
+        auto_scale: false  # disabled by default
 ### Fixes
 - AUR:
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )

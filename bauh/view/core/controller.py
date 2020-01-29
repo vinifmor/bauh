@@ -535,11 +535,16 @@ class GenericSoftwareManager(SoftwareManager):
         default_width = floor(0.11 * screen_width)
 
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
-                                               tooltip=self.i18n['core.config.ui.hdpi.tip'].format(
-                                               app=self.context.app_name),
+                                               tooltip=self.i18n['core.config.ui.hdpi.tip'],
                                                value=bool(core_config['ui']['hdpi']),
                                                max_width=default_width,
                                                id_='hdpi')
+
+        select_ascale = self._gen_bool_component(label=self.i18n['core.config.ui.auto_scale'],
+                                                 tooltip=self.i18n['core.config.ui.auto_scale.tip'].format('QT_AUTO_SCREEN_SCALE_FACTOR'),
+                                                 value=bool(core_config['ui']['auto_scale']),
+                                                 max_width=default_width,
+                                                 id_='auto_scale')
 
         cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
         style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
@@ -563,7 +568,7 @@ class GenericSoftwareManager(SoftwareManager):
                                                  max_width=default_width,
                                                  value=core_config['download']['icons'])
 
-        sub_comps = [FormComponent([select_hdpi, select_dicons, select_style, input_maxd], spaces=False)]
+        sub_comps = [FormComponent([select_hdpi, select_ascale, select_dicons, select_style, input_maxd], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
     def _save_settings(self, general: PanelComponent,
@@ -618,6 +623,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         core_config['download']['icons'] = ui_form.get_component('down_icons').get_selected()
         core_config['ui']['hdpi'] = ui_form.get_component('hdpi').get_selected()
+        core_config['ui']['auto_scale'] = ui_form.get_component('auto_scale').get_selected()
         core_config['ui']['table']['max_displayed'] = ui_form.get_component('table_max').get_int_value()
 
         style = ui_form.get_component('style').get_selected()

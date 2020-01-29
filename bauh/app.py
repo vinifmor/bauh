@@ -34,6 +34,10 @@ def main():
 
     local_config = config.read_config(update_file=True)
 
+    if local_config['ui']['auto_scale']:
+        os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
+        logger.info("Auto screen scale factor enabled")
+
     i18n_key, current_i18n = translation.get_locale_keys(local_config['locale'])
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
     i18n = I18n(i18n_key, current_i18n, DEFAULT_I18N_KEY, default_i18n)

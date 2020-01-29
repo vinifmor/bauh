@@ -44,7 +44,8 @@ def read_config(update_file: bool = False) -> dict:
                 'updates_icon': None
             },
             'style': None,
-            'hdpi': True
+            'hdpi': True,
+            "auto_scale": False
 
         },
         'download': {
