@@ -555,16 +555,26 @@ class FormQt(QGroupBox):
             if file_path:
                 c.file_path = file_path
                 chooser.setText(file_path)
-            else:
-                c.file_path = None
-                chooser.setText('')
 
             chooser.setCursorPosition(0)
+
+        def clean_path():
+            c.file_path = None
+            chooser.setText('')
 
         chooser.mousePressEvent = open_chooser
 
         label = self._new_label(c)
-        return label, self._wrap(chooser, c)
+        wrapped = self._wrap(chooser, c)
+
+        bt = IconButton(QIcon(resource.get_path('img/clean.svg')),
+                        i18n=self.i18n['clean'].capitalize(),
+                        action=clean_path,
+                        background='#cc0000',
+                        tooltip=self.i18n['action.run.tooltip'])
+
+        wrapped.layout().addWidget(bt)
+        return label, wrapped
 
 
 class TabGroupQt(QTabWidget):
