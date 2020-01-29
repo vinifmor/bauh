@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.2]
+### Features
+- New **Settings** panel ( displayed when the lower **Settings** button is clicked ). It allows to change all settings.
+
 ### Improvements
 - Flatpak:
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
@@ -32,6 +35,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying "No Internet connection" when an error happens during commits reading within the downgrade process
 - UI:
     - **About** window icons scaling
+    
+### UI
+- **Style selector** and **Aplication types** action moved to the new **Settings panel**
+- **About** action split from the **Settings** button
+- The file chooser component now has a clean button alongside.
 
 ## [0.8.1] 2020-01-14
 ### Features:
