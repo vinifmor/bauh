@@ -3,7 +3,7 @@ import sys
 from threading import Thread
 
 import urllib3
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtWidgets import QApplication
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
@@ -36,7 +36,12 @@ def main():
 
     if local_config['ui']['auto_scale']:
         os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
-        logger.info("Auto screen scale factor enabled")
+        logger.info("Auto screen scale factor activated")
+
+    if local_config['ui']['hdpi']:
+        logger.info("HDPI settings activated")
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     i18n_key, current_i18n = translation.get_locale_keys(local_config['locale'])
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
@@ -75,11 +80,6 @@ def main():
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]
     app.setWindowIcon(app_icon)
-
-    if local_config['ui']['hdpi']:
-        logger.info("HDPI settings activated")
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps)
-        app.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))
