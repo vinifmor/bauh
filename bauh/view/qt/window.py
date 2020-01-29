@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -314,11 +314,18 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
-                                 action=self._show_settings_menu,
+                                 action=self._show_settings,
                                  background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
+
+        bt_about = IconButton(QIcon(resource.get_path('img/question.svg')),
+                              action=self._show_about,
+                              background='#2E68D3',
+                              i18n=self.i18n,
+                              tooltip=self.i18n['manage_window.settings.about'])
+        self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -903,6 +910,7 @@ class ManageWindow(QWidget):
         self.ref_combo_filter_type.setVisible(False)
         self.ref_combo_categories.setVisible(False)
         self.ref_bt_settings.setVisible(False)
+        self.ref_bt_about.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
@@ -943,6 +951,7 @@ class ManageWindow(QWidget):
 
         self._change_label_substatus('')
         self.ref_bt_settings.setVisible(True)
+        self.ref_bt_about.setVisible(True)
 
         self.ref_bt_refresh.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
@@ -1149,27 +1158,10 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def show_settings_window(self):
+    def _show_settings(self):
         self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon), self)
         self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
         self.settings_window.resize(self.size())
         self.settings_window.adjustSize()
         qt_utils.centralize(self.settings_window)
         self.settings_window.show()
-
-    def _show_settings_menu(self):
-        menu_row = QMenu()
-
-        action_settings = QAction(self.i18n['settings'].capitalize())
-        action_settings.triggered.connect(self.show_settings_window)
-        action_settings.setIcon(QIcon(resource.get_path('img/tools.svg')))
-        menu_row.addAction(action_settings)
-
-        action_about = QAction(self.i18n['manage_window.settings.about'])
-        action_about.setIcon(QIcon(resource.get_path('img/about.svg')))
-        action_about.triggered.connect(self._show_about)
-        menu_row.addAction(action_about)
-
-        menu_row.adjustSize()
-        menu_row.popup(QCursor.pos())
-        menu_row.exec_()
