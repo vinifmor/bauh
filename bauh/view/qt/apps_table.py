@@ -257,10 +257,10 @@ class AppsTable(QTableWidget):
 
     def _gen_row_button(self, text: str, style: str, callback) -> QWidget:
         col = QWidget()
-        col.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        col.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         col_bt = QToolButton()
-        col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         col_bt.setText(text)
         col_bt.setStyleSheet('QToolButton { ' + style + '}')
         col_bt.clicked.connect(callback)
