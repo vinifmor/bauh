@@ -22,6 +22,7 @@ class FlatpakApplication(SoftwarePackage):
         self.partial = False
         self.installation = installation if installation else 'system'
         self.i18n = i18n
+        self.base_id = None
 
         if runtime:
             self.categories = ['runtime']
@@ -77,6 +78,7 @@ class FlatpakApplication(SoftwarePackage):
     def gen_partial(self, partial_id: str) -> "FlatpakApplication":
         partial = copy.deepcopy(self)
         partial.id = partial_id
+        partial.base_id = self.id
 
         if self.ref:
             partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))

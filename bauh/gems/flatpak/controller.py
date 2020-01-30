@@ -197,7 +197,10 @@ class FlatpakManager(SoftwareManager):
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
-            app_info = flatpak.get_app_info_fields(app.id, app.branch, app.installation)
+            version = flatpak.get_version()
+            id_ = app.base_id if app.partial and version < '1.5' else app.id
+            app_info = flatpak.get_app_info_fields(id_, app.branch, app.installation)
+            app_info['id'] = id_
             app_info['name'] = app.name
             app_info['type'] = 'runtime' if app.runtime else 'app'
             app_info['description'] = strip_html(app.description) if app.description else ''
