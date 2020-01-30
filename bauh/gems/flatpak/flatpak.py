@@ -11,7 +11,12 @@ RE_SEVERAL_SPACES = re.compile(r'\s+')
 
 
 def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
-    info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch, installation))
+    info = get_app_info(app_id, branch, installation)
+
+    if not info:
+        return {}
+
+    info = re.findall(r'\w+:\s.+', info)
     data = {}
     fields_to_retrieve = len(fields) + (1 if check_runtime and 'ref' not in fields else 0)
 
@@ -62,7 +67,11 @@ def get_version():
 
 
 def get_app_info(app_id: str, branch: str, installation: str):
-    return run_cmd('{} info {} {}'.format('flatpak', app_id, branch, '--{}'.format(installation)))
+    try:
+        return run_cmd('{} info {} {}'.format('flatpak', app_id, branch, '--{}'.format(installation)))
+    except:
+        traceback.print_exc()
+        return ''
 
 
 def get_commit(app_id: str, branch: str, installation: str) -> str:
