@@ -152,6 +152,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type = QComboBox()
         self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_filter_type.setIconSize(QSize(14, 14))
         self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
@@ -798,7 +799,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 14)
+                        icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)

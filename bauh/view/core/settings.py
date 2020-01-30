@@ -49,7 +49,6 @@ class GenericSettingsManager:
                     def_gem_opts.add(opt)
 
         core_config = read_config()
-        tabs.append(self._gen_general_settings(core_config, screen_width, screen_height))
 
         if gem_opts:
             type_help = TextComponent(html=self.i18n['core.config.types.tip'])
@@ -64,6 +63,7 @@ class GenericSettingsManager:
                                      content=PanelComponent([type_help, FormComponent([gem_selector], spaces=False)]),
                                      id_='core.types'))
 
+        tabs.append(self._gen_general_settings(core_config, screen_width, screen_height))
         tabs.append(self._gen_ui_settings(core_config, screen_width, screen_height))
         tabs.append(self._gen_tray_settings(core_config, screen_width, screen_height))
         tabs.append(self._gen_adv_settings(core_config, screen_width, screen_height))
