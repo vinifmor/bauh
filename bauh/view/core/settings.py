@@ -1,4 +1,5 @@
 import logging
+import os
 import traceback
 from math import floor
 from typing import List, Tuple
@@ -287,7 +288,15 @@ class GenericSettingsManager:
 
         core_config['download']['icons'] = ui_form.get_component('down_icons').get_selected()
         core_config['ui']['hdpi'] = ui_form.get_component('hdpi').get_selected()
+
+        previous_autoscale = core_config['ui']['auto_scale']
+
         core_config['ui']['auto_scale'] = ui_form.get_component('auto_scale').get_selected()
+
+        if previous_autoscale and not core_config['ui']['auto_scale']:
+            self.logger.info("Deleting environment variable QT_AUTO_SCREEN_SCALE_FACTOR")
+            del os.environ['QT_AUTO_SCREEN_SCALE_FACTOR']
+
         core_config['ui']['table']['max_displayed'] = ui_form.get_component('table_max').get_int_value()
 
         style = ui_form.get_component('style').get_selected()
