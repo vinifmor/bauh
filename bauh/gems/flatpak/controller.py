@@ -185,7 +185,17 @@ class FlatpakManager(SoftwareManager):
         self.api_cache.delete(pkg.id)
 
     def update(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref, pkg.installation)))
+        related, deps = False, False
+        ref = pkg.ref
+
+        if pkg.partial and flatpak.get_version() < '1.5':
+            related, deps = True, True
+            ref = pkg.base_ref
+
+        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
+                                                                                   installation=pkg.installation,
+                                                                                   related=related,
+                                                                                   deps=deps)))
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))

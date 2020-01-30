@@ -23,6 +23,7 @@ class FlatpakApplication(SoftwarePackage):
         self.installation = installation if installation else 'system'
         self.i18n = i18n
         self.base_id = None
+        self.base_ref = None
 
         if runtime:
             self.categories = ['runtime']
@@ -81,6 +82,7 @@ class FlatpakApplication(SoftwarePackage):
         partial.base_id = self.id
 
         if self.ref:
+            partial.base_ref = self.ref
             partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
 
         partial.partial = True

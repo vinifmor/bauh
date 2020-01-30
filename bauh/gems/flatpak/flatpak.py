@@ -149,13 +149,21 @@ def list_installed(version: str) -> List[dict]:
     return apps
 
 
-def update(app_ref: str, installation: str):
+def update(app_ref: str, installation: str, related: bool = False, deps: bool = False):
     """
     Updates the app reference
     :param app_ref:
     :return:
     """
-    return new_subprocess(['flatpak', 'update', '--no-related', '--no-deps', '-y', app_ref, '--{}'.format(installation)])
+    cmd = ['flatpak', 'update', '-y', app_ref, '--{}'.format(installation)]
+
+    if not related:
+        cmd.append('--no-related')
+
+    if not deps:
+        cmd.append('--no-deps')
+
+    return new_subprocess(cmd)
 
 
 def uninstall(app_ref: str, installation: str):
