@@ -30,17 +30,18 @@ class UpdateToggleButton(QWidget):
 
     def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.app_view = app_view
         self.root = root
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(2, 2, 2, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignCenter)
         self.setLayout(layout)
 
         self.bt = QToolButton()
         self.bt.setCheckable(clickable)
+        self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if clickable:
             self.bt.clicked.connect(self.change_state)
@@ -248,26 +249,35 @@ class AppsTable(QTableWidget):
             col_update = None
 
             if update_check_enabled and pkg.model.update:
-                col_update = UpdateToggleButton(pkg, self.window, self.i18n, pkg.update_checked)
+                col_update = QToolBar()
+                col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+                col_update.addWidget(UpdateToggleButton(pkg, self.window, self.i18n, pkg.update_checked))
 
             self.setCellWidget(pkg.table_index, 7, col_update)
 
     def _gen_row_button(self, text: str, style: str, callback) -> QWidget:
         col = QWidget()
-        col_bt = QPushButton()
+        col.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        col_bt = QToolButton()
+        col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         col_bt.setText(text)
-        col_bt.setStyleSheet('QPushButton { ' + style + '}')
+        col_bt.setStyleSheet('QToolButton { ' + style + '}')
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
-        layout.setContentsMargins(2, 2, 2, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignCenter)
-        layout.addWidget(col_bt)
-        col.setLayout(layout)
 
+        layout.addWidget(col_bt)
+
+        col.setLayout(layout)
         return col
 
     def _set_col_installed(self, col: int, pkg: PackageView):
+        toolbar = QToolBar()
+        toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
         if pkg.model.installed:
             if pkg.model.can_be_uninstalled():
                 def uninstall():
@@ -287,7 +297,8 @@ class AppsTable(QTableWidget):
         else:
             item = None
 
-        self.setCellWidget(pkg.table_index, col, item)
+        toolbar.addWidget(item)
+        self.setCellWidget(pkg.table_index, col, toolbar)
 
     def _set_col_type(self, col: int, pkg: PackageView):
 
