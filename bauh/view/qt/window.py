@@ -348,6 +348,7 @@ class ManageWindow(QWidget):
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
         self.settings_window = None
+        self.search_performed = False
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
@@ -444,6 +445,7 @@ class ManageWindow(QWidget):
     def _show_installed(self):
         if self.pkgs_installed:
             self.finish_action()
+            self.search_performed = False
             self.ref_bt_upgrade.setVisible(True)
             self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
@@ -546,6 +548,8 @@ class ManageWindow(QWidget):
 
     def _finish_refresh_apps(self, res: dict, as_installed: bool = True):
         self.finish_action()
+        self.search_performed = False
+
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
         self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall and res['types'])
@@ -583,7 +587,11 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
-            only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            if not self.search_performed:
+                only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            else:
+                only_pkg_type = False
+
             self.recent_uninstall = True
             self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
 
@@ -1072,6 +1080,7 @@ class ManageWindow(QWidget):
 
     def _finish_search(self, res: dict):
         self.finish_action()
+        self.search_performed = True
 
         if not res['error']:
             self.ref_bt_upgrade.setVisible(False)

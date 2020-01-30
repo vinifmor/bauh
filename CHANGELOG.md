@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI:
     - **About** window icons scaling
     - Toolbar buttons get hidden [#5](https://github.com/vinifmor/bauh/issues/5)
+    - minor bug fixes
     
 ### UI
 - **Style selector** and **Aplication types** action moved to the new **Settings panel**
