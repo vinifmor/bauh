@@ -4,17 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.2]
+## [0.8.2] - 2020-01
 ### Features
 - New **Settings** panel ( displayed when the lower **Settings** button is clicked ). It allows to change all settings.
 
 ### Improvements
-- Flatpak:
+- Flatpak
     - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
 - AUR:
     - downgrading time reduced due to the fix described in ***Fixes***
     - the custom **makepkg.conf** generated at **~/.config/bauh/arch** will enable **ccache** if available on the system
-    - package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade. This behavior can be disabled on **~/.config/arch.yml** / or the new settings panel:
+    - package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade. This behavior can be disabled on **~/.config/arch.yml** / or the new settings panel
     ```
     sync_databases: true  # enabled by default
     ```
@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     ui:
         hdpi: true # enabled by default
     ```
-  - new property **auto_scale** that activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues 
+  - new property **auto_scale** activates Qt auto screen scale factor ( **QT_AUTO_SCREEN_SCALE_FACTOR** ). It fixes scaling issues 
     for some desktop environments ( like Gnome ) [#1](https://github.com/vinifmor/bauh/issues/1)
     ```
      ui:
@@ -34,18 +34,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )
     - not considering the package name itself as **provided** during dependency checking ( **anbox-git** installation was crashing )
     - not pre-downloading some source files ( e.g: from **anbox-image** )
-    - not able to install packages based on other packages ( package name != package base ). e.g: anbox-modules-dkms-git ( anbox-git )
+    - not able to install packages based on other packages ( package name != package base ). e.g: **anbox-modules-dkms-git** > **anbox-git**
     - downgrade: pre-downloading sources from the latest version instead of the older
 - Flatpak:
     - displaying "No Internet connection" when an error happens during commits reading within the downgrade process
-    - an exception happens when trying to retrieve the information from partials in Flatpak 1.4
+    - an exception happens when trying to retrieve the information from partials for Flatpak < 1.5
 - UI:
     - **About** window icons scaling
     - Toolbar buttons get hidden [#5](https://github.com/vinifmor/bauh/issues/5)
     - minor bug fixes
     
 ### UI
-- **Style selector** and **Aplication types** action moved to the new **Settings panel**
+- **Style selector** and **Application types** action moved to the new **Settings panel**
 - **About** action split from the **Settings** button
 - The file chooser component now has a clean button alongside.
 
