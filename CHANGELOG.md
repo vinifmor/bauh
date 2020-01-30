@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR:
     - downgrading time reduced due to the fix described in ***Fixes***
     - the custom **makepkg.conf** generated at **~/.config/bauh/arch** will enable **ccache** if available on the system
+    - package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade. This behavior can be disabled on **~/.config/arch.yml** / or the new settings panel:
+    ```
+    sync_databases: true  # enabled by default
+    ```
 - Configuration ( **~/.config/bauh/config.yml** )
     - new property **hdpi** allowing to disable HDPI improvements
     ```

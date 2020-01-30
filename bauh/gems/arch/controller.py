@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import time
 import traceback
+from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
@@ -193,6 +194,9 @@ class ArchManager(SoftwareManager):
 
         handler = ProcessHandler(watcher)
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
+
+        self._sync_databases(root_password=root_password, handler=handler)
+
         watcher.change_progress(5)
 
         try:
@@ -769,6 +773,52 @@ class ArchManager(SoftwareManager):
 
         return False
 
+    def _sync_databases(self, root_password: str, handler: ProcessHandler):
+        sync_path = '/tmp/bauh/arch/sync'
+
+        if self.local_config['sync_databases']:
+            if os.path.exists(sync_path):
+                with open(sync_path) as f:
+                    sync_file = f.read()
+
+                try:
+                    sync_time = datetime.fromtimestamp(int(sync_file))
+                    now = datetime.now()
+
+                    if (now - sync_time).days > 0:
+                        self.logger.info("Package databases synchronization out of date")
+                    else:
+                        msg = "Package databases already synchronized"
+                        self.logger.info(msg)
+                        handler.watcher.print(msg)
+                        return
+                except:
+                    self.logger.warning("Could not convert the database synchronization time from '{}".format(sync_path))
+                    traceback.print_exc()
+
+            handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
+            synced, output = handler.handle_simple(pacman.sync_databases(root_password=root_password,
+                                                                         force=True))
+            if synced:
+                try:
+                    Path('/tmp/bauh/arch').mkdir(parents=True, exist_ok=True)
+                    with open('/tmp/bauh/arch/sync', 'w+') as f:
+                        f.write(str(int(time.time())))
+                except:
+                    traceback.print_exc()
+            else:
+                self.logger.warning("It was not possible to synchronized the package databases")
+                handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus.error'])
+        else:
+            msg = "Package databases synchronization disabled"
+            handler.watcher.print(msg)
+            self.logger.info(msg)
+
+    def _optimize_makepkg(self, watcher: ProcessWatcher):
+        if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
+            watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
+            ArchCompilationOptimizer(self.context.logger).optimize()
+
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
         clean_config = False
 
@@ -776,11 +826,12 @@ class ArchManager(SoftwareManager):
             self.local_config = read_config()
             clean_config = True
 
-        if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
-            watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
-            ArchCompilationOptimizer(self.context.logger).optimize()
+        handler = ProcessHandler(watcher)
 
-        res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, ProcessHandler(watcher), dependency=False, skip_optdeps=skip_optdeps)
+        self._sync_databases(root_password=root_password, handler=handler)
+        self._optimize_makepkg(watcher=watcher)
+
+        res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
 
         if res:
             if os.path.exists(pkg.get_disk_data_path()):
@@ -890,33 +941,40 @@ class ArchManager(SoftwareManager):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
 
+    def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int) -> SingleSelectComponent:
+        opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
+                InputOption(label=self.i18n['no'].capitalize(), value=False)]
+
+        return SingleSelectComponent(label=self.i18n[label_key].capitalize(),
+                                     options=opts,
+                                     default_option=[o for o in opts if o.value == value][0],
+                                     max_per_line=len(opts),
+                                     type_=SelectViewType.RADIO,
+                                     tooltip=self.i18n[tooltip_key],
+                                     max_width=max_width,
+                                     id_=id_)
+
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()
         max_width = floor(screen_width * 0.15)
 
-        optz_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
-                     InputOption(label=self.i18n['no'].capitalize(), value=False)]
-
-        trans_check_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
-                            InputOption(label=self.i18n['no'].capitalize(), value=False)]
-
         fields = [
-            SingleSelectComponent(label=self.i18n['arch.config.optimize'].capitalize(),
-                                  options=optz_opts,
-                                  default_option=[o for o in optz_opts if o.value == config['optimize']][0],
-                                  max_per_line=len(optz_opts),
-                                  type_=SelectViewType.RADIO,
-                                  tooltip=self.i18n['arch.config.optimize.tip'],
-                                  max_width=max_width,
-                                  id_='opts'),
-            SingleSelectComponent(label=self.i18n['arch.config.trans_dep_check'].capitalize(),
-                                  options=trans_check_opts,
-                                  default_option=[o for o in trans_check_opts if o.value == config['transitive_checking']][0],
-                                  max_per_line=len(trans_check_opts),
-                                  type_=SelectViewType.RADIO,
-                                  max_width=max_width,
-                                  tooltip=self.i18n['arch.config.trans_dep_check.tip'],
-                                  id_='dep_check')]
+            self._gen_bool_selector(id_='opts',
+                                    label_key='arch.config.optimize',
+                                    tooltip_key='arch.config.optimize.tip',
+                                    value=config['optimize'],
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='dep_check',
+                                    label_key='arch.config.trans_dep_check',
+                                    tooltip_key='arch.config.trans_dep_check.tip',
+                                    value=config['transitive_checking'],
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='sync_dbs',
+                                    label_key='arch.config.sync_dbs',
+                                    tooltip_key='arch.config.sync_dbs.tip',
+                                    value=config['sync_databases'],
+                                    max_width=max_width)
+        ]
 
         return PanelComponent([FormComponent(fields, label=self.i18n['installation'].capitalize())])
 
@@ -926,6 +984,7 @@ class ArchManager(SoftwareManager):
         form_install = component.components[0]
         config['optimize'] = form_install.get_component('opts').get_selected()
         config['transitive_checking'] = form_install.get_component('dep_check').get_selected()
+        config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)

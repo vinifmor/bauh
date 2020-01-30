@@ -106,3 +106,7 @@ arch.config.optimize=otimizar
 arch.config.trans_dep_check=verificar dependências
 arch.config.optimize.tip=Utilizará configurações otimizadas para que a instalação de pacotes seja mais rápida, caso contrário utilizará a do sistema
 arch.config.trans_dep_check.tip=Se todas as dependências do pacote devem ser verificadas antes da instalação começar, caso contrário elas serão descobertas durante a instalação
+arch.sync_databases.substatus=Sincronizando bases de pacotes
+arch.sync_databases.substatus.error=Não foi possível sincronizar as bases de pacotes
+arch.config.sync_dbs=Sincronizar bases de pacotes
+arch.config.sync_dbs.tip=Sincroniza as bases de pacotes uma vez ao dia ( ou a cada reinicialização do dispositivo ) antes da primeira instalação, atualização ou reversão de um pacote. Essa opção ajuda a evitar erros durante essa operações.

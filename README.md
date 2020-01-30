@@ -163,6 +163,7 @@ db_updater:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
 transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
 ``` 
 - Required dependencies:
     - **pacman**
@@ -242,7 +243,8 @@ ui:
   tray:  # system tray settings
     default_icon: null  # defines a path to a custom icon
     updates_icon: null  # defines a path to a custom icon indicating updates
-  hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange. 
+  hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange.
+  auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
 
