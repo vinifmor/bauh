@@ -4,16 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.2] - 2020-01
+## [0.8.2] - 2020-01-31
 ### Features
 - New **Settings** panel ( displayed when the lower **Settings** button is clicked ). It allows to change all settings.
 
 ### Improvements
 - Flatpak
-    - configuration file ( **flatpak.yml** ) will be created during the initialization ( on 0.8.1 it would only be created during the first app installation )
-- AUR:
-    - downgrading time reduced due to the fix described in ***Fixes***
+    - configuration file ( **flatpak.yml** ) will be created during the initialization ( on **0.8.1** it would only be created during the first app installation )
+- AUR
     - the custom **makepkg.conf** generated at **~/.config/bauh/arch** will enable **ccache** if available on the system
+    - downgrading time reduced due to the fix described in ***Fixes***
     - package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade. This behavior can be disabled on **~/.config/arch.yml** / or the new settings panel
     ```
     sync_databases: true  # enabled by default
@@ -29,16 +29,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     ```
      ui:
         auto_scale: false  # disabled by default
+    ```
 ### Fixes
-- AUR:
+- AUR
     - not treating **makedepends** as a list during dependency checking ( **anbox-git** installation was crashing )
     - not considering the package name itself as **provided** during dependency checking ( **anbox-git** installation was crashing )
     - not pre-downloading some source files ( e.g: from **anbox-image** )
     - not able to install packages based on other packages ( package name != package base ). e.g: **anbox-modules-dkms-git** > **anbox-git**
     - downgrade: pre-downloading sources from the latest version instead of the older
-- Flatpak:
-    - displaying "No Internet connection" when an error happens during commits reading within the downgrade process
-    - an exception happens when trying to retrieve the information from partials for Flatpak < 1.5
+- Flatpak
+    - downgrade: displaying "No Internet connection" when an error happens during commits reading
+    - Flatpak < 1.5: an exception happens when trying to retrieve the information from partials
 - UI:
     - **About** window icons scaling
     - Toolbar buttons get hidden [#5](https://github.com/vinifmor/bauh/issues/5)
@@ -46,9 +47,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - minor bug fixes
     
 ### UI
-- **Style selector** and **Application types** action moved to the new **Settings panel**
-- **About** action split from the **Settings** button
-- The file chooser component now has a clean button alongside.
+- **Style selector** and **Application types** menu action moved to the new **Settings panel**
+- **About** menu action split from the **Settings** menu as a new button
+- The file chooser component now has a clean button alongside
 
 ## [0.8.1] 2020-01-14
 ### Features:
