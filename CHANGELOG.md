@@ -52,8 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The file chooser component now has a clean button alongside
 
 ## [0.8.1] 2020-01-14
-### Features:
-- Flatpak:
+### Features
+- Flatpak
     - allow the user to choose the application installation level: **user** or **system** [#47](https://github.com/vinifmor/bauh/issues/47)
     - able to deal with user and system applications / runtimes [#47](https://github.com/vinifmor/bauh/issues/47)
     - able to list partial updates for Flatpak >= 1.4
@@ -62,16 +62,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - All icons are now SVG files
 - HDPI support improvements ( by [octopusSD](https://github.com/octopusSD) )
-- Flatpak:
+- Flatpak
     - the application name tooltip now displays the installation level. e.g: **gedit ( system )**
     - info window displaying the installation level
     - "remote not set" warning dropped in favor of the new behavior: automatically adds Flathub as the default remote at the user level
-- Snap:
+- Snap
     - snapd checking routine refactored
-- Web:
+- Web
     - not using HTTP sessions anymore to perform the searches. It seems to avoid URLs not being found after an internet drop event
     - supporting JPEG images as custom icons
-- UI:
+- UI
     - widgets visibility settings: the main widgets now should always be visible ( e.g: toolbar buttons )
     - scaling
     
