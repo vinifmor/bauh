@@ -263,6 +263,7 @@ class AppsTable(QTableWidget):
         col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         col_bt.setText(text)
         col_bt.setStyleSheet('QToolButton { ' + style + '}')
+        col_bt.setMinimumWidth(80)
         col_bt.clicked.connect(callback)
 
         layout = QHBoxLayout()
