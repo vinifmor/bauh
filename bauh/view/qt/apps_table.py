@@ -196,8 +196,7 @@ class AppsTable(QTableWidget):
             self.window.install(pkgv)
 
     def _load_icon_and_cache(self, http_response: QNetworkReply):
-
-        icon_url = http_response.url().toString()
+        icon_url = http_response.request().url().toString()
 
         icon_data = self.icon_cache.get(icon_url)
         icon_was_cached = True

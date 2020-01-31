@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - **About** window icons scaling
     - Toolbar buttons get hidden [#5](https://github.com/vinifmor/bauh/issues/5)
     - minor bug fixes
+    - not displaying icons retrieved from a HTTP redirect
     
 ### UI
 - **Style selector** and **Application types** action moved to the new **Settings panel**
