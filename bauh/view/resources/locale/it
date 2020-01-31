@@ -120,7 +120,6 @@ gem_selector.question=Quali tipi di applicazioni vuoi trovare qui ?
 proceed=procedere
 change=Cambia
 exit=esci
-manage_window.settings.gems=Tipi di applicazione
 style=stile
 manage_window.bt_settings.tooltip=Fai clic qui per visualizzare le impostazioni
 downloading=Scaricamento

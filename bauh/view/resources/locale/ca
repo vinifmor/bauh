@@ -120,7 +120,6 @@ gem_selector.question=Quins tipus d’aplicacions voleu que es mostrin aquí?
 proceed=continua
 change=modifica
 exit=surt
-manage_window.settings.gems=Tipus d’aplicacions
 style=estil
 manage_window.bt_settings.tooltip=Feu clic aquí per mostrar la configuració
 downloading=S’està baixant
