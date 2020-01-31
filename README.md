@@ -243,7 +243,7 @@ ui:
   tray:  # system tray settings
     default_icon: null  # defines a path to a custom icon
     updates_icon: null  # defines a path to a custom icon indicating updates
-  hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange.
+  hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
