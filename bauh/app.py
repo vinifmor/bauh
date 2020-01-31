@@ -3,7 +3,7 @@ import sys
 from threading import Thread
 
 import urllib3
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtWidgets import QApplication
 
 from bauh import __version__, __app_name__, app_args, ROOT_DIR
@@ -31,9 +31,17 @@ def main():
     args = app_args.read()
 
     logger = logs.new_logger(__app_name__, bool(args.logs))
-    app_args.validate(args, logger)
 
     local_config = config.read_config(update_file=True)
+
+    if local_config['ui']['auto_scale']:
+        os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
+        logger.info("Auto screen scale factor activated")
+
+    if local_config['ui']['hdpi']:
+        logger.info("HDPI settings activated")
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     i18n_key, current_i18n = translation.get_locale_keys(local_config['locale'])
     default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
@@ -55,7 +63,8 @@ def main():
                                  logger=logger,
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(local_config['download']['multithreaded']),
-                                                                         i18n, http_client))
+                                                                         i18n, http_client),
+                                 app_name=__app_name__)
 
     managers = gems.load_managers(context=context, locale=i18n_key, config=local_config, default_locale=DEFAULT_I18N_KEY)
 
@@ -71,7 +80,6 @@ def main():
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]
     app.setWindowIcon(app_icon)
-    app.setAttribute(Qt.AA_UseHighDpiPixmaps) # This fix images on HDPI resolution, not tested on non HDPI
 
     if local_config['ui']['style']:
         app.setStyle(str(local_config['ui']['style']))

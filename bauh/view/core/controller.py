@@ -2,21 +2,24 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.view.core.settings import GenericSettingsManager
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict,
+                 settings_manager: GenericSettingsManager = None):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
@@ -28,6 +31,7 @@ class GenericSoftwareManager(SoftwareManager):
         self._already_prepared = []
         self.working_managers = []
         self.config = config
+        self.settings_manager = settings_manager
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -211,7 +215,11 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
-            return man.downgrade(app, root_password, handler)
+            mti = time.time()
+            res = man.downgrade(app, root_password, handler)
+            mtf = time.time()
+            self.logger.info('Took {0:.2f} seconds'.format(mtf - mti))
+            return res
         else:
             raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
 
@@ -258,7 +266,11 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(app)
 
         if man:
-            return man.get_history(app)
+            mti = time.time()
+            history = man.get_history(app)
+            mtf = time.time()
+            self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+            return history
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         pass
@@ -390,3 +402,20 @@ class GenericSoftwareManager(SoftwareManager):
 
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
+
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+        if self.settings_manager is None:
+            self.settings_manager = GenericSettingsManager(managers=self.managers,
+                                                           working_managers=self.working_managers,
+                                                           logger=self.logger,
+                                                           i18n=self.i18n)
+
+        return self.settings_manager.get_settings(screen_width=screen_width, screen_height=screen_height)
+
+    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
+        res = self.settings_manager.save_settings(component)
+
+        if res[0]:
+            self.settings_manager = None
+
+        return res

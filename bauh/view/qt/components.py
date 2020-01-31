@@ -1,14 +1,17 @@
+import os
 from pathlib import Path
 from typing import Tuple
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
-    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog
+    QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
+    QSlider, QScrollArea, QFrame
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
-    TextInputComponent, FormComponent, FileChooserComponent
-from bauh.view.qt import css, view_utils
+    TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
+    TwoStateButtonComponent, TextComponent, SpacerComponent
+from bauh.view.qt import css
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -61,11 +64,30 @@ class CheckboxQt(QCheckBox):
             self.callback(self.model, checked)
 
 
-class ComboBoxQt(QComboBox):
+class TwoStateButtonQt(QSlider):
+
+    def __init__(self, model: TwoStateButtonComponent):
+        super(TwoStateButtonQt, self).__init__(Qt.Horizontal)
+        self.model = model
+        self.setMaximum(1)
+        self.valueChanged.connect(self._change_state)
+
+    def mousePressEvent(self, QMouseEvent):
+        self.setValue(1 if self.value() == 0 else 0)
+
+    def _change_state(self, state: int):
+        self.model.state = bool(state)
+
+
+class FormComboBoxQt(QComboBox):
 
     def __init__(self, model: SingleSelectComponent):
-        super(ComboBoxQt, self).__init__()
+        super(FormComboBoxQt, self).__init__()
         self.model = model
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
         for idx, op in enumerate(self.model.options):
             self.addItem(op.label, op.value)
 
@@ -81,6 +103,42 @@ class ComboBoxQt(QComboBox):
     def _set_selected(self, idx: int):
         self.model.value = self.model.options[idx]
         self.setToolTip(self.model.value.tooltip)
+
+
+class FormRadioSelectQt(QWidget):
+
+    def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
+        super(FormRadioSelectQt, self).__init__(parent=parent)
+        self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
+        grid = QGridLayout()
+        self.setLayout(grid)
+
+        line, col = 0, 0
+        for op in model.options:
+            comp = RadioButtonQt(op, model)
+            comp.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            comp.setText(op.label)
+            comp.setToolTip(op.tooltip)
+
+            if model.value and model.value == op:
+                self.value = comp
+                comp.setChecked(True)
+
+            grid.addWidget(comp, line, col)
+
+            if col + 1 == self.model.max_per_line:
+                line += 1
+                col = 0
+            else:
+                col += 1
+
+        if model.max_width <= 0:
+            self.setMaximumWidth(self.sizeHint().width())
 
 
 class RadioSelectQt(QGroupBox):
@@ -120,7 +178,7 @@ class ComboSelectQt(QGroupBox):
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
-        self.layout().addWidget(ComboBoxQt(model), 0, 1)
+        self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
 class TextInputQt(QGroupBox):
@@ -132,7 +190,13 @@ class TextInputQt(QGroupBox):
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
 
+        if self.model.max_width > 0:
+            self.setMaximumWidth(self.model.max_width)
+
         self.text_input = QLineEdit()
+
+        if model.only_int:
+            self.text_input.setValidator(QIntValidator())
 
         if model.placeholder:
             self.text_input.setPlaceholderText(model.placeholder)
@@ -151,15 +215,6 @@ class TextInputQt(QGroupBox):
     def _update_model(self, text: str):
         self.model.value = text
 
-# class ComboSelectQt(QGroupBox):
-#
-#     def __init__(self, model: SingleSelectComponent):
-#         super(ComboSelectQt, self).__init__(model.label + ' :')
-#         self.model = model
-#         self.setLayout(QGridLayout())
-#         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-#         self.layout().addWidget(ComboBoxQt(model), 0, 1)
-
 
 class MultipleSelectQt(QGroupBox):
 
@@ -167,6 +222,76 @@ class MultipleSelectQt(QGroupBox):
         super(MultipleSelectQt, self).__init__(model.label if model.label else None)
         self.setStyleSheet(css.GROUP_BOX)
         self.model = model
+        self._layout = QGridLayout()
+        self.setLayout(self._layout)
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
+        if model.max_height > 0:
+            self.setMaximumHeight(model.max_height)
+
+        if model.label:
+            line = 1
+            pre_label = QLabel()
+            self.layout().addWidget(pre_label, 0, 1)
+        else:
+            line = 0
+
+        col = 0
+
+        pixmap_help = QPixmap()
+
+        for op in model.options:  # loads the help icon if at least one option has a tooltip
+            if op.tooltip:
+                with open(resource.get_path('img/about.svg'), 'rb') as f:
+                    pixmap_help.loadFromData(f.read())
+                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                break
+
+        for op in model.options:
+            comp = CheckboxQt(op, model, callback)
+
+            if model.values and op in model.values:
+                self.value = comp
+                comp.setChecked(True)
+
+            widget = QWidget()
+            widget.setLayout(QHBoxLayout())
+            widget.layout().addWidget(comp)
+
+            if op.tooltip:
+                help_icon = QLabel()
+                help_icon.setPixmap(pixmap_help)
+                help_icon.setToolTip(op.tooltip)
+                widget.layout().addWidget(help_icon)
+
+            self._layout.addWidget(widget, line, col)
+
+            if col + 1 == self.model.max_per_line:
+                line += 1
+                col = 0
+            else:
+                col += 1
+
+        if model.label:
+            pos_label = QLabel()
+            self.layout().addWidget(pos_label, line + 1, 1)
+
+
+class FormMultipleSelectQt(QWidget):
+
+    def __init__(self, model: MultipleSelectComponent, parent: QWidget = None):
+        super(FormMultipleSelectQt, self).__init__(parent=parent)
+        self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+        if model.max_width > 0:
+            self.setMaximumWidth(model.max_width)
+
+        if model.max_height > 0:
+            self.setMaximumHeight(model.max_height)
+
         self._layout = QGridLayout()
         self.setLayout(self._layout)
 
@@ -188,7 +313,7 @@ class MultipleSelectQt(QGroupBox):
                 break
 
         for op in model.options:
-            comp = CheckboxQt(op, model, callback)
+            comp = CheckboxQt(op, model, None)
 
             if model.values and op in model.values:
                 self.value = comp
@@ -241,7 +366,7 @@ class InputFilter(QLineEdit):
 
 class IconButton(QWidget):
 
-    def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None):
+    def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
         super(IconButton, self).__init__()
         self.bt = QToolButton()
         self.bt.setIcon(icon)
@@ -249,7 +374,7 @@ class IconButton(QWidget):
         self.i18n = i18n
         self.default_tootip = tooltip
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.bt.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         if background:
             style = 'QToolButton { color: white; background: ' + background + '} '
@@ -274,6 +399,20 @@ class IconButton(QWidget):
             self.bt.setToolTip(self.default_tootip)
 
 
+class PanelQt(QWidget):
+
+    def __init__(self, model: PanelComponent, i18n: I18n, parent: QWidget = None):
+        super(PanelQt, self).__init__(parent=parent)
+        self.model = model
+        self.i18n = i18n
+        self.setLayout(QVBoxLayout())
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        if model.components:
+            for c in model.components:
+                self.layout().addWidget(to_widget(c, i18n))
+
+
 class FormQt(QGroupBox):
 
     def __init__(self, model: FormComponent, i18n: I18n):
@@ -283,26 +422,65 @@ class FormQt(QGroupBox):
         self.setLayout(QFormLayout())
         self.setStyleSheet(css.GROUP_BOX)
 
-        self.layout().addRow(QLabel(), QLabel())
+        if model.spaces:
+            self.layout().addRow(QLabel(), QLabel())
 
         for c in model.components:
             if isinstance(c, TextInputComponent):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
-                label = QLabel(c.label.capitalize() if c.label else '')
-                field = ComboBoxQt(c)
-                self.layout().addRow(label, field)
+                label = self._new_label(c)
+                field = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
+                self.layout().addRow(label, self._wrap(field, c))
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
+            elif isinstance(c, FormComponent):
+                self.layout().addRow(FormQt(c, self.i18n))
+            elif isinstance(c, TwoStateButtonComponent):
+                label = self._new_label(c)
+                self.layout().addRow(label, TwoStateButtonQt(c))
+            elif isinstance(c, MultipleSelectComponent):
+                label = self._new_label(c)
+                self.layout().addRow(label, FormMultipleSelectQt(c))
+            elif isinstance(c, TextComponent):
+                self.layout().addRow(self._new_label(c), QWidget())
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
-        self.layout().addRow(QLabel(), QLabel())
+        if model.spaces:
+            self.layout().addRow(QLabel(), QLabel())
+
+    def _new_label(self, comp) -> QWidget:
+        label = QWidget()
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setLayout(QHBoxLayout())
+        label_comp = QLabel()
+        label.layout().addWidget(label_comp)
+
+        attr = 'label' if hasattr(comp,'label') else 'value'
+        text = getattr(comp, attr)
+
+        if text:
+            label_comp.setText(text.capitalize())
+
+            if comp.tooltip:
+                label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
+
+        return label
+
+    def gen_tip_icon(self, tip: str) -> QLabel:
+        tip_icon = QLabel()
+        tip_icon.setToolTip(tip.strip())
+        tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+        return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         line_edit = QLineEdit()
+
+        if c.only_int:
+            line_edit.setValidator(QIntValidator())
 
         if c.tooltip:
             line_edit.setToolTip(c.tooltip)
@@ -321,11 +499,41 @@ class FormQt(QGroupBox):
             c.value = text
 
         line_edit.textChanged.connect(update_model)
-        return QLabel(c.label.capitalize() if c.label else ''), line_edit
+
+        label = QWidget()
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setLayout(QHBoxLayout())
+
+        label_component = QLabel()
+        label.layout().addWidget(label_component)
+
+        if label:
+            label_component.setText(c.label.capitalize())
+
+            if c.tooltip:
+                label.layout().addWidget(self.gen_tip_icon(c.tooltip))
+
+        return label, self._wrap(line_edit, c)
+
+    def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
+        field_container = QWidget()
+        field_container.setLayout(QHBoxLayout())
+
+        if model.max_width > 0:
+            field_container.setMaximumWidth(model.max_width)
+
+        field_container.layout().addWidget(comp)
+        return field_container
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
         chooser = QLineEdit()
         chooser.setReadOnly(True)
+
+        if c.max_width > 0:
+            chooser.setMaximumWidth(c.max_width)
+
+        if c.file_path:
+            chooser.setText(c.file_path)
 
         chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
 
@@ -337,23 +545,52 @@ class FormQt(QGroupBox):
             else:
                 exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
 
-            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], str(Path.home()), exts, options=options)
+            if c.file_path and os.path.isfile(c.file_path):
+                cur_path = c.file_path
+            else:
+                cur_path = str(Path.home())
+
+            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=options)
 
             if file_path:
                 c.file_path = file_path
                 chooser.setText(file_path)
-            else:
-                c.file_path = None
-                chooser.setText('')
 
             chooser.setCursorPosition(0)
 
+        def clean_path():
+            c.file_path = None
+            chooser.setText('')
+
         chooser.mousePressEvent = open_chooser
 
-        return QLabel(c.label if c.label else ''), chooser
+        label = self._new_label(c)
+        wrapped = self._wrap(chooser, c)
+
+        bt = IconButton(QIcon(resource.get_path('img/clean.svg')),
+                        i18n=self.i18n['clean'].capitalize(),
+                        action=clean_path,
+                        background='#cc0000',
+                        tooltip=self.i18n['action.run.tooltip'])
+
+        wrapped.layout().addWidget(bt)
+        return label, wrapped
 
 
-def new_single_select(model: SingleSelectComponent):
+class TabGroupQt(QTabWidget):
+
+    def __init__(self, model: TabGroupComponent, i18n: I18n, parent: QWidget = None):
+        super(TabGroupQt, self).__init__(parent=parent)
+        self.model = model
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setTabPosition(QTabWidget.North)
+
+        for c in model.tabs:
+            icon = QIcon(c.icon_path) if c.icon_path else QIcon()
+            self.addTab(to_widget(c.content, i18n), icon, c.label)
+
+
+def new_single_select(model: SingleSelectComponent) -> QWidget:
     if model.type == SelectViewType.RADIO:
         return RadioSelectQt(model)
     elif model.type == SelectViewType.COMBO:
@@ -370,3 +607,28 @@ def new_spacer(min_width: int = None) -> QWidget:
 
     spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     return spacer
+
+
+def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidget:
+    if isinstance(comp, SingleSelectComponent):
+        return new_single_select(comp)
+    elif isinstance(comp, MultipleSelectComponent):
+        return MultipleSelectQt(comp, None)
+    elif isinstance(comp, TextInputComponent):
+        return TextInputQt(comp)
+    elif isinstance(comp, FormComponent):
+        return FormQt(comp, i18n)
+    elif isinstance(comp, TabGroupComponent):
+        return TabGroupQt(comp, i18n, parent)
+    elif isinstance(comp, PanelComponent):
+        return PanelQt(comp, i18n, parent)
+    elif isinstance(comp, TwoStateButtonComponent):
+        return TwoStateButtonQt(comp)
+    elif isinstance(comp, TextComponent):
+        label = QLabel(comp.value)
+        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        return label
+    elif isinstance(comp, SpacerComponent):
+        return new_spacer()
+    else:
+        raise Exception("Cannot render instances of " + comp.__class__.__name__)

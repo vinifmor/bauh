@@ -12,3 +12,4 @@ def read_config(update_file: bool = False) -> dict:
 
     return read(CONFIG_FILE, default_config, update_file)
 
+

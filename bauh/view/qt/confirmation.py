@@ -3,10 +3,9 @@ from typing import List
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
-from bauh.api.abstract.view import ViewComponent, SingleSelectComponent, MultipleSelectComponent, TextInputComponent, \
-    FormComponent
+from bauh.api.abstract.view import ViewComponent
 from bauh.view.qt import css
-from bauh.view.qt.components import MultipleSelectQt, new_single_select, TextInputQt, FormQt
+from bauh.view.qt.components import to_widget
 from bauh.view.util.translation import I18n
 
 
@@ -43,17 +42,7 @@ class ConfirmationDialog(QMessageBox):
             height = 0
 
             for idx, comp in enumerate(components):
-                if isinstance(comp, SingleSelectComponent):
-                    inst = new_single_select(comp)
-                elif isinstance(comp, MultipleSelectComponent):
-                    inst = MultipleSelectQt(comp, None)
-                elif isinstance(comp, TextInputComponent):
-                    inst = TextInputQt(comp)
-                elif isinstance(comp, FormComponent):
-                    inst = FormQt(comp, i18n)
-                else:
-                    raise Exception("Cannot render instances of " + comp.__class__.__name__)
-
+                inst = to_widget(comp, i18n)
                 height += inst.sizeHint().height()
 
                 if inst.sizeHint().width() > width:

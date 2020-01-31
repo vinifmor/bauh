@@ -15,11 +15,3 @@ def read() -> Namespace:
     parser.add_argument('--show-panel', action="store_true", help='Shows the management panel after the app icon is attached to the tray.')
     parser.add_argument('--reset', action="store_true", help='Removes all configuration and cache files')
     return parser.parse_args()
-    
-    
-def validate(args: Namespace, logger: logging.Logger):
-
-    if args.logs == 1:
-        logger.info("Logs are enabled")
-
-    return args

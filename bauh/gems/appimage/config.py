@@ -1,5 +1,5 @@
-from bauh.api.constants import CONFIG_PATH
 from bauh.commons.config import read_config as read
+from bauh.gems.appimage import CONFIG_FILE
 
 
 def read_config(update_file: bool = False) -> dict:
@@ -9,4 +9,4 @@ def read_config(update_file: bool = False) -> dict:
             'enabled': True
         }
     }
-    return read('{}/appimage.yml'.format(CONFIG_PATH), default, update_file=update_file)
+    return read(CONFIG_FILE, default, update_file=update_file)

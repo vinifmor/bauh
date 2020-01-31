@@ -5,14 +5,18 @@ from datetime import datetime
 from typing import List, Dict, Set
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess
+from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
 
-BASE_CMD = 'flatpak'
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 
 
 def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
-    info = re.findall(r'\w+:\s.+', get_app_info(app_id, branch, installation))
+    info = get_app_info(app_id, branch, installation)
+
+    if not info:
+        return {}
+
+    info = re.findall(r'\w+:\s.+', info)
     data = {}
     fields_to_retrieve = len(fields) + (1 if check_runtime and 'ref' not in fields else 0)
 
@@ -37,7 +41,7 @@ def get_app_info_fields(app_id: str, branch: str, installation: str, fields: Lis
 
 
 def get_fields(app_id: str, branch: str, fields: List[str]) -> List[str]:
-    cmd = [BASE_CMD, 'info', app_id]
+    cmd = ['flatpak', 'info', app_id]
 
     if branch:
         cmd.append(branch)
@@ -58,16 +62,20 @@ def is_installed():
 
 
 def get_version():
-    res = run_cmd('{} --version'.format(BASE_CMD), print_error=False)
+    res = run_cmd('{} --version'.format('flatpak'), print_error=False)
     return res.split(' ')[1].strip() if res else None
 
 
 def get_app_info(app_id: str, branch: str, installation: str):
-    return run_cmd('{} info {} {}'.format(BASE_CMD, app_id, branch, '--{}'.format(installation)))
+    try:
+        return run_cmd('{} info {} {}'.format('flatpak', app_id, branch, '--{}'.format(installation)))
+    except:
+        traceback.print_exc()
+        return ''
 
 
 def get_commit(app_id: str, branch: str, installation: str) -> str:
-    info = new_subprocess([BASE_CMD, 'info', app_id, branch, '--{}'.format(installation)])
+    info = new_subprocess(['flatpak', 'info', app_id, branch, '--{}'.format(installation)])
 
     for o in new_subprocess(['grep', 'Commit:', '--color=never'], stdin=info.stdout).stdout:
         if o:
@@ -79,7 +87,7 @@ def list_installed(version: str) -> List[dict]:
     apps = []
 
     if version < '1.2':
-        app_list = new_subprocess([BASE_CMD, 'list', '-d'])
+        app_list = new_subprocess(['flatpak', 'list', '-d'])
 
         for o in app_list.stdout:
             if o:
@@ -102,7 +110,7 @@ def list_installed(version: str) -> List[dict]:
 
     else:
         cols = 'application,ref,arch,branch,description,origin,options,{}version'.format('' if version < '1.3' else 'name,')
-        app_list = new_subprocess([BASE_CMD, 'list', '--columns=' + cols])
+        app_list = new_subprocess(['flatpak', 'list', '--columns=' + cols])
 
         for o in app_list.stdout:
             if o:
@@ -141,22 +149,21 @@ def list_installed(version: str) -> List[dict]:
     return apps
 
 
-def update(app_ref: str, installation: str):
+def update(app_ref: str, installation: str, related: bool = False, deps: bool = False):
     """
     Updates the app reference
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'update', '--no-related', '--no-deps', '-y', app_ref, '--{}'.format(installation)])
+    cmd = ['flatpak', 'update', '-y', app_ref, '--{}'.format(installation)]
 
+    if not related:
+        cmd.append('--no-related')
 
-def register_flathub(installation: str) -> SimpleProcess:
-    return SimpleProcess([BASE_CMD,
-                          'remote-add',
-                          '--if-not-exists',
-                          'flathub',
-                          'https://flathub.org/repo/flathub.flatpakrepo',
-                          '--{}'.format(installation)])
+    if not deps:
+        cmd.append('--no-deps')
+
+    return new_subprocess(cmd)
 
 
 def uninstall(app_ref: str, installation: str):
@@ -165,7 +172,7 @@ def uninstall(app_ref: str, installation: str):
     :param app_ref:
     :return:
     """
-    return new_subprocess([BASE_CMD, 'uninstall', app_ref, '-y', '--{}'.format(installation)])
+    return new_subprocess(['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)])
 
 
 def list_updates_as_str(version: str) -> Dict[str, set]:
@@ -182,7 +189,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
     res = {'partial': set(), 'full': set()}
     if version < '1.2':
         try:
-            output = run_cmd('{} update --no-related --no-deps --{}'.format(BASE_CMD, installation), ignore_return_code=True)
+            output = run_cmd('{} update --no-related --no-deps --{}'.format('flatpak', installation), ignore_return_code=True)
 
             if 'Updating in {}'.format(installation) in output:
                 for line in output.split('Updating in {}:\n'.format(installation))[1].split('\n'):
@@ -191,7 +198,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
         except:
             traceback.print_exc()
     else:
-        updates = new_subprocess([BASE_CMD, 'update', '--{}'.format(installation)]).stdout
+        updates = new_subprocess(['flatpak', 'update', '--{}'.format(installation)]).stdout
 
         reg = r'[0-9]+\.\s+.+'
 
@@ -220,7 +227,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
-    cmd = [BASE_CMD, 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
+    cmd = ['flatpak', 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     if installation == 'system':
         return new_root_subprocess(cmd, root_password)
@@ -228,17 +235,20 @@ def downgrade(app_ref: str, commit: str, installation: str, root_password: str) 
         return new_subprocess(cmd)
 
 
-def get_app_commits(app_ref: str, origin: str, installation: str) -> List[str]:
-    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
-
-    if log:
-        return re.findall(r'Commit+:\s(.+)', log)
-    else:
+def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> List[str]:
+    try:
+        p = SimpleProcess(['flatpak', 'remote-info', '--log', origin, app_ref, '--{}'.format(installation)])
+        success, output = handler.handle_simple(p)
+        if output.startswith('error:'):
+            return
+        else:
+            return re.findall(r'Commit+:\s(.+)', output)
+    except:
         raise NoInternetException()
 
 
 def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[dict]:
-    log = run_cmd('{} remote-info --log {} {} --{}'.format(BASE_CMD, origin, app_ref, installation))
+    log = run_cmd('{} remote-info --log {} {} --{}'.format('flatpak', origin, app_ref, installation))
 
     if not log:
         raise NoInternetException()
@@ -265,7 +275,7 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[d
 
 def search(version: str, word: str, installation: str, app_id: bool = False) -> List[dict]:
 
-    res = run_cmd('{} search {} --{}'.format(BASE_CMD, word, installation))
+    res = run_cmd('{} search {} --{}'.format('flatpak', word, installation))
 
     found = []
 
@@ -343,21 +353,21 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
 
 
 def install(app_id: str, origin: str, installation: str):
-    return new_subprocess([BASE_CMD, 'install', origin, app_id, '-y', '--{}'.format(installation)])
+    return new_subprocess(['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)])
 
 
 def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
-    cmd = [BASE_CMD, 'remote-add', '--if-not-exists', 'flathub', 'https://flathub.org/repo/flathub.flatpakrepo', '--{}'.format(installation)]
+    cmd = ['flatpak', 'remote-add', '--if-not-exists', 'flathub', 'https://flathub.org/repo/flathub.flatpakrepo', '--{}'.format(installation)]
     return SimpleProcess(cmd, root_password=root_password)
 
 
 def has_remotes_set() -> bool:
-    return bool(run_cmd('{} remotes'.format(BASE_CMD)).strip())
+    return bool(run_cmd('{} remotes'.format('flatpak')).strip())
 
 
 def list_remotes() -> Dict[str, Set[str]]:
     res = {'system': set(), 'user': set()}
-    output = run_cmd('{} remotes'.format(BASE_CMD)).strip()
+    output = run_cmd('{} remotes'.format('flatpak')).strip()
 
     if output:
         lines = output.split('\n')
@@ -374,4 +384,4 @@ def list_remotes() -> Dict[str, Set[str]]:
 
 
 def run(app_id: str):
-    subprocess.Popen([BASE_CMD, 'run', app_id])
+    subprocess.Popen(['flatpak', 'run', app_id])

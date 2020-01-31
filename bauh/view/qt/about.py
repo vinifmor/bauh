@@ -1,7 +1,7 @@
 from glob import glob
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
@@ -55,8 +55,8 @@ class AboutDialog(QDialog):
         gems_widget.layout().addWidget(QLabel())
         for gem_path in available_gems:
             icon = QLabel()
-            pxmap = QPixmap(gem_path + '/resources/img/{}.svg'.format(gem_path.split('/')[-1]))
-            icon.setPixmap(pxmap.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            icon_path = gem_path + '/resources/img/{}.svg'.format(gem_path.split('/')[-1])
+            icon.setPixmap(QIcon(icon_path).pixmap(QSize(25, 25)))
             gems_widget.layout().addWidget(icon)
         gems_widget.layout().addWidget(QLabel())
 

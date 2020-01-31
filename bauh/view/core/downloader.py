@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import time
 import traceback
 
@@ -10,6 +11,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
 from bauh.view.util.translation import I18n
 
+RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
 class AdaptableFileDownloader(FileDownloader):
 
@@ -90,7 +92,13 @@ class AdaptableFileDownloader(FileDownloader):
                 downloader = 'wget'
 
             file_size = self.http_client.get_content_length(file_url)
-            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(file_url.split('/')[-1]) + (' ( {} )'.format(file_size) if file_size else '')
+
+            name = file_url.split('/')[-1]
+
+            if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
+                name = output_path.split('/')[-1]
+
+            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name) + (' ( {} )'.format(file_size) if file_size else '')
 
             if watcher:
                 watcher.change_substatus(msg)

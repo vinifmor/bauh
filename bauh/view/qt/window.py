@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QMenu, QAction, QApplication, QListView
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
@@ -16,18 +16,16 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
-from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
 from bauh.view.qt.confirmation import ConfirmationDialog
-from bauh.view.qt.gem_selector import GemSelectorPanel
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
-from bauh.view.qt.styles import StylesComboBox
+from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
@@ -136,6 +134,7 @@ class ManageWindow(QWidget):
 
         self.toolbar = QToolBar()
         self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
+        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setText(self.i18n['updates'].capitalize())
@@ -153,6 +152,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type = QComboBox()
         self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
+        self.combo_filter_type.setIconSize(QSize(14, 14))
         self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
@@ -315,16 +315,19 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(new_spacer())
 
-        self.combo_styles = StylesComboBox(parent=self, i18n=i18n, show_panel_after_restart=bool(tray_icon))
-        self.combo_styles.setStyleSheet('QComboBox {font-size: 12px;}')
-        self.ref_combo_styles = self.toolbar_bottom.addWidget(self.combo_styles)
-
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
-                                 action=self._show_settings_menu,
+                                 action=self._show_settings,
                                  background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
+
+        bt_about = IconButton(QIcon(resource.get_path('img/question.svg')),
+                              action=self._show_about,
+                              background='#2E68D3',
+                              i18n=self.i18n,
+                              tooltip=self.i18n['manage_window.settings.about'])
+        self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
 
         self.layout.addWidget(self.toolbar_bottom)
 
@@ -345,10 +348,12 @@ class ManageWindow(QWidget):
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
+        self.settings_window = None
+        self.search_performed = False
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
-        self.combo_styles.show_panel_after_restart = bool(tray_icon)
+        # self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
@@ -441,6 +446,7 @@ class ManageWindow(QWidget):
     def _show_installed(self):
         if self.pkgs_installed:
             self.finish_action()
+            self.search_performed = False
             self.ref_bt_upgrade.setVisible(True)
             self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
@@ -543,6 +549,8 @@ class ManageWindow(QWidget):
 
     def _finish_refresh_apps(self, res: dict, as_installed: bool = True):
         self.finish_action()
+        self.search_performed = False
+
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
         self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall and res['types'])
@@ -580,7 +588,11 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
 
-            only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            if not self.search_performed:
+                only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
+            else:
+                only_pkg_type = False
+
             self.recent_uninstall = True
             self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
 
@@ -787,7 +799,7 @@ class ManageWindow(QWidget):
                     icon = self.cache_type_filter_icons.get(app_type)
 
                     if not icon:
-                        icon = load_icon(icon_path, 14)
+                        icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
@@ -908,10 +920,10 @@ class ManageWindow(QWidget):
         self.ref_combo_filter_type.setVisible(False)
         self.ref_combo_categories.setVisible(False)
         self.ref_bt_settings.setVisible(False)
+        self.ref_bt_about.setVisible(False)
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
         self.ref_progress_bar.setVisible(True)
-        self.ref_combo_styles.setVisible(False)
 
         self.label_status.setText(action_label + "...")
         self.ref_bt_upgrade.setVisible(False)
@@ -941,7 +953,6 @@ class ManageWindow(QWidget):
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self, keep_filters: bool = False):
-        self.ref_combo_styles.setVisible(True)
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
         self.ref_progress_bar.setVisible(False)
@@ -950,6 +961,7 @@ class ManageWindow(QWidget):
 
         self._change_label_substatus('')
         self.ref_bt_settings.setVisible(True)
+        self.ref_bt_about.setVisible(True)
 
         self.ref_bt_refresh.setVisible(True)
         self.checkbox_only_apps.setEnabled(True)
@@ -1069,6 +1081,7 @@ class ManageWindow(QWidget):
 
     def _finish_search(self, res: dict):
         self.finish_action()
+        self.search_performed = True
 
         if not res['error']:
             self.ref_bt_upgrade.setVisible(False)
@@ -1156,28 +1169,10 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def show_gems_selector(self):
-        gem_panel = GemSelectorPanel(window=self,
-                                     manager=self.manager, i18n=self.i18n,
-                                     config=self.config,
-                                     show_panel_after_restart=bool(self.tray_icon))
-        gem_panel.show()
-
-    def _show_settings_menu(self):
-        menu_row = QMenu()
-
-        if isinstance(self.manager, GenericSoftwareManager):
-            action_gems = QAction(self.i18n['manage_window.settings.gems'])
-            action_gems.setIcon(self.icon_app)
-
-            action_gems.triggered.connect(self.show_gems_selector)
-            menu_row.addAction(action_gems)
-
-        action_about = QAction(self.i18n['manage_window.settings.about'])
-        action_about.setIcon(QIcon(resource.get_path('img/about.svg')))
-        action_about.triggered.connect(self._show_about)
-        menu_row.addAction(action_about)
-
-        menu_row.adjustSize()
-        menu_row.popup(QCursor.pos())
-        menu_row.exec_()
+    def _show_settings(self):
+        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon), self)
+        self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+        self.settings_window.resize(self.size())
+        self.settings_window.adjustSize()
+        qt_utils.centralize(self.settings_window)
+        self.settings_window.show()

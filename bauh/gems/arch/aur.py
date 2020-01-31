@@ -15,11 +15,35 @@ URL_SEARCH = 'https://aur.archlinux.org/rpc/?v=5&type=search&arg='
 
 RE_SRCINFO_KEYS = re.compile(r'(\w+)\s+=\s+(.+)\n')
 
-KNOWN_LIST_FIELDS = ('validpgpkeys', 'depends', 'optdepends', 'sha512sums', 'sha512sums_x86_64', 'source', 'source_x86_64')
+KNOWN_LIST_FIELDS = ('validpgpkeys', 'depends', 'optdepends', 'sha512sums', 'sha512sums_x86_64', 'source', 'source_x86_64', 'makedepends')
 
 
 def map_pkgbuild(pkgbuild: str) -> dict:
     return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
+
+
+def map_srcinfo(string: str, fields: Set[str] = None) -> dict:
+    info = {}
+
+    if fields:
+        field_re = re.compile(r'({})\s+=\s+(.+)\n'.format('|'.join(fields)))
+    else:
+        field_re = RE_SRCINFO_KEYS
+
+    for match in field_re.finditer(string):
+        field = match.group(0).split('=')
+        key = field[0].strip()
+        val = field[1].strip()
+
+        if key not in info:
+            info[key] = [val] if key in KNOWN_LIST_FIELDS else val
+        else:
+            if not isinstance(info[key], list):
+                info[key] = [info[key]]
+
+            info[key].append(val)
+
+    return info
 
 
 class AURClient:
@@ -39,17 +63,21 @@ class AURClient:
         res = self.http_client.get(URL_SRC_INFO + urllib.parse.quote(name))
 
         if res and res.text:
-            info = {}
-            for field in RE_SRCINFO_KEYS.findall(res.text):
-                if field[0] not in info:
-                    info[field[0]] = [field[1]] if field[0] in KNOWN_LIST_FIELDS else field[1]
-                else:
-                    if not isinstance(info[field[0]], list):
-                        info[field[0]] = [info[field[0]]]
+            return map_srcinfo(res.text)
 
-                    info[field[0]].append(field[1])
+        self.logger.warning('No .SRCINFO found for {}'.format(name))
+        self.logger.info('Checking if {} is based on another package'.format(name))
+        # if was not found, it may be based on another package.
+        infos = self.get_info({name})
 
-            return info
+        if infos:
+            info = infos[0]
+
+            info_name = info.get('Name')
+            info_base = info.get('PackageBase')
+            if info_name and info_base and info_name != info_base:
+                self.logger.info('{p} is based on {b}. Retrieving {b} .SRCINFO'.format(p=info_name, b=info_base))
+                return self.get_src_info(info_base)
 
     def get_all_dependencies(self, name: str) -> Set[str]:
         deps = set()

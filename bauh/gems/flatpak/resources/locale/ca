@@ -1,4 +1,4 @@
-gem.flatpak.info=Aplicacions disponibles als dipòsits configurats en el vostre sistema
+gem.flatpak.info=Aplicacions disponibles a Flathub i altres repositoris configurats al vostre sistema
 flatpak.info.arch=arquitectura
 flatpak.info.branch=branca
 flatpak.info.collection=col·lecció
@@ -46,3 +46,10 @@ flatpak.install.install_level.title=Tipus d'instal·lació
 flatpak.install.install_level.body=S'ha d'instal·lar {} per a tots els usuaris del dispositiu ( sistema ) ?
 flatpak.install.bad_install_level.body=Valor invàlid per a {field} al fitxer de configuració {file}
 flatpak.remotes.system_flathub.error=No s'ha pogut afegir Flathub com a dipòsit del sistema ( remote )
+flatpak.config.install_level.system=system
+flatpak.config.install_level.system.tip=Applications will be installed for all the device users
+flatpak.config.install_level.user=user
+flatpak.config.install_level.user.tip=Application will be installed only for the current user
+flatpak.config.install_level.ask=ask
+flatpak.config.install_level.ask.tip={app} will ask the level that should be applied during the app installation
+flatpak.config.install_level=level

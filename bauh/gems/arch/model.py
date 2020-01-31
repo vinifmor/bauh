@@ -66,6 +66,9 @@ class ArchPackage(SoftwarePackage):
     def is_application(self):
         return self.can_be_run()
 
+    def get_base_name(self) -> str:
+        return self.package_base if self.package_base else self.name
+
     def supports_disk_cache(self):
         return True
 

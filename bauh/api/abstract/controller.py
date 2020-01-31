@@ -3,7 +3,7 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 import yaml
 
@@ -11,6 +11,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.view import FormComponent, ViewComponent
 
 
 class SearchResult:
@@ -270,5 +271,19 @@ class SoftwareManager(ABC):
     def clear_data(self):
         """
         Removes all data created by the SoftwareManager instance
+        """
+        pass
+
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+        """
+        :param screen_width
+        :param screen_height
+        :return: a form abstraction with all available settings
+        """
+        pass
+
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, List[str]]:
+        """
+        :return: a tuple with a bool informing if the settings were saved and a list of error messages
         """
         pass

@@ -1,15 +1,18 @@
 import traceback
 from datetime import datetime
+from math import floor
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
-from bauh.api.abstract.view import MessageType
+from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
+    ViewComponent, PanelComponent
 from bauh.commons import user
+from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
@@ -151,11 +154,15 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation)
+        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation, handler)
+
+        if commits is None:
+            return False
 
         commit_idx = commits.index(pkg.commit)
 
@@ -167,9 +174,9 @@ class FlatpakManager(SoftwareManager):
         commit = commits[commit_idx + 1]
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
-                                                               success_phrases=['Changes complete.', 'Updates complete.'],
-                                                               wrong_error_phrase='Warning'))
+        success = handler.handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
+                                               success_phrases=['Changes complete.', 'Updates complete.'],
+                                               wrong_error_phrase='Warning'))
         watcher.change_progress(100)
         return success
 
@@ -178,7 +185,17 @@ class FlatpakManager(SoftwareManager):
         self.api_cache.delete(pkg.id)
 
     def update(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(pkg.ref, pkg.installation)))
+        related, deps = False, False
+        ref = pkg.ref
+
+        if pkg.partial and flatpak.get_version() < '1.5':
+            related, deps = True, True
+            ref = pkg.base_ref
+
+        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
+                                                                                   installation=pkg.installation,
+                                                                                   related=related,
+                                                                                   deps=deps)))
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
@@ -190,7 +207,14 @@ class FlatpakManager(SoftwareManager):
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
-            app_info = flatpak.get_app_info_fields(app.id, app.branch, app.installation)
+            version = flatpak.get_version()
+            id_ = app.base_id if app.partial and version < '1.5' else app.id
+            app_info = flatpak.get_app_info_fields(id_, app.branch, app.installation)
+
+            if app.partial and version < '1.5':
+                app_info['id'] = app.id
+                app_info['ref'] = app.ref
+
             app_info['name'] = app.name
             app_info['type'] = 'runtime' if app.runtime else 'app'
             app_info['description'] = strip_html(app.description) if app.description else ''
@@ -314,7 +338,7 @@ class FlatpakManager(SoftwareManager):
         return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self):
-        pass
+        Thread(target=read_config, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
@@ -411,3 +435,37 @@ class FlatpakManager(SoftwareManager):
                 traceback.print_exc()
 
         return urls
+
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+        fields = []
+
+        config = read_config()
+
+        install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
+                                    value='system',
+                                    tooltip=self.i18n['flatpak.config.install_level.system.tip']),
+                        InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
+                                    value='user',
+                                    tooltip=self.i18n['flatpak.config.install_level.user.tip']),
+                        InputOption(label=self.i18n['flatpak.config.install_level.ask'].capitalize(),
+                                    value=None,
+                                    tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
+        fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
+                                            options=install_opts,
+                                            default_option=[o for o in install_opts if o.value == config['installation_level']][0],
+                                            max_per_line=len(install_opts),
+                                            max_width=floor(screen_width * 0.22),
+                                            type_=SelectViewType.RADIO))
+
+        return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+        config = read_config()
+        config['installation_level'] = component.components[0].components[0].get_selected()
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
+

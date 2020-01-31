@@ -2,7 +2,7 @@ import re
 from threading import Thread
 from typing import List, Set, Tuple
 
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
@@ -324,7 +324,7 @@ def read_provides(name: str) -> Set[str]:
             if provided_names[0].lower() == 'none':
                 provides = {name}
             else:
-                provides = set(provided_names)
+                provides = {name, *provided_names}
 
     return provides
 
@@ -354,3 +354,8 @@ def read_dependencies(name: str) -> Set[str]:
                 depends_on.update([d for d in line.split(' ') if d and d.lower() != 'none'])
 
     return depends_on
+
+
+def sync_databases(root_password: str, force: bool = False) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-Sy{}'.format('y' if force else '')],
+                         root_password=root_password)
