@@ -993,3 +993,70 @@ class ArchManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def sort_update_order(self, pkgs: List[ArchPackage]) -> List[ArchPackage]:
+        # TODO pegar o 'provides' dos pacotes ?
+        pkg_deps = {}
+
+        def _add_info(pkg: ArchPackage):
+            try:
+                pkg_deps[pkg] = self.aur_client.get_all_dependencies(pkg.name)
+            except:
+                pkg_deps[pkg] = None
+                self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))
+                traceback.print_exc()
+
+        threads = []
+        for pkg in pkgs:
+            t = Thread(target=_add_info, args=(pkg, ))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+        return self._sort_deps(pkg_deps)
+
+    @classmethod
+    def _sort_deps(cls, pkg_deps: Dict[ArchPackage, Set[str]]) -> List[ArchPackage]:
+        sorted_names, not_sorted = {}, {}
+        pkg_map = {}
+
+        # first adding all with no deps:
+        for pkg, deps in pkg_deps.items():
+            if not deps:
+                sorted_names[pkg.name] = len(sorted_names)
+            else:
+                not_sorted[pkg.name] = pkg
+
+            pkg_map[pkg.name] = pkg
+
+        # now adding all that depends on another:
+        for name, pkg in not_sorted.items():
+            cls._add_to_sort(pkg, pkg_deps, sorted_names, not_sorted)
+
+        position_map = {'{}-{}'.format(i, n): pkg_map[n] for n, i in sorted_names.items()}
+        return [position_map[idx] for idx in sorted(position_map)]
+
+    @classmethod
+    def _add_to_sort(cls, pkg: ArchPackage, pkg_deps: Dict[ArchPackage, Set[str]],  sorted_names: Dict[str, int], not_sorted: Dict[str, ArchPackage]) -> int:
+        idx = sorted_names.get(pkg.name)
+
+        if idx is not None:
+            return idx
+        else:
+            idx = len(sorted_names)
+            sorted_names[pkg.name] = idx
+
+            for dep in pkg_deps[pkg]:
+                dep_idx = sorted_names.get(dep)
+
+                if dep_idx is not None:
+                    idx = dep_idx + 1
+                elif dep in not_sorted:  # it means the dep is one of the packages to sort, but it not sorted yet
+                    dep_idx = cls._add_to_sort(not_sorted[dep], pkg_deps, sorted_names, not_sorted)
+                    idx = dep_idx + 1
+
+                sorted_names[pkg.name] = idx
+
+            return sorted_names[pkg.name]

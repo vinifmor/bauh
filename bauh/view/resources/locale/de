@@ -221,3 +221,4 @@ interval=intervall
 installation=Installation
 download=download
 clean=reinigen
+action.update.status.sorting=Determining the best update order

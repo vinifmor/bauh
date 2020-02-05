@@ -103,19 +103,23 @@ class UpdateSelectedApps(AsyncAction):
 
         if self.apps_to_update:
             updated, updated_types = 0, set()
-            for app in self.apps_to_update:
 
-                name = app.model.name if not RE_VERSION_IN_NAME.findall(app.model.name) else app.model.name.split('version')[0].strip()
+            self.change_substatus(self.i18n['action.update.status.sorting'])
+            sorted_pkgs = self.manager.sort_update_order([view.model for view in self.apps_to_update])
 
-                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, app.model.version))
-                success = bool(self.manager.update(app.model, self.root_password, self))
+            for pkg in sorted_pkgs:
+
+                name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
+
+                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
+                success = bool(self.manager.update(pkg, self.root_password, self))
                 self.change_substatus('')
 
                 if not success:
                     break
                 else:
                     updated += 1
-                    updated_types.add(app.model.__class__)
+                    updated_types.add(pkg.__class__)
                     self.signal_output.emit('\n')
 
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})

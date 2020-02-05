@@ -221,3 +221,4 @@ interval=intervallo
 installation=installazione
 download=download
 clean=pulire
+action.update.status.sorting=Sto determinando il miglior ordine di aggiornamento

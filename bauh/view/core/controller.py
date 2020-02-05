@@ -419,3 +419,28 @@ class GenericSoftwareManager(SoftwareManager):
             self.settings_manager = None
 
         return res
+
+    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+        by_manager = {}
+        for pkg in pkgs:
+            man = self._get_manager_for(pkg)
+
+            if man:
+                man_pkgs = by_manager.get(man)
+
+                if man_pkgs is None:
+                    man_pkgs = []
+                    by_manager[man] = man_pkgs
+
+                man_pkgs.append(pkg)
+
+        sorted_list = []
+
+        if by_manager:
+            for man, pkgs in by_manager.items():
+                ti = time.time()
+                sorted_list.extend(man.sort_update_order(pkgs))
+                tf = time.time()
+                self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+
+        return sorted_list

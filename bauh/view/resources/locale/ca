@@ -266,3 +266,4 @@ interval=interval
 installation=instal·lació
 download=download
 clean=netejar
+action.update.status.sorting=Determinant el millor ordre d’actualització
