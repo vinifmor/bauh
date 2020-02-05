@@ -13,7 +13,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='kazam', package_base='kazam'): {'python', 'python-cairo'}
         }
 
-        sorted_list = ArchManager._sort_deps(deps)
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -26,7 +26,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='abc', package_base='abc'): None
         }
 
-        sorted_list = ArchManager._sort_deps(deps)
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -40,8 +40,9 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='ghi', package_base='ghi'): {}
         }
 
+        name_map = {d.name: d.name for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
-            sorted_list = ArchManager._sort_deps(deps)
+            sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
             self.assertEqual(len(deps), len(sorted_list))
 
@@ -70,8 +71,9 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='ghi', package_base='ghi'): {'def'}
         }
 
+        name_map = {d.name: d.name for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
-            sorted_list = ArchManager._sort_deps(deps)
+            sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
             self.assertEqual(len(deps), len(sorted_list))
 
@@ -99,8 +101,9 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='jkl', package_base='jkl'): {'ghi'}
         }
 
+        name_map = {d.name: d.name for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
-            sorted_list = ArchManager._sort_deps(deps)
+            sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
             self.assertEqual(len(deps), len(sorted_list))
 
@@ -118,7 +121,6 @@ class ArchManagerSortUpdateOrderTest(TestCase):
         """
             dep order:
                 abc -> def -> ghi -> jkl -> abc
-            expected:
         """
         deps = {
             ArchPackage(name='abc', package_base='abc'): {'def'},
@@ -127,7 +129,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='jkl', package_base='jkl'): {'abc'}
         }
 
-        sorted_list = ArchManager._sort_deps(deps)
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -135,4 +137,32 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             self.assertIn(pkg, deps)
 
     def test__sort_deps__a_declared_dep_provided_as_a_different_name(self):
-        pass
+        """
+            dep order:
+                abc -> fed
+                def (fed)
+                ghi -> abc
+            expected: def, abc, ghi
+        """
+        def_pkg = ArchPackage(name='def', package_base='def')
+
+        deps = {
+            ArchPackage(name='abc', package_base='abc'): {'fed'},
+            def_pkg: {},
+            ArchPackage(name='ghi', package_base='ghi'): {'abc'}
+        }
+
+        name_map = {d.name: d.name for d in deps}
+        name_map['fed'] = def_pkg
+
+        for _ in range(5):
+            sorted_list = ArchManager._sort_deps(deps, name_map)
+            self.assertIsInstance(sorted_list, list)
+            self.assertEqual(len(deps), len(sorted_list))
+
+            for pkg in sorted_list:
+                self.assertIn(pkg, deps)
+
+            self.assertEqual(sorted_list[0].name, 'def')
+            self.assertEqual(sorted_list[1].name, 'abc')
+            self.assertEqual(sorted_list[2].name, 'ghi')

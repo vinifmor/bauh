@@ -995,12 +995,21 @@ class ArchManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def sort_update_order(self, pkgs: List[ArchPackage]) -> List[ArchPackage]:
-        # TODO pegar o 'provides' dos pacotes ?
-        pkg_deps = {}
+        pkg_deps = {}  # maps the package instance and a set with all its dependencies
+        names_map = {}  # maps all the package provided names to the package instance
 
         def _add_info(pkg: ArchPackage):
             try:
-                pkg_deps[pkg] = self.aur_client.get_all_dependencies(pkg.name)
+                srcinfo = self.aur_client.get_src_info(pkg.name)
+
+                names_map[pkg.name] = pkg
+                names = srcinfo.get('pkgname')
+
+                if isinstance(names, list):
+                    for n in names:
+                        names_map[n] = pkg
+
+                pkg_deps[pkg] = self.aur_client.extract_all_dependencies(srcinfo)
             except:
                 pkg_deps[pkg] = None
                 self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))
@@ -1015,10 +1024,10 @@ class ArchManager(SoftwareManager):
         for t in threads:
             t.join()
 
-        return self._sort_deps(pkg_deps)
+        return self._sort_deps(pkg_deps, names_map)
 
     @classmethod
-    def _sort_deps(cls, pkg_deps: Dict[ArchPackage, Set[str]]) -> List[ArchPackage]:
+    def _sort_deps(cls, pkg_deps: Dict[ArchPackage, Set[str]], names_map: Dict[str, ArchPackage]) -> List[ArchPackage]:
         sorted_names, not_sorted = {}, {}
         pkg_map = {}
 
@@ -1033,13 +1042,13 @@ class ArchManager(SoftwareManager):
 
         # now adding all that depends on another:
         for name, pkg in not_sorted.items():
-            cls._add_to_sort(pkg, pkg_deps, sorted_names, not_sorted)
+            cls._add_to_sort(pkg, pkg_deps, sorted_names, not_sorted, names_map)
 
         position_map = {'{}-{}'.format(i, n): pkg_map[n] for n, i in sorted_names.items()}
         return [position_map[idx] for idx in sorted(position_map)]
 
     @classmethod
-    def _add_to_sort(cls, pkg: ArchPackage, pkg_deps: Dict[ArchPackage, Set[str]],  sorted_names: Dict[str, int], not_sorted: Dict[str, ArchPackage]) -> int:
+    def _add_to_sort(cls, pkg: ArchPackage, pkg_deps: Dict[ArchPackage, Set[str]],  sorted_names: Dict[str, int], not_sorted: Dict[str, ArchPackage], names_map: Dict[str, ArchPackage]) -> int:
         idx = sorted_names.get(pkg.name)
 
         if idx is not None:
@@ -1053,9 +1062,21 @@ class ArchManager(SoftwareManager):
 
                 if dep_idx is not None:
                     idx = dep_idx + 1
-                elif dep in not_sorted:  # it means the dep is one of the packages to sort, but it not sorted yet
-                    dep_idx = cls._add_to_sort(not_sorted[dep], pkg_deps, sorted_names, not_sorted)
-                    idx = dep_idx + 1
+                else:
+                    dep_pkg = names_map.get(dep)
+
+                    if dep_pkg:  # it means the declared dep is mapped differently from the provided packages to update
+                        dep_idx = sorted_names.get(dep_pkg.name)
+
+                        if dep_idx is not None:
+                            idx = dep_idx + 1
+                        else:
+                            dep_idx = cls._add_to_sort(dep_pkg, pkg_deps, sorted_names, not_sorted, names_map)
+                            idx = dep_idx + 1
+
+                    elif dep in not_sorted:  # it means the dep is one of the packages to sort, but it not sorted yet
+                        dep_idx = cls._add_to_sort(not_sorted[dep], pkg_deps, sorted_names, not_sorted, names_map)
+                        idx = dep_idx + 1
 
                 sorted_names[pkg.name] = idx
 
