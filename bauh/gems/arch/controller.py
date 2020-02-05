@@ -585,10 +585,12 @@ class ArchManager(SoftwareManager):
                     return False
 
             if check_res.get('validity_check'):
-                handler.watcher.show_message(title=self.i18n['arch.aur.install.validity_check.title'],
-                                             body=self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
-                                             type_=MessageType.ERROR)
-                return False
+                body = "<p>{}</p><p>{}</p>".format(self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
+                                                   self.i18n['arch.aur.install.validity_check.proceed'])
+                return not handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.validity_check.title'].format('( checksum )'),
+                                                                body=body,
+                                                                confirmation_label=self.i18n['no'].capitalize(),
+                                                                deny_label=self.i18n['yes'].capitalize())
 
         return True
 

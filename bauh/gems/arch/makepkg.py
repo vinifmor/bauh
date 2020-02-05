@@ -42,7 +42,7 @@ def check(pkgdir: str, optimize: bool, handler: ProcessHandler) -> dict:
 
 
 def make(pkgdir: str, optimize: bool, handler: ProcessHandler) -> Tuple[bool, str]:
-    cmd = ['makepkg', '-ALcsmf']
+    cmd = ['makepkg', '-ALcsmf', '--skipchecksums']
 
     if optimize:
         if os.path.exists(CUSTOM_MAKEPKG_FILE):

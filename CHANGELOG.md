@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.3]
+### Improvements
+- AUR
+    - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
+
 ## [0.8.2] - 2020-01-31
 ### Features
 - New **Settings** panel ( displayed when the lower **Settings** button is clicked ). It allows to change all settings.
