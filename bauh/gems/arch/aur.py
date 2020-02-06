@@ -79,21 +79,21 @@ class AURClient:
                 self.logger.info('{p} is based on {b}. Retrieving {b} .SRCINFO'.format(p=info_name, b=info_base))
                 return self.get_src_info(info_base)
 
-    def extract_all_dependencies(self, pkginfo: dict) -> Set[str]:
+    def extract_required_dependencies(self, pkginfo: dict) -> Set[str]:
         deps = set()
         for attr in ('makedepends', 'depends', 'checkdepends'):
             if pkginfo.get(attr):
-                deps.update([pacman.RE_DEP_OPERATORS.split(dep)[0] for dep in info[attr]])
+                deps.update([pacman.RE_DEP_OPERATORS.split(dep)[0] for dep in pkginfo[attr]])
 
         return deps
 
-    def get_all_dependencies(self, name: str) -> Set[str]:
+    def get_required_dependencies(self, name: str) -> Set[str]:
         info = self.get_src_info(name)
 
         if not info:
             raise PackageNotFoundException(name)
 
-        return self.extract_all_dependencies(info)
+        return self.extract_required_dependencies(info)
 
     def _map_names_as_queries(self, names) -> str:
         return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])

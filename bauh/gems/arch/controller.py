@@ -1009,7 +1009,7 @@ class ArchManager(SoftwareManager):
                     for n in names:
                         names_map[n] = pkg
 
-                pkg_deps[pkg] = self.aur_client.extract_all_dependencies(srcinfo)
+                pkg_deps[pkg] = self.aur_client.extract_required_dependencies(srcinfo)
             except:
                 pkg_deps[pkg] = None
                 self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))

@@ -438,9 +438,13 @@ class GenericSoftwareManager(SoftwareManager):
 
         if by_manager:
             for man, pkgs in by_manager.items():
-                ti = time.time()
-                sorted_list.extend(man.sort_update_order(pkgs))
-                tf = time.time()
-                self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+                if len(pkgs) > 1:
+                    ti = time.time()
+                    sorted_list.extend(man.sort_update_order(pkgs))
+                    tf = time.time()
+                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+                else:
+                    self.logger.info("Only one package to sort for {}. Ignoring sorting.".format(man.__class__.__name__))
+                    sorted_list.extend(pkgs)
 
         return sorted_list

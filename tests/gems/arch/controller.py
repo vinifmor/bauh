@@ -13,7 +13,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='kazam', package_base='kazam'): {'python', 'python-cairo'}
         }
 
-        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -26,7 +26,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='abc', package_base='abc'): None
         }
 
-        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -40,7 +40,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='ghi', package_base='ghi'): {}
         }
 
-        name_map = {d.name: d.name for d in deps}
+        name_map = {d.name: d for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
             sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
@@ -71,7 +71,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='ghi', package_base='ghi'): {'def'}
         }
 
-        name_map = {d.name: d.name for d in deps}
+        name_map = {d.name: d for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
             sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
@@ -101,7 +101,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='jkl', package_base='jkl'): {'ghi'}
         }
 
-        name_map = {d.name: d.name for d in deps}
+        name_map = {d.name: d for d in deps}
         for _ in range(5):  # testing n times to see if the same result is produced
             sorted_list = ArchManager._sort_deps(deps, name_map)
             self.assertIsInstance(sorted_list, list)
@@ -129,7 +129,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='jkl', package_base='jkl'): {'abc'}
         }
 
-        sorted_list = ArchManager._sort_deps(deps, {d.name: d.name for d in deps})
+        sorted_list = ArchManager._sort_deps(deps, {d.name: d for d in deps})
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(deps), len(sorted_list))
 
@@ -152,7 +152,7 @@ class ArchManagerSortUpdateOrderTest(TestCase):
             ArchPackage(name='ghi', package_base='ghi'): {'abc'}
         }
 
-        name_map = {d.name: d.name for d in deps}
+        name_map = {d.name: d for d in deps}
         name_map['fed'] = def_pkg
 
         for _ in range(5):

@@ -71,7 +71,7 @@ class DependenciesAnalyser:
 
             missing_sub = []
             for rdep in missing_root:
-                subdeps = self.aur_client.get_all_dependencies(rdep[0]) if rdep[1] == 'aur' else pacman.read_dependencies(rdep[0])
+                subdeps = self.aur_client.get_required_dependencies(rdep[0]) if rdep[1] == 'aur' else pacman.read_dependencies(rdep[0])
                 subdeps_not_analysis = {sd for sd in subdeps if sd not in global_in_analysis}
 
                 if subdeps_not_analysis:
@@ -93,7 +93,7 @@ class DependenciesAnalyser:
         in_analyses = {*names}
 
         for name in names:
-            subdeps = self.aur_client.get_all_dependencies(name) if mirror == 'aur' else pacman.read_dependencies(name)
+            subdeps = self.aur_client.get_required_dependencies(name) if mirror == 'aur' else pacman.read_dependencies(name)
 
             if subdeps:
                 missing_subdeps = self.get_missing_packages(subdeps, in_analysis=in_analyses)

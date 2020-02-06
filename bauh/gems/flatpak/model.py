@@ -10,7 +10,7 @@ class FlatpakApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None,
-                 installation: str = None, i18n: I18n = None):
+                 installation: str = None, i18n: I18n = None, partial: bool = False):
         super(FlatpakApplication, self).__init__(id=id, name=name, version=version,
                                                  latest_version=latest_version, description=description)
         self.ref = ref
@@ -19,7 +19,7 @@ class FlatpakApplication(SoftwarePackage):
         self.origin = origin
         self.runtime = runtime
         self.commit = commit
-        self.partial = False
+        self.partial = partial
         self.installation = installation if installation else 'system'
         self.i18n = i18n
         self.base_id = None

@@ -108,7 +108,7 @@ class UpdateSelectedApps(AsyncAction):
             sorted_pkgs = self.manager.sort_update_order([view.model for view in self.apps_to_update])
 
             for pkg in sorted_pkgs:
-
+                self.change_substatus('')
                 name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
 
                 self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
