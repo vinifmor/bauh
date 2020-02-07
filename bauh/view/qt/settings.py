@@ -1,7 +1,6 @@
 import gc
 from io import StringIO
 
-from PyQt5 import sip
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QSizePolicy, QPushButton
 
@@ -52,14 +51,13 @@ class SettingsWindow(QWidget):
 
     def closeEvent(self, event):
         if self.window and self.window.settings_window == self:
-            sip.delete(self.window.settings_window)
+            self.deleteLater()
             self.window.settings_window = None
         elif self.tray and self.tray.settings_window == self:
-            sip.delete(self.tray.settings_window)
+            self.deleteLater()
             self.tray.settings_window = None
 
         gc.collect()
-        event.accept()
 
     def handle_display(self):
         if self.isMinimized():
