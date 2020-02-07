@@ -890,7 +890,7 @@ class ManageWindow(QWidget):
                 self._handle_console_option(True)
                 self.progress_controll_enabled = len(to_update) == 1
                 self._begin_action(self.i18n['manage_window.status.upgrading'])
-                self.thread_update.apps_to_update = to_update
+                self.thread_update.pkgs = to_update
                 self.thread_update.root_password = pwd
                 self.thread_update.start()
 

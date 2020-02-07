@@ -247,6 +247,7 @@ ui:
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
+  sort_packages: True  # if the selected applications / packages to upgrade must be sorted to avoid possible issues
 
 ```
 #### Tray icons

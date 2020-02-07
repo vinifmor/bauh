@@ -22,7 +22,8 @@ def read_config(update_file: bool = False) -> dict:
         },
         'locale': None,
         'updates': {
-            'check_interval': 30
+            'check_interval': 30,
+            'sort_packages': True
         },
         'system': {
           'notifications': True,

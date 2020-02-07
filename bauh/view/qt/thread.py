@@ -12,6 +12,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType
 from bauh.api.exception import NoInternetException
+from bauh.view.core import config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
@@ -90,9 +91,9 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpdateSelectedApps(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, apps_to_update: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, pkgs: List[PackageView] = None):
         super(UpdateSelectedApps, self).__init__()
-        self.apps_to_update = apps_to_update
+        self.pkgs = pkgs
         self.manager = manager
         self.root_password = None
         self.i18n = i18n
@@ -101,11 +102,16 @@ class UpdateSelectedApps(AsyncAction):
 
         success = False
 
-        if self.apps_to_update:
+        if self.pkgs:
             updated, updated_types = 0, set()
 
-            self.change_substatus(self.i18n['action.update.status.sorting'])
-            sorted_pkgs = self.manager.sort_update_order([view.model for view in self.apps_to_update])
+            app_config = config.read_config()
+
+            if bool(app_config['updates']['sort_packages']):
+                self.change_substatus(self.i18n['action.update.status.sorting'])
+                sorted_pkgs = self.manager.sort_update_order([view.model for view in self.pkgs])
+            else:
+                sorted_pkgs = [view.model for view in self.pkgs]
 
             for pkg in sorted_pkgs:
                 self.change_substatus('')
@@ -124,7 +130,7 @@ class UpdateSelectedApps(AsyncAction):
 
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
 
-        self.apps_to_update = None
+        self.pkgs = None
 
 
 class RefreshApps(AsyncAction):
