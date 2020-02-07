@@ -1,7 +1,6 @@
 import operator
 import os
 from functools import reduce
-from math import ceil
 from threading import Lock
 from typing import List
 
@@ -9,7 +8,7 @@ from PyQt5.QtCore import Qt, QUrl, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidgetItem, QToolButton, QWidget, \
-    QHeaderView, QLabel, QHBoxLayout, QPushButton, QToolBar, QSizePolicy
+    QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
@@ -317,7 +316,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_version(self, col: int, pkg: PackageView):
         label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
-        label_version.setMinimumWidth(ceil(self.window.screen_size.width() * 0.052))
+        label_version.setMinimumWidth(100)
         label_version.setAlignment(Qt.AlignCenter)
 
         item = QWidget()
@@ -379,7 +378,7 @@ class AppsTable(QTableWidget):
 
     def _set_col_description(self, col: int, pkg: PackageView):
         item = QLabel()
-        item.setMinimumWidth(ceil(self.window.screen_size.width() * 0.13))
+        item.setMinimumWidth(300)
 
         if pkg.model.description is not None or not pkg.model.is_application() or pkg.model.status == PackageStatus.READY:
             desc = pkg.model.description
