@@ -11,8 +11,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
-from bauh.api.abstract.view import FormComponent, ViewComponent
-from build.lib.bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.view import ViewComponent
 
 
 class SearchResult:
