@@ -76,7 +76,7 @@ def main():
     manager.prepare()
 
     app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)
+    app.setQuitOnLastWindowClosed(False)   # otherwise windows opened through the tray icon kill the aplication when closed
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]

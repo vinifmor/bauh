@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from typing import List, Type, Set
 
-from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
@@ -504,6 +504,8 @@ class ManageWindow(QWidget):
             event.ignore()
             self.hide()
             self._handle_console_option(False)
+        else:
+            QCoreApplication.exit()  # needed because QuitOnLastWindowClosed is disabled
 
     def _handle_console(self, checked: bool):
 
