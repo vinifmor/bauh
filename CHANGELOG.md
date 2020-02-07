@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
 - UI:
     - **Settings** available as a tray action as well
+    - minor improvements
 
 ## [0.8.2] - 2020-01-31
 ### Features
