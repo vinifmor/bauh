@@ -446,3 +446,28 @@ class GenericSoftwareManager(SoftwareManager):
                     sorted_list.extend(pkgs)
 
         return sorted_list
+
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+        by_manager = {}
+        for pkg in pkgs:
+            man = self._get_manager_for(pkg)
+
+            if man:
+                man_pkgs = by_manager.get(man)
+
+                if man_pkgs is None:
+                    man_pkgs = []
+                    by_manager[man] = man_pkgs
+
+                man_pkgs.append(pkg)
+
+        required = []
+
+        if by_manager:
+            for man, pkgs in by_manager.items():
+                ti = time.time()
+                required.extend(man.get_update_requirements(pkgs, watcher))
+                tf = time.time()
+                self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+
+        return required

@@ -1081,3 +1081,39 @@ class ArchManager(SoftwareManager):
                 sorted_names[pkg.name] = idx
 
             return sorted_names[pkg.name]
+
+    def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
+        deps = self._map_known_missing_deps({p.get_base_name(): 'aur' for p in pkgs}, watcher)
+
+        if deps:
+            pkg_names = {p.name for p in pkgs}
+            return [ArchPackage(name=pkg[0]) for pkg in deps if pkg[0] not in pkg_names]
+        else:
+            return []
+
+        # def add_srcinfo(pkg: ArchPackage):
+        #     try:
+        #         srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
+        #         pkg.src_info = srcinfo
+        #         pkg.dependencies = self.aur_client.extract_required_dependencies(pkg.src_info)
+        #     except:
+        #         self.logger.warning("Could not retrieve the SRCINFO for package {}".format(pkg.name))
+        #
+        # threads = []
+        #
+        # for p in pkgs:
+        #     t = Thread(target=add_srcinfo, args=(p,))
+        #     t.start()
+        #     threads.append(t)
+        #
+        # for t in threads:
+        #     t.join()
+        #
+        # for p in pkgs:
+        #     if p.src_info and p.dependencies:
+        #         self.inst
+        #     else:
+        #         self.logger.warning("Not checking update requirements for package {}".format(pkg.name))
+
+
+

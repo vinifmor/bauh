@@ -107,11 +107,14 @@ class UpdateSelectedApps(AsyncAction):
 
             app_config = config.read_config()
 
+            models = [view.model for view in self.pkgs]
+            required_pkgs = self.manager.get_update_requirements(models, self)
+
             if bool(app_config['updates']['sort_packages']):
                 self.change_substatus(self.i18n['action.update.status.sorting'])
-                sorted_pkgs = self.manager.sort_update_order([view.model for view in self.pkgs])
+                sorted_pkgs = self.manager.sort_update_order()
             else:
-                sorted_pkgs = [view.model for view in self.pkgs]
+                sorted_pkgs = models
 
             for pkg in sorted_pkgs:
                 self.change_substatus('')

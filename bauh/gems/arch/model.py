@@ -1,5 +1,5 @@
 import datetime
-from typing import List
+from typing import List, Set
 
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
@@ -14,7 +14,7 @@ class ArchPackage(SoftwarePackage):
                  package_base: str = None, votes: int = None, popularity: float = None,
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, mirror: str = None,
-                 desktop_entry: str = None, installed: bool = False):
+                 desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description, installed=installed)
         self.package_base = package_base
@@ -30,6 +30,8 @@ class ArchPackage(SoftwarePackage):
         self.icon_path = None
         self.downgrade_enabled = False
         self.desktop_entry = desktop_entry
+        self.src_info = srcinfo
+        self.dependencies = dependencies
 
     @staticmethod
     def disk_cache_path(pkgname: str, mirror: str):
