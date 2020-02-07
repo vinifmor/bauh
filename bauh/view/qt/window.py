@@ -30,7 +30,6 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -316,7 +315,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
-                                 action=self._show_settings,
+                                 action=self.show_settings,
                                  background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
@@ -501,7 +500,6 @@ class ManageWindow(QWidget):
             self.table_apps.change_headers_policy(policy)
 
     def closeEvent(self, event):
-
         if self.tray_icon:
             event.ignore()
             self.hide()
@@ -1169,10 +1167,13 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def _show_settings(self):
-        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon), self)
-        self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
-        self.settings_window.resize(self.size())
-        self.settings_window.adjustSize()
-        qt_utils.centralize(self.settings_window)
-        self.settings_window.show()
+    def show_settings(self):
+        if self.settings_window:
+            self.settings_window.handle_display()
+        else:
+            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self.tray_icon, self)
+            self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+            self.settings_window.resize(self.size())
+            self.settings_window.adjustSize()
+            qt_utils.centralize(self.settings_window)
+            self.settings_window.show()

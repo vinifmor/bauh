@@ -4,12 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.3]
+## [0.8.3] - 2020
 ### Improvements
 - New update lifecycle:
     - now every package manager must provide the best upgrade order for all the selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
 - AUR
     - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
+- UI:
+    - **Settings** available as a tray action as well
 
 ## [0.8.2] - 2020-01-31
 ### Features

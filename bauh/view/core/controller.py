@@ -409,16 +409,14 @@ class GenericSoftwareManager(SoftwareManager):
                                                            working_managers=self.working_managers,
                                                            logger=self.logger,
                                                            i18n=self.i18n)
+        else:
+            self.settings_manager.managers = self.managers
+            self.settings_manager.working_managers = self.working_managers
 
         return self.settings_manager.get_settings(screen_width=screen_width, screen_height=screen_height)
 
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
-        res = self.settings_manager.save_settings(component)
-
-        if res[0]:
-            self.settings_manager = None
-
-        return res
+        return self.settings_manager.save_settings(component)
 
     def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
         by_manager = {}
