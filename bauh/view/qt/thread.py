@@ -173,7 +173,7 @@ class UpdateSelectedApps(AsyncAction):
 
             models = [view.model for view in self.pkgs]
 
-            if not self._handle_update_requirements(models):
+            if bool(app_config['updates']['pre_dependency_checking']) and not self._handle_update_requirements(models):
                 return
 
             proceed, sorted_pkgs = self._sort_packages(models, app_config)

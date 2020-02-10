@@ -80,6 +80,7 @@ class GenericSettingsManager:
         select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
                                                  tooltip=self.i18n['core.config.disk_cache.tip'],
                                                  value=core_config['disk_cache']['enabled'],
+                                                 max_width=default_width,
                                                  id_='dcache')
 
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
@@ -98,9 +99,15 @@ class GenericSettingsManager:
 
         select_update_sort = self._gen_bool_component(label=self.i18n['core.config.updates.sort_pkgs'],
                                                       tooltip=self.i18n['core.config.updates.sort_pkgs.tip'],
-                                                      value=core_config['updates']['sort_packages'],
+                                                      value=bool(core_config['updates']['sort_packages']),
                                                       max_width=default_width,
                                                       id_="up_sort")
+
+        select_update_check = self._gen_bool_component(label=self.i18n['core.config.updates.dep_check'],
+                                                       tooltip=self.i18n['core.config.updates.dep_check.tip'],
+                                                       value=bool(core_config['updates']['pre_dependency_checking']),
+                                                       max_width=default_width,
+                                                       id_="up_dep_check")
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
                                                     tooltip=self.i18n['core.config.system.dep_checking.tip'],
@@ -114,7 +121,7 @@ class GenericSettingsManager:
                                                    max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
-        sub_comps = [FormComponent([select_dcache, select_dmthread, select_update_sort, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
+        sub_comps = [FormComponent([select_dcache, select_dmthread, select_update_check, select_update_sort, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
     def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
@@ -270,6 +277,7 @@ class GenericSettingsManager:
         download_mthreaded = adv_form.get_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
 
+        core_config['updates']['pre_dependency_checking'] = adv_form.get_component('up_dep_check').get_selected()
         core_config['updates']['sort_packages'] = adv_form.get_component('up_sort').get_selected()
 
         single_dep_check = adv_form.get_component('dep_check').get_selected()

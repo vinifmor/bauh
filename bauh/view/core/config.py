@@ -2,7 +2,6 @@ import logging
 import os
 import traceback
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -23,7 +22,8 @@ def read_config(update_file: bool = False) -> dict:
         'locale': None,
         'updates': {
             'check_interval': 30,
-            'sort_packages': True
+            'sort_packages': True,
+            "pre_dependency_checking": True
         },
         'system': {
           'notifications': True,
