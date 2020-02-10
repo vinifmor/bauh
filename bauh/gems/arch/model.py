@@ -4,6 +4,7 @@ from typing import List, Set
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
+from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry', 'categories'}
 
@@ -14,7 +15,8 @@ class ArchPackage(SoftwarePackage):
                  package_base: str = None, votes: int = None, popularity: float = None,
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, mirror: str = None,
-                 desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None):
+                 desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
+                 i18n: I18n = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description, installed=installed)
         self.package_base = package_base
@@ -32,6 +34,7 @@ class ArchPackage(SoftwarePackage):
         self.desktop_entry = desktop_entry
         self.src_info = srcinfo
         self.dependencies = dependencies
+        self.i18n = i18n
 
     @staticmethod
     def disk_cache_path(pkgname: str, mirror: str):
@@ -63,7 +66,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/arch.svg', ROOT_DIR)  # TODO change icon when from mirrors
+        return resource.get_path('img/{}.svg'.format('arch' if self.mirror == 'aur' else 'mirror'), ROOT_DIR)
 
     def is_application(self):
         return self.can_be_run()
@@ -120,6 +123,9 @@ class ArchPackage(SoftwarePackage):
 
     def has_screenshots(self) -> bool:
         return False
+
+    def get_name_tooltip(self) -> str:
+        return '{}: {}'.format(self.i18n['repository'], self.mirror)
 
     def __str__(self):
         return self.__repr__()

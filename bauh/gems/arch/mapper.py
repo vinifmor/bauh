@@ -4,6 +4,7 @@ from datetime import datetime
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
+from bauh.view.util.translation import I18n
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
 RE_LETTERS = re.compile(r'\.([a-zA-Z]+)-\d+$')
@@ -22,8 +23,9 @@ V_SUFFIX_MAP = {s: {'c': sfxs[0], 'p': idx} for idx, sfxs in enumerate([RE_SFX, 
 
 class ArchDataMapper:
 
-    def __init__(self, http_client: HttpClient):
+    def __init__(self, http_client: HttpClient, i18n: I18n):
         self.http_client = http_client
+        self.i18n = i18n
 
     def fill_api_data(self, pkg: ArchPackage, package: dict, fill_version: bool = True):
 
@@ -115,7 +117,7 @@ class ArchDataMapper:
 
     def map_api_data(self, apidata: dict, installed: dict, categories: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name'))
-        app = ArchPackage(name=apidata.get('Name'), installed=bool(data), mirror='aur')
+        app = ArchPackage(name=apidata.get('Name'), installed=bool(data), mirror='aur', i18n=self.i18n)
         app.status = PackageStatus.LOADING_DATA
 
         if categories:

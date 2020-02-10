@@ -59,7 +59,7 @@ class ArchManager(SoftwareManager):
         self.aur_cache = context.cache_factory.new()
         # context.disk_loader_factory.map(ArchPackage, self.aur_cache) TODO
 
-        self.mapper = ArchDataMapper(http_client=context.http_client)
+        self.mapper = ArchDataMapper(http_client=context.http_client, i18n=context.i18n)
         self.i18n = context.i18n
         self.aur_client = AURClient(context.http_client, context.logger)
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
@@ -157,7 +157,7 @@ class ArchManager(SoftwareManager):
         for name, data in not_signed.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, mirror='aur')
+                              installed=True, mirror='aur', i18n=self.i18n)
 
             pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
@@ -171,7 +171,7 @@ class ArchManager(SoftwareManager):
     def _fill_mirror_pkgs(self, mirrors: dict, apps: list):
         # TODO
         for name, data in mirrors.items():
-            app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'))
+            app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'), i18n=self.i18n)
             app.installed = True
             app.mirror = ''  # TODO
             app.update = False  # TODO
@@ -304,7 +304,7 @@ class ArchManager(SoftwareManager):
 
     def get_info(self, pkg: ArchPackage) -> dict:
         if pkg.installed:
-            t = Thread(target=self.mapper.fill_package_build, args=(pkg,))
+            t = Thread(target=self.mapper.fill_package_build, args=(pkg,), daemon=True)
             t.start()
 
             info = pacman.get_info_dict(pkg.name)
@@ -407,7 +407,7 @@ class ArchManager(SoftwareManager):
                 pkgbase = self.aur_client.get_src_info(dep[0])['pkgbase']
                 installed = self._install_from_aur(pkgname=dep[0], pkgbase=pkgbase, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
-                installed = self._install(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
+                installed = self._install(pkgname=dep[0], maintainer=dep[1], root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
 
             if not installed:
                 return dep[0]
@@ -737,6 +737,8 @@ class ArchManager(SoftwareManager):
                     return False
 
     def _install_from_aur(self, pkgname: str, pkgbase: str, maintainer: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+        self._optimize_makepkg(watcher=handler.watcher)
+
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
@@ -831,9 +833,11 @@ class ArchManager(SoftwareManager):
         handler = ProcessHandler(watcher)
 
         self._sync_databases(root_password=root_password, handler=handler)
-        self._optimize_makepkg(watcher=watcher)
 
-        res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
+        if pkg.mirror == 'aur':
+            res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
+        else:
+            res = self._install(pkgname=pkg.name, maintainer=pkg.mirror, root_password=root_password, handler=handler, install_file=None, mirror=pkg.mirror, change_progress=False)
 
         if res:
             if os.path.exists(pkg.get_disk_data_path()):
@@ -1017,7 +1021,7 @@ class ArchManager(SoftwareManager):
 
         threads = []
         for pkg in pkgs:
-            t = Thread(target=_add_info, args=(pkg, ))
+            t = Thread(target=_add_info, args=(pkg, ), daemon=True)
             t.start()
             threads.append(t)
 
@@ -1082,38 +1086,45 @@ class ArchManager(SoftwareManager):
 
             return sorted_names[pkg.name]
 
+    def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
+        version = None
+
+        if pkg_data[1] == 'aur':
+            try:
+                info = self.aur_client.get_src_info(pkg_data[0])
+
+                if info:
+                    version = info.get('pkgver')
+
+                    if not version:
+                        self.logger.warning("No version declared in SRCINFO of '{}'".format(pkg_data[0]))
+                else:
+                    self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
+            except:
+                self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
+        else:
+            version = pacman.get_version_for_not_installed(pkg_data[0])
+
+        output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, mirror=pkg_data[1], i18n=self.i18n)
+
     def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
         deps = self._map_known_missing_deps({p.get_base_name(): 'aur' for p in pkgs}, watcher)
 
+        if deps:  # filtering selected packages
+            selected_names = {p.name for p in pkgs}
+            deps = [dep for dep in deps if dep[0] not in selected_names]
+
         if deps:
-            pkg_names = {p.name for p in pkgs}
-            return [ArchPackage(name=pkg[0]) for pkg in deps if pkg[0] not in pkg_names]
+            map_threads, sorted_pkgs = [], {}
+
+            for idx, dep in enumerate(deps):
+                t = Thread(target=self._map_and_add_package, args=(dep, idx, sorted_pkgs), daemon=True)
+                t.start()
+                map_threads.append(t)
+
+            for t in map_threads:
+                t.join()
+
+            return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
         else:
             return []
-
-        # def add_srcinfo(pkg: ArchPackage):
-        #     try:
-        #         srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
-        #         pkg.src_info = srcinfo
-        #         pkg.dependencies = self.aur_client.extract_required_dependencies(pkg.src_info)
-        #     except:
-        #         self.logger.warning("Could not retrieve the SRCINFO for package {}".format(pkg.name))
-        #
-        # threads = []
-        #
-        # for p in pkgs:
-        #     t = Thread(target=add_srcinfo, args=(p,))
-        #     t.start()
-        #     threads.append(t)
-        #
-        # for t in threads:
-        #     t.join()
-        #
-        # for p in pkgs:
-        #     if p.src_info and p.dependencies:
-        #         self.inst
-        #     else:
-        #         self.logger.warning("Not checking update requirements for package {}".format(pkg.name))
-
-
-

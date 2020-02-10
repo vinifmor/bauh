@@ -1,3 +1,4 @@
+import os
 import re
 import time
 from datetime import datetime, timedelta
@@ -10,7 +11,7 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
-from bauh.api.abstract.view import InputViewComponent, MessageType
+from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption
 from bauh.api.exception import NoInternetException
 from bauh.view.core import config
 from bauh.view.qt import commons
@@ -98,6 +99,69 @@ class UpdateSelectedApps(AsyncAction):
         self.root_password = None
         self.i18n = i18n
 
+    def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True) -> InputOption:
+        if pkg.installed:
+            icon_path = pkg.get_disk_icon_path()
+
+            if not os.path.isfile(icon_path):
+                icon_path = pkg.get_type_icon_path()
+
+        else:
+            icon_path = pkg.get_type_icon_path()
+
+        return InputOption(label='{}{}'.format(pkg.name, ' ( {} )'.format(pkg.latest_version) if pkg.version else ''),
+                           value=None,
+                           tooltip=pkg.get_name_tooltip() if tooltip else None,
+                           read_only=True,
+                           icon_path=icon_path)
+
+    def _handle_update_requirements(self, pkgs: List[SoftwarePackage]) -> bool:
+        self.change_substatus(self.i18n['action.update.requirements.status'])
+        required_pkgs = self.manager.get_update_requirements(pkgs, self)
+
+        if required_pkgs:
+            opts = [self._pkg_as_option(p) for p in required_pkgs]
+
+            if not self.request_confirmation(self.i18n['action.update.requirements.title'],
+                                             self.i18n['action.update.requirements.body'],
+                                             [MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
+                                             confirmation_label=self.i18n['continue'].capitalize(),
+                                             deny_label=self.i18n['cancel'].capitalize()):
+                self.notify_finished({'success': False, 'updated': 0, 'types': set()})
+                self.pkgs = None
+                return False
+            else:
+                for pkg in required_pkgs:
+                    if not self.manager.install(pkg, self.root_password, self):
+                        self.notify_finished({'success': False, 'updated': 0, 'types': set()})
+                        self.pkgs = None
+                        label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
+                        self.show_message(title=self.i18n['action.update.install_req.fail.title'],
+                                          body=self.i18n['action.update.install_req.fail.body'].format(label),
+                                          type_=MessageType.ERROR)
+                        return False
+
+        return True
+
+    def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> Tuple[bool, List[SoftwarePackage]]:
+        if bool(app_config['updates']['sort_packages']):
+            self.change_substatus(self.i18n['action.update.status.sorting'])
+            sorted_pkgs = self.manager.sort_update_order([view.model for view in self.pkgs])
+        else:
+            sorted_pkgs = pkgs
+
+        if len(sorted_pkgs) > 1:
+            opts = [self._pkg_as_option(p, tooltip=False) for p in sorted_pkgs]
+            proceed = self.request_confirmation(title=self.i18n['action.update.order.title'],
+                                                body=self.i18n['action.update.order.body'] + ':',
+                                                components=[MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
+                                                confirmation_label=self.i18n['continue'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize())
+        else:
+            proceed = True
+
+        return proceed, sorted_pkgs
+
     def run(self):
 
         success = False
@@ -108,16 +172,16 @@ class UpdateSelectedApps(AsyncAction):
             app_config = config.read_config()
 
             models = [view.model for view in self.pkgs]
-            required_pkgs = self.manager.get_update_requirements(models, self)
-            # TODO stopped here: show required packages
 
-            if bool(app_config['updates']['sort_packages']):
-                self.change_substatus(self.i18n['action.update.status.sorting'])
-                sorted_pkgs = self.manager.sort_update_order()
-            else:
-                sorted_pkgs = models
+            if not self._handle_update_requirements(models):
+                return
 
-            # TODO show sort order
+            proceed, sorted_pkgs = self._sort_packages(models, app_config)
+
+            if not proceed:
+                self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+                self.pkgs = None
+                return
 
             for pkg in sorted_pkgs:
                 self.change_substatus('')
