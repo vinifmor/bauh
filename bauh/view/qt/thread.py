@@ -13,6 +13,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
 from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption
 from bauh.api.exception import NoInternetException
+from bauh.commons.html import bold
 from bauh.view.core import config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
@@ -103,13 +104,13 @@ class UpdateSelectedApps(AsyncAction):
         if pkg.installed:
             icon_path = pkg.get_disk_icon_path()
 
-            if not os.path.isfile(icon_path):
+            if not icon_path or not os.path.isfile(icon_path):
                 icon_path = pkg.get_type_icon_path()
 
         else:
             icon_path = pkg.get_type_icon_path()
 
-        return InputOption(label='{}{}'.format(pkg.name, ' ( {} )'.format(pkg.latest_version) if pkg.version else ''),
+        return InputOption(label='{}{}'.format(pkg.name, ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else ''),
                            value=None,
                            tooltip=pkg.get_name_tooltip() if tooltip else None,
                            read_only=True,
@@ -123,7 +124,7 @@ class UpdateSelectedApps(AsyncAction):
             opts = [self._pkg_as_option(p) for p in required_pkgs]
 
             if not self.request_confirmation(self.i18n['action.update.requirements.title'],
-                                             self.i18n['action.update.requirements.body'],
+                                             self.i18n['action.update.requirements.body'].format(bold(str(len(opts)))),
                                              [MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
                                              confirmation_label=self.i18n['continue'].capitalize(),
                                              deny_label=self.i18n['cancel'].capitalize()):
