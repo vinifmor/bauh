@@ -61,7 +61,7 @@ class ArchManager(SoftwareManager):
 
         self.mapper = ArchDataMapper(http_client=context.http_client, i18n=context.i18n)
         self.i18n = context.i18n
-        self.aur_client = AURClient(context.http_client, context.logger)
+        self.aur_client = AURClient(http_client=context.http_client, logger=context.logger, x86_64=context.is_system_x86_64())
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
         self.logger = context.logger
         self.enabled = True
@@ -335,17 +335,21 @@ class ArchManager(SoftwareManager):
             srcinfo = self.aur_client.get_src_info(pkg.name)
 
             if srcinfo:
-                if srcinfo.get('makedepends'):
-                    info['12_makedepends'] = srcinfo['makedepends']
+                arch_str = 'x86_64' if self.context.is_system_x86_64() else 'i686'
+                for info_attr, src_attr in {'12_makedepends': 'makedepends',
+                                            '13_dependson': 'depends',
+                                            '14_optdepends': 'optdepends',
+                                            'checkdepends': '15_checkdepends'}.items():
+                    if srcinfo.get(src_attr):
+                        info[info_attr] = [*srcinfo[src_attr]]
 
-                if srcinfo.get('depends'):
-                    info['13_dependson'] = srcinfo['depends']
+                    arch_attr = '{}_{}'.format(src_attr, arch_str)
 
-                if srcinfo.get('optdepends'):
-                    info['14_optdepends'] = srcinfo['optdepends']
-
-                if srcinfo.get('checkdepends'):
-                    info['15_checkdepends'] = srcinfo['checkdepends']
+                    if srcinfo.get(arch_attr):
+                        if not info.get(info_attr):
+                            info[info_attr] = [*srcinfo[arch_attr]]
+                        else:
+                            info[info_attr].extend(srcinfo[arch_attr])
 
             if pkg.pkgbuild:
                 info['00_pkg_build'] = pkg.pkgbuild
@@ -660,7 +664,7 @@ class ArchManager(SoftwareManager):
 
     def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         with open('{}/.SRCINFO'.format(pkgdir)) as f:
-            odeps = pkgbuild.read_optdeps_as_dict(f.read())
+            odeps = pkgbuild.read_optdeps_as_dict(f.read(), self.context.is_system_x86_64())
 
         if not odeps:
             return True

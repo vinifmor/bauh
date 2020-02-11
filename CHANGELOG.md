@@ -12,9 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AUR
     - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
     - improved how missing dependencies are checked when installing a new package ( the old way was not identifying some missing dependencies of **anbox-git** ). It is possible to use the old algorithm by setting **simple_checking** to **true** in **~/.config/bauh/arch.yml**. More information at [README](https://github.com/vinifmor/bauh/#aur--arch-).
+    - checking architecture dependencies (x86_64, i686)
+    - architecture dependencies are displayed on the info window as well
 - UI:
     - **Settings** available as a tray action as well
-    - minor improvements
+    - minor fixes and improvements
 - handling internet timeout errors
 
 ## [0.8.2] - 2020-01-31
