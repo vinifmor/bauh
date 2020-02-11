@@ -584,19 +584,26 @@ class ArchManager(SoftwareManager):
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
 
         if not self.local_config['pacman_dep_check']:
+            ti = time.time()
             with open('{}/.SRCINFO'.format(pkgdir)) as f:
                 srcinfo = aur.map_srcinfo(f.read())
 
             missing_deps = self._check_missing_deps(pkgname=pkgname, mirror='aur', srcinfo=srcinfo, watcher=handler.watcher)
+            tf = time.time()
 
             if missing_deps is None:
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+
                 return False  # it means one of the dependencies could not be found
             elif missing_deps and check_subdeps:
                 missing_deps = self._map_known_missing_deps(known_deps=missing_deps, watcher=handler.watcher)
+                tf = time.time()
 
                 if missing_deps is None:
+                    self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
                     return False  # it means one of the dependencies could not be found
 
+            self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
             if missing_deps:
                 if not self._ask_and_install_missing_deps(pkgname=pkgname,
                                                           root_password=root_password,
@@ -607,12 +614,15 @@ class ArchManager(SoftwareManager):
                 # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
                 return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
 
+        ti = time.time()
         check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['pacman_dep_check'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):
                 handler.watcher.change_substatus(self.i18n['arch.checking.missing_deps'].format(bold(pkgname)))
                 missing_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                tf = time.time()
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
 
                 if missing_deps is None:
                     return False
