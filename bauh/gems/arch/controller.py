@@ -533,6 +533,26 @@ class ArchManager(SoftwareManager):
 
         return sorted_deps
 
+    def _check_missing_deps(self, pkgname: str, mirror: str, srcinfo: dict, watcher: ProcessWatcher) -> Dict[str, str]:
+        if mirror == 'aur':
+            missing = {}
+
+            missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, mirror=mirror, srcinfo=srcinfo)
+
+            if missing_subdeps:
+                for dep in missing_subdeps:
+                    if not dep[1]:
+                        message.show_dep_not_found(dep[0], self.i18n, watcher)
+                        return
+
+                for dep in missing_subdeps:
+                    missing[dep[0]] = dep[1]
+
+            return missing
+        else:
+            # TODO
+            return []
+
     def _map_unknown_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
         depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
         dep_repos = self._map_repos(depnames)
@@ -545,31 +565,65 @@ class ArchManager(SoftwareManager):
 
         return self._map_known_missing_deps(dep_repos, watcher, check_subdeps)
 
+    def _ask_and_install_missing_deps(self, pkgname: str, root_password: str, missing_deps: List[Tuple[str, str]], handler: ProcessHandler) -> bool:
+        handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
+
+        if not confirmation.request_install_missing_deps(pkgname, missing_deps, handler.watcher, self.i18n):
+            handler.watcher.print(self.i18n['action.cancelled'])
+            return False
+
+        dep_not_installed = self._install_deps(missing_deps, root_password, handler, change_progress=False)
+
+        if dep_not_installed:
+            message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
+            return False
+
+        return True
+
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], handler=handler)
+
+        if not self.local_config['pacman_dep_check']:
+            with open('{}/.SRCINFO'.format(pkgdir)) as f:
+                srcinfo = aur.map_srcinfo(f.read())
+
+            missing_deps = self._check_missing_deps(pkgname=pkgname, mirror='aur', srcinfo=srcinfo, watcher=handler.watcher)
+
+            if missing_deps is None:
+                return False  # it means one of the dependencies could not be found
+            elif missing_deps and check_subdeps:
+                missing_deps = self._map_known_missing_deps(known_deps=missing_deps, watcher=handler.watcher)
+
+                if missing_deps is None:
+                    return False  # it means one of the dependencies could not be found
+
+            if missing_deps:
+                if not self._ask_and_install_missing_deps(pkgname=pkgname,
+                                                          root_password=root_password,
+                                                          missing_deps=missing_deps,
+                                                          handler=handler):
+                    return False
+
+                # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
+                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
+
+        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['pacman_dep_check'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):
                 handler.watcher.change_substatus(self.i18n['arch.checking.missing_deps'].format(bold(pkgname)))
-                sorted_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                missing_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
 
-                if sorted_deps is None:
+                if missing_deps is None:
                     return False
 
-                handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
-
-                if not confirmation.request_install_missing_deps(pkgname, sorted_deps, handler.watcher, self.i18n):
-                    handler.watcher.print(self.i18n['action.cancelled'])
+                if not self._ask_and_install_missing_deps(pkgname=pkgname,
+                                                          root_password=root_password,
+                                                          missing_deps=missing_deps,
+                                                          handler=handler):
                     return False
 
-                dep_not_installed = self._install_deps(sorted_deps, root_password, handler, change_progress=False)
-
-                if dep_not_installed:
-                    message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
-                    return False
-
-                # it is necessary to re-check because missing PGP keys are only notified when there are none missing
+                # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
                 return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
 
             if check_res.get('gpg_key'):
@@ -968,17 +1022,22 @@ class ArchManager(SoftwareManager):
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',
-                                    value=config['optimize'],
+                                    value=bool(config['optimize']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='pacman_check',
+                                    label_key='arch.config.pacman_check',
+                                    tooltip_key='arch.config.pacman_check.tip',
+                                    value=not bool(config['pacman_dep_check']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='dep_check',
                                     label_key='arch.config.trans_dep_check',
                                     tooltip_key='arch.config.trans_dep_check.tip',
-                                    value=config['transitive_checking'],
+                                    value=bool(config['transitive_checking']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
-                                    value=config['sync_databases'],
+                                    value=bool(config['sync_databases']),
                                     max_width=max_width)
         ]
 
@@ -991,6 +1050,7 @@ class ArchManager(SoftwareManager):
         config['optimize'] = form_install.get_component('opts').get_selected()
         config['transitive_checking'] = form_install.get_component('dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
+        config['pacman_dep_check'] = not form_install.get_component('pacman_check').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)

@@ -13,7 +13,7 @@ def gen_srcinfo(build_dir: str) -> str:
     return run_cmd('makepkg --printsrcinfo', cwd=build_dir)
 
 
-def check(pkgdir: str, optimize: bool, handler: ProcessHandler) -> dict:
+def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandler) -> dict:
     res = {}
 
     cmd = ['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild', '--noprepare']
@@ -27,7 +27,7 @@ def check(pkgdir: str, optimize: bool, handler: ProcessHandler) -> dict:
 
     success, output = handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir))
 
-    if 'Missing dependencies' in output:
+    if missing_deps and 'Missing dependencies' in output:
         res['missing_deps'] = RE_DEPS_PATTERN.findall(output)
 
     gpg_keys = RE_UNKNOWN_GPG_KEY.findall(output)
