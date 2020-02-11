@@ -164,6 +164,7 @@ db_updater:
 optimize: true  # if 'false': disables the auto-compilation improvements
 transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
 sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
+pacman_dep_check: false  # this peroperty defines how missing dependencies checking should be performed. When 'false' a robust algorithm will be used, otherwise ('true') just a simple pacman check will be performed. 
 ``` 
 - Required dependencies:
     - **pacman**
