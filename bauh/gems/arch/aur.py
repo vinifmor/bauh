@@ -30,7 +30,7 @@ KNOWN_LIST_FIELDS = ('validpgpkeys',
                      'sha512sums_x86_64',
                      'source',
                      'source_x86_64',
-                     'source_i686' 
+                     'source_i686',
                      'makedepends',
                      'makedepends_x86_64',
                      'makedepends_i686')
