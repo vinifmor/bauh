@@ -155,6 +155,8 @@ db_updater:
     the number of your machine processors (**-j${nproc}**).
 
     b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+    
+    c) **ccache** will be added to **BUILDENV** if it is installed on the system and already not defined 
 
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
@@ -162,9 +164,9 @@ db_updater:
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
-transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+transitive_checking: true  # this property defines if dependencies of a dependency should be retrieved before the package installation. It avoids interruptions, since it will detect all required dependencies before the process begin.
 sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
-pacman_dep_check: false  # this peroperty defines how missing dependencies checking should be performed. When 'false' a robust algorithm will be used, otherwise ('true') just a simple pacman check will be performed. 
+simple_checking: false  # this property defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate ) 
 ``` 
 - Required dependencies:
     - **pacman**

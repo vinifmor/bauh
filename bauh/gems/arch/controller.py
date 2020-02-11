@@ -583,7 +583,7 @@ class ArchManager(SoftwareManager):
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
 
-        if not self.local_config['pacman_dep_check']:
+        if not self.local_config['simple_checking']:
             ti = time.time()
             with open('{}/.SRCINFO'.format(pkgdir)) as f:
                 srcinfo = aur.map_srcinfo(f.read())
@@ -615,7 +615,7 @@ class ArchManager(SoftwareManager):
                 return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
 
         ti = time.time()
-        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['pacman_dep_check'], handler=handler)
+        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['simple_checking'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):
@@ -1034,12 +1034,12 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.optimize.tip',
                                     value=bool(config['optimize']),
                                     max_width=max_width),
-            self._gen_bool_selector(id_='pacman_check',
-                                    label_key='arch.config.pacman_check',
-                                    tooltip_key='arch.config.pacman_check.tip',
-                                    value=not bool(config['pacman_dep_check']),
+            self._gen_bool_selector(id_='simple_dep_check',
+                                    label_key='arch.config.simple_dep_check',
+                                    tooltip_key='arch.config.simple_dep_check.tip',
+                                    value=bool(config['simple_checking']),
                                     max_width=max_width),
-            self._gen_bool_selector(id_='dep_check',
+            self._gen_bool_selector(id_='trans_dep_check',
                                     label_key='arch.config.trans_dep_check',
                                     tooltip_key='arch.config.trans_dep_check.tip',
                                     value=bool(config['transitive_checking']),
@@ -1058,9 +1058,9 @@ class ArchManager(SoftwareManager):
 
         form_install = component.components[0]
         config['optimize'] = form_install.get_component('opts').get_selected()
-        config['transitive_checking'] = form_install.get_component('dep_check').get_selected()
+        config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
-        config['pacman_dep_check'] = not form_install.get_component('pacman_check').get_selected()
+        config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)

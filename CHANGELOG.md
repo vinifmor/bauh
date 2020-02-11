@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - now every package manager must provide the best upgrade order for all the selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
 - AUR
     - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
-    - improved the way missing dependencies are verified when installing a new package ( the old way was not identifying some missing dependencies of **anbox-git**). It is possible to use the old algorithm ( only pacman-based ) by setting **pacman_dep_check** to **true** in **~/.config/bauh/arch.yml**
+    - improved how missing dependencies are checked when installing a new package ( the old way was not identifying some missing dependencies of **anbox-git** ). It is possible to use the old algorithm by setting **simple_checking** to **true** in **~/.config/bauh/arch.yml**. More information at [README](https://github.com/vinifmor/bauh/#aur--arch-).
 - UI:
     - **Settings** available as a tray action as well
     - minor improvements

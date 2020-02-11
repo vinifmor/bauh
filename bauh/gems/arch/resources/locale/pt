@@ -111,5 +111,5 @@ arch.sync_databases.substatus=Sincronizando bases de pacotes
 arch.sync_databases.substatus.error=Não foi possível sincronizar as bases de pacotes
 arch.config.sync_dbs=Sincronizar bases de pacotes
 arch.config.sync_dbs.tip=Sincroniza as bases de pacotes uma vez ao dia ( ou a cada reinicialização do dispositivo ) antes da primeira instalação, atualização ou reversão de um pacote. Essa opção ajuda a evitar erros durante essa operações.
-arch.config.pacman_check=Verificação de dependências robusta
-arch.config.pacman_check.tip=Se uma verificação de dependências mais robusta deve ser realizada antes da instalação de um pacote. Caso desabilitada, somente a provida pelo pacman será utilizada.
+arch.config.simple_dep_check=Verificação de dependências simples
+arch.config.simple_dep_check.tip=Se somente a verificação de dependências provida pelo pacman deve ser usada antes de instalar um pacote ( mais rápida, porém nem sempre precisa ). Se desativada, uma verificação mais completa será realizada ( mais lenta, porém mais precisa )
