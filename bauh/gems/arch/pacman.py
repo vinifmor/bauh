@@ -1,6 +1,6 @@
 import re
 from threading import Thread
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Dict
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -96,7 +96,7 @@ def list_and_map_installed() -> dict:  # returns a dict with with package names 
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,))
     thread_ignored.start()
 
-    pkgs, current_pkg = {'mirrors': {}, 'not_signed': {}}, {}
+    pkgs, current_pkg = {'signed': {}, 'not_signed': {}}, {}
     for out in new_subprocess(['grep', '-E', '(Name|Description|Version|Validated By)'],
                               stdin=allinfo).stdout:  # filtering only the Name and Validated By fields:
         if out:
@@ -110,24 +110,24 @@ def list_and_map_installed() -> dict:  # returns a dict with with package names 
             elif line.startswith('Description'):
                 current_pkg['description'] = line.split(':')[1].strip()
             elif line.startswith('Validated'):
-
-                if line.split(':')[1].strip().lower() == 'none':
-                    pkgs['not_signed'][current_pkg['name']] = {'version': current_pkg['version'],
-                                                               'description': current_pkg['description']}
-
+                key = 'not_signed' if line.split(':')[1].strip().lower() == 'none' else 'signed'
+                pkgs[key][current_pkg['name']] = {'version': current_pkg['version'], 'description': current_pkg['description']}
                 current_pkg = {}
 
-    if pkgs and pkgs.get('not_signed'):
+    if pkgs and (pkgs['signed'] or pkgs['not_signed']):
         thread_ignored.join()
 
         if ignored['pkgs']:
             to_del = set()
-            for pkg in pkgs['not_signed'].keys():
-                if pkg in ignored['pkgs']:
-                    to_del.add(pkg)
 
-            for pkg in to_del:
-                del pkgs['not_signed'][pkg]
+            for key in ('signed', 'not_signed'):
+                if pkgs.get(key):
+                    for pkg in pkgs[key].keys():
+                        if pkg in ignored['pkgs']:
+                            to_del.add(pkg)
+
+                for pkg in to_del:
+                    del pkgs[key][pkg]
 
     return pkgs
 
@@ -366,3 +366,19 @@ def get_version_for_not_installed(pkgname: str) -> str:
 
     if output:
         return output.split('\n')[0].split(' ')[1].strip()
+
+
+def map_repositories(pkgnames: List[str]) -> Dict[str, str]:
+    dep_info = new_subprocess(['pacman', '-Si', *pkgnames])
+
+    res = {}
+    idx = 0
+    for out in new_subprocess(['grep', '-Po', 'Repository\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
+        if out:
+            line = out.decode().strip()
+
+            if line:
+                res[pkgnames[idx]] = line.strip()
+                idx += 1
+
+    return res

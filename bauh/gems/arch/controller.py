@@ -170,12 +170,17 @@ class ArchManager(SoftwareManager):
 
             pkgs.append(pkg)
 
-    def _fill_mirror_pkgs(self, mirrors: dict, apps: list):
-        # TODO
-        for name, data in mirrors.items():
+    def _fill_repo_pkgs(self, signed: dict, apps: list):
+        repo_map = pacman.map_repositories(list(signed.keys()))
+
+        if len(repo_map) != len(signed):
+            self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(signed)))
+
+        for name, data in signed.items():
             app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'), i18n=self.i18n)
             app.installed = True
-            app.mirror = ''  # TODO
+            app.mirror = repo_map.get(name)
+            app.maintainer = app.mirror
             app.update = False  # TODO
             apps.append(app)
 
@@ -183,11 +188,23 @@ class ArchManager(SoftwareManager):
         installed = pacman.list_and_map_installed()
 
         apps = []
-        if installed and installed['not_signed']:
+        if installed and (installed['not_signed'] or installed['signed']):
+            map_threads = []
             self.dcache_updater.join()
             self.categories_mapper.join()
 
-            self._fill_aur_pkgs(installed['not_signed'], apps, disk_loader, internet_available)
+            if installed['not_signed']:
+                t = Thread(target=self._fill_aur_pkgs, args=(installed['not_signed'], apps, disk_loader, internet_available), daemon=True)
+                t.start()
+                map_threads.append(t)
+
+            if installed['signed']:
+                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], apps), daemon=True)
+                t.start()
+                map_threads.append(t)
+
+            for t in map_threads:
+                t.join()
 
         return SearchResult(apps, None, len(apps))
 
