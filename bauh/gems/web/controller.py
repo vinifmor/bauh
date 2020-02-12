@@ -29,7 +29,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -615,10 +615,10 @@ class WebApplicationManager(SoftwareManager):
                 pkg.custom_icon = icon_path
 
                 # writting the icon in a temporary folder to be used by the nativefier process
-                temp_icon_path = '/tmp/bauh/web/{}'.format(pkg.icon_url.split('/')[-1])
+                temp_icon_path = '{}/{}'.format(TEMP_PATH, pkg.icon_url.split('/')[-1])
                 install_options.append('--icon={}'.format(temp_icon_path))
 
-                self.logger.info("Writting a temp suggestion icon at {}".format(temp_icon_path))
+                self.logger.info("Writing a temp suggestion icon at {}".format(temp_icon_path))
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
 

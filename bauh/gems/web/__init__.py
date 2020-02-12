@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH
+from bauh.commons import user
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
@@ -21,7 +22,7 @@ DESKTOP_ENTRY_PATH_PATTERN = DESKTOP_ENTRIES_DIR + '/bauh.web.{name}.desktop'
 URL_FIX_PATTERN = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/fix/{url}.js"
 URL_SUGGESTIONS = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/suggestions.yml"
 UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'
-TEMP_PATH = '/tmp/bauh/web'
+TEMP_PATH = '/tmp/bauh{}/web'.format('_root' if user.is_root() else '')
 SEARCH_INDEX_FILE = '{}/index.yml'.format(TEMP_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
