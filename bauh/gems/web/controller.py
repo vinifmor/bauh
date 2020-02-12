@@ -876,7 +876,7 @@ class WebApplicationManager(SoftwareManager):
         return True
 
     def launch(self, pkg: WebApplication):
-        subprocess.Popen(pkg.get_command())
+        subprocess.Popen(pkg.get_command(), shell=user.is_root())
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
