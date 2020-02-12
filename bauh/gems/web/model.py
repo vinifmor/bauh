@@ -49,7 +49,7 @@ class WebApplication(SoftwarePackage):
 
     def get_command(self) -> str:
         if self.installation_dir:
-            return '{}{}'.format(self.get_exec_path(), '--no-sandbox' if user.is_root() else '')
+            return '{}{}'.format(self.get_exec_path(), ' --no-sandbox' if user.is_root() else '')
 
     def get_type(self):
         return 'web'
