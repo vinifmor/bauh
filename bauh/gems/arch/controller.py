@@ -20,6 +20,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
+from bauh.api.constants import TEMP_DIR
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -846,7 +847,7 @@ class ArchManager(SoftwareManager):
         return False
 
     def _sync_databases(self, root_password: str, handler: ProcessHandler):
-        sync_path = '/tmp/bauh/arch/sync'
+        sync_path = '{}/arch/sync'.format(TEMP_DIR)
 
         if self.local_config['sync_databases']:
             if os.path.exists(sync_path):
@@ -873,8 +874,8 @@ class ArchManager(SoftwareManager):
                                                                          force=True))
             if synced:
                 try:
-                    Path('/tmp/bauh/arch').mkdir(parents=True, exist_ok=True)
-                    with open('/tmp/bauh/arch/sync', 'w+') as f:
+                    Path('/'.join(sync_path.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
+                    with open(sync_path, 'w+') as f:
                         f.write(str(int(time.time())))
                 except:
                     traceback.print_exc()

@@ -267,7 +267,7 @@ Priority:
 
 
 ### Files and Logs
-- Installation logs and temporary files are saved at **/tmp/bauh**
+- Installation logs and temporary files are saved at **/tmp/bauh** ( or **/tmp/bauh_root** if you launch it as root)
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
 
 ### [bauh-files](https://github.com/vinifmor/bauh-files)

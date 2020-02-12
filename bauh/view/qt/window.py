@@ -16,6 +16,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
+from bauh.gems.web import TEMP_PATH
 from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
@@ -1113,7 +1114,7 @@ class ManageWindow(QWidget):
         console_output = self.textarea_output.toPlainText()
 
         if console_output:
-            log_path = '/tmp/bauh/logs/install/{}/{}'.format(res['pkg'].model.get_type(), res['pkg'].model.name)
+            log_path = '{}/logs/install/{}/{}'.format(TEMP_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
             try:
                 Path(log_path).mkdir(parents=True, exist_ok=True)
 

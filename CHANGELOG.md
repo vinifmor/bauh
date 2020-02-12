@@ -15,11 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - checking architecture dependencies (x86_64, i686)
     - architecture dependencies are displayed on the info window as well
     - optimizations to speed up zst packages building
-- Web:
-    - separate temp build folder for standard and root users
 - UI:
     - **Settings** available as a tray action as well
     - minor improvements
+- the temp dir used now has a different name if you launch bauh as the root user to avoid permissioning issues ( **/tmp/bauh_root** )
 
 ### Fixes
 - Web:
