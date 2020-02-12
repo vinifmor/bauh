@@ -38,7 +38,8 @@ class GenericSettingsManager:
                 icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
                 if man_comp:
-                    gem_tabs.append(TabComponent(label=modname.capitalize(), content=man_comp, icon_path=icon_path, id_=modname))
+                    tab_name = self.i18n.get('gem.{}.label'.format(modname), modname.capitalize())
+                    gem_tabs.append(TabComponent(label=tab_name, content=man_comp, icon_path=icon_path, id_=modname))
 
                 opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
                                   tooltip=self.i18n.get('gem.{}.info'.format(modname)),
