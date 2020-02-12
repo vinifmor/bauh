@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - checking architecture dependencies (x86_64, i686)
     - architecture dependencies are displayed on the info window as well
     - optimizations to speed up zst packages building
-    - showing a warning messaging when trying to install / update a package with the root user
+    - showing a warning messaging when trying to install / update / downgrade a package with the root user
 - UI:
     - **Settings** available as a tray action as well
     - minor improvements

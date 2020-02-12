@@ -192,6 +192,9 @@ class ArchManager(SoftwareManager):
         return SearchResult(apps, None, len(apps))
 
     def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
+
         self.local_config = read_config()
 
         handler = ProcessHandler(watcher)
@@ -262,14 +265,20 @@ class ArchManager(SoftwareManager):
         if os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def _check_action_allowed(self, pkg: ArchPackage, watcher: ProcessWatcher) -> bool:
         if user.is_root() and pkg.mirror == 'aur':
             watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
                                  body=self.i18n['arch.install.aur.root_error.body'],
                                  type_=MessageType.ERROR)
             return False
+        return True
+
+    def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
 
         self.local_config = read_config()
+
         try:
             return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
         finally:
@@ -900,10 +909,7 @@ class ArchManager(SoftwareManager):
             ArchCompilationOptimizer(self.context.logger).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
-        if user.is_root() and pkg.mirror == 'aur':
-            watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
-                                 body=self.i18n['arch.install.aur.root_error.body'],
-                                 type_=MessageType.ERROR)
+        if not self._check_action_allowed(pkg, watcher):
             return False
 
         clean_config = False
