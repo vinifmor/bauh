@@ -21,6 +21,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.api.constants import TEMP_DIR
+from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -262,6 +263,12 @@ class ArchManager(SoftwareManager):
             shutil.rmtree(pkg.get_disk_cache_path())
 
     def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if user.is_root() and pkg.mirror == 'aur':
+            watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
+                                 body=self.i18n['arch.install.aur.root_error.body'],
+                                 type_=MessageType.ERROR)
+            return False
+
         self.local_config = read_config()
         try:
             return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
@@ -893,6 +900,12 @@ class ArchManager(SoftwareManager):
             ArchCompilationOptimizer(self.context.logger).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
+        if user.is_root() and pkg.mirror == 'aur':
+            watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
+                                 body=self.i18n['arch.install.aur.root_error.body'],
+                                 type_=MessageType.ERROR)
+            return False
+
         clean_config = False
 
         if not self.local_config:

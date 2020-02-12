@@ -113,3 +113,5 @@ arch.config.sync_dbs=Sincronizar las bases de paquetes
 arch.config.sync_dbs.tip=Sincroniza las bases de paquetes una vez al día ( o cada reinicialización del dispositivo ) antes de la primera instalación, actualización o reversión de un paquete. Esta opción ayuda a prevenir errores durante estas operaciones.
 arch.config.simple_dep_check=Verificación de dependencias simples
 arch.config.simple_dep_check.tip=Si solo se usara la verificación de dependencia provista por pacman antes de instalar un paquete (más rápido, pero no siempre exacto). Si está deshabilitado, se realizará una verificación más completa (más lenta, pero más precisa)
+arch.install.aur.root_error.title=Acción no permitida
+arch.install.aur.root_error.body=Instalar o actualizar paquetes como root no es permitido

@@ -113,3 +113,5 @@ arch.config.sync_dbs=Synchronize packages databases
 arch.config.sync_dbs.tip=Synchronizes the package databases once a day ( or after a device reboot ) before the first package installation, upgrade or downgrade. This option help to prevent errors during these operations.
 arch.config.simple_dep_check=Verificació de dependències simples
 arch.config.simple_dep_check.tip=Si només s'hauria d'utilitzar la verificació de dependència proporcionada per pacman abans d'instal·lar un paquet (més ràpid, però no sempre exacte). Si està desactivat, es farà una comprovació més completa (més lenta, però més precisa)
+arch.install.aur.root_error.title=No es permet l’acció
+arch.install.aur.root_error.body=La instal·lació o actualització de paquets com a root no està permesa
