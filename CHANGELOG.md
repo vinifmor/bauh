@@ -16,8 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - architecture dependencies are displayed on the info window as well
 - UI:
     - **Settings** available as a tray action as well
-    - minor fixes and improvements
+    - minor improvements
+
+### Fixes
+- Web:
+    - not able to launch applications for the root user
 - handling internet timeout errors
+- minor fixes
+    
 
 ## [0.8.2] - 2020-01-31
 ### Features

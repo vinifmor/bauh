@@ -24,7 +24,7 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSugge
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
-from bauh.commons import resource
+from bauh.commons import resource, user
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
@@ -707,7 +707,7 @@ class WebApplicationManager(SoftwareManager):
         Icon={icon}
         Exec={exec_path}
         {categories}
-        """.format(name=pkg.name, exec_path=pkg.get_exec_path(),
+        """.format(name=pkg.name, exec_path=pkg.get_command(),
                    desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path(),
                    categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '')
 
@@ -876,7 +876,7 @@ class WebApplicationManager(SoftwareManager):
         return True
 
     def launch(self, pkg: WebApplication):
-        subprocess.Popen(pkg.get_exec_path())
+        subprocess.Popen(pkg.get_command())
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
