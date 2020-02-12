@@ -1,18 +1,19 @@
 {
   "app-id": "com.github.vinifmor.bauh",
   "runtime": "org.kde.Platform",
-  "runtime-version": "5.13",
+  "runtime-version": "5.14",
   "sdk": "org.kde.Sdk",
   "command": "bauh",
   "finish-args": [
     "--socket=wayland",
     "--socket=x11",
     "--device=dri",
-    "--filesystem=home",
-    "--filesystem=/usr/bin",
     "--share=network",
-    "--socket=system-bus",
-    "--socket=session-bus"
+    "--filesystem=home",
+    "--filesystem=/usr/bin/aria2c:ro",
+    "--filesystem=/var/lib/flatpak/app:ro",
+    "--filesystem=~/.local/share/flatpak/app:ro",
+    "--filesystem=~/.local/share/flatpak/overrides:create"
   ],
   "modules": [
     {
@@ -164,36 +165,30 @@
       ]
     },
     {
-      "name": "install-bauh",
+      "name": "install-pyyaml",
       "buildsystem": "simple",
       "build-commands": [
-        "pip3 install -e bauh/setup.py --prefix=/app"
+        "pip3 install --prefix=/app --no-deps PyYAML-5.3.tar.gz"
       ],
       "sources": [
         {
-          "type": "dir",
-          "path": "../bauh/",
-          "dest": "bauh/bauh"
-        },
-        {
           "type": "file",
-          "path": "../setup.cfg",
-          "dest": "bauh/setup.cfg"
-        },
-        {
+          "url": "https://files.pythonhosted.org/packages/3d/d9/ea9816aea31beeadccd03f1f8b625ecf8f645bd66744484d162d84803ce5/PyYAML-5.3.tar.gz",
+          "sha256": "e9f45bd5b92c7974e59bcd2dcc8631a6b6cc380a904725fce7bc08872e691615"
+        }
+      ]
+    },
+    {
+      "name": "install-bauh",
+      "buildsystem": "simple",
+      "build-commands": [
+        "pip3 install --prefix=/app --no-deps bauh-0.8.2-py3-none-any.whl"
+      ],
+      "sources": [
+         {
           "type": "file",
-          "path": "../setup.py",
-          "dest": "bauh/setup.py"
-        },
-        {
-          "type": "file",
-          "path": "../MANIFEST.in",
-          "dest": "bauh/MANIFEST.in"
-        },
-        {
-          "type": "file",
-          "path": "../requirements.txt",
-          "dest": "bauh/requirements.txt"
+          "url": "https://files.pythonhosted.org/packages/ce/b5/a7af0cba1fe6c686346ee476d96de932c4702dfca105cff6fba686bb5acd/bauh-0.8.2-py3-none-any.whl",
+          "sha256": "27ab50067d6e48d3a96d85883805764e9e103f7712c4e1208bd862c12490840c"
         }
       ]
     }
