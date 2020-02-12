@@ -154,7 +154,7 @@ db_updater:
     then a copy of **/etc/makepkg.conf** will be generated at **~/.config/bauh/arch/makepkg.conf** defining MAKEFLAGS to work with
     the number of your machine processors (**-j${nproc}**).
 
-    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+    b) same as previous, but related to **COMPRESSXZ** and **COMPRESSZST** definitions ( if '--threads=0' is not defined )
     
     c) **ccache** will be added to **BUILDENV** if it is installed on the system and already not defined 
 
