@@ -18,6 +18,9 @@ def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandl
 
     cmd = ['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild', '--noprepare']
 
+    if not missing_deps:
+        cmd.append('--nodeps')
+
     if optimize:
         if os.path.exists(CUSTOM_MAKEPKG_FILE):
             handler.watcher.print('Using custom makepkg.conf -> {}'.format(CUSTOM_MAKEPKG_FILE))
