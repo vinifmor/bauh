@@ -154,7 +154,9 @@ db_updater:
     then a copy of **/etc/makepkg.conf** will be generated at **~/.config/bauh/arch/makepkg.conf** defining MAKEFLAGS to work with
     the number of your machine processors (**-j${nproc}**).
 
-    b) same as previous, but related to **COMPRESSXZ** definition ( if '--threads=0' is not defined )
+    b) same as previous, but related to **COMPRESSXZ** and **COMPRESSZST** definitions ( if '--threads=0' is not defined )
+    
+    c) **ccache** will be added to **BUILDENV** if it is installed on the system and already not defined 
 
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
@@ -162,8 +164,9 @@ db_updater:
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
-transitive_checking: true  # if 'false': the dependency checking process will be faster, but the application will ask for a confirmation every time a not installed dependency is detected.
+transitive_checking: true  # this property defines if dependencies of a dependency should be retrieved before the package installation. It avoids interruptions, since it will detect all required dependencies before the process begin.
 sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
+simple_checking: false  # this property defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate ) 
 ``` 
 - Required dependencies:
     - **pacman**
@@ -247,7 +250,8 @@ ui:
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
-
+  sort_packages: true  # if the selected applications / packages to upgrade must be sorted to avoid possible issues
+  pre_dependency_checking: true  # displays all applications / packages that must be installed before upgrading the selected ones  
 ```
 #### Tray icons
 Priority: 
@@ -263,7 +267,7 @@ Priority:
 
 
 ### Files and Logs
-- Installation logs and temporary files are saved at **/tmp/bauh**
+- Installation logs and temporary files are saved at **/tmp/bauh** ( or **/tmp/bauh_root** if you launch it as root)
 - Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
 
 ### [bauh-files](https://github.com/vinifmor/bauh-files)

@@ -409,13 +409,65 @@ class GenericSoftwareManager(SoftwareManager):
                                                            working_managers=self.working_managers,
                                                            logger=self.logger,
                                                            i18n=self.i18n)
+        else:
+            self.settings_manager.managers = self.managers
+            self.settings_manager.working_managers = self.working_managers
 
         return self.settings_manager.get_settings(screen_width=screen_width, screen_height=screen_height)
 
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
-        res = self.settings_manager.save_settings(component)
+        return self.settings_manager.save_settings(component)
 
-        if res[0]:
-            self.settings_manager = None
+    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+        by_manager = {}
+        for pkg in pkgs:
+            man = self._get_manager_for(pkg)
 
-        return res
+            if man:
+                man_pkgs = by_manager.get(man)
+
+                if man_pkgs is None:
+                    man_pkgs = []
+                    by_manager[man] = man_pkgs
+
+                man_pkgs.append(pkg)
+
+        sorted_list = []
+
+        if by_manager:
+            for man, pkgs in by_manager.items():
+                if len(pkgs) > 1:
+                    ti = time.time()
+                    sorted_list.extend(man.sort_update_order(pkgs))
+                    tf = time.time()
+                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+                else:
+                    self.logger.info("Only one package to sort for {}. Ignoring sorting.".format(man.__class__.__name__))
+                    sorted_list.extend(pkgs)
+
+        return sorted_list
+
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+        by_manager = {}
+        for pkg in pkgs:
+            man = self._get_manager_for(pkg)
+
+            if man:
+                man_pkgs = by_manager.get(man)
+
+                if man_pkgs is None:
+                    man_pkgs = []
+                    by_manager[man] = man_pkgs
+
+                man_pkgs.append(pkg)
+
+        required = []
+
+        if by_manager:
+            for man, pkgs in by_manager.items():
+                ti = time.time()
+                required.extend(man.get_update_requirements(pkgs, watcher))
+                tf = time.time()
+                self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+
+        return required

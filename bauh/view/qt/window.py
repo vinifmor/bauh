@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 from typing import List, Type, Set
 
-from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
@@ -16,6 +16,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
+from bauh.gems.web import TEMP_PATH
 from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
@@ -30,7 +31,6 @@ from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, D
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
 from bauh.view.qt.view_model import PackageView
-from bauh.view.qt.view_utils import load_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -316,7 +316,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
-                                 action=self._show_settings,
+                                 action=self.show_settings,
                                  background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
@@ -501,11 +501,12 @@ class ManageWindow(QWidget):
             self.table_apps.change_headers_policy(policy)
 
     def closeEvent(self, event):
-
         if self.tray_icon:
             event.ignore()
             self.hide()
             self._handle_console_option(False)
+        else:
+            QCoreApplication.exit()  # needed because QuitOnLastWindowClosed is disabled
 
     def _handle_console(self, checked: bool):
 
@@ -890,7 +891,7 @@ class ManageWindow(QWidget):
                 self._handle_console_option(True)
                 self.progress_controll_enabled = len(to_update) == 1
                 self._begin_action(self.i18n['manage_window.status.upgrading'])
-                self.thread_update.apps_to_update = to_update
+                self.thread_update.pkgs = to_update
                 self.thread_update.root_password = pwd
                 self.thread_update.start()
 
@@ -1113,7 +1114,7 @@ class ManageWindow(QWidget):
         console_output = self.textarea_output.toPlainText()
 
         if console_output:
-            log_path = '/tmp/bauh/logs/install/{}/{}'.format(res['pkg'].model.get_type(), res['pkg'].model.name)
+            log_path = '{}/logs/install/{}/{}'.format(TEMP_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
             try:
                 Path(log_path).mkdir(parents=True, exist_ok=True)
 
@@ -1169,10 +1170,13 @@ class ManageWindow(QWidget):
         else:
             self.checkbox_console.setChecked(True)
 
-    def _show_settings(self):
-        self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, bool(self.tray_icon), self)
-        self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
-        self.settings_window.resize(self.size())
-        self.settings_window.adjustSize()
-        qt_utils.centralize(self.settings_window)
-        self.settings_window.show()
+    def show_settings(self):
+        if self.settings_window:
+            self.settings_window.handle_display()
+        else:
+            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self.tray_icon, self)
+            self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+            self.settings_window.resize(self.size())
+            self.settings_window.adjustSize()
+            qt_utils.centralize(self.settings_window)
+            self.settings_window.show()

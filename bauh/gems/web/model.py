@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
-from bauh.commons import resource
+from bauh.commons import resource, user
 from bauh.gems.web import ROOT_DIR
 
 
@@ -46,6 +46,10 @@ class WebApplication(SoftwarePackage):
     def get_exec_path(self) -> str:
         if self.installation_dir:
             return '{}/{}'.format(self.installation_dir, self.id)
+
+    def get_command(self) -> str:
+        if self.installation_dir:
+            return '{}{}'.format(self.get_exec_path(), ' --no-sandbox' if user.is_root() else '')
 
     def get_type(self):
         return 'web'

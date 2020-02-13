@@ -11,7 +11,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
-from bauh.api.abstract.view import FormComponent, ViewComponent
+from bauh.api.abstract.view import ViewComponent
 
 
 class SearchResult:
@@ -81,6 +81,23 @@ class SoftwareManager(ABC):
         """
         if pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
+
+    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+        """
+        sorts the best order to perform the update of some packages
+        :param pkgs:
+        :return:
+        """
+        return pkgs
+
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+        """
+        return additional required software that needs to be installed before updating a list of packages
+        :param pkgs:
+        :param watcher
+        :return:
+        """
+        return []
 
     @abstractmethod
     def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:

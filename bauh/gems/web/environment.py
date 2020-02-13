@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import tarfile
+import traceback
 from pathlib import Path
 from threading import Thread
 from typing import Dict, List
@@ -58,7 +59,21 @@ class EnvironmentUpdater:
 
                 extracted_file = '{}/{}'.format(ENV_PATH, tf.getnames()[0])
 
-                os.rename(extracted_file, NODE_DIR_PATH)
+                if os.path.exists(NODE_DIR_PATH):
+                    self.logger.info("Removing old NodeJS version installation dir -> {}".format(NODE_DIR_PATH))
+                    try:
+                        shutil.rmtree(NODE_DIR_PATH)
+                    except:
+                        self.logger.error("Could not delete old NodeJS version dir -> {}".format(NODE_DIR_PATH))
+                        traceback.print_exc()
+                        return False
+
+                try:
+                    os.rename(extracted_file, NODE_DIR_PATH)
+                except:
+                    self.logger.error("Could not rename the NodeJS version file {} as {}".format(extracted_file, NODE_DIR_PATH))
+                    traceback.print_exc()
+                    return False
 
                 if os.path.exists(NODE_MODULES_PATH):
                     self.logger.info('Deleting {}'.format(NODE_MODULES_PATH))
@@ -71,6 +86,7 @@ class EnvironmentUpdater:
                 return True
             except:
                 self.logger.error('Could not extract {}'.format(tarf_path))
+                traceback.print_exc()
                 return False
             finally:
                 if os.path.exists(tarf_path):

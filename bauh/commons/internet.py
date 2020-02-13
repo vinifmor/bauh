@@ -9,7 +9,7 @@ def is_available(client: HttpClient, logger: logging.Logger) -> bool:
     try:
         client.exists('https://google.com')
         return True
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
         if logger:
             logger.warning('Internet connection seems to be off')
         return False

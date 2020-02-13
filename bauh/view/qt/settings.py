@@ -1,6 +1,7 @@
+import gc
 from io import StringIO
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QSizePolicy, QPushButton
 
 from bauh.api.abstract.controller import SoftwareManager
@@ -14,7 +15,7 @@ from bauh.view.util.translation import I18n
 
 class SettingsWindow(QWidget):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize, tray: bool, window: QWidget, parent: QWidget = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize, tray, window: QWidget, parent: QWidget = None):
         super(SettingsWindow, self).__init__(parent=parent)
         self.setWindowTitle(i18n['settings'].capitalize())
         self.setLayout(QVBoxLayout())
@@ -48,6 +49,24 @@ class SettingsWindow(QWidget):
 
         self.layout().addWidget(action_bar)
 
+    def closeEvent(self, event):
+        if self.window and self.window.settings_window == self:
+            self.deleteLater()
+            self.window.settings_window = None
+        elif self.tray and self.tray.settings_window == self:
+            self.deleteLater()
+            self.tray.settings_window = None
+
+        gc.collect()
+
+    def handle_display(self):
+        if self.isMinimized():
+            self.setWindowState(Qt.WindowNoState)
+        elif self.isHidden():
+            self.show()
+        else:
+            self.setWindowState(self.windowState() and Qt.WindowMinimized or Qt.WindowActive)
+
     def _save_settings(self):
         success, warnings = self.manager.save_settings(self.settings_model)
 
@@ -58,15 +77,17 @@ class SettingsWindow(QWidget):
                                        body="<p>{}</p><p>{}</p>".format(self.i18n['settings.changed.success.warning'],
                                                                         self.i18n['settings.changed.success.reboot']),
                                        i18n=self.i18n):
-                util.restart_app(self.tray)
+                util.restart_app(self.window and self.window.isVisible())
             else:
                 if isinstance(self.manager, GenericSoftwareManager):
                     self.manager.reset_cache()
 
                 self.manager.prepare()
-                self.window.verify_warnings()
-                self.window.types_changed = True
-                self.window.refresh_apps()
+
+                if self.window and self.window.isVisible():
+                    self.window.verify_warnings()
+                    self.window.types_changed = True
+                    self.window.refresh_apps()
                 self.close()
         else:
             msg = StringIO()

@@ -359,3 +359,10 @@ def read_dependencies(name: str) -> Set[str]:
 def sync_databases(root_password: str, force: bool = False) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Sy{}'.format('y' if force else '')],
                          root_password=root_password)
+
+
+def get_version_for_not_installed(pkgname: str) -> str:
+    output = run_cmd('pacman -Ss {}'.format(pkgname), print_error=False)
+
+    if output:
+        return output.split('\n')[0].split(' ')[1].strip()

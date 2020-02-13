@@ -76,6 +76,7 @@ class ArchCompilationOptimizer(Thread):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
         self.re_compress_xz = re.compile(r'#?\s*COMPRESSXZ\s*=\s*.+')
+        self.re_compress_zst = re.compile(r'#?\s*COMPRESSZST\s*=\s*.+')
         self.re_build_env = re.compile(r'\s+BUILDENV\s*=.+')
         self.re_ccache = re.compile(r'!?ccache')
 
@@ -126,6 +127,19 @@ class ArchCompilationOptimizer(Thread):
                     self.logger.warning("It seems '{}' COMPRESSXZ is already customized".format(GLOBAL_MAKEPKG))
             else:
                 optimizations.append('COMPRESSXZ=(xz -c -z - --threads=0)')
+
+            compress_zst = self.re_compress_zst.findall(custom_makepkg or global_makepkg)
+
+            if compress_zst:
+                not_eligible = [f for f in compress_zst if not f.startswith('#') and '--threads' in f]
+
+                if not not_eligible:
+                    custom_makepkg = self.re_compress_zst.sub('', custom_makepkg or global_makepkg)
+                    optimizations.append('COMPRESSZST=(zstd -c -z -q - --threads=0)')
+                else:
+                    self.logger.warning("It seems '{}' COMPRESSZST is already customized".format(GLOBAL_MAKEPKG))
+            else:
+                optimizations.append('COMPRESSZST=(zstd -c -z -q - --threads=0)')
 
             build_envs = self.re_build_env.findall(custom_makepkg or global_makepkg)
 

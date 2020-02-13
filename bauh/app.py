@@ -76,6 +76,7 @@ def main():
     manager.prepare()
 
     app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)   # otherwise windows opened through the tray icon kill the aplication when closed
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
     app_icon = util.get_default_icon()[1]
@@ -101,6 +102,7 @@ def main():
         tray_icon = TrayIcon(i18n=i18n,
                              manager=manager,
                              manage_window=manage_window,
+                             screen_size=app.primaryScreen().size(),
                              config=local_config)
         manage_window.set_tray_icon(tray_icon)
         tray_icon.show()

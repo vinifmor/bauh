@@ -24,12 +24,12 @@ from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSugge
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
-from bauh.commons import resource
+from bauh.commons import resource, user
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -615,10 +615,10 @@ class WebApplicationManager(SoftwareManager):
                 pkg.custom_icon = icon_path
 
                 # writting the icon in a temporary folder to be used by the nativefier process
-                temp_icon_path = '/tmp/bauh/web/{}'.format(pkg.icon_url.split('/')[-1])
+                temp_icon_path = '{}/{}'.format(TEMP_PATH, pkg.icon_url.split('/')[-1])
                 install_options.append('--icon={}'.format(temp_icon_path))
 
-                self.logger.info("Writting a temp suggestion icon at {}".format(temp_icon_path))
+                self.logger.info("Writing a temp suggestion icon at {}".format(temp_icon_path))
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
 
@@ -707,7 +707,7 @@ class WebApplicationManager(SoftwareManager):
         Icon={icon}
         Exec={exec_path}
         {categories}
-        """.format(name=pkg.name, exec_path=pkg.get_exec_path(),
+        """.format(name=pkg.name, exec_path=pkg.get_command(),
                    desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path(),
                    categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '')
 
@@ -876,7 +876,7 @@ class WebApplicationManager(SoftwareManager):
         return True
 
     def launch(self, pkg: WebApplication):
-        subprocess.Popen(pkg.get_exec_path())
+        subprocess.Popen(pkg.get_command(), shell=user.is_root())
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass

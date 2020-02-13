@@ -1,3 +1,4 @@
+import os
 import re
 import time
 from datetime import datetime, timedelta
@@ -10,8 +11,10 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
-from bauh.api.abstract.view import InputViewComponent, MessageType
+from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption
 from bauh.api.exception import NoInternetException
+from bauh.commons.html import bold
+from bauh.view.core import config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
@@ -90,37 +93,115 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpdateSelectedApps(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, apps_to_update: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, pkgs: List[PackageView] = None):
         super(UpdateSelectedApps, self).__init__()
-        self.apps_to_update = apps_to_update
+        self.pkgs = pkgs
         self.manager = manager
         self.root_password = None
         self.i18n = i18n
+
+    def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True) -> InputOption:
+        if pkg.installed:
+            icon_path = pkg.get_disk_icon_path()
+
+            if not icon_path or not os.path.isfile(icon_path):
+                icon_path = pkg.get_type_icon_path()
+
+        else:
+            icon_path = pkg.get_type_icon_path()
+
+        return InputOption(label='{}{}'.format(pkg.name, ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else ''),
+                           value=None,
+                           tooltip=pkg.get_name_tooltip() if tooltip else None,
+                           read_only=True,
+                           icon_path=icon_path)
+
+    def _handle_update_requirements(self, pkgs: List[SoftwarePackage]) -> bool:
+        self.change_substatus(self.i18n['action.update.requirements.status'])
+        required_pkgs = self.manager.get_update_requirements(pkgs, self)
+
+        if required_pkgs:
+            opts = [self._pkg_as_option(p) for p in required_pkgs]
+
+            if not self.request_confirmation(self.i18n['action.update.requirements.title'],
+                                             self.i18n['action.update.requirements.body'].format(bold(str(len(opts)))),
+                                             [MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
+                                             confirmation_label=self.i18n['continue'].capitalize(),
+                                             deny_label=self.i18n['cancel'].capitalize()):
+                self.notify_finished({'success': False, 'updated': 0, 'types': set()})
+                self.pkgs = None
+                return False
+            else:
+                for pkg in required_pkgs:
+                    if not self.manager.install(pkg, self.root_password, self):
+                        self.notify_finished({'success': False, 'updated': 0, 'types': set()})
+                        self.pkgs = None
+                        label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
+                        self.show_message(title=self.i18n['action.update.install_req.fail.title'],
+                                          body=self.i18n['action.update.install_req.fail.body'].format(label),
+                                          type_=MessageType.ERROR)
+                        return False
+
+        return True
+
+    def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> Tuple[bool, List[SoftwarePackage]]:
+        if bool(app_config['updates']['sort_packages']):
+            self.change_substatus(self.i18n['action.update.status.sorting'])
+            sorted_pkgs = self.manager.sort_update_order([view.model for view in self.pkgs])
+        else:
+            sorted_pkgs = pkgs
+
+        if len(sorted_pkgs) > 1:
+            opts = [self._pkg_as_option(p, tooltip=False) for p in sorted_pkgs]
+            proceed = self.request_confirmation(title=self.i18n['action.update.order.title'],
+                                                body=self.i18n['action.update.order.body'] + ':',
+                                                components=[MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
+                                                confirmation_label=self.i18n['continue'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize())
+        else:
+            proceed = True
+
+        return proceed, sorted_pkgs
 
     def run(self):
 
         success = False
 
-        if self.apps_to_update:
+        if self.pkgs:
             updated, updated_types = 0, set()
-            for app in self.apps_to_update:
 
-                name = app.model.name if not RE_VERSION_IN_NAME.findall(app.model.name) else app.model.name.split('version')[0].strip()
+            app_config = config.read_config()
 
-                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, app.model.version))
-                success = bool(self.manager.update(app.model, self.root_password, self))
+            models = [view.model for view in self.pkgs]
+
+            if bool(app_config['updates']['pre_dependency_checking']) and not self._handle_update_requirements(models):
+                return
+
+            proceed, sorted_pkgs = self._sort_packages(models, app_config)
+
+            if not proceed:
+                self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+                self.pkgs = None
+                return
+
+            for pkg in sorted_pkgs:
+                self.change_substatus('')
+                name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
+
+                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
+                success = bool(self.manager.update(pkg, self.root_password, self))
                 self.change_substatus('')
 
                 if not success:
                     break
                 else:
                     updated += 1
-                    updated_types.add(app.model.__class__)
+                    updated_types.add(pkg.__class__)
                     self.signal_output.emit('\n')
 
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
 
-        self.apps_to_update = None
+        self.pkgs = None
 
 
 class RefreshApps(AsyncAction):

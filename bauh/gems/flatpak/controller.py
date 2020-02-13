@@ -469,3 +469,28 @@ class FlatpakManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
+    def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
+        partials, runtimes, apps = [], [], []
+
+        for p in pkgs:
+            if p.runtime:
+                if p.partial:
+                    partials.append(p)
+                else:
+                    runtimes.append(p)
+            else:
+                apps.append(p)
+
+        if not runtimes:
+            return [*partials, *apps]
+        elif partials:
+            all_runtimes = []
+            for runtime in runtimes:
+                for partial in partials:
+                    if partial.base_id == runtime.id:
+                        all_runtimes.append(partial)
+
+                all_runtimes.append(runtime)
+            return [*all_runtimes, *apps]
+        else:
+            return [*runtimes, *apps]

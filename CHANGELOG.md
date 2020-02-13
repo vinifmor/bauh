@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.8.3] - 2020-02-13
+### Improvements
+- New update lifecycle:
+    - now every package manager must provide all requirements before upgrading all selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
+    - now every package manager must provide the best upgrade order for all the selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
+- AUR
+    - allowing the user to bypass checksum errors when installing / upgrading / downgrading packages
+    - improved how missing dependencies are checked when installing a new package ( the old way was not identifying some missing dependencies of **anbox-git** ). It is possible to use the old algorithm by setting **simple_checking** to **true** in **~/.config/bauh/arch.yml**. More information at [README](https://github.com/vinifmor/bauh/#aur--arch-).
+    - checking architecture dependencies (x86_64, i686)
+    - architecture dependencies are displayed on the info window as well
+    - optimizations to speed up zst packages building
+    - showing a warning messaging when trying to install / update / downgrade a package with the root user
+- UI:
+    - **Settings** available as a tray action as well
+    - minor improvements
+- the temp dir used now has a different name if you launch bauh as the root user to avoid permissioning issues ( **/tmp/bauh_root** )
+
+### Fixes
+- AUR:
+    - not able to downgrade some packages with multiple equal versions on their release history
+- Web:
+    - not able to launch applications for the root user
+    - not able to upgrade the environment's NodeJS version
+- handling internet timeout errors
+- minor fixes
+    
+
 ## [0.8.2] - 2020-01-31
 ### Features
 - New **Settings** panel ( displayed when the lower **Settings** button is clicked ). It allows to change all settings.

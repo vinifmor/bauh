@@ -1,20 +1,21 @@
-import os
 import time
 from io import StringIO
 from threading import Lock, Thread
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt
+from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, Qt, QSize
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
+from PyQt5.QtWidgets import QSystemTrayIcon, QMenu, QWidget, QSizePolicy
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageUpdate
-from bauh.view.qt.view_utils import load_resource_icon
-from bauh.view.util import util, resource
+from bauh.view.qt import qt_utils
 from bauh.view.qt.about import AboutDialog
+from bauh.view.qt.settings import SettingsWindow
+from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.qt.window import ManageWindow
+from bauh.view.util import util
 from bauh.view.util.translation import I18n
 
 
@@ -37,10 +38,11 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, config: dict):
+    def __init__(self, i18n: I18n, manager: SoftwareManager, manage_window: ManageWindow, config: dict, screen_size: QSize):
         super(TrayIcon, self).__init__()
         self.i18n = i18n
         self.manager = manager
+        self.screen_size = screen_size
 
         if config['ui']['tray']['default_icon']:
             self.icon_default = QIcon(config['ui']['tray']['default_icon'])
@@ -65,6 +67,9 @@ class TrayIcon(QSystemTrayIcon):
         self.action_manage = self.menu.addAction(self.i18n['tray.action.manage'])
         self.action_manage.triggered.connect(self.show_manage_window)
 
+        self.action_settings = self.menu.addAction(self.i18n['settings'].capitalize())
+        self.action_settings.triggered.connect(self.show_settings_window)
+
         self.action_about = self.menu.addAction(self.i18n['tray.action.about'])
         self.action_about.triggered.connect(self.show_about)
 
@@ -75,6 +80,8 @@ class TrayIcon(QSystemTrayIcon):
 
         self.manage_window = None
         self.dialog_about = None
+        self.settings_window = None
+
         self.check_thread = UpdateCheck(check_interval=int(config['updates']['check_interval']), manager=self.manager)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
@@ -154,8 +161,21 @@ class TrayIcon(QSystemTrayIcon):
             self.manage_window.refresh_apps()
             self.manage_window.show()
 
-    def show_about(self):
+    def show_settings_window(self):
+        if self.settings_window:
+            self.settings_window.handle_display()
+        else:
+            self.settings_window = SettingsWindow(manager=self.manager,
+                                                  i18n=self.i18n,
+                                                  screen_size=self.screen_size,
+                                                  tray=self,
+                                                  window=self.manage_window)
+            self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+            self.settings_window.adjustSize()
+            qt_utils.centralize(self.settings_window)
+            self.settings_window.show()
 
+    def show_about(self):
         if self.dialog_about is None:
             self.dialog_about = AboutDialog(self.i18n)
 

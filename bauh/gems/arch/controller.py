@@ -20,6 +20,8 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
+from bauh.api.constants import TEMP_DIR
+from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -59,9 +61,9 @@ class ArchManager(SoftwareManager):
         self.aur_cache = context.cache_factory.new()
         # context.disk_loader_factory.map(ArchPackage, self.aur_cache) TODO
 
-        self.mapper = ArchDataMapper(http_client=context.http_client)
+        self.mapper = ArchDataMapper(http_client=context.http_client, i18n=context.i18n)
         self.i18n = context.i18n
-        self.aur_client = AURClient(context.http_client, context.logger)
+        self.aur_client = AURClient(http_client=context.http_client, logger=context.logger, x86_64=context.is_system_x86_64())
         self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
         self.logger = context.logger
         self.enabled = True
@@ -157,7 +159,7 @@ class ArchManager(SoftwareManager):
         for name, data in not_signed.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, mirror='aur')
+                              installed=True, mirror='aur', i18n=self.i18n)
 
             pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
@@ -171,7 +173,7 @@ class ArchManager(SoftwareManager):
     def _fill_mirror_pkgs(self, mirrors: dict, apps: list):
         # TODO
         for name, data in mirrors.items():
-            app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'))
+            app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'), i18n=self.i18n)
             app.installed = True
             app.mirror = ''  # TODO
             app.update = False  # TODO
@@ -190,6 +192,9 @@ class ArchManager(SoftwareManager):
         return SearchResult(apps, None, len(apps))
 
     def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
+
         self.local_config = read_config()
 
         handler = ProcessHandler(watcher)
@@ -223,6 +228,7 @@ class ArchManager(SoftwareManager):
                                 if len(commit_list) > 1:
                                     srcfields = {'pkgver', 'pkgrel'}
 
+                                    commit_found = None
                                     for idx in range(1, len(commit_list)):
                                         commit = commit_list[idx]
                                         with open(srcinfo_path) as f:
@@ -234,7 +240,17 @@ class ArchManager(SoftwareManager):
 
                                         if '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                                             # current version found
+                                            commit_found = commit
+                                        elif commit_found:
                                             watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'checkout', commit_found], cwd=clone_path), check_error_output=False)):
+                                                watcher.print("Could not rollback to current version's commit")
+                                                return False
+
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit_found], cwd=clone_path), check_error_output=False)):
+                                                watcher.print("Could not downgrade to previous commit of '{}'. Aborting...".format(commit_found))
+                                                return False
+
                                             break
 
                                     watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
@@ -260,8 +276,20 @@ class ArchManager(SoftwareManager):
         if os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
+    def _check_action_allowed(self, pkg: ArchPackage, watcher: ProcessWatcher) -> bool:
+        if user.is_root() and pkg.mirror == 'aur':
+            watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
+                                 body=self.i18n['arch.install.aur.root_error.body'],
+                                 type_=MessageType.ERROR)
+            return False
+        return True
+
     def update(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
+
         self.local_config = read_config()
+
         try:
             return self.install(pkg=pkg, root_password=root_password, watcher=watcher, skip_optdeps=True)
         finally:
@@ -304,7 +332,7 @@ class ArchManager(SoftwareManager):
 
     def get_info(self, pkg: ArchPackage) -> dict:
         if pkg.installed:
-            t = Thread(target=self.mapper.fill_package_build, args=(pkg,))
+            t = Thread(target=self.mapper.fill_package_build, args=(pkg,), daemon=True)
             t.start()
 
             info = pacman.get_info_dict(pkg.name)
@@ -335,17 +363,21 @@ class ArchManager(SoftwareManager):
             srcinfo = self.aur_client.get_src_info(pkg.name)
 
             if srcinfo:
-                if srcinfo.get('makedepends'):
-                    info['12_makedepends'] = srcinfo['makedepends']
+                arch_str = 'x86_64' if self.context.is_system_x86_64() else 'i686'
+                for info_attr, src_attr in {'12_makedepends': 'makedepends',
+                                            '13_dependson': 'depends',
+                                            '14_optdepends': 'optdepends',
+                                            'checkdepends': '15_checkdepends'}.items():
+                    if srcinfo.get(src_attr):
+                        info[info_attr] = [*srcinfo[src_attr]]
 
-                if srcinfo.get('depends'):
-                    info['13_dependson'] = srcinfo['depends']
+                    arch_attr = '{}_{}'.format(src_attr, arch_str)
 
-                if srcinfo.get('optdepends'):
-                    info['14_optdepends'] = srcinfo['optdepends']
-
-                if srcinfo.get('checkdepends'):
-                    info['15_checkdepends'] = srcinfo['checkdepends']
+                    if srcinfo.get(arch_attr):
+                        if not info.get(info_attr):
+                            info[info_attr] = [*srcinfo[arch_attr]]
+                        else:
+                            info[info_attr].extend(srcinfo[arch_attr])
 
             if pkg.pkgbuild:
                 info['00_pkg_build'] = pkg.pkgbuild
@@ -407,7 +439,7 @@ class ArchManager(SoftwareManager):
                 pkgbase = self.aur_client.get_src_info(dep[0])['pkgbase']
                 installed = self._install_from_aur(pkgname=dep[0], pkgbase=pkgbase, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
-                installed = self._install(pkgname=dep[0], maintainer=None, root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
+                installed = self._install(pkgname=dep[0], maintainer=dep[1], root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
 
             if not installed:
                 return dep[0]
@@ -533,6 +565,26 @@ class ArchManager(SoftwareManager):
 
         return sorted_deps
 
+    def _check_missing_deps(self, pkgname: str, mirror: str, srcinfo: dict, watcher: ProcessWatcher) -> Dict[str, str]:
+        if mirror == 'aur':
+            missing = {}
+
+            missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, mirror=mirror, srcinfo=srcinfo)
+
+            if missing_subdeps:
+                for dep in missing_subdeps:
+                    if not dep[1]:
+                        message.show_dep_not_found(dep[0], self.i18n, watcher)
+                        return
+
+                for dep in missing_subdeps:
+                    missing[dep[0]] = dep[1]
+
+            return missing
+        else:
+            # TODO
+            return []
+
     def _map_unknown_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
         depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
         dep_repos = self._map_repos(depnames)
@@ -545,31 +597,75 @@ class ArchManager(SoftwareManager):
 
         return self._map_known_missing_deps(dep_repos, watcher, check_subdeps)
 
+    def _ask_and_install_missing_deps(self, pkgname: str, root_password: str, missing_deps: List[Tuple[str, str]], handler: ProcessHandler) -> bool:
+        handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
+
+        if not confirmation.request_install_missing_deps(pkgname, missing_deps, handler.watcher, self.i18n):
+            handler.watcher.print(self.i18n['action.cancelled'])
+            return False
+
+        dep_not_installed = self._install_deps(missing_deps, root_password, handler, change_progress=False)
+
+        if dep_not_installed:
+            message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
+            return False
+
+        return True
+
     def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
-        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], handler=handler)
+
+        if not self.local_config['simple_checking']:
+            ti = time.time()
+            with open('{}/.SRCINFO'.format(pkgdir)) as f:
+                srcinfo = aur.map_srcinfo(f.read())
+
+            missing_deps = self._check_missing_deps(pkgname=pkgname, mirror='aur', srcinfo=srcinfo, watcher=handler.watcher)
+            tf = time.time()
+
+            if missing_deps is None:
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+
+                return False  # it means one of the dependencies could not be found
+            elif missing_deps and check_subdeps:
+                missing_deps = self._map_known_missing_deps(known_deps=missing_deps, watcher=handler.watcher)
+                tf = time.time()
+
+                if missing_deps is None:
+                    self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+                    return False  # it means one of the dependencies could not be found
+
+            self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+            if missing_deps:
+                if not self._ask_and_install_missing_deps(pkgname=pkgname,
+                                                          root_password=root_password,
+                                                          missing_deps=missing_deps,
+                                                          handler=handler):
+                    return False
+
+                # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
+                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
+
+        ti = time.time()
+        check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['simple_checking'], handler=handler)
 
         if check_res:
             if check_res.get('missing_deps'):
                 handler.watcher.change_substatus(self.i18n['arch.checking.missing_deps'].format(bold(pkgname)))
-                sorted_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                missing_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                tf = time.time()
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
 
-                if sorted_deps is None:
+                if missing_deps is None:
                     return False
 
-                handler.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(pkgname)))
-
-                if not confirmation.request_install_missing_deps(pkgname, sorted_deps, handler.watcher, self.i18n):
-                    handler.watcher.print(self.i18n['action.cancelled'])
+                if not self._ask_and_install_missing_deps(pkgname=pkgname,
+                                                          root_password=root_password,
+                                                          missing_deps=missing_deps,
+                                                          handler=handler):
                     return False
 
-                dep_not_installed = self._install_deps(sorted_deps, root_password, handler, change_progress=False)
-
-                if dep_not_installed:
-                    message.show_dep_not_installed(handler.watcher, pkgname, dep_not_installed, self.i18n)
-                    return False
-
-                # it is necessary to re-check because missing PGP keys are only notified when there are none missing
+                # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
                 return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
 
             if check_res.get('gpg_key'):
@@ -585,16 +681,18 @@ class ArchManager(SoftwareManager):
                     return False
 
             if check_res.get('validity_check'):
-                handler.watcher.show_message(title=self.i18n['arch.aur.install.validity_check.title'],
-                                             body=self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
-                                             type_=MessageType.ERROR)
-                return False
+                body = "<p>{}</p><p>{}</p>".format(self.i18n['arch.aur.install.validity_check.body'].format(bold(pkgname)),
+                                                   self.i18n['arch.aur.install.validity_check.proceed'])
+                return not handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.validity_check.title'].format('( checksum )'),
+                                                                body=body,
+                                                                confirmation_label=self.i18n['no'].capitalize(),
+                                                                deny_label=self.i18n['yes'].capitalize())
 
         return True
 
     def _install_optdeps(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         with open('{}/.SRCINFO'.format(pkgdir)) as f:
-            odeps = pkgbuild.read_optdeps_as_dict(f.read())
+            odeps = pkgbuild.read_optdeps_as_dict(f.read(), self.context.is_system_x86_64())
 
         if not odeps:
             return True
@@ -735,6 +833,8 @@ class ArchManager(SoftwareManager):
                     return False
 
     def _install_from_aur(self, pkgname: str, pkgbase: str, maintainer: str, root_password: str, handler: ProcessHandler, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
+        self._optimize_makepkg(watcher=handler.watcher)
+
         app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
@@ -774,7 +874,7 @@ class ArchManager(SoftwareManager):
         return False
 
     def _sync_databases(self, root_password: str, handler: ProcessHandler):
-        sync_path = '/tmp/bauh/arch/sync'
+        sync_path = '{}/arch/sync'.format(TEMP_DIR)
 
         if self.local_config['sync_databases']:
             if os.path.exists(sync_path):
@@ -801,8 +901,8 @@ class ArchManager(SoftwareManager):
                                                                          force=True))
             if synced:
                 try:
-                    Path('/tmp/bauh/arch').mkdir(parents=True, exist_ok=True)
-                    with open('/tmp/bauh/arch/sync', 'w+') as f:
+                    Path('/'.join(sync_path.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
+                    with open(sync_path, 'w+') as f:
                         f.write(str(int(time.time())))
                 except:
                     traceback.print_exc()
@@ -820,6 +920,9 @@ class ArchManager(SoftwareManager):
             ArchCompilationOptimizer(self.context.logger).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
+
         clean_config = False
 
         if not self.local_config:
@@ -829,9 +932,11 @@ class ArchManager(SoftwareManager):
         handler = ProcessHandler(watcher)
 
         self._sync_databases(root_password=root_password, handler=handler)
-        self._optimize_makepkg(watcher=watcher)
 
-        res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
+        if pkg.mirror == 'aur':
+            res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
+        else:
+            res = self._install(pkgname=pkg.name, maintainer=pkg.mirror, root_password=root_password, handler=handler, install_file=None, mirror=pkg.mirror, change_progress=False)
 
         if res:
             if os.path.exists(pkg.get_disk_data_path()):
@@ -962,17 +1067,22 @@ class ArchManager(SoftwareManager):
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',
-                                    value=config['optimize'],
+                                    value=bool(config['optimize']),
                                     max_width=max_width),
-            self._gen_bool_selector(id_='dep_check',
+            self._gen_bool_selector(id_='simple_dep_check',
+                                    label_key='arch.config.simple_dep_check',
+                                    tooltip_key='arch.config.simple_dep_check.tip',
+                                    value=bool(config['simple_checking']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='trans_dep_check',
                                     label_key='arch.config.trans_dep_check',
                                     tooltip_key='arch.config.trans_dep_check.tip',
-                                    value=config['transitive_checking'],
+                                    value=bool(config['transitive_checking']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
-                                    value=config['sync_databases'],
+                                    value=bool(config['sync_databases']),
                                     max_width=max_width)
         ]
 
@@ -983,11 +1093,143 @@ class ArchManager(SoftwareManager):
 
         form_install = component.components[0]
         config['optimize'] = form_install.get_component('opts').get_selected()
-        config['transitive_checking'] = form_install.get_component('dep_check').get_selected()
+        config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
+        config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def sort_update_order(self, pkgs: List[ArchPackage]) -> List[ArchPackage]:
+        pkg_deps = {}  # maps the package instance and a set with all its dependencies
+        names_map = {}  # maps all the package provided names to the package instance
+
+        def _add_info(pkg: ArchPackage):
+            try:
+                srcinfo = self.aur_client.get_src_info(pkg.name)
+
+                names_map[pkg.name] = pkg
+                names = srcinfo.get('pkgname')
+
+                if isinstance(names, list):
+                    for n in names:
+                        names_map[n] = pkg
+
+                pkg_deps[pkg] = self.aur_client.extract_required_dependencies(srcinfo)
+            except:
+                pkg_deps[pkg] = None
+                self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))
+                traceback.print_exc()
+
+        threads = []
+        for pkg in pkgs:
+            t = Thread(target=_add_info, args=(pkg, ), daemon=True)
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
+        return self._sort_deps(pkg_deps, names_map)
+
+    @classmethod
+    def _sort_deps(cls, pkg_deps: Dict[ArchPackage, Set[str]], names_map: Dict[str, ArchPackage]) -> List[ArchPackage]:
+        sorted_names, not_sorted = {}, {}
+        pkg_map = {}
+
+        # first adding all with no deps:
+        for pkg, deps in pkg_deps.items():
+            if not deps:
+                sorted_names[pkg.name] = len(sorted_names)
+            else:
+                not_sorted[pkg.name] = pkg
+
+            pkg_map[pkg.name] = pkg
+
+        # now adding all that depends on another:
+        for name, pkg in not_sorted.items():
+            cls._add_to_sort(pkg, pkg_deps, sorted_names, not_sorted, names_map)
+
+        position_map = {'{}-{}'.format(i, n): pkg_map[n] for n, i in sorted_names.items()}
+        return [position_map[idx] for idx in sorted(position_map)]
+
+    @classmethod
+    def _add_to_sort(cls, pkg: ArchPackage, pkg_deps: Dict[ArchPackage, Set[str]],  sorted_names: Dict[str, int], not_sorted: Dict[str, ArchPackage], names_map: Dict[str, ArchPackage]) -> int:
+        idx = sorted_names.get(pkg.name)
+
+        if idx is not None:
+            return idx
+        else:
+            idx = len(sorted_names)
+            sorted_names[pkg.name] = idx
+
+            for dep in pkg_deps[pkg]:
+                dep_idx = sorted_names.get(dep)
+
+                if dep_idx is not None:
+                    idx = dep_idx + 1
+                else:
+                    dep_pkg = names_map.get(dep)
+
+                    if dep_pkg:  # it means the declared dep is mapped differently from the provided packages to update
+                        dep_idx = sorted_names.get(dep_pkg.name)
+
+                        if dep_idx is not None:
+                            idx = dep_idx + 1
+                        else:
+                            dep_idx = cls._add_to_sort(dep_pkg, pkg_deps, sorted_names, not_sorted, names_map)
+                            idx = dep_idx + 1
+
+                    elif dep in not_sorted:  # it means the dep is one of the packages to sort, but it not sorted yet
+                        dep_idx = cls._add_to_sort(not_sorted[dep], pkg_deps, sorted_names, not_sorted, names_map)
+                        idx = dep_idx + 1
+
+                sorted_names[pkg.name] = idx
+
+            return sorted_names[pkg.name]
+
+    def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
+        version = None
+
+        if pkg_data[1] == 'aur':
+            try:
+                info = self.aur_client.get_src_info(pkg_data[0])
+
+                if info:
+                    version = info.get('pkgver')
+
+                    if not version:
+                        self.logger.warning("No version declared in SRCINFO of '{}'".format(pkg_data[0]))
+                else:
+                    self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
+            except:
+                self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
+        else:
+            version = pacman.get_version_for_not_installed(pkg_data[0])
+
+        output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, mirror=pkg_data[1], i18n=self.i18n)
+
+    def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
+        deps = self._map_known_missing_deps({p.get_base_name(): 'aur' for p in pkgs}, watcher)
+
+        if deps:  # filtering selected packages
+            selected_names = {p.name for p in pkgs}
+            deps = [dep for dep in deps if dep[0] not in selected_names]
+
+        if deps:
+            map_threads, sorted_pkgs = [], {}
+
+            for idx, dep in enumerate(deps):
+                t = Thread(target=self._map_and_add_package, args=(dep, idx, sorted_pkgs), daemon=True)
+                t.start()
+                map_threads.append(t)
+
+            for t in map_threads:
+                t.join()
+
+            return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
+        else:
+            return []
