@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Web:
     - not able to launch applications for the root user
+    - not able to upgrade the environment's NodeJS version
 - handling internet timeout errors
 - minor fixes
     
