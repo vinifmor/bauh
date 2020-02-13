@@ -228,6 +228,7 @@ class ArchManager(SoftwareManager):
                                 if len(commit_list) > 1:
                                     srcfields = {'pkgver', 'pkgrel'}
 
+                                    commit_found = None
                                     for idx in range(1, len(commit_list)):
                                         commit = commit_list[idx]
                                         with open(srcinfo_path) as f:
@@ -239,7 +240,17 @@ class ArchManager(SoftwareManager):
 
                                         if '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                                             # current version found
+                                            commit_found = commit
+                                        elif commit_found:
                                             watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'checkout', commit_found], cwd=clone_path), check_error_output=False)):
+                                                watcher.print("Could not rollback to current version's commit")
+                                                return False
+
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit_found], cwd=clone_path), check_error_output=False)):
+                                                watcher.print("Could not downgrade to previous commit of '{}'. Aborting...".format(commit_found))
+                                                return False
+
                                             break
 
                                     watcher.change_substatus(self.i18n['arch.downgrade.install_older'])

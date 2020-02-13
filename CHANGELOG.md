@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - the temp dir used now has a different name if you launch bauh as the root user to avoid permissioning issues ( **/tmp/bauh_root** )
 
 ### Fixes
+- AUR:
+    - not able to downgrade some packages with multiple equal versions on their release history
 - Web:
     - not able to launch applications for the root user
     - not able to upgrade the environment's NodeJS version
