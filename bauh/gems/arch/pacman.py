@@ -382,3 +382,54 @@ def map_repositories(pkgnames: List[str]) -> Dict[str, str]:
                 idx += 1
 
     return res
+
+
+def list_repository_updates() -> Dict[str,str]:
+    output = run_cmd('pacman -Qu')
+    res = {}
+    if output:
+        for line in output.split('\n'):
+            if line:
+                line_split = line.split(' ')
+                res[line_split[0]] = line_split[-1]
+    return res
+
+
+def map_sorting_data(pkgnames: List[str]) -> Dict[str, dict]:
+    allinfo = new_subprocess(['pacman', '-Qi', *pkgnames]).stdout
+
+    pkgs, current_pkg = {}, {}
+    mapped_attrs = 0
+    for out in new_subprocess(["grep", "-Po", "(Name|Provides|Depends On)\s*:\s*\K(.+)"], stdin=allinfo).stdout:
+        if out:
+            line = out.decode().strip()
+
+            if line:
+                if mapped_attrs == 0:
+                    current_pkg['name'] = line
+                elif mapped_attrs == 1:
+                    provides = set() if line == 'None' else set(line.split(' '))
+                    provides.add(current_pkg['name'])
+                    current_pkg['provides'] = provides
+                elif mapped_attrs == 2:
+                    current_pkg['depends'] = line.split(':')[1].strip()
+                    pkgs[current_pkg['name']] = current_pkg
+                    del current_pkg['name']
+
+                    mapped_attrs = 0
+                    current_pkg = {}
+    return pkgs
+
+
+def get_build_date(pkgname: str) -> str:
+    output = run_cmd('pacman -Qi {}'.format(pkgname))
+
+    if output:
+        bdate_line = [l for l in output.split('\n') if l.startswith('Build Date')]
+
+        if bdate_line:
+            return ':'.join(bdate_line[0].split(':')[1:]).strip()
+
+    return ''
+
+

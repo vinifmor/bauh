@@ -1,8 +1,10 @@
+import glob
 import json
 import os
 import re
 import shutil
 import subprocess
+import tarfile
 import time
 import traceback
 from datetime import datetime
@@ -170,18 +172,34 @@ class ArchManager(SoftwareManager):
 
             pkgs.append(pkg)
 
+    def _fill_repo_updates(self, updates: dict):
+        updates.update(pacman.list_repository_updates())
+
     def _fill_repo_pkgs(self, signed: dict, apps: list):
+        updates = {}
+
+        thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
+        thread_updates.start()
+
         repo_map = pacman.map_repositories(list(signed.keys()))
 
         if len(repo_map) != len(signed):
             self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(signed)))
 
+        thread_updates.join()
         for name, data in signed.items():
             app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'), i18n=self.i18n)
             app.installed = True
             app.mirror = repo_map.get(name)
             app.maintainer = app.mirror
-            app.update = False  # TODO
+
+            if updates:
+                update_version = updates.get(app.name)
+
+                if update_version:
+                    app.latest_version = update_version
+                    app.update = True
+
             apps.append(app)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
@@ -403,7 +421,7 @@ class ArchManager(SoftwareManager):
 
             return info
 
-    def get_history(self, pkg: ArchPackage) -> PackageHistory:
+    def _get_history_aur_pkg(self, pkg: ArchPackage) -> PackageHistory:
         temp_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
@@ -438,6 +456,84 @@ class ArchManager(SoftwareManager):
         finally:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
+
+    def _get_history_repo_pkg(self, pkg: ArchPackage) -> PackageHistory:
+        data = PackageHistory(pkg=pkg, history=[], pkg_status_idx=0)
+
+        versions = [pkg.latest_version]
+
+        if pkg.update:
+            versions.append(pkg.version)
+
+        if os.path.isdir('/var/cache/pacman/pkg'):
+            available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
+            version_files = {}
+
+            if available_files:
+                reg = re.compile(r'{}-([\w.\-]+)-(x86_64|any|i686).pkg'.format(pkg.name))
+
+                for file_path in available_files:
+                    found = reg.findall(os.path.basename(file_path))
+
+                    if found:
+                        ver = found[0][0]
+                        versions.append(ver)
+                        version_files[ver] = file_path
+
+                versions.sort(reverse=True)
+                extract_path = '{}/arch/history'.format(TEMP_DIR)
+
+                try:
+                    try:
+                        Path(extract_path).mkdir(parents=True, exist_ok=True)
+                    except:
+                        self.logger.error("Could not create temp dir {} to extract previous versions data".format(extract_path))
+                        traceback.print_exc()
+                        return data
+
+                    for v in versions:
+                        cur_version = v.split('-')
+                        if v == pkg.version:  # TODO verify if there is available file as well
+                            data.history.append({'1_version': ''.join(cur_version[0:-1]),
+                                                 '2_release': cur_version[-1],
+                                                 '3_data': pacman.get_build_date(pkg.name)})
+                        else:
+                            cur_data = {'1_version': ''.join(cur_version[0:-1]),
+                                       '2_release': cur_version[-1],
+                                       '3_data': None}
+
+                            version_file = version_files.get(v)
+
+                            if version_file:
+                                tf = tarfile.open(version_file)
+                                tf.extractall(extract_path)
+
+                                info_file = '{}/{}/.PKGINFO'.format(extract_path, os.path.basename(version_file))
+
+                                if os.path.isfile(info_file):
+                                    with open(info_file) as f:
+                                        for l in f.readlines():
+                                            if l and l.startswith('builddate'):
+                                                cur_data['3_data'] = datetime.fromtimestamp(int(l.split('=')[1].strip()))
+                                                break
+
+                            data.history.append(cur_data)
+
+                    return data
+                finally:
+                    if os.path.exists(extract_path):
+                        try:
+                            pass
+                            # shutil.rmtree(extract_path)
+                        except:
+                            self.logger.error("Could not remove temp path '{}'".format(extract_path))
+                            raise
+
+    def get_history(self, pkg: ArchPackage) -> PackageHistory:
+        if pkg.mirror == 'aur':
+            return self._get_history_aur_pkg(pkg)
+        else:
+            return self._get_history_repo_pkg(pkg)
 
     def _install_deps(self, deps: List[Tuple[str, str]], root_password: str, handler: ProcessHandler, change_progress: bool = False) -> str:
         """
@@ -1120,7 +1216,31 @@ class ArchManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
+    def _fill_repo_pkgs_sort_data(self, pkgs: List[ArchPackage], pkg_deps: Dict[ArchPackage, Set[str]], names_map: Dict[str, ArchPackage]):
+        sorting_data = pacman.map_sorting_data([p.name for p in pkgs])
+
+        for p in pkgs:
+            data = sorting_data.get(p)
+
+            if data:
+                for name in data['provides']:
+                    names_map[name] = p
+
+                pkg_deps[p] = data['depends']
+            else:
+                names_map[p.name] = p
+                pkg_deps[p] = None
+                self.logger.warning("Could not retrieve the sorting data for package '{}'".format(p))
+
     def sort_update_order(self, pkgs: List[ArchPackage]) -> List[ArchPackage]:
+        aur_pkgs, repo_pkgs = [], []
+
+        for p in pkgs:
+            if p.mirror == 'aur':
+                aur_pkgs.append(p)
+            else:
+                repo_pkgs.append(p)
+
         pkg_deps = {}  # maps the package instance and a set with all its dependencies
         names_map = {}  # maps all the package provided names to the package instance
 
@@ -1142,7 +1262,9 @@ class ArchManager(SoftwareManager):
                 traceback.print_exc()
 
         threads = []
-        for pkg in pkgs:
+
+        t = Thread(target=self._fill_repo_pkgs_sort_data(repo_pkgs, pkg_deps, names_map))
+        for pkg in aur_pkgs:
             t = Thread(target=_add_info, args=(pkg, ), daemon=True)
             t.start()
             threads.append(t)
@@ -1230,7 +1352,7 @@ class ArchManager(SoftwareManager):
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, mirror=pkg_data[1], i18n=self.i18n)
 
     def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
-        deps = self._map_known_missing_deps({p.get_base_name(): 'aur' for p in pkgs}, watcher)
+        deps = self._map_known_missing_deps({p.get_base_name(): p.mirror for p in pkgs}, watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p.name for p in pkgs}

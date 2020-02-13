@@ -240,3 +240,5 @@ action.update.install_req.fail.body=It was not possible to install {}
 action.update.requirements.status=Checking requirements
 action.update.order.title=Upgrade order
 action.update.order.body=The upgrade will be performed in the following order
+action.history.no_history.title=No history
+action.history.no_history.body=There is no available history for {}

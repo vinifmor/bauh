@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolB
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.abstract.model import SoftwarePackage, PackageAction
+from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageHistory
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
@@ -1043,7 +1043,7 @@ class ManageWindow(QWidget):
                                 body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
                                 type_=MessageType.ERROR)
 
-    def get_app_history(self, app: dict):
+    def get_app_history(self, app: PackageView):
         self._handle_console_option(False)
         self._begin_action(self.i18n['manage_window.status.history'])
 
@@ -1062,6 +1062,10 @@ class ManageWindow(QWidget):
             self._handle_console_option(True)
             self.textarea_output.appendPlainText(res['error'])
             self.checkbox_console.setChecked(True)
+        elif not res['history'].history:
+            dialog.show_message(title=self.i18n['action.history.no_history.title'],
+                                body=self.i18n['action.history.no_history.body'].format(bold(res['history'].pkg.name)),
+                                type_=MessageType.WARNING)
         else:
             dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
             dialog_history.exec_()
