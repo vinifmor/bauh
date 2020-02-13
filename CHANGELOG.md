@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.8.3] - 2020-02
+## [0.8.3] - 2020-02-13
 ### Improvements
 - New update lifecycle:
     - now every package manager must provide all requirements before upgrading all selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
