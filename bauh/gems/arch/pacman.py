@@ -430,7 +430,8 @@ def get_build_date(pkgname: str) -> str:
         if bdate_line:
             return ':'.join(bdate_line[0].split(':')[1:]).strip()
 
-def search(words: str) -> Dict[str, str]:
+
+def search(words: str) -> Dict[str, dict]:
     output = run_cmd('pacman -Ss ' + words)
 
     if output:
@@ -447,7 +448,7 @@ def search(words: str) -> Dict[str, str]:
                         current = {}
 
                     repo_split = l.split('/')
-                    current['repository'] = repo_split[0]
+                    current['mirror'] = repo_split[0]  # TODO replace 'mirror' by 'repository'
 
                     data_split = repo_split[1].split(' ')
                     current['name'] = data_split[0]

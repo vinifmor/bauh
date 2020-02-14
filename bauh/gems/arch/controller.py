@@ -106,6 +106,10 @@ class ArchManager(SoftwareManager):
 
         # TODO stopped here
         repo_res = pacman.search(words)
+
+        if repo_res:
+            repo_pkgs = [ArchPackage(name=name, **data) for name, data in repo_res.items()]
+
         api_res = self.aur_client.search(mapped_words if mapped_words else words)
 
         if api_res and api_res.get('results'):
