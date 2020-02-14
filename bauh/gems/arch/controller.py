@@ -458,16 +458,16 @@ class ArchManager(SoftwareManager):
                 shutil.rmtree(temp_dir)
 
     def _get_history_repo_pkg(self, pkg: ArchPackage) -> PackageHistory:
-        data = PackageHistory(pkg=pkg, history=[], pkg_status_idx=0)
+        data = PackageHistory(pkg=pkg, history=[], pkg_status_idx=-1)
 
         versions = [pkg.latest_version]
+        version_files = {}  # maps the version and tar file
 
         if pkg.update:
             versions.append(pkg.version)
 
         if os.path.isdir('/var/cache/pacman/pkg'):
             available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
-            version_files = {}
 
             if available_files:
                 reg = re.compile(r'{}-([\w.\-]+)-(x86_64|any|i686).pkg'.format(pkg.name))
@@ -477,57 +477,69 @@ class ArchManager(SoftwareManager):
 
                     if found:
                         ver = found[0][0]
-                        versions.append(ver)
+                        if ver not in versions:
+                            versions.append(ver)
+
                         version_files[ver] = file_path
 
-                versions.sort(reverse=True)
-                extract_path = '{}/arch/history'.format(TEMP_DIR)
+        versions.sort(reverse=True)
+        extract_path = '{}/arch/history'.format(TEMP_DIR)
 
-                try:
+        try:
+            Path(extract_path).mkdir(parents=True, exist_ok=True)
+        except:
+            self.logger.error("Could not create temp dir {} to extract previous versions data".format(extract_path))
+            traceback.print_exc()
+            return data
+
+        try:
+            for idx, v in enumerate(versions):
+                cur_version = v.split('-')
+                cur_data = {'1_version': ''.join(cur_version[0:-1]),
+                            '2_release': cur_version[-1],
+                            '3_date': ''}
+
+                if pkg.version == v:
+                    data.pkg_status_idx = idx
+
+                version_file = version_files.get(v)
+
+                if not version_file:
+                    if v == pkg.version:
+                        cur_data['3_date'] = pacman.get_build_date(pkg.name)
+                else:
+                    extracted_dir = '{}/{}'.format(extract_path, v)
+                    Path(extracted_dir).mkdir(parents=True, exist_ok=True)
+
                     try:
-                        Path(extract_path).mkdir(parents=True, exist_ok=True)
-                    except:
-                        self.logger.error("Could not create temp dir {} to extract previous versions data".format(extract_path))
-                        traceback.print_exc()
-                        return data
-
-                    for v in versions:
-                        cur_version = v.split('-')
-                        if v == pkg.version:  # TODO verify if there is available file as well
-                            data.history.append({'1_version': ''.join(cur_version[0:-1]),
-                                                 '2_release': cur_version[-1],
-                                                 '3_data': pacman.get_build_date(pkg.name)})
+                        filext = version_file.split('.')[-1]
+                        run_cmd('tar -C {} -I {} -xvf {} .PKGINFO'.format(extracted_dir, 'zstd' if filext == 'zst' else filext, version_file))
+                    except tarfile.ReadError:
+                        if v == pkg.version:
+                            cur_data['3_date'] = pacman.get_build_date(pkg.name)
                         else:
-                            cur_data = {'1_version': ''.join(cur_version[0:-1]),
-                                       '2_release': cur_version[-1],
-                                       '3_data': None}
+                            self.logger.error("Could not read file {}. Skipping version {}".format(version_file, v))
+                            continue
 
-                            version_file = version_files.get(v)
+                    info_file = '{}/.PKGINFO'.format(extracted_dir)
+                    if os.path.isfile(info_file):
+                        with open(info_file) as f:
+                            for l in f.readlines():
+                                if l and l.startswith('builddate'):
+                                    cur_data['3_date'] = datetime.fromtimestamp(int(l.split('=')[1].strip()))
+                                    break
 
-                            if version_file:
-                                tf = tarfile.open(version_file)
-                                tf.extractall(extract_path)
+                data.history.append(cur_data)
+            return data
 
-                                info_file = '{}/{}/.PKGINFO'.format(extract_path, os.path.basename(version_file))
-
-                                if os.path.isfile(info_file):
-                                    with open(info_file) as f:
-                                        for l in f.readlines():
-                                            if l and l.startswith('builddate'):
-                                                cur_data['3_data'] = datetime.fromtimestamp(int(l.split('=')[1].strip()))
-                                                break
-
-                            data.history.append(cur_data)
-
-                    return data
-                finally:
-                    if os.path.exists(extract_path):
-                        try:
-                            pass
-                            # shutil.rmtree(extract_path)
-                        except:
-                            self.logger.error("Could not remove temp path '{}'".format(extract_path))
-                            raise
+        finally:
+            if os.path.exists(extract_path):
+                try:
+                    self.logger.info("Removing temporary history dir {}".format(extract_path))
+                    shutil.rmtree(extract_path)
+                except:
+                    self.logger.error("Could not remove temp path '{}'".format(extract_path))
+                    raise
 
     def get_history(self, pkg: ArchPackage) -> PackageHistory:
         if pkg.mirror == 'aur':

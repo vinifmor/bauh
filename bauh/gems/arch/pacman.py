@@ -1,4 +1,6 @@
 import re
+import traceback
+from datetime import datetime
 from threading import Thread
 from typing import List, Set, Tuple, Dict
 
@@ -429,7 +431,3 @@ def get_build_date(pkgname: str) -> str:
 
         if bdate_line:
             return ':'.join(bdate_line[0].split(':')[1:]).strip()
-
-    return ''
-
-
