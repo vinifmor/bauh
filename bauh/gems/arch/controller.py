@@ -104,6 +104,8 @@ class ArchManager(SoftwareManager):
 
         mapped_words = SEARCH_OPTIMIZED_MAP.get(words)
 
+        # TODO stopped here
+        repo_res = pacman.search(words)
         api_res = self.aur_client.search(mapped_words if mapped_words else words)
 
         if api_res and api_res.get('results'):

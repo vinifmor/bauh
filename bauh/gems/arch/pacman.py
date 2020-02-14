@@ -1,6 +1,4 @@
 import re
-import traceback
-from datetime import datetime
 from threading import Thread
 from typing import List, Set, Tuple, Dict
 
@@ -431,3 +429,31 @@ def get_build_date(pkgname: str) -> str:
 
         if bdate_line:
             return ':'.join(bdate_line[0].split(':')[1:]).strip()
+
+def search(words: str) -> Dict[str, str]:
+    output = run_cmd('pacman -Ss ' + words)
+
+    if output:
+        found, current = {}, {}
+        for l in output.split('\n'):
+            if l:
+                if l.startswith(' '):
+                    current['description'] = l.strip()
+                    found[current['name']] = current
+                    del current['name']
+                    current = None
+                else:
+                    if current is None:
+                        current = {}
+
+                    repo_split = l.split('/')
+                    current['repository'] = repo_split[0]
+
+                    data_split = repo_split[1].split(' ')
+                    current['name'] = data_split[0]
+
+                    version = data_split[1].split(':')
+                    current['version'] = version[0] if len(version) == 1 else version[1]
+
+                    current['installed'] = data_split[-1].endswith('[installed]')
+        return found
