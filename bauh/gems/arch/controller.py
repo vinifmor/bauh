@@ -365,7 +365,7 @@ class ArchManager(SoftwareManager):
     def get_managed_types(self) -> Set["type"]:
         return {ArchPackage}
 
-    def get_info(self, pkg: ArchPackage) -> dict:
+    def _get_info_aur_pkg(self, pkg: ArchPackage) -> dict:
         if pkg.installed:
             t = Thread(target=self.mapper.fill_package_build, args=(pkg,), daemon=True)
             t.start()
@@ -420,6 +420,20 @@ class ArchManager(SoftwareManager):
                 info['11_pkg_build_url'] = pkg.get_pkg_build_url()
 
             return info
+
+    def _get_info_repo_pkg(self, pkg: ArchPackage) -> dict:
+        if pkg.installed:
+            info = pacman.get_info_dict(pkg.name)
+            info['installed files'] = pacman.list_installed_files(pkg.name)
+            return info
+        else:
+            pass
+
+    def get_info(self, pkg: ArchPackage) -> dict:
+        if pkg.mirror == 'aur':
+            return self._get_info_aur_pkg(pkg)
+        else:
+            return self._get_info_repo_pkg(pkg)
 
     def _get_history_aur_pkg(self, pkg: ArchPackage) -> PackageHistory:
         temp_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
