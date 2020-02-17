@@ -49,12 +49,6 @@ SOURCE_FIELDS = ('source', 'source_x86_64')
 RE_PRE_DOWNLOAD_WL_PROTOCOLS = re.compile(r'^(.+::)?(https?|ftp)://.+')
 RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
 
-SEARCH_OPTIMIZED_MAP = {
-    'google chrome': 'google-chrome',
-    'chrome google': 'google-chrome',
-    'googlechrome': 'google-chrome'
-}
-
 
 class ArchManager(SoftwareManager):
 
@@ -76,6 +70,11 @@ class ArchManager(SoftwareManager):
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
         self.local_config = None
         self.http_client = context.http_client
+
+    def get_semantic_search_map(self) -> Dict[str, str]:
+        return {'google chrome': 'google-chrome',
+                'chrome google': 'google-chrome',
+                'googlechrome': 'google-chrome'}
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -103,7 +102,7 @@ class ArchManager(SoftwareManager):
         read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed(repositories=False)), daemon=True)
         read_installed.start()
 
-        mapped_words = SEARCH_OPTIMIZED_MAP.get(words)
+        mapped_words = self.get_semantic_search_map().get(words)
 
         repo_res = pacman.search(words)  # TODO execute in a separate thread
 
