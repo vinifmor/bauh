@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import subprocess
 from io import StringIO
@@ -85,7 +86,7 @@ def get_info(app_name: str, attrs: tuple = None):
     return data
 
 
-def read_installed(ubuntu_distro: bool) -> List[dict]:
+def read_installed(info_path: str) -> List[dict]:
     res = run_cmd('{} list'.format(BASE_CMD), print_error=False)
 
     apps = []
@@ -97,8 +98,6 @@ def read_installed(ubuntu_distro: bool) -> List[dict]:
             for idx, app_str in enumerate(lines):
                 if idx > 0 and app_str:
                     apps.append(app_str_to_json(app_str))
-
-            info_path = _get_app_info_path(ubuntu_distro)
 
             info_out = new_subprocess(['cat', *[info_path.format(a['name']) for a in apps]]).stdout
 
@@ -116,16 +115,16 @@ def read_installed(ubuntu_distro: bool) -> List[dict]:
     return apps
 
 
-def _get_app_info_path(ubuntu_distro: bool) -> str:
-    if ubuntu_distro:
+def get_app_info_path() -> str:
+    if os.path.exists('/snap'):
         return '/snap/{}/current/meta/snap.yaml'
-    else:
+    elif os.path.exists('/var/lib/snapd/snap'):
         return '/var/lib/snapd/snap/{}/current/meta/snap.yaml'
+    else:
+        return None
 
 
-def has_apps_field(name: str, ubuntu_distro: bool) -> bool:
-    info_path = _get_app_info_path(ubuntu_distro)
-
+def has_apps_field(name: str, info_path: str) -> bool:
     info_out = new_subprocess(['cat', info_path.format(name)]).stdout
 
     res = False

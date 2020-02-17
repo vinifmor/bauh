@@ -36,6 +36,13 @@ class SnapManager(SoftwareManager):
         self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
                                                           URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
         self.suggestions_cache = context.cache_factory.new()
+        self.info_path = None
+
+    def get_info_path(self) -> str:
+        if self.info_path is None:
+            self.info_path = snap.get_app_info_path()
+
+        return self.info_path
 
     def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
         app = SnapApplication(publisher=app_json.get('publisher'),
@@ -112,9 +119,11 @@ class SnapManager(SoftwareManager):
             return SearchResult([], [], 0)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
-        if snap.is_snapd_running():
+        info_path = self.get_info_path()
+
+        if snap.is_snapd_running() and info_path:
             self.categories_downloader.join()
-            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(self.ubuntu_distro)]
+            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(info_path)]
             return SearchResult(installed, None, len(installed))
         else:
             return SearchResult([], None, 0)
@@ -159,6 +168,11 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        info_path = self.get_info_path()
+
+        if not info_path:
+            self.logger.warning('Information directory was not found. It will not be possible to determine if the installed application can be launched')
+
         res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
         if 'error:' in output:
@@ -180,14 +194,15 @@ class SnapManager(SoftwareManager):
                         self.logger.info("Installing '{}' with the custom command '{}'".format(pkg.name, channel_select.value))
                         res = ProcessHandler(watcher).handle(SystemProcess(new_root_subprocess(channel_select.value.value.split(' '), root_password=root_password)))
 
-                        if res:
-                            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+                        if res and info_path:
+                            pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
                         return res
                 else:
                     self.logger.error("Could not find available channels in the installation output: {}".format(output))
         else:
-            pkg.has_apps_field = snap.has_apps_field(pkg.name, self.ubuntu_distro)
+            if info_path:
+                pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
         return res
 
