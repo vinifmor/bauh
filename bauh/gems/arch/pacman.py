@@ -88,7 +88,7 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def list_and_map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
+def list_and_map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
     installed = new_subprocess(['pacman', '-Qq']).stdout  # retrieving all installed package names
     allinfo = new_subprocess(['pacman', '-Qi'], stdin=installed).stdout  # retrieving all installed packages info
 
@@ -111,7 +111,10 @@ def list_and_map_installed() -> dict:  # returns a dict with with package names 
                 current_pkg['description'] = line.split(':')[1].strip()
             elif line.startswith('Validated'):
                 key = 'not_signed' if line.split(':')[1].strip().lower() == 'none' else 'signed'
-                pkgs[key][current_pkg['name']] = {'version': current_pkg['version'], 'description': current_pkg['description']}
+
+                if (key == 'signed' and repositories) or (key == 'not_signed' and aur):
+                    pkgs[key][current_pkg['name']] = {'version': current_pkg['version'], 'description': current_pkg['description']}
+
                 current_pkg = {}
 
     if pkgs and (pkgs['signed'] or pkgs['not_signed']):
@@ -384,7 +387,7 @@ def map_repositories(pkgnames: List[str]) -> Dict[str, str]:
     return res
 
 
-def list_repository_updates() -> Dict[str,str]:
+def list_repository_updates() -> Dict[str, str]:
     output = run_cmd('pacman -Qu')
     res = {}
     if output:
@@ -456,5 +459,5 @@ def search(words: str) -> Dict[str, dict]:
                     version = data_split[1].split(':')
                     current['version'] = version[0] if len(version) == 1 else version[1]
 
-                    current['installed'] = data_split[-1].endswith('[installed]')
+                    current['installed'] = '[installed' in repo_split[-1]
         return found

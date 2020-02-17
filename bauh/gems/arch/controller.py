@@ -99,16 +99,21 @@ class ArchManager(SoftwareManager):
         res = SearchResult([], [], 0)
 
         installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed()), daemon=True)
+        # ignore repo packages since they are automatically discovered when pacman.search is performed
+        read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed(repositories=False)), daemon=True)
         read_installed.start()
 
         mapped_words = SEARCH_OPTIMIZED_MAP.get(words)
 
-        # TODO stopped here
-        repo_res = pacman.search(words)
+        repo_res = pacman.search(words)  # TODO execute in a separate thread
 
         if repo_res:
-            repo_pkgs = [ArchPackage(name=name, **data) for name, data in repo_res.items()]
+            for name, data in repo_res.items():
+                pkg = ArchPackage(name=name, i18n=self.i18n, **data)
+                if pkg.installed:
+                    res.installed.append(pkg)
+                else:
+                    res.new.append(pkg)
 
         api_res = self.aur_client.search(mapped_words if mapped_words else words)
 
@@ -194,11 +199,13 @@ class ArchManager(SoftwareManager):
 
         thread_updates.join()
         for name, data in signed.items():
-            app = ArchPackage(name=name, version=data.get('version'), latest_version=data.get('version'), description=data.get('description'), i18n=self.i18n)
-            app.installed = True
-            app.mirror = repo_map.get(name)
-            app.maintainer = app.mirror
-
+            app = ArchPackage(name=name,
+                              version=data.get('version'),
+                              latest_version=data.get('version'),
+                              description=data.get('description'),
+                              i18n=self.i18n,
+                              installed=True,
+                              mirror=repo_map.get(name))
             if updates:
                 update_version = updates.get(app.name)
 

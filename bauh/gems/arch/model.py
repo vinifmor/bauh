@@ -22,7 +22,7 @@ class ArchPackage(SoftwarePackage):
         self.package_base = package_base
         self.votes = votes
         self.popularity = popularity
-        self.maintainer = maintainer
+        self.maintainer = maintainer if maintainer else (mirror if mirror != 'aur' else None)
         self.url_download = url_download
         self.first_submitted = first_submitted
         self.last_modified = last_modified
@@ -50,8 +50,9 @@ class ArchPackage(SoftwarePackage):
     def has_info(self):
         return True
 
-    def can_be_installed(self):
-        return super(ArchPackage, self).can_be_installed() and self.url_download
+    def can_be_installed(self) -> bool:
+        if super(ArchPackage, self).can_be_installed():
+            return bool(self.url_download) if self.mirror == 'aur' else True
 
     def can_be_downgraded(self):
         return self.installed and self.downgrade_enabled
