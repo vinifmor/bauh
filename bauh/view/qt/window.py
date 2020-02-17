@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolB
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageHistory
+from bauh.api.abstract.model import SoftwarePackage, PackageAction
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
@@ -692,9 +692,9 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def _gen_filters(self, updates: int = 0, ignore_updates: bool = False, only_apps: bool = None) -> dict:
+    def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
         return {
-            'only_apps': self.filter_only_apps if only_apps is None else only_apps,
+            'only_apps': False if self.search_performed else self.filter_only_apps,
             'type': self.type_filter,
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
@@ -774,9 +774,7 @@ class ManageWindow(QWidget):
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
-        filters = self._gen_filters(updates=pkgs_info['updates'],
-                                    ignore_updates=ignore_updates,
-                                    only_apps=False if self.search_performed else None)
+        filters = self._gen_filters(updates=pkgs_info['updates'], ignore_updates=ignore_updates)
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 
