@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.8.4] - 2020-02
+### Improvements
+- UI:
+    - treating multiple lines on the application's description displayed on the table
 ### Fixes
 - Snap
     - not able to launch applications on some distros ( e.g: OpenSuse )
