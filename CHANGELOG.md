@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch:
     - support for packages from configured repositories: upgrade, history
 
+### Improvements
+- UI:
+    - treating multiple lines on the application's description displayed on the table
+
 ### Fixes
 - Snap
     - not able to launch applications on some distros ( e.g: OpenSuse )
