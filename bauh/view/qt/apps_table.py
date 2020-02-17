@@ -301,17 +301,18 @@ class AppsTable(QTableWidget):
         self.setCellWidget(pkg.table_index, col, toolbar)
 
     def _set_col_type(self, col: int, pkg: PackageView):
+        icon_data = self.cache_type_icon.get(pkg.model.get_type())
 
-        pixmap = self.cache_type_icon.get(pkg.model.get_type())
-
-        if not pixmap:
+        if icon_data is None:
             pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(16, 16))
-            self.cache_type_icon[pkg.model.get_type()] = pixmap
+            icon_data = {'px': pixmap, 'tip': '{}: {}'.format(self.i18n['type'], pkg.get_type_label())}
+            self.cache_type_icon[pkg.model.get_type()] = icon_data
 
         item = QLabel()
-        item.setPixmap(pixmap)
+        item.setPixmap(icon_data['px'])
         item.setAlignment(Qt.AlignCenter)
-        item.setToolTip('{}: {}'.format(self.i18n['type'], pkg.model.get_type().capitalize()))
+
+        item.setToolTip(icon_data['tip'])
         self.setCellWidget(pkg.table_index, col, item)
 
     def _set_col_version(self, col: int, pkg: PackageView):

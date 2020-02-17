@@ -1,4 +1,6 @@
-gem.arch.label=AUR
+gem.arch.label=Arch
+gem.arch.type.aur.label=Arch ( AUR )
+gem.arch.type.arch_repo.label=Arch ( Repository )
 gem.arch.info=AUR Pakete werden von einer unabhängigen Nutzergemeinschaft geflegt. Es keine Garantie das sie funktionieren oder kein Schaden verursachen.
 gem.aur.install.warning=AUR Pakete werden von einer unabhängigen Nutzergemeinschaft geflegt. Es keine Garantie das sie funktionieren oder kein Schaden verursachen.
 arch.install.conflict.popup.title=Konflikt entdeckt

@@ -58,7 +58,7 @@ class ArchPackage(SoftwarePackage):
         return self.installed and self.downgrade_enabled
 
     def get_type(self):
-        return 'aur' if self.mirror == 'aur' else 'arch'
+        return 'aur' if self.mirror == 'aur' else 'arch_repo'
 
     def get_default_icon_path(self) -> str:
         return self.get_type_icon_path()
@@ -67,7 +67,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/{}.svg'.format('arch' if self.mirror == 'aur' else 'mirror'), ROOT_DIR)
+        return resource.get_path('img/{}.svg'.format(self.get_type()), ROOT_DIR)
 
     def is_application(self):
         return self.can_be_run()
@@ -126,7 +126,7 @@ class ArchPackage(SoftwarePackage):
         return False
 
     def get_name_tooltip(self) -> str:
-        return '{}: {}'.format(self.i18n['repository'], self.mirror)
+        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.mirror)
 
     def __str__(self):
         return self.__repr__()

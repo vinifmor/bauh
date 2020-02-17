@@ -58,6 +58,7 @@ class SoftwarePackage(ABC):
         self.size = size
         self.categories = categories
         self.license = license
+        self.gem_name = self.__module__.split('.')[2]
 
     @abstractmethod
     def has_history(self):

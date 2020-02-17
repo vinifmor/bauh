@@ -1,4 +1,6 @@
-gem.arch.label=AUR
+gem.arch.label=Arch
+gem.arch.type.aur.label=Arch ( AUR )
+gem.arch.type.arch_repo.label=Arch ( Repository )
 gem.arch.info=AUR packages are maintained by an independent user community. There is no warranty that they will work or not harm your system.
 gem.aur.install.warning=AUR packages are maintained by an independent user community. There is no warranty that they will work or not harm your system.
 arch.install.conflict.popup.title=Conflict detected

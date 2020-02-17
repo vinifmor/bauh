@@ -353,7 +353,6 @@ class ManageWindow(QWidget):
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
-        # self.combo_styles.show_panel_after_restart = bool(tray_icon)
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
@@ -715,7 +714,7 @@ class ManageWindow(QWidget):
                 self.pkgs_installed = []
 
             for pkg in new_pkgs:
-                app_model = PackageView(model=pkg)
+                app_model = PackageView(model=pkg, i18n=self.i18n)
                 commons.update_info(app_model, pkgs_info)
                 commons.apply_filters(app_model, filters, pkgs_info)
 
@@ -803,6 +802,7 @@ class ManageWindow(QWidget):
                         icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
+                    # TODO stopped here
                     self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
 
                     if keeping_selected and app_type == self.type_filter:
