@@ -125,7 +125,7 @@ class ArchPackage(SoftwarePackage):
         return False
 
     def get_name_tooltip(self) -> str:
-        return '{}: {}'.format(self.i18n['repository'], self.mirror)
+        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.mirror)
 
     def __str__(self):
         return self.__repr__()
