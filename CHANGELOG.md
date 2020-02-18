@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Snap
     - not able to launch applications on some distros ( e.g: OpenSuse )
+- AUR
+    - package name tooltip was displaying only the repository ( table row )
 - UI
     - not displaying some priority search results at the top of the table
 
