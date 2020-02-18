@@ -10,12 +10,12 @@ class DependenciesAnalyser:
     def __init__(self, aur_client: AURClient):
         self.aur_client = aur_client
 
-    def _fill_mirror(self, name: str, output: List[Tuple[str, str]]):
+    def _fill_repository(self, name: str, output: List[Tuple[str, str]]):
 
-        mirror = pacman.read_repository_from_info(name)
+        repository = pacman.read_repository_from_info(name)
 
-        if mirror:
-            output.append((name, mirror))
+        if repository:
+            output.append((name, repository))
             return
 
         guess = pacman.guess_repository(name)
@@ -32,10 +32,10 @@ class DependenciesAnalyser:
 
         output.append((name, ''))
 
-    def get_missing_packages(self, names: Set[str], mirror: str = None, in_analysis: Set[str] = None) -> List[Tuple[str, str]]:
+    def get_missing_packages(self, names: Set[str], repository: str = None, in_analysis: Set[str] = None) -> List[Tuple[str, str]]:
         """
         :param names:
-        :param mirror:
+        :param repository:
         :param in_analysis: global set storing all names in analysis to avoid repeated recursion
         :return:
         """
@@ -47,9 +47,9 @@ class DependenciesAnalyser:
             missing_root = []
             threads = []
 
-            if not mirror:
+            if not repository:
                 for name in missing_names:
-                    t = Thread(target=self._fill_mirror, args=(name, missing_root))
+                    t = Thread(target=self._fill_repository, args=(name, missing_root))
                     t.start()
                     threads.append(t)
 
@@ -66,7 +66,7 @@ class DependenciesAnalyser:
                         global_in_analysis.add(rdep[0])
             else:
                 for missing in missing_names:
-                    missing_root.append((missing, mirror))
+                    missing_root.append((missing, repository))
                     global_in_analysis.add(missing)
 
             missing_sub = []
@@ -87,13 +87,13 @@ class DependenciesAnalyser:
                                 missing_sub.append(subdep)
             return [*missing_sub, *missing_root]
 
-    def get_missing_subdeps_of(self, names: Set[str], mirror: str) -> List[Tuple[str, str]]:
+    def get_missing_subdeps_of(self, names: Set[str], repository: str) -> List[Tuple[str, str]]:
         missing = []
         already_added = {*names}
         in_analyses = {*names}
 
         for name in names:
-            subdeps = self.aur_client.get_required_dependencies(name) if mirror == 'aur' else pacman.read_dependencies(name)
+            subdeps = self.aur_client.get_required_dependencies(name) if repository == 'aur' else pacman.read_dependencies(name)
 
             if subdeps:
                 missing_subdeps = self.get_missing_packages(subdeps, in_analysis=in_analyses)
@@ -107,12 +107,12 @@ class DependenciesAnalyser:
                             return missing
         return missing
 
-    def get_missing_subdeps(self, name: str, mirror: str, srcinfo: dict = None) -> List[Tuple[str, str]]:
+    def get_missing_subdeps(self, name: str, repository: str, srcinfo: dict = None) -> List[Tuple[str, str]]:
         missing = []
         already_added = {name}
         in_analyses = {name}
 
-        if mirror == 'aur':
+        if repository == 'aur':
             subdeps = self.aur_client.get_required_dependencies(name) if not srcinfo else self.aur_client.extract_required_dependencies(srcinfo)
         else:
             subdeps = pacman.read_dependencies(name)

@@ -20,25 +20,25 @@ def get_repositories(pkgs: Set[str]) -> dict:
     pkgre = '|'.join(pkgs).replace('+', r'\+').replace('.', r'\.')
 
     searchres = new_subprocess(['pacman', '-Ss', pkgre]).stdout
-    mirrors = {}
+    repositories = {}
 
     for line in new_subprocess(['grep', '-E', '.+/({}) '.format(pkgre)], stdin=searchres).stdout:
         if line:
             match = line.decode()
             for p in pkgs:
                 if p in match:
-                    mirrors[p] = match.split('/')[0]
+                    repositories[p] = match.split('/')[0]
 
-    not_found = {pkg for pkg in pkgs if pkg and pkg not in mirrors}
+    not_found = {pkg for pkg in pkgs if pkg and pkg not in repositories}
 
     if not_found:  # if there are some packages not found, try to find via the single method:
         for dep in not_found:
-            mirror_data = guess_repository(dep)
+            repo_data = guess_repository(dep)
 
-            if mirror_data:
-                mirrors[mirror_data[0]] = mirror_data[1]
+            if repo_data:
+                repositories[repo_data[0]] = repo_data[1]
 
-    return mirrors
+    return repositories
 
 
 def is_available_in_repositories(pkg_name: str) -> bool:
@@ -264,16 +264,16 @@ def read_repository_from_info(name: str) -> str:
     if not_found:
         return
 
-    mirror = None
+    repository = None
 
     for o in new_subprocess(['grep', '-Po', "Repository\s+:\s+\K.+"], stdin=info.stdout).stdout:
         if o:
             line = o.decode().strip()
 
             if line:
-                mirror = line
+                repository = line
 
-    return mirror
+    return repository
 
 
 def guess_repository(name: str) -> Tuple[str, str]:
@@ -446,7 +446,7 @@ def search(words: str) -> Dict[str, dict]:
                         current = {}
 
                     repo_split = l.split('/')
-                    current['mirror'] = repo_split[0]  # TODO replace 'mirror' by 'repository'
+                    current['repository'] = repo_split[0]
 
                     data_split = repo_split[1].split(' ')
                     current['name'] = data_split[0]

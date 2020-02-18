@@ -8,16 +8,16 @@ from bauh.gems.arch import ROOT_DIR
 from bauh.view.util.translation import I18n
 
 
-def _get_mirror_icon(mirror: str):
-    return resource.get_path('img/{}.svg'.format('arch' if mirror == 'aur' else 'mirror'), ROOT_DIR)
+def _get_repo_icon(repository: str):
+    return resource.get_path('img/{}.svg'.format('arch' if repository == 'aur' else 'repo'), ROOT_DIR)
 
 
-def request_optional_deps(pkgname: str, pkg_mirrors: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
+def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
     opts = []
 
-    for p, d in pkg_mirrors.items():
-        op = InputOption('{}{} ( {}: {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', i18n['repository'], d['mirror'].upper()), p)
-        op.icon_path = _get_mirror_icon(d['mirror'])
+    for p, d in pkg_repos.items():
+        op = InputOption('{}{} ( {}: {} )'.format(p, ': ' + d['desc'] if d['desc'] else '', i18n['repository'], d['repository'].upper()), p)
+        op.icon_path = _get_repo_icon(d['repository'])
         opts.append(op)
 
     view_opts = MultipleSelectComponent(label='',
@@ -45,7 +45,7 @@ def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watc
     for dep in sorted_deps:
         op = InputOption('{} ( {}: {} )'.format(dep[0], i18n['repository'], dep[1].upper()), dep[0])
         op.read_only = True
-        op.icon_path = _get_mirror_icon(dep[1])
+        op.icon_path = _get_repo_icon(dep[1])
         opts.append(op)
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))

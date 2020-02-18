@@ -175,7 +175,7 @@ class ArchManager(SoftwareManager):
         for name, data in not_signed.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, mirror='aur', i18n=self.i18n)
+                              installed=True, repository='aur', i18n=self.i18n)
 
             pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
@@ -208,7 +208,7 @@ class ArchManager(SoftwareManager):
                               description=data.get('description'),
                               i18n=self.i18n,
                               installed=True,
-                              mirror=repo_map.get(name))
+                              repository=repo_map.get(name))
             if updates:
                 update_version = updates.get(pkg.name)
 
@@ -331,7 +331,7 @@ class ArchManager(SoftwareManager):
             shutil.rmtree(pkg.get_disk_cache_path())
 
     def _check_action_allowed(self, pkg: ArchPackage, watcher: ProcessWatcher) -> bool:
-        if user.is_root() and pkg.mirror == 'aur':
+        if user.is_root() and pkg.repository == 'aur':
             watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
                                  body=self.i18n['arch.install.aur.root_error.body'],
                                  type_=MessageType.ERROR)
@@ -445,7 +445,7 @@ class ArchManager(SoftwareManager):
             pass
 
     def get_info(self, pkg: ArchPackage) -> dict:
-        if pkg.mirror == 'aur':
+        if pkg.repository == 'aur':
             return self._get_info_aur_pkg(pkg)
         else:
             return self._get_info_repo_pkg(pkg)
@@ -571,7 +571,7 @@ class ArchManager(SoftwareManager):
                     raise
 
     def get_history(self, pkg: ArchPackage) -> PackageHistory:
-        if pkg.mirror == 'aur':
+        if pkg.repository == 'aur':
             return self._get_history_aur_pkg(pkg)
         else:
             return self._get_history_repo_pkg(pkg)
@@ -593,7 +593,7 @@ class ArchManager(SoftwareManager):
                 pkgbase = self.aur_client.get_src_info(dep[0])['pkgbase']
                 installed = self._install_from_aur(pkgname=dep[0], pkgbase=pkgbase, maintainer=None, root_password=root_password, handler=handler, dependency=True, change_progress=False)
             else:
-                installed = self._install(pkgname=dep[0], maintainer=dep[1], root_password=root_password, handler=handler, install_file=None, mirror=dep[1], change_progress=False)
+                installed = self._install(pkgname=dep[0], maintainer=dep[1], root_password=root_password, handler=handler, install_file=None, repository=dep[1], change_progress=False)
 
             if not installed:
                 return dep[0]
@@ -604,15 +604,15 @@ class ArchManager(SoftwareManager):
         self._update_progress(handler.watcher, 100, change_progress)
 
     def _map_repos(self, pkgnames: Set[str]) -> dict:
-        pkg_mirrors = pacman.get_repositories(pkgnames)  # getting mirrors set
+        pkg_repos = pacman.get_repositories(pkgnames)  # getting repositories set
 
-        if len(pkgnames) != len(pkg_mirrors):  # checking if any dep not found in the distro mirrors are from AUR
-            nomirrors = {p for p in pkgnames if p not in pkg_mirrors}
-            for pkginfo in self.aur_client.get_info(nomirrors):
-                if pkginfo.get('Name') in nomirrors:
-                    pkg_mirrors[pkginfo['Name']] = 'aur'
+        if len(pkgnames) != len(pkg_repos):  # checking if any dep not found in the distro repos are from AUR
+            norepos = {p for p in pkgnames if p not in pkg_repos}
+            for pkginfo in self.aur_client.get_info(norepos):
+                if pkginfo.get('Name') in norepos:
+                    pkg_repos[pkginfo['Name']] = 'aur'
 
-        return pkg_mirrors
+        return pkg_repos
 
     def _pre_download_source(self, project_dir: str, watcher: ProcessWatcher) -> bool:
         if self.context.file_downloader.is_multithreaded():
@@ -672,7 +672,7 @@ class ArchManager(SoftwareManager):
 
             install_file = '{}/{}'.format(project_dir, gen_file[0])
 
-            if self._install(pkgname=pkgname, maintainer=maintainer, root_password=root_password, mirror='aur', handler=handler,
+            if self._install(pkgname=pkgname, maintainer=maintainer, root_password=root_password, repository='aur', handler=handler,
                              install_file=install_file, pkgdir=project_dir, change_progress=change_progress):
 
                 if dependency or skip_optdeps:
@@ -719,11 +719,11 @@ class ArchManager(SoftwareManager):
 
         return sorted_deps
 
-    def _check_missing_deps(self, pkgname: str, mirror: str, srcinfo: dict, watcher: ProcessWatcher) -> Dict[str, str]:
-        if mirror == 'aur':
+    def _check_missing_deps(self, pkgname: str, repository: str, srcinfo: dict, watcher: ProcessWatcher) -> Dict[str, str]:
+        if repository == 'aur':
             missing = {}
 
-            missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, mirror=mirror, srcinfo=srcinfo)
+            missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, repository=repository, srcinfo=srcinfo)
 
             if missing_subdeps:
                 for dep in missing_subdeps:
@@ -743,7 +743,7 @@ class ArchManager(SoftwareManager):
         depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
         dep_repos = self._map_repos(depnames)
 
-        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any mirror
+        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any repository
             for dep in depnames:
                 if dep not in dep_repos:
                     message.show_dep_not_found(dep, self.i18n, watcher)
@@ -774,7 +774,7 @@ class ArchManager(SoftwareManager):
             with open('{}/.SRCINFO'.format(pkgdir)) as f:
                 srcinfo = aur.map_srcinfo(f.read())
 
-            missing_deps = self._check_missing_deps(pkgname=pkgname, mirror='aur', srcinfo=srcinfo, watcher=handler.watcher)
+            missing_deps = self._check_missing_deps(pkgname=pkgname, repository='aur', srcinfo=srcinfo, watcher=handler.watcher)
             tf = time.time()
 
             if missing_deps is None:
@@ -856,10 +856,10 @@ class ArchManager(SoftwareManager):
         if not to_install:
             return True
 
-        pkg_mirrors = self._map_repos(to_install)
+        pkg_repos = self._map_repos(to_install)
 
-        if pkg_mirrors:
-            final_optdeps = {dep: {'desc': odeps.get(dep), 'mirror': pkg_mirrors.get(dep)} for dep, mirror in pkg_mirrors.items()}
+        if pkg_repos:
+            final_optdeps = {dep: {'desc': odeps.get(dep), 'repository': pkg_repos.get(dep)} for dep, repository in pkg_repos.items()}
 
             deps_to_install = confirmation.request_optional_deps(pkgname, final_optdeps, handler.watcher, self.i18n)
 
@@ -869,7 +869,7 @@ class ArchManager(SoftwareManager):
                 sorted_deps = []
 
                 if self._should_check_subdeps():
-                    missing_deps = self._map_known_missing_deps({d: pkg_mirrors[d] for d in deps_to_install}, handler.watcher)
+                    missing_deps = self._map_known_missing_deps({d: pkg_repos[d] for d in deps_to_install}, handler.watcher)
 
                     if missing_deps is None:
                         return True  # because the main package installation was successful
@@ -886,12 +886,12 @@ class ArchManager(SoftwareManager):
                     aur_deps, repo_deps = [], []
 
                     for dep in deps_to_install:
-                        mirror = pkg_mirrors[dep]
+                        repository = pkg_repos[dep]
 
-                        if mirror == 'aur':
-                            aur_deps.append((dep, mirror))
+                        if repository == 'aur':
+                            aur_deps.append((dep, repository))
                         else:
-                            repo_deps.append((dep, mirror))
+                            repo_deps.append((dep, repository))
 
                     sorted_deps.extend(repo_deps)
                     sorted_deps.extend(aur_deps)
@@ -904,7 +904,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _install(self, pkgname: str, maintainer: str, root_password: str, mirror: str, handler: ProcessHandler, install_file: str = None, pkgdir: str = '.', change_progress: bool = True):
+    def _install(self, pkgname: str, maintainer: str, root_password: str, repository: str, handler: ProcessHandler, install_file: str = None, pkgdir: str = '.', change_progress: bool = True):
         check_install_output = []
         pkgpath = install_file if install_file else pkgname
 
@@ -942,7 +942,7 @@ class ArchManager(SoftwareManager):
         if installed and self.context.disk_cache:
             handler.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(pkgname)))
             if self.context.disk_cache:
-                disk.save_several({pkgname}, mirror=mirror, maintainer=maintainer, overwrite=True, categories=self.categories)
+                disk.save_several(pkgnames={pkgname}, repo_map={pkgname: repository}, maintainer=maintainer, overwrite=True, categories=self.categories)
 
             self._update_progress(handler.watcher, 100, change_progress)
 
@@ -1088,10 +1088,10 @@ class ArchManager(SoftwareManager):
 
         self._sync_databases(root_password=root_password, handler=handler)
 
-        if pkg.mirror == 'aur':
+        if pkg.repository == 'aur':
             res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
         else:
-            res = self._install(pkgname=pkg.name, maintainer=pkg.mirror, root_password=root_password, handler=handler, install_file=None, mirror=pkg.mirror, change_progress=False)
+            res = self._install(pkgname=pkg.name, maintainer=pkg.repository, root_password=root_password, handler=handler, install_file=None, repository=pkg.repository, change_progress=False)
 
         if res:
             if os.path.exists(pkg.get_disk_data_path()):
@@ -1278,7 +1278,7 @@ class ArchManager(SoftwareManager):
         aur_pkgs, repo_pkgs = [], []
 
         for p in pkgs:
-            if p.mirror == 'aur':
+            if p.repository == 'aur':
                 aur_pkgs.append(p)
             else:
                 repo_pkgs.append(p)
@@ -1391,10 +1391,10 @@ class ArchManager(SoftwareManager):
         else:
             version = pacman.get_version_for_not_installed(pkg_data[0])
 
-        output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, mirror=pkg_data[1], i18n=self.i18n)
+        output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
 
     def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
-        deps = self._map_known_missing_deps({p.get_base_name(): p.mirror for p in pkgs}, watcher)
+        deps = self._map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p.name for p in pkgs}

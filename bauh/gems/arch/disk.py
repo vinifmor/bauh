@@ -1,8 +1,9 @@
 import json
 import os
 import re
+import time
 from pathlib import Path
-from typing import Set, List
+from typing import Set, List, Dict
 
 from bauh.gems.arch import pacman
 from bauh.gems.arch.model import ArchPackage
@@ -48,14 +49,17 @@ def set_icon_path(pkg: ArchPackage, icon_name: str = None):
                 break
 
 
-def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, maintainer: str = None, categories: dict = None) -> int:
-    to_cache = {n for n in pkgnames if overwrite or not os.path.exists(ArchPackage.disk_cache_path(n))}
+def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool = True, maintainer: str = None, categories: dict = None) -> int:
+    if overwrite:
+        to_cache = pkgnames
+    else:
+        to_cache = {n for n in pkgnames if not os.path.exists(ArchPackage.disk_cache_path(n))}
+
     desktop_files = pacman.list_desktop_entries(to_cache)
 
     no_desktop_files = {}
 
     to_write = []
-    repo_map = mirror if mirror is not None else pacman.map_repositories(pkgnames)
 
     if desktop_files:
         desktop_matches, no_exact_match = {}, set()
@@ -64,7 +68,6 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
                 clean_name = RE_CLEAN_NAME.sub('', pkg)
                 ends_with = re.compile(r'/usr/share/applications/{}.desktop$'.format(clean_name), re.IGNORECASE)
             except:
-                print(pkg)
                 raise
 
             for f in desktop_files:
@@ -96,7 +99,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
             pkgs, apps_icons_noabspath = [], []
 
             for pkgname, file in desktop_matches.items():
-                p = ArchPackage(name=pkgname, mirror=mirror if mirror else repo_map.get(pkgname))
+                p = ArchPackage(name=pkgname, repository=repo_map.get(pkgname))
 
                 with open(file) as f:
                     try:
@@ -126,7 +129,7 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
                 to_write.append(p)
 
     if no_desktop_files:
-        pkgs = {ArchPackage(name=n, mirror=mirror if mirror else repo_map.get(n)) for n in no_desktop_files}
+        pkgs = {ArchPackage(name=n, repository=repo_map.get(n)) for n in no_desktop_files}
         bin_paths = pacman.list_bin_paths(no_desktop_files)
 
         if bin_paths:
@@ -149,11 +152,21 @@ def save_several(pkgnames: Set[str], mirror: str, overwrite: bool = True, mainta
             to_write.append(p)
 
     if to_write:
+        written = set()
         for p in to_write:
             if categories:
                 p.categories = categories.get(p.name)
 
             p.maintainer = maintainer
             write(p)
+            written.add(p.name)
+
+        ti = time.time()
+        if len(to_write) != len(to_cache):
+            for n in pkgnames:
+                if n not in written:
+                    Path(ArchPackage.disk_cache_path(n)).mkdir(parents=True, exist_ok=True)
+        tf = time.time()
+        print(tf - ti)
         return len(to_write)
     return 0

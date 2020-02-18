@@ -13,6 +13,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.commons.system import run_cmd
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, config
+from bauh.gems.arch.model import ArchPackage
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -59,35 +60,31 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
         self.logger = logger
         self.disk_cache = disk_cache
 
-    def _save_packages(self, pkgs: List[str], mirror: str, output: dict):
-        output['saved'] += disk.save_several({app for app in pkgs}, mirror, overwrite=False)
-
     def run(self):
         if self.disk_cache:
             ti = time.time()
             self.logger.info('Pre-caching installed Arch packages data to disk')
             installed = pacman.list_and_map_installed()
 
-            output = {'saved': 0}
-            save_threads = []
-            if installed:
-                for key in ('signed', 'not_signed'):
-                    pkgs = installed[key]
+            for k in ('signed', 'not_signed'):
+                installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
 
-                    if pkgs:
-                        mirror = 'aur' if key == 'not_signed' else None
-                        t = Thread(target=self._save_packages, args=(pkgs, mirror, output))
-                        t.start()
-                        save_threads.append(t)
+            saved = 0
+            pkgs = {*installed['signed'], *installed['not_signed']}
 
-            if save_threads:
-                self.logger.info("Waiting for caching threads")
-                for t in save_threads:
-                    t.join()
+            repo_map = {}
+
+            if installed['not_signed']:
+                repo_map.update({p: 'aur' for p in installed['not_signed']})
+
+            if installed['signed']:
+                repo_map.update(pacman.map_repositories({*installed['signed']}))
+
+            saved += disk.save_several(pkgs, repo_map)
 
             tf = time.time()
             time_msg = 'Took {0:.2f} seconds'.format(tf - ti)
-            self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(output['saved'], time_msg))
+            self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(saved, time_msg))
 
 
 class ArchCompilationOptimizer(Thread):

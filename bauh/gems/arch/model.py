@@ -6,7 +6,7 @@ from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 from bauh.view.util.translation import I18n
 
-CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry', 'categories'}
+CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories'}
 
 
 class ArchPackage(SoftwarePackage):
@@ -14,7 +14,7 @@ class ArchPackage(SoftwarePackage):
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
-                 maintainer: str = None, url_download: str = None, pkgbuild: str = None, mirror: str = None,
+                 maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  i18n: I18n = None):
 
@@ -22,12 +22,12 @@ class ArchPackage(SoftwarePackage):
         self.package_base = package_base
         self.votes = votes
         self.popularity = popularity
-        self.maintainer = maintainer if maintainer else (mirror if mirror != 'aur' else None)
+        self.maintainer = maintainer if maintainer else (repository if repository != 'aur' else None)
         self.url_download = url_download
         self.first_submitted = first_submitted
         self.last_modified = last_modified
         self.pkgbuild = pkgbuild
-        self.mirror = mirror
+        self.repository = repository
         self.command = None
         self.icon_path = None
         self.downgrade_enabled = False
@@ -52,13 +52,13 @@ class ArchPackage(SoftwarePackage):
 
     def can_be_installed(self) -> bool:
         if super(ArchPackage, self).can_be_installed():
-            return bool(self.url_download) if self.mirror == 'aur' else True
+            return bool(self.url_download) if self.repository == 'aur' else True
 
     def can_be_downgraded(self):
         return self.installed and self.downgrade_enabled
 
     def get_type(self):
-        return 'aur' if self.mirror == 'aur' else 'arch_repo'
+        return 'aur' if self.repository == 'aur' else 'arch_repo'
 
     def get_default_icon_path(self) -> str:
         return self.get_type_icon_path()
@@ -126,7 +126,7 @@ class ArchPackage(SoftwarePackage):
         return False
 
     def get_name_tooltip(self) -> str:
-        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.mirror)
+        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.repository)
 
     def __str__(self):
         return self.__repr__()
