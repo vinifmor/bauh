@@ -109,6 +109,10 @@ class ArchManager(SoftwareManager):
         if repo_res:
             for name, data in repo_res.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
+
+                if disk_loader:
+                    disk_loader.fill(pkg)
+
                 if pkg.installed:
                     res.installed.append(pkg)
                 else:
@@ -185,7 +189,7 @@ class ArchManager(SoftwareManager):
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, signed: dict, apps: list):
+    def _fill_repo_pkgs(self, signed: dict, pkgs: list, disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
@@ -198,7 +202,7 @@ class ArchManager(SoftwareManager):
 
         thread_updates.join()
         for name, data in signed.items():
-            app = ArchPackage(name=name,
+            pkg = ArchPackage(name=name,
                               version=data.get('version'),
                               latest_version=data.get('version'),
                               description=data.get('description'),
@@ -206,37 +210,40 @@ class ArchManager(SoftwareManager):
                               installed=True,
                               mirror=repo_map.get(name))
             if updates:
-                update_version = updates.get(app.name)
+                update_version = updates.get(pkg.name)
 
                 if update_version:
-                    app.latest_version = update_version
-                    app.update = True
+                    pkg.latest_version = update_version
+                    pkg.update = True
 
-            apps.append(app)
+            if disk_loader:
+                disk_loader.fill(pkg)
+
+            pkgs.append(pkg)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         installed = pacman.list_and_map_installed()
 
-        apps = []
+        pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
             map_threads = []
             self.dcache_updater.join()
             self.categories_mapper.join()
 
             if installed['not_signed']:
-                t = Thread(target=self._fill_aur_pkgs, args=(installed['not_signed'], apps, disk_loader, internet_available), daemon=True)
+                t = Thread(target=self._fill_aur_pkgs, args=(installed['not_signed'], pkgs, disk_loader, internet_available), daemon=True)
                 t.start()
                 map_threads.append(t)
 
             if installed['signed']:
-                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], apps), daemon=True)
+                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], pkgs, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 
             for t in map_threads:
                 t.join()
 
-        return SearchResult(apps, None, len(apps))
+        return SearchResult(pkgs, None, len(pkgs))
 
     def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
         if not self._check_action_allowed(pkg, watcher):
@@ -346,13 +353,9 @@ class ArchManager(SoftwareManager):
         res = handler.handle(SystemProcess(new_root_subprocess(['pacman', '-R', pkg_name, '--noconfirm'], root_password)))
 
         if res:
-            cached_paths = [ArchPackage.disk_cache_path(pkg_name, 'aur'), ArchPackage.disk_cache_path(pkg_name, 'mirror')]
-
-            for path in cached_paths:
-                if os.path.exists(path):
-                    shutil.rmtree(path)
-                    break
-
+            cache_path = ArchPackage.disk_cache_path(pkg_name)
+            if os.path.exists(cache_path):
+                shutil.rmtree(cache_path)
         return res
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
@@ -924,7 +927,8 @@ class ArchManager(SoftwareManager):
 
                 for conflict in to_uninstall:
                     handler.watcher.change_substatus(self.i18n['arch.uninstalling.conflict'].format(bold(conflict)))
-                    if not self._uninstall(conflict, root_password, handler):
+
+                    if not self._uninstall(pkg_name=conflict, root_password=root_password, handler=handler):
                         handler.watcher.show_message(title=self.i18n['error'],
                                                      body=self.i18n['arch.uninstalling.conflict.fail'].format(bold(conflict)),
                                                      type_=MessageType.ERROR)

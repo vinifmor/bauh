@@ -37,8 +37,8 @@ class ArchPackage(SoftwarePackage):
         self.i18n = i18n
 
     @staticmethod
-    def disk_cache_path(pkgname: str, mirror: str):
-        return ARCH_CACHE_PATH + '/installed/' + ('aur' if mirror == 'aur' else 'mirror') + '/' + pkgname
+    def disk_cache_path(pkgname: str):
+        return ARCH_CACHE_PATH + '/installed/' + pkgname
 
     def get_pkg_build_url(self):
         if self.package_base:
@@ -80,7 +80,7 @@ class ArchPackage(SoftwarePackage):
 
     def get_disk_cache_path(self) -> str:
         if self.name:
-            return self.disk_cache_path(self.name, self.mirror)
+            return self.disk_cache_path(self.name)
 
     def get_data_to_cache(self) -> dict:
         cache = {}

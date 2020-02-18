@@ -1,6 +1,6 @@
 import re
 from threading import Thread
-from typing import List, Set, Tuple, Dict
+from typing import List, Set, Tuple, Dict, Iterable
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -371,20 +371,15 @@ def get_version_for_not_installed(pkgname: str) -> str:
         return output.split('\n')[0].split(' ')[1].strip()
 
 
-def map_repositories(pkgnames: List[str]) -> Dict[str, str]:
-    dep_info = new_subprocess(['pacman', '-Si', *pkgnames])
+def map_repositories(pkgnames: Iterable[str]) -> Dict[str, str]:
+    info = run_cmd('pacman -Si {}'.format(' '.join(pkgnames)), print_error=False, ignore_return_code=True)
+    if info:
+        repos = re.findall(r'(Name|Repository)\s*:\s*(\w+)', info)
 
-    res = {}
-    idx = 0
-    for out in new_subprocess(['grep', '-Po', 'Repository\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
-        if out:
-            line = out.decode().strip()
+        if repos:
+            return {repos[idx+1][1]: repo_data[1] for idx, repo_data in enumerate(repos) if idx % 2 == 0}
 
-            if line:
-                res[pkgnames[idx]] = line.strip()
-                idx += 1
-
-    return res
+    return {}
 
 
 def list_repository_updates() -> Dict[str, str]:

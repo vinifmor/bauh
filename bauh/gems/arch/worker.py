@@ -5,6 +5,7 @@ import time
 from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
+from typing import List
 
 import requests
 
@@ -58,16 +59,35 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
         self.logger = logger
         self.disk_cache = disk_cache
 
+    def _save_packages(self, pkgs: List[str], mirror: str, output: dict):
+        output['saved'] += disk.save_several({app for app in pkgs}, mirror, overwrite=False)
+
     def run(self):
         if self.disk_cache:
-            self.logger.info('Pre-caching installed AUR packages data to disk')
+            ti = time.time()
+            self.logger.info('Pre-caching installed Arch packages data to disk')
             installed = pacman.list_and_map_installed()
 
-            saved = 0
-            if installed and installed['not_signed']:
-                saved = disk.save_several({app for app in installed['not_signed']}, 'aur', overwrite=False)
+            output = {'saved': 0}
+            save_threads = []
+            if installed:
+                for key in ('signed', 'not_signed'):
+                    pkgs = installed[key]
 
-            self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))
+                    if pkgs:
+                        mirror = 'aur' if key == 'not_signed' else None
+                        t = Thread(target=self._save_packages, args=(pkgs, mirror, output))
+                        t.start()
+                        save_threads.append(t)
+
+            if save_threads:
+                self.logger.info("Waiting for caching threads")
+                for t in save_threads:
+                    t.join()
+
+            tf = time.time()
+            time_msg = 'Took {0:.2f} seconds'.format(tf - ti)
+            self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(output['saved'], time_msg))
 
 
 class ArchCompilationOptimizer(Thread):
@@ -200,4 +220,4 @@ class ArchCompilationOptimizer(Thread):
 
             self.logger.info('Finished')
         else:
-           self.optimize()
+            self.optimize()
