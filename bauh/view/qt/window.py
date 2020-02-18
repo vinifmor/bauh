@@ -794,7 +794,7 @@ class ManageWindow(QWidget):
 
                 sel_type = -1
                 for idx, item in enumerate(available_types.items()):
-                    app_type, icon_path = item[0], item[1]
+                    app_type, icon_path, label = item[0], item[1]['icon'], item[1]['label']
 
                     icon = self.cache_type_filter_icons.get(app_type)
 
@@ -802,8 +802,7 @@ class ManageWindow(QWidget):
                         icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
-                    # TODO stopped here
-                    self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
+                    self.combo_filter_type.addItem(icon, label, app_type)
 
                     if keeping_selected and app_type == self.type_filter:
                         sel_type = idx + 1

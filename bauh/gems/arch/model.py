@@ -67,7 +67,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/{}.svg'.format(self.get_type()), ROOT_DIR)
+        return resource.get_path('img/{}.svg'.format('arch' if self.get_type() == 'aur' else 'repo'), ROOT_DIR)
 
     def is_application(self):
         return self.can_be_run()
