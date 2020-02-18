@@ -8,7 +8,7 @@ from typing import Set, List, Dict
 from bauh.gems.arch import pacman
 from bauh.gems.arch.model import ArchPackage
 
-RE_DESKTOP_ENTRY = re.compile(r'(Exec|Icon)\s*=\s*(.+)')
+RE_DESKTOP_ENTRY = re.compile(r'(Exec|Icon|NoDisplay)\s*=\s*(.+)')
 RE_CLEAN_NAME = re.compile(r'[+*?%]')
 
 
@@ -114,6 +114,12 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
 
                                 if p.icon_path and '/' not in p.icon_path:  # if the icon full path is not defined
                                     apps_icons_noabspath.append(p)
+                            elif field[0] == 'NoDisplay' and field[1].strip().lower() == 'true':
+                                p.command = None
+
+                                if p.icon_path:
+                                    apps_icons_noabspath.remove(p.icon_path)
+                                    p.icon_path = None
                     except:
                         continue
 
@@ -161,12 +167,10 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
             write(p)
             written.add(p.name)
 
-        ti = time.time()
         if len(to_write) != len(to_cache):
             for n in pkgnames:
                 if n not in written:
                     Path(ArchPackage.disk_cache_path(n)).mkdir(parents=True, exist_ok=True)
-        tf = time.time()
-        print(tf - ti)
+
         return len(to_write)
     return 0

@@ -99,7 +99,7 @@ class ArchManager(SoftwareManager):
 
         installed = {}
         # ignore repo packages since they are automatically discovered when pacman.search is performed
-        read_installed = Thread(target=lambda: installed.update(pacman.list_and_map_installed(repositories=False)), daemon=True)
+        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
         read_installed.start()
 
         mapped_words = self.get_semantic_search_map().get(words)
@@ -222,7 +222,7 @@ class ArchManager(SoftwareManager):
             pkgs.append(pkg)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
-        installed = pacman.list_and_map_installed()
+        installed = pacman.map_installed()
 
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):

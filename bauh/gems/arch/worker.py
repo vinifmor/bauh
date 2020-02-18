@@ -64,7 +64,7 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
         if self.disk_cache:
             ti = time.time()
             self.logger.info('Pre-caching installed Arch packages data to disk')
-            installed = pacman.list_and_map_installed()
+            installed = pacman.map_installed()
 
             for k in ('signed', 'not_signed'):
                 installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
@@ -78,7 +78,7 @@ class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Proce
                 repo_map.update({p: 'aur' for p in installed['not_signed']})
 
             if installed['signed']:
-                repo_map.update(pacman.map_repositories({*installed['signed']}))
+                repo_map.update(pacman.map_repositories(installed['signed']))
 
             saved += disk.save_several(pkgs, repo_map)
 

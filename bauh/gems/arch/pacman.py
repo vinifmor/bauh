@@ -9,10 +9,11 @@ RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
+RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
 
 
 def is_enabled() -> bool:
-    res = run_cmd('which pacman')
+    res = run_cmd('which pacman', print_error=False)
     return res and not res.strip().startswith('which ')
 
 
@@ -88,36 +89,33 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def list_and_map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
-    installed = new_subprocess(['pacman', '-Qq']).stdout  # retrieving all installed package names
-    allinfo = new_subprocess(['pacman', '-Qi'], stdin=installed).stdout  # retrieving all installed packages info
-
+def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
     ignored = {}
-    thread_ignored = Thread(target=_fill_ignored, args=(ignored,))
+    thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
 
-    pkgs, current_pkg = {'signed': {}, 'not_signed': {}}, {}
-    for out in new_subprocess(['grep', '-E', '(Name|Description|Version|Validated By)'],
-                              stdin=allinfo).stdout:  # filtering only the Name and Validated By fields:
-        if out:
-            line = out.decode()
+    allinfo = run_cmd('pacman -Qi')
 
-            if line.startswith('Name'):
-                current_pkg['name'] = line.split(':')[1].strip()
-            elif line.startswith('Version'):
-                version = line.split(':')
-                current_pkg['version'] = version[len(version) - 1].strip()
-            elif line.startswith('Description'):
-                current_pkg['description'] = line.split(':')[1].strip()
-            elif line.startswith('Validated'):
-                key = 'not_signed' if line.split(':')[1].strip().lower() == 'none' else 'signed'
+    pkgs = {'signed': {}, 'not_signed': {}}
+    current_pkg = {}
+    for idx, field_tuple in enumerate(RE_INSTALLED_FIELDS.findall(allinfo)):
+        if field_tuple[0].startswith('N'):
+            current_pkg['name'] = field_tuple[1].strip()
+        elif field_tuple[0].startswith('Ve'):
+            current_pkg['version'] = field_tuple[1].split(':')[-1].strip()
+        elif field_tuple[0].startswith('D'):
+            current_pkg['description'] = field_tuple[1].strip()
+        elif field_tuple[0].startswith('Va'):
+            if field_tuple[1].strip().lower() == 'none' and aur:
+                pkgs['not_signed'][current_pkg['name']] = current_pkg
+                del current_pkg['name']
+            elif repositories:
+                pkgs['signed'][current_pkg['name']] = current_pkg
+                del current_pkg['name']
 
-                if (key == 'signed' and repositories) or (key == 'not_signed' and aur):
-                    pkgs[key][current_pkg['name']] = {'version': current_pkg['version'], 'description': current_pkg['description']}
+            current_pkg = {}
 
-                current_pkg = {}
-
-    if pkgs and (pkgs['signed'] or pkgs['not_signed']):
+    if pkgs['signed'] or pkgs['not_signed']:
         thread_ignored.join()
 
         if ignored['pkgs']:
@@ -131,7 +129,6 @@ def list_and_map_installed(repositories: bool = True, aur: bool = True) -> dict:
 
                 for pkg in to_del:
                     del pkgs[key][pkg]
-
     return pkgs
 
 
@@ -456,3 +453,5 @@ def search(words: str) -> Dict[str, dict]:
 
                     current['installed'] = '[installed' in repo_split[-1]
         return found
+
+map_installed()
