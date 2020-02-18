@@ -20,8 +20,8 @@ class PackageView:
 
     def get_type_label(self) -> str:
         type_label = 'gem.{}.type.{}.label'.format(self.model.gem_name, self.model.get_type())
-        type_i18n = self.i18n.get(type_label, self.model.get_type().capitalize())
+        type_i18n = self.i18n.get(type_label, self.model.get_type().capitalize()).strip()
         return type_i18n
 
     def __repr__(self):
-        return '{} ( {} )'.format(self.model.name, self.model.get_type())
+        return '{} ( {} )'.format(self.model.name, self.get_type_label())
