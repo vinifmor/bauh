@@ -90,21 +90,8 @@ class ArchManager(SoftwareManager):
 
         Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
 
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
-        if is_url:
-            return SearchResult([], [], 0)
-
-        downgrade_enabled = git.is_enabled()
-        res = SearchResult([], [], 0)
-
-        installed = {}
-        # ignore repo packages since they are automatically discovered when pacman.search is performed
-        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
-        read_installed.start()
-
-        mapped_words = self.get_semantic_search_map().get(words)
-
-        repo_search = pacman.search(mapped_words if mapped_words else words)  # TODO execute in a separate thread
+    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, res: SearchResult):
+        repo_search = pacman.search(words)
 
         if repo_search:
             for name, data in repo_search.items():
@@ -119,11 +106,13 @@ class ArchManager(SoftwareManager):
                 else:
                     res.new.append(pkg)
 
-        api_res = self.aur_client.search(mapped_words if mapped_words else words)
+    def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: dict, res: SearchResult):
+        api_res = self.aur_client.search(words)
 
         if api_res and api_res.get('results'):
             read_installed.join()
 
+            downgrade_enabled = git.is_enabled()
             for pkgdata in api_res['results']:
                 self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
@@ -143,9 +132,30 @@ class ArchManager(SoftwareManager):
 
                 if pkgsinfo:
                     read_installed.join()
+                    downgrade_enabled = git.is_enabled()
 
                     for pkgdata in pkgsinfo:
                         self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
+
+    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
+        if is_url:
+            return SearchResult([], [], 0)
+
+        res = SearchResult([], [], 0)
+
+        installed = {}
+        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
+        read_installed.start()
+
+        mapped_words = self.get_semantic_search_map().get(words)
+        final_words = mapped_words or words
+
+        aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
+        aur_search.start()
+
+        self._search_in_repos_and_fill(final_words, disk_loader, res)
+
+        aur_search.join()
 
         res.total = len(res.installed) + len(res.new)
         return res
