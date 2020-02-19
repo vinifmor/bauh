@@ -441,40 +441,36 @@ class ArchManager(SoftwareManager):
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
         self.local_config = read_config()
-        handler = ProcessHandler(watcher)
+        try:
+            handler = ProcessHandler(watcher)
 
-        watcher.change_progress(10)
-        info = pacman.get_info_dict(pkg.name)
-        watcher.change_progress(50)
+            watcher.change_progress(10)
+            info = pacman.get_info_dict(pkg.name)
+            watcher.change_progress(50)
 
-        if info.get('required by'):
-            pkname = bold(pkg.name)
-            msg = '{}:<br/><br/>{}<br/><br/>{}'.format(self.i18n['arch.uninstall.required_by'].format(pkname), bold(info['required by']), self.i18n['arch.uninstall.required_by.advice'].format(pkname))
-            watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.WARNING)
-            return False
+            if info.get('required by'):
+                pkname = bold(pkg.name)
+                msg = '{}:<br/><br/>{}<br/><br/>{}'.format(self.i18n['arch.uninstall.required_by'].format(pkname), bold(info['required by']), self.i18n['arch.uninstall.required_by.advice'].format(pkname))
+                watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.WARNING)
+                return False
 
-        uninstalled = self._uninstall(pkg.name, root_password, handler)
+            uninstalled = self._uninstall(pkg.name, root_password, handler)
 
-        if pkg.repository != 'aur' and self.local_config['clean_cached'] is not False:  # cleaning old versions
-            if os.path.isdir('/var/cache/pacman/pkg'):
-                available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
+            if pkg.repository != 'aur' and self.local_config['clean_cached']:  # cleaning old versions
+                watcher.change_substatus(self.i18n['arch.uninstall.clean_cached.substatus'])
+                if os.path.isdir('/var/cache/pacman/pkg'):
+                    available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
 
-                if available_files:
-                    size = system.get_human_size_str(sum([os.path.getsize(f) for f in available_files]))
-                    msg = '{}<br/><br/>{}'.format(self.i18n['arch.uninstall.clean_cached.body.line_1'].format(bold(pkg.name), size),
-                                                  self.i18n['arch.uninstall.clean_cached.body.line_2'])
+                    if available_files and not handler.handle_simple(SimpleProcess(cmd=['rm', '-rf', *available_files],
+                                                                                   root_password=root_password)):
+                        watcher.show_message(title=self.i18n['error'],
+                                             body=self.i18n['arch.uninstall.clean_cached.error'].format(bold(pkg.name)),
+                                             type_=MessageType.WARNING)
 
-                    if watcher.request_confirmation(title=self.i18n['arch.uninstall.clean_cached'],
-                                                    body=msg):
-                        if not handler.handle_simple(SimpleProcess(cmd=['rm', '-rf', *available_files],
-                                                                   root_password=root_password)):
-                            watcher.show_message(title=self.i18n['error'],
-                                                 body=self.i18n['arch.uninstall.clean_cached.error'],
-                                                 type_=MessageType.WARNING)
-
-        watcher.change_progress(100)
-        self.local_config = None
-        return uninstalled
+            watcher.change_progress(100)
+            return uninstalled
+        finally:
+            self.local_config = None
 
     def get_managed_types(self) -> Set["type"]:
         return {ArchPackage}
@@ -1313,33 +1309,38 @@ class ArchManager(SoftwareManager):
                                      id_=id_)
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        config = read_config()
+        local_config = read_config()
         max_width = floor(screen_width * 0.15)
 
         fields = [
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',
-                                    value=bool(config['optimize']),
+                                    value=bool(local_config['optimize']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='simple_dep_check',
                                     label_key='arch.config.simple_dep_check',
                                     tooltip_key='arch.config.simple_dep_check.tip',
-                                    value=bool(config['simple_checking']),
+                                    value=bool(local_config['simple_checking']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='trans_dep_check',
                                     label_key='arch.config.trans_dep_check',
                                     tooltip_key='arch.config.trans_dep_check.tip',
-                                    value=bool(config['transitive_checking']),
+                                    value=bool(local_config['transitive_checking']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
-                                    value=bool(config['sync_databases']),
+                                    value=bool(local_config['sync_databases']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='clean_cached',
+                                    label_key='arch.config.clean_cache',
+                                    tooltip_key='arch.config.clean_cache.tip',
+                                    value=bool(local_config['clean_cached']),
                                     max_width=max_width)
         ]
 
-        return PanelComponent([FormComponent(fields, label=self.i18n['installation'].capitalize())])
+        return PanelComponent([FormComponent(fields, spaces=False)])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
         config = read_config()
@@ -1349,6 +1350,7 @@ class ArchManager(SoftwareManager):
         config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
         config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
+        config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)

@@ -286,3 +286,4 @@ action.update.order.title=Ordem de atualização
 action.update.order.body=A atualização será realizada na seguinte ordem
 action.history.no_history.title=Sem histórico
 action.history.no_history.body=Não existe histórico disponível para {}
+general=geral

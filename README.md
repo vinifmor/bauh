@@ -166,7 +166,8 @@ db_updater:
 optimize: true  # if 'false': disables the auto-compilation improvements
 transitive_checking: true  # this property defines if dependencies of a dependency should be retrieved before the package installation. It avoids interruptions, since it will detect all required dependencies before the process begin.
 sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
-simple_checking: false  # this property defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate ) 
+simple_checking: false  # defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate )
+clean_cached: true  # defines if old cached versions should be removed during a package uninstallation
 ``` 
 - Required dependencies:
     - **pacman**

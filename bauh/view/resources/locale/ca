@@ -278,3 +278,4 @@ action.update.install_req.fail.body=No s'ha pogut instal·lar {}
 action.update.requirements.status=Verificant els requisits
 action.update.order.title=Ordre d'actualització
 action.update.order.body=L'actualització es realitzarà en l'ordre següent
+general=general

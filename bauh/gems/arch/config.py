@@ -7,5 +7,5 @@ def read_config(update_file: bool = False) -> dict:
                 'transitive_checking': True,
                 "sync_databases": True,
                 "simple_checking": False,
-                "clean_cached": None}
+                "clean_cached": True}
     return read(CONFIG_FILE, template, update_file=update_file)

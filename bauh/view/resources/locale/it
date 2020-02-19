@@ -233,3 +233,4 @@ action.update.install_req.fail.body=Non è stato possibile installare {}
 action.update.requirements.status=Verificando i requisiti
 action.update.order.title=Ordine di aggiornamento
 action.update.order.body=L'aggiornamento verrà eseguito nel seguente ordine
+general=generale
