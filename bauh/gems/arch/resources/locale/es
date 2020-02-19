@@ -37,6 +37,7 @@ arch_repo.info.validpgpkeys=llaves PGP válidas
 arch_repo.info.options=opciones
 arch_repo.info.provides=provee
 arch_repo.info.conflicts with=conflicta
+arch_repo.info.installed files=archivos instalados
 arch.install.conflict.popup.title=Conflicto detectado
 arch.install.conflict.popup.body=Los aplicativos {} estan en conflicto. Debe desinstalar uno para instalar el otro. ¿Continuar?
 arch.missing_deps.title=Dependencias faltantes
