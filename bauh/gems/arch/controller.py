@@ -104,7 +104,7 @@ class ArchManager(SoftwareManager):
 
         mapped_words = self.get_semantic_search_map().get(words)
 
-        repo_search = pacman.search(words)  # TODO execute in a separate thread
+        repo_search = pacman.search(mapped_words if mapped_words else words)  # TODO execute in a separate thread
 
         if repo_search:
             for name, data in repo_search.items():
