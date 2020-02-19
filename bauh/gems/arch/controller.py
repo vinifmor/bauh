@@ -94,9 +94,12 @@ class ArchManager(SoftwareManager):
         repo_search = pacman.search(words)
 
         if repo_search:
+            downgradable_pkgs = self._get_downgradable_files()
+
             for name, data in repo_search.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
                 pkg.latest_version = pkg.version
+                pkg.downgrade_enabled = True
 
                 if disk_loader:
                     disk_loader.fill(pkg)
@@ -220,6 +223,7 @@ class ArchManager(SoftwareManager):
                               i18n=self.i18n,
                               installed=True,
                               repository=repo_map.get(name))
+            pkg.downgrade_enabled = True
             if updates:
                 update_version = updates.get(pkg.name)
 
@@ -256,36 +260,29 @@ class ArchManager(SoftwareManager):
 
         return SearchResult(pkgs, None, len(pkgs))
 
-    def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
-        if not self._check_action_allowed(pkg, watcher):
-            return False
-
-        self.local_config = read_config()
-
-        handler = ProcessHandler(watcher)
-        app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
-
+    def _downgrade_aur_pkg(self, pkg: ArchPackage, root_password: str, handler: ProcessHandler):
         self._sync_databases(root_password=root_password, handler=handler)
 
-        watcher.change_progress(5)
+        app_build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
 
         try:
             if not os.path.exists(app_build_dir):
                 build_dir = handler.handle(SystemProcess(new_subprocess(['mkdir', '-p', app_build_dir])))
 
                 if build_dir:
-                    watcher.change_progress(10)
+                    handler.watcher.change_progress(10)
                     base_name = pkg.get_base_name()
-                    watcher.change_substatus(self.i18n['arch.clone'].format(bold(pkg.name)))
-                    clone = handler.handle(SystemProcess(subproc=new_subprocess(['git', 'clone', URL_GIT.format(base_name)], cwd=app_build_dir), check_error_output=False))
-                    watcher.change_progress(30)
+                    handler.watcher.change_substatus(self.i18n['arch.clone'].format(bold(pkg.name)))
+                    clone = handler.handle(SystemProcess(subproc=new_subprocess(['git', 'clone', URL_GIT.format(base_name)],
+                                                                                cwd=app_build_dir),check_error_output=False))
+                    handler.watcher.change_progress(30)
                     if clone:
-                        watcher.change_substatus(self.i18n['arch.downgrade.reading_commits'])
+                        handler.watcher.change_substatus(self.i18n['arch.downgrade.reading_commits'])
                         clone_path = '{}/{}'.format(app_build_dir, base_name)
                         srcinfo_path = '{}/.SRCINFO'.format(clone_path)
 
                         commits = run_cmd("git log", cwd=clone_path)
-                        watcher.change_progress(40)
+                        handler.watcher.change_progress(40)
 
                         if commits:
                             commit_list = re.findall(r'commit (.+)\n', commits)
@@ -299,34 +296,40 @@ class ArchManager(SoftwareManager):
                                         with open(srcinfo_path) as f:
                                             pkgsrc = aur.map_srcinfo(f.read(), srcfields)
 
-                                        if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit], cwd=clone_path), check_error_output=False)):
-                                            watcher.print('Could not downgrade anymore. Aborting...')
+                                        if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit],
+                                                                            cwd=clone_path), check_error_output=False)):
+                                            handler.watcher.print('Could not downgrade anymore. Aborting...')
                                             return False
 
                                         if '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                                             # current version found
                                             commit_found = commit
                                         elif commit_found:
-                                            watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
-                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'checkout', commit_found], cwd=clone_path), check_error_output=False)):
-                                                watcher.print("Could not rollback to current version's commit")
+                                            handler.watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'checkout', commit_found],
+                                                                               cwd=clone_path), check_error_output=False)):
+                                                handler.watcher.print("Could not rollback to current version's commit")
                                                 return False
 
-                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit_found], cwd=clone_path), check_error_output=False)):
-                                                watcher.print("Could not downgrade to previous commit of '{}'. Aborting...".format(commit_found))
+                                            if not handler.handle(SystemProcess(subproc=new_subprocess(['git', 'reset', '--hard', commit_found],
+                                                                                cwd=clone_path), check_error_output=False)):
+                                                handler.watcher.print("Could not downgrade to previous commit of '{}'. Aborting...".format(commit_found))
                                                 return False
 
                                             break
 
-                                    watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
-                                    return self._build(pkg.name, base_name, pkg.maintainer, root_password, handler, app_build_dir, clone_path, dependency=False, skip_optdeps=True)
+                                    handler.watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
+                                    return self._build(pkg.name, base_name, pkg.maintainer, root_password, handler,
+                                                       app_build_dir, clone_path, dependency=False, skip_optdeps=True)
                                 else:
-                                    watcher.show_message(title=self.i18n['arch.downgrade.error'],
-                                                         body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
-                                                         type_=MessageType.ERROR)
+                                    handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
+                                                                 body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
+                                                                 type_=MessageType.ERROR)
                                     return False
 
-                        watcher.show_message(title=self.i18n['error'], body=self.i18n['arch.downgrade.no_commits'], type_=MessageType.ERROR)
+                        handler.watcher.show_message(title=self.i18n['error'],
+                                                     body=self.i18n['arch.downgrade.no_commits'],
+                                                     type_=MessageType.ERROR)
                         return False
 
         finally:
@@ -336,6 +339,75 @@ class ArchManager(SoftwareManager):
             self.local_config = None
 
         return False
+
+    def _downgrade_repo_pkg(self, pkg: ArchPackage, root_password: str, handler: ProcessHandler):
+        handler.watcher.change_substatus(self.i18n['arch.downgrade.searching_stored'])
+        if not os.path.isdir('/var/cache/pacman/pkg'):
+            handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
+                                         body=self.i18n['arch.downgrade.repo_pkg.no_versions'],
+                                         type_=MessageType.ERROR)
+            return False
+
+        available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
+
+        if not available_files:
+            handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
+                                         body=self.i18n['arch.downgrade.repo_pkg.no_versions'],
+                                         type_=MessageType.ERROR)
+            return False
+
+        reg = re.compile(r'{}-([\w.\-]+)-(x86_64|any|i686).pkg'.format(pkg.name))
+
+        versions, version_files = [], {}
+        for file_path in available_files:
+            found = reg.findall(os.path.basename(file_path))
+
+            if found:
+                ver = found[0][0]
+                if ver not in versions and ver < pkg.version:
+                    versions.append(ver)
+                    version_files[ver] = file_path
+
+        handler.watcher.change_progress(40)
+        if not versions:
+            handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
+                                         body=self.i18n['arch.downgrade.repo_pkg.no_versions'],
+                                         type_=MessageType.ERROR)
+            return False
+
+        versions.sort(reverse=True)
+
+        self._sync_databases(root_password=root_password, handler=handler)
+        handler.watcher.change_progress(50)
+
+        handler.watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
+
+        handler.watcher.change_progress(60)
+        if not handler.handle(pacman.install_as_process(pkgpath=version_files[versions[0]],
+                                                        root_password=root_password,
+                                                        file=True)):
+            handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
+                                         body=self.i18n['arch.downgrade.impossible'].format(pkg.name),
+                                         type_=MessageType.ERROR)
+            return False
+
+        handler.watcher.change_progress(100)
+        return True
+
+    def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not self._check_action_allowed(pkg, watcher):
+            return False
+
+        self.local_config = read_config()
+
+        handler = ProcessHandler(watcher)
+
+        watcher.change_progress(5)
+
+        if pkg.repository == 'aur':
+            return self._downgrade_aur_pkg(pkg, root_password, handler)
+        else:
+            return self._downgrade_repo_pkg(pkg, root_password, handler)
 
     def clean_cache_for(self, pkg: ArchPackage):
         if os.path.exists(pkg.get_disk_cache_path()):
@@ -946,7 +1018,7 @@ class ArchManager(SoftwareManager):
 
         handler.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(pkgname)))
         self._update_progress(handler.watcher, 80, change_progress)
-        installed = handler.handle(pacman.install_as_process(pkgpath=pkgpath, root_password=root_password, aur=install_file is not None, pkgdir=pkgdir))
+        installed = handler.handle(pacman.install_as_process(pkgpath=pkgpath, root_password=root_password, file=install_file is not None, pkgdir=pkgdir))
         self._update_progress(handler.watcher, 95, change_progress)
 
         if installed and self.context.disk_cache:

@@ -132,8 +132,8 @@ def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # retur
     return pkgs
 
 
-def install_as_process(pkgpath: str, root_password: str, aur: bool, pkgdir: str = '.') -> SystemProcess:
-    if aur:
+def install_as_process(pkgpath: str, root_password: str, file: bool, pkgdir: str = '.') -> SystemProcess:
+    if file:
         cmd = ['pacman', '-U', pkgpath, '--noconfirm']  # pkgpath = install file path
     else:
         cmd = ['pacman', '-S', pkgpath, '--noconfirm']  # pkgpath = pkgname
