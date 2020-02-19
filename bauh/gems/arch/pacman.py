@@ -453,5 +453,3 @@ def search(words: str) -> Dict[str, dict]:
 
                     current['installed'] = '[installed' in repo_split[-1]
         return found
-
-map_installed()
