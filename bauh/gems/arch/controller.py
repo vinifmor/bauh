@@ -104,11 +104,12 @@ class ArchManager(SoftwareManager):
 
         mapped_words = self.get_semantic_search_map().get(words)
 
-        repo_res = pacman.search(words)  # TODO execute in a separate thread
+        repo_search = pacman.search(words)  # TODO execute in a separate thread
 
-        if repo_res:
-            for name, data in repo_res.items():
+        if repo_search:
+            for name, data in repo_search.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
+                pkg.latest_version = pkg.version
 
                 if disk_loader:
                     disk_loader.fill(pkg)
