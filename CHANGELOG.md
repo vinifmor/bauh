@@ -7,8 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.0] - 2020
 ### Features
 - Arch
-    - support for packages from configured repositories: search, install, upgrade, downgrade, history
-    - removes old cached versions from the disk when uninstalling a package ( can be disabled via the settings file / UI )
+    - support for packages from configured repositories ( search, install, upgrade, downgrade, history )
+    - removing old cached versions from the disk cache when uninstalling a package ( can be disabled via the settings file / UI )
 
     
 ## [0.8.4] - 2020-02
