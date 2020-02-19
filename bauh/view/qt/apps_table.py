@@ -382,7 +382,7 @@ class AppsTable(QTableWidget):
         item.setMinimumWidth(300)
 
         if pkg.model.description is not None or not pkg.model.is_application() or pkg.model.status == PackageStatus.READY:
-            desc = pkg.model.description.split('\n')[0]
+            desc = pkg.model.description.split('\n')[0] if pkg.model.description else pkg.model.description
         else:
             desc = '...'
 
