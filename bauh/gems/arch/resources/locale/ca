@@ -161,3 +161,7 @@ arch.config.simple_dep_check.tip=Si només s'hauria d'utilitzar la verificació 
 arch.install.aur.root_error.title=No es permet l’acció
 arch.install.aur.root_error.body=No està permès instal·lar, actualitzar ni revaloritzar un paquet com a usuari root.
 arch.downgrade.repo_pkg.no_versions=No s'ha trobat cap versió antiga al disc
+arch.uninstall.clean_cached=S'han trobat versions antigues
+arch.uninstall.clean_cached.body.line_1=Algunes {} versions antigues es van trobar al disc ( {} ).
+arch.uninstall.clean_cached.body.line_2=Voleu suprimir-les també ?
+arch.uninstall.clean_cached.error=No ha estat possible eliminar totes les versions antigues del disc

@@ -23,7 +23,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.api.constants import TEMP_DIR
-from bauh.commons import user
+from bauh.commons import user, system
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -94,8 +94,6 @@ class ArchManager(SoftwareManager):
         repo_search = pacman.search(words)
 
         if repo_search:
-            downgradable_pkgs = self._get_downgradable_files()
-
             for name, data in repo_search.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
                 pkg.latest_version = pkg.version
@@ -456,6 +454,24 @@ class ArchManager(SoftwareManager):
             return False
 
         uninstalled = self._uninstall(pkg.name, root_password, handler)
+
+        if pkg.repository != 'aur' and self.local_config['clean_cached'] is not False:  # cleaning old versions
+            if os.path.isdir('/var/cache/pacman/pkg'):
+                available_files = glob.glob("/var/cache/pacman/pkg/{}-*.pkg.tar.*".format(pkg.name))
+
+                if available_files:
+                    size = system.get_human_size_str(sum([os.path.getsize(f) for f in available_files]))
+                    msg = '{}<br/><br/>{}'.format(self.i18n['arch.uninstall.clean_cached.body.line_1'].format(bold(pkg.name), size),
+                                                  self.i18n['arch.uninstall.clean_cached.body.line_2'])
+
+                    if watcher.request_confirmation(title=self.i18n['arch.uninstall.clean_cached'],
+                                                    body=msg):
+                        if not handler.handle_simple(SimpleProcess(cmd=['rm', '-rf', *available_files],
+                                                                   root_password=root_password)):
+                            watcher.show_message(title=self.i18n['error'],
+                                                 body=self.i18n['arch.uninstall.clean_cached.error'],
+                                                 type_=MessageType.WARNING)
+
         watcher.change_progress(100)
         self.local_config = None
         return uninstalled

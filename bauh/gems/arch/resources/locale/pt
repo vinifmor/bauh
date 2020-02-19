@@ -161,3 +161,7 @@ arch.config.simple_dep_check.tip=Se somente a verificação de dependências pro
 arch.install.aur.root_error.title=Ação não permitida
 arch.install.aur.root_error.body=Não é permitido instalar, atualizar ou reverter a versão de um pacote como usuário root
 arch.downgrade.repo_pkg.no_versions=Nenhuma versão antiga encontrada no disco
+arch.uninstall.clean_cached=Versões antigas encontradas
+arch.uninstall.clean_cached.body.line_1=Algumas versões antigas de {} foram encontradas no disco ( {} ).
+arch.uninstall.clean_cached.body.line_2=Você quer removê-las também ?
+arch.uninstall.clean_cached.error=Não foi possível remover todas as versões antigas do disco
