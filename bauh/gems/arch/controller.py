@@ -437,12 +437,11 @@ class ArchManager(SoftwareManager):
             return info
 
     def _get_info_repo_pkg(self, pkg: ArchPackage) -> dict:
+        info = pacman.get_info_dict(pkg.name, remote=not pkg.installed)
         if pkg.installed:
-            info = pacman.get_info_dict(pkg.name)
             info['installed files'] = pacman.list_installed_files(pkg.name)
-            return info
-        else:
-            pass
+
+        return info
 
     def get_info(self, pkg: ArchPackage) -> dict:
         if pkg.repository == 'aur':

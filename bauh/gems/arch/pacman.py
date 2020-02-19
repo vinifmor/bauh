@@ -46,18 +46,18 @@ def is_available_in_repositories(pkg_name: str) -> bool:
     return bool(run_cmd('pacman -Ss ' + pkg_name))
 
 
-def get_info(pkg_name) -> str:
-    return run_cmd('pacman -Qi ' + pkg_name)
+def get_info(pkg_name, remote: bool = False) -> str:
+    return run_cmd('pacman -{}i {}'.format('Q' if not remote else 'S', pkg_name))
 
 
-def get_info_list(pkg_name: str) -> List[tuple]:
-    info = get_info(pkg_name)
+def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
+    info = get_info(pkg_name, remote)
     if info:
         return re.findall(r'(\w+\s?\w+)\s*:\s*(.+(\n\s+.+)*)', info)
 
 
-def get_info_dict(pkg_name: str) -> dict:
-    info_list = get_info_list(pkg_name)
+def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
+    info_list = get_info_list(pkg_name, remote)
 
     if info_list:
         info_dict = {}
