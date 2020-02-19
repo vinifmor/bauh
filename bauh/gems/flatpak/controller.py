@@ -6,7 +6,7 @@ from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
@@ -337,7 +337,7 @@ class FlatpakManager(SoftwareManager):
     def requires_root(self, action: str, pkg: FlatpakApplication):
         return action == 'downgrade' and pkg.installation == 'system'
 
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         Thread(target=read_config, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:

@@ -2,14 +2,13 @@ import logging
 import os
 import re
 import time
-from multiprocessing import Process
 from pathlib import Path
 from threading import Thread
-from typing import List
 
 import requests
 
 from bauh.api.abstract.context import ApplicationContext
+from bauh.api.abstract.handler import TaskManager
 from bauh.commons.system import run_cmd
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, config
@@ -53,38 +52,65 @@ class AURIndexUpdater(Thread):
             self.logger.warning('No internet connection: could not pre-index packages')
 
 
-class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
+class ArchDiskCacheUpdater(Thread):
 
-    def __init__(self, logger: logging.Logger, disk_cache: bool):
+    def __init__(self, task_man: TaskManager, logger: logging.Logger):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
-        self.disk_cache = disk_cache
+        self.task_man = task_man
+        self.task_id = 'arch_cache_up'
+        self.prepared = 0
+        self.prepared_template = 'Prepared: {} / {}'
+        self.indexed = 0
+        self.indexed_template = 'Indexed: {} / {}'
+        self.to_index = 0
+        self.progress = 0  # progress is defined by the number of packages prepared and indexed
+
+    def update_prepared(self, pkgname: str, add: bool = True):
+        if add:
+            self.prepared += 1
+
+        sub = self.prepared_template.format(self.prepared, self.to_index)
+        self.task_man.update_progress(self.task_id, ((self.prepared + self.indexed) / self.progress) * 100, sub)
+
+    def update_indexed(self, pkgname: str):
+        self.indexed += 1
+        sub = self.indexed_template.format(self.indexed, self.to_index)
+        self.task_man.update_progress(self.task_id, ((self.prepared + self.indexed) / self.progress) * 100, sub)
 
     def run(self):
-        if self.disk_cache:
-            ti = time.time()
-            self.logger.info('Pre-caching installed Arch packages data to disk')
-            installed = pacman.map_installed()
+        self.task_man.register_task(self.task_id, 'Indexing packages')
 
-            for k in ('signed', 'not_signed'):
-                installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
+        ti = time.time()
+        self.logger.info('Pre-caching installed Arch packages data to disk')
+        installed = pacman.map_installed()
 
-            saved = 0
-            pkgs = {*installed['signed'], *installed['not_signed']}
+        self.task_man.update_progress(self.task_id, 0, 'Determining installed packages')
+        for k in ('signed', 'not_signed'):
+            installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
 
-            repo_map = {}
+        saved = 0
+        pkgs = {*installed['signed'], *installed['not_signed']}
 
-            if installed['not_signed']:
-                repo_map.update({p: 'aur' for p in installed['not_signed']})
+        repo_map = {}
 
-            if installed['signed']:
-                repo_map.update(pacman.map_repositories(installed['signed']))
+        if installed['not_signed']:
+            repo_map.update({p: 'aur' for p in installed['not_signed']})
 
-            saved += disk.save_several(pkgs, repo_map)
+        if installed['signed']:
+            repo_map.update(pacman.map_repositories(installed['signed']))
 
-            tf = time.time()
-            time_msg = 'Took {0:.2f} seconds'.format(tf - ti)
-            self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(saved, time_msg))
+        self.to_index = len(pkgs)
+        self.progress = self.to_index * 2
+        self.update_prepared(None, add=False)
+
+        saved += disk.save_several(pkgs, repo_map, when_prepared=self.update_prepared, after_written=self.update_indexed)
+        self.task_man.update_progress(self.task_id, 100, None)
+        self.task_man.finish_task(self.task_id)
+
+        tf = time.time()
+        time_msg = 'Took {0:.2f} seconds'.format(tf - ti)
+        self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(saved, time_msg))
 
 
 class ArchCompilationOptimizer(Thread):

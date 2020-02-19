@@ -6,7 +6,7 @@ from typing import List, Set, Type
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
@@ -221,7 +221,7 @@ class SnapManager(SoftwareManager):
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         self.categories_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:

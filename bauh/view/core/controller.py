@@ -7,7 +7,7 @@ from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
@@ -290,22 +290,26 @@ class GenericSoftwareManager(SoftwareManager):
             if man:
                 return man.cache_to_disk(pkg, icon_bytes=icon_bytes, only_icon=only_icon)
 
-    def requires_root(self, action: str, app: SoftwarePackage):
-        man = self._get_manager_for(app)
+    def requires_root(self, action: str, app: SoftwarePackage) -> bool:
+        if app is None:
+            if self.managers:
+                for man in self.managers:
+                    if self._can_work(man):
+                        if man.requires_root(action, app):
+                            return True
+            return False
+        else:
+            man = self._get_manager_for(app)
 
-        if man:
-            return man.requires_root(action, app)
+            if man:
+                return man.requires_root(action, app)
 
-    def _prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         if self.managers:
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    man.prepare()
+                    man.prepare(task_manager, root_password)
                     self._already_prepared.append(man)
-
-    def prepare(self):
-        self.thread_prepare = Thread(target=self._prepare)
-        self.thread_prepare.start()
 
     def list_updates(self, net_check: bool = None) -> List[PackageUpdate]:
         self._wait_to_be_ready()

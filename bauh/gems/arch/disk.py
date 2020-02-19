@@ -49,7 +49,8 @@ def set_icon_path(pkg: ArchPackage, icon_name: str = None):
                 break
 
 
-def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool = True, maintainer: str = None, categories: dict = None) -> int:
+def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool = True, maintainer: str = None,
+                 categories: dict = None, when_prepared=None, after_written=None) -> int:
     if overwrite:
         to_cache = pkgnames
     else:
@@ -125,6 +126,9 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
 
                 pkgs.append(p)
 
+                if when_prepared:
+                    when_prepared(p.name)
+
             if apps_icons_noabspath:
                 icon_paths = pacman.list_icon_paths({app.name for app in apps_icons_noabspath})
                 if icon_paths:
@@ -135,11 +139,13 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
                 to_write.append(p)
 
     if no_desktop_files:
-        pkgs = {ArchPackage(name=n, repository=repo_map.get(n)) for n in no_desktop_files}
         bin_paths = pacman.list_bin_paths(no_desktop_files)
+        icon_paths = pacman.list_icon_paths(no_desktop_files)
 
-        if bin_paths:
-            for p in pkgs:
+        for n in no_desktop_files:
+            p = ArchPackage(name=n, repository=repo_map.get(n))
+
+            if bin_paths:
                 clean_name = RE_CLEAN_NAME.sub('', p.name)
                 ends_with = re.compile(r'.+/{}$'.format(clean_name), re.IGNORECASE)
 
@@ -147,15 +153,13 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
                     if ends_with.match(path):
                         p.command = path
                         break
-
-        icon_paths = pacman.list_icon_paths(no_desktop_files)
-
-        if icon_paths:
-            for p in pkgs:
+            if icon_paths:
                 fill_icon_path(p, icon_paths, only_exact_match=True)
 
-        for p in pkgs:
             to_write.append(p)
+
+            if when_prepared:
+                when_prepared(p.name)
 
     if to_write:
         written = set()
@@ -165,12 +169,18 @@ def save_several(pkgnames: Set[str], repo_map: Dict[str, str], overwrite: bool =
 
             p.maintainer = maintainer
             write(p)
+
+            if after_written:
+                after_written(p.name)
+
             written.add(p.name)
 
         if len(to_write) != len(to_cache):
             for n in pkgnames:
                 if n not in written:
                     Path(ArchPackage.disk_cache_path(n)).mkdir(parents=True, exist_ok=True)
+                    if after_written:
+                        after_written(n)
 
         return len(to_write)
     return 0

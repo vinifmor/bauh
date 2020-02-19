@@ -17,7 +17,7 @@ from colorama import Fore
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
@@ -403,7 +403,7 @@ class AppImageManager(SoftwareManager):
         else:
             updater.download_databases()  # only once
 
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         Thread(target=self._start_updater, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:

@@ -1,6 +1,3 @@
-import logging
-import os
-import traceback
 from pathlib import Path
 
 import yaml
@@ -62,14 +59,3 @@ def save(config: dict):
 
     with open(FILE_PATH, 'w+') as f:
         f.write(yaml.safe_dump(config))
-
-
-def remove_old_config(logger: logging.Logger):
-    old_file = FILE_PATH.replace('.yml', '.json')
-    if os.path.exists(old_file):
-        try:
-            os.remove(old_file)
-            logger.info('Old configuration file {} deleted'.format(old_file))
-        except:
-            logger.error('Could not delete the old configuration file {}'.format(old_file))
-            traceback.print_exc()

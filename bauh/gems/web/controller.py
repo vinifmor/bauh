@@ -18,7 +18,7 @@ from requests import exceptions
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
@@ -743,7 +743,7 @@ class WebApplicationManager(SoftwareManager):
             index_gen = SearchIndexGenerator(logger=self.logger)
             Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
 
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         self.env_thread = Thread(target=self._update_env_settings, daemon=True)
         self.env_thread.start()
 

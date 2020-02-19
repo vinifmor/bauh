@@ -12,6 +12,7 @@ from bauh.api.http import HttpClient
 from bauh.view.core import gems, config
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
+from bauh.view.qt.prepare import PreparePanel
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 from bauh.view.util import util, logs, translation
@@ -73,7 +74,7 @@ def main():
         exit(0)
 
     manager = GenericSoftwareManager(managers, context=context, config=local_config)
-    manager.prepare()
+    cache_cleaner.start()
 
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # otherwise windows opened through the tray icon kill the aplication when closed
@@ -110,11 +111,14 @@ def main():
         if args.show_panel:
             tray_icon.show_manage_window()
     else:
-        manage_window.refresh_apps()
-        manage_window.show()
+        # manage_window.refresh_apps()
+        # manage_window.show()
+        prepare = PreparePanel(screen_size=app.primaryScreen().size(),
+                               manager=manager,
+                               i18n=i18n,
+                               manage_window=manage_window)
+        prepare.show()
 
-    cache_cleaner.start()
-    Thread(target=config.remove_old_config, args=(logger,), daemon=True).start()
     sys.exit(app.exec_())
 
 

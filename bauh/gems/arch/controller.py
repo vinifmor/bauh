@@ -17,7 +17,7 @@ import requests
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
@@ -60,7 +60,7 @@ class ArchManager(SoftwareManager):
         self.mapper = ArchDataMapper(http_client=context.http_client, i18n=context.i18n)
         self.i18n = context.i18n
         self.aur_client = AURClient(http_client=context.http_client, logger=context.logger, x86_64=context.is_system_x86_64())
-        self.dcache_updater = ArchDiskCacheUpdater(context.logger, context.disk_cache)
+        self.dcache_updater = None
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
@@ -240,7 +240,6 @@ class ArchManager(SoftwareManager):
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
             map_threads = []
-            self.dcache_updater.join()
             self.categories_mapper.join()
 
             if installed['not_signed']:
@@ -1229,8 +1228,8 @@ class ArchManager(SoftwareManager):
     def requires_root(self, action: str, pkg: ArchPackage):
         return action != 'search'
 
-    def prepare(self):
-        self.dcache_updater.start()
+    def prepare(self, task_manager: TaskManager, root_password: str):
+        ArchDiskCacheUpdater(task_manager, self.context.logger).start()
         ArchCompilationOptimizer(self.context.logger).start()
         self.categories_mapper.start()
         AURIndexUpdater(self.context).start()

@@ -71,3 +71,31 @@ class ProcessWatcher:
         asks the root password for the user
         :return: a tuple with the typed password and if it is valid
         """
+
+
+class TaskManager:
+
+    def register_task(self, id_: str, label: str):
+        """
+        :param id_: an unique identifier for the task
+        :param label: an i18n label
+        :return:
+        """
+        pass
+
+    def update_progress(self, task_id: str, progress: float, substatus: str):
+        """
+        :param task_id:
+        :param progress: a float between 0 and 100.
+        :param substatus: a substatus string representing the current state
+        :return:
+        """
+        pass
+
+    def finish_task(self, task_id: str):
+        """
+        marks a task as finished
+        :param task_id:
+        :return:
+        """
+        pass

@@ -9,7 +9,7 @@ import yaml
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
 from bauh.api.abstract.view import ViewComponent
 
@@ -217,7 +217,7 @@ class SoftwareManager(ABC):
     @abstractmethod
     def requires_root(self, action: str, pkg: SoftwarePackage):
         """
-        if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh'
+        if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh', 'prepare'
         :param action:
         :param pkg:
         :return:
@@ -225,9 +225,11 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         """
         It prepares the manager to start working. It will be called by GUI. Do not call it within.
+        :param task_manager: a task manager instance used to register ongoing tasks during prepare
+        :param root_password
         :return:
         """
         pass
