@@ -243,3 +243,4 @@ action.update.order.body=The upgrade will be performed in the following order
 action.history.no_history.title=No history
 action.history.no_history.body=There is no available history for {}
 general=general
+task.download_categories=Downloading categories [ {} ]

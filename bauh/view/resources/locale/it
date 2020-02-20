@@ -234,3 +234,4 @@ action.update.requirements.status=Verificando i requisiti
 action.update.order.title=Ordine di aggiornamento
 action.update.order.body=L'aggiornamento verrà eseguito nel seguente ordine
 general=generale
+task.download_categories=Download delle categorie [ {} ]

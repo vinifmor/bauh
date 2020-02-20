@@ -33,8 +33,11 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
-                                                          URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
+        self.categories_downloader = CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client,
+                                                          logger=self.logger,
+                                                          url_categories_file=URL_CATEGORIES_FILE,
+                                                          disk_cache_dir=SNAP_CACHE_PATH,
+                                                          categories_path=CATEGORIES_FILE_PATH)
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
 

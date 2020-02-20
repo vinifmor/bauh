@@ -23,7 +23,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.api.constants import TEMP_DIR
-from bauh.commons import user, system
+from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -31,7 +31,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
     SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE
+    CONFIG_FILE, get_icon_path
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
@@ -64,8 +64,6 @@ class ArchManager(SoftwareManager):
         self.logger = context.logger
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
-        self.categories_mapper = CategoriesDownloader('AUR', context.http_client, context.logger, self, self.context.disk_cache,
-                                                      URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH)
         self.categories = {}
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
         self.local_config = None
@@ -240,7 +238,6 @@ class ArchManager(SoftwareManager):
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
             map_threads = []
-            self.categories_mapper.join()
 
             if installed['not_signed']:
                 t = Thread(target=self._fill_aur_pkgs, args=(installed['not_signed'], pkgs, disk_loader, internet_available), daemon=True)
@@ -1165,7 +1162,7 @@ class ArchManager(SoftwareManager):
     def _optimize_makepkg(self, watcher: ProcessWatcher):
         if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
-            ArchCompilationOptimizer(self.context.logger).optimize()
+            ArchCompilationOptimizer(self.local_config, self.i18n, self.context.logger).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
         if not self._check_action_allowed(pkg, watcher):
@@ -1228,11 +1225,26 @@ class ArchManager(SoftwareManager):
     def requires_root(self, action: str, pkg: ArchPackage):
         return action != 'search'
 
+    def _start_category_task(self, task_man: TaskManager):
+        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'].format(bold('AUR')), get_icon_path())
+        task_man.update_progress('arch_aur_cats', 50, None)
+
+    def _finish_category_task(self, task_man: TaskManager):
+        task_man.update_progress('arch_aur_cats', 100, None)
+        task_man.finish_task('arch_aur_cats')
+
     def prepare(self, task_manager: TaskManager, root_password: str):
-        ArchDiskCacheUpdater(task_manager, self.context.logger).start()
-        ArchCompilationOptimizer(self.context.logger).start()
-        self.categories_mapper.start()
-        AURIndexUpdater(self.context).start()
+        arch_config = read_config(update_file=True)
+        ArchDiskCacheUpdater(task_manager, arch_config, self.i18n, self.context.logger).start()
+        ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
+
+        if arch_config['aur']:
+            CategoriesDownloader(id_='AUR', http_client=self.context.http_client, logger=self.context.logger,
+                                 manager=self, url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=CATEGORIES_CACHE_DIR,
+                                 categories_path=CATEGORIES_FILE_PATH,
+                                 before=lambda: self._start_category_task(task_manager),
+                                 after=lambda: self._finish_category_task(task_manager)).start()
+            AURIndexUpdater(task_manager, self.context).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
@@ -1276,7 +1288,6 @@ class ArchManager(SoftwareManager):
 
             if api_res:
                 res = []
-                self.categories_mapper.join()
                 for pkg in api_res:
                     if pkg.get('Name') in suggestions:
                         res.append(PackageSuggestion(self.mapper.map_api_data(pkg, {}, self.categories), suggestions[pkg['Name']]))

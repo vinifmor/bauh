@@ -68,6 +68,7 @@ class ManageWindow(QWidget):
 
         self.icon_app = icon
         self.resize(ManageWindow.__BASE_HEIGHT__, ManageWindow.__BASE_HEIGHT__)
+        self.setWindowTitle(' ')
         self.setWindowIcon(self.icon_app)
 
         self.layout = QVBoxLayout()

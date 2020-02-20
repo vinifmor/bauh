@@ -9,10 +9,12 @@ import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
+from bauh.commons.html import bold
 from bauh.commons.system import run_cmd
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
-    AUR_INDEX_FILE, config
+    AUR_INDEX_FILE, get_icon_path
 from bauh.gems.arch.model import ArchPackage
+from bauh.view.util.translation import I18n
 
 URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
@@ -25,14 +27,19 @@ RE_CLEAR_REPLACE = re.compile(r'[\-_.]')
 
 class AURIndexUpdater(Thread):
 
-    def __init__(self, context: ApplicationContext):
+    def __init__(self, task_man: TaskManager, context: ApplicationContext):
         super(AURIndexUpdater, self).__init__(daemon=True)
         self.http_client = context.http_client
+        self.i18n = context.i18n
         self.logger = context.logger
+        self.task_man = task_man
+        self.task_id = 'arch_aur_idx'
 
     def run(self):
+        self.task_man.register_task(self.task_id, self.i18n['arch.task.aur_index'].format('AUR'), get_icon_path())
         self.logger.info('Pre-indexing AUR packages')
         try:
+            self.task_man.update_progress(self.task_id, 10, None)
             res = self.http_client.get(URL_INDEX)
 
             if res and res.text:
@@ -51,20 +58,27 @@ class AURIndexUpdater(Thread):
         except requests.exceptions.ConnectionError:
             self.logger.warning('No internet connection: could not pre-index packages')
 
+        finally:
+            self.task_man.update_progress(self.task_id, 100, None)
+            self.task_man.finish_task(self.task_id)
+
 
 class ArchDiskCacheUpdater(Thread):
 
-    def __init__(self, task_man: TaskManager, logger: logging.Logger):
+    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
         self.task_man = task_man
         self.task_id = 'arch_cache_up'
+        self.i18n = i18n
         self.prepared = 0
-        self.prepared_template = 'Prepared: {} / {}'
+        self.prepared_template = self.i18n['arch.task.disk_cache.prepared'].format(': {}/ {}')
         self.indexed = 0
-        self.indexed_template = 'Indexed: {} / {}'
+        self.indexed_template = self.i18n['arch.task.disk_cache.indexed'].format(': {}/ {}')
         self.to_index = 0
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
+        self.repositories = arch_config['repositories']
+        self.aur = arch_config['aur']
 
     def update_prepared(self, pkgname: str, add: bool = True):
         if add:
@@ -79,13 +93,16 @@ class ArchDiskCacheUpdater(Thread):
         self.task_man.update_progress(self.task_id, ((self.prepared + self.indexed) / self.progress) * 100, sub)
 
     def run(self):
-        self.task_man.register_task(self.task_id, 'Indexing packages')
+        if not any([self.aur, self.repositories]):
+            return
 
         ti = time.time()
-        self.logger.info('Pre-caching installed Arch packages data to disk')
-        installed = pacman.map_installed()
+        self.task_man.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
 
-        self.task_man.update_progress(self.task_id, 0, 'Determining installed packages')
+        self.logger.info('Pre-caching installed Arch packages data to disk')
+        installed = pacman.map_installed(repositories=self.repositories, aur=self.aur)
+
+        self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
         for k in ('signed', 'not_signed'):
             installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
 
@@ -115,16 +132,27 @@ class ArchDiskCacheUpdater(Thread):
 
 class ArchCompilationOptimizer(Thread):
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, arch_config: dict, i18n: I18n, logger: logging.Logger, task_man: TaskManager = None):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
+        self.i18n = i18n
         self.re_compress_xz = re.compile(r'#?\s*COMPRESSXZ\s*=\s*.+')
         self.re_compress_zst = re.compile(r'#?\s*COMPRESSZST\s*=\s*.+')
         self.re_build_env = re.compile(r'\s+BUILDENV\s*=.+')
         self.re_ccache = re.compile(r'!?ccache')
+        self.task_man = task_man
+        self.task_id = 'arch_make_optm'
+        self.optimizations = bool(arch_config['optimize'])
 
     def _is_ccache_installed(self) -> bool:
         return bool(run_cmd('which ccache', print_error=False))
+
+    def _update_progress(self, progress: float, substatus: str = None):
+        if self.task_man:
+            self.task_man.update_progress(self.task_id, progress, substatus)
+
+            if progress == 100:
+                self.task_man.finish_task(self.task_id)
 
     def optimize(self):
         ti = time.time()
@@ -158,6 +186,8 @@ class ArchCompilationOptimizer(Thread):
                 else:
                     optimizations.append('MAKEFLAGS="-j$(nproc)"')
 
+            self._update_progress(20)
+
             compress_xz = self.re_compress_xz.findall(custom_makepkg or global_makepkg)
 
             if compress_xz:
@@ -171,6 +201,8 @@ class ArchCompilationOptimizer(Thread):
             else:
                 optimizations.append('COMPRESSXZ=(xz -c -z - --threads=0)')
 
+            self._update_progress(40)
+
             compress_zst = self.re_compress_zst.findall(custom_makepkg or global_makepkg)
 
             if compress_zst:
@@ -183,6 +215,8 @@ class ArchCompilationOptimizer(Thread):
                     self.logger.warning("It seems '{}' COMPRESSZST is already customized".format(GLOBAL_MAKEPKG))
             else:
                 optimizations.append('COMPRESSZST=(zstd -c -z -q - --threads=0)')
+
+            self._update_progress(60)
 
             build_envs = self.re_build_env.findall(custom_makepkg or global_makepkg)
 
@@ -212,6 +246,8 @@ class ArchCompilationOptimizer(Thread):
                     self.logger.info('Adding a BUILDENV declaration')
                     optimizations.append('BUILDENV=(ccache)')
 
+            self._update_progress(80)
+
             if optimizations:
                 generated_by = '# <generated by bauh>\n'
                 custom_makepkg = custom_makepkg + '\n' + generated_by + '\n'.join(optimizations) + '\n'
@@ -228,13 +264,12 @@ class ArchCompilationOptimizer(Thread):
                     os.remove(CUSTOM_MAKEPKG_FILE)
 
             tf = time.time()
+            self._update_progress(100)
             self.logger.info("Optimizations took {0:.2f} seconds".format(tf - ti))
             self.logger.info('Finished')
 
     def run(self):
-        local_config = config.read_config(update_file=True)
-
-        if not local_config['optimize']:
+        if not self.optimizations:
             self.logger.info("Arch packages compilation optimizations are disabled")
 
             if os.path.exists(CUSTOM_MAKEPKG_FILE):
@@ -243,4 +278,7 @@ class ArchCompilationOptimizer(Thread):
 
             self.logger.info('Finished')
         else:
+            if self.task_man:
+                self.task_man.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
+
             self.optimize()

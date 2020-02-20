@@ -75,10 +75,11 @@ class ProcessWatcher:
 
 class TaskManager:
 
-    def register_task(self, id_: str, label: str):
+    def register_task(self, id_: str, label: str, icon_path: str):
         """
         :param id_: an unique identifier for the task
         :param label: an i18n label
+        :param icon_path: str
         :return:
         """
         pass
