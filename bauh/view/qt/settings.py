@@ -82,7 +82,8 @@ class SettingsWindow(QWidget):
                 if isinstance(self.manager, GenericSoftwareManager):
                     self.manager.reset_cache()
 
-                self.manager.prepare()
+                # TODO ask root
+                self.manager.prepare(task_manager=None, root_password=None)  # TODO
 
                 if self.window and self.window.isVisible():
                     self.window.verify_warnings()

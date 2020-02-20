@@ -9,28 +9,45 @@ from threading import Thread
 
 import requests
 
+from bauh.api.abstract.handler import TaskManager
 from bauh.api.http import HttpClient
 from bauh.commons import internet
-from bauh.gems.appimage import LOCAL_PATH
+from bauh.gems.appimage import LOCAL_PATH, get_icon_path
+from bauh.view.util.translation import I18n
 
 
 class DatabaseUpdater(Thread):
     URL_DB = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
     COMPRESS_FILE_PATH = LOCAL_PATH + '/db.tar.gz'
 
-    def __init__(self, http_client: HttpClient, logger: logging.Logger, db_locks: dict, interval: int):
+    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient, logger: logging.Logger, db_locks: dict, interval: int):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
         self.db_locks = db_locks
         self.sleep = interval
+        self.i18n = i18n
+        self.task_man = task_man
+        self.task_id = 'appim_db'
+
+    def _finish_task(self):
+        if self.task_man:
+            self.task_man.update_progress(self.task_id, 100, None)
+            self.task_man.finish_task(self.task_id)
+            self.task_man = None
 
     def download_databases(self):
+        if self.task_man:
+            self.task_man.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
+            self.task_man.update_progress(self.task_id, 10, None)
+
         try:
             if not internet.is_available(self.http_client, self.logger):
+                self._finish_task()
                 return
         except requests.exceptions.ConnectionError:
             self.logger.warning('The internet connection seems to be off.')
+            self._finish_task()
             return
 
         self.logger.info('Retrieving AppImage databases')
@@ -71,9 +88,10 @@ class DatabaseUpdater(Thread):
                 self.logger.info('Deleting {}'.format(self.COMPRESS_FILE_PATH))
                 os.remove(self.COMPRESS_FILE_PATH)
                 self.logger.info('Successfully removed {}'.format(self.COMPRESS_FILE_PATH))
-
+            self._finish_task()
         else:
             self.logger.warning('Could not download the database file {}'.format(self.URL_DB))
+            self._finish_task()
 
     def run(self):
         while True:

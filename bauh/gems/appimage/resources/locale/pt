@@ -21,3 +21,4 @@ appimage.config.db_updates=Atualização da base de dados
 appimage.config.db_updates.activated=ativada
 appimage.config.db_updates.activated.tip=Será possível verificar se há atualizações para os aplicativos instalados
 appimage.config.db_updates.interval.tip=Intervalo de atualização em SEGUNDOS
+appimage.task.db_update=Atualizando base de dados

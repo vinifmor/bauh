@@ -392,19 +392,18 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: str, pkg: AppImage):
         return False
 
-    def _start_updater(self):
+    def prepare(self, task_manager: TaskManager, root_password: str):
         local_config = read_config(update_file=True)
         interval = local_config['db_updater']['interval'] or 20 * 60
 
-        updater = DatabaseUpdater(http_client=self.context.http_client, logger=self.context.logger,
+        updater = DatabaseUpdater(task_man=task_manager,
+                                  i18n=self.context.i18n,
+                                  http_client=self.context.http_client, logger=self.context.logger,
                                   db_locks=self.db_locks, interval=interval)
         if local_config['db_updater']['enabled']:
             updater.start()
         else:
             updater.download_databases()  # only once
-
-    def prepare(self, task_manager: TaskManager, root_password: str):
-        Thread(target=self._start_updater, daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
