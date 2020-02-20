@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
@@ -13,7 +14,7 @@ def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(i18n: I18n):
+def ask_root_password(i18n: I18n) -> Tuple[str, bool]:
     diag = QInputDialog()
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)

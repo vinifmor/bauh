@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import time
+import traceback
 from pathlib import Path
 from threading import Thread
 
@@ -10,7 +11,7 @@ import requests
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd
+from bauh.commons.system import run_cmd, new_root_subprocess
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, get_icon_path
 from bauh.gems.arch.model import ArchPackage
@@ -282,3 +283,55 @@ class ArchCompilationOptimizer(Thread):
                 self.task_man.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
 
             self.optimize()
+
+
+class SyncDatabases(Thread):
+
+    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger):
+        super(SyncDatabases, self).__init__(daemon=True)
+        self.task_man = taskman
+        self.i18n = i18n
+        self.taskman = taskman
+        self.task_id = "arch_dbsync"
+        self.root_password = root_password
+        self.logger = logger
+
+    def run(self) -> None:
+        self.logger.info("Synchronizing databases")
+        progress = 10
+        self.taskman.register_task(self.task_id, self.i18n['arch.sync_databases.substatus'], get_icon_path())
+
+        dbs = pacman.get_databases()
+        self.taskman.update_progress(self.task_id, progress, None)
+
+        if dbs:
+            inc = 90 / len(dbs)
+            try:
+                p = new_root_subprocess(['pacman', '-Syy'], self.root_password)
+
+                dbs_read, last_db = 0, None
+
+                for o in p.stdout:
+                    line = o.decode().strip()
+
+                    if line and line.startswith('downloading'):
+                        db = line.split(' ')[1].strip()
+
+                        if last_db is None or last_db != db:
+                            last_db = db
+                            dbs_read += 1
+                            progress = dbs_read * inc
+                        else:
+                            progress += 0.25
+
+                        self.taskman.update_progress(self.task_id, progress, self.i18n['arch.task.sync_sb.status'].format(db))
+
+                for o in p.stderr:
+                    o.decode()
+            except:
+                self.logger.info("Error while synchronizing databases")
+                traceback.print_exc()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        self.logger.info("Finished")

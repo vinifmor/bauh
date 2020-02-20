@@ -139,3 +139,4 @@ arch.task.disk_cache.prepared=Letti
 arch.task.disk_cache.indexed=Pronti
 arch.task.optimizing=Ottimizzando {}
 arch.task.aur_index=Indicizzazione del catalogo {} su disco
+arch.task.sync_sb.status=Aggiornando {}

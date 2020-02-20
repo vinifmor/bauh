@@ -171,3 +171,4 @@ arch.task.disk_cache.prepared=Lidos
 arch.task.disk_cache.indexed=Prontos
 arch.task.optimizing=Otimizando {}
 arch.task.aur_index=Indexando catálogo do {} em disco
+arch.task.sync_sb.status=Atualizando {}

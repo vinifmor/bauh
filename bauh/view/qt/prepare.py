@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWid
 
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
+from bauh.view.qt import root
 from bauh.view.qt.components import new_spacer
 from bauh.view.util.translation import I18n
 
@@ -18,14 +19,18 @@ class Prepare(QThread, TaskManager):
     signal_update = pyqtSignal(str, float, str)
     signal_finished = pyqtSignal(str)
 
-    def __init__(self, manager: SoftwareManager):
+    def __init__(self, manager: SoftwareManager, i18n: I18n):
         super(Prepare, self).__init__()
         self.manager = manager
+        self.i18n = i18n
 
     def run(self):
         root_pwd = None
         if self.manager.requires_root('prepare', None):
-            root_pwd = None  # TODO
+            root_pwd, ok = root.ask_root_password(self.i18n)
+
+            if not ok:
+                QCoreApplication.exit(1)
 
         self.manager.prepare(self, root_pwd)
 
@@ -101,7 +106,7 @@ class PreparePanel(QWidget, TaskManager):
         self.ftasks = 0
         self.self_close = False
 
-        self.prepare_thread = Prepare(manager)
+        self.prepare_thread = Prepare(manager, self.i18n)
         self.prepare_thread.signal_register.connect(self.register_task)
         self.prepare_thread.signal_update.connect(self.update_progress)
         self.prepare_thread.signal_finished.connect(self.finish_task)

@@ -37,7 +37,7 @@ from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -1245,6 +1245,9 @@ class ArchManager(SoftwareManager):
                                  before=lambda: self._start_category_task(task_manager),
                                  after=lambda: self._finish_category_task(task_manager)).start()
             AURIndexUpdater(task_manager, self.context).start()
+
+        if arch_config['sync_databases']:
+            SyncDatabases(task_manager, root_password, self.i18n, self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed

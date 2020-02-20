@@ -172,3 +172,4 @@ arch.task.disk_cache.prepared=Read
 arch.task.disk_cache.indexed=Ready
 arch.task.optimizing=Optimizing {}
 arch.task.aur_index=Indexing {} catalog to disk
+arch.task.sync_sb.status=Updating {}

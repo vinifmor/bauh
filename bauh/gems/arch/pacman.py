@@ -453,3 +453,10 @@ def search(words: str) -> Dict[str, dict]:
 
                     current['installed'] = '[installed' in repo_split[-1]
         return found
+
+
+def get_databases() -> Set[str]:
+    with open('/etc/pacman.conf') as f:
+        conf_str = f.read()
+
+    return {db for db in re.findall(r'[\n|\s]+\[(\w+)\]', conf_str) if db != 'options'}
