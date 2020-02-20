@@ -10,7 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - treating multiple lines on the application's description displayed on the table
 - AUR:
     - generating the semantic search map on demand instead of storing it in memory
-- Russian translations by: [leoneii](https://github.com/leoneii), [mountain-biker85](https://github.com/mountain-biker85)
+- Russian translations by: 
+    - [leoneii](https://github.com/leoneii) [#61](https://github.com/vinifmor/bauh/pull/61)
+    - [mountain-biker85](https://github.com/mountain-biker85) [#62](https://github.com/vinifmor/bauh/pull/62)
 ### Fixes
 - Snap
     - not able to launch applications on some distros ( e.g: OpenSuse ) [#58](https://github.com/vinifmor/bauh/issues/58)
@@ -20,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not displaying some priority search results at the top of the table
 
 
-## [0.8.3] - 2020-02
+## [0.8.3] - 2020-02-13
 ### Improvements
 - New update lifecycle:
     - now every package manager must provide all requirements before upgrading all selected packages ( can be disabled through the settings file **~/.config/bauh/config.yml** or the UI )
