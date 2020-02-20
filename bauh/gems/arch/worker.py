@@ -13,7 +13,7 @@ from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_root_subprocess
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
-    AUR_INDEX_FILE, get_icon_path
+    AUR_INDEX_FILE, get_icon_path, database
 from bauh.gems.arch.model import ArchPackage
 from bauh.view.util.translation import I18n
 
@@ -328,6 +328,14 @@ class SyncDatabases(Thread):
 
                 for o in p.stderr:
                     o.decode()
+
+                p.wait()
+
+                if p.returncode == 0:
+                    database.register_sync(self.logger)
+                else:
+                    self.logger.error("Could not synchronize database")
+
             except:
                 self.logger.info("Error while synchronizing databases")
                 traceback.print_exc()

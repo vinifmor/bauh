@@ -31,9 +31,10 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
     SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path
+    CONFIG_FILE, get_icon_path, database
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
+from bauh.gems.arch.database import DB_SYNC_FILE
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -1118,12 +1119,10 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _sync_databases(self, root_password: str, handler: ProcessHandler):
-        sync_path = '{}/arch/sync'.format(TEMP_DIR)
-
-        if self.local_config['sync_databases']:
-            if os.path.exists(sync_path):
-                with open(sync_path) as f:
+    def _should_sync_databases(self, arch_config: dict, handler: ProcessHandler):
+        if arch_config['sync_databases']:
+            if os.path.exists(DB_SYNC_FILE):
+                with open(DB_SYNC_FILE) as f:
                     sync_file = f.read()
 
                 try:
@@ -1135,29 +1134,30 @@ class ArchManager(SoftwareManager):
                     else:
                         msg = "Package databases already synchronized"
                         self.logger.info(msg)
-                        handler.watcher.print(msg)
-                        return
+                        if handler:
+                            handler.watcher.print(msg)
+                        return False
                 except:
-                    self.logger.warning("Could not convert the database synchronization time from '{}".format(sync_path))
+                    self.logger.warning("Could not convert the database synchronization time from '{}".format(DB_SYNC_FILE))
                     traceback.print_exc()
+            return True
+        else:
+            msg = "Package databases synchronization disabled"
+            if handler:
+                handler.watcher.print(msg)
+            self.logger.info(msg)
+            return False
 
+    def _sync_databases(self, root_password: str, handler: ProcessHandler):
+        if self._should_sync_databases(self.local_config, handler):
             handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
             synced, output = handler.handle_simple(pacman.sync_databases(root_password=root_password,
                                                                          force=True))
             if synced:
-                try:
-                    Path('/'.join(sync_path.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
-                    with open(sync_path, 'w+') as f:
-                        f.write(str(int(time.time())))
-                except:
-                    traceback.print_exc()
+                database.register_sync(self.logger)
             else:
                 self.logger.warning("It was not possible to synchronized the package databases")
                 handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus.error'])
-        else:
-            msg = "Package databases synchronization disabled"
-            handler.watcher.print(msg)
-            self.logger.info(msg)
 
     def _optimize_makepkg(self, watcher: ProcessWatcher):
         if self.local_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
@@ -1246,7 +1246,7 @@ class ArchManager(SoftwareManager):
                                  after=lambda: self._finish_category_task(task_manager)).start()
             AURIndexUpdater(task_manager, self.context).start()
 
-        if arch_config['sync_databases']:
+        if self._should_sync_databases(arch_config, None):
             SyncDatabases(task_manager, root_password, self.i18n, self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
