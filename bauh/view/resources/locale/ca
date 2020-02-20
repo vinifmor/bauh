@@ -284,3 +284,4 @@ task.download_categories=Download de categories [ {} ]
 prepare_panel.title.start=Iniciando
 prepare_panel.title.start=Inicialització
 prepare_panel.title.finish=Llest
+prepare_panel.bt_skip.label=saltar

@@ -238,3 +238,4 @@ general=generale
 task.download_categories=Download delle categorie [ {} ]
 prepare_panel.title.start=Inizializzazione
 prepare_panel.title.finish=Pronto
+prepar_panel.bt_skip.label=saltare

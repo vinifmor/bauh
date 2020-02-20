@@ -247,3 +247,4 @@ general=general
 task.download_categories=Downloading categories [ {} ]
 prepare_panel.title.start=Initializing
 prepare_panel.title.finish=Ready
+prepare_panel.bt_skip.label=skip

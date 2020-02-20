@@ -1,13 +1,15 @@
+import datetime
 import operator
 import time
 from functools import reduce
 
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal
+from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar
 
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
+from bauh.view.qt.components import new_spacer
 from bauh.view.util.translation import I18n
 
 
@@ -64,13 +66,27 @@ class CheckFinished(QThread):
             self.finished = finished
 
 
+class EnableSkip(QThread):
+
+    signal_timeout = pyqtSignal()
+
+    def run(self):
+        ti = datetime.datetime.now()
+
+        while True:
+            if datetime.datetime.now() >= ti + datetime.timedelta(minutes=1.5):
+                self.signal_timeout.emit()
+                break
+
+            time.sleep(0.1)
+
+
 class PreparePanel(QWidget, TaskManager):
 
     signal_status = pyqtSignal(object, object)
 
     def __init__(self, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
         super(PreparePanel, self).__init__()
-        # self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.i18n = i18n
         self.manage_window = manage_window
         self.setWindowTitle(' ')
@@ -83,6 +99,7 @@ class PreparePanel(QWidget, TaskManager):
         self.tasks = {}
         self.ntasks = 0
         self.ftasks = 0
+        self.self_close = False
 
         self.prepare_thread = Prepare(manager)
         self.prepare_thread.signal_register.connect(self.register_task)
@@ -92,6 +109,9 @@ class PreparePanel(QWidget, TaskManager):
         self.check_thread = CheckFinished()
         self.signal_status.connect(self.check_thread.update)
         self.check_thread.signal_finished.connect(self.finish)
+
+        self.skip_thread = EnableSkip()
+        self.skip_thread.signal_timeout.connect(self._enable_skip_button)
 
         self.label_top = QLabel()
         self.label_top.setText("... {} ...".format(self.i18n['prepare_panel.title.start'].capitalize()))
@@ -111,6 +131,22 @@ class PreparePanel(QWidget, TaskManager):
         self.table.setHorizontalHeaderLabels(['' for _ in range(4)])
         self.layout().addWidget(self.table)
 
+        toolbar = QToolBar()
+        bt_close = QPushButton(self.i18n['close'].capitalize())
+        bt_close.clicked.connect(self.close)
+        toolbar.addWidget(bt_close)
+
+        toolbar.addWidget(new_spacer())
+        self.bt_skip = QPushButton(self.i18n['prepare_panel.bt_skip.label'].capitalize())
+        self.bt_skip.clicked.connect(self.finish)
+        self.bt_skip.setEnabled(False)
+        toolbar.addWidget(self.bt_skip)
+
+        self.layout().addWidget(toolbar)
+
+    def _enable_skip_button(self):
+        self.bt_skip.setEnabled(True)
+
     def get_table_width(self) -> int:
         return reduce(operator.add, [self.table.columnWidth(i) for i in range(self.table.columnCount())])
 
@@ -125,6 +161,11 @@ class PreparePanel(QWidget, TaskManager):
         super(PreparePanel, self).show()
         self.check_thread.start()
         self.prepare_thread.start()
+        self.skip_thread.start()
+
+    def closeEvent(self, QCloseEvent):
+        if not self.self_close:
+            QCoreApplication.exit()
 
     def register_task(self, id_: str, label: str, icon_path: str):
         self.ntasks += 1
@@ -203,6 +244,8 @@ class PreparePanel(QWidget, TaskManager):
             self.label_top.setText("... {} ...".format(self.i18n['ready'].capitalize()))
 
     def finish(self):
-        self.manage_window.refresh_apps()
-        self.manage_window.show()
-        self.close()
+        if self.isVisible():
+            self.manage_window.refresh_apps()
+            self.manage_window.show()
+            self.self_close = True
+            self.close()

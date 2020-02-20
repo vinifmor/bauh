@@ -240,4 +240,5 @@ action.update.install_req.fail.title=Установка не удалась
 action.update.install_req.fail.body=Невозможно установить {}
 action.update.requirements.status=Проверка требований
 action.update.order.title=Порядок обновления
-action.update.order.body=Обновление будет выполнено в следующем порядке														  
+action.update.order.body=Обновление будет выполнено в следующем порядке
+prepare_panel.bt_skip.label=skip
