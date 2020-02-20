@@ -94,7 +94,7 @@ warning=Предупреждение
 install=Установка
 uninstall=Деинсталляция
 bt.app_upgrade=Обновить
-bt.app_not_upgradeНе обновлять
+bt.app_not_upgrade=Не обновлять
 manage_window.upgrade_all.popup.title=Обновление
 manage_window.upgrade_all.popup.body=Обновить все выбранные приложения ?
 manage_window.settings.about=О программе
