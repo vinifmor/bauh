@@ -74,7 +74,7 @@ class CategoriesDownloader(Thread):
                     categories = self._map_categories(res.text)
                     self.logger.info(self._msg('Loaded categories for {} applications'.format(len(categories))))
 
-                    if self.disk_cache and categories:
+                    if categories:
                         Thread(target=self._cache_categories_to_disk, args=(res.text,), daemon=True).start()
 
                     return categories

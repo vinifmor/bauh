@@ -5,18 +5,31 @@ from pathlib import Path
 import requests
 import yaml
 
+from bauh.api.abstract.handler import TaskManager
 from bauh.api.http import HttpClient
-from bauh.gems.web import URL_SUGGESTIONS, TEMP_PATH, SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE
+from bauh.gems.web import URL_SUGGESTIONS, TEMP_PATH, SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, get_icon_path
+from bauh.view.util.translation import I18n
 
 
 class SuggestionsDownloader:
 
-    def __init__(self, http_client: HttpClient, logger: logging.Logger):
+    def __init__(self, http_client: HttpClient, logger: logging.Logger, i18n: I18n, taskman: TaskManager = None):
         super(SuggestionsDownloader, self).__init__()
         self.http_client = http_client
         self.logger = logger
+        self.taskman = taskman
+        self.i18n = i18n
+
+    def _finish_task(self):
+        if self.taskman:
+            self.taskman.update_progress('web_sugs', 100, None)
+            self.taskman.finish_task('web_sugs')
 
     def download(self) -> dict:
+        if self.taskman:
+            self.taskman.register_task('web_sugs', self.i18n['web.task.suggestions'], get_icon_path())
+            self.taskman.update_progress('web_sugs', 10, None)
+
         self.logger.info("Reading suggestions from {}".format(URL_SUGGESTIONS))
         try:
             suggestions = self.http_client.get_yaml(URL_SUGGESTIONS, session=False)
@@ -28,8 +41,10 @@ class SuggestionsDownloader:
 
         except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
             self.logger.warning("Internet seems to be off: it was not possible to retrieve the suggestions")
+            self._finish_task()
             return {}
 
+        self._finish_task()
         return suggestions
 
 

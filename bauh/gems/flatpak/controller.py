@@ -338,7 +338,7 @@ class FlatpakManager(SoftwareManager):
         return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self, task_manager: TaskManager, root_password: str):
-        Thread(target=read_config, daemon=True).start()
+        Thread(target=read_config, args=(True,), daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []

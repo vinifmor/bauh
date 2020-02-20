@@ -732,11 +732,11 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
-    def _update_env_settings(self):
-        self.env_settings = self.env_updater.read_settings()
+    def _update_env_settings(self, task_manager: TaskManager = None):
+        self.env_settings = self.env_updater.read_settings(task_manager)
 
-    def _download_suggestions(self):
-        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client)
+    def _download_suggestions(self, taskman: TaskManager = None):
+        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n, taskman=taskman)
         self.suggestions = downloader.download()
 
         if self.suggestions:
@@ -744,10 +744,10 @@ class WebApplicationManager(SoftwareManager):
             Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
 
     def prepare(self, task_manager: TaskManager, root_password: str):
-        self.env_thread = Thread(target=self._update_env_settings, daemon=True)
+        self.env_thread = Thread(target=self._update_env_settings, args=(task_manager,), daemon=True)
         self.env_thread.start()
 
-        self.suggestions_downloader = Thread(target=self._download_suggestions, daemon=True)
+        self.suggestions_downloader = Thread(target=self._download_suggestions, args=(task_manager,), daemon=True)
         self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
@@ -822,7 +822,7 @@ class WebApplicationManager(SoftwareManager):
             self.suggestions_downloader.join(5)
             suggestions = self.suggestions
         else:
-            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client).download()
+            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n).download()
 
         # cleaning memory
         self.suggestions_downloader = None

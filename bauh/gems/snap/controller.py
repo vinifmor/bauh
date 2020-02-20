@@ -13,7 +13,8 @@ from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputO
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
-from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
+    get_icon_path
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
@@ -33,11 +34,6 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client,
-                                                          logger=self.logger,
-                                                          url_categories_file=URL_CATEGORIES_FILE,
-                                                          disk_cache_dir=SNAP_CACHE_PATH,
-                                                          categories_path=CATEGORIES_FILE_PATH)
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
 
@@ -125,7 +121,6 @@ class SnapManager(SoftwareManager):
         info_path = self.get_info_path()
 
         if snap.is_snapd_running() and info_path:
-            self.categories_downloader.join()
             installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(info_path)]
             return SearchResult(installed, None, len(installed))
         else:
@@ -224,8 +219,20 @@ class SnapManager(SoftwareManager):
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
+    def _start_category_task(self, task_man: TaskManager):
+        task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
+        task_man.update_progress('snap_cats', 50, None)
+
+    def _finish_category_task(self, task_man: TaskManager):
+        task_man.update_progress('snap_cats', 100, None)
+        task_man.finish_task('snap_cats')
+
     def prepare(self, task_manager: TaskManager, root_password: str):
-        self.categories_downloader.start()
+        CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,
+                             url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=SNAP_CACHE_PATH,
+                             categories_path=CATEGORIES_FILE_PATH,
+                             before=lambda: self._start_category_task(task_manager),
+                             after=lambda: self._finish_category_task(task_manager)).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass

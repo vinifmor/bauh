@@ -280,3 +280,6 @@ action.update.order.title=Ordre d'actualització
 action.update.order.body=L'actualització es realitzarà en l'ordre següent
 general=general
 task.download_categories=Download de categories [ {} ]
+prepare_panel.title.start=Iniciando
+prepare_panel.title.start=Inicialització
+prepare_panel.title.finish=Llest

@@ -235,3 +235,5 @@ action.update.order.title=Ordine di aggiornamento
 action.update.order.body=L'aggiornamento verrà eseguito nel seguente ordine
 general=generale
 task.download_categories=Download delle categorie [ {} ]
+prepare_panel.title.start=Inizializzazione
+prepare_panel.title.finish=Pronto

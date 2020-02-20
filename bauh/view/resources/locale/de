@@ -235,3 +235,5 @@ action.update.order.title=Upgrade order
 action.update.order.body=The upgrade will be performed in the following order
 general=Allgemein
 task.download_categories=Downloading categories [ {} ]
+=prepare_panel.title.start=Initialisierung
+prepare_panel.title.finish=Bereit

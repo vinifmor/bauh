@@ -2,7 +2,7 @@ import operator
 import time
 from functools import reduce
 
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
+from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView
 
@@ -76,6 +76,7 @@ class PreparePanel(QWidget, TaskManager):
         self.setWindowTitle(' ')
         self.setMinimumWidth(screen_size.width() * 0.5)
         self.setMinimumHeight(screen_size.height() * 0.35)
+        self.setMaximumHeight(screen_size.height() * 0.95)
         self.setLayout(QVBoxLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.manager = manager
@@ -93,7 +94,7 @@ class PreparePanel(QWidget, TaskManager):
         self.check_thread.signal_finished.connect(self.finish)
 
         self.label_top = QLabel()
-        self.label_top.setText("... Initializing ...")
+        self.label_top.setText("... {} ...".format(self.i18n['prepare_panel.title.start'].capitalize()))
         self.label_top.setAlignment(Qt.AlignHCenter)
         self.label_top.setStyleSheet("QLabel { font-size: 14px; font-weight: bold; }")
         self.layout().addWidget(self.label_top)
@@ -118,7 +119,7 @@ class PreparePanel(QWidget, TaskManager):
         for i in range(self.table.columnCount()):
             header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
 
-        self.resize(self.get_table_width() * 1.05, self.height())
+        self.resize(self.get_table_width() * 1.05, self.sizeHint().height())
 
     def show(self):
         super(PreparePanel, self).show()
@@ -199,7 +200,7 @@ class PreparePanel(QWidget, TaskManager):
         self.signal_status.emit(self.ntasks, self.ftasks)
 
         if self.ntasks == self.ftasks:
-            self.label_top.setText("... Ready ...")
+            self.label_top.setText("... {} ...".format(self.i18n['ready'].capitalize()))
 
     def finish(self):
         self.manage_window.refresh_apps()

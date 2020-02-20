@@ -288,3 +288,5 @@ action.history.no_history.title=Sem histórico
 action.history.no_history.body=Não existe histórico disponível para {}
 general=geral
 task.download_categories=Baixando categorias [ {} ]
+prepare_panel.title.start=Iniciando
+prepare_panel.title.finish=Pronto

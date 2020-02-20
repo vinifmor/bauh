@@ -67,3 +67,5 @@ web.settings.nativefier.env.tooltip=Se utilizará la versión de Nativefier inst
 web.settings.nativefier.system.tooltip=Se utilizará la versión de Nativefier instalada en su sistema para instalar aplicaciones
 web.settings.nativefier.tip=Define qué versión de Nativefier debe usarse para generar las aplicaciones Web
 web.settings.env.nativefier.system.not_installed={} parece no estar instalado en su sistema
+web.task.download_settings=Actualizando configuraciones de ambiente
+web.task.suggestions=Descargando la lista de sugerencias de aplicaciones

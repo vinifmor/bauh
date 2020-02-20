@@ -1226,7 +1226,7 @@ class ArchManager(SoftwareManager):
         return action != 'search'
 
     def _start_category_task(self, task_man: TaskManager):
-        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'].format(bold('AUR')), get_icon_path())
+        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'].format('AUR'), get_icon_path())
         task_man.update_progress('arch_aur_cats', 50, None)
 
     def _finish_category_task(self, task_man: TaskManager):

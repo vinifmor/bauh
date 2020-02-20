@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR
-from bauh.commons import user
+from bauh.commons import user, resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
@@ -28,3 +28,6 @@ SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
 URL_NATIVEFIER = 'https://github.com/jiahaog/nativefier/archive/v{version}.tar.gz'
 
+
+def get_icon_path() -> str:
+    return resource.get_path('img/web.svg', ROOT_DIR)
