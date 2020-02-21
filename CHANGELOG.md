@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+    
+## [0.8.4] - 2020-02-21
+### Improvements
+- UI
+    - treating multiple lines on the application's description displayed on the table
+- AUR
+    - generating the semantic search map on demand instead of storing it in memory
+- Russian translations by: 
+    - [leoneii](https://github.com/leoneii) -  PRs: [#61](https://github.com/vinifmor/bauh/pull/61) [#63](https://github.com/vinifmor/bauh/pull/63)
+    - [mountain-biker85](https://github.com/mountain-biker85) - PRs: [#62](https://github.com/vinifmor/bauh/pull/62) [#64](https://github.com/vinifmor/bauh/pull/64)
+### Fixes
+- Snap
+    - not able to launch applications on some distros ( e.g: OpenSuse ) [#58](https://github.com/vinifmor/bauh/issues/58)
+- AUR
+    - package name tooltip was displaying only the repository ( table row )
+- UI
+    - not displaying some priority search results at the top of the table
+
 
 ## [0.8.3] - 2020-02-13
 ### Improvements
@@ -15,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - checking architecture dependencies (x86_64, i686)
     - architecture dependencies are displayed on the info window as well
     - optimizations to speed up zst packages building
-    - showing a warning messaging when trying to install / update / downgrade a package with the root user
+    - showing a warning message when trying to install / update / downgrade a package with the root user
 - UI:
     - **Settings** available as a tray action as well
     - minor improvements

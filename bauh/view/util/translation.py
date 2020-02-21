@@ -75,7 +75,10 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
     for line in locale_keys:
         line_strip = line.strip()
         if line_strip:
-            keyval = line_strip.split('=')
-            locale_obj[keyval[0].strip()] = keyval[1].strip()
+            try:
+                keyval = line_strip.split('=')
+                locale_obj[keyval[0].strip()] = keyval[1].strip()
+            except:
+                print("Error decoding i18n line '{}'".format(line))
 
     return locale_path.split('/')[-1], locale_obj

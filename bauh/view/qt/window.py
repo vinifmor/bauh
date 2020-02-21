@@ -694,7 +694,7 @@ class ManageWindow(QWidget):
 
     def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
         return {
-            'only_apps': self.filter_only_apps,
+            'only_apps': False if self.search_performed else self.filter_only_apps,
             'type': self.type_filter,
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
