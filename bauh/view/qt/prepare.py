@@ -5,12 +5,14 @@ from functools import reduce
 
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
+    QProgressBar, QApplication
 
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
 from bauh.view.qt import root
 from bauh.view.qt.components import new_spacer
+from bauh.view.qt.thread import AnimateProgress
 from bauh.view.util.translation import I18n
 
 
@@ -18,6 +20,7 @@ class Prepare(QThread, TaskManager):
     signal_register = pyqtSignal(str, str, object)
     signal_update = pyqtSignal(str, float, str)
     signal_finished = pyqtSignal(str)
+    signal_started = pyqtSignal()
 
     def __init__(self, manager: SoftwareManager, i18n: I18n):
         super(Prepare, self).__init__()
@@ -32,6 +35,7 @@ class Prepare(QThread, TaskManager):
             if not ok:
                 QCoreApplication.exit(1)
 
+        self.signal_started.emit()
         self.manager.prepare(self, root_pwd)
 
     def update_progress(self, task_id: str, progress: float, substatus: str):
@@ -60,7 +64,6 @@ class CheckFinished(QThread):
 
             time.sleep(0.01)
 
-        time.sleep(2)
         self.signal_finished.emit()
 
     def update(self, total: int, finished: int):
@@ -110,6 +113,7 @@ class PreparePanel(QWidget, TaskManager):
         self.prepare_thread.signal_register.connect(self.register_task)
         self.prepare_thread.signal_update.connect(self.update_progress)
         self.prepare_thread.signal_finished.connect(self.finish_task)
+        self.prepare_thread.signal_started.connect(self.start)
 
         self.check_thread = CheckFinished()
         self.signal_status.connect(self.check_thread.update)
@@ -117,6 +121,9 @@ class PreparePanel(QWidget, TaskManager):
 
         self.skip_thread = EnableSkip()
         self.skip_thread.signal_timeout.connect(self._enable_skip_button)
+
+        self.progress_thread = AnimateProgress()
+        self.progress_thread.signal_change.connect(self._change_progress)
 
         self.label_top = QLabel()
         self.label_top.setText("... {} ...".format(self.i18n['prepare_panel.title.start'].capitalize()))
@@ -142,6 +149,13 @@ class PreparePanel(QWidget, TaskManager):
         toolbar.addWidget(bt_close)
 
         toolbar.addWidget(new_spacer())
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setVisible(False)
+        self.ref_progress_bar = toolbar.addWidget(self.progress_bar)
+        toolbar.addWidget(new_spacer())
+
         self.bt_skip = QPushButton(self.i18n['prepare_panel.bt_skip.label'].capitalize())
         self.bt_skip.clicked.connect(self.finish)
         self.bt_skip.setEnabled(False)
@@ -151,6 +165,9 @@ class PreparePanel(QWidget, TaskManager):
 
     def _enable_skip_button(self):
         self.bt_skip.setEnabled(True)
+
+    def _change_progress(self, value: int):
+        self.progress_bar.setValue(value)
 
     def get_table_width(self) -> int:
         return reduce(operator.add, [self.table.columnWidth(i) for i in range(self.table.columnCount())])
@@ -164,9 +181,14 @@ class PreparePanel(QWidget, TaskManager):
 
     def show(self):
         super(PreparePanel, self).show()
-        self.check_thread.start()
         self.prepare_thread.start()
+
+    def start(self):
+        self.check_thread.start()
         self.skip_thread.start()
+
+        self.ref_progress_bar.setVisible(True)
+        self.progress_thread.start()
 
     def closeEvent(self, QCloseEvent):
         if not self.self_close:
