@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 from argparse import Namespace
 
@@ -13,5 +12,6 @@ def read() -> Namespace:
                         help='If the tray icon and update-check daemon should be created. Default: %(default)s')
     parser.add_argument('--logs', action="store", default=int(os.getenv('BAUH_LOGS', 0)), choices=[0, 1], type=int, help='If the application logs should be displayed. Default: %(default)s')
     parser.add_argument('--show-panel', action="store_true", help='Shows the management panel after the app icon is attached to the tray.')
+    parser.add_argument('--settings', action="store_true", help="Displays only the settings panel")
     parser.add_argument('--reset', action="store_true", help='Removes all configuration and cache files')
     return parser.parse_args()

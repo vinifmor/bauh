@@ -73,9 +73,9 @@ class ArchDiskCacheUpdater(Thread):
         self.task_id = 'arch_cache_up'
         self.i18n = i18n
         self.prepared = 0
-        self.prepared_template = self.i18n['arch.task.disk_cache.prepared'].format(': {}/ {}')
+        self.prepared_template = self.i18n['arch.task.disk_cache.prepared'] + ': {}/ {}'
         self.indexed = 0
-        self.indexed_template = self.i18n['arch.task.disk_cache.indexed'].format(': {}/ {}')
+        self.indexed_template = self.i18n['arch.task.disk_cache.indexed'] + ': {}/ {}'
         self.to_index = 0
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
         self.repositories = arch_config['repositories']
@@ -86,12 +86,14 @@ class ArchDiskCacheUpdater(Thread):
             self.prepared += 1
 
         sub = self.prepared_template.format(self.prepared, self.to_index)
-        self.task_man.update_progress(self.task_id, ((self.prepared + self.indexed) / self.progress) * 100, sub)
+        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
+        self.task_man.update_progress(self.task_id, progress, sub)
 
     def update_indexed(self, pkgname: str):
         self.indexed += 1
         sub = self.indexed_template.format(self.indexed, self.to_index)
-        self.task_man.update_progress(self.task_id, ((self.prepared + self.indexed) / self.progress) * 100, sub)
+        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
+        self.task_man.update_progress(self.task_id, progress, sub)
 
     def run(self):
         if not any([self.aur, self.repositories]):

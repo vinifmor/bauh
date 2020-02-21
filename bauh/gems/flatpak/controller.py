@@ -360,7 +360,7 @@ class FlatpakManager(SoftwareManager):
 
             for app in to_update:
                 updates.append(PackageUpdate(pkg_id='{}:{}:{}'.format(app.id, app.branch, app.installation),
-                                             pkg_type='flatpak',
+                                             pkg_type='Flatpak',
                                              version=app.version))
 
         return updates

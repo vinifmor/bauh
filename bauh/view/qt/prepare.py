@@ -144,9 +144,10 @@ class PreparePanel(QWidget, TaskManager):
         self.layout().addWidget(self.table)
 
         toolbar = QToolBar()
-        bt_close = QPushButton(self.i18n['close'].capitalize())
-        bt_close.clicked.connect(self.close)
-        toolbar.addWidget(bt_close)
+        self.bt_close = QPushButton(self.i18n['close'].capitalize())
+        self.bt_close.clicked.connect(self.close)
+        self.bt_close.setVisible(False)
+        self.ref_bt_close = toolbar.addWidget(self.bt_close)
 
         toolbar.addWidget(new_spacer())
         self.progress_bar = QProgressBar()
@@ -184,6 +185,7 @@ class PreparePanel(QWidget, TaskManager):
         self.prepare_thread.start()
 
     def start(self):
+        self.ref_bt_close.setVisible(True)
         self.check_thread.start()
         self.skip_thread.start()
 

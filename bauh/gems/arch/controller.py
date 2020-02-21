@@ -142,21 +142,29 @@ class ArchManager(SoftwareManager):
         if is_url:
             return SearchResult([], [], 0)
 
+        arch_config = read_config()
         res = SearchResult([], [], 0)
 
-        installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
-        read_installed.start()
+        if not any((arch_config['aur'], arch_config['repositories'])):
+            return res
 
         mapped_words = self.get_semantic_search_map().get(words)
         final_words = mapped_words or words
 
-        aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
-        aur_search.start()
+        aur_search = None
+        if arch_config['aur']:
+            installed = {}
+            read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
+            read_installed.start()
 
-        self._search_in_repos_and_fill(final_words, disk_loader, res)
+            aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
+            aur_search.start()
 
-        aur_search.join()
+        if arch_config['repositories']:
+            self._search_in_repos_and_fill(final_words, disk_loader, res)
+
+        if aur_search:
+            aur_search.join()
 
         res.total = len(res.installed) + len(res.new)
         return res
@@ -235,7 +243,8 @@ class ArchManager(SoftwareManager):
             pkgs.append(pkg)
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
-        installed = pacman.map_installed()
+        arch_config = read_config()
+        installed = pacman.map_installed(repositories=arch_config['repositories'], aur=arch_config['aur'])
 
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
@@ -1121,7 +1130,7 @@ class ArchManager(SoftwareManager):
         return False
 
     def _should_sync_databases(self, arch_config: dict, handler: ProcessHandler):
-        if arch_config['sync_databases']:
+        if (arch_config['aur'] or arch_config['repositories']) and arch_config['sync_databases']:
             if os.path.exists(DB_SYNC_FILE):
                 with open(DB_SYNC_FILE) as f:
                     sync_file = f.read()
@@ -1236,8 +1245,12 @@ class ArchManager(SoftwareManager):
 
     def prepare(self, task_manager: TaskManager, root_password: str):
         arch_config = read_config(update_file=True)
-        ArchDiskCacheUpdater(task_manager, arch_config, self.i18n, self.context.logger).start()
-        ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
+
+        if arch_config['aur'] or arch_config['repositories']:
+            ArchDiskCacheUpdater(task_manager, arch_config, self.i18n, self.context.logger).start()
+
+        if arch_config['aur']:
+            ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
 
         if arch_config['aur']:
             CategoriesDownloader(id_='AUR', http_client=self.context.http_client, logger=self.context.logger,
@@ -1248,7 +1261,7 @@ class ArchManager(SoftwareManager):
             AURIndexUpdater(task_manager, self.context).start()
 
         refresh_mirrors = None
-        if arch_config['refresh_mirrors_startup']:
+        if arch_config['repositories'] and arch_config['refresh_mirrors_startup']:
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
                                              root_password=root_password, logger=self.logger)
             refresh_mirrors.start()
@@ -1259,7 +1272,7 @@ class ArchManager(SoftwareManager):
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
-        return [PackageUpdate(p.id, p.latest_version, 'aur') for p in installed if p.update]
+        return [PackageUpdate(p.name, p.latest_version, self.i18n['gem.arch.type.{}.label'.format(p.get_type())]) for p in installed if p.update]
 
     def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []

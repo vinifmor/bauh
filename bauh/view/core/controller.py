@@ -308,7 +308,8 @@ class GenericSoftwareManager(SoftwareManager):
         if self.managers:
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    man.prepare(task_manager, root_password)
+                    if task_manager:
+                        man.prepare(task_manager, root_password)
                     self._already_prepared.append(man)
 
     def list_updates(self, net_check: bool = None) -> List[PackageUpdate]:

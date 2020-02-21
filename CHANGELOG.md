@@ -10,7 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - support for packages from configured repositories ( search, install, upgrade, downgrade, history )
     - removing old cached versions from the disk cache when uninstalling a package ( can be disabled via the settings file / UI )
 - UI:
-    - new initialization dialog showing tasks that need to be done before using bauh 
+    - new initialization dialog showing tasks that need to be done before using bauh
+    
+### Improvements
+- new parameters:
+    - `--settings`: opens only the settings panel
+    
+### Improvements
+- Tray:
+    - sorting types on update notification
 
     
 ## [0.8.4] - 2020-02-21

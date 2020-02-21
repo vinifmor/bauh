@@ -1,6 +1,5 @@
 import os
 import sys
-from threading import Thread
 
 import urllib3
 from PyQt5.QtCore import Qt, QCoreApplication
@@ -13,6 +12,7 @@ from bauh.view.core import gems, config
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.qt.prepare import PreparePanel
+from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.systray import TrayIcon
 from bauh.view.qt.window import ManageWindow
 from bauh.view.util import util, logs, translation
@@ -49,7 +49,8 @@ def main():
     i18n = I18n(i18n_key, current_i18n, DEFAULT_I18N_KEY, default_i18n)
 
     cache_cleaner = CacheCleaner()
-    cache_factory = DefaultMemoryCacheFactory(expiration_time=int(local_config['memory_cache']['data_expiration']), cleaner=cache_cleaner)
+    cache_factory = DefaultMemoryCacheFactory(expiration_time=int(local_config['memory_cache']['data_expiration']),
+                                              cleaner=cache_cleaner)
     icon_cache = cache_factory.new(int(local_config['memory_cache']['icon_expiration']))
 
     http_client = HttpClient(logger)
@@ -74,7 +75,6 @@ def main():
         exit(0)
 
     manager = GenericSoftwareManager(managers, context=context, config=local_config)
-    cache_cleaner.start()
 
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)   # otherwise windows opened through the tray icon kill the aplication when closed
@@ -89,35 +89,40 @@ def main():
         if app.style().objectName().lower() not in {'fusion', 'breeze'}:
             app.setStyle('Fusion')
 
-    manage_window = ManageWindow(i18n=i18n,
-                                 manager=manager,
-                                 icon_cache=icon_cache,
-                                 screen_size=app.primaryScreen().size(),
-                                 config=local_config,
-                                 context=context,
-                                 http_client=http_client,
-                                 icon=app_icon,
-                                 logger=logger)
-
-    if args.tray:
-        tray_icon = TrayIcon(i18n=i18n,
-                             manager=manager,
-                             manage_window=manage_window,
-                             screen_size=app.primaryScreen().size(),
-                             config=local_config)
-        manage_window.set_tray_icon(tray_icon)
-        tray_icon.show()
-
-        if args.show_panel:
-            tray_icon.show_manage_window()
+    if args.settings:  # only settings window
+        manager.prepare(None, None)  # only checks the available managers
+        SettingsWindow(manager=manager, i18n=i18n, screen_size=app.primaryScreen().size(),
+                       tray=None, window=None).show()
     else:
-        # manage_window.refresh_apps()
-        # manage_window.show()
-        prepare = PreparePanel(screen_size=app.primaryScreen().size(),
-                               manager=manager,
-                               i18n=i18n,
-                               manage_window=manage_window)
-        prepare.show()
+        cache_cleaner.start()
+
+        manage_window = ManageWindow(i18n=i18n,
+                                     manager=manager,
+                                     icon_cache=icon_cache,
+                                     screen_size=app.primaryScreen().size(),
+                                     config=local_config,
+                                     context=context,
+                                     http_client=http_client,
+                                     icon=app_icon,
+                                     logger=logger)
+
+        if args.tray:
+            tray_icon = TrayIcon(i18n=i18n,
+                                 manager=manager,
+                                 manage_window=manage_window,
+                                 screen_size=app.primaryScreen().size(),
+                                 config=local_config)
+            manage_window.set_tray_icon(tray_icon)
+            tray_icon.show()
+
+            if args.show_panel:
+                tray_icon.show_manage_window()
+        else:
+            prepare = PreparePanel(screen_size=app.primaryScreen().size(),
+                                   manager=manager,
+                                   i18n=i18n,
+                                   manage_window=manage_window)
+            prepare.show()
 
     sys.exit(app.exec_())
 

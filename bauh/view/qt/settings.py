@@ -1,7 +1,7 @@
 import gc
 from io import StringIO
 
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import QSize, Qt, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QSizePolicy, QPushButton
 
 from bauh.api.abstract.controller import SoftwareManager
@@ -73,10 +73,12 @@ class SettingsWindow(QWidget):
         # Configurações alteradas com sucesso, porém algumas delas só surtirão após a reinicialização
 
         if success:
-            if dialog.ask_confirmation(title=self.i18n['warning'].capitalize(),
-                                       body="<p>{}</p><p>{}</p>".format(self.i18n['settings.changed.success.warning'],
-                                                                        self.i18n['settings.changed.success.reboot']),
-                                       i18n=self.i18n):
+            if not any((self.window, self.tray)):
+                QCoreApplication.exit(0)
+            elif dialog.ask_confirmation(title=self.i18n['warning'].capitalize(),
+                                         body="<p>{}</p><p>{}</p>".format(self.i18n['settings.changed.success.warning'],
+                                                                          self.i18n['settings.changed.success.reboot']),
+                                            i18n=self.i18n):
                 util.restart_app(self.window and self.window.isVisible())
             else:
                 if isinstance(self.manager, GenericSoftwareManager):
