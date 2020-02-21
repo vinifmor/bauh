@@ -19,7 +19,7 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
-    SuggestionPriority
+    SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.api.constants import TEMP_DIR
@@ -70,11 +70,27 @@ class ArchManager(SoftwareManager):
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
         self.local_config = None
         self.http_client = context.http_client
+        self.custom_actions = [CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
+                                                    i18n_status_key='arch.task.mirrors',
+                                                    manager_method='refresh_mirrors',
+                                                    icon_path=get_icon_path(),
+                                                    requires_root=True)]
 
     def get_semantic_search_map(self) -> Dict[str, str]:
         return {'google chrome': 'google-chrome',
                 'chrome google': 'google-chrome',
                 'googlechrome': 'google-chrome'}
+
+    def refresh_mirrors(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        success, output = ProcessHandler(watcher).handle_simple(pacman.refresh_mirrors(root_password))
+
+        if not success:
+            watcher.show_message(title=self.i18n["action.failed"].capitalize(),
+                                 body=self.i18n['arch.custom_action.refresh_mirrors.failed'],
+                                 type_=MessageType.ERROR)
+            return False
+
+        return True
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
         app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
@@ -1566,3 +1582,6 @@ class ArchManager(SoftwareManager):
             return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
         else:
             return []
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        return self.custom_actions

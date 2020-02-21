@@ -214,7 +214,7 @@ class SnapManager(SoftwareManager):
         return snap.is_installed()
 
     def requires_root(self, action: str, pkg: SnapApplication):
-        return action != 'search'
+        return action not in ('search', 'prepare')
 
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))

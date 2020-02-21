@@ -144,3 +144,4 @@ arch.task.sync_databases.waiting=Esperando actualización de espejos
 arch.task.mirrors=Actualizando espejos
 arch.config.refresh_mirrors=Actualizar espejos al iniciar
 arch.config.refresh_mirrors.tip=Actualiza los espejos de paquetes una vez al día al iniciar ( o después de reiniciar el dispositivo )
+arch.custom_action.refresh_mirrors.failed=No fue posible actualizar los espejos

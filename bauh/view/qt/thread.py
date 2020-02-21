@@ -10,7 +10,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import PackageStatus, SoftwarePackage, PackageAction
+from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
 from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption
 from bauh.api.exception import NoInternetException
 from bauh.commons.html import bold
@@ -560,7 +560,7 @@ class ApplyFilters(AsyncAction):
 
 class CustomAction(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: PackageAction = None, pkg: PackageView = None, root_password: str = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: CustomSoftwareAction = None, pkg: PackageView = None, root_password: str = None):
         super(CustomAction, self).__init__()
         self.manager = manager
         self.pkg = pkg

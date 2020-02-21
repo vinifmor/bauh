@@ -242,3 +242,5 @@ action.update.requirements.status=Проверка требований
 action.update.order.title=Порядок обновления
 action.update.order.body=Обновление будет выполнено в следующем порядке
 prepare_panel.bt_skip.label=skip
+action.failed=Action failed
+arch.custom_action.refresh_mirrors=Refresh mirrors

@@ -292,3 +292,5 @@ task.download_categories=Baixando categorias [ {} ]
 prepare_panel.title.start=Iniciando
 prepare_panel.title.finish=Pronto
 prepare_panel.bt_skip.label=Pular
+action.failed=Ação falhou
+arch.custom_action.refresh_mirrors=Atualizar espelhos

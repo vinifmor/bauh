@@ -10,7 +10,7 @@ import yaml
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent
 
 
@@ -259,7 +259,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         """
         At the moment the GUI implements this action. No need to implement it yourself.
         :param action:
@@ -304,5 +304,11 @@ class SoftwareManager(ABC):
     def save_settings(self, component: ViewComponent) -> Tuple[bool, List[str]]:
         """
         :return: a tuple with a bool informing if the settings were saved and a list of error messages
+        """
+        pass
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        """
+        :return: custom actions
         """
         pass

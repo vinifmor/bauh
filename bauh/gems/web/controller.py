@@ -19,7 +19,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory, \
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
@@ -869,7 +869,7 @@ class WebApplicationManager(SoftwareManager):
 
             return res
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
     def is_default_enabled(self) -> bool:

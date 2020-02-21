@@ -181,3 +181,4 @@ arch.task.sync_databases.waiting=Waiting mirrors refreshing
 arch.task.mirrors=Refreshing mirrors
 arch.config.refresh_mirrors=Refresh mirrors on startup
 arch.config.refresh_mirrors.tip=Refresh the package mirrors once a day on startup ( or after a device reboot )
+arch.custom_action.refresh_mirrors.failed=It was not possible to refresh the mirrors

@@ -180,3 +180,4 @@ arch.task.aur_index=Indexando catálogo do {} em disco
 arch.task.sync_sb.status=Atualizando {}
 arch.task.sync_databases.waiting=Aguardando atualização de espelhos
 arch.task.mirrors=Atualizando espelhos
+arch.custom_action.refresh_mirrors.failed=Não foi possível atualizar os espelhos

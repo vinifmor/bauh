@@ -88,6 +88,7 @@ class SettingsWindow(QWidget):
                 self.manager.prepare(task_manager=None, root_password=None)  # TODO
 
                 if self.window and self.window.isVisible():
+                    self.window.update_custom_actions()
                     self.window.verify_warnings()
                     self.window.types_changed = True
                     self.window.refresh_apps()

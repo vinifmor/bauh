@@ -8,7 +8,7 @@ from typing import List, Set, Type, Tuple
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
@@ -382,7 +382,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return suggestions
         return []
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
         man = self._get_manager_for(pkg)
 
         if man:
@@ -477,3 +477,17 @@ class GenericSoftwareManager(SoftwareManager):
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
         return required
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        if self.managers:
+            actions = []
+
+            for man in self.managers:
+                if self._can_work(man):
+                    man_actions = man.get_custom_actions()
+
+                    if man_actions:
+                        actions.extend(man_actions)
+
+            return actions
+

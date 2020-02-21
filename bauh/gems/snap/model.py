@@ -1,15 +1,15 @@
 from typing import List
 
-from bauh.api.abstract.model import SoftwarePackage, PackageAction
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.snap import ROOT_DIR
 
 EXTRA_INSTALLED_ACTIONS = [
-    PackageAction(i18n_status_key='snap.action.refresh.status',
-                  i18_label_key='snap.action.refresh.label',
-                  icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                  manager_method='refresh',
-                  requires_root=True)
+    CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
+                         i18_label_key='snap.action.refresh.label',
+                         icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
+                         manager_method='refresh',
+                         requires_root=True)
 ]
 
 KNOWN_RUNTIME_NAMES = {'snapd', 'snapcraft', 'multipass'}
@@ -79,6 +79,6 @@ class SnapApplication(SoftwarePackage):
     def get_publisher(self):
         return self.publisher
 
-    def get_custom_supported_actions(self) -> List[PackageAction]:
+    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
         if self.installed:
             return EXTRA_INSTALLED_ACTIONS

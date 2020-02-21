@@ -6,18 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.0] - 2020
 ### Features
-- Arch
-    - support for packages from configured repositories ( search, install, upgrade, downgrade, history )
+- Arch / AUR
+    - support for packages from configured repositories ( search, install, upgrade, downgrade, history, info )
     - removing old cached versions from the disk cache when uninstalling a package ( can be disabled via the settings file / UI )
-- UI:
+    - database synchronization on startup ( **enabled by default**. Can be changed on settings.)
+    - mirrors refreshing on startup ( **disabled by default**. Can be changed on settings. )
+- UI
     - new initialization dialog showing tasks that need to be done before using bauh
+    - new custom actions button ( displays specific action available for each packaging provider )
     
 ### Improvements
-- new parameters:
+- new parameters
     - `--settings`: opens only the settings panel
     
 ### Improvements
-- Tray:
+- tray
     - sorting types on update notification
 
     

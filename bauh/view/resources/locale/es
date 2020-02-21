@@ -287,3 +287,5 @@ task.download_categories=Descargando categorías [ {} ]
 prepare_panel.title.start=Inicializando
 prepare_panel.title.finish=Listo
 prepare_panel.bt_skip.label=omitir
+action.failed=Acción fallida
+arch.custom_action.refresh_mirrors=Actualizar espejos

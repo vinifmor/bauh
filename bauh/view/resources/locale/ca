@@ -285,3 +285,5 @@ prepare_panel.title.start=Iniciando
 prepare_panel.title.start=Inicialització
 prepare_panel.title.finish=Llest
 prepare_panel.bt_skip.label=saltar
+action.failed=L'acció ha fallat
+arch.custom_action.refresh_mirrors=Refresh mirrors

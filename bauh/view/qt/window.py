@@ -4,14 +4,15 @@ from pathlib import Path
 from typing import List, Type, Set
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QCoreApplication
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
+    QMenu, QAction
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.abstract.model import SoftwarePackage, PackageAction
+from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
@@ -29,7 +30,7 @@ from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
+    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -316,6 +317,15 @@ class ManageWindow(QWidget):
 
         self.toolbar_bottom.addWidget(new_spacer())
 
+        self.custom_actions = manager.get_custom_actions()
+        bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
+                                       action=self.show_custom_actions,
+                                       background="#75a3a3", #  #669966  #75a3a3
+                                       i18n=self.i18n,
+                                       tooltip=self.i18n['manage_window.bt_settings.tooltip'])
+        bt_custom_actions.setVisible(bool(self.custom_actions))
+        self.ref_bt_custom_actions = self.toolbar_bottom.addWidget(bt_custom_actions)
+
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self.show_settings,
                                  background='#12ABAB',
@@ -351,6 +361,10 @@ class ManageWindow(QWidget):
         self.thread_warnings.signal_warnings.connect(self._show_warnings)
         self.settings_window = None
         self.search_performed = False
+
+    def update_custom_actions(self):
+        self.custom_actions = self.manager.get_custom_actions()
+        self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
 
     def set_tray_icon(self, tray_icon):
         self.tray_icon = tray_icon
@@ -920,6 +934,7 @@ class ManageWindow(QWidget):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_combo_categories.setVisible(False)
+        self.ref_bt_custom_actions.setVisible(False)
         self.ref_bt_settings.setVisible(False)
         self.ref_bt_about.setVisible(False)
         self.thread_animate_progress.stop = False
@@ -961,6 +976,7 @@ class ManageWindow(QWidget):
         self.progress_bar.setTextVisible(False)
 
         self._change_label_substatus('')
+        self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
         self.ref_bt_settings.setVisible(True)
         self.ref_bt_about.setVisible(True)
 
@@ -1150,7 +1166,7 @@ class ManageWindow(QWidget):
     def _finish_run_app(self, success: bool):
         self.finish_action()
 
-    def execute_custom_action(self, pkg: PackageView, action: PackageAction):
+    def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
         pwd = None
 
         if not user.is_root() and action.requires_root:
@@ -1184,3 +1200,16 @@ class ManageWindow(QWidget):
             self.settings_window.adjustSize()
             qt_utils.centralize(self.settings_window)
             self.settings_window.show()
+
+    def show_custom_actions(self):
+        menu_row = QMenu()
+
+        for a in self.manager.get_custom_actions():
+            action_about = QAction(self.i18n[a.i18_label_key])
+            action_about.setIcon(QIcon(resource.get_path(a.icon_path)))
+            action_about.triggered.connect(self._show_about)
+            menu_row.addAction(action_about)
+
+        menu_row.adjustSize()
+        menu_row.popup(QCursor.pos())
+        menu_row.exec_()

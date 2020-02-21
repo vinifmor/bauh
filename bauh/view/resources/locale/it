@@ -239,3 +239,5 @@ task.download_categories=Download delle categorie [ {} ]
 prepare_panel.title.start=Inizializzazione
 prepare_panel.title.finish=Pronto
 prepar_panel.bt_skip.label=saltare
+action.failed=Azione non riuscita
+arch.custom_action.refresh_mirrors=Refresh mirrors
