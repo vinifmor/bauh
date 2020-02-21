@@ -1334,6 +1334,16 @@ class ArchManager(SoftwareManager):
         max_width = floor(screen_width * 0.15)
 
         fields = [
+            self._gen_bool_selector(id_='repos',
+                                    label_key='arch.config.repos',
+                                    tooltip_key='arch.config.repos.tip',
+                                    value=bool(local_config['repositories']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='aur',
+                                    label_key='arch.config.aur',
+                                    tooltip_key='arch.config.aur.tip',
+                                    value=bool(local_config['aur']),
+                                    max_width=max_width),
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',
@@ -1372,6 +1382,8 @@ class ArchManager(SoftwareManager):
         config = read_config()
 
         form_install = component.components[0]
+        config['repositories'] = form_install.get_component('repos').get_selected()
+        config['aur'] = form_install.get_component('aur').get_selected()
         config['optimize'] = form_install.get_component('opts').get_selected()
         config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
