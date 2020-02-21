@@ -460,3 +460,12 @@ def get_databases() -> Set[str]:
         conf_str = f.read()
 
     return {db for db in re.findall(r'[\n|\s]+\[(\w+)\]', conf_str) if db != 'options'}
+
+
+def can_refresh_mirrors() -> bool:
+    output = run_cmd('which pacman-mirrors', print_error=False)
+    return True if output else False
+
+
+def refresh_mirrors(root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman-mirrors', '-g'], root_password=root_password)

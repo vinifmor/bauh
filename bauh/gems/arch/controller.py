@@ -38,7 +38,8 @@ from bauh.gems.arch.database import DB_SYNC_FILE
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases, \
+    RefreshMirrors
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
@@ -1246,8 +1247,15 @@ class ArchManager(SoftwareManager):
                                  after=lambda: self._finish_category_task(task_manager)).start()
             AURIndexUpdater(task_manager, self.context).start()
 
+        refresh_mirrors = None
+        if arch_config['refresh_mirrors_startup']:
+            refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
+                                             root_password=root_password, logger=self.logger)
+            refresh_mirrors.start()
+
         if self._should_sync_databases(arch_config, None):
-            SyncDatabases(task_manager, root_password, self.i18n, self.logger).start()
+            SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
+                          logger=self.logger, refresh_mirrors=refresh_mirrors).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
@@ -1350,6 +1358,11 @@ class ArchManager(SoftwareManager):
                                     label_key='arch.config.clean_cache',
                                     tooltip_key='arch.config.clean_cache.tip',
                                     value=bool(local_config['clean_cached']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='ref_mirs',
+                                    label_key='arch.config.refresh_mirrors',
+                                    tooltip_key='arch.config.refresh_mirrors.tip',
+                                    value=bool(local_config['refresh_mirrors_startup']),
                                     max_width=max_width)
         ]
 
@@ -1364,6 +1377,7 @@ class ArchManager(SoftwareManager):
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
         config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
         config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
+        config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)

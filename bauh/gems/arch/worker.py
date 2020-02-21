@@ -11,7 +11,7 @@ import requests
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd, new_root_subprocess
+from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, get_icon_path, database
 from bauh.gems.arch.model import ArchPackage
@@ -285,22 +285,55 @@ class ArchCompilationOptimizer(Thread):
             self.optimize()
 
 
-class SyncDatabases(Thread):
+class RefreshMirrors(Thread):
 
     def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger):
+        super(RefreshMirrors, self).__init__(daemon=True)
+        self.taskman = taskman
+        self.i18n = i18n
+        self.logger = logger
+        self.root_password = root_password
+        self.task_id = "arch_mirrors"
+
+    def run(self):
+        self.logger.info("Refreshing mirrors")
+        self.taskman.register_task(self.task_id, self.i18n['arch.task.mirrors'], get_icon_path())
+
+        try:
+            success, output = ProcessHandler().handle_simple(pacman.refresh_mirrors(self.root_password))
+
+            if not success:
+                self.logger.error("It was not possible to refresh mirrors")
+        except:
+            self.logger.error("It was not possible to refresh mirrors")
+            traceback.print_exc()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        self.logger.info("Finished")
+
+
+class SyncDatabases(Thread):
+
+    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger, refresh_mirrors: RefreshMirrors = None):
         super(SyncDatabases, self).__init__(daemon=True)
         self.task_man = taskman
         self.i18n = i18n
         self.taskman = taskman
         self.task_id = "arch_dbsync"
         self.root_password = root_password
+        self.refresh_mirrors = refresh_mirrors
         self.logger = logger
 
     def run(self) -> None:
         self.logger.info("Synchronizing databases")
-        progress = 10
         self.taskman.register_task(self.task_id, self.i18n['arch.sync_databases.substatus'], get_icon_path())
 
+        if self.refresh_mirrors and self.refresh_mirrors.is_alive():
+            self.taskman.update_progress(self.task_id, 0, self.i18n['arch.task.sync_databases.waiting'])
+            self.refresh_mirrors.join()
+
+        progress = 10
         dbs = pacman.get_databases()
         self.taskman.update_progress(self.task_id, progress, None)
 
@@ -343,3 +376,5 @@ class SyncDatabases(Thread):
         self.taskman.update_progress(self.task_id, 100, None)
         self.taskman.finish_task(self.task_id)
         self.logger.info("Finished")
+
+
