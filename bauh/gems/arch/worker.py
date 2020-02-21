@@ -13,7 +13,7 @@ from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
-    AUR_INDEX_FILE, get_icon_path, database
+    AUR_INDEX_FILE, get_icon_path, database, mirrors
 from bauh.gems.arch.model import ArchPackage
 from bauh.view.util.translation import I18n
 
@@ -28,19 +28,15 @@ RE_CLEAR_REPLACE = re.compile(r'[\-_.]')
 
 class AURIndexUpdater(Thread):
 
-    def __init__(self, task_man: TaskManager, context: ApplicationContext):
+    def __init__(self, context: ApplicationContext):
         super(AURIndexUpdater, self).__init__(daemon=True)
         self.http_client = context.http_client
         self.i18n = context.i18n
         self.logger = context.logger
-        self.task_man = task_man
-        self.task_id = 'arch_aur_idx'
 
     def run(self):
-        self.task_man.register_task(self.task_id, self.i18n['arch.task.aur_index'].format('AUR'), get_icon_path())
         self.logger.info('Pre-indexing AUR packages')
         try:
-            self.task_man.update_progress(self.task_id, 10, None)
             res = self.http_client.get(URL_INDEX)
 
             if res and res.text:
@@ -59,9 +55,7 @@ class AURIndexUpdater(Thread):
         except requests.exceptions.ConnectionError:
             self.logger.warning('No internet connection: could not pre-index packages')
 
-        finally:
-            self.task_man.update_progress(self.task_id, 100, None)
-            self.task_man.finish_task(self.task_id)
+        self.logger.info("Finished")
 
 
 class ArchDiskCacheUpdater(Thread):
@@ -304,7 +298,9 @@ class RefreshMirrors(Thread):
         try:
             success, output = ProcessHandler().handle_simple(pacman.refresh_mirrors(self.root_password))
 
-            if not success:
+            if success:
+                mirrors.register_sync(self.logger)
+            else:
                 self.logger.error("It was not possible to refresh mirrors")
         except:
             self.logger.error("It was not possible to refresh mirrors")

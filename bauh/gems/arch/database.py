@@ -1,18 +1,52 @@
+import logging
+import os
 import time
 import traceback
+from datetime import datetime
 from logging import Logger
 from pathlib import Path
 
 from bauh.api.constants import TEMP_DIR
+from bauh.commons.system import ProcessHandler
 
-DB_SYNC_FILE = '{}/arch/sync'.format(TEMP_DIR)
+SYNC_FILE = '{}/arch/db_sync'.format(TEMP_DIR)
+
+
+def should_sync(arch_config: dict, handler: ProcessHandler, logger: logging.Logger):
+    if (arch_config['aur'] or arch_config['repositories']) and arch_config['sync_databases']:
+        if os.path.exists(SYNC_FILE):
+            with open(SYNC_FILE) as f:
+                sync_file = f.read()
+
+            try:
+                sync_time = datetime.fromtimestamp(int(sync_file))
+                now = datetime.now()
+
+                if (now - sync_time).days > 0:
+                    logger.info("Package databases synchronization out of date")
+                else:
+                    msg = "Package databases already synchronized"
+                    logger.info(msg)
+                    if handler:
+                        handler.watcher.print(msg)
+                    return False
+            except:
+                logger.warning("Could not convert the database synchronization time from '{}".format(SYNC_FILE))
+                traceback.print_exc()
+        return True
+    else:
+        msg = "Package databases synchronization disabled"
+        if handler:
+            handler.watcher.print(msg)
+        logger.info(msg)
+        return False
 
 
 def register_sync(logger: Logger):
     try:
-        Path('/'.join(DB_SYNC_FILE.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
-        with open(DB_SYNC_FILE, 'w+') as f:
+        Path('/'.join(SYNC_FILE.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
+        with open(SYNC_FILE, 'w+') as f:
             f.write(str(int(time.time())))
     except:
-        logger.error("Could not write to database sync file '{}'".format(DB_SYNC_FILE))
+        logger.error("Could not write to database sync file '{}'".format(SYNC_FILE))
         traceback.print_exc()

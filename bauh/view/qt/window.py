@@ -1206,7 +1206,7 @@ class ManageWindow(QWidget):
 
         for a in self.manager.get_custom_actions():
             action_about = QAction(self.i18n[a.i18_label_key])
-            action_about.setIcon(QIcon(resource.get_path(a.icon_path)))
+            action_about.setIcon(QIcon(a.icon_path))
             action_about.triggered.connect(self._show_about)
             menu_row.addAction(action_about)
 

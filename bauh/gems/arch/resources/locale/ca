@@ -174,7 +174,6 @@ arch.task.disk_cache.reading=Determinant els paquets instal·lats
 arch.task.disk_cache.prepared=Llegits
 arch.task.disk_cache.indexed=Preparats
 ask.optimizing=Optimitzant {}
-arch.task.aur_index=Indexar el catàleg d'{} al disc
 arch.task.sync_sb.status=Actualitzen {}
 arch.task.sync_databases.waiting=Waiting mirrors refreshing
 arch.task.mirrors=Refreshing mirrors

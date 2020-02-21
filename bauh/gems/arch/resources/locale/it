@@ -142,7 +142,6 @@ arch.task.disk_cache.reading=Determinando i pacchetti installati
 arch.task.disk_cache.prepared=Letti
 arch.task.disk_cache.indexed=Pronti
 arch.task.optimizing=Ottimizzando {}
-arch.task.aur_index=Indicizzazione del catalogo {} su disco
 arch.task.sync_sb.status=Aggiornando {}
 arch.task.sync_databases.waiting=In attesa dell'aggiornamento dei mirror
 arch.task.mirrors=Aggiornando i mirror

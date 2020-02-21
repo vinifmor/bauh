@@ -31,10 +31,9 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
     SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path, database
+    CONFIG_FILE, get_icon_path, database, mirrors
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
-from bauh.gems.arch.database import DB_SYNC_FILE
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -75,6 +74,7 @@ class ArchManager(SoftwareManager):
                                                     manager_method='refresh_mirrors',
                                                     icon_path=get_icon_path(),
                                                     requires_root=True)]
+        self.index_aur = None
 
     def get_semantic_search_map(self) -> Dict[str, str]:
         return {'google chrome': 'google-chrome',
@@ -134,6 +134,9 @@ class ArchManager(SoftwareManager):
                 self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
 
         else:  # if there are no results from the API (it could be because there were too many), tries the names index:
+            if self.index_aur:
+                self.index_aur.join()
+
             aur_index = self.aur_client.read_local_index()
             if aur_index:
                 self.logger.info("Querying through the local AUR index")
@@ -1145,37 +1148,8 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _should_sync_databases(self, arch_config: dict, handler: ProcessHandler):
-        if (arch_config['aur'] or arch_config['repositories']) and arch_config['sync_databases']:
-            if os.path.exists(DB_SYNC_FILE):
-                with open(DB_SYNC_FILE) as f:
-                    sync_file = f.read()
-
-                try:
-                    sync_time = datetime.fromtimestamp(int(sync_file))
-                    now = datetime.now()
-
-                    if (now - sync_time).days > 0:
-                        self.logger.info("Package databases synchronization out of date")
-                    else:
-                        msg = "Package databases already synchronized"
-                        self.logger.info(msg)
-                        if handler:
-                            handler.watcher.print(msg)
-                        return False
-                except:
-                    self.logger.warning("Could not convert the database synchronization time from '{}".format(DB_SYNC_FILE))
-                    traceback.print_exc()
-            return True
-        else:
-            msg = "Package databases synchronization disabled"
-            if handler:
-                handler.watcher.print(msg)
-            self.logger.info(msg)
-            return False
-
     def _sync_databases(self, root_password: str, handler: ProcessHandler):
-        if self._should_sync_databases(self.local_config, handler):
+        if database.should_sync(self.local_config, handler, self.logger):
             handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
             synced, output = handler.handle_simple(pacman.sync_databases(root_password=root_password,
                                                                          force=True))
@@ -1249,6 +1223,14 @@ class ArchManager(SoftwareManager):
         pass
 
     def requires_root(self, action: str, pkg: ArchPackage):
+        if action == 'prepare':
+            arch_config = read_config()
+
+            if arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
+                return True
+
+            return database.should_sync(arch_config, None, self.logger)
+
         return action != 'search'
 
     def _start_category_task(self, task_man: TaskManager):
@@ -1274,15 +1256,16 @@ class ArchManager(SoftwareManager):
                                  categories_path=CATEGORIES_FILE_PATH,
                                  before=lambda: self._start_category_task(task_manager),
                                  after=lambda: self._finish_category_task(task_manager)).start()
-            AURIndexUpdater(task_manager, self.context).start()
+            self.index_aur = AURIndexUpdater(self.context)
+            self.index_aur.start()
 
         refresh_mirrors = None
-        if arch_config['repositories'] and arch_config['refresh_mirrors_startup']:
+        if arch_config['repositories'] and arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
                                              root_password=root_password, logger=self.logger)
             refresh_mirrors.start()
 
-        if self._should_sync_databases(arch_config, None):
+        if refresh_mirrors or database.should_sync(arch_config, None, self.logger):
             SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
                           logger=self.logger, refresh_mirrors=refresh_mirrors).start()
 
