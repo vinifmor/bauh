@@ -12,6 +12,7 @@ from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
 from bauh.view.qt import root
 from bauh.view.qt.components import new_spacer
+from bauh.view.qt.qt_utils import centralize
 from bauh.view.qt.thread import AnimateProgress
 from bauh.view.util.translation import I18n
 
@@ -183,6 +184,7 @@ class PreparePanel(QWidget, TaskManager):
     def show(self):
         super(PreparePanel, self).show()
         self.prepare_thread.start()
+        centralize(self)
 
     def start(self):
         self.ref_bt_close.setVisible(True)
