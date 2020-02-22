@@ -1,5 +1,5 @@
 gem.appimage.label=AppImage
-gem.appimage.info=Приложения опубликованные на https://appimage.github.io/
+gem.appimage.info=Приложения, опубликованные на https://appimage.github.io/
 appimage.install.permission=Установить права на выполнение для {}
 appimage.install.extract=Извлечь содержимое из {}
 appimage.install.desktop_entry=Создать ярлык в меню
@@ -18,6 +18,6 @@ appimage.downgrade.install_version=Не удалось установить ве
 appimage.install.download.error=Не удалось загрузить файл {}. Файловый сервер не отвечает
 appimage.install.appimagelauncher.error={appimgl} не позволяет установить {app} . Удалите {appimgl}, перезагрузите  ваш компьютер и попробуйте снова установить {app} .
 appimage.config.db_updates=Обновление базы данных
-appimage.config.db_updates.activated=активация
-appimage.config.db_updates.activated.tip=Это позволит проверить обновления связанных с установленными приложений (fix it)
+appimage.config.db_updates.activated=активировать
+appimage.config.db_updates.activated.tip=Позволит проверять обновления установленных приложений
 appimage.config.db_updates.interval.tip=Интервал обновления в секундах
