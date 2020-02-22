@@ -570,15 +570,15 @@ class CustomAction(AsyncAction):
 
     def run(self):
         success = True
-        if self.pkg:
-            try:
-                success = self.manager.execute_custom_action(action=self.custom_action,
-                                                             pkg=self.pkg.model,
-                                                             root_password=self.root_password,
-                                                             watcher=self)
-            except (requests.exceptions.ConnectionError, NoInternetException):
-                success = False
-                self.signal_output.emit(self.i18n['internet.required'])
+
+        try:
+            success = self.manager.execute_custom_action(action=self.custom_action,
+                                                         pkg=self.pkg.model if self.pkg else None,
+                                                         root_password=self.root_password,
+                                                         watcher=self)
+        except (requests.exceptions.ConnectionError, NoInternetException):
+            success = False
+            self.signal_output.emit(self.i18n['internet.required'])
 
         self.notify_finished({'success': success, 'pkg': self.pkg})
         self.pkg = None

@@ -383,10 +383,10 @@ class GenericSoftwareManager(SoftwareManager):
         return []
 
     def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
-        man = self._get_manager_for(pkg)
+        man = action.manager if action.manager else self._get_manager_for(pkg)
 
         if man:
-            return exec('man.{}(pkg=pkg, root_password=root_password, watcher=watcher)'.format(action.manager_method))
+            return exec('man.{}({}root_password=root_password, watcher=watcher)'.format(action.manager_method, 'pkg=pkg, ' if pkg else ''))
 
     def is_default_enabled(self) -> bool:
         return True

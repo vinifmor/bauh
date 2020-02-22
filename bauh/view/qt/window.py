@@ -1176,7 +1176,7 @@ class ManageWindow(QWidget):
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n[action.i18n_status_key], pkg.model.name))
+        self._begin_action('{}{}'.format(self.i18n[action.i18n_status_key], ' {}'.format(pkg.model.name) if pkg else ''))
 
         self.thread_custom_action.pkg = pkg
         self.thread_custom_action.root_password = pwd
@@ -1186,7 +1186,7 @@ class ManageWindow(QWidget):
     def _finish_custom_action(self, res: dict):
         self.finish_action()
         if res['success']:
-            self.refresh_apps(pkg_types={res['pkg'].model.__class__})
+            self.refresh_apps(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
         else:
             self.checkbox_console.setChecked(True)
 
@@ -1207,7 +1207,11 @@ class ManageWindow(QWidget):
         for a in self.manager.get_custom_actions():
             action_about = QAction(self.i18n[a.i18_label_key])
             action_about.setIcon(QIcon(a.icon_path))
-            action_about.triggered.connect(self._show_about)
+
+            def execute():
+                self.execute_custom_action(None, a)
+
+            action_about.triggered.connect(execute)
             menu_row.addAction(action_about)
 
         menu_row.adjustSize()

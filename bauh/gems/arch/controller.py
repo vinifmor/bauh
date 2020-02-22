@@ -73,7 +73,8 @@ class ArchManager(SoftwareManager):
                                                     i18n_status_key='arch.task.mirrors',
                                                     manager_method='refresh_mirrors',
                                                     icon_path=get_icon_path(),
-                                                    requires_root=True)]
+                                                    requires_root=True,
+                                                    manager=self)]
         self.index_aur = None
 
     def get_semantic_search_map(self) -> Dict[str, str]:

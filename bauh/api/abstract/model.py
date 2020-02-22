@@ -7,12 +7,13 @@ from bauh.api.constants import CACHE_PATH
 
 class CustomSoftwareAction:
 
-    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool):
+    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool, manager: "SoftwareManager" = None):
         """
         :param i18_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
         :param icon_path: the action icon path. Use None for no icon
         :param manager_method: the SoftwareManager method name that should be called. The method must has the following parameters: (pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher)
+        :param manager: the instance that will execute the action ( optional )
         :param requires_root:
         """
         self.id = id
@@ -21,6 +22,7 @@ class CustomSoftwareAction:
         self.icon_path = icon_path
         self.manager_method = manager_method
         self.requires_root = requires_root
+        self.manager = manager
 
 
 class PackageStatus(Enum):

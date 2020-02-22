@@ -278,7 +278,6 @@ class SnapManager(SoftwareManager):
                 return res
             else:
                 self.logger.info('Mapping suggestions')
-                self.categories_downloader.join()
 
                 suggestions, threads = [], []
                 installed = {i.name.lower() for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
