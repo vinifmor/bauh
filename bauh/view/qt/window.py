@@ -1204,15 +1204,15 @@ class ManageWindow(QWidget):
     def show_custom_actions(self):
         menu_row = QMenu()
 
+        actions = []
         for a in self.manager.get_custom_actions():
-            action_about = QAction(self.i18n[a.i18_label_key])
-            action_about.setIcon(QIcon(a.icon_path))
+            custom_action = QAction(self.i18n[a.i18_label_key])
+            custom_action.setIcon(QIcon(a.icon_path))
+            custom_action.triggered.connect(lambda: self.execute_custom_action(pkg=None, action=a))
+            actions.append(custom_action)
 
-            def execute():
-                self.execute_custom_action(None, a)
-
-            action_about.triggered.connect(execute)
-            menu_row.addAction(action_about)
+        for a in actions:
+            menu_row.addAction(a)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())

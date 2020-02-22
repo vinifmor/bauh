@@ -74,6 +74,12 @@ class ArchManager(SoftwareManager):
                                                     manager_method='refresh_mirrors',
                                                     icon_path=get_icon_path(),
                                                     requires_root=True,
+                                                    manager=self),
+                               CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
+                                                    i18n_status_key='arch.sync_databases.substatus',
+                                                    manager_method='sync_databases',
+                                                    icon_path=get_icon_path(),
+                                                    requires_root=True,
                                                     manager=self)]
         self.index_aur = None
 
@@ -91,6 +97,19 @@ class ArchManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
 
+        mirrors.register_sync(self.logger)
+        return True
+
+    def sync_databases(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        success, output = ProcessHandler(watcher).handle_simple(pacman.sync_databases(root_password, force=True))
+
+        if not success:
+            watcher.show_message(title=self.i18n["action.failed"].capitalize(),
+                                 body=self.i18n['arch.custom_action.refresh_mirrors.failed'],
+                                 type_=MessageType.ERROR)
+            return False
+
+        database.register_sync(self.logger)
         return True
 
     def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):

@@ -180,3 +180,5 @@ arch.task.sync_sb.status=Atualizando {}
 arch.task.sync_databases.waiting=Aguardando atualização de espelhos
 arch.task.mirrors=Atualizando espelhos
 arch.custom_action.refresh_mirrors.failed=Não foi possível atualizar os espelhos
+arch.custom_action.refresh_dbs=Sincronizar bases de pacotes
+arch.custom_action.refresh_dbs.failed=Não foi possível sincronizar as bases de pacotes
