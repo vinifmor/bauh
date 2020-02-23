@@ -83,7 +83,8 @@ class ArchManager(SoftwareManager):
                                                     manager=self)]
         self.index_aur = None
 
-    def get_semantic_search_map(self) -> Dict[str, str]:
+    @staticmethod
+    def get_semantic_search_map() -> Dict[str, str]:
         return {'google chrome': 'google-chrome',
                 'chrome google': 'google-chrome',
                 'googlechrome': 'google-chrome'}

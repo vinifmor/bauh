@@ -16,13 +16,18 @@ class CustomSoftwareAction:
         :param manager: the instance that will execute the action ( optional )
         :param requires_root:
         """
-        self.id = id
         self.i18_label_key = i18_label_key
         self.i18n_status_key = i18n_status_key
         self.icon_path = icon_path
         self.manager_method = manager_method
         self.requires_root = requires_root
         self.manager = manager
+
+    def __hash__(self):
+        return self.i18_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()
+
+    def __repr__(self):
+        return "CustomAction (label={}, method={})".format(self.i18_label_key, self.manager_method)
 
 
 class PackageStatus(Enum):
