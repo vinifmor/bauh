@@ -49,7 +49,8 @@ def read_config(update_file: bool = False) -> dict:
         'download': {
             'multithreaded': True,
             'icons': True
-        }
+        },
+        'store_root_password': True
     }
     return read(FILE_PATH, default, update_file=update_file, update_async=True)
 

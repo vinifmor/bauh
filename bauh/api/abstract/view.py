@@ -158,7 +158,7 @@ class TextInputComponent(ViewComponent):
 
     def get_int_value(self) -> int:
         if self.value is not None:
-            val = self.value.strip()
+            val = self.value.strip() if isinstance(self.value, str) else self.value
 
             if val:
                 return int(self.value)

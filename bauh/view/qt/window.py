@@ -1,7 +1,7 @@
 import logging
 import time
 from pathlib import Path
-from typing import List, Type, Set
+from typing import List, Type, Set, Tuple
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
@@ -413,7 +413,7 @@ class ManageWindow(QWidget):
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             action.signal_progress.connect(self._update_process_progress)
-            action.signal_root_password.connect(self._ask_root_password)
+            action.signal_root_password.connect(self._pause_and_ask_root_password)
 
             self.signal_user_res.connect(action.confirm)
             self.signal_root_password.connect(action.set_root_password)
@@ -433,9 +433,10 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
 
-    def _ask_root_password(self):
+    def _pause_and_ask_root_password(self):
         self.thread_animate_progress.pause()
-        password, valid = root.ask_root_password(self.i18n)
+        password, valid = root.ask_root_password(self.context, self.i18n)
+
         self.thread_animate_progress.animate()
         self.signal_root_password.emit(password, valid)
 
@@ -575,14 +576,10 @@ class ManageWindow(QWidget):
         self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
-        pwd = None
-        requires_root = self.manager.requires_root('uninstall', app.model)
+        pwd, proceed = self._ask_root_password('uninstall', app)
 
-        if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
-
-            if not ok:
-                return
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name), clear_filters=False)
@@ -897,7 +894,7 @@ class ManageWindow(QWidget):
                 pwd = None
 
                 if not user.is_root() and requires_root:
-                    pwd, ok = ask_root_password(self.i18n)
+                    pwd, ok = ask_root_password(self.context, self.i18n)
 
                     if not ok:
                         return
@@ -1013,14 +1010,10 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(False)
 
     def downgrade(self, pkgv: PackageView):
-        pwd = None
-        requires_root = self.manager.requires_root('downgrade', pkgv.model)
+        pwd, proceed = self._ask_root_password('downgrade', pkgv)
 
-        if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
-
-            if not ok:
-                return
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.downgrading'], pkgv.model.name))
@@ -1110,15 +1103,23 @@ class ManageWindow(QWidget):
         else:
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=self.i18n[res['error']], type_=MessageType.WARNING)
 
-    def install(self, pkg: PackageView):
+    def _ask_root_password(self, action: str, pkg: PackageView) -> Tuple[str, bool]:
         pwd = None
-        requires_root = self.manager.requires_root('install', pkg.model)
+        requires_root = self.manager.requires_root(action, pkg.model)
 
         if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
+            pwd, ok = ask_root_password(self.context, self.i18n)
 
             if not ok:
-                return
+                return pwd, False
+
+        return pwd, True
+
+    def install(self, pkg: PackageView):
+        pwd, proceed = self._ask_root_password('install', pkg)
+
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.installing'], pkg.model.name))
@@ -1170,7 +1171,7 @@ class ManageWindow(QWidget):
         pwd = None
 
         if not user.is_root() and action.requires_root:
-            pwd, ok = ask_root_password(self.i18n)
+            pwd, ok = ask_root_password(self.context, self.i18n)
 
             if not ok:
                 return

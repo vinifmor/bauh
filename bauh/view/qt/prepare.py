@@ -8,6 +8,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
     QProgressBar, QApplication
 
+from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
 from bauh.view.qt import root
@@ -23,15 +24,16 @@ class Prepare(QThread, TaskManager):
     signal_finished = pyqtSignal(str)
     signal_started = pyqtSignal()
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n):
+    def __init__(self, context: ApplicationContext, manager: SoftwareManager, i18n: I18n):
         super(Prepare, self).__init__()
         self.manager = manager
         self.i18n = i18n
+        self.context = context
 
     def run(self):
         root_pwd = None
         if self.manager.requires_root('prepare', None):
-            root_pwd, ok = root.ask_root_password(self.i18n)
+            root_pwd, ok = root.ask_root_password(self.context, self.i18n)
 
             if not ok:
                 QCoreApplication.exit(1)
@@ -94,9 +96,10 @@ class PreparePanel(QWidget, TaskManager):
 
     signal_status = pyqtSignal(object, object)
 
-    def __init__(self, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
+    def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
         super(PreparePanel, self).__init__()
         self.i18n = i18n
+        self.context = context
         self.manage_window = manage_window
         self.setWindowTitle(' ')
         self.setMinimumWidth(screen_size.width() * 0.5)
@@ -110,7 +113,7 @@ class PreparePanel(QWidget, TaskManager):
         self.ftasks = 0
         self.self_close = False
 
-        self.prepare_thread = Prepare(manager, self.i18n)
+        self.prepare_thread = Prepare(self.context, manager, self.i18n)
         self.prepare_thread.signal_register.connect(self.register_task)
         self.prepare_thread.signal_update.connect(self.update_progress)
         self.prepare_thread.signal_finished.connect(self.finish_task)

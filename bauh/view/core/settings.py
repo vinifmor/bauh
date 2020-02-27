@@ -215,6 +215,12 @@ class GenericSettingsManager:
                                               max_width=default_width,
                                               id_='locale')
 
+        select_store_pwd = self._gen_bool_component(label=self.i18n['core.config.store_password'].capitalize(),
+                                                    tooltip=self.i18n['core.config.store_password.tip'].capitalize(),
+                                                    id_="store_pwd",
+                                                    max_width=default_width,
+                                                    value=bool(core_config['store_root_password']))
+
         select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
                                                     tooltip=self.i18n['core.config.system.notifications.tip'].capitalize(),
                                                     value=bool(core_config['system']['notifications']),
@@ -234,7 +240,7 @@ class GenericSettingsManager:
                                       max_width=default_width,
                                       id_="sugs_by_type")
 
-        sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -267,6 +273,7 @@ class GenericSettingsManager:
 
         core_config['system']['notifications'] = general_form.get_component('sys_notify').get_selected()
         core_config['suggestions']['enabled'] = general_form.get_component('sugs_enabled').get_selected()
+        core_config['store_root_password'] = general_form.get_component('store_pwd').get_selected()
 
         sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type

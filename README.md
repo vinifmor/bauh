@@ -238,6 +238,7 @@ download:
   multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
 gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
 locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
+store_root_password: true  # if the root password should be asked only once
 memory_cache:
   data_expiration: 3600 # the interval in SECONDS that data cached in memory will live
   icon_expiration: 300  # the interval in SECONDS that icons cached in memory will live

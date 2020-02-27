@@ -25,6 +25,7 @@ class ApplicationContext:
         :param file_downloader
         :param distro
         :param app_name
+        :param root_password
         """
         self.disk_cache = disk_cache
         self.download_icons = download_icons
@@ -40,6 +41,7 @@ class ApplicationContext:
         self.default_categories = ('AudioVideo', 'Audio', 'Video', 'Development', 'Education', 'Game',
                                    'Graphics', 'Network', 'Office', 'Science', 'Settings', 'System', 'Utility')
         self.app_name = app_name
+        self.root_password = None
 
     def is_system_x86_64(self):
         return self.arch_x86_64

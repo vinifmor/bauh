@@ -119,6 +119,7 @@ def main():
                 tray_icon.show_manage_window()
         else:
             prepare = PreparePanel(screen_size=app.primaryScreen().size(),
+                                   context=context,
                                    manager=manager,
                                    i18n=i18n,
                                    manage_window=manage_window)
