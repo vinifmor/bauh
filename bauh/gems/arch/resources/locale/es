@@ -150,6 +150,7 @@ arch.custom_action.refresh_dbs=Sincronizar bases de paquetes
 arch.custom_action.refresh_dbs.failed=No fue posible sincronizar las bases de paquete
 arch.custom_action.refresh_mirrors=Actualizar espejos
 arch.custom_action.refresh_mirrors.location.all=Todas
+arch.custom_action.refresh_mirrors.location.all.tip=Si esta opción está marcada, las demás serán ignoradas.
 arch.custom_action.refresh_mirrors.select_label=Marcar las ubicaciones deseadas
 arch.custom_action.refresh_mirrors.status.updating=Actualizando espejos
 arch.custom_action.refresh_mirrors.status.sorting=Ordenando los espejos por velocidad

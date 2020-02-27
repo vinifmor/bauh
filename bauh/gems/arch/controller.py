@@ -69,18 +69,7 @@ class ArchManager(SoftwareManager):
         self.deps_analyser = DependenciesAnalyser(self.aur_client)
         self.local_config = None
         self.http_client = context.http_client
-        self.custom_actions = [CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
-                                                    i18n_status_key='arch.task.mirrors',
-                                                    manager_method='refresh_mirrors',
-                                                    icon_path=get_icon_path(),
-                                                    requires_root=True,
-                                                    manager=self),
-                               CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
-                                                    i18n_status_key='arch.sync_databases.substatus',
-                                                    manager_method='sync_databases',
-                                                    icon_path=get_icon_path(),
-                                                    requires_root=True,
-                                                    manager=self)]
+        self.custom_actions = None
         self.index_aur = None
 
     @staticmethod
@@ -98,8 +87,11 @@ class ArchManager(SoftwareManager):
             self.logger.warning("No country available")
             countries = current_countries
         else:
-            country_opts = [InputOption(label=self.i18n['arch.custom_action.refresh_mirrors.location.all'], value='all')]
-            mapped_opts = [InputOption(label=self.i18n[' '.join(c.split('_')).lower()].capitalize(), value=c) for c in available_countries]
+            country_opts = [InputOption(label=self.i18n['arch.custom_action.refresh_mirrors.location.all'], value='all',
+                                        tooltip=self.i18n['arch.custom_action.refresh_mirrors.location.all.tip'])]
+            mapped_opts = [InputOption(label=' '.join((w.capitalize() for w in self.i18n[' '.join(c.split('_'))].split(' '))),
+                                       value=c) for c in available_countries]
+            mapped_opts.sort(key=lambda o: o.label)
 
             if len(current_countries) == 1 and current_countries[0] == 'all':
                 default_opts = {country_opts[0]}
@@ -1278,7 +1270,7 @@ class ArchManager(SoftwareManager):
 
     def can_work(self) -> bool:
         try:
-            return self.arch_distro and pacman.is_enabled() and self._is_wget_available()
+            return self.arch_distro and pacman.is_available() and self._is_wget_available()
         except FileNotFoundError:
             return False
 
@@ -1330,9 +1322,12 @@ class ArchManager(SoftwareManager):
             self.index_aur.start()
 
         refresh_mirrors = None
-        if arch_config['repositories'] and arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
+        if arch_config['repositories'] and arch_config['refresh_mirrors_startup'] \
+                and pacman.is_mirrors_available() and mirrors.should_sync(self.logger):
+
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
-                                             root_password=root_password, logger=self.logger)
+                                             root_password=root_password, logger=self.logger,
+                                             sort_limit=arch_config['mirrors_sort_limit'])
             refresh_mirrors.start()
 
         if refresh_mirrors or database.should_sync(arch_config, None, self.logger):
@@ -1347,7 +1342,7 @@ class ArchManager(SoftwareManager):
         warnings = []
 
         if self.arch_distro:
-            if not pacman.is_enabled():
+            if not pacman.is_available():
                 warnings.append(self.i18n['arch.warning.disabled'].format(bold('pacman')))
 
             if not self._is_wget_available():
@@ -1644,4 +1639,20 @@ class ArchManager(SoftwareManager):
             return []
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        if self.custom_actions is None:
+            self.custom_actions = [CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
+                                                        i18n_status_key='arch.sync_databases.substatus',
+                                                        manager_method='sync_databases',
+                                                        icon_path=get_icon_path(),
+                                                        requires_root=True,
+                                                        manager=self)]
+
+            if pacman.is_mirrors_available():
+                self.custom_actions.insert(0, CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
+                                                                   i18n_status_key='arch.task.mirrors',
+                                                                   manager_method='refresh_mirrors',
+                                                                   icon_path=get_icon_path(),
+                                                                   requires_root=True,
+                                                                   manager=self))
+
         return self.custom_actions

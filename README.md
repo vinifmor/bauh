@@ -141,13 +141,13 @@ db_updater:
     - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system
     - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
-#### AUR ( arch )
+#### Arch ( Repositories and AUR )
 - Only available for **Arch-based systems**
 - The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
 
 ![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/aur/search.gif)
 
-- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
+- It handles conflicts, and missing / optional packages installations
 - Automatically makes simple package compilation improvements:
 
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
@@ -161,6 +161,9 @@ db_updater:
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
+- Custom actions:
+    - synchronize packages database: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
+    - refresh mirrors: allows the user to define multiple mirrors locations and update the packages database ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 10 && sudo pacman -Syy` )
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
@@ -168,6 +171,10 @@ transitive_checking: true  # this property defines if dependencies of a dependen
 sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
 simple_checking: false  # defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate )
 clean_cached: true  # defines if old cached versions should be removed from the disk cache during a package uninstallation
+refresh_mirrors_startup: false # if the package mirrors should be refreshed during startup
+mirrors_sort_limit: 10  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
+aur:  true  # allows to manage AUR packages
+repositories: true  # allows to manage packages from the configured repositories
 ``` 
 - Required dependencies:
     - **pacman**

@@ -12,7 +12,7 @@ RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
 
 
-def is_enabled() -> bool:
+def is_available() -> bool:
     res = run_cmd('which pacman', print_error=False)
     return res and not res.strip().startswith('which ')
 
@@ -494,3 +494,8 @@ def list_mirror_countries() -> List[str]:
 def get_current_mirror_countries() -> List[str]:
     output = run_cmd('pacman-mirrors -lc').strip()
     return ['all'] if not output else [c for c in output.split('\n') if c]
+
+
+def is_mirrors_available() -> bool:
+    res = run_cmd('which pacman-mirrors', print_error=False)
+    return res and not res.strip().startswith('which ')

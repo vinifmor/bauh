@@ -187,6 +187,7 @@ arch.custom_action.refresh_dbs=Synchronize package databases
 arch.custom_action.refresh_dbs.failed=It was not possible to synchronize the package databases
 arch.custom_action.refresh_mirrors=Refresh mirrors
 arch.custom_action.refresh_mirrors.location.all=All
+arch.custom_action.refresh_mirrors.location.all.tip=If this option is checked, the others will be ignored.
 arch.custom_action.refresh_mirrors.select_label=Choose a location
 arch.custom_action.refresh_mirrors.status.updating=Updating mirrors
 arch.custom_action.refresh_mirrors.select_label=Check the desired locations
