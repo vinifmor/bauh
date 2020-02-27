@@ -140,6 +140,7 @@ class ArchManager(SoftwareManager):
 
         mirrors.register_sync(self.logger)
 
+        watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
         return self.sync_databases(root_password=root_password, watcher=watcher)
 
     def sync_databases(self, root_password: str, watcher: ProcessWatcher) -> bool:
