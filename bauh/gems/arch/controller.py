@@ -1393,18 +1393,19 @@ class ArchManager(SoftwareManager):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
 
-    def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int) -> SingleSelectComponent:
+    def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int, capitalize_label: bool = True) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
-        return SingleSelectComponent(label=self.i18n[label_key].capitalize(),
+        return SingleSelectComponent(label=self.i18n[label_key],
                                      options=opts,
                                      default_option=[o for o in opts if o.value == value][0],
                                      max_per_line=len(opts),
                                      type_=SelectViewType.RADIO,
                                      tooltip=self.i18n[tooltip_key],
                                      max_width=max_width,
-                                     id_=id_)
+                                     id_=id_,
+                                     capitalize_label=capitalize_label)
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         local_config = read_config()
@@ -1420,7 +1421,8 @@ class ArchManager(SoftwareManager):
                                     label_key='arch.config.aur',
                                     tooltip_key='arch.config.aur.tip',
                                     value=bool(local_config['aur']),
-                                    max_width=max_width),
+                                    max_width=max_width,
+                                    capitalize_label=False),
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',

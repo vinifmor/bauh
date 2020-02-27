@@ -56,6 +56,8 @@ class SettingsWindow(QWidget):
         elif self.tray and self.tray.settings_window == self:
             self.deleteLater()
             self.tray.settings_window = None
+        elif not self.window and not self.tray:
+            QCoreApplication.exit()
 
         gc.collect()
 

@@ -75,7 +75,8 @@ class SelectViewType(Enum):
 class SingleSelectComponent(InputViewComponent):
 
     def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None,
-                 max_per_line: int = 1, tooltip: str = None, max_width: int = -1, id_: str = None):
+                 max_per_line: int = 1, tooltip: str = None, max_width: int = -1, id_: str = None,
+                 capitalize_label: bool = True):
         super(SingleSelectComponent, self).__init__(id_=id_)
         self.type = type_
         self.label = label
@@ -84,6 +85,7 @@ class SingleSelectComponent(InputViewComponent):
         self.max_per_line = max_per_line
         self.tooltip = tooltip
         self.max_width = max_width
+        self.capitalize_label = capitalize_label
 
     def get_selected(self):
         if self.value:

@@ -463,7 +463,10 @@ class FormQt(QGroupBox):
         text = getattr(comp, attr)
 
         if text:
-            label_comp.setText(text.capitalize())
+            if hasattr(comp, 'capitalize_label') and getattr(comp, 'capitalize_label'):
+                label_comp.setText(text.capitalize())
+            else:
+                label_comp.setText(text)
 
             if comp.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
