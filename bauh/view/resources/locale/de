@@ -37,6 +37,7 @@ manage_window.bt.installed.text=installiert
 manage_window.bt.installed.tooltip=Hier klicken um die installierten Anwendungen anzuzeigen
 manage_window.bt.suggestions.text=Vorschläge
 manage_window.bt.suggestions.tooltip=Klicken Sie hier, um einige Vorschläge für Apps anzuzeigen
+manage_window.bt_custom_actions.tip=Click here to show more actions
 manage_window.checkbox.show_details=Details anzeigen
 popup.root.title=Zum Fortfahren wird das Passwort benötigt
 popup.root.continue=fortfahren

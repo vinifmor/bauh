@@ -38,6 +38,7 @@ manage_window.bt.installed.text=instaladas
 manage_window.bt.installed.tooltip==Pulse aquí para mostrar las aplicaciones instaladas
 manage_window.bt.suggestions.text=Sugerencias
 manage_window.bt.suggestions.tooltip=Pulse aquí para mostrar algunas sugerencias de aplicaciones
+manage_window.bt_custom_actions.tip=Pulse aquí para mostrar más acciones
 manage_window.checkbox.show_details=Mostrar detalles
 popup.root.title=Proporcione su contraseña para continuar
 popup.root.continue=continuar

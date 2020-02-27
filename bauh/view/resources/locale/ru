@@ -37,6 +37,7 @@ manage_window.bt.installed.text=Установленные
 manage_window.bt.installed.tooltip=Нажмите здесь, чтобы показать установленные приложения
 manage_window.bt.suggestions.text=Рекомендации
 manage_window.bt.suggestions.tooltip=Нажмите здесь, чтобы показать некоторые рекомендаваные приложения
+manage_window.bt_custom_actions.tip=Click here to show more actions
 manage_window.checkbox.show_details=Показать детали
 popup.root.title=Требуется ваш пароль, чтобы продолжить
 popup.root.continue=Продолжить

@@ -38,6 +38,7 @@ manage_window.bt.installed.text=instalados
 manage_window.bt.installed.tooltip=Clique aqui para exibir os aplicativos instalados
 manage_window.bt.suggestions.text=Sugestões
 manage_window.bt.suggestions.tooltip=Clique aqui para exibir algumas sugestões de aplicativos
+manage_window.bt_custom_actions.tip=Clique aqui para exibir mais ações
 manage_window.checkbox.show_details=Mostrar detalhes
 popup.root.title=Requer sua senha para prosseguir
 popup.root.continue=prosseguir

@@ -37,6 +37,7 @@ manage_window.bt.installed.text=installed
 manage_window.bt.installed.tooltip=Click here to show the installed applications
 manage_window.bt.suggestions.text=Suggestions
 manage_window.bt.suggestions.tooltip=Click here to show some applications suggestions
+manage_window.bt_custom_actions.tip=Click here to show more actions
 manage_window.checkbox.show_details=Show details
 popup.root.title=Requires your password to continue
 popup.root.continue=continue
