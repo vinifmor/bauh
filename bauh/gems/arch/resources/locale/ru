@@ -1,5 +1,5 @@
 gem.arch.label=AUR
-gem.arch.info=AUR-пакеты поддерживаются независимым сообществом пользователей. Нет никакой гарантии, что они будут работать или не навредят вашей системе.
+gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.aur.install.warning=AUR-пакеты поддерживаются независимым сообществом пользователей. Нет никакой гарантии, что они будут работать или не навредят вашей системе.
 arch.install.conflict.popup.title=Обнаружен конфликт
 arch.install.conflict.popup.body=Приложения {} находятся в конфликте. Вы должны удалить одно, чтобы установить другоое. Продолжить ?

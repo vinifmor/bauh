@@ -1,7 +1,7 @@
 gem.arch.label=Arch
 gem.arch.type.aur.label=Arch - AUR
 gem.arch.type.arch_repo.label=Arch - Dipòsit
-gem.arch.info=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
+gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.aur.install.warning=Els paquets AUR són mantinguts per una comunitat d’usuaris independent. No hi ha cap garantia que funcionin o que no danyin el vostre sistema.
 aur.info.architecture=arquitectura
 aur.info.architecture.any=qualsevol

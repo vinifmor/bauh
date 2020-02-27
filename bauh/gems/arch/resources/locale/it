@@ -1,7 +1,7 @@
 gem.arch.label=Arch
 gem.arch.type.aur.label=Arch - AUR
 gem.arch.type.arch_repo.label=Arch - Deposito
-gem.arch.info=I pacchetti AUR sono gestiti da una comunità di utenti indipendenti. Non esiste alcuna garanzia che funzionino o non danneggino il sistema.
+gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.aur.install.warning=I pacchetti AUR sono gestiti da una comunità di utenti indipendenti. Non esiste alcuna garanzia che funzionino o non danneggino il sistema.
 arch.install.conflict.popup.title=Conflitto rilevato
 arch.install.conflict.popup.body=Le applicazioni {} sono in conflitto. È necessario disinstallarne una per installare l'altra. Continua ?

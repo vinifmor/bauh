@@ -1,7 +1,7 @@
 gem.arch.label=Arch
 gem.arch.type.aur.label=Arch - AUR
 gem.arch.type.arch_repo.label=Arch - Repositorio
-gem.arch.info=Los paquetes AUR son mantenidos por una comunidad de usuarios independiente. No hay garantía de que funcionen o que no dañen su sistema.
+gem.arch.info=Paquetes de software disponibles para distribuciones basadas en Arch Linux
 gem.aur.install.warning=Los paquetes AUR son mantenidos por una comunidad de usuarios independiente. No hay garantía de que funcionen o que no dañen su sistema.
 arch_repo.info.architecture=arquitectura
 arch_repo.info.architecture.any=cualquier
