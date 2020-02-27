@@ -489,7 +489,7 @@ class FormQt(QGroupBox):
             line_edit.setPlaceholderText(c.placeholder)
 
         if c.value:
-            line_edit.setText(c.value)
+            line_edit.setText(str(c.value) if c.value else '')
             line_edit.setCursorPosition(0)
 
         if c.read_only:
@@ -587,7 +587,11 @@ class TabGroupQt(QTabWidget):
 
         for c in model.tabs:
             icon = QIcon(c.icon_path) if c.icon_path else QIcon()
-            self.addTab(to_widget(c.content, i18n), icon, c.label)
+            scroll = QScrollArea()
+            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(to_widget(c.content, i18n))
+            self.addTab(scroll, icon, c.label)
 
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:

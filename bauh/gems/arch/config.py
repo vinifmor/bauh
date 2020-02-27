@@ -10,5 +10,6 @@ def read_config(update_file: bool = False) -> dict:
                 "clean_cached": True,
                 'aur': True,
                 'repositories': True,
-                "refresh_mirrors_startup": False}
+                "refresh_mirrors_startup": False,
+                'mirrors_sort_limit': 10}
     return read(CONFIG_FILE, template, update_file=update_file)

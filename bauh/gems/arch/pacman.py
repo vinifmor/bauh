@@ -471,8 +471,17 @@ def refresh_mirrors(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman-mirrors', '-g'], root_password=root_password)
 
 
-def update_mirrors(root_password: str, country: str) -> SimpleProcess:
-    return SimpleProcess(cmd=['pacman-mirrors', '-c', country], root_password=root_password)
+def update_mirrors(root_password: str, countries: List[str]) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman-mirrors', '-c', ','.join(countries)], root_password=root_password)
+
+
+def sort_fastest_mirrors(root_password: str, limit: int) -> SimpleProcess:
+    cmd = ['pacman-mirrors', '--fasttrack']
+
+    if limit > 0:
+        cmd.append(str(limit))
+
+    return SimpleProcess(cmd=cmd, root_password=root_password)
 
 
 def list_mirror_countries() -> List[str]:
@@ -482,6 +491,6 @@ def list_mirror_countries() -> List[str]:
         return [c for c in output.split('\n') if c]
 
 
-def get_current_mirror_country() -> str:
-    output = run_cmd('pacman-mirrors -lc')
-    return 'all' if not output else output.strip()
+def get_current_mirror_countries() -> List[str]:
+    output = run_cmd('pacman-mirrors -lc').strip()
+    return ['all'] if not output else [c for c in output.split('\n') if c]

@@ -21,7 +21,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
@@ -92,39 +92,59 @@ class ArchManager(SoftwareManager):
     def refresh_mirrors(self, root_password: str, watcher: ProcessWatcher) -> bool:
 
         available_countries = pacman.list_mirror_countries()
-        current_country = pacman.get_current_mirror_country()
+        current_countries = pacman.get_current_mirror_countries()
 
         if not available_countries:
             self.logger.warning("No country available")
-            country = current_country
+            countries = current_countries
         else:
             country_opts = [InputOption(label=self.i18n['arch.custom_action.refresh_mirrors.location.all'], value='all')]
-            country_opts.extend((InputOption(label=self.i18n[' '.join(c.split('_')).lower()].capitalize(), value=c) for c in available_countries))
+            mapped_opts = [InputOption(label=self.i18n[' '.join(c.split('_')).lower()].capitalize(), value=c) for c in available_countries]
 
-            select = SingleSelectComponent(options=country_opts,
-                                           default_option=[o for o in country_opts if o.value == current_country][0],
-                                           label=self.i18n['arch.custom_action.refresh_mirrors.select_label'],
-                                           type_=SelectViewType.COMBO)
+            if len(current_countries) == 1 and current_countries[0] == 'all':
+                default_opts = {country_opts[0]}
+            else:
+                default_opts = {o for o in mapped_opts if o.value in current_countries}
+                country_opts.extend(default_opts)
+
+            country_opts.extend((o for o in mapped_opts if o not in default_opts))
+
+            select = MultipleSelectComponent(options=country_opts,
+                                             default_options=default_opts,
+                                             max_per_line=3,
+                                             label=self.i18n['arch.custom_action.refresh_mirrors.select_label'])
+
             if watcher.request_confirmation(title=self.i18n['arch.custom_action.refresh_mirrors'],
                                             body=None,
                                             components=[select],
                                             confirmation_label=self.i18n['continue'].capitalize(),
                                             deny_label=self.i18n["cancel"].capitalize()):
-                country = select.get_selected()
+                countries = select.get_selected_values()
+
+                if 'all' in countries or len(countries) == len(available_countries):
+                    countries = ['all']
             else:
                 watcher.print("Aborted by the user")
                 return False
 
-        if current_country == country:
+        watcher.change_substatus(self.i18n['arch.custom_action.refresh_mirrors.status.updating'])
+
+        if current_countries == countries:
             success, output = ProcessHandler(watcher).handle_simple(pacman.refresh_mirrors(root_password))
         else:
-            success, output = ProcessHandler(watcher).handle_simple(pacman.update_mirrors(root_password, country))
+            success, output = ProcessHandler(watcher).handle_simple(pacman.update_mirrors(root_password, countries))
 
         if not success:
             watcher.show_message(title=self.i18n["action.failed"].capitalize(),
                                  body=self.i18n['arch.custom_action.refresh_mirrors.failed'],
                                  type_=MessageType.ERROR)
             return False
+
+        sort_limit = read_config()['mirrors_sort_limit']
+
+        if sort_limit is not None and isinstance(sort_limit, int) and sort_limit >= 0:
+            watcher.change_substatus(self.i18n['arch.custom_action.refresh_mirrors.status.sorting'])
+            ProcessHandler(watcher).handle_simple(pacman.sort_fastest_mirrors(root_password, sort_limit))
 
         mirrors.register_sync(self.logger)
 
@@ -1435,7 +1455,13 @@ class ArchManager(SoftwareManager):
                                     label_key='arch.config.refresh_mirrors',
                                     tooltip_key='arch.config.refresh_mirrors.tip',
                                     value=bool(local_config['refresh_mirrors_startup']),
-                                    max_width=max_width)
+                                    max_width=max_width),
+            TextInputComponent(id_='mirrors_sort_limit',
+                               label=self.i18n['arch.config.mirrors_sort_limit'],
+                               tooltip=self.i18n['arch.config.mirrors_sort_limit.tip'],
+                               only_int=True,
+                               max_width=max_width,
+                               value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else '')
         ]
 
         return PanelComponent([FormComponent(fields, spaces=False)])
@@ -1452,6 +1478,7 @@ class ArchManager(SoftwareManager):
         config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
         config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
+        config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
 
         try:
             save_config(config, CONFIG_FILE)
