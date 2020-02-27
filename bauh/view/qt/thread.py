@@ -569,8 +569,6 @@ class CustomAction(AsyncAction):
         self.i18n = i18n
 
     def run(self):
-        success = True
-
         try:
             success = self.manager.execute_custom_action(action=self.custom_action,
                                                          pkg=self.pkg.model if self.pkg else None,

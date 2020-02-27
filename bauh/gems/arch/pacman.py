@@ -1,6 +1,6 @@
 import re
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable
+from typing import List, Set, Tuple, Dict, Iterable, Generator
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -469,3 +469,19 @@ def can_refresh_mirrors() -> bool:
 
 def refresh_mirrors(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman-mirrors', '-g'], root_password=root_password)
+
+
+def update_mirrors(root_password: str, country: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman-mirrors', '-c', country], root_password=root_password)
+
+
+def list_mirror_countries() -> List[str]:
+    output = run_cmd('pacman-mirrors -l')
+
+    if output:
+        return [c for c in output.split('\n') if c]
+
+
+def get_current_mirror_country() -> str:
+    output = run_cmd('pacman-mirrors -lc')
+    return 'all' if not output else output.strip()

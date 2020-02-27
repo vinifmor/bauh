@@ -177,7 +177,7 @@ class ComboSelectQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
+        self.layout().addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
         self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 

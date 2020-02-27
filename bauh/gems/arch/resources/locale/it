@@ -150,3 +150,6 @@ arch.config.refresh_mirrors.tip=Refresh the package mirrors once a day on startu
 arch.custom_action.refresh_mirrors.failed=It was not possible to refresh the mirrors
 arch.custom_action.refresh_dbs=Synchronize package databases
 arch.custom_action.refresh_dbs.failed=It was not possible to synchronize the package databases
+arch.custom_action.refresh_mirrors=Refresh mirrors
+arch.custom_action.refresh_mirrors.location.all=All
+arch.custom_action.refresh_mirrors.select_label=Choose a location

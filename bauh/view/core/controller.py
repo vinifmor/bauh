@@ -386,7 +386,7 @@ class GenericSoftwareManager(SoftwareManager):
         man = action.manager if action.manager else self._get_manager_for(pkg)
 
         if man:
-            return exec('man.{}({}root_password=root_password, watcher=watcher)'.format(action.manager_method, 'pkg=pkg, ' if pkg else ''))
+            return eval('man.{}({}root_password=root_password, watcher=watcher)'.format(action.manager_method, 'pkg=pkg, ' if pkg else ''))
 
     def is_default_enabled(self) -> bool:
         return True

@@ -90,7 +90,35 @@ class ArchManager(SoftwareManager):
                 'googlechrome': 'google-chrome'}
 
     def refresh_mirrors(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        success, output = ProcessHandler(watcher).handle_simple(pacman.refresh_mirrors(root_password))
+
+        available_countries = pacman.list_mirror_countries()
+        current_country = pacman.get_current_mirror_country()
+
+        if not available_countries:
+            self.logger.warning("No country available")
+            country = current_country
+        else:
+            country_opts = [InputOption(label=self.i18n['arch.custom_action.refresh_mirrors.location.all'], value='all')]
+            country_opts.extend((InputOption(label=self.i18n[' '.join(c.split('_')).lower()].capitalize(), value=c) for c in available_countries))
+
+            select = SingleSelectComponent(options=country_opts,
+                                           default_option=[o for o in country_opts if o.value == current_country][0],
+                                           label=self.i18n['arch.custom_action.refresh_mirrors.select_label'],
+                                           type_=SelectViewType.COMBO)
+            if watcher.request_confirmation(title=self.i18n['arch.custom_action.refresh_mirrors'],
+                                            body=None,
+                                            components=[select],
+                                            confirmation_label=self.i18n['continue'].capitalize(),
+                                            deny_label=self.i18n["cancel"].capitalize()):
+                country = select.get_selected()
+            else:
+                watcher.print("Aborted by the user")
+                return False
+
+        if current_country == country:
+            success, output = ProcessHandler(watcher).handle_simple(pacman.refresh_mirrors(root_password))
+        else:
+            success, output = ProcessHandler(watcher).handle_simple(pacman.update_mirrors(root_password, country))
 
         if not success:
             watcher.show_message(title=self.i18n["action.failed"].capitalize(),
@@ -99,7 +127,8 @@ class ArchManager(SoftwareManager):
             return False
 
         mirrors.register_sync(self.logger)
-        return True
+
+        return self.sync_databases(root_password=root_password, watcher=watcher)
 
     def sync_databases(self, root_password: str, watcher: ProcessWatcher) -> bool:
         success, output = ProcessHandler(watcher).handle_simple(pacman.sync_databases(root_password, force=True))

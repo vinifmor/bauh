@@ -1166,7 +1166,7 @@ class ManageWindow(QWidget):
     def _finish_run_app(self, success: bool):
         self.finish_action()
 
-    def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction = None):
+    def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
         pwd = None
 
         if not user.is_root() and action.requires_root:
@@ -1201,22 +1201,17 @@ class ManageWindow(QWidget):
             qt_utils.centralize(self.settings_window)
             self.settings_window.show()
 
+    def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
+        custom_action = QAction(self.i18n[action.i18_label_key])
+        custom_action.setIcon(QIcon(action.icon_path))
+        custom_action.triggered.connect(lambda: self.execute_custom_action(None, action))
+        return custom_action
+
     def show_custom_actions(self):
-        menu_row = QMenu()
-
-        actions = []
-
-        for a in self.custom_actions:
-            custom_action = QAction(self.i18n[a.i18_label_key])
-            custom_action.setIcon(QIcon(a.icon_path))
-
-            def execute():
-                self.execute_custom_action(None, a)
-
-            custom_action.triggered.connect(execute)
-            actions.append(custom_action)
-
-        menu_row.addActions(actions)
-        menu_row.adjustSize()
-        menu_row.popup(QCursor.pos())
-        menu_row.exec_()
+        if self.custom_actions:
+            menu_row = QMenu()
+            actions = [self._map_custom_action(a) for a in self.custom_actions]
+            menu_row.addActions(actions)
+            menu_row.adjustSize()
+            menu_row.popup(QCursor.pos())
+            menu_row.exec_()
