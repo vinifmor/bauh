@@ -169,22 +169,30 @@ class ArchManager(SoftwareManager):
 
         Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
 
-    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, res: SearchResult):
+    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: dict, res: SearchResult):
         repo_search = pacman.search(words)
 
         if repo_search:
+            repo_pkgs = []
             for name, data in repo_search.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
-                pkg.latest_version = pkg.version
                 pkg.downgrade_enabled = True
+                repo_pkgs.append(pkg)
 
-                if disk_loader:
-                    disk_loader.fill(pkg)
+            if repo_pkgs:
+                read_installed.join()
 
-                if pkg.installed:
-                    res.installed.append(pkg)
-                else:
-                    res.new.append(pkg)
+                for pkg in repo_pkgs:
+                    if installed['signed'] and pkg.name in installed['signed']:
+                        pkg.installed = True
+
+                        if disk_loader:
+                            disk_loader.fill(pkg)
+
+                        res.installed.append(pkg)
+                    else:
+                        pkg.installed = False
+                        res.new.append(pkg)
 
     def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: dict, res: SearchResult):
         api_res = self.aur_client.search(words)
@@ -225,6 +233,14 @@ class ArchManager(SoftwareManager):
             return SearchResult([], [], 0)
 
         arch_config = read_config()
+
+        if not any([arch_config['repositories'], arch_config['aur']]):
+            return SearchResult([], [], 0)
+
+        installed = {}
+        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
+        read_installed.start()
+
         res = SearchResult([], [], 0)
 
         if not any((arch_config['aur'], arch_config['repositories'])):
@@ -235,15 +251,11 @@ class ArchManager(SoftwareManager):
 
         aur_search = None
         if arch_config['aur']:
-            installed = {}
-            read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
-            read_installed.start()
-
             aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
             aur_search.start()
 
         if arch_config['repositories']:
-            self._search_in_repos_and_fill(final_words, disk_loader, res)
+            self._search_in_repos_and_fill(final_words, disk_loader, read_installed, installed, res)
 
         if aur_search:
             aur_search.join()

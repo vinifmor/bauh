@@ -451,8 +451,6 @@ def search(words: str) -> Dict[str, dict]:
 
                     version = data_split[1].split(':')
                     current['version'] = version[0] if len(version) == 1 else version[1]
-
-                    current['installed'] = '[installed' in repo_split[-1]
         return found
 
 
