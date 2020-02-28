@@ -703,20 +703,20 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
+    def _gen_filters(self, ignore_updates: bool = False) -> dict:
         return {
             'only_apps': False if self.search_performed else self.filter_only_apps,
             'type': self.type_filter,
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
-            'display_limit': self.display_limit if updates <= 0 else None
+            'display_limit': None if self.filter_updates else self.display_limit
         }
 
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False, keep_filters: bool = False):
         self.input_name_filter.setText('')
         pkgs_info = commons.new_pkgs_info()
-        filters = self._gen_filters(ignore_updates)
+        filters = self._gen_filters(ignore_updates=ignore_updates)
 
         if new_pkgs is not None:
             old_installed = None
@@ -785,7 +785,7 @@ class ManageWindow(QWidget):
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
-        filters = self._gen_filters(updates=pkgs_info['updates'], ignore_updates=ignore_updates)
+        filters = self._gen_filters(ignore_updates=ignore_updates)
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 

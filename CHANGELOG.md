@@ -28,6 +28,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - tray
     - sorting types on update notification
     
+### Fixes
+- table not displaying all updates when the "updates filter" is clicked several times
+    
 
 ### i18n
 - Russian ( ru ): 
