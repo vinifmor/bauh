@@ -21,7 +21,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
@@ -539,8 +539,19 @@ class ArchManager(SoftwareManager):
 
             if info.get('required by'):
                 pkname = bold(pkg.name)
-                msg = '{}:<br/><br/>{}<br/><br/>{}'.format(self.i18n['arch.uninstall.required_by'].format(pkname), bold(info['required by']), self.i18n['arch.uninstall.required_by.advice'].format(pkname))
-                watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.WARNING)
+
+                reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in info['required by']]
+                reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+
+                msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(pkname, bold(len(reqs))),
+                                                  self.i18n['arch.uninstall.required_by.advice'].format(pkname))
+
+                watcher.request_confirmation(title=self.i18n['action.not_allowed'].capitalize(),
+                                             body=msg,
+                                             components=[reqs_select],
+                                             confirmation_label=self.i18n['close'].capitalize(),
+                                             deny_button=False)
+
                 return False
 
             uninstalled = self._uninstall(pkg.name, root_password, handler)

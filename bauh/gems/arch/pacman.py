@@ -57,6 +57,7 @@ def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
 
 
 def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
+    list_attrs = {'depends on', 'required by'}
     info_list = get_info_list(pkg_name, remote)
 
     if info_list:
@@ -70,7 +71,7 @@ def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
 
             if attr == 'optional deps' and info_dict[attr]:
                 info_dict[attr] = info_dict[attr].split('\n')
-            elif attr == 'depends on' and info_dict[attr]:
+            elif attr in list_attrs and info_dict[attr]:
                 info_dict[attr] = [d.strip() for d in info_dict[attr].split(' ') if d]
 
         return info_dict
