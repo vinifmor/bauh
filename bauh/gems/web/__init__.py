@@ -8,6 +8,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
 INSTALLED_PATH = '{}/installed'.format(WEB_PATH)
 ENV_PATH = '{}/env'.format(WEB_PATH)
+FIXES_PATH = '{}/fixes'.format(WEB_PATH)
 NODE_DIR_PATH = '{}/node'.format(ENV_PATH)
 NODE_PATHS = {NODE_DIR_PATH + '/bin'}
 NODE_BIN_PATH = '{}/bin/node'.format(NODE_DIR_PATH)
