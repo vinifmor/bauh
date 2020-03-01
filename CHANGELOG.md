@@ -34,6 +34,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - table not displaying all updates when the "updates filter" is clicked several times
      
     
+## [0.8.5] - 2020-03-
+### Fixes
+- Web
+    - not able to inject javascript fixes ( WhatsApp Web not working) [#74](https://github.com/vinifmor/bauh/issues/74)
+
+### i18n
+- Russian ( ru ): 
+    - [leoneii](https://github.com/leoneii) - PRs:  [#66](https://github.com/vinifmor/bauh/pull/66), [#67](https://github.com/vinifmor/bauh/pull/67), [#68](https://github.com/vinifmor/bauh/pull/68)
+    - [mountain-biker85](https://github.com/mountain-biker85) - PRs: [#70](https://github.com/vinifmor/bauh/pull/70), [#71](https://github.com/vinifmor/bauh/pull/71), [#72](https://github.com/vinifmor/bauh/pull/72), [#73](https://github.com/vinifmor/bauh/pull/73)
+
 ## [0.8.4] - 2020-02-21
 ### Improvements
 - UI

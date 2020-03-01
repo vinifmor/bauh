@@ -29,7 +29,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -597,13 +597,18 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
         fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
-        fix_path = '{}/fix.js'.format(app_dir)
+        fix_path = '{}/{}.js'.format(FIXES_PATH, app_id)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
             self.logger.info('Fix found for {}'.format(pkg.url))
             watcher.print('Fix found for {}'.format(pkg.url))
             install_options.append('--inject={}'.format(fix_path))
+            Path(FIXES_PATH).mkdir(exist_ok=True, parents=True)
+
+            self.logger.info('Writting JS fix at {}'.format(fix_path))
+            with open(fix_path, 'w+') as f:
+                f.write(fix)
 
         # if a custom icon is defined for an app suggestion:
         icon_path, icon_bytes = None, None
@@ -651,12 +656,6 @@ class WebApplicationManager(SoftwareManager):
         os.rename(inner_dir, temp_dir)
         shutil.rmtree(app_dir)
         os.rename(temp_dir, app_dir)
-
-        # injecting a fix
-        if fix:
-            self.logger.info('Writting JS fix at {}'.format(fix_path))
-            with open(fix_path, 'w+') as f:
-                f.write(fix)
 
         # persisting the custom suggestion icon in the defitive directory
         if icon_bytes:
