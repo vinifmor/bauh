@@ -1,6 +1,6 @@
 from enum import Enum
 
-from bauh.api.abstract.model import SoftwarePackage
+from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.view.util.translation import I18n
 
 

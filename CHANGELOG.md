@@ -23,8 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - new parameters
     - `--settings`: opens only the settings panel
 - now the root password is asked only once ( can be disabled through the new settings property `store_root_password` )
-- Arch:
+- Arch
     - dialog design when the package cannot be uninstalled due to required packages
+- UI
+    - table changes performance
     
 ### Improvements
 - tray

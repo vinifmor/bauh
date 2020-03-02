@@ -1,7 +1,8 @@
 import operator
 import os
+import time
 from functools import reduce
-from threading import Lock
+from threading import Lock, Thread
 from typing import List
 
 from PyQt5.QtCore import Qt, QUrl, QSize
@@ -150,22 +151,14 @@ class AppsTable(QTableWidget):
     def refresh(self, pkg: PackageView):
         self._update_row(pkg, update_check_enabled=False, change_update_col=False)
 
-    def fill_async_data(self):
-        if self.window.pkgs:
+    def update_package(self, pkg: PackageView):
+        if self.download_icons and pkg.model.icon_url:
+            icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
+            icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+            self.network_man.get(icon_request)
 
-            for idx, app_v in enumerate(self.window.pkgs):
-
-                if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
-
-                    if self.download_icons:
-                        icon_request = QNetworkRequest(QUrl(app_v.model.icon_url))
-                        icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-                        self.network_man.get(icon_request)
-
-                    self._update_row(app_v, change_update_col=False)
-                    app_v.status = PackageViewStatus.READY
-
-            self.window.resize_and_center()
+        self._update_row(pkg, change_update_col=False)
+        pkg.status = PackageViewStatus.READY
 
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
@@ -234,6 +227,7 @@ class AppsTable(QTableWidget):
             for idx, pkgv in enumerate(pkg_views):
                 pkgv.table_index = idx
                 self._update_row(pkgv, update_check_enabled)
+            print('table loaded')
 
     def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_name(0, pkg)

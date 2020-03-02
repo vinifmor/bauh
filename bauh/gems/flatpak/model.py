@@ -1,6 +1,6 @@
 import copy
 
-from bauh.api.abstract.model import SoftwarePackage
+from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.commons import resource
 from bauh.gems.flatpak import ROOT_DIR
 from bauh.view.util.translation import I18n
@@ -84,6 +84,8 @@ class FlatpakApplication(SoftwarePackage):
         if self.ref:
             partial.base_ref = self.ref
             partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
+            partial.status = PackageStatus.READY
+            partial.name += ' ( {} )'.format(partial_id.split('.')[-1])
 
         partial.partial = True
         return partial

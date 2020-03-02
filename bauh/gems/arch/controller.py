@@ -238,7 +238,8 @@ class ArchManager(SoftwareManager):
             return SearchResult([], [], 0)
 
         installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=False)), daemon=True)
+        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=bool(arch_config['repositories']),
+                                                                                     aur=bool(arch_config['aur']))), daemon=True)
         read_installed.start()
 
         res = SearchResult([], [], 0)

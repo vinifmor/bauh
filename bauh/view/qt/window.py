@@ -29,7 +29,7 @@ from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
+    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesChanges, FindSuggestions, ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util import util, resource
@@ -300,8 +300,9 @@ class ManageWindow(QWidget):
         self.thread_animate_progress = AnimateProgress()
         self.thread_animate_progress.signal_change.connect(self._update_progress)
 
-        self.thread_verify_models = VerifyModels()
-        self.thread_verify_models.signal_updates.connect(self._notify_model_data_change)
+        self.thread_packages_changes = NotifyPackagesChanges()
+        self.thread_packages_changes.signal_changed.connect(self._update_package)
+        self.thread_packages_changes.signal_finished.connect(self._update_state_packages_loaded)
 
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
@@ -390,11 +391,11 @@ class ManageWindow(QWidget):
         self.update_bt_upgrade(pkgs_info)
 
         if self.pkgs_available:
-            self._notify_model_data_change()
-            self.thread_verify_models.work = False
-            self.thread_verify_models.wait(50)
-            self.thread_verify_models.apps = self.pkgs_available
-            self.thread_verify_models.start()
+            self._update_state_packages_loaded()
+            self.thread_packages_changes.work = False
+            self.thread_packages_changes.wait(50)
+            self.thread_packages_changes.pkgs = self.pkgs
+            self.thread_packages_changes.start()
 
     def _finish_apply_filters_async(self, success: bool):
         self.label_status.setText('')
@@ -492,14 +493,16 @@ class ManageWindow(QWidget):
         self.category_filter = self.combo_categories.itemData(idx)
         self.apply_filters_async()
 
-    def _notify_model_data_change(self):
-        self.table_apps.fill_async_data()
-
+    def _update_state_packages_loaded(self):
         if not self.recent_installation:
             self._reload_categories()
 
-    def _reload_categories(self):
+        self.resize_and_center()
 
+    def _update_package(self, idx: int):
+        self.table_apps.update_package(self.pkgs[idx])
+
+    def _reload_categories(self):
         categories = set()
 
         for p in self.pkgs_available:
@@ -776,8 +779,8 @@ class ManageWindow(QWidget):
         self._update_table(pkgs_info=pkgs_info)
 
         if new_pkgs:
-            self.thread_verify_models.apps = self.pkgs
-            self.thread_verify_models.start()
+            self.thread_packages_changes.pkgs = self.pkgs
+            self.thread_packages_changes.start()
 
         if self.pkgs_installed:
             self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)

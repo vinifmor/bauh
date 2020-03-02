@@ -19,7 +19,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import get_human_size_str
 from bauh.view.core import config
 from bauh.view.qt import commons
-from bauh.view.qt.view_model import PackageView
+from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
 RE_VERSION_IN_NAME = re.compile(r'\s+version\s+[\w\.]+\s*$')
@@ -454,38 +454,38 @@ class AnimateProgress(QThread):
         self._reset()
 
 
-class VerifyModels(QThread):
+class NotifyPackagesChanges(QThread):
 
-    signal_updates = pyqtSignal()
+    signal_finished = pyqtSignal()
+    signal_changed = pyqtSignal(int)
 
-    def __init__(self, apps: List[PackageView] = None):
-        super(VerifyModels, self).__init__()
-        self.apps = apps
+    def __init__(self, pkgs: List[PackageView] = None):
+        super(NotifyPackagesChanges, self).__init__()
+        self.pkgs = pkgs
         self.work = True
 
     def run(self):
-
-        if self.apps:
-
+        if self.pkgs:
+            print('pkgs: {}'.format(len(self.pkgs)))
             stop_at = datetime.utcnow() + timedelta(seconds=30)
-            last_ready = 0
 
-            while True:
-
+            not_ready = [*self.pkgs]
+            while not_ready:
                 if not self.work:
                     break
 
-                current_ready = 0
+                to_remove = []
+                for idx, pkg in enumerate(not_ready):
+                    if pkg.status == PackageViewStatus.READY and pkg.model.status == PackageStatus.READY:
+                        to_remove.append(idx)
+                    elif pkg.status == PackageViewStatus.LOADING and pkg.model.status == PackageStatus.READY:
+                        self.signal_changed.emit(idx)
+                        to_remove.append(idx)
 
-                for app in self.apps:
-                    current_ready += 1 if app.model.status == PackageStatus.READY else 0
+                for idx, to_del in enumerate(to_remove):
+                    del not_ready[to_del - idx]
 
-                if current_ready > last_ready:
-                    last_ready = current_ready
-                    self.signal_updates.emit()
-
-                if current_ready == len(self.apps):
-                    self.signal_updates.emit()
+                if not not_ready:
                     break
 
                 if stop_at <= datetime.utcnow():
@@ -493,8 +493,10 @@ class VerifyModels(QThread):
 
                 time.sleep(0.1)
 
+        self.signal_finished.emit()
+        print('thread finished')
         self.work = True
-        self.apps = None
+        self.pkgs = None
 
 
 class FindSuggestions(AsyncAction):
