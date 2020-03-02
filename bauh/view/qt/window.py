@@ -320,7 +320,7 @@ class ManageWindow(QWidget):
         self.custom_actions = manager.get_custom_actions()
         bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
                                        action=self.show_custom_actions,
-                                       background="#b300b3",
+                                       background="#669900",
                                        i18n=self.i18n,
                                        tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
         bt_custom_actions.setVisible(bool(self.custom_actions))
