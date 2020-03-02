@@ -1235,7 +1235,7 @@ class ArchManager(SoftwareManager):
         return False
 
     def _sync_databases(self, root_password: str, handler: ProcessHandler):
-        if database.should_sync(self.local_config, handler, self.logger):
+        if self.local_config['sync_databases'] and database.should_sync(self.local_config, handler, self.logger):
             handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
             synced, output = handler.handle_simple(pacman.sync_databases(root_password=root_password,
                                                                          force=True))
@@ -1315,7 +1315,7 @@ class ArchManager(SoftwareManager):
             if arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
                 return True
 
-            return database.should_sync(arch_config, None, self.logger)
+            return arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger)
 
         return action != 'search'
 
@@ -1354,7 +1354,7 @@ class ArchManager(SoftwareManager):
                                              sort_limit=arch_config['mirrors_sort_limit'])
             refresh_mirrors.start()
 
-        if refresh_mirrors or database.should_sync(arch_config, None, self.logger):
+        if refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger)):
             SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
                           logger=self.logger, refresh_mirrors=refresh_mirrors).start()
 
@@ -1435,6 +1435,14 @@ class ArchManager(SoftwareManager):
         local_config = read_config()
         max_width = floor(screen_width * 0.15)
 
+        db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
+                                                label_key='arch.config.sync_dbs',
+                                                tooltip_key='arch.config.sync_dbs_start.tip',
+                                                value=bool(local_config['sync_databases_startup']),
+                                                max_width=max_width)
+
+        db_sync_start.label += ' ( {} )'.format(self.i18n['initialization'].capitalize())
+
         fields = [
             self._gen_bool_selector(id_='repos',
                                     label_key='arch.config.repos',
@@ -1467,6 +1475,7 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.sync_dbs.tip',
                                     value=bool(local_config['sync_databases']),
                                     max_width=max_width),
+            db_sync_start,
             self._gen_bool_selector(id_='clean_cached',
                                     label_key='arch.config.clean_cache',
                                     tooltip_key='arch.config.clean_cache.tip',
@@ -1496,6 +1505,7 @@ class ArchManager(SoftwareManager):
         config['optimize'] = form_install.get_component('opts').get_selected()
         config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
+        config['sync_databases_startup'] = form_install.get_component('sync_dbs_start').get_selected()
         config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()
         config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()

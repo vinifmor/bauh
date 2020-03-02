@@ -66,6 +66,7 @@ arch.sync_databases.substatus=Synchronizing package databases
 arch.sync_databases.substatus.error=It was not possible to synchronize the package database
 arch.config.sync_dbs=Synchronize packages databases
 arch.config.sync_dbs.tip=Synchronizes the package databases once a day ( or after a device reboot ) before the first initialization or package installation ( upgrade or downgrade as well ). This option help to prevent errors during these operations.
+arch.config.sync_dbs_start.tip=Synchronizes the package databases during the initialization once a day ( or after a device reboot )
 arch.config.simple_dep_check=Simple dependencies checking
 arch.config.simple_dep_check.tip=If only the dependency checking provided by pacman should be used before installing a package ( faster, but not always accurate ). If disabled, a more complete checking will be performed ( slower, but more accurate )
 arch.install.aur.root_error.title=Action not allowed

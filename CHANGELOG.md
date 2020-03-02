@@ -11,9 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new custom actions button ( displays specific action available for each packaging provider )
 - Arch
     - support for packages from configured repositories ( search, install, upgrade, downgrade, history, info )
-    - removing old cached versions from the disk cache when uninstalling a package ( can be disabled via the settings file / UI )
-    - database synchronization on startup ( **enabled by default**. Can be changed on settings.)
-    - mirrors refreshing on startup ( **disabled by default**. Can be changed on settings. )
+    - removing old cached versions from the disk cache when uninstalling a package ( can be disabled on settings -> **clean_cached** )
+    - database synchronization on startup ( **enabled by default**. Can be disabled on settings -> **sync_databases_startup** )
+    - mirrors refreshing on startup ( **disabled by default**. Can be enabled on settings -> **refresh_mirrors_startup** )
     - custom actions ( available through the new custom actions button )
         - synchronize packages database: synchronizes the database against the configured mirrors
         - refresh mirrors: allows the user to define multiple mirrors locations, sort by the fastest and update the packages database
