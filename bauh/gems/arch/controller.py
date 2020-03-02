@@ -1564,11 +1564,12 @@ class ArchManager(SoftwareManager):
 
         threads = []
 
-        t = Thread(target=self._fill_repo_pkgs_sort_data(repo_pkgs, pkg_deps, names_map))
         for pkg in aur_pkgs:
             t = Thread(target=_add_info, args=(pkg, ), daemon=True)
             t.start()
             threads.append(t)
+
+        self._fill_repo_pkgs_sort_data(repo_pkgs, pkg_deps, names_map)
 
         for t in threads:
             t.join()
@@ -1670,7 +1671,19 @@ class ArchManager(SoftwareManager):
             for t in map_threads:
                 t.join()
 
-            return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
+            res = [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
+
+            repo_pkgs = [p for p in res if p.repository != 'aur']
+
+            if repo_pkgs:
+                sizes = pacman.get_installation_size([p.name for p in repo_pkgs])
+
+                if sizes:
+                    for p in repo_pkgs:
+                        p.size = sizes.get(p.name)
+
+            return res
+
         else:
             return []
 

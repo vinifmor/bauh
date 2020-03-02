@@ -2,6 +2,8 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
+from functools import reduce
+from operator import add
 from typing import List, Type, Set, Tuple
 
 import requests
@@ -11,9 +13,10 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
-from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption
+from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption, TextComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons.html import bold
+from bauh.commons.system import get_human_size_str
 from bauh.view.core import config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView
@@ -110,7 +113,12 @@ class UpdateSelectedApps(AsyncAction):
         else:
             icon_path = pkg.get_type_icon_path()
 
-        return InputOption(label='{}{}'.format(pkg.name, ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else ''),
+        label = '{}{} - {}: {}'.format(pkg.name,
+                                       ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else '',
+                                       self.i18n['size'].capitalize(),
+                                       '?' if not pkg.size else get_human_size_str(pkg.size))
+
+        return InputOption(label=label,
                            value=None,
                            tooltip=pkg.get_name_tooltip() if tooltip else None,
                            read_only=True,
@@ -122,10 +130,16 @@ class UpdateSelectedApps(AsyncAction):
 
         if required_pkgs:
             opts = [self._pkg_as_option(p) for p in required_pkgs]
+            comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
+            size = reduce(add, (p.size for p in required_pkgs if p.size))
+
+            if size:
+                total_size = TextComponent(bold('{}: {}'.format(self.i18n['size'].capitalize(), get_human_size_str(size))))
+                comps.append(total_size)
 
             if not self.request_confirmation(self.i18n['action.update.requirements.title'],
                                              self.i18n['action.update.requirements.body'].format(bold(str(len(opts)))),
-                                             [MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
+                                             comps,
                                              confirmation_label=self.i18n['continue'].capitalize(),
                                              deny_label=self.i18n['cancel'].capitalize()):
                 self.notify_finished({'success': False, 'updated': 0, 'types': set()})

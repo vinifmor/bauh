@@ -1,6 +1,6 @@
 import re
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable, Generator
+from typing import List, Set, Tuple, Dict, Iterable
 
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -10,6 +10,7 @@ RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
+RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 
 
 def is_available() -> bool:
@@ -498,3 +499,27 @@ def get_current_mirror_countries() -> List[str]:
 def is_mirrors_available() -> bool:
     res = run_cmd('which pacman-mirrors', print_error=False)
     return res and not res.strip().startswith('which ')
+
+
+def size_to_byte(size: float, unit: str) -> int:
+    lower_unit = unit.lower()
+
+    if lower_unit[0] == 'b':
+        final_size = size
+    elif lower_unit[0] == 'k':
+        final_size = size * 1000
+    elif lower_unit[0] == 'm':
+        final_size = size * 1000000
+    elif lower_unit[0] == 't':
+        final_size = size * 1000000000000
+    else:
+        final_size = size * 1000000000000000
+
+    return int(final_size)
+
+
+def get_installation_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+
+    if output:
+        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
