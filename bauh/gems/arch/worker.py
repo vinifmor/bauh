@@ -296,15 +296,16 @@ class RefreshMirrors(Thread):
         self.logger.info("Refreshing mirrors")
         self.taskman.register_task(self.task_id, self.i18n['arch.task.mirrors'], get_icon_path())
 
+        handler = ProcessHandler()
         try:
-            success, output = ProcessHandler().handle_simple(pacman.refresh_mirrors(self.root_password))
+            success, output = handler.handle_simple(pacman.refresh_mirrors(self.root_password))
 
             if success:
 
                 if self.sort_limit is not None and self.sort_limit >= 0:
                     self.taskman.update_progress(self.task_id, 50, self.i18n['arch.custom_action.refresh_mirrors.status.updating'])
                     try:
-                        ProcessHandler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, self.sort_limit))
+                        handler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, self.sort_limit))
                     except:
                         self.logger.error("Could not sort mirrors by speed")
                         traceback.print_exc()
