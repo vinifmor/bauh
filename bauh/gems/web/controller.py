@@ -353,6 +353,20 @@ class WebApplicationManager(SoftwareManager):
                                      type_=MessageType.WARNING)
                 traceback.print_exc()
 
+        self.logger.info("Checking if there is any Javascript fix file associated with {} ".format(pkg.name))
+
+        fix_path = '{}/{}.js'.format(FIXES_PATH, pkg.id)
+
+        if os.path.isfile(fix_path):
+            self.logger.info("Removing fix file '{}'".format(fix_path))
+            try:
+                os.remove(fix_path)
+            except:
+                self.logger.error("Could not remove fix file '{}'".format(fix_path))
+                traceback.print_exc()
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
+                                     type_=MessageType.WARNING)
         return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
