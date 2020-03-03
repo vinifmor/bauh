@@ -454,13 +454,13 @@ class AnimateProgress(QThread):
         self._reset()
 
 
-class NotifyPackagesChanges(QThread):
+class NotifyPackagesReady(QThread):
 
     signal_finished = pyqtSignal()
     signal_changed = pyqtSignal(int)
 
     def __init__(self, pkgs: List[PackageView] = None):
-        super(NotifyPackagesChanges, self).__init__()
+        super(NotifyPackagesReady, self).__init__()
         self.pkgs = pkgs
         self.work = True
 
