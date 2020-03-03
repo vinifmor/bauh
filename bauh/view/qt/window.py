@@ -379,6 +379,8 @@ class ManageWindow(QWidget):
             self.thread_animate_progress.set_progress(val)
 
     def apply_filters_async(self):
+        self.thread_notify_pkgs_ready.work = False
+        self.thread_notify_pkgs_ready.wait(5)
         self.label_status.setText(self.i18n['manage_window.status.filtering'] + '...')
 
         self.ref_toolbar_search.setVisible(False)
@@ -389,6 +391,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.table_apps.setEnabled(False)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
@@ -403,6 +406,7 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.table_apps.setEnabled(True)
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)
 
@@ -509,9 +513,10 @@ class ManageWindow(QWidget):
         self.resize_and_center()
 
     def _update_package_data(self, idx: int):
-        pkg = self.pkgs[idx]
-        pkg.status = PackageViewStatus.READY
-        self.table_apps.update_package(pkg)
+        if self.table_apps.isEnabled():
+            pkg = self.pkgs[idx]
+            pkg.status = PackageViewStatus.READY
+            self.table_apps.update_package(pkg)
 
     def _reload_categories(self):
         categories = set()

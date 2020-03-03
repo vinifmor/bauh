@@ -1,5 +1,7 @@
 import os
+import time
 from pathlib import Path
+from threading import Thread
 from typing import Tuple
 
 from PyQt5.QtCore import Qt, QSize
@@ -347,14 +349,27 @@ class InputFilter(QLineEdit):
         super(InputFilter, self).__init__()
         self.on_key_press = on_key_press
         self.last_text = ''
+        self.typing = None
 
-    def keyPressEvent(self, event):
-        super(InputFilter, self).keyPressEvent(event)
+    def notify_text_change(self):
         text = self.text().strip()
 
         if text != self.last_text:
             self.last_text = text
+            time.sleep(1)
             self.on_key_press()
+            self.typing = False
+
+        self.typing = None
+
+    def keyPressEvent(self, event):
+        super(InputFilter, self).keyPressEvent(event)
+
+        if self.typing:
+            return
+
+        self.typing = Thread(target=self.notify_text_change, daemon=True)
+        self.typing.start()
 
     def get_text(self):
         return self.last_text

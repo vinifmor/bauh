@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - dialog design when the package cannot be uninstalled due to required packages
 - UI
     - table update performance
+    - the name filter now holds 1 second before being applied
     
 ### Improvements
 - tray
