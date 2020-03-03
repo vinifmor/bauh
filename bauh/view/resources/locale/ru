@@ -29,6 +29,7 @@ manage_window.status.running_app=Запускается {}
 manage_window.status.filtering=Фильтрация
 manage_window.status.screenshots=Получение скриншотов {} 
 manage_window.status.suggestions=Поиск рекомендаций
+manage_window.status.installed=Loading installed
 manage_window.bt.refresh.text=Обновить список
 manage_window.bt.refresh.tooltip=Перезагрузите данные об установленных приложениях
 manage_window.bt.upgrade.text=Обновление

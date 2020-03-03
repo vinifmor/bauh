@@ -29,6 +29,7 @@ manage_window.status.running_app=Avvio {}
 manage_window.status.filtering=Filtraggio
 manage_window.status.screenshots=Recupero {} schermate
 manage_window.status.suggestions=Cercando suggerimenti
+manage_window.status.installed=Loading installed
 manage_window.bt.refresh.text=Refresh
 manage_window.bt.refresh.tooltip=Ricarica i dati sulle applicazioni installate
 manage_window.bt.upgrade.text=Aggiorna

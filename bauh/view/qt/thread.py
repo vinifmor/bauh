@@ -497,6 +497,21 @@ class NotifyPackagesReady(QThread):
         self.signal_finished.emit()
 
 
+class NotifyInstalledLoaded(QThread):
+    signal_loaded = pyqtSignal()
+
+    def __init__(self):
+        super(NotifyInstalledLoaded, self).__init__()
+        self.loaded = False
+
+    def notify_loaded(self):
+        self.loaded = True
+
+    def run(self):
+        time.sleep(0.1)
+        self.signal_loaded.emit()
+
+
 class FindSuggestions(AsyncAction):
 
     def __init__(self, man: SoftwareManager):

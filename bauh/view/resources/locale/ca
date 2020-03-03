@@ -29,6 +29,7 @@ manage_window.status.running_app=S’està iniciant «{}»
 manage_window.status.filtering=S’està filtrant
 manage_window.status.screenshots=S’estan recuperant {} captures de pantalla
 manage_window.status.suggestions=S’estan buscant suggeriments
+manage_window.status.installed=Loading installed
 manage_window.bt.refresh.text=Refresca
 manage_window.bt.refresh.tooltip=Carrega novament les dades quant a les aplicacions instal·lades
 manage_window.bt.upgrade.text=Actualitza

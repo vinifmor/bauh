@@ -29,6 +29,7 @@ manage_window.status.running_app={} wird gestartet
 manage_window.status.filtering=Filtern
 manage_window.status.screenshots={} Screenshots holen
 manage_window.status.suggestions=Retrieving suggestions
+manage_window.status.installed=Loading installed
 manage_window.bt.refresh.text=Erneuern
 manage_window.bt.refresh.tooltip=Daten über installierte Anwendungen aktualisieren
 manage_window.bt.upgrade.text=Upgraden

@@ -31,7 +31,7 @@ from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesReady, FindSuggestions, \
     ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction
+    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -191,7 +191,7 @@ class ManageWindow(QWidget):
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
-        self.bt_installed.clicked.connect(self._show_installed)
+        self.bt_installed.clicked.connect(self._begin_loading_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
         toolbar_bts.append(self.bt_installed)
@@ -214,7 +214,7 @@ class ManageWindow(QWidget):
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(toolbar_button_style('#2368AD'))
-        self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
+        self.bt_refresh.clicked.connect(lambda: self.refresh_packages(keep_console=False))
         toolbar_bts.append(self.bt_refresh)
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
@@ -364,6 +364,9 @@ class ManageWindow(QWidget):
         self.settings_window = None
         self.search_performed = False
 
+        self.thread_load_installed = NotifyInstalledLoaded()
+        self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
+
     def update_custom_actions(self):
         self.custom_actions = self.manager.get_custom_actions()
         self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
@@ -462,15 +465,19 @@ class ManageWindow(QWidget):
     def verify_warnings(self):
         self.thread_warnings.start()
 
-    def _show_installed(self):
+    def _begin_loading_installed(self):
         if self.pkgs_installed:
-            self.finish_action()
             self.search_performed = False
             self.ref_bt_upgrade.setVisible(True)
             self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
             self.input_name_filter.setText('')
-            self.update_pkgs(new_pkgs=None, as_installed=True)
+            self._begin_action(self.i18n['manage_window.status.installed'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+            self.thread_load_installed.start()
+
+    def _finish_loading_installed(self):
+        self.finish_action()
+        self.update_pkgs(new_pkgs=None, as_installed=True)
 
     def _show_about(self):
         if self.dialog_about is None:
@@ -509,7 +516,7 @@ class ManageWindow(QWidget):
     def _reload_categories(self):
         categories = set()
 
-        for p in self.pkgs_available:
+        for p in self.pkgs:
             if p.model.categories:
                 for c in p.model.categories:
                     categories.add(c.lower())
@@ -547,7 +554,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
+    def refresh_packages(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
         self.recent_installation = False
         self.input_search.clear()
 
@@ -614,7 +621,7 @@ class ManageWindow(QWidget):
                 only_pkg_type = False
 
             self.recent_uninstall = True
-            self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+            self.refresh_packages(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
 
             if self.tray_icon:
                 self.tray_icon.verify_updates()
@@ -634,7 +641,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
-            self.refresh_apps(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
+            self.refresh_packages(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
 
             if self.tray_icon:
                 self.tray_icon.verify_updates(notify_user=False)
@@ -921,7 +928,7 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['updated'], self.i18n['notification.update_selected.success']))
 
-            self.refresh_apps(pkg_types=res['types'])
+            self.refresh_packages(pkg_types=res['types'])
 
             if self.tray_icon:
                 self.tray_icon.verify_updates()
@@ -1195,7 +1202,7 @@ class ManageWindow(QWidget):
     def _finish_custom_action(self, res: dict):
         self.finish_action()
         if res['success']:
-            self.refresh_apps(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
+            self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
         else:
             self.checkbox_console.setChecked(True)
 

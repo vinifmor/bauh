@@ -30,6 +30,7 @@ manage_window.status.refreshing_app=Actualizando
 manage_window.status.running_app=Ejecutando {}
 manage_window.status.filtering=Filtrando
 manage_window.status.suggestions=Buscando sugerencias
+manage_window.status.installed=Cargando instalados
 manage_window.bt.refresh.text=Recargar
 manage_window.bt.refresh.tooltip=Recarga los datos sobre las aplicaciones instaladas
 manage_window.bt.upgrade.text=Actualizar

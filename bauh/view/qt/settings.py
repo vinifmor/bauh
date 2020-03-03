@@ -93,7 +93,7 @@ class SettingsWindow(QWidget):
                     self.window.update_custom_actions()
                     self.window.verify_warnings()
                     self.window.types_changed = True
-                    self.window.refresh_apps()
+                    self.window.refresh_packages()
                 self.close()
         else:
             msg = StringIO()

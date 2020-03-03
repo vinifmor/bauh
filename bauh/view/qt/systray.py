@@ -158,7 +158,7 @@ class TrayIcon(QSystemTrayIcon):
         if self.manage_window.isMinimized():
             self.manage_window.setWindowState(Qt.WindowNoState)
         elif not self.manage_window.isVisible():
-            self.manage_window.refresh_apps()
+            self.manage_window.refresh_packages()
             self.manage_window.show()
 
     def show_settings_window(self):

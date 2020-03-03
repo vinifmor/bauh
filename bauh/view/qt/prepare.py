@@ -279,7 +279,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def finish(self):
         if self.isVisible():
-            self.manage_window.refresh_apps()
+            self.manage_window.refresh_packages()
             self.manage_window.show()
             self.self_close = True
             self.close()
