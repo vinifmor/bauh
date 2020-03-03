@@ -131,10 +131,14 @@ class SoftwarePackage(ABC):
         return CACHE_PATH + '/' + self.get_type()
 
     def get_disk_icon_path(self):
-        return '{}/icon.png'.format(self.get_disk_cache_path())
+        path = self.get_disk_cache_path()
+        if path:
+            return '{}/icon.png'.format(path)
 
     def get_disk_data_path(self):
-        return '{}/data.json'.format(self.get_disk_cache_path())
+        path = self.get_disk_cache_path()
+        if path:
+            return '{}/data.json'.format(path)
 
     @abstractmethod
     def get_data_to_cache(self) -> dict:

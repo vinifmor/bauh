@@ -1,8 +1,7 @@
 import operator
 import os
-import time
 from functools import reduce
-from threading import Lock, Thread
+from threading import Lock
 from typing import List
 
 from PyQt5.QtCore import Qt, QUrl, QSize
@@ -158,7 +157,6 @@ class AppsTable(QTableWidget):
             self.network_man.get(icon_request)
 
         self._update_row(pkg, change_update_col=False)
-        pkg.status = PackageViewStatus.READY
 
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
@@ -219,15 +217,20 @@ class AppsTable(QTableWidget):
                         if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                             self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
-    def update_pkgs(self, pkg_views: List[PackageView], update_check_enabled: bool = True):
-        self.setRowCount(len(pkg_views) if pkg_views else 0)
+    def update_packages(self, pkgs: List[PackageView], update_check_enabled: bool = True):
+        self.setRowCount(len(pkgs) if pkgs else 0)
         self.setEnabled(True)
 
-        if pkg_views:
-            for idx, pkgv in enumerate(pkg_views):
-                pkgv.table_index = idx
-                self._update_row(pkgv, update_check_enabled)
-            print('table loaded')
+        if pkgs:
+            for idx, pkg in enumerate(pkgs):
+                pkg.table_index = idx
+
+                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url:
+                    icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
+                    icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+                    self.network_man.get(icon_request)
+
+                self._update_row(pkg, update_check_enabled)
 
     def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_name(0, pkg)

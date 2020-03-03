@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - dialog design when the package cannot be uninstalled due to required packages
 - UI
-    - table changes performance
+    - table update performance
     
 ### Improvements
 - tray

@@ -29,9 +29,10 @@ from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesChanges, FindSuggestions, ListWarnings, \
+    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesChanges, FindSuggestions, \
+    ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction
-from bauh.view.qt.view_model import PackageView
+from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -301,7 +302,7 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.signal_change.connect(self._update_progress)
 
         self.thread_packages_changes = NotifyPackagesChanges()
-        self.thread_packages_changes.signal_changed.connect(self._update_package)
+        self.thread_packages_changes.signal_changed.connect(self._update_package_row)
         self.thread_packages_changes.signal_finished.connect(self._update_state_packages_loaded)
 
         self.toolbar_bottom = QToolBar()
@@ -390,11 +391,12 @@ class ManageWindow(QWidget):
         self._update_table(pkgs_info=pkgs_info, signal=True)
         self.update_bt_upgrade(pkgs_info)
 
-        if self.pkgs_available:
+        if self.pkgs:
             self._update_state_packages_loaded()
             self.thread_packages_changes.work = False
-            self.thread_packages_changes.wait(50)
+            self.thread_packages_changes.wait(5)
             self.thread_packages_changes.pkgs = self.pkgs
+            self.thread_packages_changes.work = True
             self.thread_packages_changes.start()
 
     def _finish_apply_filters_async(self, success: bool):
@@ -499,8 +501,10 @@ class ManageWindow(QWidget):
 
         self.resize_and_center()
 
-    def _update_package(self, idx: int):
-        self.table_apps.update_package(self.pkgs[idx])
+    def _update_package_row(self, idx: int):
+        pkg = self.pkgs[idx]
+        pkg.status = PackageViewStatus.READY
+        self.table_apps.update_package(pkg)
 
     def _reload_categories(self):
         categories = set()
@@ -653,7 +657,7 @@ class ManageWindow(QWidget):
     def _update_table(self, pkgs_info: dict, signal: bool = False):
         self.pkgs = pkgs_info['pkgs_displayed']
 
-        self.table_apps.update_pkgs(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
+        self.table_apps.update_packages(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
 
         if not self._maximized:
             self.table_apps.change_headers_policy(QHeaderView.Stretch)

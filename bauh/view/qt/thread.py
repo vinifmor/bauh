@@ -465,38 +465,36 @@ class NotifyPackagesChanges(QThread):
         self.work = True
 
     def run(self):
-        if self.pkgs:
-            print('pkgs: {}'.format(len(self.pkgs)))
-            stop_at = datetime.utcnow() + timedelta(seconds=30)
+        timeout = datetime.now() + timedelta(seconds=15)
 
-            not_ready = [*self.pkgs]
-            while not_ready:
+        to_verify = {p.table_index: p for p in self.pkgs}
+        while self.work and datetime.now() < timeout:
+            to_remove = []
+            for idx, pkg in to_verify.items():
                 if not self.work:
                     break
+                elif pkg.model.status == PackageStatus.READY:
+                    to_remove.append(idx)
+                    if pkg.status == PackageViewStatus.LOADING:
+                        self.signal_changed.emit(pkg.table_index)
 
-                to_remove = []
-                for idx, pkg in enumerate(not_ready):
-                    if pkg.status == PackageViewStatus.READY and pkg.model.status == PackageStatus.READY:
-                        to_remove.append(idx)
-                    elif pkg.status == PackageViewStatus.LOADING and pkg.model.status == PackageStatus.READY:
-                        self.signal_changed.emit(idx)
-                        to_remove.append(idx)
+            if not self.work:
+                break
 
-                for idx, to_del in enumerate(to_remove):
-                    del not_ready[to_del - idx]
+            if datetime.now() >= timeout:
+                break
 
-                if not not_ready:
-                    break
+            for idx in to_remove:
+                del to_verify[idx]
 
-                if stop_at <= datetime.utcnow():
-                    break
+            if not to_verify:
+                break
 
-                time.sleep(0.1)
+            time.sleep(0.1)
 
-        self.signal_finished.emit()
-        print('thread finished')
-        self.work = True
         self.pkgs = None
+        self.work = True
+        self.signal_finished.emit()
 
 
 class FindSuggestions(AsyncAction):

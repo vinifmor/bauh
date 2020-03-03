@@ -8,7 +8,7 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
-    SuggestionPriority
+    SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons import user
@@ -59,6 +59,7 @@ class FlatpakManager(SoftwareManager):
 
         else:
             app.fill_cached_data(api_data)
+            app.status = PackageStatus.READY
 
         return app
 

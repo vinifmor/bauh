@@ -19,7 +19,7 @@ class PackageView:
     def __init__(self, model: SoftwarePackage, i18n: I18n):
         self.model = model
         self.update_checked = model.update
-        self.status = PackageViewStatus.LOADING
+        self.status = PackageViewStatus.LOADING if model.status == PackageStatus.LOADING_DATA else PackageViewStatus.READY
         self.table_index = -1
         self.i18n = i18n
 
