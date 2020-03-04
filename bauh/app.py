@@ -90,7 +90,7 @@ def main():
             app.setStyle('Fusion')
 
     if args.settings:  # only settings window
-        manager.prepare(None, None)  # only checks the available managers
+        manager.prepare(None, None, None)  # only checks the available managers
         SettingsWindow(manager=manager, i18n=i18n, screen_size=app.primaryScreen().size(),
                        tray=None, window=None).show()
     else:
