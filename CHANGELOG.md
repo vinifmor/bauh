@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - table update performance
     - the name filter now delays 1 second before being applied
+    - time to determine the selected packages to upgrade reduced
     
 ### Improvements
 - tray

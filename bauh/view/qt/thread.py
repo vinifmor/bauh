@@ -15,6 +15,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
 from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption, TextComponent
 from bauh.api.exception import NoInternetException
+from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.commons.system import get_human_size_str
 from bauh.view.core import config
@@ -35,6 +36,7 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_substatus = pyqtSignal(str)  # changes the GUI substatus message
     signal_progress = pyqtSignal(int)
     signal_root_password = pyqtSignal()
+    signal_progress_control = pyqtSignal(bool)
 
     def __init__(self):
         super(AsyncAction, self).__init__()
@@ -93,14 +95,19 @@ class AsyncAction(QThread, ProcessWatcher):
     def should_stop(self):
         return self.stop
 
+    def enable_progress_controll(self):
+        self.signal_progress_control.emit(True)
 
-class UpdateSelectedApps(AsyncAction):
+    def disable_progress_controll(self):
+        self.signal_progress_control.emit(False)
+
+
+class UpdateSelectedPackages(AsyncAction):
 
     def __init__(self, manager: SoftwareManager, i18n: I18n, pkgs: List[PackageView] = None):
-        super(UpdateSelectedApps, self).__init__()
+        super(UpdateSelectedPackages, self).__init__()
         self.pkgs = pkgs
         self.manager = manager
-        self.root_password = None
         self.i18n = i18n
 
     def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True) -> InputOption:
@@ -124,7 +131,7 @@ class UpdateSelectedApps(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def _handle_update_requirements(self, pkgs: List[SoftwarePackage]) -> bool:
+    def _handle_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str) -> bool:
         self.change_substatus(self.i18n['action.update.requirements.status'])
         required_pkgs = self.manager.get_update_requirements(pkgs, self)
 
@@ -147,7 +154,7 @@ class UpdateSelectedApps(AsyncAction):
                 return False
             else:
                 for pkg in required_pkgs:
-                    if not self.manager.install(pkg, self.root_password, self):
+                    if not self.manager.install(pkg, root_password, self):
                         self.notify_finished({'success': False, 'updated': 0, 'types': set()})
                         self.pkgs = None
                         label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
@@ -177,44 +184,72 @@ class UpdateSelectedApps(AsyncAction):
 
         return proceed, sorted_pkgs
 
+    def filter_to_update(self) -> Tuple[List[PackageView], bool]:  # packages to update and if they require root privileges
+        to_update, requires_root = [], False
+        root_user = user.is_root()
+
+        for app_v in self.pkgs:
+            if app_v.update_checked:
+                to_update.append(app_v)
+
+            if not root_user and not requires_root and self.manager.requires_root('update', app_v.model):
+                requires_root = True
+
+        return to_update, requires_root
+
     def run(self):
+        to_update, requires_root = self.filter_to_update()
+        
+        root_password = None
 
-        success = False
+        if not user.is_root() and requires_root:
+            root_password, ok = self.request_root_password()
 
-        if self.pkgs:
-            updated, updated_types = 0, set()
-
-            app_config = config.read_config()
-
-            models = [view.model for view in self.pkgs]
-
-            if bool(app_config['updates']['pre_dependency_checking']) and not self._handle_update_requirements(models):
-                return
-
-            proceed, sorted_pkgs = self._sort_packages(models, app_config)
-
-            if not proceed:
-                self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+            if not ok:
+                self.notify_finished({'success': False, 'updated': 0, 'types': set()})
                 self.pkgs = None
                 return
 
-            for pkg in sorted_pkgs:
-                self.change_substatus('')
-                name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
+        if len(to_update) > 1:
+            self.disable_progress_controll()
+        else:
+            self.enable_progress_controll()
 
-                self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
-                success = bool(self.manager.update(pkg, self.root_password, self))
-                self.change_substatus('')
+        success = False
 
-                if not success:
-                    break
-                else:
-                    updated += 1
-                    updated_types.add(pkg.__class__)
-                    self.signal_output.emit('\n')
+        updated, updated_types = 0, set()
 
+        app_config = config.read_config()
+
+        models = [view.model for view in to_update]
+
+        if bool(app_config['updates']['pre_dependency_checking']) and not self._handle_update_requirements(models,
+                                                                                                           root_password):
+            return
+
+        proceed, sorted_pkgs = self._sort_packages(models, app_config)
+
+        if not proceed:
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+            self.pkgs = None
+            return
 
+        for pkg in sorted_pkgs:
+            self.change_substatus('')
+            name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
+
+            self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
+            success = bool(self.manager.update(pkg, root_password, self))
+            self.change_substatus('')
+
+            if not success:
+                break
+            else:
+                updated += 1
+                updated_types.add(pkg.__class__)
+                self.signal_output.emit('\n')
+
+        self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
         self.pkgs = None
 
 

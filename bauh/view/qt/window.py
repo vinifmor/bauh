@@ -28,7 +28,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
-from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+from bauh.view.qt.thread import UpdateSelectedPackages, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesReady, FindSuggestions, \
     ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded
@@ -278,7 +278,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
-        self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.i18n), finished_call=self._finish_update_selected)
+        self.thread_update = self._bind_async_action(UpdateSelectedPackages(self.manager, self.i18n), finished_call=self._finish_update_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
         self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
@@ -423,6 +423,7 @@ class ManageWindow(QWidget):
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             action.signal_progress.connect(self._update_process_progress)
+            action.signal_progress_control.connect(self.set_progress_controll)
             action.signal_root_password.connect(self._pause_and_ask_root_password)
 
             self.signal_user_res.connect(action.confirm)
@@ -507,6 +508,9 @@ class ManageWindow(QWidget):
         self.apply_filters_async()
 
     def _update_state_when_pkgs_ready(self):
+        if self.progress_bar.isVisible():
+            return
+
         if not self.recent_installation:
             self._reload_categories()
 
@@ -847,7 +851,6 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(False)
 
     def _update_categories(self, categories: Set[str] = None, keep_selected: bool = False):
-
         if categories is None:
             self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
         else:
@@ -894,37 +897,19 @@ class ManageWindow(QWidget):
 
         qt_utils.centralize(self)
 
+    def set_progress_controll(self, enabled: bool):
+        self.progress_controll_enabled = enumerate
+
     def update_selected(self):
-        if self.pkgs:
-            requires_root = False
+        if dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
+                                   body=self.i18n['manage_window.upgrade_all.popup.body'],
+                                   i18n=self.i18n,
+                                   widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
 
-            to_update = []
-
-            for app_v in self.pkgs:
-                if app_v.update_checked:
-                    to_update.append(app_v)
-
-                    if self.manager.requires_root('update', app_v.model):
-                        requires_root = True
-
-            if to_update and dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
-                                                     body=self.i18n['manage_window.upgrade_all.popup.body'],
-                                                     i18n=self.i18n,
-                                                     widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
-                pwd = None
-
-                if not user.is_root() and requires_root:
-                    pwd, ok = ask_root_password(self.context, self.i18n)
-
-                    if not ok:
-                        return
-
-                self._handle_console_option(True)
-                self.progress_controll_enabled = len(to_update) == 1
-                self._begin_action(self.i18n['manage_window.status.upgrading'])
-                self.thread_update.pkgs = to_update
-                self.thread_update.root_password = pwd
-                self.thread_update.start()
+            self._handle_console_option(True)
+            self._begin_action(self.i18n['manage_window.status.upgrading'])
+            self.thread_update.pkgs = self.pkgs
+            self.thread_update.start()
 
     def _finish_update_selected(self, res: dict):
         self.finish_action()
