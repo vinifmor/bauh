@@ -521,7 +521,7 @@ class ManageWindow(QWidget):
     def _reload_categories(self):
         categories = set()
 
-        for p in self.pkgs:
+        for p in self.pkgs_available:
             if p.model.categories:
                 for c in p.model.categories:
                     categories.add(c.lower())
