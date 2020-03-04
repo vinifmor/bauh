@@ -392,7 +392,7 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: str, pkg: AppImage):
         return False
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         local_config = read_config(update_file=True)
         interval = local_config['db_updater']['interval'] or 20 * 60
 
@@ -402,7 +402,7 @@ class AppImageManager(SoftwareManager):
                                   db_locks=self.db_locks, interval=interval)
         if local_config['db_updater']['enabled']:
             updater.start()
-        else:
+        elif internet_available:
             updater.download_databases()  # only once
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:

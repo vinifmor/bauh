@@ -338,7 +338,7 @@ class FlatpakManager(SoftwareManager):
     def requires_root(self, action: str, pkg: FlatpakApplication):
         return action == 'downgrade' and pkg.installation == 'system'
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         Thread(target=read_config, args=(True,), daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:

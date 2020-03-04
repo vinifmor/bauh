@@ -1328,7 +1328,7 @@ class ArchManager(SoftwareManager):
         task_man.update_progress('arch_aur_cats', 100, None)
         task_man.finish_task('arch_aur_cats')
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         arch_config = read_config(update_file=True)
 
         if arch_config['aur'] or arch_config['repositories']:
@@ -1343,11 +1343,13 @@ class ArchManager(SoftwareManager):
                                  categories_path=CATEGORIES_FILE_PATH,
                                  before=lambda: self._start_category_task(task_manager),
                                  after=lambda: self._finish_category_task(task_manager)).start()
-            self.index_aur = AURIndexUpdater(self.context)
-            self.index_aur.start()
+
+            if internet_available:
+                self.index_aur = AURIndexUpdater(self.context)
+                self.index_aur.start()
 
         refresh_mirrors = None
-        if arch_config['repositories'] and arch_config['refresh_mirrors_startup'] \
+        if internet_available and arch_config['repositories'] and arch_config['refresh_mirrors_startup'] \
                 and pacman.is_mirrors_available() and mirrors.should_sync(self.logger):
 
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
@@ -1355,7 +1357,7 @@ class ArchManager(SoftwareManager):
                                              sort_limit=arch_config['mirrors_sort_limit'])
             refresh_mirrors.start()
 
-        if refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger)):
+        if internet_available and (refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger))):
             SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
                           logger=self.logger, refresh_mirrors=refresh_mirrors).start()
 

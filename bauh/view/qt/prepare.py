@@ -39,7 +39,7 @@ class Prepare(QThread, TaskManager):
                 QCoreApplication.exit(1)
 
         self.signal_started.emit()
-        self.manager.prepare(self, root_pwd)
+        self.manager.prepare(self, root_pwd, None)
 
     def update_progress(self, task_id: str, progress: float, substatus: str):
         self.signal_update.emit(task_id, progress, substatus)

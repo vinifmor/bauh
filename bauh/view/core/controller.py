@@ -1,4 +1,4 @@
-import gc
+import re
 import re
 import time
 import traceback
@@ -8,7 +8,8 @@ from typing import List, Set, Type, Tuple
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, CustomSoftwareAction
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
+    CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
@@ -304,12 +305,13 @@ class GenericSoftwareManager(SoftwareManager):
             if man:
                 return man.requires_root(action, app)
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if self.managers:
+            internet_on = internet.is_available(self.context.http_client, self.logger)
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
                     if task_manager:
-                        man.prepare(task_manager, root_password)
+                        man.prepare(task_manager, root_password, internet_on)
                     self._already_prepared.append(man)
 
     def list_updates(self, net_check: bool = None) -> List[PackageUpdate]:

@@ -756,12 +756,13 @@ class WebApplicationManager(SoftwareManager):
             index_gen = SearchIndexGenerator(logger=self.logger)
             Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
-        self.env_thread = Thread(target=self._update_env_settings, args=(task_manager,), daemon=True)
-        self.env_thread.start()
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        if internet_available:
+            self.env_thread = Thread(target=self._update_env_settings, args=(task_manager,), daemon=True)
+            self.env_thread.start()
 
-        self.suggestions_downloader = Thread(target=self._download_suggestions, args=(task_manager,), daemon=True)
-        self.suggestions_downloader.start()
+            self.suggestions_downloader = Thread(target=self._download_suggestions, args=(task_manager,), daemon=True)
+            self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass

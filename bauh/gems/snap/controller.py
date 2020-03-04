@@ -227,7 +227,7 @@ class SnapManager(SoftwareManager):
         task_man.update_progress('snap_cats', 100, None)
         task_man.finish_task('snap_cats')
 
-    def prepare(self, task_manager: TaskManager, root_password: str):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,
                              url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=SNAP_CACHE_PATH,
                              categories_path=CATEGORIES_FILE_PATH,
