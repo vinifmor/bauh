@@ -236,8 +236,10 @@ action.update.requirements.body=The following {} dependencies must be installed 
 action.update.install_req.fail.title=Installation failed
 action.update.install_req.fail.body=It was not possible to install {}
 action.update.requirements.status=Checking requirements
-action.update.order.title=Upgrade order
-action.update.order.body=The upgrade will be performed in the following order
+action.update.order=Upgrade order
+action.update.required_label=Must be installed
+action.update.total_size=Total size
+action.update.summary=Upgrade summary
 general=Allgemein
 task.download_categories=Downloading categories [ {} ]
 =prepare_panel.title.start=Initialisierung

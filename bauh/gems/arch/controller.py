@@ -1657,7 +1657,6 @@ class ArchManager(SoftwareManager):
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
 
     def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
-        ti = time.time()
         deps = self._map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, watcher)
 
         if deps:  # filtering selected packages
@@ -1686,8 +1685,6 @@ class ArchManager(SoftwareManager):
                     for p in repo_pkgs:
                         p.size = sizes.get(p.name)
 
-            tf = time.time()
-            print('Dep reading time {} pkgs: {}'.format(len(pkgs), tf -ti))
             return res
         else:
             return []

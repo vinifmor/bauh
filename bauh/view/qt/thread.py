@@ -13,7 +13,8 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
-from bauh.api.abstract.view import InputViewComponent, MessageType, MultipleSelectComponent, InputOption, TextComponent
+from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
+    FormComponent, ViewComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import user
 from bauh.commons.html import bold
@@ -45,7 +46,7 @@ class AsyncAction(QThread, ProcessWatcher):
         self.root_password = None
         self.stop = False
 
-    def request_confirmation(self, title: str, body: str, components: List[InputViewComponent] = None, confirmation_label: str = None, deny_label: str = None, deny_button: bool = True) -> bool:
+    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None, deny_button: bool = True) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button})
         self.wait_user()
@@ -131,58 +132,12 @@ class UpdateSelectedPackages(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def _handle_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str) -> bool:
-        self.change_substatus(self.i18n['action.update.requirements.status'])
-        required_pkgs = self.manager.get_update_requirements(pkgs, self)
-
-        if required_pkgs:
-            opts = [self._pkg_as_option(p) for p in required_pkgs]
-            comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-            size = reduce(add, (p.size for p in required_pkgs if p.size))
-
-            if size:
-                total_size = TextComponent(bold('{}: {}'.format(self.i18n['size'].capitalize(), get_human_size_str(size))))
-                comps.append(total_size)
-
-            if not self.request_confirmation(self.i18n['action.update.requirements.title'],
-                                             self.i18n['action.update.requirements.body'].format(bold(str(len(opts)))),
-                                             comps,
-                                             confirmation_label=self.i18n['continue'].capitalize(),
-                                             deny_label=self.i18n['cancel'].capitalize()):
-                self.notify_finished({'success': False, 'updated': 0, 'types': set()})
-                self.pkgs = None
-                return False
-            else:
-                for pkg in required_pkgs:
-                    if not self.manager.install(pkg, root_password, self):
-                        self.notify_finished({'success': False, 'updated': 0, 'types': set()})
-                        self.pkgs = None
-                        label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
-                        self.show_message(title=self.i18n['action.update.install_req.fail.title'],
-                                          body=self.i18n['action.update.install_req.fail.body'].format(label),
-                                          type_=MessageType.ERROR)
-                        return False
-
-        return True
-
-    def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> Tuple[bool, List[SoftwarePackage]]:
+    def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> List[SoftwarePackage]:
         if bool(app_config['updates']['sort_packages']):
             self.change_substatus(self.i18n['action.update.status.sorting'])
-            sorted_pkgs = self.manager.sort_update_order([view.model for view in self.pkgs])
-        else:
-            sorted_pkgs = pkgs
+            return self.manager.sort_update_order([view.model for view in self.pkgs])
 
-        if len(sorted_pkgs) > 1:
-            opts = [self._pkg_as_option(p, tooltip=False) for p in sorted_pkgs]
-            proceed = self.request_confirmation(title=self.i18n['action.update.order.title'],
-                                                body=self.i18n['action.update.order.body'] + ':',
-                                                components=[MultipleSelectComponent(label='', options=opts, default_options=set(opts))],
-                                                confirmation_label=self.i18n['continue'].capitalize(),
-                                                deny_label=self.i18n['cancel'].capitalize())
-        else:
-            proceed = True
-
-        return proceed, sorted_pkgs
+        return pkgs
 
     def filter_to_update(self) -> Tuple[List[PackageView], bool]:  # packages to update and if they require root privileges
         to_update, requires_root = [], False
@@ -196,6 +151,35 @@ class UpdateSelectedPackages(AsyncAction):
                 requires_root = True
 
         return to_update, requires_root
+
+    def _gen_requirements_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
+        opts = [self._pkg_as_option(p) for p in reqs]
+        comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
+
+        try:
+            size = reduce(add, (p.size for p in reqs if p.size))
+        except:
+            size = 0
+
+        lb = '{} ( {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
+                                    self.i18n['size'].capitalize(),
+                                    '?' if not size else get_human_size_str(size))
+        return FormComponent(label=lb, components=comps), size
+
+    def _gen_sorted_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
+        opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
+        comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
+
+        try:
+            size = reduce(add, (p.size for p in pkgs if p.size))
+        except:
+            size = 0
+
+        lb = '{} ( {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
+                                    self.i18n['size'].capitalize(),
+                                    '?' if not size else get_human_size_str(size))
+
+        return FormComponent(label=lb, components=comps), size
 
     def run(self):
         to_update, requires_root = self.filter_to_update()
@@ -223,16 +207,43 @@ class UpdateSelectedPackages(AsyncAction):
 
         models = [view.model for view in to_update]
 
-        if bool(app_config['updates']['pre_dependency_checking']) and not self._handle_update_requirements(models,
-                                                                                                           root_password):
-            return
+        required_pkgs = None
+        if bool(app_config['updates']['pre_dependency_checking']):
+            self.change_substatus(self.i18n['action.update.requirements.status'])
+            required_pkgs = self.manager.get_update_requirements(models, self)
 
-        proceed, sorted_pkgs = self._sort_packages(models, app_config)
+        sorted_pkgs = self._sort_packages(models, app_config)
 
-        if not proceed:
+        comps, total_size = [], 0
+
+        if required_pkgs:
+            req_form, reqs_size = self._gen_requirements_form(required_pkgs)
+            total_size += reqs_size
+            comps.append(req_form)
+
+        sorted_form, sorted_size = self._gen_sorted_form(sorted_pkgs)
+        total_size += sorted_size
+        comps.append(sorted_form)
+
+        if total_size > 0:
+            comps.insert(0, TextComponent(bold('{}: {}'.format(self.i18n['action.update.total_size'].capitalize(),
+                                                               get_human_size_str(total_size)))))
+
+        if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
             self.pkgs = None
             return
+
+        if required_pkgs:
+            for pkg in required_pkgs:
+                if not self.manager.install(pkg, root_password, self):
+                    self.notify_finished({'success': False, 'updated': 0, 'types': set()})
+                    self.pkgs = None
+                    label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
+                    self.show_message(title=self.i18n['action.update.install_req.fail.title'],
+                                      body=self.i18n['action.update.install_req.fail.body'].format(label),
+                                      type_=MessageType.ERROR)
+                    return False
 
         for pkg in sorted_pkgs:
             self.change_substatus('')
