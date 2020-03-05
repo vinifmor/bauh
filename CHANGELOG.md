@@ -45,6 +45,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - not able to inject javascript fixes ( WhatsApp Web not working) [#74](https://github.com/vinifmor/bauh/issues/74)
 
+### Improvements
+- AUR
+    - preventing the dependencies checking algorithm to add duplicates
+
 ### i18n
 - Russian ( ru ): 
     - [leoneii](https://github.com/leoneii) - PRs:  [#66](https://github.com/vinifmor/bauh/pull/66), [#67](https://github.com/vinifmor/bauh/pull/67), [#68](https://github.com/vinifmor/bauh/pull/68)

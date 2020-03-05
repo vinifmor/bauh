@@ -915,11 +915,14 @@ class ArchManager(SoftwareManager):
                                 return
 
                         for dep in missing_subdeps:
-                            sorted_deps.append(dep)
+                            if dep not in sorted_deps:
+                                sorted_deps.append(dep)
 
         for dep, repo in known_deps.items():
             if repo != 'aur':
-                sorted_deps.append((dep, repo))
+                data = (dep, repo)
+                if data not in sorted_deps:
+                    sorted_deps.append(data)
 
         for dep in aur_deps:
             sorted_deps.append((dep, 'aur'))
