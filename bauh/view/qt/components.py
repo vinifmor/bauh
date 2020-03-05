@@ -474,6 +474,9 @@ class FormQt(QGroupBox):
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
 
+        if hasattr(comp, 'size') and comp.size is not None:
+            label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
+
         attr = 'label' if hasattr(comp,'label') else 'value'
         text = getattr(comp, attr)
 
@@ -648,6 +651,10 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return TwoStateButtonQt(comp)
     elif isinstance(comp, TextComponent):
         label = QLabel(comp.value)
+
+        if comp.size is not None:
+            label.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
+
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         return label
     elif isinstance(comp, SpacerComponent):

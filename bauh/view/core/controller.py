@@ -5,7 +5,7 @@ import traceback
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpdateRequirements
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
@@ -474,18 +474,28 @@ class GenericSoftwareManager(SoftwareManager):
 
         return by_manager
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> UpdateRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
-        required = []
+        res = UpdateRequirements([], [], [])
 
         if by_manager:
             for man, pkgs in by_manager.items():
                 ti = time.time()
-                required.extend(man.get_update_requirements(pkgs, watcher))
+                man_reqs = man.get_update_requirements(pkgs, watcher)
                 tf = time.time()
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
-        return required
+                if man_reqs:
+                    if man_reqs.to_install:
+                        res.to_install.extend(man_reqs.to_install)
+
+                    if man_reqs.to_remove:
+                        res.to_install.extend(man_reqs.to_remove)
+
+                    if man_reqs.cannot_update:
+                        res.cannot_update.extend(man_reqs.cannot_update)
+
+        return res
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         if self.managers:

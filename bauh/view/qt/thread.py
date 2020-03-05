@@ -208,14 +208,14 @@ class UpdateSelectedPackages(AsyncAction):
         required_pkgs = None
         if bool(app_config['updates']['pre_dependency_checking']):
             self.change_substatus(self.i18n['action.update.requirements.status'])
-            required_pkgs = self.manager.get_update_requirements(models, self)
+            required_pkgs = [req.pkg for req in self.manager.get_update_requirements(models, self).to_install]
 
         sorted_pkgs = self._sort_packages(models, app_config)
 
         comps, total_size = [], 0
 
-        self.change_substatus(self.i18n['action.update.status.checking_sizes'])
-        self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
+        # self.change_substatus(self.i18n['action.update.status.checking_sizes'])
+        # self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
 
         if required_pkgs:
             req_form, reqs_size = self._gen_requirements_form(required_pkgs)
@@ -228,7 +228,8 @@ class UpdateSelectedPackages(AsyncAction):
 
         if total_size > 0:
             comps.insert(0, TextComponent(bold('{}: {}'.format(self.i18n['action.update.total_size'].capitalize(),
-                                                               get_human_size_str(total_size)))))
+                                                               get_human_size_str(total_size))), size=14))
+            comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
@@ -237,7 +238,7 @@ class UpdateSelectedPackages(AsyncAction):
 
         if required_pkgs:
             for pkg in required_pkgs:
-                if not self.manager.install(pkg, root_password, self):
+                if not self.manager.install(pkg.pkg, root_password, self):
                     self.notify_finished({'success': False, 'updated': 0, 'types': set()})
                     self.pkgs = None
                     label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')

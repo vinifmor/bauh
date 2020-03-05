@@ -10,7 +10,8 @@ import yaml
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, CustomSoftwareAction
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
+    CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent
 
 
@@ -25,6 +26,26 @@ class SearchResult:
         self.installed = installed
         self.new = new
         self.total = total
+
+
+class UpdateRequirement:
+
+    def __init__(self, pkg: SoftwarePackage, reason: str = None):
+        self.pkg = pkg
+        self.reason = reason
+
+
+class UpdateRequirements:
+
+    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], cannot_update: List[UpdateRequirement]):
+        """
+        :param to_install: additional packages that must be installed with the upgrade
+        :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
+        :param cannot_update: packages that cannot due to conflicts
+        """
+        self.to_install = to_install
+        self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
+        self.cannot_update = cannot_update  # when an upgrading package conflicts with another upgrading package
 
 
 class SoftwareManager(ABC):
@@ -90,14 +111,13 @@ class SoftwareManager(ABC):
         """
         return pkgs
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> UpdateRequirements:
         """
-        return additional required software that needs to be installed before updating a list of packages
+        return additional required software that needs to be installed / removed before updating a list of packages
         :param pkgs:
         :param watcher
         :return:
         """
-        return []
 
     @abstractmethod
     def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:

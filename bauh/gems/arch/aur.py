@@ -1,11 +1,10 @@
 import logging
 import os
 import re
+import urllib.parse
 from typing import Set, List
 
 from bauh.api.http import HttpClient
-import urllib.parse
-
 from bauh.gems.arch import pacman, AUR_INDEX_FILE
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
@@ -33,7 +32,8 @@ KNOWN_LIST_FIELDS = ('validpgpkeys',
                      'source_i686',
                      'makedepends',
                      'makedepends_x86_64',
-                     'makedepends_i686')
+                     'makedepends_i686',
+                     'conflicts')
 
 
 def map_pkgbuild(pkgbuild: str) -> dict:
@@ -70,6 +70,7 @@ class AURClient:
         self.http_client = http_client
         self.logger = logger
         self.x86_64 = x86_64
+        self.srcinfo_cache = {}
 
     def search(self, words: str) -> dict:
         return self.http_client.get_json(URL_SEARCH + words)
@@ -79,10 +80,20 @@ class AURClient:
         return res['results'] if res and res.get('results') else []
 
     def get_src_info(self, name: str) -> dict:
+        srcinfo = self.srcinfo_cache.get(name)
+
+        if srcinfo:
+            return srcinfo
+
         res = self.http_client.get(URL_SRC_INFO + urllib.parse.quote(name))
 
         if res and res.text:
-            return map_srcinfo(res.text)
+            srcinfo = map_srcinfo(res.text)
+
+            if srcinfo:
+                self.srcinfo_cache[name] = srcinfo
+
+            return srcinfo
 
         self.logger.warning('No .SRCINFO found for {}'.format(name))
         self.logger.info('Checking if {} is based on another package'.format(name))
@@ -96,7 +107,12 @@ class AURClient:
             info_base = info.get('PackageBase')
             if info_name and info_base and info_name != info_base:
                 self.logger.info('{p} is based on {b}. Retrieving {b} .SRCINFO'.format(p=info_name, b=info_base))
-                return self.get_src_info(info_base)
+                srcinfo = self.get_src_info(info_base)
+
+                if srcinfo:
+                    self.srcinfo_cache[name] = srcinfo
+
+                return srcinfo
 
     def extract_required_dependencies(self, srcinfo: dict) -> Set[str]:
         deps = set()
@@ -135,3 +151,6 @@ class AURClient:
             self.logger.info("AUR index file read")
             return index
         self.logger.warning('The AUR index file was not found')
+
+    def clean_caches(self):
+        self.srcinfo_cache.clear()

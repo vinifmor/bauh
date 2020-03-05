@@ -121,11 +121,12 @@ class MultipleSelectComponent(InputViewComponent):
 
 class TextComponent(ViewComponent):
 
-    def __init__(self, html: str, max_width: int = -1, tooltip: str = None, id_: str = None):
+    def __init__(self, html: str, max_width: int = -1, tooltip: str = None, id_: str = None, size: int = None):
         super(TextComponent, self).__init__(id_=id_)
         self.value = html
         self.max_width = max_width
         self.tooltip = tooltip
+        self.size = size
 
 
 class TwoStateButtonComponent(ViewComponent):
