@@ -240,6 +240,7 @@ action.update.order=Ordine di aggiornamento
 action.update.required_label=Must be installed
 action.update.total_size=Total size
 action.update.summary=Upgrade summary
+action.update.status.checking_sizes=Calculating upgrade size
 general=generale
 task.download_categories=Download delle categorie [ {} ]
 prepare_panel.title.start=Inizializzazione

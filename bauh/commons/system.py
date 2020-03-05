@@ -241,6 +241,10 @@ def get_dir_size(start_path='.'):
 
 def get_human_size_str(size) -> str:
     int_size = int(size)
+
+    if int_size == 0:
+        return '0'
+
     for m in SIZE_MULTIPLIERS:
         size_str = str(int_size * m[0])
 

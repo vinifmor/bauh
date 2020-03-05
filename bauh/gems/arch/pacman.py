@@ -518,8 +518,19 @@ def size_to_byte(size: float, unit: str) -> int:
     return int(final_size)
 
 
-def get_installation_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
         return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+
+    return {}
+
+
+def get_installed_size(pkgs: List[str]) -> Dict[str, int]: # bytes
+    output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
+
+    if output:
+        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+
+    return {}

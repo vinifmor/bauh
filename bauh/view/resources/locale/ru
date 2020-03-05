@@ -247,6 +247,7 @@ action.update.order=Порядок обновления
 action.update.required_label=Must be installed
 action.update.total_size=Total size
 action.update.summary=Upgrade summary
+action.update.status.checking_sizes=Calculating upgrade size
 prepare_panel.bt_skip.label=Пропустить
 action.failed=Действие не удалось
 Australia=Австралия

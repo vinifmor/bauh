@@ -21,7 +21,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
@@ -1674,18 +1674,7 @@ class ArchManager(SoftwareManager):
             for t in map_threads:
                 t.join()
 
-            res = [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
-
-            repo_pkgs = [p for p in res if p.repository != 'aur']
-
-            if repo_pkgs:
-                sizes = pacman.get_installation_size([p.name for p in repo_pkgs])
-
-                if sizes:
-                    for p in repo_pkgs:
-                        p.size = sizes.get(p.name)
-
-            return res
+            return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
         else:
             return []
 
@@ -1707,3 +1696,34 @@ class ArchManager(SoftwareManager):
                                                                    manager=self))
 
         return self.custom_actions
+
+    def fill_sizes(self, pkgs: List[ArchPackage]):
+        installed, new, all_names, installed_names = [], [], [], []
+
+        for p in pkgs:
+            if p.repository != 'aur':
+                all_names.append(p.name)
+                if p.installed:
+                    installed.append(p)
+                    installed_names.append(p.name)
+                else:
+                    new.append(p)
+
+        new_sizes = pacman.get_update_size(all_names)
+
+        if new_sizes:
+            if new:
+                for p in new:
+                    p.size = new_sizes.get(p.name)
+
+            if installed:
+                installed_sizes = pacman.get_installed_size(installed_names)
+
+                for p in installed:
+                    p.size = installed_sizes.get(p.name)
+                    new_size = new_sizes.get(p.name)
+
+                    if p.size is None:
+                        p.size = new_size
+                    elif new_size is not None:
+                        p.size = new_size - p.size

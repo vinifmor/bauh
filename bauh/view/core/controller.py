@@ -3,7 +3,7 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Dict
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -455,9 +455,12 @@ class GenericSoftwareManager(SoftwareManager):
 
         return sorted_list
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+    def _map_pkgs_by_manager(self, pkgs: List[SoftwarePackage], pkg_filters: list = None) -> Dict[SoftwareManager, List[SoftwarePackage]]:
         by_manager = {}
         for pkg in pkgs:
+            if pkg_filters and not all((1 for f in pkg_filters if f(pkg))):
+                continue
+
             man = self._get_manager_for(pkg)
 
             if man:
@@ -469,6 +472,10 @@ class GenericSoftwareManager(SoftwareManager):
 
                 man_pkgs.append(pkg)
 
+        return by_manager
+
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
+        by_manager = self._map_pkgs_by_manager(pkgs)
         required = []
 
         if by_manager:
@@ -493,3 +500,22 @@ class GenericSoftwareManager(SoftwareManager):
 
             return actions
 
+    def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
+        ti = time.time()
+        man.fill_sizes(pkgs)
+        tf = time.time()
+        self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+
+    def fill_sizes(self, pkgs: List[SoftwarePackage]):
+        by_manager = self._map_pkgs_by_manager(pkgs, pkg_filters=[lambda p: p.size is None])
+
+        if by_manager:
+            threads = []
+            for man, man_pkgs in by_manager.items():
+                if man_pkgs:
+                    t = Thread(target=self._fill_sizes, args=(man, man_pkgs), daemon=True)
+                    t.start()
+                    threads.append(t)
+
+            for t in threads:
+                t.join()

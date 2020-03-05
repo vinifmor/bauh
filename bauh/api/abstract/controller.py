@@ -312,3 +312,6 @@ class SoftwareManager(ABC):
         :return: custom actions
         """
         pass
+
+    def fill_sizes(self, pkgs: List[SoftwarePackage]):
+        pass

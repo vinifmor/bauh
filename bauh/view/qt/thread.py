@@ -124,7 +124,7 @@ class UpdateSelectedPackages(AsyncAction):
         label = '{}{} - {}: {}'.format(pkg.name,
                                        ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else '',
                                        self.i18n['size'].capitalize(),
-                                       '?' if not pkg.size else get_human_size_str(pkg.size))
+                                       '?' if pkg.size is None else get_human_size_str(pkg.size))
 
         return InputOption(label=label,
                            value=None,
@@ -152,32 +152,30 @@ class UpdateSelectedPackages(AsyncAction):
 
         return to_update, requires_root
 
+    def _sum_pkgs_size(self, pkgs: List[SoftwarePackage]) -> int:
+        try:
+            return reduce(add, ((p.size if p.size is not None else 0) for p in pkgs))
+        except:
+            return 0
+
     def _gen_requirements_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p) for p in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-
-        try:
-            size = reduce(add, (p.size for p in reqs if p.size))
-        except:
-            size = 0
+        size = self._sum_pkgs_size(reqs)
 
         lb = '{} ( {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
                                     self.i18n['size'].capitalize(),
-                                    '?' if not size else get_human_size_str(size))
+                                    '?' if size is None else get_human_size_str(size))
         return FormComponent(label=lb, components=comps), size
 
     def _gen_sorted_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-
-        try:
-            size = reduce(add, (p.size for p in pkgs if p.size))
-        except:
-            size = 0
+        size = self._sum_pkgs_size(pkgs)
 
         lb = '{} ( {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
                                     self.i18n['size'].capitalize(),
-                                    '?' if not size else get_human_size_str(size))
+                                    '?' if size is None else get_human_size_str(size))
 
         return FormComponent(label=lb, components=comps), size
 
@@ -215,6 +213,9 @@ class UpdateSelectedPackages(AsyncAction):
         sorted_pkgs = self._sort_packages(models, app_config)
 
         comps, total_size = [], 0
+
+        self.change_substatus(self.i18n['action.update.status.checking_sizes'])
+        self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
 
         if required_pkgs:
             req_form, reqs_size = self._gen_requirements_form(required_pkgs)
