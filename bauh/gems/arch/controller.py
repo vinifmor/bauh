@@ -15,7 +15,8 @@ from typing import List, Set, Type, Tuple, Dict
 
 import requests
 
-from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
+from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpdateRequirements, \
+    UpdateRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
@@ -915,7 +916,8 @@ class ArchManager(SoftwareManager):
                                 return
 
                         for dep in missing_subdeps:
-                            sorted_deps.append(dep)
+                            if dep not in sorted_deps:
+                                sorted_deps.append(dep)
 
         for dep, repo in known_deps.items():
             if repo != 'aur':
@@ -1658,7 +1660,9 @@ class ArchManager(SoftwareManager):
 
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
 
-    def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
+    def _get_update_required_packages(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
+        ti = time.time()
+        required = None
         deps = self._map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, watcher)
 
         if deps:  # filtering selected packages
@@ -1676,9 +1680,59 @@ class ArchManager(SoftwareManager):
             for t in map_threads:
                 t.join()
 
-            return [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
-        else:
-            return []
+            required = [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
+
+        tf = time.time()
+        self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
+        return required
+
+    def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> UpdateRequirements:
+        res = UpdateRequirements(None, None, None)
+        required_pkgs = self._get_update_required_packages(pkgs, watcher)
+
+        if required_pkgs:
+            res.to_install = [UpdateRequirement(p) for p in required_pkgs]
+
+        repo_pkgs, aur_pkgs = {}, {}
+
+        for p in (*required_pkgs, *pkgs):
+            if p.repository == 'aur':
+                aur_pkgs[p.name] = p
+            else:
+                repo_pkgs[p.name] = p
+
+        if repo_pkgs:  # filling sizes
+            names, installed, new = [], [], []
+
+            for p in repo_pkgs.values():
+                names.append(p.name)
+
+                if p.installed:
+                    installed.append(p.name)
+                else:
+                    new.append(p.name)
+
+            required_data = pacman.map_updates_required_data(names)
+
+            if required_data:
+                for p in new:
+                    pkg = repo_pkgs[p]
+                    pkg.size = required_data[p]['s']
+
+                if installed:
+                    installed_size = pacman.get_installed_size(installed)
+
+                    for p in installed:
+                        pkg = repo_pkgs[p]
+                        pkg.size = installed_size[p]
+                        update_size = required_data[p]['s']
+
+                        if pkg.size is None:
+                            pkg.size = update_size
+                        elif update_size is not None:
+                            pkg.size = update_size - pkg.size
+
+        return res
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         if self.custom_actions is None:
