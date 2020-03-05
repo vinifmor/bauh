@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - table not displaying all updates when the "updates filter" is clicked several times
      
     
-## [0.8.5] - 2020-03-
+## [0.8.5] - 2020-03-06
 ### Fixes
 - Web
     - not able to inject javascript fixes ( WhatsApp Web not working) [#74](https://github.com/vinifmor/bauh/issues/74)
