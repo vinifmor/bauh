@@ -27,3 +27,4 @@ appimage.custom_action.install_file.status=Installing AppImage file
 appimage.custom_action.install_file.details=Installation details
 appimage.custom_action.install_file.invalid_file=You must define a valid AppImage file
 appimage.custom_action.install_file.invalid_name=You must define a name for the application
+appimage.install.imported.rename_error=It was not possible to move the file {} to {}

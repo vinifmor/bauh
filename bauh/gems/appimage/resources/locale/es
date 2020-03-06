@@ -27,3 +27,4 @@ appimage.custom_action.install_file.status=Instalando archivo AppImage
 appimage.custom_action.install_file.details=Detalles de instalación
 appimage.custom_action.install_file.invalid_file=Debe definir un archivo AppImage válido
 appimage.custom_action.install_file.invalid_name=Debe definir un nombre para la aplicación
+appimage.install.imported.rename_error=No fue posible mover el archivo {} a {}

@@ -341,8 +341,8 @@ class AppsTable(QTableWidget):
         item = QTableWidgetItem()
         item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        if pkg.model.name:
-            name = pkg.model.name
+        name = pkg.model.get_display_name()
+        if name:
             item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'

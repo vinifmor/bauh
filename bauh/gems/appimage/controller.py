@@ -89,7 +89,7 @@ class AppImageManager(SoftwareManager):
                 else:
                     break
             else:
-                break
+                return False
 
         appim = AppImage(i18n=self.i18n, imported=True)
         appim.name = input_name.get_value().strip()
@@ -101,7 +101,13 @@ class AppImageManager(SoftwareManager):
         if inp_cat.get_selected() != cat_ops[0].value:
             appim.categories = [inp_cat.get_selected()]
 
-        return self.install(root_password=root_password, pkg=appim, watcher=watcher)
+        installed = self.install(root_password=root_password, pkg=appim, watcher=watcher)
+
+        if installed:
+            appim.installed = True
+            self.cache_to_disk(appim, None, False)
+
+        return installed
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
@@ -340,12 +346,39 @@ class AppImageManager(SoftwareManager):
 
     def install(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
+
         out_dir = INSTALLATION_PATH + pkg.name.lower()
+        counter = 0
+        while True:
+            if os.path.exists(out_dir):
+                self.logger.info("Installation dir '{}' already exists. Generating a different one".format(out_dir))
+                out_dir += '-{}'.format(counter)
+                counter += 1
+            else:
+                break
+
         Path(out_dir).mkdir(parents=True, exist_ok=True)
+        pkg.install_dir = out_dir
 
-        downloaded = bool(pkg.local_file_path)
+        if pkg.imported:
 
-        if not downloaded:
+            downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
+
+            file_path = out_dir + '/' + file_name
+
+            try:
+                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, file_path]))
+            except:
+                self.logger.error("Could not rename file '' as '{}'".format(pkg.local_file_path, file_path))
+                moved = False
+
+            if not moved:
+                watcher.show_message(title=self.i18n['error'].capitalize(),
+                                     body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]), bold(output)),
+                                     type_=MessageType.ERROR)
+                return False
+
+        else:
             appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
             file_name = appimage_url.split('/')[-1]
             pkg.version = pkg.latest_version
