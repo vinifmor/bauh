@@ -14,7 +14,7 @@ from typing import List, Type, Set, Tuple
 import requests
 import yaml
 from colorama import Fore
-from requests import exceptions
+from requests import exceptions, Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -156,16 +156,17 @@ class WebApplicationManager(SoftwareManager):
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
+    def _request_url(self, url: str) -> Response:
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
-            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False)
-
-            if url_res:
-                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
+            return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
         except exceptions.ConnectionError as e:
             self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
+
+    def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
+        url_res = self._request_url(url)
+        return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}
@@ -200,7 +201,7 @@ class WebApplicationManager(SoftwareManager):
                     desc = self._get_app_description(final_url, soup)
                     icon_url = self._get_app_icon_url(final_url, soup)
 
-                    app = WebApplication(url=final_url, name=name, description=desc, icon_url=icon_url)
+                    app = WebApplication(url=final_url, source_url=url, name=name, description=desc, icon_url=icon_url)
 
                     if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
                         app.version = self.env_settings['electron']['version']
@@ -256,7 +257,9 @@ class WebApplicationManager(SoftwareManager):
                                     # checking if any of the installed matches is one of the matched suggestions
 
                                     for sug in matched_suggestions:
-                                        found = [i for i in installed_matches if i.url == sug.get('url')]
+                                        sug_url = sug['url'][0:-1] if sug['url'].endswith('/') else sug['url']
+
+                                        found = [i for i in installed_matches if sug_url in {i.url, i.get_source_url()}]
 
                                         if found:
                                             res.installed.extend(found)
