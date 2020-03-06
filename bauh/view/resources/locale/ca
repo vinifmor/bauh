@@ -342,3 +342,5 @@ United States=United States
 ok=ok
 action.not_allowed=Action not allowed
 initialization=inicialització
+category.none=None
+file=file
