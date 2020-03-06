@@ -480,10 +480,10 @@ class ManageWindow(QWidget):
         self.table_apps.fill_async_data()
 
         if not self.recent_installation:
-            self._reload_categories()
+            if not self.ref_progress_bar.isVisible():
+                self._reload_categories()
 
     def _reload_categories(self):
-
         categories = set()
 
         for p in self.pkgs_available:
