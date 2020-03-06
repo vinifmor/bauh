@@ -161,7 +161,7 @@ db_updater:
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
-- Custom actions:
+- Custom actions
     - synchronize packages database: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
     - refresh mirrors: allows the user to define multiple mirrors locations and update the packages database ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 10 && sudo pacman -Syy` )
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
@@ -209,6 +209,9 @@ attach it to the generated app.
 allowing the application to launch automatically after the system's boot attached to the tray.
 
 ![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif)
+
+- Specific actions
+    - Clean installation environment: removes all the installation environment folders ( it does not remove installed apps )
  
 - The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```

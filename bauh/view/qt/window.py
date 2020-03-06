@@ -1173,6 +1173,13 @@ class ManageWindow(QWidget):
         self.finish_action()
 
     def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
+
+        if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                       body='{} ?'.format(self.i18n[action.i18_label_key]),
+                                                       icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
+                                                       i18n=self.i18n):
+            return False
+
         pwd = None
 
         if not user.is_root() and action.requires_root:

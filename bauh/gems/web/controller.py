@@ -20,7 +20,8 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, PackageHistory, \
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
+    PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
@@ -28,9 +29,9 @@ from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource, user
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
-from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
+from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH, ELECTRON_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -68,13 +69,46 @@ class WebApplicationManager(SoftwareManager):
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
         self.suggestions = {}
-
+        self.custom_actions = [CustomSoftwareAction(i18_label_key='web.custom_action.clean_env',
+                                                    i18n_status_key='web.custom_action.clean_env.status',
+                                                    manager=self,
+                                                    manager_method='clean_environment',
+                                                    icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                                    requires_root=False)]
     def _get_lang_header(self) -> str:
         try:
             system_locale = locale.getdefaultlocale()
             return system_locale[0] if system_locale else 'en_US'
         except:
             return 'en_US'
+
+    def clean_environment(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
+
+        success = True
+        for path in (ENV_PATH, ELECTRON_PATH):
+            self.logger.info("Checking path '{}'".format(path))
+            if os.path.exists(path):
+                try:
+                    self.logger.info('Removing path {}'.format(path))
+                    res, output = handler.handle_simple(SimpleProcess(['rm', '-rf', path]))
+
+                    if not res:
+                        success = False
+                except:
+                    watcher.print(traceback.format_exc())
+                    success = False
+
+        if success:
+            watcher.show_message(title=self.i18n['success'].capitalize(),
+                                 body=self.i18n['web.custom_action.clean_env.success'],
+                                 type_=MessageType.INFO)
+        else:
+            watcher.show_message(title=self.i18n['error'].capitalize(),
+                                 body=self.i18n['web.custom_action.clean_env.failed'],
+                                 type_=MessageType.ERROR)
+
+        return success
 
     def _get_app_name(self, url_no_protocol: str, soup: "BeautifulSoup") -> str:
         name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
@@ -971,3 +1005,6 @@ class WebApplicationManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        return self.custom_actions
