@@ -67,3 +67,7 @@ web.settings.nativefier.env.tooltip= Будет использоваться в�
 web.settings.nativefier.system.tooltip= Будет использоваться версия Nativefier установленная в Вашей системе
 web.settings.nativefier.tip=Определяет, какие Nativefier версии должны быдут использованы для установки веб-приложений
 web.settings.env.nativefier.system.not_installed={} не установлен в Вашей системе
+web.custom_action.clean_env=Clean installation environment
+web.custom_action.clean_env.status=Cleaning the installation environment
+web.custom_action.clean_env.success=Installation environment cleaned
+web.custom_action.clean_env.failed=An error occurred during the installation environment cleaning

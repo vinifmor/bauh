@@ -69,3 +69,7 @@ web.settings.nativefier.tip=Define qué versión de Nativefier debe usarse para 
 web.settings.env.nativefier.system.not_installed={} parece no estar instalado en su sistema
 web.task.download_settings=Actualizando configuraciones de ambiente
 web.task.suggestions=Descargando la lista de sugerencias de aplicaciones
+web.custom_action.clean_env=Limpiar ambiente de instalación
+web.custom_action.clean_env.status=Limpiando el ambiente de instalación
+web.custom_action.clean_env.success=Ambiente de instalación limpio
+web.custom_action.clean_env.failed=Se produjo un error durante la limpieza del ambiente de instalación
