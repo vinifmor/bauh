@@ -501,8 +501,16 @@ class GenericSoftwareManager(SoftwareManager):
         if self.managers:
             actions = []
 
+            working_managers = []
+
             for man in self.managers:
                 if self._can_work(man):
+                    working_managers.append(man)
+
+            if working_managers:
+                working_managers.sort(key=lambda m: m.__class__.__name__)
+
+                for man in working_managers:
                     man_actions = man.get_custom_actions()
 
                     if man_actions:

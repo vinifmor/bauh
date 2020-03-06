@@ -193,6 +193,12 @@ class SoftwarePackage(ABC):
         """
         return self.name
 
+    def get_display_name(self) -> str:
+        """
+        :return: name displayed on the table
+        """
+        return self.name
+
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.id, self.name)
 

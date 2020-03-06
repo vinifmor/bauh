@@ -202,7 +202,7 @@ class SoftwareManager(ABC):
         :param only_icon: if only the icon should be saved
         :return:
         """
-        if self.context.disk_cache and pkg.supports_disk_cache():
+        if pkg.supports_disk_cache():
             self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):

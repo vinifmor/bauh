@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from math import floor
 from pathlib import Path
-from threading import Lock, Thread
+from threading import Lock
 from typing import Set, Type, List, Tuple
 
 from colorama import Fore
@@ -19,13 +19,14 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
-    SuggestionPriority
+    SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, PanelComponent
+    SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent
+from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -52,6 +53,61 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
+        self.custom_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.install_file',
+                                                    i18n_status_key='appimage.custom_action.install_file.status',
+                                                    manager=self,
+                                                    manager_method='install_file',
+                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                    requires_root=False)]
+
+    def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        input_name = TextInputComponent(label=self.i18n['name'].capitalize())
+        input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+        input_description = TextInputComponent(label=self.i18n['description'].capitalize())
+
+        cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
+        cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
+        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
+                                        default_option=cat_ops[0])
+
+        form = FormComponent(label='', components=[file_chooser, input_name, input_version, input_description, inp_cat], spaces=False)
+
+        while True:
+            if watcher.request_confirmation(title=self.i18n['appimage.custom_action.install_file.details'], body=None,
+                                            components=[form],
+                                            confirmation_label=self.i18n['proceed'].capitalize(),
+                                            deny_label=self.i18n['cancel'].capitalize()):
+                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path):
+                    watcher.request_confirmation(title=self.i18n['error'].capitalize(),
+                                                 body=self.i18n['appimage.custom_action.install_file.invalid_file'],
+                                                 deny_button=False)
+                elif not input_name.get_value() or not input_name.get_value().strip():
+                    watcher.request_confirmation(title=self.i18n['error'].capitalize(),
+                                                 body=self.i18n['appimage.custom_action.install_file.invalid_name'],
+                                                 deny_button=False)
+                else:
+                    break
+            else:
+                return False
+
+        appim = AppImage(i18n=self.i18n, imported=True)
+        appim.name = input_name.get_value().strip()
+        appim.local_file_path = file_chooser.file_path
+        appim.version = input_version.get_value()
+        appim.latest_version = input_version.get_value()
+        appim.description = input_description.get_value()
+
+        if inp_cat.get_selected() != cat_ops[0].value:
+            appim.categories = [inp_cat.get_selected()]
+
+        installed = self.install(root_password=root_password, pkg=appim, watcher=watcher)
+
+        if installed:
+            appim.installed = True
+            self.cache_to_disk(appim, None, False)
+
+        return installed
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
@@ -82,7 +138,7 @@ class AppImageManager(SoftwareManager):
                 found_map = {}
                 idx = 0
                 for l in cursor.fetchall():
-                    app = AppImage(*l)
+                    app = AppImage(*l, i18n=self.i18n)
                     res.new.append(app)
                     found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1
@@ -118,7 +174,7 @@ class AppImageManager(SoftwareManager):
                 for path in installed.split('\n'):
                     if path:
                         with open(path) as f:
-                            app = AppImage(installed=True, **json.loads(f.read()))
+                            app = AppImage(installed=True, i18n=self.i18n, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
                         res.installed.append(app)
@@ -290,17 +346,47 @@ class AppImageManager(SoftwareManager):
 
     def install(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
+
         out_dir = INSTALLATION_PATH + pkg.name.lower()
+        counter = 0
+        while True:
+            if os.path.exists(out_dir):
+                self.logger.info("Installation dir '{}' already exists. Generating a different one".format(out_dir))
+                out_dir += '-{}'.format(counter)
+                counter += 1
+            else:
+                break
+
         Path(out_dir).mkdir(parents=True, exist_ok=True)
+        pkg.install_dir = out_dir
 
-        appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
-        file_name = appimage_url.split('/')[-1]
-        pkg.version = pkg.latest_version
-        pkg.url_download = appimage_url
+        if pkg.imported:
 
-        file_path = out_dir + '/' + file_name
-        downloaded = self.file_downloader.download(file_url=pkg.url_download, watcher=watcher,
-                                                   output_path=file_path, cwd=str(Path.home()))
+            downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
+
+            file_path = out_dir + '/' + file_name
+
+            try:
+                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, file_path]))
+            except:
+                self.logger.error("Could not rename file '' as '{}'".format(pkg.local_file_path, file_path))
+                moved = False
+
+            if not moved:
+                watcher.show_message(title=self.i18n['error'].capitalize(),
+                                     body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]), bold(output)),
+                                     type_=MessageType.ERROR)
+                return False
+
+        else:
+            appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
+            file_name = appimage_url.split('/')[-1]
+            pkg.version = pkg.latest_version
+            pkg.url_download = appimage_url
+
+            file_path = out_dir + '/' + file_name
+            downloaded = self.file_downloader.download(file_url=pkg.url_download, watcher=watcher,
+                                                       output_path=file_path, cwd=str(Path.home()))
 
         if downloaded:
             watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
@@ -457,7 +543,7 @@ class AppImageManager(SoftwareManager):
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
 
                     for t in cursor.fetchall():
-                        app = AppImage(*t)
+                        app = AppImage(*t, i18n=self.i18n)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
                     self.logger.info("Mapped {} suggestions".format(len(res)))
                 except:
@@ -537,3 +623,6 @@ class AppImageManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        return self.custom_actions

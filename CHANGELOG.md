@@ -19,7 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - refresh mirrors: allows the user to define multiple mirrors locations, sort by the fastest and update the packages database
      - new settings to enable / disable AUR and repository packages management: `aur` and `repositories`
 - Web
-    - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )        
+    - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )
+- AppImage
+    - **Install AppImage File** custom action: allows to install a custom AppImage file        
     
 ### Improvements
 - new parameters
