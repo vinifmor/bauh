@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - not able to inject javascript fixes ( WhatsApp Web not working) [#74](https://github.com/vinifmor/bauh/issues/74)
     - not informing StartupWMClass on generated desktop entries ( prevents Gnome to link the Favorite shortcut with the app instance [#76](https://github.com/vinifmor/bauh/issues/76) )
+    - some installed apps were not being displayed as installed in the search results
 
 ### Improvements
 - AUR
