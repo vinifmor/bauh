@@ -3,11 +3,12 @@ All notable changes to this project will be documented in this file.
 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-    
-## [0.8.5] - 2020-03-06
+
+## [0.8.5] - 2020-03
 ### Fixes
 - Web
     - not able to inject javascript fixes ( WhatsApp Web not working) [#74](https://github.com/vinifmor/bauh/issues/74)
+    - not informing StartupWMClass on generated desktop entries ( prevents Gnome to link the Favorite shortcut with the app instance [#76](https://github.com/vinifmor/bauh/issues/76) )
 
 ### Improvements
 - AUR

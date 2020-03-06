@@ -1,4 +1,5 @@
 import glob
+import json
 import locale
 import os
 import re
@@ -688,6 +689,15 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.shortcut'])
 
+        try:
+            package_info_path = '{}/resources/app/package.json'.format(pkg.installation_dir)
+            with open(package_info_path) as f:
+                package_info_path = json.loads(f.read())
+                pkg.package_name = package_info_path['name']
+        except:
+            self.logger.info("Could not read the the package info from '{}'".format(package_info_path))
+            traceback.print_exc()
+
         desktop_entry_path = self._gen_desktop_entry_path(app_id)
 
         entry_content = self._gen_desktop_entry_content(pkg)
@@ -720,9 +730,11 @@ class WebApplicationManager(SoftwareManager):
         Icon={icon}
         Exec={exec_path}
         {categories}
+        {wmclass}
         """.format(name=pkg.name, exec_path=pkg.get_command(),
                    desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path(),
-                   categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '')
+                   categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '',
+                   wmclass="StartupWMClass={}".format(pkg.package_name) if pkg.package_name else '')
 
     def is_enabled(self) -> bool:
         return self.enabled
