@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AUR
     - preventing the dependencies checking algorithm to add duplicates
+- UI
+    - error handling when it is not possible to load icon files
 
 ### i18n
 - Russian ( ru ): 
