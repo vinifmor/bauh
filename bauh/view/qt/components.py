@@ -1,7 +1,5 @@
 import os
-import time
 from pathlib import Path
-from threading import Thread
 from typing import Tuple
 
 from PyQt5.QtCore import Qt, QSize
@@ -179,7 +177,7 @@ class ComboSelectQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
+        self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
         self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
@@ -246,9 +244,11 @@ class MultipleSelectQt(QGroupBox):
 
         for op in model.options:  # loads the help icon if at least one option has a tooltip
             if op.tooltip:
-                with open(resource.get_path('img/about.svg'), 'rb') as f:
-                    pixmap_help.loadFromData(f.read())
-                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                try:
+                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
+                except:
+                    traceback.print_exc()
+
                 break
 
         for op in model.options:
@@ -309,9 +309,11 @@ class FormMultipleSelectQt(QWidget):
 
         for op in model.options:  # loads the help icon if at least one option has a tooltip
             if op.tooltip:
-                with open(resource.get_path('img/about.svg'), 'rb') as f:
-                    pixmap_help.loadFromData(f.read())
-                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                try:
+                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
+                except:
+                    traceback.print_exc()
+
                 break
 
         for op in model.options:
@@ -349,27 +351,14 @@ class InputFilter(QLineEdit):
         super(InputFilter, self).__init__()
         self.on_key_press = on_key_press
         self.last_text = ''
-        self.typing = None
 
-    def notify_text_change(self):
+    def keyPressEvent(self, event):
+        super(InputFilter, self).keyPressEvent(event)
         text = self.text().strip()
 
         if text != self.last_text:
             self.last_text = text
-            time.sleep(1)
             self.on_key_press()
-            self.typing = False
-
-        self.typing = None
-
-    def keyPressEvent(self, event):
-        super(InputFilter, self).keyPressEvent(event)
-
-        if self.typing:
-            return
-
-        self.typing = Thread(target=self.notify_text_change, daemon=True)
-        self.typing.start()
 
     def get_text(self):
         return self.last_text
@@ -481,10 +470,7 @@ class FormQt(QGroupBox):
         text = getattr(comp, attr)
 
         if text:
-            if hasattr(comp, 'capitalize_label') and getattr(comp, 'capitalize_label'):
-                label_comp.setText(text.capitalize())
-            else:
-                label_comp.setText(text)
+            label_comp.setText(text.capitalize())
 
             if comp.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
@@ -494,7 +480,12 @@ class FormQt(QGroupBox):
     def gen_tip_icon(self, tip: str) -> QLabel:
         tip_icon = QLabel()
         tip_icon.setToolTip(tip.strip())
-        tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+
+        try:
+            tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+        except:
+            traceback.print_exc()
+
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
@@ -510,7 +501,7 @@ class FormQt(QGroupBox):
             line_edit.setPlaceholderText(c.placeholder)
 
         if c.value:
-            line_edit.setText(str(c.value) if c.value else '')
+            line_edit.setText(c.value)
             line_edit.setCursorPosition(0)
 
         if c.read_only:
@@ -588,11 +579,13 @@ class FormQt(QGroupBox):
         label = self._new_label(c)
         wrapped = self._wrap(chooser, c)
 
-        bt = IconButton(QIcon(resource.get_path('img/clean.svg')),
-                        i18n=self.i18n['clean'].capitalize(),
-                        action=clean_path,
-                        background='#cc0000',
-                        tooltip=self.i18n['action.run.tooltip'])
+        try:
+            icon = QIcon(resource.get_path('img/clean.svg'))
+        except:
+            traceback.print_exc()
+            icon = QIcon()
+
+        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background='#cc0000', tooltip=self.i18n['action.run.tooltip'])
 
         wrapped.layout().addWidget(bt)
         return label, wrapped
@@ -607,12 +600,13 @@ class TabGroupQt(QTabWidget):
         self.setTabPosition(QTabWidget.North)
 
         for c in model.tabs:
-            icon = QIcon(c.icon_path) if c.icon_path else QIcon()
-            scroll = QScrollArea()
-            scroll.setFrameShape(QFrame.NoFrame)
-            scroll.setWidgetResizable(True)
-            scroll.setWidget(to_widget(c.content, i18n))
-            self.addTab(scroll, icon, c.label)
+            try:
+                icon = QIcon(c.icon_path) if c.icon_path else QIcon()
+            except:
+                traceback.print_exc()
+                icon = QIcon()
+
+            self.addTab(to_widget(c.content, i18n), icon, c.label)
 
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:
