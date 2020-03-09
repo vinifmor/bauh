@@ -1797,7 +1797,7 @@ class ArchManager(SoftwareManager):
 
         if not installed or not installed['signed']:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
-                                 body="No updates available",
+                                 body=self.i18n['arch.custom_action.upgrade_system.no_updates'],
                                  type_=MessageType.INFO)
             return False
 
@@ -1808,7 +1808,7 @@ class ArchManager(SoftwareManager):
 
         if not to_update:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
-                                 body="No updates available",
+                                 body=self.i18n['arch.custom_action.upgrade_system.no_updates'],
                                  type_=MessageType.INFO)
             return False
 
@@ -1839,15 +1839,28 @@ class ArchManager(SoftwareManager):
                                          default_options=set(pkg_opts))
 
         if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
-                                        body="The packages below will be upgraded. Size: {}".format(get_human_size_str(size)),
+                                        body="{}. {}: {}".format(self.i18n['arch.custom_action.upgrade_system.pkgs'],
+                                                                 self.i18n['size'].capitalize(),
+                                                                 get_human_size_str(size)),
+                                        confirmation_label=self.i18n['proceed'].capitalize(),
+                                        deny_label=self.i18n['cancel'].capitalize(),
                                         components=[select]):
 
-            success, output = ProcessHandler(watcher).handle_simple(pacman.upgrade_system(root_password))
+            watcher.change_substatus(self.i18n['arch.custom_action.upgrade_system.substatus'])
+            handler = ProcessHandler(watcher)
+            success, output = True, ' ' # handler.handle_simple(pacman.upgrade_system(root_password))
 
             if success:
-                watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
-                                     body="System successfully upgraded !\n Some changes may only take effect after restarting the system",
-                                     type_=MessageType.INFO)
+                msg = '<p>{}</p><p>{}</p><br/><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
+                                                                self.i18n['arch.custom_action.upgrade_system.success.line2'],
+                                                                self.i18n['arch.custom_action.upgrade_system.success.line3']),
+                if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
+                                                body=msg,
+                                                confirmation_label=self.i18n['yes'].capitalize(),
+                                                deny_label=self.i18n['bt.not_now']):
+                    handler.handle_simple(SimpleProcess(['reboot']))
+
+                return True
             else:
                 watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
                                      body="An error occurred during the upgrade process. Check out the {}".format(bold('Details')),
