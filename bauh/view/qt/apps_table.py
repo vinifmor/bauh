@@ -15,7 +15,7 @@ from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
-from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.qt.view_model import PackageView
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -28,10 +28,10 @@ PUBLISHER_MAX_SIZE = 25
 
 class UpdateToggleButton(QWidget):
 
-    def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
+    def __init__(self, pkg: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.app_view = app_view
+        self.app_view = pkg
         self.root = root
 
         layout = QHBoxLayout()
@@ -40,21 +40,40 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QToolButton()
-        self.bt.setCheckable(clickable)
+        self.bt.setCheckable(True)
         self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if clickable:
             self.bt.clicked.connect(self.change_state)
 
-        self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
-                              ('QToolButton:checked { background: gray }' if clickable else ''))
-        layout.addWidget(self.bt)
+                              'QToolButton:checked { background: gray } ' +
+                              'QToolButton:disabled { background: #d69003 }')
 
-        self.setToolTip(i18n['manage_window.apps_table.upgrade_toggle.tooltip'])
+        layout.addWidget(self.bt)
 
         if not checked:
             self.bt.click()
+
+        if clickable:
+            self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+            self.setToolTip('{} {}'.format(i18n['manage_window.apps_table.upgrade_toggle.tooltip'],
+                                           i18n['manage_window.apps_table.upgrade_toggle.enabled.tooltip']))
+        else:
+            if not checked:
+                self.bt.setIcon(QIcon(resource.get_path('img/exclamation.svg')))
+                self.bt.setEnabled(False)
+
+                tooltip = i18n['{}.update.disabled.tooltip'.format(pkg.model.gem_name)]
+
+                if tooltip:
+                    self.setToolTip(tooltip)
+                else:
+                    self.setToolTip('{} {}'.format(i18n['manage_window.apps_table.upgrade_toggle.tooltip'],
+                                                   i18n['manage_window.apps_table.upgrade_toggle.disabled.tooltip']))
+            else:
+                self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+                self.bt.setCheckable(False)
 
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
@@ -247,7 +266,11 @@ class AppsTable(QTableWidget):
             if update_check_enabled and pkg.model.update:
                 col_update = QToolBar()
                 col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-                col_update.addWidget(UpdateToggleButton(pkg, self.window, self.i18n, pkg.update_checked))
+                col_update.addWidget(UpdateToggleButton(pkg=pkg,
+                                                        root=self.window,
+                                                        i18n=self.i18n,
+                                                        checked=pkg.update_checked if pkg.model.can_be_updated() else False,
+                                                        clickable=pkg.model.can_be_updated()))
 
             self.setCellWidget(pkg.table_index, 7, col_update)
 

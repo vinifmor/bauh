@@ -166,8 +166,9 @@ db_updater:
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
 - If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
 - Custom actions
-    - synchronize packages database: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
-    - refresh mirrors: allows the user to define multiple mirrors locations and update the packages database ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 10 && sudo pacman -Syy` )
+    - **synchronize packages database**: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
+    - **refresh mirrors**: allows the user to define multiple mirrors locations and update the packages database ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 10 && sudo pacman -Syy` )
+    - **upgrade system**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements

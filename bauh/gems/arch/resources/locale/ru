@@ -153,3 +153,4 @@ arch.info.13_dependson=Зависимости установки
 arch.info.14_optdepends=Необязательные зависимости
 arch.info.14_installed_files=Устанавливаемые файлы
 arch.info.15_checkdepends=Проверка зависимостей
+arch.update.disabled.tooltip=This package can oly be upgrade through the action "Upgrade system"

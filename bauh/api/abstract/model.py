@@ -130,6 +130,12 @@ class SoftwarePackage(ABC):
         """
         return CACHE_PATH + '/' + self.get_type()
 
+    def can_be_updated(self) -> bool:
+        """
+        :return: if the package can be updated.
+        """
+        return self.installed and self.update
+
     def get_disk_icon_path(self):
         path = self.get_disk_cache_path()
         if path:

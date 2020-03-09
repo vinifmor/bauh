@@ -15,8 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - database synchronization on startup ( **enabled by default**. Can be disabled on settings -> **sync_databases_startup** )
     - mirrors refreshing on startup ( **disabled by default**. Can be enabled on settings -> **refresh_mirrors_startup** )
     - custom actions ( available through the new custom actions button )
-        - synchronize packages database: synchronizes the database against the configured mirrors
-        - refresh mirrors: allows the user to define multiple mirrors locations, sort by the fastest and update the packages database
+        - **synchronize packages database**: synchronizes the database against the configured mirrors
+        - **refresh mirrors**: allows the user to define multiple mirrors locations, sort by the fastest and update the packages database
+        - **upgrade system**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
      - new settings to enable / disable AUR and repository packages management: `aur` and `repositories`
 - Web
     - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )

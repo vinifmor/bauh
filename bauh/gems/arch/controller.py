@@ -1848,7 +1848,7 @@ class ArchManager(SoftwareManager):
 
             watcher.change_substatus(self.i18n['arch.custom_action.upgrade_system.substatus'])
             handler = ProcessHandler(watcher)
-            success, output = True, ' ' # handler.handle_simple(pacman.upgrade_system(root_password))
+            success, output = handler.handle_simple(pacman.upgrade_system(root_password))
 
             if success:
                 msg = '<p>{}</p><p>{}</p><br/><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
