@@ -87,7 +87,7 @@ class SettingsWindow(QWidget):
                     self.manager.reset_cache()
 
                 # TODO ask root
-                self.manager.prepare(task_manager=None, root_password=None)  # TODO
+                self.manager.prepare(task_manager=None, root_password=None, internet_available=None)  # TODO
 
                 if self.window and self.window.isVisible():
                     self.window.update_custom_actions()

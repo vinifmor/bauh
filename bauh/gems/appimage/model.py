@@ -1,10 +1,18 @@
-from bauh.api.abstract.model import SoftwarePackage
+from typing import List
+
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
                 'icon_path', 'github', 'categories', 'imported', 'install_dir'}
+
+CUSTOM_ACTIONS = [CustomSoftwareAction(i18_label_key='appimage.custom_action.manual_update',
+                                       i18n_status_key='appimage.custom_action.manual_update.status',
+                                       manager_method='update_file',
+                                       requires_root=False,
+                                       icon_path=resource.get_path('img/refresh.svg', ROOT_DIR))]
 
 
 class AppImage(SoftwarePackage):
@@ -40,7 +48,7 @@ class AppImage(SoftwarePackage):
         return self.installed and not self.imported
 
     def has_info(self):
-        return not self.imported
+        return True
 
     def can_be_downgraded(self):
         return self.installed and not self.imported
@@ -98,3 +106,6 @@ class AppImage(SoftwarePackage):
 
         return self.name
 
+    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+        if self.imported:
+            return CUSTOM_ACTIONS

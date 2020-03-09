@@ -21,7 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )
 - AppImage
-    - **Install AppImage File** custom action: allows to install a custom AppImage file        
+    - Custom actions
+        - **Install AppImage file**: allows to install a external AppImage file
+        - **Upgrade file**: allows to upgrade a manually installed AppImage file        
     
 ### Improvements
 - new parameters
