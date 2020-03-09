@@ -29,10 +29,10 @@ from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
-    SimpleProcess
+    SimpleProcess, get_human_size_str
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path, database, mirrors
+    CONFIG_FILE, get_icon_path, database, mirrors, get_repo_icon_path
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
@@ -1736,18 +1736,26 @@ class ArchManager(SoftwareManager):
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         if self.custom_actions is None:
-            self.custom_actions = [CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
-                                                        i18n_status_key='arch.sync_databases.substatus',
-                                                        manager_method='sync_databases',
-                                                        icon_path=get_icon_path(),
-                                                        requires_root=True,
-                                                        manager=self)]
+            default_icon_path = get_icon_path()
+            self.custom_actions = [
+                CustomSoftwareAction(i18_label_key='arch.custom_action.upgrade_system',
+                                     i18n_status_key='arch.custom_action.upgrade_system.status',
+                                     manager_method='upgrade_system',
+                                     icon_path=get_repo_icon_path(),
+                                     requires_root=True,
+                                     manager=self),
+                CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
+                                     i18n_status_key='arch.sync_databases.substatus',
+                                     manager_method='sync_databases',
+                                     icon_path=default_icon_path,
+                                     requires_root=True,
+                                     manager=self)]
 
             if pacman.is_mirrors_available():
-                self.custom_actions.insert(0, CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
+                self.custom_actions.insert(1, CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
                                                                    i18n_status_key='arch.task.mirrors',
                                                                    manager_method='refresh_mirrors',
-                                                                   icon_path=get_icon_path(),
+                                                                   icon_path=default_icon_path,
                                                                    requires_root=True,
                                                                    manager=self))
 
@@ -1783,3 +1791,68 @@ class ArchManager(SoftwareManager):
                         p.size = new_size
                     elif new_size is not None:
                         p.size = new_size - p.size
+
+    def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        installed = pacman.map_installed(repositories=True, aur=False)
+
+        if not installed or not installed['signed']:
+            watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
+                                 body="No updates available",
+                                 type_=MessageType.INFO)
+            return False
+
+        pkgs = []
+        self._fill_repo_pkgs(installed['signed'], pkgs, None)
+
+        to_update = [p for p in pkgs if p.update]
+
+        if not to_update:
+            watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
+                                 body="No updates available",
+                                 type_=MessageType.INFO)
+            return False
+
+        icon_path = get_repo_icon_path()
+
+        pkg_opts, size = [], 0
+
+        self.fill_sizes(to_update)
+
+        for pkg in to_update:
+            lb = '{} ( {} > {} ) - {}: {}'.format(pkg.name,
+                                                  pkg.version,
+                                                  pkg.latest_version,
+                                                  self.i18n['size'].capitalize(),
+                                                  '?' if pkg.size is None else get_human_size_str(pkg.size))
+            pkg_opts.append(InputOption(label=lb,
+                                        value=pkg.name,
+                                        read_only=True,
+                                        icon_path=icon_path))
+
+            if pkg.size is not None:
+                size += pkg.size
+
+        pkg_opts.sort(key=lambda o: o.label)
+
+        select = MultipleSelectComponent(label='',
+                                         options=pkg_opts,
+                                         default_options=set(pkg_opts))
+
+        if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
+                                        body="The packages below will be upgraded. Size: {}".format(get_human_size_str(size)),
+                                        components=[select]):
+
+            success, output = ProcessHandler(watcher).handle_simple(pacman.upgrade_system(root_password))
+
+            if success:
+                watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
+                                     body="System successfully upgraded !\n Some changes may only take effect after restarting the system",
+                                     type_=MessageType.INFO)
+            else:
+                watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
+                                     body="An error occurred during the upgrade process. Check out the {}".format(bold('Details')),
+                                     type_=MessageType.ERROR)
+
+            return success
+
+        return False

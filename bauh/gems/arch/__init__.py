@@ -19,3 +19,7 @@ SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master
 
 def get_icon_path() -> str:
     return resource.get_path('img/arch.svg', ROOT_DIR)
+
+
+def get_repo_icon_path() -> str:
+    return resource.get_path('img/repo.svg', ROOT_DIR)

@@ -549,3 +549,7 @@ def map_updates_required_data(pkgs: List[str]) -> dict:
             reqs[pkg] = {'c': conflicts, 's':  size_to_byte(float(size[0]), size[1])}  # c:conflicts, s:size
 
         return reqs
+
+
+def upgrade_system(root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
