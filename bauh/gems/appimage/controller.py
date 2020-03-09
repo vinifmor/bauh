@@ -97,9 +97,10 @@ class AppImageManager(SoftwareManager):
         appim.version = input_version.get_value()
         appim.latest_version = input_version.get_value()
         appim.description = input_description.get_value()
+        appim.categories = ['Imported']
 
         if inp_cat.get_selected() != cat_ops[0].value:
-            appim.categories = [inp_cat.get_selected()]
+            appim.categories.append(inp_cat.get_selected())
 
         installed = self.install(root_password=root_password, pkg=appim, watcher=watcher)
 
@@ -108,6 +109,28 @@ class AppImageManager(SoftwareManager):
             self.cache_to_disk(appim, None, False)
 
         return installed
+
+    def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+
+        while True:
+            if watcher.request_confirmation(title=self.i18n['appimage.custom_action.manual_update.details'], body=None,
+                                            components=[FormComponent(label='', components=[file_chooser, input_version], spaces=False)],
+                                            confirmation_label=self.i18n['proceed'].capitalize(),
+                                            deny_label=self.i18n['cancel'].capitalize()):
+                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path):
+                    watcher.request_confirmation(title=self.i18n['error'].capitalize(),
+                                                 body=self.i18n['appimage.custom_action.install_file.invalid_file'],
+                                                 deny_button=False)
+                else:
+                    break
+            else:
+                return False
+
+        pkg.local_file_path = file_chooser.file_path
+        pkg.version = input_version.get_value()
+        return self.update(pkg=pkg, root_password=root_password, watcher=watcher)
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):

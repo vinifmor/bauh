@@ -96,10 +96,10 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
 ![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
 
+- Default actions: search, install, uninstall, downgrade, launch, history
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
 installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
@@ -109,18 +109,22 @@ installation_level: null # defines a default installation level: user or system.
     - Any distro: **flatpak**
 
 #### Snap ( snap )
-- The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif)
+![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif)
 
+- Default actions: search, install, uninstall, launch, downgrade
+- Custom actions: refresh
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 
 #### AppImage ( appimage )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
 ![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif)
 
+- Default actions: search, install, uninstall, downgrade, launch, history
+- Custom actions
+    - **Install AppImage file**: allows to install a external AppImage file
+    - **Upgrade file**: allows to upgrade a manually installed AppImage file
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
@@ -142,11 +146,11 @@ db_updater:
     - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
 #### Arch ( Repositories and AUR )
-- Only available for **Arch-based systems**
-- The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
 
 ![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/aur/search.gif)
 
+- Only available for **Arch-based systems**
+- Default actions: search, install, uninstall, downgrade, launch, history
 - It handles conflicts, and missing / optional packages installations
 - Automatically makes simple package compilation improvements:
 
