@@ -1851,7 +1851,7 @@ class ArchManager(SoftwareManager):
         success, output = handler.handle_simple(pacman.upgrade_system(root_password))
 
         if success:
-            msg = '<p>{}</p><p>{}</p><br/><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
+            msg = '<p>{}</p><br/>{}</p><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
                                                             self.i18n['arch.custom_action.upgrade_system.success.line2'],
                                                             self.i18n['arch.custom_action.upgrade_system.success.line3'])
             if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
