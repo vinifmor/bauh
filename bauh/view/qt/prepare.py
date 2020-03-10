@@ -208,6 +208,7 @@ class PreparePanel(QWidget, TaskManager):
         task_row = self.ntasks - 1
 
         lb_icon = QLabel()
+        lb_icon.setContentsMargins(0, 2, 0, 0)
         lb_icon.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if icon_path:
@@ -217,7 +218,8 @@ class PreparePanel(QWidget, TaskManager):
         self.table.setCellWidget(task_row, 0, lb_icon)
 
         lb_status = QLabel(label)
-        lb_status.setContentsMargins(2, 2, 2, 2)
+        lb_status.setAlignment(Qt.AlignHCenter)
+        lb_status.setContentsMargins(2, 0, 2, 0)
         lb_status.setMinimumWidth(50)
         lb_status.setAlignment(Qt.AlignHCenter)
         lb_status.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
@@ -225,7 +227,7 @@ class PreparePanel(QWidget, TaskManager):
         self.table.setCellWidget(task_row, 1, lb_status)
 
         lb_sub = QLabel()
-        lb_sub.setContentsMargins(2, 2, 2, 2)
+        lb_sub.setContentsMargins(2, 0, 2, 0)
         lb_sub.setAlignment(Qt.AlignHCenter)
         lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         lb_sub.setMinimumWidth(50)
