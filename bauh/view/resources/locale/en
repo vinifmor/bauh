@@ -252,6 +252,7 @@ action.update.required_label=Must be installed
 action.update.total_size=Total size
 action.update.summary=Upgrade summary
 action.update.status.checking_sizes=Calculating the upgrades size
+action.update.label_to_remove=Must be uninstalled
 action.history.no_history.title=No history
 action.history.no_history.body=There is no available history for {}
 general=general

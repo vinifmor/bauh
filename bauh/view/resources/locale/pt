@@ -296,6 +296,7 @@ action.update.required_label=Precisam ser instalados
 action.update.total_size=Tamanho total
 action.update.summary=Resumo de atualização
 action.update.status.checking_sizes=Calculando o tamanho das atualizações
+action.update.label_to_remove=Precisam ser desinstalados
 action.history.no_history.title=Sem histórico
 action.history.no_history.body=Não existe histórico disponível para {}
 general=geral

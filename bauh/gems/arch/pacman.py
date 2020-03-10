@@ -2,7 +2,8 @@ import re
 from threading import Thread
 from typing import List, Set, Tuple, Dict, Iterable
 
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess, \
+    ProcessHandler
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
@@ -12,6 +13,7 @@ RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
+RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 
 
 def is_available() -> bool:
@@ -553,3 +555,17 @@ def map_updates_required_data(pkgs: List[str]) -> dict:
 
 def upgrade_system(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
+
+
+def get_dependencies_to_remove(pkgs: Set[str], root_password: str) -> Dict[str, str]:
+    proc = SimpleProcess(cmd=['pacman', '-R', *pkgs, '--confirm'], root_password=root_password)
+    success, output = ProcessHandler().handle_simple(proc)
+
+    if not output:
+        return {}
+
+    return {t[1]: t[0] for t in RE_REMOVE_TRANSITIVE_DEPS.findall(output)}
+
+
+def list_all_installed_names() -> Set[str]:
+    return {p for p in run_cmd('pacman -Qq').split('\n') if p}

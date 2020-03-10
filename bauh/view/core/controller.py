@@ -474,14 +474,14 @@ class GenericSoftwareManager(SoftwareManager):
 
         return by_manager
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> UpdateRequirements:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
         res = UpdateRequirements([], [], [])
 
         if by_manager:
             for man, pkgs in by_manager.items():
                 ti = time.time()
-                man_reqs = man.get_update_requirements(pkgs, watcher)
+                man_reqs = man.get_update_requirements(pkgs, root_password, watcher)
                 tf = time.time()
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
@@ -490,7 +490,7 @@ class GenericSoftwareManager(SoftwareManager):
                         res.to_install.extend(man_reqs.to_install)
 
                     if man_reqs.to_remove:
-                        res.to_install.extend(man_reqs.to_remove)
+                        res.to_remove.extend(man_reqs.to_remove)
 
                     if man_reqs.cannot_update:
                         res.cannot_update.extend(man_reqs.cannot_update)

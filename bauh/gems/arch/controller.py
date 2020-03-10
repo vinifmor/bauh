@@ -1686,8 +1686,8 @@ class ArchManager(SoftwareManager):
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
         return required
 
-    def get_update_requirements(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> UpdateRequirements:
-        res = UpdateRequirements(None, None, None)
+    def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
+        res = UpdateRequirements(None, [], None)
         required_pkgs = self._get_update_required_packages(pkgs, watcher)
 
         if required_pkgs:
@@ -1715,6 +1715,24 @@ class ArchManager(SoftwareManager):
             required_data = pacman.map_updates_required_data(names)
 
             if required_data:
+                all_installed = pacman.list_all_installed_names()
+                root_conflict = {}
+                for p, data in required_data.items():
+                    if data['c']:
+                        for c in data['c']:
+                            if c and c in all_installed:
+                                root_conflict[c] = p
+
+                sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), root_password)
+
+                for dep, source in sub_conflict.items():
+                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.depends on'], source)))
+
+                for dep, source in root_conflict.items():
+                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.conflicts with'], source)))
+
                 for p in new:
                     pkg = repo_pkgs[p]
                     pkg.size = required_data[p]['s']

@@ -10,7 +10,7 @@ import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from bauh.api.abstract.cache import MemoryCache
-from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.controller import SoftwareManager, UpdateRequirement
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
@@ -112,7 +112,7 @@ class UpdateSelectedPackages(AsyncAction):
         self.manager = manager
         self.i18n = i18n
 
-    def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True) -> InputOption:
+    def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True, custom_tooltip: str = None) -> InputOption:
         if pkg.installed:
             icon_path = pkg.get_disk_icon_path()
 
@@ -129,7 +129,7 @@ class UpdateSelectedPackages(AsyncAction):
 
         return InputOption(label=label,
                            value=None,
-                           tooltip=pkg.get_name_tooltip() if tooltip else None,
+                           tooltip=custom_tooltip if custom_tooltip else (pkg.get_name_tooltip() if tooltip else None),
                            read_only=True,
                            icon_path=icon_path)
 
@@ -168,6 +168,16 @@ class UpdateSelectedPackages(AsyncAction):
                                     self.i18n['size'].capitalize(),
                                     '?' if size is None else get_human_size_str(size))
         return FormComponent(label=lb, components=comps), size
+
+    def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> Tuple[FormComponent, int]:
+        opts = [self._pkg_as_option(r.pkg, False, r.reason) for r in reqs]
+        comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
+        size = -self._sum_pkgs_size([req.pkg for req in reqs])
+
+        lb = '{} ( {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
+                                    self.i18n['size'].capitalize(),
+                                    '?' if size is None else get_human_size_str(size))
+        return FormComponent(label=lb, components=comps), -size
 
     def _gen_sorted_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
@@ -229,12 +239,14 @@ class UpdateSelectedPackages(AsyncAction):
 
         models = [view.model for view in to_update]
 
-        required_pkgs = None
+        required_pkgs, pkgs_to_remove = [], []
         if bool(app_config['updates']['pre_dependency_checking']):
             self.change_substatus(self.i18n['action.update.requirements.status'])
-            required_pkgs = [req.pkg for req in self.manager.get_update_requirements(models, self).to_install]
+            requirements = self.manager.get_update_requirements(models, root_password, self)
+            required_pkgs.extend([r.pkg for r in requirements.to_install])
+            pkgs_to_remove = requirements.to_remove
 
-        sorted_pkgs = self._sort_packages(models, app_config)
+        sorted_pkgs = self._sort_packages([*models], app_config)
 
         comps, total_size = [], 0
 
@@ -245,6 +257,11 @@ class UpdateSelectedPackages(AsyncAction):
             req_form, reqs_size = self._gen_requirements_form(required_pkgs)
             total_size += reqs_size
             comps.append(req_form)
+
+        if pkgs_to_remove:
+            remove_form, reqs_size = self._gen_to_remove_form(pkgs_to_remove)
+            total_size += reqs_size
+            comps.append(remove_form)
 
         sorted_form, sorted_size = self._gen_sorted_form(sorted_pkgs)
         total_size += sorted_size

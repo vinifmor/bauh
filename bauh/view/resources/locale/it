@@ -245,6 +245,7 @@ action.update.required_label=Must be installed
 action.update.total_size=Total size
 action.update.summary=Upgrade summary
 action.update.status.checking_sizes=Calculating upgrade size
+action.update.label_to_remove=Must be uninstalled
 general=generale
 task.download_categories=Download delle categorie [ {} ]
 prepare_panel.title.start=Inizializzazione

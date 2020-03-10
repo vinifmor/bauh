@@ -111,7 +111,7 @@ class SoftwareManager(ABC):
         """
         return pkgs
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> UpdateRequirements:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
         """
         return additional required software that needs to be installed / removed before updating a list of packages
         :param pkgs:
