@@ -279,7 +279,6 @@ interval=interval
 installation=instal·lació
 download=download
 clean=netejar
-action.update.status.sorting=Determinant el millor ordre d’actualització
 action.update.requirements.title=Requisits d’actualització
 action.update.requirements.body=Abans d’actualitzar cal instal·lar les següents {} dependències
 action.update.install_req.fail.title=Ha fallat la instal·lació

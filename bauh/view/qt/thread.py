@@ -133,13 +133,6 @@ class UpdateSelectedPackages(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> List[SoftwarePackage]:
-        if bool(app_config['updates']['sort_packages']):
-            self.change_substatus(self.i18n['action.update.status.sorting'])
-            return self.manager.sort_update_order([view for view in pkgs])
-
-        return pkgs
-
     def filter_to_update(self) -> Tuple[List[PackageView], bool]:  # packages to update and if they require root privileges
         to_update, requires_root = [], False
         root_user = user.is_root()
@@ -177,9 +170,9 @@ class UpdateSelectedPackages(AsyncAction):
         lb = '{} ( {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
                                     self.i18n['size'].capitalize(),
                                     '?' if size is None else get_human_size_str(size))
-        return FormComponent(label=lb, components=comps), -size
+        return FormComponent(label=lb, components=comps), size
 
-    def _gen_sorted_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
+    def _gen_to_update_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         size = self._sum_pkgs_size(pkgs)
@@ -239,33 +232,37 @@ class UpdateSelectedPackages(AsyncAction):
 
         models = [view.model for view in to_update]
 
-        required_pkgs, pkgs_to_remove = [], []
+        to_install, to_remove, to_update = [], [], []
         if bool(app_config['updates']['pre_dependency_checking']):
             self.change_substatus(self.i18n['action.update.requirements.status'])
-            requirements = self.manager.get_update_requirements(models, root_password, self)
-            required_pkgs.extend([r.pkg for r in requirements.to_install])
-            pkgs_to_remove = requirements.to_remove
+            sort = bool(app_config['updates']['sort_packages'])
+            requirements = self.manager.get_update_requirements(models, root_password, sort, self)
+            to_install = [r.pkg for r in requirements.to_install]
+            to_remove = requirements.to_remove
+            to_update = requirements.to_update
+        else:
+            to_update = models
 
-        sorted_pkgs = self._sort_packages([*models], app_config)
+        # sorted_pkgs = self._sort_packages([*models], app_config)
 
         comps, total_size = [], 0
 
         # self.change_substatus(self.i18n['action.update.status.checking_sizes'])
         # self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
 
-        if required_pkgs:
-            req_form, reqs_size = self._gen_requirements_form(required_pkgs)
+        if to_install:
+            req_form, reqs_size = self._gen_requirements_form(to_install)
             total_size += reqs_size
             comps.append(req_form)
 
-        if pkgs_to_remove:
-            remove_form, reqs_size = self._gen_to_remove_form(pkgs_to_remove)
+        if to_remove:
+            remove_form, reqs_size = self._gen_to_remove_form(to_remove)
             total_size += reqs_size
             comps.append(remove_form)
 
-        sorted_form, sorted_size = self._gen_sorted_form(sorted_pkgs)
-        total_size += sorted_size
-        comps.append(sorted_form)
+        updates_form, updates_size = self._gen_to_update_form(to_update)
+        total_size += updates_size
+        comps.append(updates_form)
 
         if total_size > 0:
             comps.insert(0, TextComponent(bold('{}: {}'.format(self.i18n['action.update.total_size'].capitalize(),
@@ -277,8 +274,8 @@ class UpdateSelectedPackages(AsyncAction):
             self.pkgs = None
             return
 
-        if required_pkgs:
-            for pkg in required_pkgs:
+        if to_install:
+            for pkg in to_install:
                 if not self.manager.install(pkg.pkg, root_password, self):
                     self.notify_finished({'success': False, 'updated': 0, 'types': set()})
                     self.pkgs = None

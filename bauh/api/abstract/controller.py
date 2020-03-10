@@ -37,15 +37,15 @@ class UpdateRequirement:
 
 class UpdateRequirements:
 
-    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], cannot_update: List[UpdateRequirement]):
+    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], to_update: List[SoftwarePackage]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
-        :param cannot_update: packages that cannot due to conflicts
+        :param to_update: the final packages to update
         """
         self.to_install = to_install
         self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
-        self.cannot_update = cannot_update  # when an upgrading package conflicts with another upgrading package
+        self.to_update = to_update
 
 
 class SoftwareManager(ABC):
@@ -103,19 +103,12 @@ class SoftwareManager(ABC):
         if pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
         """
-        sorts the best order to perform the update of some packages
-        :param pkgs:
-        :return:
-        """
-        return pkgs
-
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
-        """
-        return additional required software that needs to be installed / removed before updating a list of packages
+        return additional required software that needs to be installed / removed / updated before updating a list of packages
         :param pkgs:
         :param watcher
+        :param if the packages to be sorted
         :return:
         """
 

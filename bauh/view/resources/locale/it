@@ -234,7 +234,6 @@ interval=intervallo
 installation=installazione
 download=download
 clean=pulire
-action.update.status.sorting=Sto determinando il miglior ordine di aggiornamento
 action.update.requirements.title=Requisiti di aggiornamento
 action.update.requirements.body=Le seguenti {} dipendenze devono essere installati prima dell'aggiornamento
 action.update.install_req.fail.title=Installazione non riuscita

@@ -234,7 +234,6 @@ interval=Intervall
 installation=Installation
 download=Download
 clean=Bereinigen
-action.update.status.sorting=Sortierreihenfolge
 action.update.requirements.title=Upgrade-Voraussetzungen
 action.update.requirements.body=Die folgenden {} Abhängigkeiten müssen zusätzlich installiert werden
 action.update.install_req.fail.title=Installation fehlgeschlagen

@@ -241,7 +241,6 @@ interval=Интервал
 installation=Установка
 download=Загрузка
 clean=Очистка
-action.update.status.sorting=Определение наилучшего порядка обновления
 action.update.requirements.title=Требования к обновлению
 action.update.requirements.body=Перед обновлением необходимо установить следующие зависимости {} 
 action.update.install_req.fail.title=Установка не удалась

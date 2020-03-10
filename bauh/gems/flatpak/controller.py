@@ -4,7 +4,7 @@ from math import floor
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
-from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
+from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpdateRequirements
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
@@ -469,6 +469,9 @@ class FlatpakManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def get_update_requirements(self, pkgs: List[FlatpakApplication], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
+        return UpdateRequirements(None, None, self.sort_update_order(pkgs) if sort else pkgs)
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
         partials, runtimes, apps = [], [], []

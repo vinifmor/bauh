@@ -426,35 +426,6 @@ class GenericSoftwareManager(SoftwareManager):
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
         return self.settings_manager.save_settings(component)
 
-    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
-        by_manager = {}
-        for pkg in pkgs:
-            man = self._get_manager_for(pkg)
-
-            if man:
-                man_pkgs = by_manager.get(man)
-
-                if man_pkgs is None:
-                    man_pkgs = []
-                    by_manager[man] = man_pkgs
-
-                man_pkgs.append(pkg)
-
-        sorted_list = []
-
-        if by_manager:
-            for man, pkgs in by_manager.items():
-                if len(pkgs) > 1:
-                    ti = time.time()
-                    sorted_list.extend(man.sort_update_order(pkgs))
-                    tf = time.time()
-                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
-                else:
-                    self.logger.info("Only one package to sort for {}. Ignoring sorting.".format(man.__class__.__name__))
-                    sorted_list.extend(pkgs)
-
-        return sorted_list
-
     def _map_pkgs_by_manager(self, pkgs: List[SoftwarePackage], pkg_filters: list = None) -> Dict[SoftwareManager, List[SoftwarePackage]]:
         by_manager = {}
         for pkg in pkgs:
@@ -474,14 +445,14 @@ class GenericSoftwareManager(SoftwareManager):
 
         return by_manager
 
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
+    def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
         res = UpdateRequirements([], [], [])
 
         if by_manager:
             for man, pkgs in by_manager.items():
                 ti = time.time()
-                man_reqs = man.get_update_requirements(pkgs, root_password, watcher)
+                man_reqs = man.get_update_requirements(pkgs, root_password, sort, watcher)
                 tf = time.time()
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
@@ -492,8 +463,8 @@ class GenericSoftwareManager(SoftwareManager):
                     if man_reqs.to_remove:
                         res.to_remove.extend(man_reqs.to_remove)
 
-                    if man_reqs.cannot_update:
-                        res.cannot_update.extend(man_reqs.cannot_update)
+                    if man_reqs.to_update:
+                        res.to_update.extend(man_reqs.to_update)
 
         return res
 

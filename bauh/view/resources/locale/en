@@ -241,7 +241,6 @@ interval=interval
 installation=installation
 download=download
 clean=clean
-action.update.status.sorting=Determining the best update order
 action.update.requirements.title=Upgrade requirements
 action.update.requirements.body=The following {} dependencies must be installed before upgrading
 action.update.install_req.fail.title=Installation failed

@@ -1686,8 +1686,8 @@ class ArchManager(SoftwareManager):
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
         return required
 
-    def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, watcher: ProcessWatcher) -> UpdateRequirements:
-        res = UpdateRequirements(None, [], None)
+    def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
+        res = UpdateRequirements(None, [], pkgs)
         required_pkgs = self._get_update_required_packages(pkgs, watcher)
 
         if required_pkgs:
@@ -1725,17 +1725,33 @@ class ArchManager(SoftwareManager):
 
                 sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), root_password)
 
+                to_remove = {}
                 for dep, source in sub_conflict.items():
-                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.depends on'], source)))
+                    if dep not in to_remove:
+                        pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                        to_remove[dep] = pkg
+                        res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)))
 
                 for dep, source in root_conflict.items():
-                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.conflicts with'], source)))
+                    if dep not in to_remove:
+                        pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                        to_remove[dep] = pkg
+                        res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)))
 
                 for p in new:
                     pkg = repo_pkgs[p]
                     pkg.size = required_data[p]['s']
+
+                if to_remove:
+                    remove_name_list = [*to_remove.keys()]
+                    removed_size = pacman.get_installed_size(remove_name_list)
+
+                    if removed_size:
+                        for name, size in removed_size.items():
+                            if size is not None:
+                                pkg = to_remove.get(name)
+                                if pkg:
+                                    pkg.size = size
 
                 if installed:
                     installed_size = pacman.get_installed_size(installed)
@@ -1749,6 +1765,9 @@ class ArchManager(SoftwareManager):
                             pkg.size = update_size
                         elif update_size is not None:
                             pkg.size = update_size - pkg.size
+
+        if sort:
+            self.sort_update_order(res.to_update)
 
         return res
 
