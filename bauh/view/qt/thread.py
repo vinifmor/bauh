@@ -136,7 +136,7 @@ class UpdateSelectedPackages(AsyncAction):
     def _sort_packages(self, pkgs: List[SoftwarePackage], app_config: dict) -> List[SoftwarePackage]:
         if bool(app_config['updates']['sort_packages']):
             self.change_substatus(self.i18n['action.update.status.sorting'])
-            return self.manager.sort_update_order([view.model for view in self.pkgs])
+            return self.manager.sort_update_order([view for view in pkgs])
 
         return pkgs
 
@@ -144,11 +144,11 @@ class UpdateSelectedPackages(AsyncAction):
         to_update, requires_root = [], False
         root_user = user.is_root()
 
-        for app_v in self.pkgs:
-            if app_v.update_checked:
-                to_update.append(app_v)
+        for pkg in self.pkgs:
+            if pkg.model.update and pkg.update_checked:
+                to_update.append(pkg)
 
-            if not root_user and not requires_root and self.manager.requires_root('update', app_v.model):
+            if not root_user and not requires_root and self.manager.requires_root('update', pkg.model):
                 requires_root = True
 
         return to_update, requires_root

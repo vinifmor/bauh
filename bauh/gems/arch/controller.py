@@ -1662,7 +1662,7 @@ class ArchManager(SoftwareManager):
 
     def _get_update_required_packages(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
         ti = time.time()
-        required = None
+        required = []
         deps = self._map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, watcher)
 
         if deps:  # filtering selected packages
@@ -1680,7 +1680,7 @@ class ArchManager(SoftwareManager):
             for t in map_threads:
                 t.join()
 
-            required = [sorted_pkgs[idx] for idx in sorted(sorted_pkgs)]
+            required.extend([sorted_pkgs[idx] for idx in sorted(sorted_pkgs)])
 
         tf = time.time()
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))

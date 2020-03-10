@@ -48,7 +48,7 @@ class UpdateToggleButton(QWidget):
 
         self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
                               'QToolButton:checked { background: gray } ' +
-                              'QToolButton:disabled { background: #d69003 }')
+                              ('QToolButton:disabled { background: #d69003 }' if not clickable and not checked else ''))
 
         layout.addWidget(self.bt)
 

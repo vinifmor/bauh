@@ -102,7 +102,7 @@ class GenericSettingsManager:
                                                   tooltip=self.i18n['core.config.trim_after_update.tip'],
                                                   value=bool(core_config['disk']['trim_after_update']),
                                                   max_width=default_width,
-                                                  id_='trim_after_updates')
+                                                  id_='trim_after_update')
 
         select_update_sort = self._gen_bool_component(label=self.i18n['core.config.updates.sort_pkgs'],
                                                       tooltip=self.i18n['core.config.updates.sort_pkgs.tip'],
