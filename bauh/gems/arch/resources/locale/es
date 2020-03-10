@@ -171,4 +171,4 @@ arch.info.14_installed_files=Archivos instalados
 arch.info.15_checkdepends=dependencias para verificación
 arch.makepkg.optimizing=Optimizing the compilation
 arch.custom_action.upgrade_system.substatus=Actualizando paquetes
-arch.update.disabled.tooltip=Solo es posible actualizar este paquete a través de la acción "Actualizar sistema"
+arch.update.disabled.tooltip=Solo es posible actualizar este paquete a través de la acción "Actualización rápida de sistema"

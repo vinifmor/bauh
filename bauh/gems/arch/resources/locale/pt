@@ -168,4 +168,4 @@ arch.info.13_dependson=dependências de instalação
 arch.info.14_optdepends=dependências opcionais
 arch.info.14_installed_files=arquivos instalados
 arch.info.15_checkdepends=dependências de verificação
-arch.update.disabled.tooltip=Este pacote só pode ser atualizado através da ação "Atualizar sistema"
+arch.update.disabled.tooltip=Este pacote só pode ser atualizado através da ação "Atualização rápida de sistema"
