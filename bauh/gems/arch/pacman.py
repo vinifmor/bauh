@@ -530,7 +530,7 @@ def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     return {}
 
 
-def get_installed_size(pkgs: List[str]) -> Dict[str, int]: # bytes
+def get_installed_size(pkgs: Iterable[str]) -> Dict[str, int]: # bytes
     output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
 
     if output:
@@ -539,7 +539,7 @@ def get_installed_size(pkgs: List[str]) -> Dict[str, int]: # bytes
     return {}
 
 
-def map_updates_required_data(pkgs: List[str]) -> dict:
+def map_updates_required_data(pkgs: Iterable[str]) -> dict:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
@@ -557,7 +557,7 @@ def upgrade_system(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
 
-def get_dependencies_to_remove(pkgs: Set[str], root_password: str) -> Dict[str, str]:
+def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[str, str]:
     proc = SimpleProcess(cmd=['pacman', '-R', *pkgs, '--confirm'], root_password=root_password)
     success, output = ProcessHandler().handle_simple(proc)
 

@@ -11,7 +11,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict
+from typing import List, Set, Type, Tuple, Dict, Iterable
 
 import requests
 
@@ -1540,10 +1540,10 @@ class ArchManager(SoftwareManager):
                 pkg_deps[p] = None
                 self.logger.warning("Could not retrieve the sorting data for package '{}'".format(p))
 
-    def sort_update_order(self, pkgs: List[ArchPackage]) -> List[ArchPackage]:
+    def sort_update_order(self, pkgs: Dict[str, ArchPackage]) -> List[ArchPackage]:
         aur_pkgs, repo_pkgs = [], []
 
-        for p in pkgs:
+        for n, p in pkgs.items():
             if p.repository == 'aur':
                 aur_pkgs.append(p)
             else:
@@ -1660,7 +1660,7 @@ class ArchManager(SoftwareManager):
 
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
 
-    def _get_update_required_packages(self, pkgs: List[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
+    def _get_update_required_packages(self, pkgs: Iterable[ArchPackage], watcher: ProcessWatcher) -> List[ArchPackage]:
         ti = time.time()
         required = []
         deps = self._map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, watcher)
@@ -1686,25 +1686,114 @@ class ArchManager(SoftwareManager):
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
         return required
 
+    def _get_update_requirements_to_remove(self, repo_pkgs: Dict[str, ArchPackage], aur_pkgs: Dict[str, ArchPackage],
+                                            all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str) -> List[UpdateRequirement]:
+
+        reqs_to_remove = []
+        self.logger.info("Checking conflicts")
+        all_installed = pacman.list_all_installed_names()
+        root_conflict = {}
+        for p, data in repo_pkgs_data.items():
+            if data['c']:
+                for c in data['c']:
+                    if c and c in all_installed:
+                        root_conflict[c] = p
+
+        sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), root_password) if root_conflict else None
+
+        to_remove_map = {}
+        if sub_conflict:
+            for dep, source in sub_conflict.items():
+                if dep not in to_remove_map:
+                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    to_remove_map[dep] = pkg
+                    reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)
+                    reqs_to_remove.append(UpdateRequirement(pkg, reason))
+
+        if root_conflict:
+            for dep, source in root_conflict.items():
+                if dep not in to_remove_map:
+                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    to_remove_map[dep] = pkg
+                    reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)
+                    reqs_to_remove.append(UpdateRequirement(pkg, reason))
+
+        if to_remove_map:
+            for name in to_remove_map.keys():  # upgrading lists
+                if name in all_pkgs:
+                    del all_pkgs[name]
+
+                if name in aur_pkgs:
+                    del aur_pkgs[name]
+
+                if name in repo_pkgs:
+                    del repo_pkgs[name]
+
+            removed_size = pacman.get_installed_size([*to_remove_map.keys()])
+
+            if removed_size:
+                for name, size in removed_size.items():
+                    if size is not None:
+                        pkg = to_remove_map.get(name)
+                        if pkg:
+                            pkg.size = size
+
+        return reqs_to_remove
+
     def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
-        res = UpdateRequirements(None, [], pkgs)
-        required_pkgs = self._get_update_required_packages(pkgs, watcher)
+        res = UpdateRequirements(None, [], None)
 
-        if required_pkgs:
-            res.to_install = [UpdateRequirement(p) for p in required_pkgs]
+        all_pkgs, repo_pkgs, aur_pkgs = {}, {}, {}
+        repo_to_install = {}
+        repo_required_data = {}
 
-        repo_pkgs, aur_pkgs = {}, {}
-
-        for p in (*required_pkgs, *pkgs):
+        for p in pkgs:
+            all_pkgs[p.name] = p
             if p.repository == 'aur':
                 aur_pkgs[p.name] = p
             else:
                 repo_pkgs[p.name] = p
 
-        if repo_pkgs:  # filling sizes
+        if repo_pkgs:
+            repo_required_data.update(pacman.map_updates_required_data(repo_pkgs.keys()))
+
+            if repo_required_data:
+                res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
+                                                                             aur_pkgs,
+                                                                             all_pkgs,
+                                                                             repo_required_data,
+                                                                             root_password))
+
+        to_install = self._get_update_required_packages(all_pkgs.values(), watcher)
+
+        if to_install:
+            repo_to_install, aur_to_install, all_to_install = {}, {}, {}
+
+            for pkg in to_install:
+                all_to_install[pkg.name] = pkg
+                if pkg.repository == 'aur':
+                    aur_to_install[pkg.name] = pkg
+                else:
+                    repo_to_install[pkg.name] = pkg
+
+            if repo_to_install:
+                to_install_data = pacman.map_updates_required_data(repo_pkgs.keys())
+
+                if to_install_data:
+                    repo_required_data.update(to_install_data)
+                    res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
+                                                                                 aur_pkgs,
+                                                                                 all_pkgs,
+                                                                                 repo_required_data,
+                                                                                 root_password))
+
+            res.to_install = [UpdateRequirement(p) for p in to_install if p.name in all_to_install]
+
+        all_repo_pkgs = {**repo_pkgs, **repo_to_install}
+        if all_repo_pkgs:  # filling sizes
             names, installed, new = [], [], []
 
-            for p in repo_pkgs.values():
+            for p in all_repo_pkgs.values():
                 names.append(p.name)
 
                 if p.installed:
@@ -1712,62 +1801,26 @@ class ArchManager(SoftwareManager):
                 else:
                     new.append(p.name)
 
-            required_data = pacman.map_updates_required_data(names)
-
-            if required_data:
-                all_installed = pacman.list_all_installed_names()
-                root_conflict = {}
-                for p, data in required_data.items():
-                    if data['c']:
-                        for c in data['c']:
-                            if c and c in all_installed:
-                                root_conflict[c] = p
-
-                sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), root_password)
-
-                to_remove = {}
-                for dep, source in sub_conflict.items():
-                    if dep not in to_remove:
-                        pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                        to_remove[dep] = pkg
-                        res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)))
-
-                for dep, source in root_conflict.items():
-                    if dep not in to_remove:
-                        pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                        to_remove[dep] = pkg
-                        res.to_remove.append(UpdateRequirement(pkg, reason="{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)))
-
+            if repo_required_data:
                 for p in new:
-                    pkg = repo_pkgs[p]
-                    pkg.size = required_data[p]['s']
-
-                if to_remove:
-                    remove_name_list = [*to_remove.keys()]
-                    removed_size = pacman.get_installed_size(remove_name_list)
-
-                    if removed_size:
-                        for name, size in removed_size.items():
-                            if size is not None:
-                                pkg = to_remove.get(name)
-                                if pkg:
-                                    pkg.size = size
+                    pkg = all_repo_pkgs[p]
+                    pkg.size = repo_required_data[p]['s']
 
                 if installed:
                     installed_size = pacman.get_installed_size(installed)
 
                     for p in installed:
-                        pkg = repo_pkgs[p]
+                        pkg = all_repo_pkgs[p]
                         pkg.size = installed_size[p]
-                        update_size = required_data[p]['s']
+                        update_size = repo_required_data[p]['s']
 
                         if pkg.size is None:
                             pkg.size = update_size
                         elif update_size is not None:
                             pkg.size = update_size - pkg.size
 
-        if sort:
-            self.sort_update_order(res.to_update)
+        if all_pkgs and sort:
+            self.sort_update_order(all_pkgs)
 
         return res
 
