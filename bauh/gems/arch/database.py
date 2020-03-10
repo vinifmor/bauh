@@ -6,10 +6,10 @@ from datetime import datetime
 from logging import Logger
 from pathlib import Path
 
-from bauh.api.constants import TEMP_DIR
+from bauh.api.constants import CACHE_PATH
 from bauh.commons.system import ProcessHandler
 
-SYNC_FILE = '{}/arch/db_sync'.format(TEMP_DIR)
+SYNC_FILE = '{}/arch/db_sync'.format(CACHE_PATH)
 
 
 def should_sync(arch_config: dict, handler: ProcessHandler, logger: logging.Logger):
