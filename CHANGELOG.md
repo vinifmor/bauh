@@ -46,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - table not displaying all updates when the "updates filter" is clicked several times
 
-### i18n contributors
+### i18n
     - Russian ( ru )
         - [mountain-biker85](https://github.com/mountain-biker85) -> PRs: [#73](https://github.com/vinifmor/bauh/pull/73) [#79](https://github.com/vinifmor/bauh/pull/79) [#80](https://github.com/vinifmor/bauh/pull/80) [#81](https://github.com/vinifmor/bauh/pull/81)
      
