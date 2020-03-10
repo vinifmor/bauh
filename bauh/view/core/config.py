@@ -50,7 +50,11 @@ def read_config(update_file: bool = False) -> dict:
             'multithreaded': True,
             'icons': True
         },
-        'store_root_password': True
+        'store_root_password': True,
+        'disk': {
+            'trim_after_update': False
+        }
+
     }
     return read(FILE_PATH, default, update_file=update_file, update_async=True)
 

@@ -270,6 +270,8 @@ updates:
   check_interval: 30  # the updates checking interval in SECONDS
   sort_packages: true  # if the selected applications / packages to upgrade must be sorted to avoid possible issues
   pre_dependency_checking: true  # displays all applications / packages that must be installed before upgrading the selected ones  
+disk:
+    trim_after_update: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` )
 ```
 #### Tray icons
 Priority: 

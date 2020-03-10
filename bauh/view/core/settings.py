@@ -98,6 +98,12 @@ class GenericSettingsManager:
                                             max_width=default_width,
                                             id_="icon_exp")
 
+        select_trim_up = self._gen_bool_component(label=self.i18n['core.config.trim_after_update'],
+                                                  tooltip=self.i18n['core.config.trim_after_update.tip'],
+                                                  value=bool(core_config['disk']['trim_after_update']),
+                                                  max_width=default_width,
+                                                  id_='trim_after_updates')
+
         select_update_sort = self._gen_bool_component(label=self.i18n['core.config.updates.sort_pkgs'],
                                                       tooltip=self.i18n['core.config.updates.sort_pkgs.tip'],
                                                       value=bool(core_config['updates']['sort_packages']),
@@ -122,7 +128,7 @@ class GenericSettingsManager:
                                                    max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
-        sub_comps = [FormComponent([select_dcache, select_dmthread, select_update_check, select_update_sort, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
+        sub_comps = [FormComponent([select_dcache, select_dmthread, select_update_check, select_trim_up, select_update_sort, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
     def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
@@ -296,6 +302,8 @@ class GenericSettingsManager:
 
         icon_exp = adv_form.get_component('icon_exp').get_int_value()
         core_config['memory_cache']['icon_expiration'] = icon_exp
+
+        core_config['disk']['trim_after_update'] = adv_form.get_component('trim_after_update').get_selected()
 
         # tray
         tray_form = tray.components[0]

@@ -18,8 +18,9 @@ from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOp
 from bauh.api.exception import NoInternetException
 from bauh.commons import user
 from bauh.commons.html import bold
-from bauh.commons.system import get_human_size_str
+from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
 from bauh.view.core import config
+from bauh.view.core.config import read_config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
@@ -179,6 +180,29 @@ class UpdateSelectedPackages(AsyncAction):
 
         return FormComponent(label=lb, components=comps), size
 
+    def _trim_disk(self, root_password: str):
+        if read_config()['disk']['trim_after_update']:
+
+            if self.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                         body=self.i18n['action.trim_disk.ask']):
+
+                pwd = root_password
+
+                if not pwd and user.is_root():
+                    pwd, success = self.request_root_password()
+
+                    if not success:
+                        return
+
+                self.change_substatus(self.i18n['action.disk_trim'].capitalize())
+
+                success, output = ProcessHandler(self).handle_simple(SimpleProcess(['fstrim', '-a', '-v'], root_password=pwd))
+
+                if not success:
+                    self.show_message(title=self.i18n['success'].capitalize(),
+                                      body=self.i18n['action.disk_trim.error'],
+                                      type_=MessageType.ERROR)
+
     def run(self):
         to_update, requires_root = self.filter_to_update()
         
@@ -261,6 +285,10 @@ class UpdateSelectedPackages(AsyncAction):
                 updated += 1
                 updated_types.add(pkg.__class__)
                 self.signal_output.emit('\n')
+
+        if success:
+            if read_config()['disk']['trim_after_update']:
+                self.change_substatus(self.i18n['action.disk_trim'].capitalize())
 
         self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
         self.pkgs = None

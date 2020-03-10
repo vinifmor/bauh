@@ -24,7 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
     - Custom actions
         - **Install AppImage file**: allows to install a external AppImage file
-        - **Upgrade file**: allows to upgrade a manually installed AppImage file        
+        - **Upgrade file**: allows to upgrade a manually installed AppImage file
+ - Core
+    - allowing to trim the disk after all upgrades are applied ( **disabled by default**. It can be enabled on settings )      
     
 ### Improvements
 - new parameters
