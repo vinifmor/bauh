@@ -168,7 +168,7 @@ db_updater:
 - Custom actions
     - **synchronize packages database**: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
     - **refresh mirrors**: allows the user to define multiple mirrors locations and update the packages database ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 10 && sudo pacman -Syy` )
-    - **upgrade system**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
+    - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements

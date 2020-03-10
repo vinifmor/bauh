@@ -29,7 +29,7 @@ from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, new_root_subprocess, \
-    SimpleProcess, get_human_size_str
+    SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, pkgbuild, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_CACHE_DIR, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     CONFIG_FILE, get_icon_path, database, mirrors, get_repo_icon_path
@@ -1812,60 +1812,57 @@ class ArchManager(SoftwareManager):
                                  type_=MessageType.INFO)
             return False
 
-        icon_path = get_repo_icon_path()
+        # icon_path = get_repo_icon_path()
 
-        pkg_opts, size = [], 0
+        # pkg_opts, size = [], 0
 
-        self.fill_sizes(to_update)
+        # self.fill_sizes(to_update)
+        #
+        # for pkg in to_update:
+        #     lb = '{} ( {} > {} ) - {}: {}'.format(pkg.name,
+        #                                           pkg.version,
+        #                                           pkg.latest_version,
+        #                                           self.i18n['size'].capitalize(),
+        #                                           '?' if pkg.size is None else get_human_size_str(pkg.size))
+        #     pkg_opts.append(InputOption(label=lb,
+        #                                 value=pkg.name,
+        #                                 read_only=True,
+        #                                 icon_path=icon_path))
+        #
+        #     if pkg.size is not None:
+        #         size += pkg.size
+        #
+        # pkg_opts.sort(key=lambda o: o.label)
 
-        for pkg in to_update:
-            lb = '{} ( {} > {} ) - {}: {}'.format(pkg.name,
-                                                  pkg.version,
-                                                  pkg.latest_version,
-                                                  self.i18n['size'].capitalize(),
-                                                  '?' if pkg.size is None else get_human_size_str(pkg.size))
-            pkg_opts.append(InputOption(label=lb,
-                                        value=pkg.name,
-                                        read_only=True,
-                                        icon_path=icon_path))
+        # select = MultipleSelectComponent(label='',
+        #                                  options=pkg_opts,
+        #                                  default_options=set(pkg_opts))
 
-            if pkg.size is not None:
-                size += pkg.size
+        # if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
+        #                                 body="{}. {}: {}".format(self.i18n['arch.custom_action.upgrade_system.pkgs'],
+        #                                                          self.i18n['size'].capitalize(),
+        #                                                          get_human_size_str(size)),
+        #                                 confirmation_label=self.i18n['proceed'].capitalize(),
+        #                                 deny_label=self.i18n['cancel'].capitalize(),
+        #                                 components=[select]):
 
-        pkg_opts.sort(key=lambda o: o.label)
+            # watcher.change_substatus(self.i18n['arch.custom_action.upgrade_system.substatus'])
+        handler = ProcessHandler(watcher)
+        success, output = handler.handle_simple(pacman.upgrade_system(root_password))
 
-        select = MultipleSelectComponent(label='',
-                                         options=pkg_opts,
-                                         default_options=set(pkg_opts))
-
-        if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
-                                        body="{}. {}: {}".format(self.i18n['arch.custom_action.upgrade_system.pkgs'],
-                                                                 self.i18n['size'].capitalize(),
-                                                                 get_human_size_str(size)),
-                                        confirmation_label=self.i18n['proceed'].capitalize(),
-                                        deny_label=self.i18n['cancel'].capitalize(),
-                                        components=[select]):
-
-            watcher.change_substatus(self.i18n['arch.custom_action.upgrade_system.substatus'])
-            handler = ProcessHandler(watcher)
-            success, output = handler.handle_simple(pacman.upgrade_system(root_password))
-
-            if success:
-                msg = '<p>{}</p><p>{}</p><br/><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
-                                                                self.i18n['arch.custom_action.upgrade_system.success.line2'],
-                                                                self.i18n['arch.custom_action.upgrade_system.success.line3']),
-                if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
-                                                body=msg,
-                                                confirmation_label=self.i18n['yes'].capitalize(),
-                                                deny_label=self.i18n['bt.not_now']):
-                    handler.handle_simple(SimpleProcess(['reboot']))
-
+        if success:
+            msg = '<p>{}</p><p>{}</p><br/><p>{}</p>'.format(self.i18n['arch.custom_action.upgrade_system.success.line1'],
+                                                            self.i18n['arch.custom_action.upgrade_system.success.line2'],
+                                                            self.i18n['arch.custom_action.upgrade_system.success.line3'])
+            if watcher.request_confirmation(title=self.i18n['arch.custom_action.upgrade_system'],
+                                            body=msg,
+                                            confirmation_label=self.i18n['yes'].capitalize(),
+                                            deny_label=self.i18n['bt.not_now']):
+                handler.handle_simple(SimpleProcess(['reboot']))
                 return True
-            else:
-                watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
-                                     body="An error occurred during the upgrade process. Check out the {}".format(bold('Details')),
-                                     type_=MessageType.ERROR)
-
-            return success
+        else:
+            watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
+                                 body="An error occurred during the upgrade process. Check out the {}".format(bold('Details')),
+                                 type_=MessageType.ERROR)
 
         return False
