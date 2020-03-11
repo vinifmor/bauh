@@ -1686,19 +1686,21 @@ class ArchManager(SoftwareManager):
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
         return required
 
-    def _get_update_requirements_to_remove(self, repo_pkgs: Dict[str, ArchPackage], aur_pkgs: Dict[str, ArchPackage],
-                                           all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str,
-                                           blacklist: Set[str] = None) -> List[UpdateRequirement]:
-
+    def _fill_to_remove_and_cannot_update(self, repo_pkgs: Dict[str, ArchPackage], aur_pkgs: Dict[str, ArchPackage],
+                                          all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str,
+                                          cannot_update: Dict[str, ArchPackage], blacklist: Set[str] = None) -> List[UpdateRequirement]:
         reqs_to_remove = []
         self.logger.info("Checking conflicts")
-        all_installed = pacman.list_all_installed_names()
+        all_installed = pacman.list_all_installed_names()  # TODO bring not just the names but the provided ones as well
         root_conflict = {}
+        # TODO generate a map of conflicts and every name provided by the pkg
         for p, data in repo_pkgs_data.items():
             if data['c']:
                 for c in data['c']:
                     if c and c in all_installed:
                         root_conflict[c] = p
+
+        # TODO check if there are mutual conflicts a -> b, b -> and add them to cannot update
 
         sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), root_password) if root_conflict else None
 
@@ -1745,17 +1747,20 @@ class ArchManager(SoftwareManager):
         srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
 
         if srcinfo:
-            output[pkg.name] = {'c': srcinfo.get('conflicts'), 'size': None}
+            output[pkg.name] = {'c': srcinfo.get('conflicts'),
+                                's': None,
+                                'p': srcinfo.get('provides')}
         else:
-            output[pkg.name] = {'c': None, 'size': None}
+            output[pkg.name] = {'c': None,  's': None,  'p': None}
 
     def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
-        res = UpdateRequirements(None, [], None)
+        res = UpdateRequirements(None, [], None, [])
 
         all_pkgs, repo_pkgs, aur_pkgs = {}, {}, {}
         repo_to_install = {}
         aur_required_data = {}
         all_required_data = {}
+        cannot_update = {}
 
         aur_srcinfo_threads = []
         for p in pkgs:
@@ -1776,11 +1781,12 @@ class ArchManager(SoftwareManager):
         all_required_data.update(aur_required_data)
 
         if all_required_data:
-            res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
-                                                                         aur_pkgs,
-                                                                         all_pkgs,
-                                                                         all_required_data,
-                                                                         root_password))
+            res.to_remove.extend(self._fill_to_remove_and_cannot_update(repo_pkgs,
+                                                                        aur_pkgs,
+                                                                        all_pkgs,
+                                                                        all_required_data,
+                                                                        root_password,
+                                                                        cannot_update))
 
         to_install = self._get_update_required_packages(all_pkgs.values(), watcher)
 
@@ -1810,12 +1816,13 @@ class ArchManager(SoftwareManager):
 
             if all_to_install_data:
                 all_required_data.update(all_to_install_data)
-                res.to_remove.extend(self._get_update_requirements_to_remove(repo_to_install,
-                                                                             aur_to_install,
-                                                                             all_to_install,
-                                                                             all_to_install_data,
-                                                                             root_password,
-                                                                             {d.pkg.name for d in res.to_remove}))
+                res.to_remove.extend(self._fill_to_remove_and_cannot_update(repo_to_install,
+                                                                            aur_to_install,
+                                                                            all_to_install,
+                                                                            all_to_install_data,
+                                                                            root_password,
+                                                                            {d.pkg.name for d in res.to_remove},
+                                                                            cannot_update))
 
             res.to_install = [UpdateRequirement(p) for p in to_install if p.name in all_to_install]
 
@@ -1854,6 +1861,9 @@ class ArchManager(SoftwareManager):
                 res.to_update = self.sort_update_order(all_pkgs)
             else:
                 res.to_update = [p for p in all_pkgs.keys()]
+
+        if cannot_update:
+            res.cannot_update = [p for p in cannot_update.keys()]
 
         return res
 

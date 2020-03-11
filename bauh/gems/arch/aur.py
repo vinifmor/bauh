@@ -33,6 +33,7 @@ KNOWN_LIST_FIELDS = ('validpgpkeys',
                      'makedepends',
                      'makedepends_x86_64',
                      'makedepends_i686',
+                     'provides',
                      'conflicts')
 
 

@@ -447,7 +447,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def get_update_requirements(self, pkgs: List[SoftwarePackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
-        res = UpdateRequirements([], [], [])
+        res = UpdateRequirements([], [], [], [])
 
         if by_manager:
             for man, pkgs in by_manager.items():
@@ -465,6 +465,9 @@ class GenericSoftwareManager(SoftwareManager):
 
                     if man_reqs.to_update:
                         res.to_update.extend(man_reqs.to_update)
+
+                    if man_reqs.cannot_update:
+                        res.cannot_update.extend(man_reqs.cannot_update)
 
         return res
 

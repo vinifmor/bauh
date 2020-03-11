@@ -37,15 +37,17 @@ class UpdateRequirement:
 
 class UpdateRequirements:
 
-    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], to_update: List[SoftwarePackage]):
+    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], to_update: List[SoftwarePackage], cannot_update: List[SoftwarePackage]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
         :param to_update: the final packages to update
+        :param cannot_update: packages which conflict with each other
         """
         self.to_install = to_install
         self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
         self.to_update = to_update
+        self.cannot_update = cannot_update
 
 
 class SoftwareManager(ABC):
@@ -111,6 +113,7 @@ class SoftwareManager(ABC):
         :param if the packages to be sorted
         :return:
         """
+        return UpdateRequirements(None, None, pkgs, None)
 
     @abstractmethod
     def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:

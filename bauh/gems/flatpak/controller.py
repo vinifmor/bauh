@@ -471,7 +471,7 @@ class FlatpakManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def get_update_requirements(self, pkgs: List[FlatpakApplication], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
-        return UpdateRequirements(None, None, self.sort_update_order(pkgs) if sort else pkgs)
+        return UpdateRequirements(None, None, self.sort_update_order(pkgs) if sort else pkgs, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
         partials, runtimes, apps = [], [], []

@@ -12,7 +12,7 @@ RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
-RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
+RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 
 
@@ -546,9 +546,11 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
         tuples = RE_UPDATE_REQUIRED_FIELDS.findall(output)
         reqs = {}
         for idx, pkg in enumerate(pkgs):
-            conflicts = {p for p in tuples[idx + idx][1].strip().split(' ') if p != 'None'}
-            size = tuples[idx * 2 + 1][1].strip().split(' ')
-            reqs[pkg] = {'c': conflicts, 's':  size_to_byte(float(size[0]), size[1])}  # c:conflicts, s:size
+            provides = {p for p in tuples[idx * 3][1].strip().split(' ') if p != 'None'}
+            conflicts = {p for p in tuples[idx * 3 + 1][1].strip().split(' ') if p != 'None'}
+            size = tuples[idx * 3 + 2][1].strip().split(' ')
+
+            reqs[pkg] = {'p': provides, 'c': conflicts, 's':  size_to_byte(float(size[0]), size[1])}  # c:conflicts, s:size
 
         return reqs
 
