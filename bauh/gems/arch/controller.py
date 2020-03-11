@@ -1820,6 +1820,14 @@ class ArchManager(SoftwareManager):
                             pkg.size = update_size - pkg.size
 
         if all_pkgs:
+            self.logger.info("Filtering packages to remove from packages to update")
+            to_remove_names = {p.pkg.name for p in res.to_remove} if res.to_remove else None
+
+            if to_remove_names:
+                for name in to_remove_names:
+                    if name in all_pkgs:
+                        del all_pkgs[name]
+
             if sort:
                 res.to_update = self.sort_update_order(all_pkgs)
             else:
