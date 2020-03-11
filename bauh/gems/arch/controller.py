@@ -1741,53 +1741,81 @@ class ArchManager(SoftwareManager):
 
         return reqs_to_remove
 
+    def _fill_aur_pkg_update_data(self, pkg: ArchPackage, output: dict):
+        srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
+
+        if srcinfo:
+            output[pkg.name] = {'c': srcinfo.get('conflicts'), 'size': None}
+        else:
+            output[pkg.name] = {'c': None, 'size': None}
+
     def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
         res = UpdateRequirements(None, [], None)
 
         all_pkgs, repo_pkgs, aur_pkgs = {}, {}, {}
         repo_to_install = {}
-        repo_required_data = {}
+        aur_required_data = {}
+        all_required_data = {}
 
+        aur_srcinfo_threads = []
         for p in pkgs:
             all_pkgs[p.name] = p
             if p.repository == 'aur':
                 aur_pkgs[p.name] = p
+                t = Thread(target=self._fill_aur_pkg_update_data, args=(p, aur_required_data), daemon=True)
+                t.start()
+                aur_srcinfo_threads.append(t)
             else:
                 repo_pkgs[p.name] = p
 
-        if repo_pkgs:
-            repo_required_data = pacman.map_updates_required_data(repo_pkgs.keys())
+        if aur_pkgs:
+            for t in aur_srcinfo_threads:
+                t.join()
 
-            if repo_required_data:
-                res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
-                                                                             aur_pkgs,
-                                                                             all_pkgs,
-                                                                             repo_required_data,
-                                                                             root_password))
+        all_required_data.update(pacman.map_updates_required_data(repo_pkgs.keys()))
+        all_required_data.update(aur_required_data)
+
+        if all_required_data:
+            res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
+                                                                         aur_pkgs,
+                                                                         all_pkgs,
+                                                                         all_required_data,
+                                                                         root_password))
 
         to_install = self._get_update_required_packages(all_pkgs.values(), watcher)
 
         if to_install:
             repo_to_install, aur_to_install, all_to_install = {}, {}, {}
+            aur_to_install_data = {}
+            all_to_install_data = {}
 
+            aur_threads = []
             for pkg in to_install:
                 all_to_install[pkg.name] = pkg
                 if pkg.repository == 'aur':
                     aur_to_install[pkg.name] = pkg
+                    t = Thread(target=self._fill_aur_pkg_update_data, args=(pkg, aur_to_install_data), daemon=True)
+                    t.start()
+                    aur_threads.append(t)
                 else:
                     repo_to_install[pkg.name] = pkg
 
-            if repo_to_install:
-                to_install_data = pacman.map_updates_required_data(repo_to_install.keys())
+            for t in aur_threads:
+                t.join()
 
-                if to_install_data:
-                    repo_required_data.update(to_install_data)
-                    res.to_remove.extend(self._get_update_requirements_to_remove(repo_to_install,
-                                                                                 aur_to_install,
-                                                                                 all_to_install,
-                                                                                 to_install_data,
-                                                                                 root_password,
-                                                                                 {d.pkg.name for d in res.to_remove}))
+            if repo_to_install:
+                all_to_install_data.update(pacman.map_updates_required_data(repo_to_install.keys()))
+
+            all_to_install_data.update(aur_to_install_data)
+
+            if all_to_install_data:
+                all_required_data.update(all_to_install_data)
+                res.to_remove.extend(self._get_update_requirements_to_remove(repo_to_install,
+                                                                             aur_to_install,
+                                                                             all_to_install,
+                                                                             all_to_install_data,
+                                                                             root_password,
+                                                                             {d.pkg.name for d in res.to_remove}))
 
             res.to_install = [UpdateRequirement(p) for p in to_install if p.name in all_to_install]
 
@@ -1803,10 +1831,10 @@ class ArchManager(SoftwareManager):
                 else:
                     new.append(p.name)
 
-            if repo_required_data:
+            if all_required_data:
                 for p in new:
                     pkg = all_repo_pkgs[p]
-                    pkg.size = repo_required_data[p]['s']
+                    pkg.size = all_required_data[p]['s']
 
                 if installed:
                     installed_size = pacman.get_installed_size(installed)
@@ -1814,7 +1842,7 @@ class ArchManager(SoftwareManager):
                     for p in installed:
                         pkg = all_repo_pkgs[p]
                         pkg.size = installed_size[p]
-                        update_size = repo_required_data[p]['s']
+                        update_size = all_required_data[p]['s']
 
                         if pkg.size is None:
                             pkg.size = update_size
@@ -1822,14 +1850,6 @@ class ArchManager(SoftwareManager):
                             pkg.size = update_size - pkg.size
 
         if all_pkgs:
-            self.logger.info("Filtering packages to remove from packages to update")
-            to_remove_names = {p.pkg.name for p in res.to_remove} if res.to_remove else None
-
-            if to_remove_names:
-                for name in to_remove_names:
-                    if name in all_pkgs:
-                        del all_pkgs[name]
-
             if sort:
                 res.to_update = self.sort_update_order(all_pkgs)
             else:
