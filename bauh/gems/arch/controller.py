@@ -1687,7 +1687,8 @@ class ArchManager(SoftwareManager):
         return required
 
     def _get_update_requirements_to_remove(self, repo_pkgs: Dict[str, ArchPackage], aur_pkgs: Dict[str, ArchPackage],
-                                           all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str) -> List[UpdateRequirement]:
+                                           all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str,
+                                           blacklist: Set[str] = None) -> List[UpdateRequirement]:
 
         reqs_to_remove = []
         self.logger.info("Checking conflicts")
@@ -1704,7 +1705,7 @@ class ArchManager(SoftwareManager):
         to_remove_map = {}
         if sub_conflict:
             for dep, source in sub_conflict.items():
-                if dep not in to_remove_map:
+                if dep not in to_remove_map and (not blacklist or dep not in blacklist):
                     pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
                     to_remove_map[dep] = pkg
                     reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)
@@ -1712,7 +1713,7 @@ class ArchManager(SoftwareManager):
 
         if root_conflict:
             for dep, source in root_conflict.items():
-                if dep not in to_remove_map:
+                if dep not in to_remove_map and (not blacklist or dep not in blacklist):
                     pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
                     to_remove_map[dep] = pkg
                     reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)
@@ -1785,7 +1786,8 @@ class ArchManager(SoftwareManager):
                                                                                  aur_to_install,
                                                                                  all_to_install,
                                                                                  to_install_data,
-                                                                                 root_password))
+                                                                                 root_password,
+                                                                                 {d.pkg.name for d in res.to_remove}))
 
             res.to_install = [UpdateRequirement(p) for p in to_install if p.name in all_to_install]
 
