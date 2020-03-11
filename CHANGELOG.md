@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - some installed apps were not being displayed as installed in the search results
 - UI
     - categories filter being displayed during ongoing actions
+    - settings: not matching the default system locale with the available options
 
 ### Improvements
 - AUR
