@@ -1,4 +1,5 @@
 import os
+import traceback
 from pathlib import Path
 from typing import Tuple
 
@@ -6,7 +7,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame
+    QSlider
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
@@ -244,9 +245,11 @@ class MultipleSelectQt(QGroupBox):
 
         for op in model.options:  # loads the help icon if at least one option has a tooltip
             if op.tooltip:
-                with open(resource.get_path('img/about.svg'), 'rb') as f:
-                    pixmap_help.loadFromData(f.read())
-                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                try:
+                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
+                except:
+                    traceback.print_exc()
+
                 break
 
         for op in model.options:
@@ -307,9 +310,11 @@ class FormMultipleSelectQt(QWidget):
 
         for op in model.options:  # loads the help icon if at least one option has a tooltip
             if op.tooltip:
-                with open(resource.get_path('img/about.svg'), 'rb') as f:
-                    pixmap_help.loadFromData(f.read())
-                    pixmap_help = pixmap_help.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                try:
+                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
+                except:
+                    traceback.print_exc()
+
                 break
 
         for op in model.options:
@@ -473,7 +478,12 @@ class FormQt(QGroupBox):
     def gen_tip_icon(self, tip: str) -> QLabel:
         tip_icon = QLabel()
         tip_icon.setToolTip(tip.strip())
-        tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+
+        try:
+            tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
+        except:
+            traceback.print_exc()
+
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
@@ -567,11 +577,13 @@ class FormQt(QGroupBox):
         label = self._new_label(c)
         wrapped = self._wrap(chooser, c)
 
-        bt = IconButton(QIcon(resource.get_path('img/clean.svg')),
-                        i18n=self.i18n['clean'].capitalize(),
-                        action=clean_path,
-                        background='#cc0000',
-                        tooltip=self.i18n['action.run.tooltip'])
+        try:
+            icon = QIcon(resource.get_path('img/clean.svg'))
+        except:
+            traceback.print_exc()
+            icon = QIcon()
+
+        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background='#cc0000', tooltip=self.i18n['action.run.tooltip'])
 
         wrapped.layout().addWidget(bt)
         return label, wrapped
@@ -586,7 +598,12 @@ class TabGroupQt(QTabWidget):
         self.setTabPosition(QTabWidget.North)
 
         for c in model.tabs:
-            icon = QIcon(c.icon_path) if c.icon_path else QIcon()
+            try:
+                icon = QIcon(c.icon_path) if c.icon_path else QIcon()
+            except:
+                traceback.print_exc()
+                icon = QIcon()
+
             self.addTab(to_widget(c.content, i18n), icon, c.label)
 
 

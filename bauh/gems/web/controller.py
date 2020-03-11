@@ -1,4 +1,5 @@
 import glob
+import json
 import locale
 import os
 import re
@@ -13,7 +14,7 @@ from typing import List, Type, Set, Tuple
 import requests
 import yaml
 from colorama import Fore
-from requests import exceptions
+from requests import exceptions, Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult
@@ -29,7 +30,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -155,16 +156,17 @@ class WebApplicationManager(SoftwareManager):
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
+    def _request_url(self, url: str) -> Response:
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
-            url_res = self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False)
-
-            if url_res:
-                return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
+            return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
         except exceptions.ConnectionError as e:
             self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
+
+    def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
+        url_res = self._request_url(url)
+        return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}
@@ -199,7 +201,7 @@ class WebApplicationManager(SoftwareManager):
                     desc = self._get_app_description(final_url, soup)
                     icon_url = self._get_app_icon_url(final_url, soup)
 
-                    app = WebApplication(url=final_url, name=name, description=desc, icon_url=icon_url)
+                    app = WebApplication(url=final_url, source_url=url, name=name, description=desc, icon_url=icon_url)
 
                     if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
                         app.version = self.env_settings['electron']['version']
@@ -255,7 +257,9 @@ class WebApplicationManager(SoftwareManager):
                                     # checking if any of the installed matches is one of the matched suggestions
 
                                     for sug in matched_suggestions:
-                                        found = [i for i in installed_matches if i.url == sug.get('url')]
+                                        sug_url = sug['url'][0:-1] if sug['url'].endswith('/') else sug['url']
+
+                                        found = [i for i in installed_matches if sug_url in {i.url, i.get_source_url()}]
 
                                         if found:
                                             res.installed.extend(found)
@@ -353,6 +357,20 @@ class WebApplicationManager(SoftwareManager):
                                      type_=MessageType.WARNING)
                 traceback.print_exc()
 
+        self.logger.info("Checking if there is any Javascript fix file associated with {} ".format(pkg.name))
+
+        fix_path = '{}/{}.js'.format(FIXES_PATH, pkg.id)
+
+        if os.path.isfile(fix_path):
+            self.logger.info("Removing fix file '{}'".format(fix_path))
+            try:
+                os.remove(fix_path)
+            except:
+                self.logger.error("Could not remove fix file '{}'".format(fix_path))
+                traceback.print_exc()
+                watcher.show_message(title=self.i18n['error'],
+                                     body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
+                                     type_=MessageType.WARNING)
         return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
@@ -597,13 +615,18 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
         fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
-        fix_path = '{}/fix.js'.format(app_dir)
+        fix_path = '{}/{}.js'.format(FIXES_PATH, app_id)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
             self.logger.info('Fix found for {}'.format(pkg.url))
             watcher.print('Fix found for {}'.format(pkg.url))
             install_options.append('--inject={}'.format(fix_path))
+            Path(FIXES_PATH).mkdir(exist_ok=True, parents=True)
+
+            self.logger.info('Writting JS fix at {}'.format(fix_path))
+            with open(fix_path, 'w+') as f:
+                f.write(fix)
 
         # if a custom icon is defined for an app suggestion:
         icon_path, icon_bytes = None, None
@@ -652,12 +675,6 @@ class WebApplicationManager(SoftwareManager):
         shutil.rmtree(app_dir)
         os.rename(temp_dir, app_dir)
 
-        # injecting a fix
-        if fix:
-            self.logger.info('Writting JS fix at {}'.format(fix_path))
-            with open(fix_path, 'w+') as f:
-                f.write(fix)
-
         # persisting the custom suggestion icon in the defitive directory
         if icon_bytes:
             self.logger.info("Writting the final custom suggestion icon at {}".format(icon_path))
@@ -674,6 +691,15 @@ class WebApplicationManager(SoftwareManager):
                 pkg.latest_version = pkg.version
 
         watcher.change_substatus(self.i18n['web.install.substatus.shortcut'])
+
+        try:
+            package_info_path = '{}/resources/app/package.json'.format(pkg.installation_dir)
+            with open(package_info_path) as f:
+                package_info_path = json.loads(f.read())
+                pkg.package_name = package_info_path['name']
+        except:
+            self.logger.info("Could not read the the package info from '{}'".format(package_info_path))
+            traceback.print_exc()
 
         desktop_entry_path = self._gen_desktop_entry_path(app_id)
 
@@ -707,9 +733,11 @@ class WebApplicationManager(SoftwareManager):
         Icon={icon}
         Exec={exec_path}
         {categories}
+        {wmclass}
         """.format(name=pkg.name, exec_path=pkg.get_command(),
                    desc=pkg.description or pkg.url, icon=pkg.get_disk_icon_path(),
-                   categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '')
+                   categories='Categories={}'.format(';'.join(pkg.categories)) if pkg.categories else '',
+                   wmclass="StartupWMClass={}".format(pkg.package_name) if pkg.package_name else '')
 
     def is_enabled(self) -> bool:
         return self.enabled
