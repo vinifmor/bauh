@@ -209,8 +209,12 @@ class GenericSettingsManager:
         if core_config['locale']:
             current_locale = [l for l in locale_opts if l.value == core_config['locale']]
 
-        if not current_locale and self.i18n.default_key:
-            current_locale = [l for l in locale_opts if l.value == self.i18n.default_key]
+        if not current_locale:
+            if self.i18n.current_key:
+                current_locale = [l for l in locale_opts if l.value == self.i18n.current_key]
+
+            if not current_locale:
+                current_locale = [l for l in locale_opts if l.value == self.i18n.default_key]
 
         current_locale = current_locale[0] if current_locale else None
 
