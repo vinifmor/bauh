@@ -1687,7 +1687,7 @@ class ArchManager(SoftwareManager):
         return required
 
     def _get_update_requirements_to_remove(self, repo_pkgs: Dict[str, ArchPackage], aur_pkgs: Dict[str, ArchPackage],
-                                            all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str) -> List[UpdateRequirement]:
+                                           all_pkgs: Dict[str, ArchPackage], repo_pkgs_data: dict, root_password: str) -> List[UpdateRequirement]:
 
         reqs_to_remove = []
         self.logger.info("Checking conflicts")
@@ -1755,7 +1755,7 @@ class ArchManager(SoftwareManager):
                 repo_pkgs[p.name] = p
 
         if repo_pkgs:
-            repo_required_data.update(pacman.map_updates_required_data(repo_pkgs.keys()))
+            repo_required_data = pacman.map_updates_required_data(repo_pkgs.keys())
 
             if repo_required_data:
                 res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
@@ -1777,14 +1777,14 @@ class ArchManager(SoftwareManager):
                     repo_to_install[pkg.name] = pkg
 
             if repo_to_install:
-                to_install_data = pacman.map_updates_required_data(repo_pkgs.keys())
+                to_install_data = pacman.map_updates_required_data(repo_to_install.keys())
 
                 if to_install_data:
                     repo_required_data.update(to_install_data)
-                    res.to_remove.extend(self._get_update_requirements_to_remove(repo_pkgs,
-                                                                                 aur_pkgs,
-                                                                                 all_pkgs,
-                                                                                 repo_required_data,
+                    res.to_remove.extend(self._get_update_requirements_to_remove(repo_to_install,
+                                                                                 aur_to_install,
+                                                                                 all_to_install,
+                                                                                 to_install_data,
                                                                                  root_password))
 
             res.to_install = [UpdateRequirement(p) for p in to_install if p.name in all_to_install]
@@ -1819,8 +1819,11 @@ class ArchManager(SoftwareManager):
                         elif update_size is not None:
                             pkg.size = update_size - pkg.size
 
-        if all_pkgs and sort:
-            self.sort_update_order(all_pkgs)
+        if all_pkgs:
+            if sort:
+                res.to_update = self.sort_update_order(all_pkgs)
+            else:
+                res.to_update = [p for p in all_pkgs.keys()]
 
         return res
 
