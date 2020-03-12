@@ -539,22 +539,6 @@ def get_installed_size(pkgs: Iterable[str]) -> Dict[str, int]: # bytes
     return {}
 
 
-def map_updates_required_data(pkgs: Iterable[str]) -> dict:
-    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
-
-    if output:
-        tuples = RE_UPDATE_REQUIRED_FIELDS.findall(output)
-        reqs = {}
-        for idx, pkg in enumerate(pkgs):
-            provides = {p for p in tuples[idx * 3][1].strip().split(' ') if p != 'None'}
-            conflicts = {p for p in tuples[idx * 3 + 1][1].strip().split(' ') if p != 'None'}
-            size = tuples[idx * 3 + 2][1].strip().split(' ')
-
-            reqs[pkg] = {'p': provides, 'c': conflicts, 's':  size_to_byte(float(size[0]), size[1])}  # c:conflicts, s:size
-
-        return reqs
-
-
 def upgrade_system(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
@@ -569,5 +553,98 @@ def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[
     return {t[1]: t[0] for t in RE_REMOVE_TRANSITIVE_DEPS.findall(output)}
 
 
-def list_all_installed_names() -> Set[str]:
+def map_provided() -> Dict[str, str]:
+    output = run_cmd('pacman -Si')
+
+    if output:
+        provided_map = {}
+        latest_name = None
+        provided = False
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip().split(':')
+                    field = line[0].strip()
+
+                    if field == 'Name':
+                        latest_name = line[1].strip()
+                    elif field == 'Provides':
+                        val = line[1].strip()
+
+                        if val == 'None':
+                            provided_map[latest_name] = latest_name
+                            provided = True
+                        else:
+                            for w in val.split(' '):
+                                word = w.strip()
+
+                                if word:
+                                    provided_map[word] = latest_name
+
+                    elif provided:
+                        latest_name = None
+                        provided = False
+
+                elif provided:
+                    for w in l.split(' '):
+                        word = w.strip()
+
+                        if word:
+                            provided_map[word] = latest_name
+
+        return provided_map
+
+
+def map_updates_required_data(pkgs: Iterable[str]) -> dict:
+    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+
+    if output:
+        res = {}
+        latest_name = None
+        data = {'s': None, 'c': None, 'p': None}
+        latest_field = None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip().split(':')
+                    field = line[0].strip()
+
+                    if field == 'Name':
+                        latest_name = line[1].strip()
+                        latest_field = 'n'
+                    elif field == 'Provides':
+                        val = line[1].strip()
+
+                        if val == 'None':
+                            data['p'] = {latest_name}
+                        else:
+                            data['p'] = {w.strip() for w in val.split(' ') if w}
+                            latest_field = 'p'
+                    elif field == 'Conflicts With':
+                        val = line[1].strip()
+
+                        if val == 'None':
+                            data['c'] = None
+                        else:
+                            data['c'] = {w.strip() for w in val.split(' ') if w}
+
+                        latest_field = 'c'
+                    elif field == 'Installed Size':
+                        size = line[1].strip().split(' ')
+                        data['s'] = size_to_byte(float(size[0]), size[1])
+                        latest_field = 's'
+                    elif latest_name and latest_field == 's':
+                        res[latest_name] = data
+                        latest_name = None
+                        latest_field = None
+                        data = {'s': None, 'c': None, 'p': None}
+
+                elif latest_field and latest_field in ('p', 'c'):
+                    data[latest_field].update((w.strip() for w in l.split(' ') if w))
+
+        return res
+
+
+def list_installed_names() -> Set[str]:
     return {p for p in run_cmd('pacman -Qq').split('\n') if p}

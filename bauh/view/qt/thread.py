@@ -152,6 +152,13 @@ class UpdateSelectedPackages(AsyncAction):
         except:
             return 0
 
+    def _gen_cannot_update_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
+        opts = [self._pkg_as_option(r.pkg, False, r.reason) for r in reqs]
+        comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
+
+        # TODO i18n
+        return FormComponent(label='Cannot update', components=comps)
+
     def _gen_requirements_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p) for p in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
@@ -232,7 +239,7 @@ class UpdateSelectedPackages(AsyncAction):
 
         models = [view.model for view in to_update]
 
-        to_install, to_remove, to_update = [], [], []
+        to_install, to_remove, to_update, cannot_update = [], [], [], None
         if bool(app_config['updates']['pre_dependency_checking']):
             self.change_substatus(self.i18n['action.update.requirements.status'])
             sort = bool(app_config['updates']['sort_packages'])
@@ -240,6 +247,7 @@ class UpdateSelectedPackages(AsyncAction):
             to_install = [r.pkg for r in requirements.to_install]
             to_remove = requirements.to_remove
             to_update = requirements.to_update
+            cannot_update = requirements.cannot_update
         else:
             to_update = models
 
@@ -249,6 +257,9 @@ class UpdateSelectedPackages(AsyncAction):
 
         # self.change_substatus(self.i18n['action.update.status.checking_sizes'])
         # self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
+
+        if cannot_update:
+            comps.append(self._gen_cannot_update_form(cannot_update))
 
         if to_install:
             req_form, reqs_size = self._gen_requirements_form(to_install)
@@ -285,7 +296,7 @@ class UpdateSelectedPackages(AsyncAction):
                                       type_=MessageType.ERROR)
                     return False
 
-        for pkg in sorted_pkgs:
+        for pkg in to_update:
             self.change_substatus('')
             name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
 
