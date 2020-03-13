@@ -1830,7 +1830,7 @@ class ArchManager(SoftwareManager):
                 t.start()
                 aur_srcinfo_threads.append(t)
             else:
-                context.to_update[p.name] = p
+                context.repo_to_update[p.name] = p
 
         if context.aur_to_update:
             for t in aur_srcinfo_threads:
@@ -1840,7 +1840,7 @@ class ArchManager(SoftwareManager):
         context.pkgs_data.update(aur_data)
 
         if context.pkgs_data:
-            res.to_remove.extend(self._fill_to_remove_and_cannot_update(context))
+            self._fill_to_remove_and_cannot_update(context)
 
         to_install = self._get_update_required_packages(context.to_update.values(), watcher)
 
@@ -1863,13 +1863,13 @@ class ArchManager(SoftwareManager):
                 t.join()
 
             if context.repo_to_install:
-                all_to_install_data.update(pacman.map_updates_required_data())
+                all_to_install_data.update(pacman.map_updates_required_data(context.repo_to_install.keys()))
 
             all_to_install_data.update(aur_to_install_data)
 
             if all_to_install_data:
                 context.pkgs_data.update(all_to_install_data)
-                res.to_remove.extend(self._fill_to_remove_and_cannot_update(context, {d.pkg.name for d in res.to_remove}))
+                self._fill_to_remove_and_cannot_update(context, {d.pkg.name for d in res.to_remove})
 
         all_repo_pkgs = {**context.repo_to_update, **context.repo_to_install}
         if all_repo_pkgs:  # filling sizes
