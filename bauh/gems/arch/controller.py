@@ -1730,7 +1730,8 @@ class ArchManager(SoftwareManager):
                 if pkg1_to_install and pkg2_to_install:  # remove both from to install and mark their source packages as 'cannot_update'
                     for src_pkg in {p for p, data in context.pkgs_data.items() if data['d'] and pkg1 in data['d'] or pkg2 in data['d']}:
                         if src_pkg not in context.cannot_update:
-                            reason = self.i18n['arch.update_summary.to_install.dep_conflict'].format(pkg1, pkg2)
+                            reason = self.i18n['arch.update_summary.to_install.dep_conflict'].format("'{}'".format(pkg1),
+                                                                                                     "'{}'".format(pkg2))
                             context.cannot_update[src_pkg] = UpdateRequirement(context.to_update[src_pkg], reason)
 
                         del context.to_update[src_pkg]
@@ -1750,8 +1751,47 @@ class ArchManager(SoftwareManager):
                                 del context.repo_to_install[p]
                             else:
                                 del context.aur_to_install[p]
+                elif (pkg1_to_install and not pkg2_to_install) or (not pkg1_to_install and pkg2_to_install):
+                    to_install, to_update = (pkg1, pkg2) if pkg1_to_install else (pkg2, pkg1)
+                    to_install_srcs = {p for p, data in context.pkgs_data.items() if data['d'] and to_install in data['d']}
+
+                    if to_update not in context.cannot_update:
+                        srcs_str = ', '.join(("'{}'".format(p) for p in to_install_srcs))
+                        reason = self.i18n['arch.update_summary.to_update.conflicts_dep'].format("'{}'".format(to_install), srcs_str)
+                        context.cannot_update[to_install] = UpdateRequirement(context.to_update[to_update], reason)
+
+                    if to_update in context.to_update:
+                        del context.to_update[to_update]
+
+                    for src_pkg in to_install_srcs:
+                        src_to_install = src_pkg in context.to_install
+                        pkg = context.to_install[src_pkg] if src_to_install else context.to_update[src_pkg]
+                        if src_pkg not in context.cannot_update:
+                            reason = self.i18n['arch.update_summary.to_update.dep_conflicts'].format("'{}'".format(to_install),
+                                                                                                     "'{}'".format(to_update))
+                            context.cannot_update[src_pkg] = UpdateRequirement(pkg, reason)
+
+                        if src_to_install:
+                            del context.to_install[src_pkg]
+
+                            if src_pkg in context.repo_to_install:
+                                del context.repo_to_install[src_pkg]
+                            else:
+                                del context.aur_to_install[src_pkg]
+                        else:
+                            del context.to_update[src_pkg]
+
+                            if src_pkg in context.repo_to_update:
+                                del context.repo_to_update[src_pkg]
+                            else:
+                                del context.aur_to_update[src_pkg]
+
+                        del context.pkgs_data[src_pkg]
+
+                    if to_install in context.to_install:
+                        del context.to_install[to_install]
+
                 else:  # both are in 'to_update'
-                    #     # TODO handle the case where pkg1 is to install and pkg2 is to update
                     if pkg1 not in context.cannot_update:
                         reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg2)
                         context.cannot_update[pkg1] = UpdateRequirement(pkg=context.to_update[pkg1], reason=reason)
@@ -1760,23 +1800,24 @@ class ArchManager(SoftwareManager):
                         reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg1)
                         context.cannot_update[pkg2] = UpdateRequirement(pkg=context.to_update[pkg2], reason=reason)
 
+                    for p in (pkg1, pkg2):
+                        if p in context.to_update:
+                            del context.to_update[p]
+
+                            if p in context.repo_to_update:
+                                del context.repo_to_update[p]
+                            else:
+                                del context.aur_to_update[p]
 
             for pkg1, pkg2 in mutual_conflicts.items():  # removing conflicting packages from the packages selected to update
                 for p in (pkg1, pkg2):
-                    if p in context.to_update:
-                        del context.to_update[p]
-
-                        if p in context.repo_to_update:
-                            del context.repo_to_update[p]
-                        else:
-                            del context.aur_to_update[p]
-
                     for c in context.pkgs_data[p]['c']:
                         # source = provided_map[c]
                         if c in root_conflict:
                             del root_conflict[c]
 
-                    del context.pkgs_data[p]
+                    if p in context.pkgs_data:
+                        del context.pkgs_data[p]
 
         return root_conflict
 

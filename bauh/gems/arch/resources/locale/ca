@@ -172,3 +172,6 @@ arch.info.14_installed_files=arxius instal·lats
 arch.info.15_checkdepends=comprovació de dependències
 arch.update.disabled.tooltip=This package can oly be upgrade through the action "Quick system upgrade"
 arch.update_summary.to_install.dep_conflict=Conflict between the dependencies {} and {}
+arch.update_summary.to_update.conflicts_dep=Conflicts with the dependency {} of {}
+arch.update_summary.to_update.dep_conflicts=Dependency {} conflicts with {}
+arch.update_summary.conflict_between=Conflict between {} and {}

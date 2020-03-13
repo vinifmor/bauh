@@ -173,3 +173,6 @@ arch.makepkg.optimizing=Optimizing the compilation
 arch.custom_action.upgrade_system.substatus=Actualizando paquetes
 arch.update.disabled.tooltip=Solo es posible actualizar este paquete a través de la acción "Actualización rápida de sistema"
 arch.update_summary.to_install.dep_conflict=Conflicto entre las dependencias {} y {}
+arch.update_summary.to_update.conflicts_dep=Conflicta con la dependencia {} de {}
+arch.update_summary.to_update.dep_conflicts=La dependencia {} conflicta con {}
+arch.update_summary.conflict_between=Conflicto entre {} y {}

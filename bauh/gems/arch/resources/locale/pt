@@ -170,3 +170,6 @@ arch.info.14_installed_files=arquivos instalados
 arch.info.15_checkdepends=dependências de verificação
 arch.update.disabled.tooltip=Este pacote só pode ser atualizado através da ação "Atualização rápida de sistema"
 arch.update_summary.to_install.dep_conflict=Conflito entre as dependências {} e {}
+arch.update_summary.to_update.conflicts_dep=Conflita com a dependência {} de {}
+arch.update_summary.to_update.dep_conflicts=A dependência {} conflita com {}
+arch.update_summary.conflict_between=Conflito entre {} e {}
