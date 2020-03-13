@@ -1,14 +1,17 @@
 from threading import Thread
-from typing import Set, List, Tuple
+from typing import Set, List, Tuple, Dict
 
-from bauh.gems.arch import pacman
+from bauh.api.abstract.handler import ProcessWatcher
+from bauh.gems.arch import pacman, message
 from bauh.gems.arch.aur import AURClient
+from bauh.view.util.translation import I18n
 
 
 class DependenciesAnalyser:
 
-    def __init__(self, aur_client: AURClient):
+    def __init__(self, aur_client: AURClient, i18n: I18n):
         self.aur_client = aur_client
+        self.i18n = i18n
 
     def _fill_repository(self, name: str, output: List[Tuple[str, str]]):
 
@@ -128,3 +131,40 @@ class DependenciesAnalyser:
                     if not subdep[0]:
                         return missing
         return missing
+
+    def map_known_missing_deps(self, known_deps: Dict[str, str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
+        sorted_deps = []  # it will hold the proper order to install the missing dependencies
+
+        repo_deps, aur_deps = set(), set()
+
+        for dep, repo in known_deps.items():
+            if repo == 'aur':
+                aur_deps.add(dep)
+            else:
+                repo_deps.add(dep)
+
+        if check_subdeps:
+            for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
+                if deps[0]:
+                    missing_subdeps = self.get_missing_subdeps_of(deps[0], deps[1])
+
+                    if missing_subdeps:
+                        for dep in missing_subdeps:
+                            if not dep[1]:
+                                message.show_dep_not_found(dep[0], self.i18n, watcher)
+                                return
+
+                        for dep in missing_subdeps:
+                            if dep not in sorted_deps:
+                                sorted_deps.append(dep)
+
+        for dep, repo in known_deps.items():
+            if repo != 'aur':
+                data = (dep, repo)
+                if data not in sorted_deps:
+                    sorted_deps.append(data)
+
+        for dep in aur_deps:
+            sorted_deps.append((dep, 'aur'))
+
+        return sorted_deps
