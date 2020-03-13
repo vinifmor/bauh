@@ -171,3 +171,4 @@ arch.info.14_optdepends=optional Abhängigkeiten
 arch.info.14_installed_files=installierte Dateien
 arch.info.15_checkdepends=Überprüfung Abhängigkeiten
 arch.update.disabled.tooltip=This package can oly be upgrade through the action "Quick system upgrade"
+arch.update_summary.to_install.dep_conflict=Conflict between the dependencies {} and {}

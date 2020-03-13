@@ -159,34 +159,37 @@ class UpdateSelectedPackages(AsyncAction):
         # TODO i18n
         return FormComponent(label='Cannot update', components=comps)
 
-    def _gen_requirements_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
+    def _gen_to_install_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p) for p in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
-                                    self.i18n['size'].capitalize(),
-                                    '?' if size is None else get_human_size_str(size))
+        lb = '{}: {} ( {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
+                                        len(opts),
+                                        self.i18n['size'].capitalize(),
+                                        '?' if size is None else get_human_size_str(size))
         return FormComponent(label=lb, components=comps), size
 
-    def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> Tuple[FormComponent, int]:
+    def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
         opts = [self._pkg_as_option(r.pkg, False, r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         size = -self._sum_pkgs_size([req.pkg for req in reqs])
 
-        lb = '{} ( {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
-                                    self.i18n['size'].capitalize(),
-                                    '?' if size is None else get_human_size_str(size))
-        return FormComponent(label=lb, components=comps), size
+        lb = '{}: {} ( {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
+                                        len(opts),
+                                        self.i18n['size'].capitalize(),
+                                        '?' if size is None else get_human_size_str(size))
+        return FormComponent(label=lb, components=comps)
 
     def _gen_to_update_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
         opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         size = self._sum_pkgs_size(pkgs)
 
-        lb = '{} ( {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
-                                    self.i18n['size'].capitalize(),
-                                    '?' if size is None else get_human_size_str(size))
+        lb = '{}: {} ( {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
+                                        len(opts),
+                                        self.i18n['size'].capitalize(),
+                                        '?' if size is None else get_human_size_str(size))
 
         return FormComponent(label=lb, components=comps), size
 
@@ -262,14 +265,12 @@ class UpdateSelectedPackages(AsyncAction):
             comps.append(self._gen_cannot_update_form(cannot_update))
 
         if to_install:
-            req_form, reqs_size = self._gen_requirements_form(to_install)
+            req_form, reqs_size = self._gen_to_install_form(to_install)
             total_size += reqs_size
             comps.append(req_form)
 
         if to_remove:
-            remove_form, reqs_size = self._gen_to_remove_form(to_remove)
-            total_size += reqs_size
-            comps.append(remove_form)
+            comps.append(self._gen_to_remove_form(to_remove))
 
         updates_form, updates_size = self._gen_to_update_form(to_update)
         total_size += updates_size

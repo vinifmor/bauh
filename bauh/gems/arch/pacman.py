@@ -601,7 +601,7 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
     if output:
         res = {}
         latest_name = None
-        data = {'s': None, 'c': None, 'p': None}
+        data = {'s': None, 'c': None, 'p': None, 'd': None}
         latest_field = None
 
         for l in output.split('\n'):
@@ -621,6 +621,14 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
                         else:
                             data['p'] = {w.strip() for w in val.split(' ') if w}
                             latest_field = 'p'
+                    elif field == 'Depends On':
+                        val = line[1].strip()
+
+                        if val == 'None':
+                            data['d'] = None
+                        else:
+                            data['d'] = {w.strip().split(':')[0].strip() for w in val.split(' ') if w}
+                            latest_field = 'd'
                     elif field == 'Conflicts With':
                         val = line[1].strip()
 
@@ -638,9 +646,11 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
                         res[latest_name] = data
                         latest_name = None
                         latest_field = None
-                        data = {'s': None, 'c': None, 'p': None}
+                        data = {'s': None, 'c': None, 'p': None, 'd': None}
+                    else:
+                        latest_field = None
 
-                elif latest_field and latest_field in ('p', 'c'):
+                elif latest_field and latest_field in ('p', 'c', 'd'):
                     data[latest_field].update((w.strip() for w in l.split(' ') if w))
 
         return res

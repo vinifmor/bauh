@@ -1709,46 +1709,67 @@ class ArchManager(SoftwareManager):
         # all_provided = provided_map.keys()  # TODO move to context
 
         root_conflict = {}
-        pkgs_added = set()
         mutual_conflicts = {}
 
         for p, data in context.pkgs_data.items():
             if data['c']:
-                pkgs_added.add(p)
                 for c in data['c']:
                     if c and c in context.installed_names:
                         # source = provided_map[c]
                         root_conflict[c] = p
 
-                        if c in pkgs_added:
+                        if (p, c) in root_conflict.items():
                             mutual_conflicts[c] = p
 
         if mutual_conflicts:
-            for pkg1, pkg2 in mutual_conflicts.items():  # adding the mutual conflict packages to the 'cannot update' list
-                # pkg1_to_install = pkg1 in context.to_install
-                # pkg2_to_install = pkg2 in context.to_install
-                #
-                # if pkg1_to_install and pkg2_to_install:
-                #     # TODO remove the pkgs from 'to_install' and add their source packages to 'cannot_update'
-                #     break
-                # else:  # both are in 'to_update'
-                #     # TODO handle the case where pkg1 is to install and pkg2 is to update
-                if pkg1 not in context.cannot_update:
-                    reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg2)
-                    context.cannot_update[pkg1] = UpdateRequirement(pkg=context.to_update[pkg1], reason=reason)
 
-                if pkg2 not in context.cannot_update:
-                    reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg1)
-                    context.cannot_update[pkg2] = UpdateRequirement(pkg=context.to_update[pkg2], reason=reason)
+            for pkg1, pkg2 in mutual_conflicts.items():  # adding the mutual conflict packages to the 'cannot update' list
+                pkg1_to_install = pkg1 in context.to_install
+                pkg2_to_install = pkg2 in context.to_install
+
+                if pkg1_to_install and pkg2_to_install:  # remove both from to install and mark their source packages as 'cannot_update'
+                    for src_pkg in {p for p, data in context.pkgs_data.items() if data['d'] and pkg1 in data['d'] or pkg2 in data['d']}:
+                        if src_pkg not in context.cannot_update:
+                            reason = self.i18n['arch.update_summary.to_install.dep_conflict'].format(pkg1, pkg2)
+                            context.cannot_update[src_pkg] = UpdateRequirement(context.to_update[src_pkg], reason)
+
+                        del context.to_update[src_pkg]
+
+                        if src_pkg in context.repo_to_update:
+                            del context.repo_to_update[src_pkg]
+                        else:
+                            del context.aur_to_update[src_pkg]
+
+                        del context.pkgs_data[src_pkg]
+
+                    for p in (pkg1, pkg2):
+                        if p in context.to_install:
+                            del context.to_install[p]
+
+                            if p in context.repo_to_install:
+                                del context.repo_to_install[p]
+                            else:
+                                del context.aur_to_install[p]
+                else:  # both are in 'to_update'
+                    #     # TODO handle the case where pkg1 is to install and pkg2 is to update
+                    if pkg1 not in context.cannot_update:
+                        reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg2)
+                        context.cannot_update[pkg1] = UpdateRequirement(pkg=context.to_update[pkg1], reason=reason)
+
+                    if pkg2 not in context.cannot_update:
+                        reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg1)
+                        context.cannot_update[pkg2] = UpdateRequirement(pkg=context.to_update[pkg2], reason=reason)
+
 
             for pkg1, pkg2 in mutual_conflicts.items():  # removing conflicting packages from the packages selected to update
                 for p in (pkg1, pkg2):
                     if p in context.to_update:
                         del context.to_update[p]
-                    if p in context.repo_to_update:
-                        del context.repo_to_update[p]
-                    if p in context.aur_to_update:
-                        del context.aur_to_update[p]
+
+                        if p in context.repo_to_update:
+                            del context.repo_to_update[p]
+                        else:
+                            del context.aur_to_update[p]
 
                     for c in context.pkgs_data[p]['c']:
                         # source = provided_map[c]
@@ -1759,7 +1780,7 @@ class ArchManager(SoftwareManager):
 
         return root_conflict
 
-    def _fill_to_remove_and_cannot_update(self, context: UpdateRequirementsContext, blacklist: Set[str] = None):
+    def _fill_conflicts(self, context: UpdateRequirementsContext, blacklist: Set[str] = None):
         self.logger.info("Checking conflicts")
 
         root_conflict = self._filter_and_map_conflicts(context)
@@ -1840,7 +1861,7 @@ class ArchManager(SoftwareManager):
         context.pkgs_data.update(aur_data)
 
         if context.pkgs_data:
-            self._fill_to_remove_and_cannot_update(context)
+            self._fill_conflicts(context)
 
         to_install = self._get_update_required_packages(context.to_update.values(), watcher)
 
@@ -1869,7 +1890,7 @@ class ArchManager(SoftwareManager):
 
             if all_to_install_data:
                 context.pkgs_data.update(all_to_install_data)
-                self._fill_to_remove_and_cannot_update(context, {d.pkg.name for d in res.to_remove})
+                self._fill_conflicts(context, {d.pkg.name for d in res.to_remove})
 
         all_repo_pkgs = {**context.repo_to_update, **context.repo_to_install}
         if all_repo_pkgs:  # filling sizes

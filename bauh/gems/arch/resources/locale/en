@@ -169,3 +169,4 @@ arch.custom_action.upgrade_system.success.line1=System successfully upgraded!
 arch.custom_action.upgrade_system.success.line2=Some changes may require a system restart to take effect.
 arch.custom_action.upgrade_system.success.line3=Restart now ?
 arch.update.disabled.tooltip=This package can oly be upgrade through the action "Quick system upgrade"
+arch.update_summary.to_install.dep_conflict=Conflict between the dependencies {} and {}

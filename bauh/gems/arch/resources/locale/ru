@@ -154,3 +154,4 @@ arch.info.14_optdepends=Необязательные зависимости
 arch.info.14_installed_files=Устанавливаемые файлы
 arch.info.15_checkdepends=Проверка зависимостей
 arch.update.disabled.tooltip=Этот пакет может быть обновлен только через действие "обновить систему"
+arch.update_summary.to_install.dep_conflict=Conflict between the dependencies {} and {}
