@@ -391,6 +391,11 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.checkbox_only_apps.setEnabled(False)
+        self.combo_categories.setEnabled(False)
+        self.combo_filter_type.setEnabled(False)
+        self.input_name_filter.setEnabled(False)
+        self.checkbox_updates.setEnabled(False)
         self.table_apps.setEnabled(False)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
@@ -406,6 +411,11 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.checkbox_only_apps.setEnabled(True)
+        self.checkbox_updates.setEnabled(True)
+        self.combo_categories.setEnabled(True)
+        self.combo_filter_type.setEnabled(True)
+        self.input_name_filter.setEnabled(True)
         self.table_apps.setEnabled(True)
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)
