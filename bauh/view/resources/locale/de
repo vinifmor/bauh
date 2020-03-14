@@ -241,10 +241,11 @@ action.update.install_req.fail.body={} konnte nicht erfolgreich installiert werd
 action.update.requirements.status=Prüfe Voraussetzungen
 action.update.order=Upgrade-Reihenfolge
 action.update.required_label=Must be installed
-action.update.total_size=Total size
+action.update.total_size=Upgrade size
 action.update.summary=Upgrade summary
 action.update.status.checking_sizes=Calculating upgrade size
 action.update.label_to_remove=Must be uninstalled
+action.update.cannot_update_label=Cannot be upgraded
 general=Allgemein
 task.download_categories=Downloading categories [ {} ]
 =prepare_panel.title.start=Initialisierung
@@ -308,3 +309,4 @@ bt.not_now=Not now
 action.disk_trim=Optimizing disc ( TRIM )
 action.disk_trim.error=There was a problem while optimizing the disk
 success=success
+amount=amount
