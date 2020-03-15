@@ -1,7 +1,7 @@
 import logging
 import time
 from threading import Thread
-from typing import Dict, Set, List, Iterable, Tuple
+from typing import Dict, Set, List, Tuple, Iterable
 
 from bauh.api.abstract.controller import UpdateRequirements, UpdateRequirement
 from bauh.api.abstract.handler import ProcessWatcher
@@ -19,7 +19,8 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_update: Dict[str, UpdateRequirement],
-                 to_remove: Dict[str, UpdateRequirement], installed_names: Set[str], root_password: str):
+                 to_remove: Dict[str, UpdateRequirement], installed_names: Set[str], provided_names: Set[str],
+                 root_password: str):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
         self.aur_to_update = aur_to_update
@@ -29,6 +30,7 @@ class UpdateRequirementsContext:
         self.cannot_update = cannot_update
         self.root_password = root_password
         self.installed_names = installed_names
+        self.provided_names = provided_names
         self.to_remove = to_remove
         self.to_install = to_install
 
@@ -177,7 +179,7 @@ class UpdatesSummarizer:
 
         return root_conflict
 
-    def _fill_conflicts(self, context: UpdateRequirementsContext, blacklist: Set[str] = None):
+    def _fill_conflicts(self, context: UpdateRequirementsContext, blacklist: Iterable[str] = None):
         self.logger.info("Checking conflicts")
 
         root_conflict = self._filter_and_map_conflicts(context)
@@ -242,13 +244,14 @@ class UpdatesSummarizer:
 
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
 
-    def _get_update_required_packages(self, pkgs: Iterable[ArchPackage]) -> List[ArchPackage]:
+    def _fill_to_install(self, context: UpdateRequirementsContext):
         ti = time.time()
-        required = []
-        deps = self.deps_analyser.map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, self.watcher)
+        self.logger.info("Discovering updates missing packages")
+        # deps = self.deps_analyser.map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, self.watcher)
+        deps = self.deps_analyser.map_updates_missing_deps(context.pkgs_data, context.provided_names, True)  # TODO read config
 
         if deps:  # filtering selected packages
-            selected_names = {p.name for p in pkgs}
+            selected_names = {p for p in context.to_update}
             deps = [dep for dep in deps if dep[0] not in selected_names]
 
         if deps:
@@ -262,17 +265,69 @@ class UpdatesSummarizer:
             for t in map_threads:
                 t.join()
 
-            required.extend([sorted_pkgs[idx] for idx in sorted(sorted_pkgs)])
+            # context.to_install.extend([sorted_pkgs[idx] for idx in sorted(sorted_pkgs)])  # TODO fix on main function the to_install order
+
+            aur_to_install_data = {}
+            all_to_install_data = {}
+
+            aur_threads = []
+            for idx, pkg in sorted_pkgs.items():
+                context.to_install[pkg.name] = pkg
+                if pkg.repository == 'aur':
+                    context.aur_to_install[pkg.name] = pkg
+                    t = Thread(target=self._fill_aur_pkg_update_data, args=(pkg, aur_to_install_data), daemon=True)
+                    t.start()
+                    aur_threads.append(t)
+                else:
+                    context.repo_to_install[pkg.name] = pkg
+
+            for t in aur_threads:
+                t.join()
+
+            if context.repo_to_install:
+                all_to_install_data.update(pacman.map_updates_data(context.repo_to_install.keys()))
+
+            all_to_install_data.update(aur_to_install_data)
+
+            if all_to_install_data:
+                context.pkgs_data.update(all_to_install_data)
+                self._fill_conflicts(context, context.to_remove.keys())
 
         tf = time.time()
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
-        return required
+
+    def __fill_provided_names(self, context: UpdateRequirementsContext):
+        ti = time.time()
+        self.logger.info("Filling provided names")
+        context.installed_names = pacman.list_installed_names()
+        installed_to_ignore = set()
+
+        for pkgname in context.to_update:
+            context.provided_names.add(pkgname)
+            installed_to_ignore.add(pkgname)
+            pdata = context.pkgs_data.get(pkgname)
+
+            if pdata and pdata['p']:
+                for p in pdata['p']:
+                    context.provided_names.add(p)
+                    split_provided = p.split('=')
+
+                    if len(split_provided) > 1 and split_provided[0] != p:
+                        context.provided_names.add(split_provided[0])
+
+        if installed_to_ignore:  # filling the provided names of the installed
+            installed_to_query = context.installed_names.difference(installed_to_ignore)
+
+            if installed_to_query:
+                context.provided_names.update(pacman.list_provided(installed_to_query, remote=False))
+
+        tf = time.time()
+        self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))
 
     def summarize(self, pkgs: List[ArchPackage], sort: bool, root_password: str) -> UpdateRequirements:
         res = UpdateRequirements(None, [], None, [])
 
-        installed_names = pacman.list_installed_names()
-        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, installed_names, root_password)
+        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, None, set(), root_password)
 
         aur_data = {}
         aur_srcinfo_threads = []
@@ -290,40 +345,19 @@ class UpdatesSummarizer:
             for t in aur_srcinfo_threads:
                 t.join()
 
-        context.pkgs_data.update(pacman.map_updates_required_data(context.repo_to_update.keys()))
+        self.logger.info("Filling updates data")
+        tudi = time.time()
+        context.pkgs_data.update(pacman.map_updates_data(context.repo_to_update.keys()))
         context.pkgs_data.update(aur_data)
+        tudf = time.time()
+        self.logger.info("Filling updates data took {0:.2f} seconds".format(tudf - tudi))
+
+        self.__fill_provided_names(context)
 
         if context.pkgs_data:
             self._fill_conflicts(context)
 
-        to_install = self._get_update_required_packages(context.to_update.values())
-
-        if to_install:
-            aur_to_install_data = {}
-            all_to_install_data = {}
-
-            aur_threads = []
-            for pkg in to_install:
-                context.to_install[pkg.name] = pkg
-                if pkg.repository == 'aur':
-                    context.aur_to_install[pkg.name] = pkg
-                    t = Thread(target=self._fill_aur_pkg_update_data, args=(pkg, aur_to_install_data), daemon=True)
-                    t.start()
-                    aur_threads.append(t)
-                else:
-                    context.repo_to_install[pkg.name] = pkg
-
-            for t in aur_threads:
-                t.join()
-
-            if context.repo_to_install:
-                all_to_install_data.update(pacman.map_updates_required_data(context.repo_to_install.keys()))
-
-            all_to_install_data.update(aur_to_install_data)
-
-            if all_to_install_data:
-                context.pkgs_data.update(all_to_install_data)
-                self._fill_conflicts(context, {d.pkg.name for d in res.to_remove})
+        self._fill_to_install(context)
 
         all_repo_pkgs = {**context.repo_to_update, **context.repo_to_install}
         if all_repo_pkgs:  # filling sizes
@@ -368,6 +402,6 @@ class UpdatesSummarizer:
             res.cannot_update = [p for p in context.cannot_update.keys()]
 
         if context.to_install:
-            res.to_install = [UpdateRequirement(p) for p in to_install if p.name in context.to_install]
+            res.to_install = [UpdateRequirement(p) for p in context.to_install.values()]
 
         return res

@@ -595,13 +595,13 @@ def map_provided() -> Dict[str, str]:
         return provided_map
 
 
-def map_updates_required_data(pkgs: Iterable[str]) -> dict:
+def map_updates_data(pkgs: Iterable[str]) -> dict:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
         res = {}
         latest_name = None
-        data = {'s': None, 'c': None, 'p': None, 'd': None}
+        data = {'s': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
         latest_field = None
 
         for l in output.split('\n'):
@@ -610,17 +610,30 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
                     line = l.strip().split(':')
                     field = line[0].strip()
 
-                    if field == 'Name':
+                    if field == 'Repository':
+                        data['r'] = line[1].strip()
+                        latest_field = 'r'
+                    elif field == 'Name':
                         latest_name = line[1].strip()
                         latest_field = 'n'
+                    elif field == 'Version':
+                        data['v'] = line[1].strip()
+                        latest_field = 'v'
                     elif field == 'Provides':
+                        latest_field = 'p'
                         val = line[1].strip()
 
-                        if val == 'None':
-                            data['p'] = {latest_name}
-                        else:
-                            data['p'] = {w.strip() for w in val.split(' ') if w}
-                            latest_field = 'p'
+                        data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'].split('=')[0])}
+                        if val != 'None':
+                            for w in val.split(' '):
+                                if w:
+                                    word = w.strip()
+                                    data['p'].add(word)
+
+                                    word_split = word.split('=')
+
+                                    if word_split[0] != word:
+                                        data['p'].add(word_split[0])
                     elif field == 'Depends On':
                         val = line[1].strip()
 
@@ -646,15 +659,81 @@ def map_updates_required_data(pkgs: Iterable[str]) -> dict:
                         res[latest_name] = data
                         latest_name = None
                         latest_field = None
-                        data = {'s': None, 'c': None, 'p': None, 'd': None}
+                        data = {'s': None, 'c': None, 'p': None, 'd': None, 'r': None,  'v': None}
                     else:
                         latest_field = None
 
                 elif latest_field and latest_field in ('p', 'c', 'd'):
-                    data[latest_field].update((w.strip() for w in l.split(' ') if w))
+                    if latest_field == 'p':
+                        for w in l.split(' '):
+                            if w:
+                                word = w.strip()
+                                data['p'].add(word)
+
+                                word_split = word.split('=')
+
+                                if word_split[0] != word:
+                                    data['p'].add(word_split[0])
+                    else:
+                        data[latest_field].update((w.strip() for w in l.split(' ') if w))
 
         return res
 
 
 def list_installed_names() -> Set[str]:
     return {p for p in run_cmd('pacman -Qq').split('\n') if p}
+
+
+def list_provided(pkgs: Iterable[str], remote: bool) -> Set[str]:
+    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs)))
+
+    if output:
+        res = set()
+        provided_mapping = False
+        latest_name = None
+        latest_version = None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip().split(':')
+                    field = line[0].strip()
+
+                    if field == 'Name':
+                        latest_name = line[1].strip()
+                        latest_version = None
+                    elif field == 'Version':
+                        latest_version = line[1].strip().split('-')[0]
+                    elif field == 'Provides':
+                        provided_mapping = True
+                        val = line[1].strip()
+                        res.add(latest_name)
+                        res.add('{}={}'.format(latest_name, latest_version))
+
+                        if val == 'None':
+                            provided_mapping = False
+                        else:
+                            for w in val.split(' '):
+                                if w:
+                                    word = w.strip()
+                                    res.add(word)
+
+                                    word_split = word.split('=')
+
+                                    if word_split[0] != word:
+                                        res.add(word_split[0])
+                    else:
+                        provided_mapping = False
+
+                elif provided_mapping:
+                    for w in l.split(' '):
+                        if w:
+                            word = w.strip()
+                            res.add(word)
+
+                            word_split = word.split('=')
+
+                            if word_split[0] != word:
+                                res.add(word_split[0])
+
+        return res

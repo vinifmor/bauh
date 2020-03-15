@@ -1,3 +1,6 @@
+import re
+import traceback
+from distutils.version import LooseVersion
 from threading import Thread
 from typing import Set, List, Tuple, Dict
 
@@ -12,6 +15,7 @@ class DependenciesAnalyser:
     def __init__(self, aur_client: AURClient, i18n: I18n):
         self.aur_client = aur_client
         self.i18n = i18n
+        self.re_dep_operator = re.compile(r'([<>=]+)')
 
     def _fill_repository(self, name: str, output: List[Tuple[str, str]]):
 
@@ -166,5 +170,70 @@ class DependenciesAnalyser:
 
         for dep in aur_deps:
             sorted_deps.append((dep, 'aur'))
+
+        return sorted_deps
+
+    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Set[str], check_subdeps: bool) -> List[Tuple[str, str]]:
+        sorted_deps = []  # it will hold the proper order to install the missing dependencies
+
+        missing_deps = set()  # TODO find out the repositories for each dep added here
+
+        for p, data in pkgs_data.items():
+            aur_pkg = data['r'] == 'aur'
+            if aur_pkg:
+                deps = set()
+            else:
+                deps = data['d']
+
+            if deps:
+                for dep in deps:
+                    if dep not in provided_names:
+                        dep_split = self.re_dep_operator.split(dep)
+                        dep_name = dep_split[0].strip()
+
+                        if dep_name not in provided_names:
+                            print('Dep not in provided: {}'.format(dep_name))
+                            missing_deps.add(dep_name)
+                        else:
+                            version_pattern = '{}='.format(dep_name)
+                            version_found = [p for p in provided_names if p.startswith(version_pattern)]
+
+                            if version_found:
+                                version_found = LooseVersion(version_found[0].split('=')[1])
+                                version_informed = LooseVersion(dep_split[2].strip())
+
+                                op = dep_split[1] if dep_split[1] != '=' else '=='
+                                if not eval('version_found {} version_informed'.format(op)):
+                                    # TODO compare with the selected to upgrade
+                                    print('Dep version not matched: {}'.format(dep))
+                                    missing_deps.add(dep_name)  # TODO add version ?
+                            else:
+                                print('Dep not in provided 2: {}'.format(dep_name))
+                                missing_deps.add(dep_name)
+
+        if check_subdeps:
+            pass
+            # TODO
+            # for dep in missing_repo:
+            #     pass
+
+        # TODO sort deps
+        sorted_deps.extend(((dep, 'extra') for dep in missing_deps))  # TODO check repo
+        # sorted_deps.extend(((dep, 'extra') for dep in missing_repo))
+        # sorted_deps.extend(((dep, 'aur') for dep in missing_aur))
+
+            # for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
+            #     if deps[0]:
+            #         missing_subdeps = self.get_missing_subdeps_of(deps[0], deps[1])
+            #
+            #         if missing_subdeps:
+            #             for dep in missing_subdeps:
+            #                 if not dep[1]:
+            #                     message.show_dep_not_found(dep[0], self.i18n, watcher)
+            #                     return
+            #
+            #             for dep in missing_subdeps:
+            #                 if dep not in sorted_deps:
+            #                     sorted_deps.append(dep)
 
         return sorted_deps
