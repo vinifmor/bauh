@@ -19,7 +19,7 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_update: Dict[str, UpdateRequirement],
-                 to_remove: Dict[str, UpdateRequirement], installed_names: Set[str], provided_names: Set[str],
+                 to_remove: Dict[str, UpdateRequirement], installed_names: Set[str], provided_names: Dict[str, str],
                  root_password: str):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
@@ -48,10 +48,18 @@ class UpdatesSummarizer:
     def _fill_aur_pkg_update_data(self, pkg: ArchPackage, output: dict):
         srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
 
+        provided = set()
+        provided.add(pkg.name)
+
         if srcinfo:
-            output[pkg.name] = {'c': srcinfo.get('conflicts'), 's': None, 'p': srcinfo.get('provides'), 'r': 'aur'}
+            provided.add('{}={}'.format(pkg.name, srcinfo['pkgver']))
+            if srcinfo.get('provides'):
+                provided.update(srcinfo.get('provides'))
+
+            output[pkg.name] = {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur', 'v': srcinfo['pkgver']}
         else:
-            output[pkg.name] = {'c': None, 's': None, 'p': None, 'r': 'aur'}
+            provided.add('{}={}'.format(pkg.name, pkg.latest_version))
+            output[pkg.name] = {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': pkg.latest_version}
 
     def _handle_conflict_both_to_install(self, pkg1: str, pkg2: str, context: UpdateRequirementsContext):
         for src_pkg in {p for p, data in context.pkgs_data.items() if
@@ -258,6 +266,7 @@ class UpdatesSummarizer:
             map_threads, sorted_pkgs = [], {}
 
             for idx, dep in enumerate(deps):
+                # TODO check if this '_map' already makes sense ( lots of data is already preloaded in previous steps )
                 t = Thread(target=self._map_and_add_package, args=(dep, idx, sorted_pkgs), daemon=True)
                 t.start()
                 map_threads.append(t)
@@ -303,17 +312,18 @@ class UpdatesSummarizer:
         installed_to_ignore = set()
 
         for pkgname in context.to_update:
-            context.provided_names.add(pkgname)
+            context.provided_names[pkgname] = pkgname
             installed_to_ignore.add(pkgname)
-            pdata = context.pkgs_data.get(pkgname)
 
+            pdata = context.pkgs_data.get(pkgname)
             if pdata and pdata['p']:
+                context.provided_names['{}={}'.format(pkgname, pdata['v'])] = pkgname
                 for p in pdata['p']:
-                    context.provided_names.add(p)
+                    context.provided_names[p] = pkgname
                     split_provided = p.split('=')
 
                     if len(split_provided) > 1 and split_provided[0] != p:
-                        context.provided_names.add(split_provided[0])
+                        context.provided_names[split_provided[0]] = pkgname
 
         if installed_to_ignore:  # filling the provided names of the installed
             installed_to_query = context.installed_names.difference(installed_to_ignore)
@@ -327,7 +337,7 @@ class UpdatesSummarizer:
     def summarize(self, pkgs: List[ArchPackage], sort: bool, root_password: str) -> UpdateRequirements:
         res = UpdateRequirements(None, [], None, [])
 
-        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, None, set(), root_password)
+        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, None, {}, root_password)
 
         aur_data = {}
         aur_srcinfo_threads = []

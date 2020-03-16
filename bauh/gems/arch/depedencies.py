@@ -173,25 +173,26 @@ class DependenciesAnalyser:
 
         return sorted_deps
 
-    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Set[str], check_subdeps: bool) -> List[Tuple[str, str]]:
+    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Dict[str, str], check_subdeps: bool) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps = set()  # TODO find out the repositories for each dep added here
+        all_provided = provided_names.keys()
 
         for p, data in pkgs_data.items():
             aur_pkg = data['r'] == 'aur'
             if aur_pkg:
-                deps = set()
+                deps = set()  # TODO
             else:
                 deps = data['d']
 
             if deps:
                 for dep in deps:
-                    if dep not in provided_names:
+                    if dep not in all_provided:
                         dep_split = self.re_dep_operator.split(dep)
                         dep_name = dep_split[0].strip()
 
-                        if dep_name not in provided_names:
+                        if dep_name not in all_provided:
                             print('Dep not in provided: {}'.format(dep_name))
                             missing_deps.add(dep_name)
                         else:
@@ -199,13 +200,22 @@ class DependenciesAnalyser:
                             version_found = [p for p in provided_names if p.startswith(version_pattern)]
 
                             if version_found:
-                                version_found = LooseVersion(version_found[0].split('=')[1])
-                                version_informed = LooseVersion(dep_split[2].strip())
+                                version_found = version_found[0].split('=')[1]
+                                version_informed = dep_split[2].strip()
+
+                                if ':' not in version_informed:
+                                    version_found = version_found.split(':')[-1]
+
+                                if '-' not in version_informed:
+                                    version_found = version_found.split('-')[0]
+
+                                version_found = LooseVersion(version_found)
+                                version_informed = LooseVersion(version_informed)
 
                                 op = dep_split[1] if dep_split[1] != '=' else '=='
                                 if not eval('version_found {} version_informed'.format(op)):
                                     # TODO compare with the selected to upgrade
-                                    print('Dep version not matched: {}'.format(dep))
+                                    print('Dep version not matched: {} ( installed: {} )'.format(dep, version_found.vstring))
                                     missing_deps.add(dep_name)  # TODO add version ?
                             else:
                                 print('Dep not in provided 2: {}'.format(dep_name))
@@ -218,7 +228,15 @@ class DependenciesAnalyser:
             #     pass
 
         # TODO sort deps
-        sorted_deps.extend(((dep, 'extra') for dep in missing_deps))  # TODO check repo
+        for dep in missing_deps:
+            source = provided_names.get(dep)
+
+            if source is None:
+                # TODO check aur
+                continue
+            else:
+                sorted_deps.append((source, 'extra'))  # TODO check repo
+
         # sorted_deps.extend(((dep, 'extra') for dep in missing_repo))
         # sorted_deps.extend(((dep, 'aur') for dep in missing_aur))
 

@@ -607,23 +607,23 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
-                    line = l.strip().split(':')
-                    field = line[0].strip()
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx + 1:].strip()
 
                     if field == 'Repository':
-                        data['r'] = line[1].strip()
+                        data['r'] = val
                         latest_field = 'r'
                     elif field == 'Name':
-                        latest_name = line[1].strip()
+                        latest_name = val
                         latest_field = 'n'
                     elif field == 'Version':
-                        data['v'] = line[1].strip()
+                        data['v'] = val.split('=')[0]
                         latest_field = 'v'
                     elif field == 'Provides':
                         latest_field = 'p'
-                        val = line[1].strip()
-
-                        data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'].split('=')[0])}
+                        data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'])}
                         if val != 'None':
                             for w in val.split(' '):
                                 if w:
@@ -635,7 +635,7 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
                                     if word_split[0] != word:
                                         data['p'].add(word_split[0])
                     elif field == 'Depends On':
-                        val = line[1].strip()
+                        val = val.strip()
 
                         if val == 'None':
                             data['d'] = None
@@ -643,8 +643,6 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
                             data['d'] = {w.strip().split(':')[0].strip() for w in val.split(' ') if w}
                             latest_field = 'd'
                     elif field == 'Conflicts With':
-                        val = line[1].strip()
-
                         if val == 'None':
                             data['c'] = None
                         else:
@@ -652,7 +650,7 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
 
                         latest_field = 'c'
                     elif field == 'Installed Size':
-                        size = line[1].strip().split(' ')
+                        size = val.split(' ')
                         data['s'] = size_to_byte(float(size[0]), size[1])
                         latest_field = 's'
                     elif latest_name and latest_field == 's':
@@ -684,11 +682,11 @@ def list_installed_names() -> Set[str]:
     return {p for p in run_cmd('pacman -Qq').split('\n') if p}
 
 
-def list_provided(pkgs: Iterable[str], remote: bool) -> Set[str]:
+def list_provided(pkgs: Iterable[str], remote: bool) -> Dict[str, str]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs)))
 
     if output:
-        res = set()
+        res = {}
         provided_mapping = False
         latest_name = None
         latest_version = None
@@ -696,19 +694,20 @@ def list_provided(pkgs: Iterable[str], remote: bool) -> Set[str]:
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
-                    line = l.strip().split(':')
-                    field = line[0].strip()
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx+1:].strip()
 
                     if field == 'Name':
-                        latest_name = line[1].strip()
+                        latest_name = val
                         latest_version = None
                     elif field == 'Version':
-                        latest_version = line[1].strip().split('-')[0]
+                        latest_version = val.split('=')[0]
                     elif field == 'Provides':
                         provided_mapping = True
-                        val = line[1].strip()
-                        res.add(latest_name)
-                        res.add('{}={}'.format(latest_name, latest_version))
+                        res[latest_name] = latest_name
+                        res['{}={}'.format(latest_name, latest_version)] = latest_name
 
                         if val == 'None':
                             provided_mapping = False
@@ -716,12 +715,12 @@ def list_provided(pkgs: Iterable[str], remote: bool) -> Set[str]:
                             for w in val.split(' '):
                                 if w:
                                     word = w.strip()
-                                    res.add(word)
+                                    res[word] = latest_name
 
                                     word_split = word.split('=')
 
                                     if word_split[0] != word:
-                                        res.add(word_split[0])
+                                        res[word_split[0]] = latest_name
                     else:
                         provided_mapping = False
 
@@ -729,11 +728,11 @@ def list_provided(pkgs: Iterable[str], remote: bool) -> Set[str]:
                     for w in l.split(' '):
                         if w:
                             word = w.strip()
-                            res.add(word)
+                            res[word] = latest_name
 
                             word_split = word.split('=')
 
                             if word_split[0] != word:
-                                res.add(word_split[0])
+                                res[word_split[0]] = latest_name
 
         return res
