@@ -86,7 +86,24 @@ class UpdatesSorter:
                 pkg_deps[p] = None
                 self.logger.warning("Could not retrieve the sorting data for package '{}'".format(p))
 
-    def sort(self, pkgs: Dict[str, ArchPackage]) -> List[ArchPackage]:
+    def _fill_aur_info(self, pkg: ArchPackage, names_map: Dict[str, ArchPackage], pkg_deps: Dict[ArchPackage, Set[str]]):
+        try:
+            srcinfo = self.aur_client.get_src_info(pkg.name)
+
+            names_map[pkg.name] = pkg
+            names = srcinfo.get('pkgname')
+
+            if isinstance(names, list):
+                for n in names:
+                    names_map[n] = pkg
+
+            pkg_deps[pkg] = self.aur_client.extract_required_dependencies(srcinfo)
+        except:
+            pkg_deps[pkg] = None
+            self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))
+            traceback.print_exc()
+
+    def sort(self, pkgs: Dict[str, ArchPackage]) -> List[ArchPackage]:  # TODO improve sort ( much of the data is already provided in Update context )
         aur_pkgs, repo_pkgs = [], []
 
         for n, p in pkgs.items():
@@ -98,27 +115,10 @@ class UpdatesSorter:
         pkg_deps = {}  # maps the package instance and a set with all its dependencies
         names_map = {}  # maps all the package provided names to the package instance
 
-        def _add_info(pkg: ArchPackage):
-            try:
-                srcinfo = self.aur_client.get_src_info(pkg.name)
-
-                names_map[pkg.name] = pkg
-                names = srcinfo.get('pkgname')
-
-                if isinstance(names, list):
-                    for n in names:
-                        names_map[n] = pkg
-
-                pkg_deps[pkg] = self.aur_client.extract_required_dependencies(srcinfo)
-            except:
-                pkg_deps[pkg] = None
-                self.logger.warning("Could not retrieve dependencies for '{}'".format(pkg.name))
-                traceback.print_exc()
-
         threads = []
 
         for pkg in aur_pkgs:
-            t = Thread(target=_add_info, args=(pkg,), daemon=True)
+            t = Thread(target=self._fill_aur_info, args=(pkg, names_map, pkg_deps), daemon=True)
             t.start()
             threads.append(t)
 
@@ -128,3 +128,57 @@ class UpdatesSorter:
             t.join()
 
         return self._sort_deps(pkg_deps, names_map)
+
+    @classmethod
+    def __add_dep_to_sort(cls, pkgname: str, pkgs_data: Dict[str, dict], sorted_names: dict, not_sorted: Set[str], provided_map: Dict[str, str]):
+        idx = sorted_names.get(pkgname)
+
+        if idx is not None:
+            return idx
+        else:
+            idx = len(sorted_names)
+            sorted_names[pkgname] = idx
+
+            for dep in pkgs_data[pkgname]['d']:
+                dep_idx = sorted_names.get(dep)
+
+                if dep_idx is not None:
+                    idx = dep_idx + 1
+                else:
+                    real_dep = provided_map.get(dep)  # gets the real package name instead of the provided one
+
+                    if not real_dep:
+                        continue  # it means this depends does not belong to the sorting context
+                    else:
+                        dep_idx = sorted_names.get(real_dep)
+
+                        if dep_idx is not None:
+                            idx = dep_idx + 1
+                        else:
+                            dep_idx = cls.__add_dep_to_sort(real_dep, pkgs_data, sorted_names, not_sorted, provided_map)
+                            idx = dep_idx + 1
+
+                sorted_names[pkgname] = idx
+
+            return sorted_names[pkgname]
+
+    def sort_deps(self, pkgs_data: Dict[str, dict]):
+        sorted_names, not_sorted = {}, set()
+        provided_map = {}
+
+        for pkgname, data in pkgs_data.items():
+            if data['p']:
+                for p in data['p']:
+                    provided_map[p] = pkgname
+
+            if not data['d']:
+                sorted_names[pkgname] = len(sorted_names)
+            else:
+                not_sorted.add(pkgname)
+
+        # now adding all that depends on another:
+        for name in not_sorted:
+            self.__add_dep_to_sort(name, pkgs_data, sorted_names, not_sorted, provided_map)
+
+        position_map = {'{}-{}'.format(i, n): (n, pkgs_data[n]['r']) for n, i in sorted_names.items()}
+        return [position_map[idx] for idx in sorted(position_map)]

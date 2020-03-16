@@ -245,8 +245,9 @@ class UpdatesSummarizer:
         deps = self.deps_analyser.map_updates_missing_deps(pkgs_data=context.pkgs_data,
                                                            provided_names=context.provided_names,
                                                            aur_index=context.aur_index,
-                                                           transitive=bool(context.arch_config['transitive_checking']),
                                                            deps_checked=set(),
+                                                           sorter=self.sorter,
+                                                           deps_data={},
                                                            watcher=self.watcher)
 
         if deps:  # filtering selected packages

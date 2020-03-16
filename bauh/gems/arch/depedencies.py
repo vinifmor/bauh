@@ -7,6 +7,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.exceptions import PackageNotFoundException
+from bauh.gems.arch.sorting import UpdatesSorter
 from bauh.view.util.translation import I18n
 
 
@@ -173,8 +174,8 @@ class DependenciesAnalyser:
 
         return sorted_deps
 
-    def _fill_missing_dep(self, name: str, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str],
-                          missing_deps: Set[Tuple[str, str]], repo_deps: Set[str], aur_deps: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
+    def _fill_missing_dep(self, name: str, aur_index: Set[str], missing_deps: Set[Tuple[str, str]],
+                          repo_deps: Set[str], aur_deps: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
         dep_found = pacman.guess_repository(name)
 
         if dep_found:
@@ -194,10 +195,11 @@ class DependenciesAnalyser:
     def __fill_aur_update_data(self, pkgname: str, output: dict):
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
 
-    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], deps_checked: Set[str], transitive: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
+    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], deps_checked: Set[str],
+                                 deps_data: Dict[str, dict], sorter: UpdatesSorter, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
-        missing_deps, repo_missing, aur_missing = set(), set(), set()  # TODO find out the repositories for each dep added here
+        missing_deps, repo_missing, aur_missing = set(), set(), set()
         all_provided = provided_names.keys()
 
         for p, data in pkgs_data.items():
@@ -211,8 +213,7 @@ class DependenciesAnalyser:
                             deps_checked.add(dep_name)
 
                             if dep_name not in all_provided:
-                                self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
-                                                       missing_deps, repo_missing, aur_missing, watcher)
+                                self._fill_missing_dep(dep_name, aur_index, missing_deps, repo_missing, aur_missing, watcher)
                             else:
                                 version_pattern = '{}='.format(dep_name)
                                 version_found = [p for p in provided_names if p.startswith(version_pattern)]
@@ -232,14 +233,13 @@ class DependenciesAnalyser:
 
                                     op = dep_split[1] if dep_split[1] != '=' else '=='
                                     if not eval('version_found {} version_informed'.format(op)):
-                                        self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
-                                                               missing_deps, repo_missing, aur_missing, watcher)
+                                        self._fill_missing_dep(dep_name, aur_index, missing_deps, repo_missing,
+                                                               aur_missing, watcher)
                                 else:
-                                    self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
-                                                           missing_deps, repo_missing, aur_missing, watcher)
+                                    self._fill_missing_dep(dep_name, aur_index, missing_deps, repo_missing,
+                                                           aur_missing, watcher)
 
-        if missing_deps and transitive:  # TODO remove this 'transitive' option ?
-            deps_data = {}
+        if missing_deps:
             if repo_missing:
                 deps_data.update(pacman.map_updates_data(repo_missing))
 
@@ -255,12 +255,14 @@ class DependenciesAnalyser:
 
             missing_subdeps = self.map_updates_missing_deps(pkgs_data=deps_data, provided_names=provided_names,
                                                             aur_index=aur_index, deps_checked=deps_checked,
-                                                            transitive=transitive, watcher=watcher)
+                                                            sorter=None, deps_data=deps_data, watcher=watcher)
 
             if missing_subdeps:
-                sorted_deps.extend(missing_subdeps)
+                missing_deps.update(missing_subdeps)
 
-        # TODO sort deps
-        sorted_deps.extend(missing_deps)
+        if sorter:
+            sorted_deps.extend(sorter.sort_deps(deps_data))
+        else:
+            sorted_deps.extend(((dep[0], dep[1]) for dep in missing_deps))
 
         return sorted_deps
