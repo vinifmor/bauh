@@ -279,7 +279,6 @@ def read_repository_from_info(name: str) -> str:
 
 
 def guess_repository(name: str) -> Tuple[str, str]:
-
     if not name:
         raise Exception("'name' cannot be None or blank")
 

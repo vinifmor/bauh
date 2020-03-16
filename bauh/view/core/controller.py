@@ -456,6 +456,9 @@ class GenericSoftwareManager(SoftwareManager):
                 tf = time.time()
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
+                if not man_reqs:
+                    return  # it means the process should be stopped
+
                 if man_reqs:
                     if man_reqs.to_install:
                         res.to_install.extend(man_reqs.to_install)

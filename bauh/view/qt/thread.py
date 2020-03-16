@@ -249,6 +249,11 @@ class UpdateSelectedPackages(AsyncAction):
             self.change_substatus(self.i18n['action.update.requirements.status'])
             sort = bool(app_config['updates']['sort_packages'])
             requirements = self.manager.get_update_requirements(models, root_password, sort, self)
+
+            if not requirements:
+                self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+                return
+
             to_install = [r.pkg for r in requirements.to_install]
             to_remove = requirements.to_remove
             to_update = requirements.to_update
@@ -297,7 +302,8 @@ class UpdateSelectedPackages(AsyncAction):
                     self.show_message(title=self.i18n['action.update.install_req.fail.title'],
                                       body=self.i18n['action.update.install_req.fail.body'].format(label),
                                       type_=MessageType.ERROR)
-                    return False
+                    self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
+                    return
 
         for pkg in to_update:
             self.change_substatus('')

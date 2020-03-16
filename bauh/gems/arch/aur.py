@@ -4,6 +4,8 @@ import re
 import urllib.parse
 from typing import Set, List
 
+import requests
+
 from bauh.api.http import HttpClient
 from bauh.gems.arch import pacman, AUR_INDEX_FILE
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -11,6 +13,7 @@ from bauh.gems.arch.exceptions import PackageNotFoundException
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
 URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 URL_SEARCH = 'https://aur.archlinux.org/rpc/?v=5&type=search&arg='
+URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 
 RE_SRCINFO_KEYS = re.compile(r'(\w+)\s+=\s+(.+)\n')
 RE_SPLIT_DEP = re.compile(r'[<>]?=')
@@ -140,7 +143,7 @@ class AURClient:
         return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])
 
     def read_local_index(self) -> dict:
-        self.logger.info('Checking if the AUR index file exists')
+        self.logger.info('Checking if the cached AUR index file exists')
         if os.path.exists(AUR_INDEX_FILE):
             self.logger.info('Reading AUR index file from {}'.format(AUR_INDEX_FILE))
             index = {}
@@ -152,6 +155,20 @@ class AURClient:
             self.logger.info("AUR index file read")
             return index
         self.logger.warning('The AUR index file was not found')
+
+    def download_names(self) -> Set[str]:
+        self.logger.info('Downloading AUR index')
+        try:
+            res = self.http_client.get(URL_INDEX)
+
+            if res and res.text:
+                return {n.strip() for n in res.text.split('\n') if n and not n.startswith('#')}
+            else:
+                self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('No internet connection: could not pre-index packages')
+
+        self.logger.info("Finished")
 
     def clean_caches(self):
         self.srcinfo_cache.clear()

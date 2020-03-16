@@ -1,5 +1,4 @@
 import re
-import traceback
 from distutils.version import LooseVersion
 from threading import Thread
 from typing import Set, List, Tuple, Dict
@@ -7,6 +6,7 @@ from typing import Set, List, Tuple, Dict
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message
 from bauh.gems.arch.aur import AURClient
+from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.view.util.translation import I18n
 
 
@@ -173,73 +173,65 @@ class DependenciesAnalyser:
 
         return sorted_deps
 
-    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Dict[str, str], check_subdeps: bool) -> List[Tuple[str, str]]:
+    def _map_missing_dep(self, name: str, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
+        dep_found = pacman.guess_repository(name)
+
+        if dep_found:
+            return dep_found[0], dep_found[1]
+
+        elif aur_index and name in aur_index:
+            return name, 'aur'
+        else:
+            if watcher:
+                message.show_dep_not_found(name, self.i18n, watcher)
+                raise PackageNotFoundException(name)
+            else:
+                raise PackageNotFoundException(name)
+
+    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Dict[str, str], aur_index: Set[str], check_subdeps: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps = set()  # TODO find out the repositories for each dep added here
+        deps_already_mapped = set()
         all_provided = provided_names.keys()
 
         for p, data in pkgs_data.items():
-            aur_pkg = data['r'] == 'aur'
-            if aur_pkg:
-                deps = set()  # TODO
-            else:
-                deps = data['d']
-
-            if deps:
-                for dep in deps:
+            if data['d']:
+                for dep in data['d']:
                     if dep not in all_provided:
                         dep_split = self.re_dep_operator.split(dep)
                         dep_name = dep_split[0].strip()
 
-                        if dep_name not in all_provided:
-                            print('Dep not in provided: {}'.format(dep_name))
-                            missing_deps.add(dep_name)
-                        else:
-                            version_pattern = '{}='.format(dep_name)
-                            version_found = [p for p in provided_names if p.startswith(version_pattern)]
+                        if dep_name not in deps_already_mapped:
+                            deps_already_mapped.add(dep_name)
 
-                            if version_found:
-                                version_found = version_found[0].split('=')[1]
-                                version_informed = dep_split[2].strip()
-
-                                if ':' not in version_informed:
-                                    version_found = version_found.split(':')[-1]
-
-                                if '-' not in version_informed:
-                                    version_found = version_found.split('-')[0]
-
-                                version_found = LooseVersion(version_found)
-                                version_informed = LooseVersion(version_informed)
-
-                                op = dep_split[1] if dep_split[1] != '=' else '=='
-                                if not eval('version_found {} version_informed'.format(op)):
-                                    # TODO compare with the selected to upgrade
-                                    print('Dep version not matched: {} ( installed: {} )'.format(dep, version_found.vstring))
-                                    missing_deps.add(dep_name)  # TODO add version ?
+                            if dep_name not in all_provided:
+                                missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))
                             else:
-                                print('Dep not in provided 2: {}'.format(dep_name))
-                                missing_deps.add(dep_name)
+                                version_pattern = '{}='.format(dep_name)
+                                version_found = [p for p in provided_names if p.startswith(version_pattern)]
 
-        if check_subdeps:
-            pass
-            # TODO
-            # for dep in missing_repo:
-            #     pass
+                                if version_found:
+                                    version_found = version_found[0].split('=')[1]
+                                    version_informed = dep_split[2].strip()
 
-        # TODO sort deps
-        for dep in missing_deps:
-            source = provided_names.get(dep)
+                                    if ':' not in version_informed:
+                                        version_found = version_found.split(':')[-1]
 
-            if source is None:
-                # TODO check aur
-                continue
-            else:
-                sorted_deps.append((source, 'extra'))  # TODO check repo
+                                    if '-' not in version_informed:
+                                        version_found = version_found.split('-')[0]
 
-        # sorted_deps.extend(((dep, 'extra') for dep in missing_repo))
-        # sorted_deps.extend(((dep, 'aur') for dep in missing_aur))
+                                    version_found = LooseVersion(version_found)
+                                    version_informed = LooseVersion(version_informed)
 
+                                    op = dep_split[1] if dep_split[1] != '=' else '=='
+                                    if not eval('version_found {} version_informed'.format(op)):
+                                        print('Dep version not matched: {} ( installed: {} )'.format(dep, version_found.vstring))  # TODO remove
+                                        missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))  # TODO add version ?
+                                else:
+                                    missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))
+
+        if check_subdeps:  # TODO remove this 'check_subdeps' option ?
             # for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
             #     if deps[0]:
             #         missing_subdeps = self.get_missing_subdeps_of(deps[0], deps[1])
@@ -253,5 +245,9 @@ class DependenciesAnalyser:
             #             for dep in missing_subdeps:
             #                 if dep not in sorted_deps:
             #                     sorted_deps.append(dep)
+            pass
+
+        # TODO sort deps
+        sorted_deps.extend(missing_deps)
 
         return sorted_deps

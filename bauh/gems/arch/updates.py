@@ -7,6 +7,7 @@ from bauh.api.abstract.controller import UpdateRequirements, UpdateRequirement
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman
 from bauh.gems.arch.aur import AURClient
+from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.sorting import UpdatesSorter
@@ -20,7 +21,7 @@ class UpdateRequirementsContext:
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_update: Dict[str, UpdateRequirement],
                  to_remove: Dict[str, UpdateRequirement], installed_names: Set[str], provided_names: Dict[str, str],
-                 root_password: str):
+                 aur_index: Set[str], arch_config: dict, root_password: str):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
         self.aur_to_update = aur_to_update
@@ -33,6 +34,8 @@ class UpdateRequirementsContext:
         self.provided_names = provided_names
         self.to_remove = to_remove
         self.to_install = to_install
+        self.aur_index = aur_index
+        self.arch_config = arch_config
 
 
 class UpdatesSummarizer:
@@ -56,10 +59,10 @@ class UpdatesSummarizer:
             if srcinfo.get('provides'):
                 provided.update(srcinfo.get('provides'))
 
-            output[pkg.name] = {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur', 'v': srcinfo['pkgver']}
+            output[pkg.name] = {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur', 'v': srcinfo['pkgver'], 'd': self.aur_client.extract_required_dependencies(srcinfo)}
         else:
             provided.add('{}={}'.format(pkg.name, pkg.latest_version))
-            output[pkg.name] = {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': pkg.latest_version}
+            output[pkg.name] = {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': pkg.latest_version, 'd': set()}
 
     def _handle_conflict_both_to_install(self, pkg1: str, pkg2: str, context: UpdateRequirementsContext):
         for src_pkg in {p for p, data in context.pkgs_data.items() if
@@ -147,9 +150,6 @@ class UpdatesSummarizer:
                     del context.aur_to_update[p]
 
     def _filter_and_map_conflicts(self, context: UpdateRequirementsContext) -> Dict[str, str]:
-        # provided_map = pacman.map_provided()  # TODO move to context
-        # all_provided = provided_map.keys()  # TODO move to context
-
         root_conflict = {}
         mutual_conflicts = {}
 
@@ -255,8 +255,7 @@ class UpdatesSummarizer:
     def _fill_to_install(self, context: UpdateRequirementsContext):
         ti = time.time()
         self.logger.info("Discovering updates missing packages")
-        # deps = self.deps_analyser.map_known_missing_deps({p.get_base_name(): p.repository for p in pkgs}, self.watcher)
-        deps = self.deps_analyser.map_updates_missing_deps(context.pkgs_data, context.provided_names, True)  # TODO read config
+        deps = self.deps_analyser.map_updates_missing_deps(context.pkgs_data, context.provided_names, context.aur_index, bool(context.arch_config['transitive_checking']), self.watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p for p in context.to_update}
@@ -334,10 +333,30 @@ class UpdatesSummarizer:
         tf = time.time()
         self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))
 
+    def __fill_aur_index(self, context: UpdateRequirementsContext):
+        if context.arch_config['aur']:
+            self.logger.info("Loading AUR index")
+            index = self.aur_client.read_local_index()
+
+            if not index:
+                self.logger.warning("Cached AUR index file not found")
+                pkgnames = self.aur_client.download_names()
+
+                if pkgnames:
+                    context.aur_index.update(pkgnames)
+                else:
+                    self.logger.warning("Could not load AUR index on the context")
+                    return
+            else:
+                context.aur_index.update(index.values())
+
+            self.logger.info("AUR index loaded on the context")
+
     def summarize(self, pkgs: List[ArchPackage], sort: bool, root_password: str) -> UpdateRequirements:
         res = UpdateRequirements(None, [], None, [])
 
-        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, None, {}, root_password)
+        context = UpdateRequirementsContext({}, {}, {}, {}, {}, {}, {}, {}, {}, None, {}, set(), read_config(), root_password)
+        self.__fill_aur_index(context)
 
         aur_data = {}
         aur_srcinfo_threads = []

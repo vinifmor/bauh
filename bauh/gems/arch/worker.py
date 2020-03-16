@@ -14,10 +14,10 @@ from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
     AUR_INDEX_FILE, get_icon_path, database, mirrors
+from bauh.gems.arch.aur import URL_INDEX
 from bauh.gems.arch.model import ArchPackage
 from bauh.view.util.translation import I18n
 
-URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
 
 GLOBAL_MAKEPKG = '/etc/makepkg.conf'
@@ -385,5 +385,3 @@ class SyncDatabases(Thread):
         self.taskman.update_progress(self.task_id, 100, None)
         self.taskman.finish_task(self.task_id)
         self.logger.info("Finished")
-
-
