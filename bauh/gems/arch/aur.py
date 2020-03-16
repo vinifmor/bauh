@@ -172,3 +172,22 @@ class AURClient:
 
     def clean_caches(self):
         self.srcinfo_cache.clear()
+
+    def map_update_data(self, pkgname: str, latest_version: str) -> dict:
+        srcinfo = self.get_src_info(pkgname)
+
+        provided = set()
+        provided.add(pkgname)
+
+        if srcinfo:
+            provided.add('{}={}'.format(pkgname, srcinfo['pkgver']))
+            if srcinfo.get('provides'):
+                provided.update(srcinfo.get('provides'))
+
+            return {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur',
+                    'v': srcinfo['pkgver'], 'd': self.extract_required_dependencies(srcinfo)}
+        else:
+            if latest_version:
+                provided.add('{}={}'.format(pkgname, latest_version))
+
+            return {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': latest_version, 'd': set()}

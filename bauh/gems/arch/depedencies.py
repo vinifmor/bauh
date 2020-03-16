@@ -173,14 +173,17 @@ class DependenciesAnalyser:
 
         return sorted_deps
 
-    def _map_missing_dep(self, name: str, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
+    def _fill_missing_dep(self, name: str, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str],
+                          missing_deps: Set[Tuple[str, str]], repo_deps: Set[str], aur_deps: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
         dep_found = pacman.guess_repository(name)
 
         if dep_found:
-            return dep_found[0], dep_found[1]
+            repo_deps.add(dep_found[0])
+            missing_deps.add((dep_found[0], dep_found[1]))
 
         elif aur_index and name in aur_index:
-            return name, 'aur'
+            aur_deps.add(name)
+            missing_deps.add((name, 'aur'))
         else:
             if watcher:
                 message.show_dep_not_found(name, self.i18n, watcher)
@@ -188,11 +191,13 @@ class DependenciesAnalyser:
             else:
                 raise PackageNotFoundException(name)
 
-    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict],  provided_names: Dict[str, str], aur_index: Set[str], check_subdeps: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
+    def __fill_aur_update_data(self, pkgname: str, output: dict):
+        output[pkgname] = self.aur_client.map_update_data(pkgname, None)
+
+    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], deps_checked: Set[str], transitive: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
-        missing_deps = set()  # TODO find out the repositories for each dep added here
-        deps_already_mapped = set()
+        missing_deps, repo_missing, aur_missing = set(), set(), set()  # TODO find out the repositories for each dep added here
         all_provided = provided_names.keys()
 
         for p, data in pkgs_data.items():
@@ -202,11 +207,12 @@ class DependenciesAnalyser:
                         dep_split = self.re_dep_operator.split(dep)
                         dep_name = dep_split[0].strip()
 
-                        if dep_name not in deps_already_mapped:
-                            deps_already_mapped.add(dep_name)
+                        if dep_name not in deps_checked:
+                            deps_checked.add(dep_name)
 
                             if dep_name not in all_provided:
-                                missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))
+                                self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
+                                                       missing_deps, repo_missing, aur_missing, watcher)
                             else:
                                 version_pattern = '{}='.format(dep_name)
                                 version_found = [p for p in provided_names if p.startswith(version_pattern)]
@@ -226,26 +232,33 @@ class DependenciesAnalyser:
 
                                     op = dep_split[1] if dep_split[1] != '=' else '=='
                                     if not eval('version_found {} version_informed'.format(op)):
-                                        print('Dep version not matched: {} ( installed: {} )'.format(dep, version_found.vstring))  # TODO remove
-                                        missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))  # TODO add version ?
+                                        self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
+                                                               missing_deps, repo_missing, aur_missing, watcher)
                                 else:
-                                    missing_deps.add(self._map_missing_dep(dep_name, pkgs_data, provided_names, aur_index, watcher))
+                                    self._fill_missing_dep(dep_name, pkgs_data, provided_names, aur_index,
+                                                           missing_deps, repo_missing, aur_missing, watcher)
 
-        if check_subdeps:  # TODO remove this 'check_subdeps' option ?
-            # for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
-            #     if deps[0]:
-            #         missing_subdeps = self.get_missing_subdeps_of(deps[0], deps[1])
-            #
-            #         if missing_subdeps:
-            #             for dep in missing_subdeps:
-            #                 if not dep[1]:
-            #                     message.show_dep_not_found(dep[0], self.i18n, watcher)
-            #                     return
-            #
-            #             for dep in missing_subdeps:
-            #                 if dep not in sorted_deps:
-            #                     sorted_deps.append(dep)
-            pass
+        if missing_deps and transitive:  # TODO remove this 'transitive' option ?
+            deps_data = {}
+            if repo_missing:
+                deps_data.update(pacman.map_updates_data(repo_missing))
+
+            if aur_missing:
+                aur_threads = []
+                for pkgname in aur_missing:
+                    t = Thread(target=self.__fill_aur_update_data, args=(pkgname, deps_data), daemon=True)
+                    t.start()
+                    aur_threads.append(t)
+
+                for t in aur_threads:
+                    t.join()
+
+            missing_subdeps = self.map_updates_missing_deps(pkgs_data=deps_data, provided_names=provided_names,
+                                                            aur_index=aur_index, deps_checked=deps_checked,
+                                                            transitive=transitive, watcher=watcher)
+
+            if missing_subdeps:
+                sorted_deps.extend(missing_subdeps)
 
         # TODO sort deps
         sorted_deps.extend(missing_deps)

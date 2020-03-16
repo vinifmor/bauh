@@ -49,20 +49,7 @@ class UpdatesSummarizer:
         self.sorter = sorter
 
     def _fill_aur_pkg_update_data(self, pkg: ArchPackage, output: dict):
-        srcinfo = self.aur_client.get_src_info(pkg.get_base_name())
-
-        provided = set()
-        provided.add(pkg.name)
-
-        if srcinfo:
-            provided.add('{}={}'.format(pkg.name, srcinfo['pkgver']))
-            if srcinfo.get('provides'):
-                provided.update(srcinfo.get('provides'))
-
-            output[pkg.name] = {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur', 'v': srcinfo['pkgver'], 'd': self.aur_client.extract_required_dependencies(srcinfo)}
-        else:
-            provided.add('{}={}'.format(pkg.name, pkg.latest_version))
-            output[pkg.name] = {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': pkg.latest_version, 'd': set()}
+        output[pkg.name] = self.aur_client.map_update_data(pkg.get_base_name(), pkg.latest_version)
 
     def _handle_conflict_both_to_install(self, pkg1: str, pkg2: str, context: UpdateRequirementsContext):
         for src_pkg in {p for p, data in context.pkgs_data.items() if
@@ -255,7 +242,12 @@ class UpdatesSummarizer:
     def _fill_to_install(self, context: UpdateRequirementsContext):
         ti = time.time()
         self.logger.info("Discovering updates missing packages")
-        deps = self.deps_analyser.map_updates_missing_deps(context.pkgs_data, context.provided_names, context.aur_index, bool(context.arch_config['transitive_checking']), self.watcher)
+        deps = self.deps_analyser.map_updates_missing_deps(pkgs_data=context.pkgs_data,
+                                                           provided_names=context.provided_names,
+                                                           aur_index=context.aur_index,
+                                                           transitive=bool(context.arch_config['transitive_checking']),
+                                                           deps_checked=set(),
+                                                           watcher=self.watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p for p in context.to_update}
