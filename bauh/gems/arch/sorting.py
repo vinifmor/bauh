@@ -1,3 +1,4 @@
+import time
 from typing import Dict, Set, Iterable, Tuple, List
 
 
@@ -36,24 +37,85 @@ def __add_dep_to_sort(pkgname: str, pkgs_data: Dict[str, dict], sorted_names: di
 
 
 def sort(pkgs: Iterable[str], pkgs_data: Dict[str, dict], provided_map: Dict[str, str] = None) -> List[Tuple[str, str]]:
-    sorted_names, not_sorted = {}, set()
-
+    sorted_list, sorted_names, not_sorted = [], set(), set()
     provided = provided_map if provided_map else {}
 
+    # add all packages with no dependencies first
     for pkgname in pkgs:
         data = pkgs_data[pkgname]
-        if not provided_map and data['p']:
+        if not provided_map and data['p']:  # mapping provided if reeded
             for p in data['p']:
                 provided[p] = pkgname
 
         if not data['d']:
-            sorted_names[pkgname] = len(sorted_names)
+            sorted_list.append(pkgname)
+            sorted_names.add(pkgname)
         else:
             not_sorted.add(pkgname)
 
-    # now adding all that depends on another:
-    for name in not_sorted:
-        __add_dep_to_sort(name, pkgs_data, sorted_names, not_sorted, provided)
+    deps_map, not_deps_available = {}, set()
+    for pkg in not_sorted:  # generating a dependency map with only the dependencies among the informed packages
+        pkgsdeps = set()
+        data = pkgs_data[pkg]
+        for dep in data['d']:
+            real_dep = provided.get(dep)
 
-    position_map = {'{}-{}'.format(i, n): (n, pkgs_data[n]['r']) for n, i in sorted_names.items()}
-    return [position_map[idx] for idx in sorted(position_map)]
+            if real_dep and real_dep in pkgs:
+                pkgsdeps.add(real_dep)
+
+        if pkgsdeps:
+            deps_map[pkg] = pkgsdeps
+        else:
+            not_deps_available.add(pkg)
+            sorted_list.append(pkg)
+            sorted_names.add(pkg)
+
+    for pkg in not_deps_available:  # removing from not_sorted
+        not_sorted.remove(pkg)
+
+    while not_sorted:
+        sorted_in_round = set()
+
+        for pkg in not_sorted:
+            idx = _index_pkg(pkg, sorted_list, sorted_names, deps_map, ignore_not_sorted=False)
+
+            if idx >= 0:
+                sorted_in_round.add(pkg)
+                sorted_names.add(pkg)
+                sorted_list.insert(idx, pkg)
+
+        for pkg in sorted_in_round:
+            not_sorted.remove(pkg)
+
+        if not_sorted and not sorted_in_round:  # it means there are cyclic deps
+            break
+
+    if not_sorted:  # it means there are cyclic deps
+        # filtering deps already mapped
+        for pkg in not_sorted:
+            deps_map[pkg] = deps_map[pkg].difference(sorted_names)
+
+        sorted_by_less_deps = [*not_sorted]
+        sorted_by_less_deps.sort(key=lambda o: len(deps_map[o]))   # TODO: improve ( sum the deps and subdeps )
+
+        for pkg in sorted_by_less_deps:
+            idx = _index_pkg(pkg, sorted_list, sorted_names, deps_map, ignore_not_sorted=True)
+            sorted_names.add(pkg)
+            sorted_list.insert(idx, pkg)
+
+    return [(n, pkgs_data[n]['r']) for n in sorted_list]
+
+
+def _index_pkg(name: str, sorted_list: List[str], sorted_names: Set[str], deps_map: Dict[str, Set[str]], ignore_not_sorted: bool) -> int:
+    deps_to_check_idx = set()
+    for dep in deps_map[name]:
+        if dep in sorted_names:
+            deps_to_check_idx.add(dep)
+        elif not ignore_not_sorted:
+            return -1
+
+    if not deps_to_check_idx:
+        return len(sorted_list)
+    else:
+        idxs = {sorted_list.index(dep) for dep in deps_to_check_idx}
+        return max(idxs) + 1
