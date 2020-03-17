@@ -5,12 +5,11 @@ from typing import Dict, Set, List, Tuple, Iterable
 
 from bauh.api.abstract.controller import UpdateRequirements, UpdateRequirement
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.gems.arch import pacman
+from bauh.gems.arch import pacman, sorting
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.sorting import UpdatesSorter
 from bauh.view.util.translation import I18n
 
 
@@ -40,13 +39,12 @@ class UpdateRequirementsContext:
 
 class UpdatesSummarizer:
 
-    def __init__(self, aur_client: AURClient, i18n: I18n, logger: logging.Logger, deps_analyser: DependenciesAnalyser, sorter: UpdatesSorter, watcher: ProcessWatcher):
+    def __init__(self, aur_client: AURClient, i18n: I18n, logger: logging.Logger, deps_analyser: DependenciesAnalyser, watcher: ProcessWatcher):
         self.aur_client = aur_client
         self.i18n = i18n
         self.logger = logger
         self.watcher = watcher
         self.deps_analyser = deps_analyser
-        self.sorter = sorter
 
     def _fill_aur_pkg_update_data(self, pkg: ArchPackage, output: dict):
         output[pkg.name] = self.aur_client.map_update_data(pkg.get_base_name(), pkg.latest_version)
@@ -246,7 +244,7 @@ class UpdatesSummarizer:
                                                            provided_names=context.provided_names,
                                                            aur_index=context.aur_index,
                                                            deps_checked=set(),
-                                                           sorter=self.sorter,
+                                                           sort=True,
                                                            deps_data={},
                                                            watcher=self.watcher)
 
@@ -368,7 +366,7 @@ class UpdatesSummarizer:
                 t.join()
 
         self.logger.info("Filling updates data")
-        tudi = time.time()
+        tudi = time.time()  # TODO remove timers
         context.pkgs_data.update(pacman.map_updates_data(context.repo_to_update.keys()))
         context.pkgs_data.update(aur_data)
         tudf = time.time()
@@ -413,7 +411,8 @@ class UpdatesSummarizer:
 
         if context.to_update:
             if sort:
-                res.to_update = self.sorter.sort(context.to_update)
+                sorted_pkgs = sorting.sort(context.to_update.keys(), context.pkgs_data, context.provided_names)
+                res.to_update = [context.to_update[pdata[0]] for pdata in sorted_pkgs]
             else:
                 res.to_update = [p for p in context.to_update.values()]
 

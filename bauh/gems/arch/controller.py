@@ -38,7 +38,6 @@ from bauh.gems.arch.depedencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.sorting import UpdatesSorter
 from bauh.gems.arch.updates import UpdatesSummarizer
 from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases, \
     RefreshMirrors
@@ -1491,11 +1490,10 @@ class ArchManager(SoftwareManager):
 
     def get_update_requirements(self, pkgs: List[ArchPackage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
         self.aur_client.clean_caches()
-        sorter = UpdatesSorter(self.aur_client, self.logger)
         try:
-            return UpdatesSummarizer(self.aur_client, self.i18n, self.logger, self.deps_analyser, sorter, watcher).summarize(pkgs, sort, root_password)
+            return UpdatesSummarizer(self.aur_client, self.i18n, self.logger, self.deps_analyser, watcher).summarize(pkgs, sort, root_password)
         except PackageNotFoundException:
-            return
+            pass  # when nothing is returned, the upgrade is called off by the UI
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         if self.custom_actions is None:

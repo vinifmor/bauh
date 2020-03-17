@@ -4,10 +4,9 @@ from threading import Thread
 from typing import Set, List, Tuple, Dict
 
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.gems.arch import pacman, message
+from bauh.gems.arch import pacman, message, sorting
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.exceptions import PackageNotFoundException
-from bauh.gems.arch.sorting import UpdatesSorter
 from bauh.view.util.translation import I18n
 
 
@@ -196,7 +195,7 @@ class DependenciesAnalyser:
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
 
     def map_updates_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], deps_checked: Set[str],
-                                 deps_data: Dict[str, dict], sorter: UpdatesSorter, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
+                                 deps_data: Dict[str, dict], sort: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps, repo_missing, aur_missing = set(), set(), set()
@@ -255,13 +254,13 @@ class DependenciesAnalyser:
 
             missing_subdeps = self.map_updates_missing_deps(pkgs_data=deps_data, provided_names=provided_names,
                                                             aur_index=aur_index, deps_checked=deps_checked,
-                                                            sorter=None, deps_data=deps_data, watcher=watcher)
+                                                            sort=False, deps_data=deps_data, watcher=watcher)
 
             if missing_subdeps:
                 missing_deps.update(missing_subdeps)
 
-        if sorter:
-            sorted_deps.extend(sorter.sort_deps(deps_data))
+        if sort:
+            sorted_deps.extend(sorting.sort(deps_data.keys(), deps_data))
         else:
             sorted_deps.extend(((dep[0], dep[1]) for dep in missing_deps))
 
