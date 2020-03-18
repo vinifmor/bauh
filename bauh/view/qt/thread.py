@@ -174,9 +174,9 @@ class UpdateSelectedPackages(AsyncAction):
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r.pkg, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-        required_size, extra_size = self._sum_pkgs_size([req.pkg for req in reqs])
+        required_size, extra_size = self._sum_pkgs_size(reqs)
 
         lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
                                             self.i18n['amount'].capitalize(),
