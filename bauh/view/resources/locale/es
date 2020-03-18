@@ -291,6 +291,7 @@ action.update.order=Orden de actualización
 action.update.required_label=Deben instalarse
 action.update.total_size=Tamaño de la actualización
 action.update.required_size=Espacio en disco requerido
+action.update.pkg.required_size=Requiere
 action.update.summary=Resumen de actualización
 action.update.status.checking_sizes=Calculando el tamaño de las actualizaciónes
 action.update.label_to_remove=Necesitan ser desinstalados

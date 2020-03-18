@@ -120,10 +120,15 @@ class UpdateSelectedPackages(AsyncAction):
         else:
             icon_path = req.pkg.get_type_icon_path()
 
-        label = '{}{} - {}: {}'.format(req.pkg.name,
-                                       ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '',
-                                       self.i18n['size'].capitalize(),
-                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+        size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
+                                              '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+        if req.extra_size != req.required_size:
+            size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
+                                             '?' if req.required_size is None else get_human_size_str(req.required_size))
+
+        label = '{}{} - {}'.format(req.pkg.name,
+                                   ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '',
+                                   size_str)
 
         return InputOption(label=label,
                            value=None,
@@ -306,7 +311,7 @@ class UpdateSelectedPackages(AsyncAction):
             name = req.pkg.name if not RE_VERSION_IN_NAME.findall(req.pkg.name) else req.pkg.name.split('version')[0].strip()
 
             self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, req.pkg.version))
-            success = bool(self.manager.update(req, root_password, self))
+            success = bool(self.manager.update(req.pkg, root_password, self))
             self.change_substatus('')
 
             if not success:

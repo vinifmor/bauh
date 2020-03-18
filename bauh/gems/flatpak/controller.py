@@ -472,8 +472,26 @@ class FlatpakManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def get_update_requirements(self, pkgs: List[FlatpakApplication], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
+        flatpak_version = flatpak.get_version()
+
+        user_pkgs, system_pkgs = [], []
+
+        for pkg in pkgs:
+            if pkg.installation == 'user':
+                user_pkgs.append(pkg)
+            else:
+                system_pkgs.append(pkg)
+
+        for apps_by_install in ((user_pkgs, 'user'), (system_pkgs, 'system')):
+            if apps_by_install[0]:
+                sizes = flatpak.map_update_download_size([str(p.id) for p in apps_by_install[0]], apps_by_install[1], flatpak_version)
+
+                if sizes:
+                    for p in apps_by_install[0]:
+                        p.size = sizes.get(str(p.id))
+
         to_update = self.sort_update_order(pkgs) if sort else pkgs
-        return UpdateRequirements(None, None, [UpdateRequirement(p) for p in to_update], [])
+        return UpdateRequirements(None, None, [UpdateRequirement(pkg=p, extra_size=p.size, required_size=p.size) for p in to_update], [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
         partials, runtimes, apps = [], [], []

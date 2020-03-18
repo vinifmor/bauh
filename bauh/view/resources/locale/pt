@@ -298,6 +298,7 @@ action.update.summary=Resumo de atualização
 action.update.status.checking_sizes=Calculando o tamanho das atualizações
 action.update.label_to_remove=Precisam ser desinstalados
 action.update.cannot_update_label=Não podem ser atualizados
+action.update.pkg.required_size=Requer
 action.history.no_history.title=Sem histórico
 action.history.no_history.body=Não existe histórico disponível para {}
 general=geral

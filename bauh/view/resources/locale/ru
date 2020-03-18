@@ -254,6 +254,7 @@ action.update.summary=Сводка обновления
 action.update.status.checking_sizes=Расчет размера обновления
 action.update.label_to_remove=Must be uninstalled
 action.update.cannot_update_label=Cannot be upgraded
+action.update.pkg.required_size=Requires
 prepare_panel.bt_skip.label=Пропустить
 action.failed=Действие не удалось
 Australia=Австралия
