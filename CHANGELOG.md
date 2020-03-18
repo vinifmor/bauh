@@ -38,8 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - table update performance
     - the name filter now delays 1 second before being applied
     - time to determine the selected packages to upgrade reduced
-    - displaying the upgrade required packages in the same dialog of the upgrade order
-    - displaying the upgrade size ( Arch only )
+    - upgrades: upgrade order and required dialogs were merged in a single "summary" dialog
+    - displaying the upgrade size ( Flatpak, AppImage and Arch )
     
 ### Improvements
 - tray
