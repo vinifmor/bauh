@@ -1,4 +1,3 @@
-import time
 from typing import Dict, Set, Iterable, Tuple, List
 
 
@@ -95,8 +94,17 @@ def sort(pkgs: Iterable[str], pkgs_data: Dict[str, dict], provided_map: Dict[str
         for pkg in not_sorted:
             deps_map[pkg] = deps_map[pkg].difference(sorted_names)
 
+        dep_lvl_map = {}  # holds the diff between the number of dependents per package and its dependencies
+        for pkg in not_sorted:
+            dependents = 0
+            for pkg2 in not_sorted:
+                if pkg != pkg2 and pkg in deps_map[pkg2]:
+                    dependents += 1
+
+            dep_lvl_map[pkg] = dependents - len(deps_map[pkg])
+
         sorted_by_less_deps = [*not_sorted]
-        sorted_by_less_deps.sort(key=lambda o: len(deps_map[o]))   # TODO: improve ( sum the deps and subdeps )
+        sorted_by_less_deps.sort(key=lambda o: dep_lvl_map[o], reverse=True)  # sorting by higher dep level
 
         for pkg in sorted_by_less_deps:
             idx = _index_pkg(pkg, sorted_list, sorted_names, deps_map, ignore_not_sorted=True)
