@@ -121,7 +121,7 @@ class UpdateSelectedPackages(AsyncAction):
             icon_path = req.pkg.get_type_icon_path()
 
         size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
-                                              '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+                                   '?' if req.extra_size is None else get_human_size_str(req.extra_size))
         if req.extra_size != req.required_size:
             size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
                                              '?' if req.required_size is None else get_human_size_str(req.required_size))
@@ -171,11 +171,13 @@ class UpdateSelectedPackages(AsyncAction):
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
-                                            self.i18n['amount'].capitalize(),
-                                            len(opts),
-                                            self.i18n['size'].capitalize(),
-                                            '?' if extra_size is None else get_human_size_str(extra_size))
+        lb = '{} ( {}: {}. {}: {}. {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
+                                                    self.i18n['amount'].capitalize(),
+                                                    len(opts),
+                                                    self.i18n['size'].capitalize(),
+                                                    '?' if extra_size is None else get_human_size_str(extra_size),
+                                                    self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                    '?' if required_size is None else get_human_size_str(required_size))
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
@@ -195,11 +197,13 @@ class UpdateSelectedPackages(AsyncAction):
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
-                                            self.i18n['amount'].capitalize(),
-                                            len(opts),
-                                            self.i18n['size'].capitalize(),
-                                            '?' if extra_size is None else get_human_size_str(extra_size))
+        lb = '{} ( {}: {}. {}: {}. {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
+                                                    self.i18n['amount'].capitalize(),
+                                                    len(opts),
+                                                    self.i18n['size'].capitalize(),
+                                                    '?' if extra_size is None else get_human_size_str(extra_size),
+                                                    self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                    '?' if required_size is None else get_human_size_str(required_size))
 
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
