@@ -264,8 +264,6 @@ class UpdatesSummarizer:
             for t in map_threads:
                 t.join()
 
-            # context.to_install.extend([sorted_pkgs[idx] for idx in sorted(sorted_pkgs)])  # TODO fix on main function the to_install order
-
             aur_to_install_data = {}
             all_to_install_data = {}
 
@@ -381,8 +379,12 @@ class UpdatesSummarizer:
                 t.join()
 
         self.logger.info("Filling updates data")
-        context.pkgs_data.update(pacman.map_updates_data(context.repo_to_update.keys()))
-        context.pkgs_data.update(aur_data)
+
+        if context.repo_to_update:
+            context.pkgs_data.update(pacman.map_updates_data(context.repo_to_update.keys()))
+
+        if aur_data:
+            context.pkgs_data.update(aur_data)
 
         self.__fill_provided_names(context)
 
@@ -392,7 +394,7 @@ class UpdatesSummarizer:
         self._fill_to_install(context)
 
         if context.to_update:
-            installed_sizes = pacman.get_installed_size(list(context.repo_to_update.keys()))
+            installed_sizes = pacman.get_installed_size(list(context.to_update.keys()))
             if sort:
                 sorted_pkgs = sorting.sort(context.to_update.keys(), context.pkgs_data, context.provided_names)
                 res.to_update = [self._map_requirement(context.to_update[pdata[0]], context, installed_sizes) for pdata in sorted_pkgs]
