@@ -15,7 +15,7 @@ from typing import Set, Type, List, Tuple
 from colorama import Fore
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager, SearchResult
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpdateRequirements, UpdateRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
@@ -649,3 +649,19 @@ class AppImageManager(SoftwareManager):
 
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         return self.custom_actions
+
+    def get_update_requirements(self, pkgs: List[AppImage], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
+        to_update = []
+
+        for pkg in pkgs:
+            requirement = UpdateRequirement(pkg)
+            installed_size = self.http_client.get_content_length_in_bytes(pkg.url_download)
+            upgrade_size = self.http_client.get_content_length_in_bytes(pkg.url_download_latest_version)
+            requirement.required_size = upgrade_size
+
+            if upgrade_size and installed_size:
+                requirement.extra_size = upgrade_size - installed_size
+
+            to_update.append(requirement)
+
+        return UpdateRequirements([], [], to_update, [])
