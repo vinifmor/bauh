@@ -4,7 +4,8 @@ from math import floor
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
-from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpdateRequirements
+from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpdateRequirements, \
+    UpdateRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
@@ -14,7 +15,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectCompo
 from bauh.commons import user
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
+from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -471,7 +472,8 @@ class FlatpakManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def get_update_requirements(self, pkgs: List[FlatpakApplication], root_password: str, sort: bool, watcher: ProcessWatcher) -> UpdateRequirements:
-        return UpdateRequirements(None, None, self.sort_update_order(pkgs) if sort else pkgs, [])
+        to_update = self.sort_update_order(pkgs) if sort else pkgs
+        return UpdateRequirements(None, None, [UpdateRequirement(p) for p in to_update], [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
         partials, runtimes, apps = [], [], []

@@ -183,18 +183,18 @@ class UpdatesSummarizer:
         if sub_conflict:
             for dep, source in sub_conflict.items():
                 if dep not in to_remove_map and (not blacklist or dep not in blacklist):
-                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    to_remove_map[dep] = pkg
+                    req = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    to_remove_map[dep] = req
                     reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)
-                    context.to_remove[dep] = UpdateRequirement(pkg, reason)
+                    context.to_remove[dep] = UpdateRequirement(req, reason)
 
         if root_conflict:
             for dep, source in root_conflict.items():
                 if dep not in to_remove_map and (not blacklist or dep not in blacklist):
-                    pkg = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    to_remove_map[dep] = pkg
+                    req = ArchPackage(name=dep, installed=True, i18n=self.i18n)
+                    to_remove_map[dep] = req
                     reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)
-                    context.to_remove[dep] = UpdateRequirement(pkg, reason)
+                    context.to_remove[dep] = UpdateRequirement(req, reason)
 
         if to_remove_map:
             for name in to_remove_map.keys():  # upgrading lists
@@ -212,9 +212,9 @@ class UpdatesSummarizer:
             if removed_size:
                 for name, size in removed_size.items():
                     if size is not None:
-                        pkg = to_remove_map.get(name)
-                        if pkg:
-                            pkg.size = size
+                        req = context.to_remove.get(name)
+                        if req:
+                            req.extra_size = size
 
     def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
         version = None
@@ -343,6 +343,21 @@ class UpdatesSummarizer:
 
             self.logger.info("AUR index loaded on the context")
 
+    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None) -> UpdateRequirement:
+        requirement = UpdateRequirement(pkg)
+
+        if pkg.repository != 'aur':
+            data = context.pkgs_data[pkg.name]
+            requirement.required_size = data['ds']
+            requirement.extra_size = data['s']
+    
+            current_size = installed_sizes.get(pkg.name) if installed_sizes else None
+
+            if current_size is not None and data['s']:
+                requirement.extra_size = data['s'] - current_size
+
+        return requirement
+
     def summarize(self, pkgs: List[ArchPackage], sort: bool, root_password: str) -> UpdateRequirements:
         res = UpdateRequirements(None, [], None, [])
 
@@ -366,11 +381,8 @@ class UpdatesSummarizer:
                 t.join()
 
         self.logger.info("Filling updates data")
-        tudi = time.time()  # TODO remove timers
         context.pkgs_data.update(pacman.map_updates_data(context.repo_to_update.keys()))
         context.pkgs_data.update(aur_data)
-        tudf = time.time()
-        self.logger.info("Filling updates data took {0:.2f} seconds".format(tudf - tudi))
 
         self.__fill_provided_names(context)
 
@@ -379,42 +391,13 @@ class UpdatesSummarizer:
 
         self._fill_to_install(context)
 
-        all_repo_pkgs = {**context.repo_to_update, **context.repo_to_install}
-        if all_repo_pkgs:  # filling sizes
-            names, installed, new = [], [], []
-
-            for p in all_repo_pkgs.values():
-                names.append(p.name)
-
-                if p.installed:
-                    installed.append(p.name)
-                else:
-                    new.append(p.name)
-
-            if context.pkgs_data:
-                for p in new:
-                    pkg = all_repo_pkgs[p]
-                    pkg.size = context.pkgs_data[p]['s']
-
-                if installed:
-                    installed_size = pacman.get_installed_size(installed)
-
-                    for p in installed:
-                        pkg = all_repo_pkgs[p]
-                        pkg.size = installed_size[p]
-                        update_size = context.pkgs_data[p]['s']
-
-                        if pkg.size is None:
-                            pkg.size = update_size
-                        elif update_size is not None:
-                            pkg.size = update_size - pkg.size
-
         if context.to_update:
+            installed_sizes = pacman.get_installed_size(list(context.repo_to_update.keys()))
             if sort:
                 sorted_pkgs = sorting.sort(context.to_update.keys(), context.pkgs_data, context.provided_names)
-                res.to_update = [context.to_update[pdata[0]] for pdata in sorted_pkgs]
+                res.to_update = [self._map_requirement(context.to_update[pdata[0]], context, installed_sizes) for pdata in sorted_pkgs]
             else:
-                res.to_update = [p for p in context.to_update.values()]
+                res.to_update = [self._map_requirement(p, context, installed_sizes) for p in context.to_update.values()]
 
         if context.to_remove:
             res.to_remove = [p for p in context.to_remove.values()]
@@ -423,6 +406,6 @@ class UpdatesSummarizer:
             res.cannot_update = [p for p in context.cannot_update.keys()]
 
         if context.to_install:
-            res.to_install = [UpdateRequirement(p) for p in context.to_install.values()]
+            res.to_install = [self._map_requirement(p, context) for p in context.to_install.values()]
 
         return res

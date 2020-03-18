@@ -529,7 +529,7 @@ def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     return {}
 
 
-def get_installed_size(pkgs: Iterable[str]) -> Dict[str, int]: # bytes
+def get_installed_size(pkgs: List[str]) -> Dict[str, int]: # bytes
     output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
 
     if output:
@@ -600,7 +600,7 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
     if output:
         res = {}
         latest_name = None
-        data = {'s': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
+        data = {'ds': None, 's': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
         latest_field = None
 
         for l in output.split('\n'):
@@ -648,6 +648,10 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
                             data['c'] = {w.strip() for w in val.split(' ') if w}
 
                         latest_field = 'c'
+                    elif field == 'Download Size':
+                        size = val.split(' ')
+                        data['ds'] = size_to_byte(float(size[0]), size[1])
+                        latest_field = 'ds'
                     elif field == 'Installed Size':
                         size = val.split(' ')
                         data['s'] = size_to_byte(float(size[0]), size[1])
@@ -656,7 +660,7 @@ def map_updates_data(pkgs: Iterable[str]) -> dict:
                         res[latest_name] = data
                         latest_name = None
                         latest_field = None
-                        data = {'s': None, 'c': None, 'p': None, 'd': None, 'r': None,  'v': None}
+                        data = {'ds': None, 's': None, 'c': None, 'p': None, 'd': None, 'r': None,  'v': None}
                     else:
                         latest_field = None
 

@@ -2,15 +2,13 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
-from functools import reduce
-from operator import add
 from typing import List, Type, Set, Tuple
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from bauh.api.abstract.cache import MemoryCache
-from bauh.api.abstract.controller import SoftwareManager, UpdateRequirement
+from bauh.api.abstract.controller import SoftwareManager, UpdateRequirement, UpdateRequirements
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
@@ -112,24 +110,24 @@ class UpdateSelectedPackages(AsyncAction):
         self.manager = manager
         self.i18n = i18n
 
-    def _pkg_as_option(self, pkg: SoftwarePackage, tooltip: bool = True, custom_tooltip: str = None) -> InputOption:
-        if pkg.installed:
-            icon_path = pkg.get_disk_icon_path()
+    def _req_as_option(self, req: UpdateRequirement, tooltip: bool = True, custom_tooltip: str = None) -> InputOption:
+        if req.pkg.installed:
+            icon_path = req.pkg.get_disk_icon_path()
 
             if not icon_path or not os.path.isfile(icon_path):
-                icon_path = pkg.get_type_icon_path()
+                icon_path = req.pkg.get_type_icon_path()
 
         else:
-            icon_path = pkg.get_type_icon_path()
+            icon_path = req.pkg.get_type_icon_path()
 
-        label = '{}{} - {}: {}'.format(pkg.name,
-                                       ' ( {} )'.format(pkg.latest_version) if pkg.latest_version else '',
+        label = '{}{} - {}: {}'.format(req.pkg.name,
+                                       ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '',
                                        self.i18n['size'].capitalize(),
-                                       '?' if pkg.size is None else get_human_size_str(pkg.size))
+                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
 
         return InputOption(label=label,
                            value=None,
-                           tooltip=custom_tooltip if custom_tooltip else (pkg.get_name_tooltip() if tooltip else None),
+                           tooltip=custom_tooltip if custom_tooltip else (req.pkg.get_name_tooltip() if tooltip else None),
                            read_only=True,
                            icon_path=icon_path)
 
@@ -146,54 +144,59 @@ class UpdateSelectedPackages(AsyncAction):
 
         return to_update, requires_root
 
-    def _sum_pkgs_size(self, pkgs: List[SoftwarePackage]) -> int:
-        try:
-            return reduce(add, ((p.size if p.size is not None else 0) for p in pkgs))
-        except:
-            return 0
+    def _sum_pkgs_size(self, reqs: List[UpdateRequirement]) -> Tuple[int, int]:
+        required, extra = 0, 0
+        for r in reqs:
+            if r.required_size is not None:
+                required += r.required_size
+
+            if r.extra_size is not None:
+                extra += r.extra_size
+
+        return required, extra
 
     def _gen_cannot_update_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
-        opts = [self._pkg_as_option(r.pkg, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r.pkg, False, r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
 
         return FormComponent(label=self.i18n['action.update.cannot_update_label'], components=comps)
 
-    def _gen_to_install_form(self, reqs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
-        opts = [self._pkg_as_option(p) for p in reqs]
+    def _gen_to_install_form(self, reqs: List[UpdateRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
+        opts = [self._req_as_option(r) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-        size = self._sum_pkgs_size(reqs)
+        required_size, extra_size = self._sum_pkgs_size(reqs)
 
         lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
                                             self.i18n['amount'].capitalize(),
                                             len(opts),
                                             self.i18n['size'].capitalize(),
-                                            '?' if size is None else get_human_size_str(size))
-        return FormComponent(label=lb, components=comps), size
+                                            '?' if extra_size is None else get_human_size_str(extra_size))
+        return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _gen_to_remove_form(self, reqs: List[UpdateRequirement]) -> FormComponent:
-        opts = [self._pkg_as_option(r.pkg, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r.pkg, False, r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-        size = -self._sum_pkgs_size([req.pkg for req in reqs])
+        required_size, extra_size = self._sum_pkgs_size([req.pkg for req in reqs])
 
         lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
                                             self.i18n['amount'].capitalize(),
                                             len(opts),
                                             self.i18n['size'].capitalize(),
-                                            '?' if size is None else get_human_size_str(size))
+                                            '?' if extra_size is None else get_human_size_str(-extra_size))
         return FormComponent(label=lb, components=comps)
 
-    def _gen_to_update_form(self, pkgs: List[SoftwarePackage]) -> Tuple[FormComponent, int]:
-        opts = [self._pkg_as_option(p, tooltip=False) for p in pkgs]
+    def _gen_to_update_form(self, reqs: List[UpdateRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
+        opts = [self._req_as_option(r, tooltip=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
-        size = self._sum_pkgs_size(pkgs)
+        required_size, extra_size = self._sum_pkgs_size(reqs)
 
         lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.order'].capitalize(),
                                             self.i18n['amount'].capitalize(),
                                             len(opts),
                                             self.i18n['size'].capitalize(),
-                                            '?' if size is None else get_human_size_str(size))
+                                            '?' if extra_size is None else get_human_size_str(extra_size))
 
-        return FormComponent(label=lb, components=comps), size
+        return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _trim_disk(self, root_password: str):
         if read_config()['disk']['trim_after_update']:
@@ -244,80 +247,73 @@ class UpdateSelectedPackages(AsyncAction):
 
         models = [view.model for view in to_update]
 
-        to_install, to_remove, to_update, cannot_update = [], [], [], None
         if bool(app_config['updates']['pre_dependency_checking']):
             self.change_substatus(self.i18n['action.update.requirements.status'])
             sort = bool(app_config['updates']['sort_packages'])
             requirements = self.manager.get_update_requirements(models, root_password, sort, self)
 
             if not requirements:
+                self.pkgs = None
                 self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
                 return
-
-            to_install = [r.pkg for r in requirements.to_install]
-            to_remove = requirements.to_remove
-            to_update = requirements.to_update
-            cannot_update = requirements.cannot_update
         else:
-            to_update = models
+            requirements = UpdateRequirements(to_update=models, to_install=[], to_remove=[], cannot_update=[])
 
-        # sorted_pkgs = self._sort_packages([*models], app_config)
+        comps, required_size, extra_size = [], 0, 0
 
-        comps, total_size = [], 0
+        if requirements.cannot_update:
+            comps.append(self._gen_cannot_update_form(requirements.cannot_update))
 
-        # self.change_substatus(self.i18n['action.update.status.checking_sizes'])
-        # self.manager.fill_sizes([*(required_pkgs if required_pkgs else []), *sorted_pkgs])
-
-        if cannot_update:
-            comps.append(self._gen_cannot_update_form(cannot_update))
-
-        if to_install:
-            req_form, reqs_size = self._gen_to_install_form(to_install)
-            total_size += reqs_size
+        if requirements.to_install:
+            req_form, reqs_size = self._gen_to_install_form(requirements.to_install)
+            required_size += reqs_size[0]
+            extra_size += reqs_size[1]
             comps.append(req_form)
 
-        if to_remove:
-            comps.append(self._gen_to_remove_form(to_remove))
+        if requirements.to_remove:
+            comps.append(self._gen_to_remove_form(requirements.to_remove))
 
-        updates_form, updates_size = self._gen_to_update_form(to_update)
-        total_size += updates_size
+        updates_form, updates_size = self._gen_to_update_form(requirements.to_update)
+        required_size += updates_size[0]
+        extra_size += updates_size[1]
         comps.append(updates_form)
 
-        if total_size > 0:
-            comps.insert(0, TextComponent(bold('{}: {}'.format(self.i18n['action.update.total_size'].capitalize(),
-                                                               get_human_size_str(total_size))), size=14))
-            comps.insert(1, TextComponent(''))
+        extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
+        req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
+                                        get_human_size_str(required_size))
+        comps.insert(0, TextComponent(bold('{}  |  {}').format(extra_size_text, req_size_text), size=14))
+        comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
             self.pkgs = None
             return
 
-        if to_install:
-            for pkg in to_install:
-                if not self.manager.install(pkg.pkg, root_password, self):
+        if requirements.to_install:
+            for req in requirements.to_install:
+                if not self.manager.install(req.pkg, root_password, self):
                     self.notify_finished({'success': False, 'updated': 0, 'types': set()})
                     self.pkgs = None
-                    label = '{}{}'.format(pkg.name, ' ( {} )'.format(pkg.version) if pkg.version else '')
+                    label = '{}{}'.format(req.pkg.name, ' ( {} )'.format(req.pkg.version) if req.pkg.version else '')
                     self.show_message(title=self.i18n['action.update.install_req.fail.title'],
                                       body=self.i18n['action.update.install_req.fail.body'].format(label),
                                       type_=MessageType.ERROR)
                     self.notify_finished({'success': success, 'updated': updated, 'types': updated_types})
                     return
 
-        for pkg in to_update:
+        for req in requirements.to_update:
             self.change_substatus('')
-            name = pkg.name if not RE_VERSION_IN_NAME.findall(pkg.name) else pkg.name.split('version')[0].strip()
+            name = req.pkg.name if not RE_VERSION_IN_NAME.findall(req.pkg.name) else req.pkg.name.split('version')[0].strip()
 
-            self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, pkg.version))
-            success = bool(self.manager.update(pkg, root_password, self))
+            self.change_status('{} {} {}...'.format(self.i18n['manage_window.status.upgrading'], name, req.pkg.version))
+            success = bool(self.manager.update(req, root_password, self))
             self.change_substatus('')
 
             if not success:
                 break
             else:
                 updated += 1
-                updated_types.add(pkg.__class__)
+                updated_types.add(req.__class__)
                 self.signal_output.emit('\n')
 
         if success:

@@ -30,14 +30,24 @@ class SearchResult:
 
 class UpdateRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None):
+    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None):
+        """
+
+        :param pkg:
+        :param reason:
+        :param required_size: size in BYTES required to upgrade the package
+        :param extra_size: the extra size IN BYTES the upgrade will allocate in relation to the already allocated
+        """
         self.pkg = pkg
         self.reason = reason
+        self.required_size = required_size
+        self.extra_size = extra_size
 
 
 class UpdateRequirements:
 
-    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement], to_update: List[SoftwarePackage], cannot_update: List[SoftwarePackage]):
+    def __init__(self, to_install: List[UpdateRequirement], to_remove: List[UpdateRequirement],
+                 to_update: List[UpdateRequirement], cannot_update: List[SoftwarePackage]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
@@ -113,7 +123,7 @@ class SoftwareManager(ABC):
         :param if the packages to be sorted
         :return:
         """
-        return UpdateRequirements(None, None, pkgs, None)
+        return UpdateRequirements(None, None, [UpdateRequirement(p) for p in pkgs], None)
 
     @abstractmethod
     def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:

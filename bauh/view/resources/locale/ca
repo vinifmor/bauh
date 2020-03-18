@@ -287,6 +287,7 @@ action.update.requirements.status=Verificant els requisits
 action.update.order=Ordre d'actualització
 action.update.required_label=Must be installed
 action.update.total_size=Upgrade size
+action.update.required_size=Disk space required
 action.update.summary=Upgrade summary
 action.update.status.checking_sizes=Calculating upgrade size
 action.update.label_to_remove=Must be uninstalled

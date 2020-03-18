@@ -249,6 +249,7 @@ action.update.requirements.status=Проверка требований
 action.update.order=Порядок обновления
 action.update.required_label=Должен быть установлен
 action.update.total_size=Upgrade size
+action.update.required_size=Disk space required
 action.update.summary=Сводка обновления
 action.update.status.checking_sizes=Расчет размера обновления
 action.update.label_to_remove=Must be uninstalled

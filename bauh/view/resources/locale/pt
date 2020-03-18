@@ -293,6 +293,7 @@ action.update.requirements.status=Verificando requisitos
 action.update.order=Ordem de atualização
 action.update.required_label=Precisam ser instalados
 action.update.total_size=Tamanho da atualização
+action.update.required_size=Espaço necessário em disco
 action.update.summary=Resumo de atualização
 action.update.status.checking_sizes=Calculando o tamanho das atualizações
 action.update.label_to_remove=Precisam ser desinstalados
