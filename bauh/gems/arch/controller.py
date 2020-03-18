@@ -855,16 +855,11 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _should_check_subdeps(self):
-        return self.local_config['transitive_checking']
-
     def _build(self, pkgname: str, base_name: str, maintainer: str, root_password: str, handler: ProcessHandler, build_dir: str, project_dir: str, dependency: bool, skip_optdeps: bool = False, change_progress: bool = True) -> bool:
-
         self._pre_download_source(project_dir, handler.watcher)
-
         self._update_progress(handler.watcher, 50, change_progress)
 
-        if not self._handle_deps_and_keys(pkgname, root_password, handler, project_dir, check_subdeps=self._should_check_subdeps()):
+        if not self._handle_deps_and_keys(pkgname, root_password, handler, project_dir):
             return False
 
         # building main package
@@ -894,8 +889,11 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _check_missing_deps(self, pkgname: str, repository: str, srcinfo: dict, watcher: ProcessWatcher) -> Dict[str, str]:
+    def _check_missing_deps(self, pkgname: str, repository: str, watcher: ProcessWatcher, pkgdir: str = None) -> Dict[str, str]:
         if repository == 'aur':
+            with open('{}/.SRCINFO'.format(pkgdir)) as f:
+                srcinfo = aur.map_srcinfo(f.read())
+
             missing = {}
 
             missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, repository=repository, srcinfo=srcinfo)
@@ -941,7 +939,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str, check_subdeps: bool = True) -> bool:
+    def _handle_deps_and_keys(self, pkgname: str, root_password: str, handler: ProcessHandler, pkgdir: str) -> bool:
         handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
 
         if not self.local_config['simple_checking']:
@@ -949,22 +947,23 @@ class ArchManager(SoftwareManager):
             with open('{}/.SRCINFO'.format(pkgdir)) as f:
                 srcinfo = aur.map_srcinfo(f.read())
 
-            missing_deps = self._check_missing_deps(pkgname=pkgname, repository='aur', srcinfo=srcinfo, watcher=handler.watcher)
-            tf = time.time()
-
-            if missing_deps is None:
-                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
-
-                return False  # it means one of the dependencies could not be found
-            elif missing_deps and check_subdeps:
-                missing_deps = self.deps_analyser.map_known_missing_deps(known_deps=missing_deps, watcher=handler.watcher)
+            pkgs_data = {pkgname: self.aur_client.map_update_data(pkgname, None, srcinfo)}  # TODO fill version from the context
+            provided_map = pacman.map_provided()
+            try:
+                missing_deps = self.deps_analyser.map_missing_deps(pkgs_data=pkgs_data,
+                                                                   provided_names=provided_map,
+                                                                   aur_index=self.aur_client.read_index(),
+                                                                   deps_checked=set(),
+                                                                   deps_data={},
+                                                                   sort=True,
+                                                                   watcher=handler.watcher)
                 tf = time.time()
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+            except PackageNotFoundException:
+                tf = time.time()
+                self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+                return False
 
-                if missing_deps is None:
-                    self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
-                    return False  # it means one of the dependencies could not be found
-
-            self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
             if missing_deps:
                 if not self._ask_and_install_missing_deps(pkgname=pkgname,
                                                           root_password=root_password,
@@ -973,7 +972,7 @@ class ArchManager(SoftwareManager):
                     return False
 
                 # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
-                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
+                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir)
 
         ti = time.time()
         check_res = makepkg.check(pkgdir, optimize=self.local_config['optimize'], missing_deps=self.local_config['simple_checking'], handler=handler)
@@ -981,7 +980,7 @@ class ArchManager(SoftwareManager):
         if check_res:
             if check_res.get('missing_deps'):
                 handler.watcher.change_substatus(self.i18n['arch.checking.missing_deps'].format(bold(pkgname)))
-                missing_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher, check_subdeps=check_subdeps)
+                missing_deps = self._map_unknown_missing_deps(check_res['missing_deps'], handler.watcher)
                 tf = time.time()
                 self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
 
@@ -995,7 +994,7 @@ class ArchManager(SoftwareManager):
                     return False
 
                 # it is necessary to re-check because missing PGP keys are only notified when there are no missing deps
-                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir, check_subdeps=False)
+                return self._handle_deps_and_keys(pkgname, root_password, handler, pkgdir)
 
             if check_res.get('gpg_key'):
                 if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.unknown_key.title'],
@@ -1043,20 +1042,19 @@ class ArchManager(SoftwareManager):
             else:
                 sorted_deps = []
 
-                if self._should_check_subdeps():
-                    missing_deps = self.deps_analyser.map_known_missing_deps({d: pkg_repos[d] for d in deps_to_install}, handler.watcher)
+                missing_deps = self.deps_analyser.map_known_missing_deps({d: pkg_repos[d] for d in deps_to_install}, handler.watcher)
 
-                    if missing_deps is None:
+                if missing_deps is None:
+                    return True  # because the main package installation was successful
+
+                if missing_deps:
+                    same_as_selected = len(deps_to_install) == len(missing_deps) and deps_to_install == {d[0] for d in missing_deps}
+
+                    if not same_as_selected and not confirmation.request_install_missing_deps(None, missing_deps, handler.watcher, self.i18n):
+                        handler.watcher.print(self.i18n['action.cancelled'])
                         return True  # because the main package installation was successful
 
-                    if missing_deps:
-                        same_as_selected = len(deps_to_install) == len(missing_deps) and deps_to_install == {d[0] for d in missing_deps}
-
-                        if not same_as_selected and not confirmation.request_install_missing_deps(None, missing_deps, handler.watcher, self.i18n):
-                            handler.watcher.print(self.i18n['action.cancelled'])
-                            return True  # because the main package installation was successful
-
-                        sorted_deps.extend(missing_deps)
+                    sorted_deps.extend(missing_deps)
                 else:
                     aur_deps, repo_deps = [], []
 
@@ -1436,11 +1434,6 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.simple_dep_check.tip',
                                     value=bool(local_config['simple_checking']),
                                     max_width=max_width),
-            self._gen_bool_selector(id_='trans_dep_check',
-                                    label_key='arch.config.trans_dep_check',
-                                    tooltip_key='arch.config.trans_dep_check.tip',
-                                    value=bool(local_config['transitive_checking']),
-                                    max_width=max_width),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
@@ -1474,7 +1467,6 @@ class ArchManager(SoftwareManager):
         config['repositories'] = form_install.get_component('repos').get_selected()
         config['aur'] = form_install.get_component('aur').get_selected()
         config['optimize'] = form_install.get_component('opts').get_selected()
-        config['transitive_checking'] = form_install.get_component('trans_dep_check').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
         config['sync_databases_startup'] = form_install.get_component('sync_dbs_start').get_selected()
         config['simple_checking'] = form_install.get_component('simple_dep_check').get_selected()

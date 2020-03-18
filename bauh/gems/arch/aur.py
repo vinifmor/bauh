@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import urllib.parse
-from typing import Set, List
+from typing import Set, List, Iterable
 
 import requests
 
@@ -170,22 +170,36 @@ class AURClient:
 
         self.logger.info("Finished")
 
+    def read_index(self) -> Iterable[str]:
+        index = self.read_local_index()
+
+        if not index:
+            self.logger.warning("Cached AUR index file not found")
+            pkgnames = self.download_names()
+
+            if pkgnames:
+                return pkgnames
+            else:
+                self.logger.warning("Could not load AUR index on the context")
+        else:
+            return index.values()
+
     def clean_caches(self):
         self.srcinfo_cache.clear()
 
-    def map_update_data(self, pkgname: str, latest_version: str) -> dict:
-        srcinfo = self.get_src_info(pkgname)
+    def map_update_data(self, pkgname: str, latest_version: str, srcinfo: dict = None) -> dict:
+        info = self.get_src_info(pkgname) if not srcinfo else srcinfo
 
         provided = set()
         provided.add(pkgname)
 
-        if srcinfo:
-            provided.add('{}={}'.format(pkgname, srcinfo['pkgver']))
-            if srcinfo.get('provides'):
+        if info:
+            provided.add('{}={}'.format(pkgname, info['pkgver']))
+            if info.get('provides'):
                 provided.update(srcinfo.get('provides'))
 
-            return {'c': srcinfo.get('conflicts'), 's': None, 'p': provided, 'r': 'aur',
-                    'v': srcinfo['pkgver'], 'd': self.extract_required_dependencies(srcinfo)}
+            return {'c': info.get('conflicts'), 's': None, 'p': provided, 'r': 'aur',
+                    'v': info['pkgver'], 'd': self.extract_required_dependencies(info)}
         else:
             if latest_version:
                 provided.add('{}={}'.format(pkgname, latest_version))

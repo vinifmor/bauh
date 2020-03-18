@@ -240,13 +240,13 @@ class UpdatesSummarizer:
     def _fill_to_install(self, context: UpdateRequirementsContext):
         ti = time.time()
         self.logger.info("Discovering updates missing packages")
-        deps = self.deps_analyser.map_updates_missing_deps(pkgs_data=context.pkgs_data,
-                                                           provided_names=context.provided_names,
-                                                           aur_index=context.aur_index,
-                                                           deps_checked=set(),
-                                                           sort=True,
-                                                           deps_data={},
-                                                           watcher=self.watcher)
+        deps = self.deps_analyser.map_missing_deps(pkgs_data=context.pkgs_data,
+                                                   provided_names=context.provided_names,
+                                                   aur_index=context.aur_index,
+                                                   deps_checked=set(),
+                                                   sort=True,
+                                                   deps_data={},
+                                                   watcher=self.watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p for p in context.to_update}
@@ -325,21 +325,11 @@ class UpdatesSummarizer:
     def __fill_aur_index(self, context: UpdateRequirementsContext):
         if context.arch_config['aur']:
             self.logger.info("Loading AUR index")
-            index = self.aur_client.read_local_index()
+            names = self.aur_client.read_index()
 
-            if not index:
-                self.logger.warning("Cached AUR index file not found")
-                pkgnames = self.aur_client.download_names()
-
-                if pkgnames:
-                    context.aur_index.update(pkgnames)
-                else:
-                    self.logger.warning("Could not load AUR index on the context")
-                    return
-            else:
-                context.aur_index.update(index.values())
-
-            self.logger.info("AUR index loaded on the context")
+            if names:
+                context.aur_index.update(names)
+                self.logger.info("AUR index loaded on the context")
 
     def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None) -> UpdateRequirement:
         requirement = UpdateRequirement(pkg)
