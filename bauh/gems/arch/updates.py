@@ -240,55 +240,45 @@ class UpdatesSummarizer:
     def _fill_to_install(self, context: UpdateRequirementsContext):
         ti = time.time()
         self.logger.info("Discovering updates missing packages")
+        deps_data = {}
         deps = self.deps_analyser.map_missing_deps(pkgs_data=context.pkgs_data,
                                                    provided_names=context.provided_names,
                                                    aur_index=context.aur_index,
                                                    deps_checked=set(),
                                                    sort=True,
-                                                   deps_data={},
+                                                   deps_data=deps_data,
                                                    watcher=self.watcher)
 
         if deps:  # filtering selected packages
             selected_names = {p for p in context.to_update}
             deps = [dep for dep in deps if dep[0] not in selected_names]
 
-        if deps:
-            map_threads, sorted_pkgs = [], {}
+            if deps:
+                sorted_pkgs = {}
+                aur_to_install_data = {}
+                all_to_install_data = {}
 
-            for idx, dep in enumerate(deps):
-                # TODO check if this '_map' already makes sense ( lots of data is already preloaded in previous steps )
-                t = Thread(target=self._map_and_add_package, args=(dep, idx, sorted_pkgs), daemon=True)
-                t.start()
-                map_threads.append(t)
+                for idx, dep in enumerate(deps):
+                    data = deps_data[dep[0]]
+                    pkg = ArchPackage(name=dep[0], version=data['v'], latest_version=data['v'], repository=dep[1], i18n=self.i18n)
+                    sorted_pkgs[idx] = pkg
+                    context.to_install[dep[0]] = pkg
 
-            for t in map_threads:
-                t.join()
+                    if pkg.repository == 'aur':
+                        context.aur_to_install[pkg.name] = pkg
+                        aur_to_install_data[pkg.name] = data
+                    else:
+                        context.repo_to_install[pkg.name] = pkg
 
-            aur_to_install_data = {}
-            all_to_install_data = {}
+                if context.repo_to_install:
+                    all_to_install_data.update(pacman.map_updates_data(context.repo_to_install.keys()))
 
-            aur_threads = []
-            for idx, pkg in sorted_pkgs.items():
-                context.to_install[pkg.name] = pkg
-                if pkg.repository == 'aur':
-                    context.aur_to_install[pkg.name] = pkg
-                    t = Thread(target=self._fill_aur_pkg_update_data, args=(pkg, aur_to_install_data), daemon=True)
-                    t.start()
-                    aur_threads.append(t)
-                else:
-                    context.repo_to_install[pkg.name] = pkg
+                if aur_to_install_data:
+                    all_to_install_data.update(aur_to_install_data)
 
-            for t in aur_threads:
-                t.join()
-
-            if context.repo_to_install:
-                all_to_install_data.update(pacman.map_updates_data(context.repo_to_install.keys()))
-
-            all_to_install_data.update(aur_to_install_data)
-
-            if all_to_install_data:
-                context.pkgs_data.update(all_to_install_data)
-                self._fill_conflicts(context, context.to_remove.keys())
+                if all_to_install_data:
+                    context.pkgs_data.update(all_to_install_data)
+                    self._fill_conflicts(context, context.to_remove.keys())
 
         tf = time.time()
         self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
