@@ -20,7 +20,7 @@ def should_sync(logger: logging.Logger):
             sync_time = datetime.fromtimestamp(int(sync_file))
             now = datetime.now()
 
-            if (now - sync_time).days > 0:
+            if now > sync_time and now.day != sync_time.day:
                 logger.info("Package databases synchronization out of date")
             else:
                 msg = "Package databases already synchronized"
