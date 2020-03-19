@@ -34,6 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - now the root password is asked only once ( can be disabled through the new settings property `store_root_password` )
 - Arch
     - dialog design when the package cannot be uninstalled due to required packages
+    - dependency checking algorithm: 
+        - faster for scenarios involving several packages ( taking =~ 95% less time )
+        - faster for AUR installations ( taking an average of 23% less time ) 
 - UI
     - table update performance
     - the name filter now delays 1 second before being applied
