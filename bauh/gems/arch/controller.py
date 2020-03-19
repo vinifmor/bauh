@@ -482,10 +482,14 @@ class ArchManager(SoftwareManager):
         self._sync_databases(root_password=root_password, handler=handler)
         handler.watcher.change_progress(50)
 
+        file_path = version_files[versions[0]]
+        if not self._check_repo_pkg_deps(file_path,root_password, handler, file=True):
+            return False
+
         handler.watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
 
         handler.watcher.change_progress(60)
-        if not handler.handle(pacman.install_as_process(pkgpath=version_files[versions[0]],
+        if not handler.handle(pacman.install_as_process(pkgpath=file_path,
                                                         root_password=root_password,
                                                         file=True)):
             handler.watcher.show_message(title=self.i18n['arch.downgrade.error'],
@@ -1194,9 +1198,10 @@ class ArchManager(SoftwareManager):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
             ArchCompilationOptimizer(self.local_config, self.i18n, self.context.logger).optimize()
 
-    def _check_repo_pkg_deps(self, pkgname: str, root_password: str, handler: ProcessHandler) -> bool:
+    def _check_repo_pkg_deps(self, pkgname: str, root_password: str, handler: ProcessHandler, file: bool = False) -> bool:
+        handler.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(pkgname)))
         ti = time.time()
-        pkgs_data = pacman.map_updates_data({pkgname})
+        pkgs_data = pacman.map_updates_data({pkgname},files=file)
         provided_map = pacman.map_provided()
         try:
             missing_deps = self.deps_analyser.map_missing_deps(pkgs_data=pkgs_data,

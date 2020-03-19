@@ -591,8 +591,11 @@ def map_provided() -> Dict[str, str]:
         return provided_map
 
 
-def map_updates_data(pkgs: Iterable[str]) -> dict:
-    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
+    if files:
+        output = run_cmd('pacman -Qi -p {}'.format(' '.join(pkgs)))
+    else:
+        output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
         res = {}
