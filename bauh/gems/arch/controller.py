@@ -889,29 +889,6 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _check_missing_deps(self, pkgname: str, repository: str, watcher: ProcessWatcher, pkgdir: str = None) -> Dict[str, str]:
-        if repository == 'aur':
-            with open('{}/.SRCINFO'.format(pkgdir)) as f:
-                srcinfo = aur.map_srcinfo(f.read())
-
-            missing = {}
-
-            missing_subdeps = self.deps_analyser.get_missing_subdeps(name=pkgname, repository=repository, srcinfo=srcinfo)
-
-            if missing_subdeps:
-                for dep in missing_subdeps:
-                    if not dep[1]:
-                        message.show_dep_not_found(dep[0], self.i18n, watcher)
-                        return
-
-                for dep in missing_subdeps:
-                    missing[dep[0]] = dep[1]
-
-            return missing
-        else:
-            # TODO
-            return []
-
     def _map_unknown_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
         depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
         dep_repos = self._map_repos(depnames)
@@ -1217,6 +1194,35 @@ class ArchManager(SoftwareManager):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
             ArchCompilationOptimizer(self.local_config, self.i18n, self.context.logger).optimize()
 
+    def _check_repo_pkg_deps(self, pkgname: str, root_password: str, handler: ProcessHandler) -> bool:
+        ti = time.time()
+        pkgs_data = pacman.map_updates_data({pkgname})
+        provided_map = pacman.map_provided()
+        try:
+            missing_deps = self.deps_analyser.map_missing_deps(pkgs_data=pkgs_data,
+                                                               provided_names=provided_map,
+                                                               aur_index=self.aur_client.read_index(),
+                                                               deps_checked=set(),
+                                                               deps_data={},
+                                                               sort=True,
+                                                               watcher=handler.watcher)
+            tf = time.time()
+            self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+        except PackageNotFoundException:
+            tf = time.time()
+            self.logger.info("Took {0:.2f} seconds to verify missing dependencies".format(tf - ti))
+            return False
+
+        if missing_deps:
+            if not self._ask_and_install_missing_deps(pkgname=pkgname,
+                                                      root_password=root_password,
+                                                      missing_deps=missing_deps,
+                                                      handler=handler):
+                self.logger.info("User doesn't want to install the missing dependencies. Aborting...")
+                return False
+
+        return True
+
     def install(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, skip_optdeps: bool = False) -> bool:
         if not self._check_action_allowed(pkg, watcher):
             return False
@@ -1234,6 +1240,9 @@ class ArchManager(SoftwareManager):
         if pkg.repository == 'aur':
             res = self._install_from_aur(pkg.name, pkg.package_base, pkg.maintainer, root_password, handler, dependency=False, skip_optdeps=skip_optdeps)
         else:
+            if not self._check_repo_pkg_deps(pkgname=pkg.name, root_password=root_password, handler=handler):
+                return False
+
             res = self._install(pkgname=pkg.name, maintainer=pkg.repository, root_password=root_password, handler=handler, install_file=None, repository=pkg.repository, change_progress=False)
 
         if res:
