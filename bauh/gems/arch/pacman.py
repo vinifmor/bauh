@@ -537,43 +537,56 @@ def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[
 
 
 def map_provided() -> Dict[str, str]:
-    output = run_cmd('pacman -Si')
+    output = run_cmd('pacman -Qi')
 
     if output:
         provided_map = {}
-        latest_name = None
-        provided = False
+        latest_name, latest_version, provided = None, None, False
+
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
-                    line = l.strip().split(':')
-                    field = line[0].strip()
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx + 1:].strip()
 
                     if field == 'Name':
-                        latest_name = line[1].strip()
+                        latest_name = val
+                    elif field == 'Version':
+                        latest_version = val.split('=')[0]
                     elif field == 'Provides':
-                        val = line[1].strip()
+                        provided_map[latest_name] = latest_name
+                        provided_map['{}={}'.format(latest_name, latest_version)] = latest_name
 
-                        if val == 'None':
-                            provided_map[latest_name] = latest_name
-                            provided = True
-                        else:
+                        if val != 'None':
                             for w in val.split(' '):
-                                word = w.strip()
-
-                                if word:
+                                if w:
+                                    word = w.strip()
                                     provided_map[word] = latest_name
+
+                                    word_split = word.split('=')
+
+                                    if word_split[0] != word:
+                                        provided_map[word_split[0]] = latest_name
+                        else:
+                            provided = True
 
                     elif provided:
                         latest_name = None
+                        latest_version = None
                         provided = False
 
                 elif provided:
                     for w in l.split(' '):
-                        word = w.strip()
-
-                        if word:
+                        if w:
+                            word = w.strip()
                             provided_map[word] = latest_name
+
+                            word_split = word.split('=')
+
+                            if word_split[0] != word:
+                                provided_map[word_split[0]] = latest_name
 
         return provided_map
 

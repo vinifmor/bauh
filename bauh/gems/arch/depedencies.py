@@ -1,7 +1,7 @@
 import re
 from distutils.version import LooseVersion
 from threading import Thread
-from typing import Set, List, Tuple, Dict
+from typing import Set, List, Tuple, Dict, Iterable
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting
@@ -173,7 +173,7 @@ class DependenciesAnalyser:
 
         return sorted_deps
 
-    def _fill_missing_dep(self, name: str, aur_index: Set[str], missing_deps: Set[Tuple[str, str]],
+    def _fill_missing_dep(self, name: str, aur_index: Iterable[str], missing_deps: Set[Tuple[str, str]],
                           repo_deps: Set[str], aur_deps: Set[str], watcher: ProcessWatcher) -> Tuple[str, str]:
         dep_found = pacman.guess_repository(name)
 
@@ -194,8 +194,8 @@ class DependenciesAnalyser:
     def __fill_aur_update_data(self, pkgname: str, output: dict):
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
 
-    def map_updates_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Set[str], deps_checked: Set[str],
-                                 deps_data: Dict[str, dict], sort: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
+    def map_missing_deps(self, pkgs_data: Dict[str, dict], provided_names: Dict[str, str], aur_index: Iterable[str], deps_checked: Set[str],
+                         deps_data: Dict[str, dict], sort: bool, watcher: ProcessWatcher) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps, repo_missing, aur_missing = set(), set(), set()
@@ -252,9 +252,9 @@ class DependenciesAnalyser:
                 for t in aur_threads:
                     t.join()
 
-            missing_subdeps = self.map_updates_missing_deps(pkgs_data=deps_data, provided_names=provided_names,
-                                                            aur_index=aur_index, deps_checked=deps_checked,
-                                                            sort=False, deps_data=deps_data, watcher=watcher)
+            missing_subdeps = self.map_missing_deps(pkgs_data=deps_data, provided_names=provided_names,
+                                                    aur_index=aur_index, deps_checked=deps_checked,
+                                                    sort=False, deps_data=deps_data, watcher=watcher)
 
             if missing_subdeps:
                 missing_deps.update(missing_subdeps)

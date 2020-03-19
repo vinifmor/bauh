@@ -40,21 +40,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - time to determine the selected packages to upgrade reduced
     - upgrades: upgrade order and required dialogs were merged in a single "summary" dialog
     - displaying the upgrade size ( Flatpak, AppImage and Arch )
-    
-### Improvements
-- tray
-    - sorting types on update notification
+    - tray
+        - sorting types on update notification
     
 ### Fixes
 - table not displaying all updates when the "updates filter" is clicked several times
 - Arch / AUR:
     - sorting algorithm was providing wrong results for some cases
 
+### Settings
+- Arch / AUR:
+    - **transitive_checking** dropped ( now is always enabled )
 
 ### i18n
     - Russian ( ru )
         - [mountain-biker85](https://github.com/mountain-biker85) -> PRs: [#73](https://github.com/vinifmor/bauh/pull/73) [#79](https://github.com/vinifmor/bauh/pull/79) [#80](https://github.com/vinifmor/bauh/pull/80) [#81](https://github.com/vinifmor/bauh/pull/81)
-     
+
     
 ## [0.8.5] - 2020-03-11
 ### Fixes
