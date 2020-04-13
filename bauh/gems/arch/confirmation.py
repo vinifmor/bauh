@@ -11,13 +11,13 @@ from bauh.view.util.translation import I18n
 
 
 def _get_repo_icon(repository: str):
-    return resource.get_path('img/{}.svg'.format('arch' if repository == 'arch' else 'repo'), ROOT_DIR)
+    return resource.get_path('img/{}.svg'.format('arch' if repository == 'aur' else 'repo'), ROOT_DIR)
 
 
 def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
     opts = []
 
-    repo_deps = [p for p, data in pkg_repos.items() if data['repository'] != 'arch']
+    repo_deps = [p for p, data in pkg_repos.items() if data['repository'] != 'aur']
     sizes = pacman.get_update_size(repo_deps) if repo_deps else None
 
     for p, d in pkg_repos.items():
@@ -49,7 +49,7 @@ def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watc
 
     opts = []
 
-    repo_deps = [d[0] for d in deps if d[1] != 'arch']
+    repo_deps = [d[0] for d in deps if d[1] != 'aur']
     sizes = pacman.get_update_size(repo_deps) if repo_deps else None
 
     for dep in deps:
@@ -83,10 +83,10 @@ def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, st
         providers_list.sort()
 
         for p in providers_list:
-            repo = repo_map.get(p, 'arch')
+            repo = repo_map.get(p, 'aur')
             opts.append(InputOption(label=p,
                                     value=p,
-                                    icon_path=aur_icon_path if repo == 'arch' else repo_icon_path,
+                                    icon_path=aur_icon_path if repo == 'aur' else repo_icon_path,
                                     tooltip='{}: {}'.format(i18n['repository'].capitalize(), repo)))
 
         form.components.append(SingleSelectComponent(label=bold(dep.lower()),

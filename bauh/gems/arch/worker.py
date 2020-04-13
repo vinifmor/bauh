@@ -73,7 +73,7 @@ class ArchDiskCacheUpdater(Thread):
         self.to_index = 0
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
         self.repositories = arch_config['repositories']
-        self.aur = arch_config['arch']
+        self.aur = bool(arch_config['aur'])
 
     def update_prepared(self, pkgname: str, add: bool = True):
         if add:
@@ -109,7 +109,7 @@ class ArchDiskCacheUpdater(Thread):
         repo_map = {}
 
         if installed['not_signed']:
-            repo_map.update({p: 'arch' for p in installed['not_signed']})
+            repo_map.update({p: 'aur' for p in installed['not_signed']})
 
         if installed['signed']:
             repo_map.update(pacman.map_repositories(installed['signed']))

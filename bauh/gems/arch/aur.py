@@ -198,13 +198,13 @@ class AURClient:
             if info.get('provides'):
                 provided.update(info.get('provides'))
 
-            return {'c': info.get('conflicts'), 's': None, 'p': provided, 'r': 'arch',
+            return {'c': info.get('conflicts'), 's': None, 'p': provided, 'r': 'aur',
                     'v': info['pkgver'], 'd': self.extract_required_dependencies(info)}
         else:
             if latest_version:
                 provided.add('{}={}'.format(pkgname, latest_version))
 
-            return {'c': None, 's': None, 'p': provided, 'r': 'arch', 'v': latest_version, 'd': set()}
+            return {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': latest_version, 'd': set()}
 
     def fill_update_data(self, output: Dict[str, dict], pkgname: str, latest_version: str, srcinfo: dict = None):
         data = self.map_update_data(pkgname=pkgname, latest_version=latest_version, srcinfo=srcinfo)

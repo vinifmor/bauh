@@ -119,11 +119,11 @@ def sort(pkgs: Iterable[str], pkgs_data: Dict[str, dict], provided_map: Dict[str
 
     for name in sorted_list:
         repo = pkgs_data[name]['r']
-        if repo == 'arch':
+        if repo == 'aur':
             if not aur_pkgs:
                 aur_pkgs = []
 
-            aur_pkgs.append((name, 'arch'))
+            aur_pkgs.append((name, 'aur'))
         else:
             res.append((name, repo))
 

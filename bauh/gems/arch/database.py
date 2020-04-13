@@ -13,7 +13,7 @@ SYNC_FILE = '{}/arch/db_sync'.format(CACHE_PATH)
 
 
 def should_sync(arch_config: dict, handler: ProcessHandler, logger: logging.Logger):
-    if arch_config['arch'] or arch_config['repositories']:
+    if arch_config['aur'] or arch_config['repositories']:
         if os.path.exists(SYNC_FILE):
             with open(SYNC_FILE) as f:
                 sync_file = f.read()

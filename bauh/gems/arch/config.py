@@ -6,7 +6,7 @@ def read_config(update_file: bool = False) -> dict:
     template = {'optimize': True,
                 "sync_databases": True,
                 "clean_cached": True,
-                'arch': True,
+                'aur': True,
                 'repositories': True,
                 "refresh_mirrors_startup": False,
                 "sync_databases_startup": True,

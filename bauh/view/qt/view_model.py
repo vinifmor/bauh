@@ -10,7 +10,7 @@ class PackageViewStatus(Enum):
 
 
 def get_type_label(type_: str, gem: str, i18n: I18n) -> str:
-    type_label = 'gem.{}.type.{}.label'.format(gem, type_)
+    type_label = 'gem.{}.type.{}.label'.format(gem, type_.lower())
     return i18n.get(type_label, type_.capitalize()).strip()
 
 

@@ -117,7 +117,7 @@ class ArchDataMapper:
 
     def map_api_data(self, apidata: dict, installed: dict, categories: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name'))
-        app = ArchPackage(name=apidata.get('Name'), installed=bool(data), repository='arch', i18n=self.i18n)
+        app = ArchPackage(name=apidata.get('Name'), installed=bool(data), repository='aur', i18n=self.i18n)
         app.status = PackageStatus.LOADING_DATA
 
         if categories:

@@ -119,7 +119,7 @@ class TransactionContext:
 
     def get_aur_idx(self, aur_client: AURClient) -> Set[str]:
         if self.aur_idx is None:
-            if bool(self.config['arch']):
+            if self.config['aur']:
                 self.aur_idx = aur_client.read_index()
             else:
                 self.aur_idx = set()
@@ -362,24 +362,24 @@ class ArchManager(SoftwareManager):
 
         arch_config = read_config()
 
-        if not any([arch_config['repositories'], arch_config['arch']]):
+        if not any([arch_config['repositories'], arch_config['aur']]):
             return SearchResult([], [], 0)
 
         installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=bool(arch_config['repositories']),
-                                                                                     aur=bool(arch_config['arch']))), daemon=True)
+        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=arch_config['repositories'],
+                                                                                     aur=arch_config['aur'])), daemon=True)
         read_installed.start()
 
         res = SearchResult([], [], 0)
 
-        if not any((arch_config['arch'], arch_config['repositories'])):
+        if not any((arch_config['aur'], arch_config['repositories'])):
             return res
 
         mapped_words = self.get_semantic_search_map().get(words)
         final_words = mapped_words or words
 
         aur_search = None
-        if arch_config['arch']:
+        if arch_config['aur']:
             aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
             aur_search.start()
 
@@ -418,7 +418,7 @@ class ArchManager(SoftwareManager):
         for name, data in not_signed.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, repository='arch', i18n=self.i18n)
+                              installed=True, repository='aur', i18n=self.i18n)
 
             pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
@@ -473,7 +473,7 @@ class ArchManager(SoftwareManager):
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
-        installed = pacman.map_installed(repositories=arch_config['repositories'], aur=arch_config['arch'])
+        installed = pacman.map_installed(repositories=arch_config['repositories'], aur=arch_config['aur'])
 
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
@@ -636,7 +636,7 @@ class ArchManager(SoftwareManager):
 
         watcher.change_progress(5)
 
-        if pkg.repository == 'arch':
+        if pkg.repository == 'aur':
             return self._downgrade_aur_pkg(context)
         else:
             return self._downgrade_repo_pkg(context)
@@ -646,7 +646,7 @@ class ArchManager(SoftwareManager):
             shutil.rmtree(pkg.get_disk_cache_path())
 
     def _check_action_allowed(self, pkg: ArchPackage, watcher: ProcessWatcher) -> bool:
-        if user.is_root() and pkg.repository == 'arch':
+        if user.is_root() and pkg.repository == 'aur':
             watcher.show_message(title=self.i18n['arch.install.arch.root_error.title'],
                                  body=self.i18n['arch.install.arch.root_error.body'],
                                  type_=MessageType.ERROR)
@@ -695,7 +695,7 @@ class ArchManager(SoftwareManager):
         aur_pkgs, repo_pkgs = [], []
 
         for req in (*requirements.to_install, *requirements.to_upgrade):
-            if req.pkg.repository == 'arch':
+            if req.pkg.repository == 'aur':
                 aur_pkgs.append(req.pkg)
             else:
                 repo_pkgs.append(req.pkg)
@@ -913,7 +913,7 @@ class ArchManager(SoftwareManager):
         return info
 
     def get_info(self, pkg: ArchPackage) -> dict:
-        if pkg.repository == 'arch':
+        if pkg.repository == 'aur':
             return self._get_info_aur_pkg(pkg)
         else:
             return self._get_info_repo_pkg(pkg)
@@ -1039,7 +1039,7 @@ class ArchManager(SoftwareManager):
                     raise
 
     def get_history(self, pkg: ArchPackage) -> PackageHistory:
-        if pkg.repository == 'arch':
+        if pkg.repository == 'aur':
             return self._get_history_aur_pkg(pkg)
         else:
             return self._get_history_repo_pkg(pkg)
@@ -1080,7 +1080,7 @@ class ArchManager(SoftwareManager):
         for dep in deps:
             context.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ({})'.format(dep[0], dep[1]))))
 
-            if dep[1] == 'arch':
+            if dep[1] == 'aur':
                 dep_context = context.gen_dep_context(dep[0], dep[1])
                 dep_src = self.aur_client.get_src_info(dep[0])
                 dep_context.base = dep_src['pkgbase']
@@ -1135,7 +1135,7 @@ class ArchManager(SoftwareManager):
             norepos = {p for p in pkgnames if p not in pkg_repos}
             for pkginfo in self.aur_client.get_info(norepos):
                 if pkginfo.get('Name') in norepos:
-                    pkg_repos[pkginfo['Name']] = 'arch'
+                    pkg_repos[pkginfo['Name']] = 'aur'
 
         return pkg_repos
 
@@ -1253,7 +1253,7 @@ class ArchManager(SoftwareManager):
         context.watcher.change_substatus(self.i18n['arch.checking.deps'].format(bold(context.name)))
         ti = time.time()
 
-        if context.repository == 'arch':
+        if context.repository == 'aur':
             with open('{}/.SRCINFO'.format(context.project_dir)) as f:
                 srcinfo = aur.map_srcinfo(f.read())
 
@@ -1347,7 +1347,7 @@ class ArchManager(SoftwareManager):
                 opt_repo_deps, aur_threads = [], []
 
                 for dep in deps_to_install:
-                    if repo_mapping[dep] == 'arch':
+                    if repo_mapping[dep] == 'aur':
                         t = Thread(target=self.aur_client.fill_update_data, args=(deps_data, dep, None, None), daemon=True)
                         t.start()
                         aur_threads.append(t)
@@ -1599,7 +1599,7 @@ class ArchManager(SoftwareManager):
 
         self._sync_databases(arch_config=install_context.config, root_password=root_password, handler=handler)
 
-        if pkg.repository == 'arch':
+        if pkg.repository == 'aur':
             res = self._install_from_aur(install_context)
         else:
             res = self._install_from_repository(install_context)
@@ -1624,7 +1624,7 @@ class ArchManager(SoftwareManager):
             return False  # called off by the user
 
         if missing_deps:
-            if any((dep for dep in missing_deps if dep[1] == 'arch')):
+            if any((dep for dep in missing_deps if dep[1] == 'aur')):
                 context.watcher.show_message(title=self.i18n['error'].capitalize(),
                                              body=self.i18n['arch.install.repo_pkg.error.aur_deps'],
                                              type_=MessageType.ERROR)
@@ -1693,10 +1693,10 @@ class ArchManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         arch_config = read_config(update_file=True)
 
-        if arch_config['arch'] or arch_config['repositories']:
+        if arch_config['aur'] or arch_config['repositories']:
             ArchDiskCacheUpdater(task_manager, arch_config, self.i18n, self.context.logger).start()
 
-        if arch_config['arch']:
+        if arch_config['aur']:
             ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
 
         CategoriesDownloader(id_='Arch', http_client=self.context.http_client, logger=self.context.logger,
@@ -1705,7 +1705,7 @@ class ArchManager(SoftwareManager):
                              before=lambda: self._start_category_task(task_manager),
                              after=lambda: self._finish_category_task(task_manager)).start()
 
-        if arch_config['arch'] and internet_available:
+        if arch_config['aur'] and internet_available:
             self.index_aur = AURIndexUpdater(self.context)
             self.index_aur.start()
 
@@ -1813,10 +1813,10 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.repos.tip',
                                     value=bool(local_config['repositories']),
                                     max_width=max_width),
-            self._gen_bool_selector(id_='arch',
+            self._gen_bool_selector(id_='aur',
                                     label_key='arch.config.arch',
                                     tooltip_key='arch.config.arch.tip',
-                                    value=bool(local_config['arch']),
+                                    value=local_config['aur'],
                                     max_width=max_width,
                                     capitalize_label=False),
             self._gen_bool_selector(id_='opts',
@@ -1855,7 +1855,7 @@ class ArchManager(SoftwareManager):
 
         form_install = component.components[0]
         config['repositories'] = form_install.get_component('repos').get_selected()
-        config['arch'] = form_install.get_component('arch').get_selected()
+        config['aur'] = form_install.get_component('aur').get_selected()
         config['optimize'] = form_install.get_component('opts').get_selected()
         config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
         config['sync_databases_startup'] = form_install.get_component('sync_dbs_start').get_selected()
@@ -1899,7 +1899,7 @@ class ArchManager(SoftwareManager):
         installed, new, all_names, installed_names = [], [], [], []
 
         for p in pkgs:
-            if p.repository != 'arch':
+            if p.repository != 'aur':
                 all_names.append(p.name)
                 if p.installed:
                     installed.append(p)

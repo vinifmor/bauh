@@ -22,7 +22,7 @@ class ArchPackage(SoftwarePackage):
         self.package_base = package_base
         self.votes = votes
         self.popularity = popularity
-        self.maintainer = maintainer if maintainer else (repository if repository != 'arch' else None)
+        self.maintainer = maintainer if maintainer else (repository if repository != 'aur' else None)
         self.url_download = url_download
         self.first_submitted = first_submitted
         self.last_modified = last_modified
@@ -45,23 +45,23 @@ class ArchPackage(SoftwarePackage):
             return 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=' + self.package_base
 
     def has_history(self):
-        return self.installed and self.repository == 'arch'
+        return self.installed and self.repository == 'aur'
 
     def has_info(self):
         return True
 
     def can_be_installed(self) -> bool:
         if super(ArchPackage, self).can_be_installed():
-            return bool(self.url_download) if self.repository == 'arch' else True
+            return bool(self.url_download) if self.repository == 'aur' else True
 
     def can_be_downgraded(self):
-        return self.installed and self.downgrade_enabled and self.repository == 'arch'
+        return self.installed and self.downgrade_enabled and self.repository == 'aur'
 
     def get_type(self):
-        return 'arch' if self.repository == 'arch' else 'arch_repo'
+        return 'aur' if self.repository == 'aur' else 'arch_repo'
 
     def get_update_type(self):
-        return 'Arch - {}'.format('AUR' if self.repository == 'arch' else 'Repository')
+        return 'Arch - {}'.format('AUR' if self.repository == 'aur' else 'Repository')
 
     def get_default_icon_path(self) -> str:
         return self.get_type_icon_path()
@@ -70,7 +70,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/{}.svg'.format('arch' if self.get_type() == 'arch' else 'repo'), ROOT_DIR)
+        return resource.get_path('img/{}.svg'.format('arch' if self.get_type() == 'aur' else 'repo'), ROOT_DIR)
 
     def is_application(self):
         return self.can_be_run()

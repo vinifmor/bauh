@@ -222,7 +222,7 @@ class UpdatesSummarizer:
     def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
         version = None
 
-        if pkg_data[1] == 'arch':
+        if pkg_data[1] == 'aur':
             try:
                 info = self.aur_client.get_src_info(pkg_data[0])
 
@@ -274,7 +274,7 @@ class UpdatesSummarizer:
                     sorted_pkgs[idx] = pkg
                     context.to_install[dep[0]] = pkg
 
-                    if pkg.repository == 'arch':
+                    if pkg.repository == 'aur':
                         context.aur_to_install[pkg.name] = pkg
                         aur_to_install_data[pkg.name] = data
                     else:
@@ -324,7 +324,7 @@ class UpdatesSummarizer:
         self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))
 
     def __fill_aur_index(self, context: UpdateRequirementsContext):
-        if context.arch_config['arch']:
+        if context.arch_config['aur']:
             self.logger.info("Loading AUR index")
             names = self.aur_client.read_index()
 
@@ -335,7 +335,7 @@ class UpdatesSummarizer:
     def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None) -> UpgradeRequirement:
         requirement = UpgradeRequirement(pkg)
 
-        if pkg.repository != 'arch':
+        if pkg.repository != 'aur':
             data = context.pkgs_data[pkg.name]
             requirement.required_size = data['ds']
             requirement.extra_size = data['s']
@@ -363,7 +363,7 @@ class UpdatesSummarizer:
         aur_srcinfo_threads = []
         for p in pkgs:
             context.to_update[p.name] = p
-            if p.repository == 'arch':
+            if p.repository == 'aur':
                 context.aur_to_update[p.name] = p
                 t = Thread(target=self._fill_aur_pkg_update_data, args=(p, aur_data), daemon=True)
                 t.start()

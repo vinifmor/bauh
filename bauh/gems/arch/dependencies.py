@@ -34,7 +34,7 @@ class DependenciesAnalyser:
         aur_info = self.aur_client.get_src_info(name)
 
         if aur_info:
-            output.append((name, 'arch'))
+            output.append((name, 'aur'))
             return
 
         output.append((name, ''))
@@ -79,9 +79,7 @@ class DependenciesAnalyser:
 
             missing_sub = []
             for rdep in missing_root:
-                subdeps = self.aur_client.get_required_dependencies(rdep[0]) if rdep[
-                                                                                    1] == 'arch' else pacman.read_dependencies(
-                    rdep[0])
+                subdeps = self.aur_client.get_required_dependencies(rdep[0]) if rdep[1] == 'aur' else pacman.read_dependencies(rdep[0])
                 subdeps_not_analysis = {sd for sd in subdeps if sd not in global_in_analysis}
 
                 if subdeps_not_analysis:
@@ -103,8 +101,7 @@ class DependenciesAnalyser:
         in_analyses = {*names}
 
         for name in names:
-            subdeps = self.aur_client.get_required_dependencies(
-                name) if repository == 'arch' else pacman.read_dependencies(name)
+            subdeps = self.aur_client.get_required_dependencies(name) if repository == 'aur' else pacman.read_dependencies(name)
 
             if subdeps:
                 missing_subdeps = self.get_missing_packages(subdeps, in_analysis=in_analyses)
@@ -123,9 +120,8 @@ class DependenciesAnalyser:
         already_added = {name}
         in_analyses = {name}
 
-        if repository == 'arch':
-            subdeps = self.aur_client.get_required_dependencies(
-                name) if not srcinfo else self.aur_client.extract_required_dependencies(srcinfo)
+        if repository == 'aur':
+            subdeps = self.aur_client.get_required_dependencies(name) if not srcinfo else self.aur_client.extract_required_dependencies(srcinfo)
         else:
             subdeps = pacman.read_dependencies(name)
 
@@ -148,13 +144,13 @@ class DependenciesAnalyser:
         repo_deps, aur_deps = set(), set()
 
         for dep, repo in known_deps.items():
-            if repo == 'arch':
+            if repo == 'aur':
                 aur_deps.add(dep)
             else:
                 repo_deps.add(dep)
 
         if check_subdeps:
-            for deps in ((repo_deps, 'repo'), (aur_deps, 'arch')):
+            for deps in ((repo_deps, 'repo'), (aur_deps, 'aur')):
                 if deps[0]:
                     missing_subdeps = self.get_missing_subdeps_of(deps[0], deps[1])
 
@@ -169,13 +165,13 @@ class DependenciesAnalyser:
                                 sorted_deps.append(dep)
 
         for dep, repo in known_deps.items():
-            if repo != 'arch':
+            if repo != 'aur':
                 data = (dep, repo)
                 if data not in sorted_deps:
                     sorted_deps.append(data)
 
         for dep in aur_deps:
-            sorted_deps.append((dep, 'arch'))
+            sorted_deps.append((dep, 'aur'))
 
         return sorted_deps
 
@@ -236,7 +232,7 @@ class DependenciesAnalyser:
 
         elif aur_index and dep_name in aur_index:
             aur_deps.add(dep_name)
-            missing_deps.add((dep_name, 'arch'))
+            missing_deps.add((dep_name, 'aur'))
         else:
             if watcher:
                 message.show_dep_not_found(dep_name, self.i18n, watcher)
@@ -420,7 +416,7 @@ class DependenciesAnalyser:
                 for idx, to_remove in enumerate(to_remove):
                     del missing_deps[to_remove - idx]
 
-                missing_deps.extend(((p, providers_repos.get(p, 'arch')) for p in selected_providers))
+                missing_deps.extend(((p, providers_repos.get(p, 'aur')) for p in selected_providers))
 
                 for dep in providers_deps:
                     if dep not in missing_deps and dep[1] != '__several__':
