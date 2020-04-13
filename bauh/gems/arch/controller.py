@@ -647,8 +647,8 @@ class ArchManager(SoftwareManager):
 
     def _check_action_allowed(self, pkg: ArchPackage, watcher: ProcessWatcher) -> bool:
         if user.is_root() and pkg.repository == 'aur':
-            watcher.show_message(title=self.i18n['arch.install.arch.root_error.title'],
-                                 body=self.i18n['arch.install.arch.root_error.body'],
+            watcher.show_message(title=self.i18n['arch.install.aur.root_error.title'],
+                                 body=self.i18n['arch.install.aur.root_error.body'],
                                  type_=MessageType.ERROR)
             return False
         return True
@@ -1303,14 +1303,14 @@ class ArchManager(SoftwareManager):
 
         if check_res:
             if check_res.get('gpg_key'):
-                if context.watcher.request_confirmation(title=self.i18n['arch.arch.install.unknown_key.title'],
-                                                        body=self.i18n['arch.install.arch.unknown_key.body'].format(bold(context.name), bold(check_res['gpg_key']))):
-                    context.watcher.change_substatus(self.i18n['arch.arch.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
+                if context.watcher.request_confirmation(title=self.i18n['arch.install.aur.unknown_key.title'],
+                                                        body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(context.name), bold(check_res['gpg_key']))):
+                    context.watcher.change_substatus(self.i18n['arch.aur.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
                     self.logger.info("Importing GPG key {}".format(check_res['gpg_key']))
                     if not context.handler.handle(gpg.receive_key(check_res['gpg_key'])):
                         self.logger.error("An error occurred while importing the GPG key {}".format(check_res['gpg_key']))
                         context.watcher.show_message(title=self.i18n['error'].capitalize(),
-                                                     body=self.i18n['arch.arch.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
+                                                     body=self.i18n['arch.aur.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
 
                         return False
                 else:
@@ -1318,9 +1318,9 @@ class ArchManager(SoftwareManager):
                     return False
 
             if check_res.get('validity_check'):
-                body = "<p>{}</p><p>{}</p>".format(self.i18n['arch.arch.install.validity_check.body'].format(bold(context.name)),
-                                                   self.i18n['arch.arch.install.validity_check.proceed'])
-                return not context.watcher.request_confirmation(title=self.i18n['arch.arch.install.validity_check.title'].format('( checksum )'),
+                body = "<p>{}</p><p>{}</p>".format(self.i18n['arch.aur.install.validity_check.body'].format(bold(context.name)),
+                                                   self.i18n['arch.aur.install.validity_check.proceed'])
+                return not context.watcher.request_confirmation(title=self.i18n['arch.aur.install.validity_check.title'].format('( checksum )'),
                                                                 body=body,
                                                                 confirmation_label=self.i18n['no'].capitalize(),
                                                                 deny_label=self.i18n['yes'].capitalize())
@@ -1498,33 +1498,33 @@ class ArchManager(SoftwareManager):
         srcinfo = self.aur_client.get_src_info(pkgname)
 
         if srcinfo.get('validpgpkeys'):
-            handler.watcher.print(self.i18n['arch.arch.install.verifying_pgp'])
+            handler.watcher.print(self.i18n['arch.aur.install.verifying_pgp'])
             keys_to_download = [key for key in srcinfo['validpgpkeys'] if not pacman.verify_pgp_key(key)]
 
             if keys_to_download:
                 keys_str = ''.join(
                     ['<br/><span style="font-weight:bold">  - {}</span>'.format(k) for k in keys_to_download])
-                msg_body = '{}:<br/>{}<br/><br/>{}'.format(self.i18n['arch.arch.install.pgp.body'].format(bold(pkgname)),
+                msg_body = '{}:<br/>{}<br/><br/>{}'.format(self.i18n['arch.aur.install.pgp.body'].format(bold(pkgname)),
                                                            keys_str, self.i18n['ask.continue'])
 
-                if handler.watcher.request_confirmation(title=self.i18n['arch.arch.install.pgp.title'], body=msg_body):
+                if handler.watcher.request_confirmation(title=self.i18n['arch.aur.install.pgp.title'], body=msg_body):
                     for key in keys_to_download:
-                        handler.watcher.change_substatus(self.i18n['arch.arch.install.pgp.substatus'].format(bold(key)))
+                        handler.watcher.change_substatus(self.i18n['arch.aur.install.pgp.substatus'].format(bold(key)))
                         if not handler.handle(pacman.receive_key(key, root_password)):
                             handler.watcher.show_message(title=self.i18n['error'],
-                                                         body=self.i18n['arch.arch.install.pgp.receive_fail'].format(
+                                                         body=self.i18n['arch.aur.install.pgp.receive_fail'].format(
                                                              bold(key)),
                                                          type_=MessageType.ERROR)
                             return False
 
                         if not handler.handle(pacman.sign_key(key, root_password)):
                             handler.watcher.show_message(title=self.i18n['error'],
-                                                         body=self.i18n['arch.arch.install.pgp.sign_fail'].format(
+                                                         body=self.i18n['arch.aur.install.pgp.sign_fail'].format(
                                                              bold(key)),
                                                          type_=MessageType.ERROR)
                             return False
 
-                        handler.watcher.change_substatus(self.i18n['arch.arch.install.pgp.success'])
+                        handler.watcher.change_substatus(self.i18n['arch.aur.install.pgp.success'])
                 else:
                     handler.watcher.print(self.i18n['action.cancelled'])
                     return False
@@ -1814,8 +1814,8 @@ class ArchManager(SoftwareManager):
                                     value=bool(local_config['repositories']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='aur',
-                                    label_key='arch.config.arch',
-                                    tooltip_key='arch.config.arch.tip',
+                                    label_key='arch.config.aur',
+                                    tooltip_key='arch.config.aur.tip',
                                     value=local_config['aur'],
                                     max_width=max_width,
                                     capitalize_label=False),
