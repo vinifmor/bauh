@@ -232,35 +232,29 @@ class PreparePanel(QWidget, TaskManager):
         task_row = self.ntasks - 1
 
         lb_icon = QLabel()
-        lb_icon.setContentsMargins(0, 2, 0, 0)
+        lb_icon.setContentsMargins(10, 0, 10, 0)
         lb_icon.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if icon_path:
-            lb_icon.setPixmap(QIcon(icon_path).pixmap(12, 12))
-            lb_icon.setAlignment(Qt.AlignHCenter)
+            lb_icon.setPixmap(QIcon(icon_path).pixmap(14, 14))
 
         self.table.setCellWidget(task_row, 0, lb_icon)
 
         lb_status = QLabel(label)
-        lb_status.setAlignment(Qt.AlignHCenter)
-        lb_status.setContentsMargins(2, 0, 2, 0)
         lb_status.setMinimumWidth(50)
-        lb_status.setAlignment(Qt.AlignHCenter)
         lb_status.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         lb_status.setStyleSheet("QLabel { color: blue; font-weight: bold; }")
         self.table.setCellWidget(task_row, 1, lb_status)
 
         lb_sub = QLabel()
-        lb_sub.setContentsMargins(2, 0, 2, 0)
-        lb_sub.setAlignment(Qt.AlignHCenter)
+        lb_sub.setContentsMargins(10, 0, 10, 0)
         lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         lb_sub.setMinimumWidth(50)
         self.table.setCellWidget(task_row, 2, lb_sub)
 
         lb_progress = QLabel('{0:.2f}'.format(0) + '%')
-        lb_progress.setContentsMargins(2, 2, 2, 2)
+        lb_progress.setContentsMargins(10, 0, 10, 0)
         lb_progress.setStyleSheet("QLabel { color: blue; font-weight: bold; }")
-        lb_progress.setAlignment(Qt.AlignHCenter)
         lb_progress.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         self.table.setCellWidget(task_row, 3, lb_progress)
