@@ -188,7 +188,7 @@ class SortingTest(TestCase):
                 ghi -> abc
             expected: def, abc, ghi
         """
-        pkgs = {'def': {'d': None, 'p': {'def': 'def'}, 'r': 'arch'},
+        pkgs = {'def': {'d': None, 'p': {'def': 'def'}, 'r': 'aur'},
                 'abc': {'d': {'ghi'}, 'p': {'abc': 'abc'}, 'r': 'extra'},
                 'ghi': {'d': {'xxx'}, 'p': {'ghi': 'ghi'}, 'r': 'extra'}}
 
