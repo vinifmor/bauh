@@ -421,7 +421,8 @@ class UpgradeSelected(AsyncAction):
         comps.insert(0, TextComponent(bold('{}  |  {}').format(extra_size_text, req_size_text), size=14))
         comps.insert(1, TextComponent(''))
 
-        if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps):
+        if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
+                                         confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize()):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return
