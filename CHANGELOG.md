@@ -68,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - table not displaying all updates when the "updates filter" is clicked several times
 - installation logs written to the wrong temp directory
+- crashes when Python is not able to retrieve the default locale [#84](https://github.com/vinifmor/bauh/issues/84)
 - Arch / AUR:
     - sorting algorithm was providing wrong results for some cases
     - not caching data about packages with no desktop entry files
