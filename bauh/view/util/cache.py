@@ -97,7 +97,7 @@ class CacheCleaner(Thread):
 
 class DefaultMemoryCacheFactory(MemoryCacheFactory):
 
-    def __init__(self, expiration_time: int, cleaner: CacheCleaner):
+    def __init__(self, expiration_time: int, cleaner: CacheCleaner = None):
         """
         :param expiration_time: default expiration time for all instantiated caches
         :param cleaner
@@ -108,5 +108,8 @@ class DefaultMemoryCacheFactory(MemoryCacheFactory):
 
     def new(self, expiration: int = None) -> MemoryCache:
         instance = DefaultMemoryCache(expiration if expiration is not None else self.expiration_time)
-        self.cleaner.register(instance)
+
+        if self.cleaner:
+            self.cleaner.register(instance)
+            
         return instance

@@ -1,0 +1,7 @@
+tray.action.manage=Приложения
+tray.action.exit=Выход
+tray.action.about=О программе
+tray.action.refreshing=Обновляется
+tray.settings=Настройки
+notification.update={} обновления доступно
+notification.updates={} обновлений доступно

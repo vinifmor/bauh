@@ -1,19 +1,36 @@
+import os
 import re
 import time
 import traceback
+from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Dict
 
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
+from bauh import __app_name__, __version__
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
+    UpgradeRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
+    CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
+from bauh.api.constants import CACHE_PATH
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.commons.html import bold, link
 from bauh.view.core.settings import GenericSettingsManager
 
 RE_IS_URL = re.compile(r'^https?://.+')
+
+
+class GenericUpgradeRequirements(UpgradeRequirements):
+
+    def __init__(self, to_install: List[UpgradeRequirement], to_remove: List[UpgradeRequirement],
+                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: List[SoftwarePackage],
+                 sub_requirements: Dict[SoftwareManager, UpgradeRequirements]):
+        super(GenericUpgradeRequirements, self).__init__(to_install=to_install, to_upgrade=to_upgrade,
+                                                         to_remove=to_remove, cannot_upgrade=cannot_upgrade)
+        self.sub_requirements = sub_requirements
 
 
 class GenericSoftwareManager(SoftwareManager):
@@ -32,6 +49,7 @@ class GenericSoftwareManager(SoftwareManager):
         self.working_managers = []
         self.config = config
         self.settings_manager = settings_manager
+        self.http_client = context.http_client
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -100,7 +118,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         res = SearchResult([], [], 0)
 
-        if internet.is_available(self.context.http_client, self.context.logger):
+        if internet.is_available():
             norm_word = word.strip().lower()
 
             url_words = RE_IS_URL.match(norm_word)
@@ -142,26 +160,15 @@ class GenericSoftwareManager(SoftwareManager):
     def can_work(self) -> bool:
         return True
 
-    def _is_internet_available(self, res: dict):
-        res['available'] = internet.is_available(self.context.http_client, self.context.logger)
-
-    def _get_internet_check(self, res: dict) -> Thread:
-        t = Thread(target=self._is_internet_available, args=(res,))
-        t.start()
-        return t
-
-    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, net_check: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
-
-        net_check = {}
-        thread_internet_check = self._get_internet_check(net_check)
 
         res = SearchResult([], None, 0)
 
         disk_loader = None
 
-        internet_available = None
+        net_available = internet.is_available()
         if not pkg_types:  # any type
             for man in self.managers:
                 if self._can_work(man):
@@ -169,12 +176,8 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    if internet_available is None:
-                        thread_internet_check.join()
-                        internet_available = net_check.get('available', True)
-
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available)
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -191,12 +194,8 @@ class GenericSoftwareManager(SoftwareManager):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    if internet_available is None:
-                        thread_internet_check.join()
-                        internet_available = net_check.get('available', True)
-
                     mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available)
+                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
                     mtf = time.time()
                     self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
 
@@ -229,11 +228,14 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             return man.clean_cache_for(app)
 
-    def update(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
-        man = self._get_manager_for(app)
+    def upgrade(self, requirements: GenericUpgradeRequirements, root_password: str, handler: ProcessWatcher) -> bool:
+        for man, man_reqs in requirements.sub_requirements.items():
+            res = man.upgrade(man_reqs, root_password, handler)
 
-        if man:
-            return man.update(app, root_password, handler)
+            if not res:
+                return False
+
+        return True
 
     def uninstall(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
@@ -283,56 +285,100 @@ class GenericSoftwareManager(SoftwareManager):
         return man if man and self._can_work(man) else None
 
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
-        if self.context.disk_cache and pkg.supports_disk_cache():
+        if pkg.supports_disk_cache():
             man = self._get_manager_for(pkg)
 
             if man:
                 return man.cache_to_disk(pkg, icon_bytes=icon_bytes, only_icon=only_icon)
 
-    def requires_root(self, action: str, app: SoftwarePackage):
-        man = self._get_manager_for(app)
+    def requires_root(self, action: str, app: SoftwarePackage) -> bool:
+        if app is None:
+            if self.managers:
+                for man in self.managers:
+                    if self._can_work(man):
+                        if man.requires_root(action, app):
+                            return True
+            return False
+        else:
+            man = self._get_manager_for(app)
 
-        if man:
-            return man.requires_root(action, app)
+            if man:
+                return man.requires_root(action, app)
 
-    def _prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if self.managers:
+            internet_on = internet.is_available()
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    man.prepare()
+                    if task_manager:
+                        man.prepare(task_manager, root_password, internet_on)
                     self._already_prepared.append(man)
 
-    def prepare(self):
-        self.thread_prepare = Thread(target=self._prepare)
-        self.thread_prepare.start()
-
-    def list_updates(self, net_check: bool = None) -> List[PackageUpdate]:
+    def list_updates(self, internet_available: bool = None) -> List[PackageUpdate]:
         self._wait_to_be_ready()
 
         updates = []
 
         if self.managers:
-            net_check = {}
-            thread_internet_check = self._get_internet_check(net_check)
+            net_available = internet.is_available()
 
             for man in self.managers:
                 if self._can_work(man):
-
-                    if thread_internet_check.is_alive():
-                        thread_internet_check.join()
-
-                    man_updates = man.list_updates(internet_available=net_check['available'])
+                    man_updates = man.list_updates(internet_available=net_available)
                     if man_updates:
                         updates.extend(man_updates)
 
         return updates
 
+    def _check_for_updates(self) -> str:
+        self.logger.info("Checking for updates")
+
+        try:
+            releases = self.http_client.get_json('https://api.github.com/repos/vinifmor/bauh/releases')
+
+            if releases:
+                latest = None
+
+                for r in releases:
+                    if not r['draft']:
+                        latest = r
+                        break
+
+                if latest and latest.get('tag_name'):
+                    notifications_dir = '{}/updates'.format(CACHE_PATH)
+                    release_file = '{}/{}'.format(notifications_dir, latest['tag_name'])
+                    if os.path.exists(release_file):
+                        self.logger.info("Release {} already notified".format(latest['tag_name']))
+                    elif latest['tag_name'] > __version__:
+                        try:
+                            Path(notifications_dir).mkdir(parents=True, exist_ok=True)
+                            with open(release_file, 'w+') as f:
+                                f.write('')
+                        except:
+                            self.logger.error("An error occurred while trying to create the update notification file: {}".format(release_file))
+
+                        return self.i18n['warning.update_available'].format(bold(__app_name__), bold(latest['tag_name']), link(latest.get('html_url', '?')))
+                    else:
+                        self.logger.info("No updates available")
+                else:
+                    self.logger.warning("No official release found")
+            else:
+                self.logger.warning("No releases returned from the GitHub API")
+        except:
+            self.logger.error("An error occurred while trying to retrieve the current releases")
+
     def list_warnings(self, internet_available: bool = None) -> List[str]:
         warnings = []
 
-        if self.managers:
-            int_available = internet.is_available(self.context.http_client, self.context.logger)
+        int_available = internet.is_available()
 
+        if int_available:
+            updates_msg = self._check_for_updates()
+
+            if updates_msg:
+                warnings.append(updates_msg)
+
+        if self.managers:
             for man in self.managers:
                 if man.is_enabled():
                     man_warnings = man.list_warnings(internet_available=int_available)
@@ -360,7 +406,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         if bool(self.config['suggestions']['enabled']):
-            if self.managers and internet.is_available(self.context.http_client, self.context.logger):
+            if self.managers and internet.is_available():
                 suggestions, threads = [], []
                 for man in self.managers:
                     t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
@@ -376,11 +422,11 @@ class GenericSoftwareManager(SoftwareManager):
                 return suggestions
         return []
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
-        man = self._get_manager_for(pkg)
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+        man = action.manager if action.manager else self._get_manager_for(pkg)
 
         if man:
-            return exec('man.{}(pkg=pkg, root_password=root_password, watcher=watcher)'.format(action.manager_method))
+            return eval('man.{}({}root_password=root_password, watcher=watcher)'.format(action.manager_method, 'pkg=pkg, ' if pkg else ''))
 
     def is_default_enabled(self) -> bool:
         return True
@@ -418,9 +464,12 @@ class GenericSoftwareManager(SoftwareManager):
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
         return self.settings_manager.save_settings(component)
 
-    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+    def _map_pkgs_by_manager(self, pkgs: List[SoftwarePackage], pkg_filters: list = None) -> Dict[SoftwareManager, List[SoftwarePackage]]:
         by_manager = {}
         for pkg in pkgs:
+            if pkg_filters and not all((1 for f in pkg_filters if f(pkg))):
+                continue
+
             man = self._get_manager_for(pkg)
 
             if man:
@@ -432,42 +481,75 @@ class GenericSoftwareManager(SoftwareManager):
 
                 man_pkgs.append(pkg)
 
-        sorted_list = []
+        return by_manager
 
-        if by_manager:
-            for man, pkgs in by_manager.items():
-                if len(pkgs) > 1:
-                    ti = time.time()
-                    sorted_list.extend(man.sort_update_order(pkgs))
-                    tf = time.time()
-                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
-                else:
-                    self.logger.info("Only one package to sort for {}. Ignoring sorting.".format(man.__class__.__name__))
-                    sorted_list.extend(pkgs)
-
-        return sorted_list
-
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
-        by_manager = {}
-        for pkg in pkgs:
-            man = self._get_manager_for(pkg)
-
-            if man:
-                man_pkgs = by_manager.get(man)
-
-                if man_pkgs is None:
-                    man_pkgs = []
-                    by_manager[man] = man_pkgs
-
-                man_pkgs.append(pkg)
-
-        required = []
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+        by_manager = self._map_pkgs_by_manager(pkgs)
+        res = GenericUpgradeRequirements([], [], [], [], {})
 
         if by_manager:
             for man, pkgs in by_manager.items():
                 ti = time.time()
-                required.extend(man.get_update_requirements(pkgs, watcher))
+                man_reqs = man.get_upgrade_requirements(pkgs, root_password, watcher)
                 tf = time.time()
                 self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
 
-        return required
+                if not man_reqs:
+                    return  # it means the process should be stopped
+
+                if man_reqs:
+                    res.sub_requirements[man] = man_reqs
+                    if man_reqs.to_install:
+                        res.to_install.extend(man_reqs.to_install)
+
+                    if man_reqs.to_remove:
+                        res.to_remove.extend(man_reqs.to_remove)
+
+                    if man_reqs.to_upgrade:
+                        res.to_upgrade.extend(man_reqs.to_upgrade)
+
+                    if man_reqs.cannot_upgrade:
+                        res.cannot_upgrade.extend(man_reqs.cannot_upgrade)
+
+        return res
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        if self.managers:
+            actions = []
+
+            working_managers = []
+
+            for man in self.managers:
+                if self._can_work(man):
+                    working_managers.append(man)
+
+            if working_managers:
+                working_managers.sort(key=lambda m: m.__class__.__name__)
+
+                for man in working_managers:
+                    man_actions = man.get_custom_actions()
+
+                    if man_actions:
+                        actions.extend(man_actions)
+
+            return actions
+
+    def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
+        ti = time.time()
+        man.fill_sizes(pkgs)
+        tf = time.time()
+        self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+
+    def fill_sizes(self, pkgs: List[SoftwarePackage]):
+        by_manager = self._map_pkgs_by_manager(pkgs, pkg_filters=[lambda p: p.size is None])
+
+        if by_manager:
+            threads = []
+            for man, man_pkgs in by_manager.items():
+                if man_pkgs:
+                    t = Thread(target=self._fill_sizes, args=(man, man_pkgs), daemon=True)
+                    t.start()
+                    threads.append(t)
+
+            for t in threads:
+                t.join()

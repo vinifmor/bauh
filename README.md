@@ -1,14 +1,25 @@
-**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications / packages. It is able to manage AUR, AppImage, Flatpak, Snap and native Web applications. When you launch **bauh** 
-a management panel will be displayed where you can search, update, install, uninstall and launch applications ( downgrading is also possible in some cases ).
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/bauh/view/resources/img/logo.svg?sanitize=true" width="128" height="128">
+</p>
 
-It has a **tray mode** ( see [Settings](https://github.com/vinifmor/bauh/tree/wgem#general-settings) ) that attaches itself as an icon to the system tray. The attached icon will get red when updates are available.
+
+**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications / packages. It currently supports 
+the following types: AppImage, Arch ( repositories / AUR ), Flatpak, Snap and native Web applications. 
+
+Key features:
+- A management panel where you can: search, install, uninstall, launch, downgrade and retrieve the release history from software packages. 
+- Tray mode: launches attached to the system tray and publishes notifications when there are software updates available
+- System backup: it integrates with **Timeshift** to provide a simple and safe backup process before applying any change to your system.
+
 
 This project has an official Twitter account ( **@bauh4linux** ) so people can stay on top of its news.
 
+
 To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
 
-
-![management panel](https://raw.githubusercontent.com/vinifmor/bauh/master/pictures/panel.png)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/panel.png">
+</p>
 
 
 ### Developed with
@@ -24,6 +35,7 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 - **qt5dxcb-plugin**
 - **python3-venv** ( only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation) )
 - **libappindicator3** ( for the **tray mode** in GTK3 desktop environments )
+- **timeshift** ( optional: to allow system backups )
 
 #### Arch-based distros
 - **python**
@@ -32,10 +44,11 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 - **python-pyqt5**
 - **python-yaml**
 - **libappindicator-gtk3** ( for the **tray mode** in GTK3 desktop environments )
+- **timeshift** ( optional: to allow system backups )
 
 The other requirements depend on which type of applications you want to manage ( see [Gems](https://github.com/vinifmor/bauh/tree/wgem#gems--package-technology-support-) ).
 
-### Installation
+### Distribution
 
 **AUR**
 
@@ -52,7 +65,7 @@ It may require **sudo**, but prefer the **Manual installation** described below 
 - If you prefer a manual and isolated installation, open your favorite terminal application and type the following commands:
 
 ```
-python3 -m venv bauh_env ( creates a virtualenv in a folder called **bauh_env** )
+python3 -m venv bauh_env ( creates a virtualenv in a folder called "bauh_env" )
 bauh_env/bin/pip install bauh ( installs bauh in the isolated environment )
 bauh_env/bin/bauh  ( launches bauh )
 
@@ -66,28 +79,19 @@ bauh_env/bin/pip install bauh --upgrade
 
 - To uninstall it just remove the **bauh_env** folder
 
-- To create a shortcut ( desktop entry ) for it in your system menu ( assuming you created the isolated environment in your home folder using Python 3.7 ):
-    - Create a file called **bauh.desktop** in **~/.local/share/applications** with the following content
-```
-[Desktop Entry]
-Type=Application
-Name=bauh
-Comment=Install and remove applications ( AppImage, AUR, Flatpak, Snap )
-Exec=/home/$USER/bauh_env/bin/bauh
-Icon=/home/$USER/bauh_env/lib/python3.7/site-packages/bauh/view/resources/img/logo.svg
-```
-
-- If you want a shortcut to the tray, put the **--tray=1** parameter in the end of the **Exec** line of the example above ( e.g: **Exec=/home/$USER/bauh_env/bin/bauh --tray=1** )
-- P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
+- To create shortcuts ( desktop entry ) for it in your system menu ( assuming you created the isolated environment in your home folder using Python 3.7 ):
+    - Copy the files from **bauh/desktop** to **~/.local/share/applications** ( just replace the **Exec** field by: `Exec=/home/$USER/bauh_env/bin/bauh` )
+    - Copy **logo.svg** from **bauh/view/resources/img** to **/usr/share/icons/hicolor/scalable/apps** as **bauh.svg**
+    - P.S: If the shortcut is not working, try to replace the **$USER** var by your user name.
 
 ### Autostart
-In order to autostart the application, use your Desktop Environment settings to register it as a startup application / script (**bauh --tray=1**). Or
+In order to initialize bauh when the system starts, use your Desktop Environment settings to register it as a startup application / script (**bauh-tray**). Or
 create a file named **bauh.desktop** in **~/.config/autostart** with the content below:
 ```
 [Desktop Entry]
 Type=Application
 Name=bauh ( tray )
-Exec=/path/to/bauh --tray=1
+Exec=/path/to/bauh --tray
 ```
 
 ### Uninstallation
@@ -96,10 +100,13 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-![flatpak_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif">
+</p>
 
+
+- Supported actions: search, install, uninstall, downgrade, launch, history
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
 installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
@@ -109,18 +116,27 @@ installation_level: null # defines a default installation level: user or system.
     - Any distro: **flatpak**
 
 #### Snap ( snap )
-- The user is able to search, install, uninstall, refresh, launch and downgrade applications
 
-![snap_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif">
+</p>
 
+
+- Supported actions: search, install, uninstall, launch, downgrade
+- Custom actions: refresh
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 
 #### AppImage ( appimage )
-- The user is able to search, install, uninstall, downgrade, launch and retrieve the applications history
 
-![appimage_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif">
+</p>
 
+- Supported actions: search, install, uninstall, downgrade, launch, history
+- Custom actions
+    - **Install AppImage file**: allows to install a external AppImage file
+    - **Upgrade file**: allows to upgrade a manually installed AppImage file
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
@@ -141,13 +157,16 @@ db_updater:
     - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system
     - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
-#### AUR ( arch )
+#### Arch ( Repositories / AUR )
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/arch/search.gif">
+</p>
+
 - Only available for **Arch-based systems**
-- The user is able to search, install, uninstall, downgrade, launch and retrieve packages history
-
-![aur_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/aur/search.gif)
-
-- It handles conflicts, and missing / optional packages installations ( including from your distro mirrors )
+- Repository packages supported actions: search, install, uninstall, launch
+- AUR packages supported actions: search, install, uninstall, downgrade, launch, history
+- It handles conflicts, missing / optional packages installations, and several providers scenarios
 - Automatically makes simple package compilation improvements:
 
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
@@ -157,16 +176,27 @@ db_updater:
     b) same as previous, but related to **COMPRESSXZ** and **COMPRESSZST** definitions ( if '--threads=0' is not defined )
     
     c) **ccache** will be added to **BUILDENV** if it is installed on the system and already not defined 
+    
+    d) set the device processors to performance mode
 
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 - During bauh initialization a full AUR normalized index is saved at **/tmp/bauh/arch/aur.txt**, and it will only be used if the AUR API cannot handle the number of matches for a given query.
-- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]```
+- If some of your installed packages are not categorized, send an e-mail to **bauh4linux@gmail.com** informing their names and categories in the following format: ```name=category1[,category2,category3,...]``` or open a PullRequest changing [categories.txt](https://github.com/vinifmor/bauh-files/blob/master/arch/categories.txt)
+- Custom actions
+    - **synchronize packages database**: synchronizes the database against the configured mirrors ( `sudo pacman -Syy` )
+    - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy` )
+    - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
+    - **clean cache**: it cleans the pacman cache diretory ( default: `/var/cache/pacman/pkg` )
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
-transitive_checking: true  # this property defines if dependencies of a dependency should be retrieved before the package installation. It avoids interruptions, since it will detect all required dependencies before the process begin.
-sync_databases: true # package databases synchronization once a day ( or every device reboot ) before the first package installation / upgrade / downgrade
-simple_checking: false  # this property defines how the missing dependencies checking process should be done before installing a package. When set to 'false' an algorithm combining pacman's methods and AUR's API is used ( currently slower, but more accurate ), whereas 'false' relies only on pacman's methods ( faster. but currently not always accurate ) 
+sync_databases: true # package databases synchronization once a day before the first package installation / upgrade / downgrade
+sync_databases_startup: true  # package databases synchronization once a day during startup
+clean_cached: true  # defines if old cached versions should be removed from the disk cache during a package uninstallation
+refresh_mirrors_startup: false # if the package mirrors should be refreshed during startup
+mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
+aur:  true  # allows to manage AUR packages
+repositories: true  # allows to manage packages from the configured repositories
 ``` 
 - Required dependencies:
     - **pacman**
@@ -178,16 +208,25 @@ simple_checking: false  # this property defines how the missing dependencies che
 #### Native Web Applications ( web )
 - It allows the installation of native Web applications by typing their addresses / URLs on the search bar
 
-![url_search](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif">
+</p>
+
 
 - It offers the possibility to customize the generated app the way you want:
 
-![options](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/options.png)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/options.gif">
+</p>
+
 
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
 
-![suggestions](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/suggestions.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/suggestions.gif">
+</p>
+
 
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
 will be generated at **~/.local/share/bauh/web/env**.
@@ -200,7 +239,13 @@ attach it to the generated app.
 - If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at **~/.config/autostart**
 allowing the application to launch automatically after the system's boot attached to the tray.
 
-![tray_mode](https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif)
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif">
+</p>
+
+
+- Specific actions
+    - Clean installation environment: removes all the installation environment folders ( it does not remove installed apps )
  
 - The configuration file is located at **~/.config/bauh/web.yml** and it allows the following customizations:
 ```
@@ -217,19 +262,19 @@ environment:
 
 #### Environment variables / parameters
 You can change some application settings via environment variables or arguments (type ```bauh --help``` to get more information).
-- `BAUH_TRAY (--tray )`: If the tray icon and update-check daemon should be created. Use `0` (disable, default) or `1` (enable).
-- `BAUH_LOGS (--logs )`: enable **bauh** logs (for debugging purposes). Use: `0` (disable, default) or `1` (enable)
-- `--reset`: cleans all configurations and cached data stored in the HOME directory
+- `--tray`: if bauh should be launched attaching itself to the system tray.
+- `--settings`: it displays only the settings window.
+- `--reset`: it cleans all configurations and cached data stored in the HOME directory.
+- `--logs`: it enables logs (for debugging purposes).
 
 #### General configuration file ( **~/.config/bauh/config.yml** )
 ```
-disk_cache:
-  enabled: true  # allows bauh to save applications icons and data to the disk to load them faster when needed
 download:
   icons: true # allows bauh to download the applications icons when they are not saved on the disk
   multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
 gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
 locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
+store_root_password: true  # if the root password should be asked only once
 memory_cache:
   data_expiration: 3600 # the interval in SECONDS that data cached in memory will live
   icon_expiration: 300  # the interval in SECONDS that icons cached in memory will live
@@ -250,25 +295,36 @@ ui:
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
-  sort_packages: true  # if the selected applications / packages to upgrade must be sorted to avoid possible issues
-  pre_dependency_checking: true  # displays all applications / packages that must be installed before upgrading the selected ones  
+disk:
+    trim_after_update: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` )
+backup:
+    enabled: true  # generate timeshift snapshots before an action ( if timeshift is installed on the system )
+    mode: 'incremental' # incremental=generates a new snapshot based on another pre-exising one. 'only_one'=deletes all pre-existing snapshots and generates a fresh one.
+    install: null  # defines if the backup should be performed before installing a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
+    uninstall: null  # defines if the backup should be performed before uninstalling a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
+    upgrade: null  # defines if the backup should be performed before upgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
+    downgrade: null  # defines if the backup should be performed before downgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
+    
 ```
 #### Tray icons
 Priority: 
   1) Icon paths defined in **~/.config/bauh/config.yml**
   2) Icons from the system with the following names: `bauh_tray_default` and `bauh_tray_updates`
   3) Own packaged icons
+  
+#### CLI
+- It is a mode in which you can perform the same actions allowed in the GUI via command line. For now it only allows to check for software updates (`bauh-cli updates`).
+- To verify the available commands: `bauh-cli --help`. 
+- To list the command parameters: `bauh-cli [command] --help`. ( e.g: `bauh-cli updates --help`) 
 
-### How to improve the performance
+### How to improve performance
 - Disable the application types you do not want to deal with
 - If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
 - If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
-- Let the `disk_cache` always enabled so **bauh** does not need to dynamically retrieve data every time you launch it.
-
 
 ### Files and Logs
 - Installation logs and temporary files are saved at **/tmp/bauh** ( or **/tmp/bauh_root** if you launch it as root)
-- Some data about your installed applications are stored in **~/.cache/bauh** to load them faster ( default behavior ).
+- Some data about your installed applications are stored in **~/.cache/bauh** to load them faster
 
 ### [bauh-files](https://github.com/vinifmor/bauh-files)
 - It is a separate repository with some files downloaded during runtime.

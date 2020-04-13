@@ -1,0 +1,7 @@
+tray.action.manage=Aplicativos
+tray.action.exit=Fechar
+tray.action.about=Sobre
+tray.action.refreshing=Recarregando
+tray.settings=Configurações
+notification.update={} atualização disponível
+notification.updates={} atualizações disponíveis

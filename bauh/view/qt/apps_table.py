@@ -15,7 +15,7 @@ from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
 from bauh.view.qt.components import IconButton
-from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.qt.view_model import PackageView
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -28,10 +28,10 @@ PUBLISHER_MAX_SIZE = 25
 
 class UpdateToggleButton(QWidget):
 
-    def __init__(self, app_view: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
+    def __init__(self, pkg: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.app_view = app_view
+        self.app_view = pkg
         self.root = root
 
         layout = QHBoxLayout()
@@ -40,21 +40,40 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QToolButton()
-        self.bt.setCheckable(clickable)
+        self.bt.setCheckable(True)
         self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if clickable:
             self.bt.clicked.connect(self.change_state)
 
-        self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
-                              ('QToolButton:checked { background: gray }' if clickable else ''))
-        layout.addWidget(self.bt)
+                              'QToolButton:checked { background: gray } ' +
+                              ('QToolButton:disabled { background: #d69003 }' if not clickable and not checked else ''))
 
-        self.setToolTip(i18n['manage_window.apps_table.upgrade_toggle.tooltip'])
+        layout.addWidget(self.bt)
 
         if not checked:
             self.bt.click()
+
+        if clickable:
+            self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+            self.setToolTip('{} {}'.format(i18n['manage_window.apps_table.upgrade_toggle.tooltip'],
+                                           i18n['manage_window.apps_table.upgrade_toggle.enabled.tooltip']))
+        else:
+            if not checked:
+                self.bt.setIcon(QIcon(resource.get_path('img/exclamation.svg')))
+                self.bt.setEnabled(False)
+
+                tooltip = i18n['{}.update.disabled.tooltip'.format(pkg.model.gem_name)]
+
+                if tooltip:
+                    self.setToolTip(tooltip)
+                else:
+                    self.setToolTip('{} {}'.format(i18n['manage_window.apps_table.upgrade_toggle.tooltip'],
+                                                   i18n['manage_window.apps_table.upgrade_toggle.disabled.tooltip']))
+            else:
+                self.bt.setIcon(QIcon(resource.get_path('img/app_update.svg')))
+                self.bt.setCheckable(False)
 
     def change_state(self, not_checked: bool):
         self.app_view.update_checked = not not_checked
@@ -65,11 +84,10 @@ class AppsTable(QTableWidget):
 
     COL_NUMBER = 8
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, disk_cache: bool, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
         super(AppsTable, self).__init__()
         self.setParent(parent)
         self.window = parent
-        self.disk_cache = disk_cache
         self.download_icons = download_icons
         self.setColumnCount(self.COL_NUMBER)
         self.setFocusPolicy(Qt.NoFocus)
@@ -150,22 +168,13 @@ class AppsTable(QTableWidget):
     def refresh(self, pkg: PackageView):
         self._update_row(pkg, update_check_enabled=False, change_update_col=False)
 
-    def fill_async_data(self):
-        if self.window.pkgs:
+    def update_package(self, pkg: PackageView):
+        if self.download_icons and pkg.model.icon_url:
+            icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
+            icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+            self.network_man.get(icon_request)
 
-            for idx, app_v in enumerate(self.window.pkgs):
-
-                if app_v.status == PackageViewStatus.LOADING and app_v.model.status == PackageStatus.READY:
-
-                    if self.download_icons:
-                        icon_request = QNetworkRequest(QUrl(app_v.model.icon_url))
-                        icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-                        self.network_man.get(icon_request)
-
-                    self._update_row(app_v, change_update_col=False)
-                    app_v.status = PackageViewStatus.READY
-
-            self.window.resize_and_center()
+        self._update_row(pkg, change_update_col=False)
 
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
@@ -222,18 +231,24 @@ class AppsTable(QTableWidget):
                     col_name = self.item(idx, 0)
                     col_name.setIcon(icon_data['icon'])
 
-                    if self.disk_cache and app.model.supports_disk_cache() and app.model.get_disk_icon_path():
+                    if app.model.supports_disk_cache() and app.model.get_disk_icon_path():
                         if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                             self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
-    def update_pkgs(self, pkg_views: List[PackageView], update_check_enabled: bool = True):
-        self.setRowCount(len(pkg_views) if pkg_views else 0)
+    def update_packages(self, pkgs: List[PackageView], update_check_enabled: bool = True):
+        self.setRowCount(len(pkgs) if pkgs else 0)
         self.setEnabled(True)
 
-        if pkg_views:
-            for idx, pkgv in enumerate(pkg_views):
-                pkgv.table_index = idx
-                self._update_row(pkgv, update_check_enabled)
+        if pkgs:
+            for idx, pkg in enumerate(pkgs):
+                pkg.table_index = idx
+
+                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url:
+                    icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
+                    icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
+                    self.network_man.get(icon_request)
+
+                self._update_row(pkg, update_check_enabled)
 
     def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_name(0, pkg)
@@ -250,7 +265,11 @@ class AppsTable(QTableWidget):
             if update_check_enabled and pkg.model.update:
                 col_update = QToolBar()
                 col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-                col_update.addWidget(UpdateToggleButton(pkg, self.window, self.i18n, pkg.update_checked))
+                col_update.addWidget(UpdateToggleButton(pkg=pkg,
+                                                        root=self.window,
+                                                        i18n=self.i18n,
+                                                        checked=pkg.update_checked if pkg.model.can_be_updated() else False,
+                                                        clickable=pkg.model.can_be_updated()))
 
             self.setCellWidget(pkg.table_index, 7, col_update)
 
@@ -301,17 +320,18 @@ class AppsTable(QTableWidget):
         self.setCellWidget(pkg.table_index, col, toolbar)
 
     def _set_col_type(self, col: int, pkg: PackageView):
+        icon_data = self.cache_type_icon.get(pkg.model.get_type())
 
-        pixmap = self.cache_type_icon.get(pkg.model.get_type())
-
-        if not pixmap:
+        if icon_data is None:
             pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(QSize(16, 16))
-            self.cache_type_icon[pkg.model.get_type()] = pixmap
+            icon_data = {'px': pixmap, 'tip': '{}: {}'.format(self.i18n['type'], pkg.get_type_label())}
+            self.cache_type_icon[pkg.model.get_type()] = icon_data
 
         item = QLabel()
-        item.setPixmap(pixmap)
+        item.setPixmap(icon_data['px'])
         item.setAlignment(Qt.AlignCenter)
-        item.setToolTip('{}: {}'.format(self.i18n['type'], pkg.model.get_type().capitalize()))
+
+        item.setToolTip(icon_data['tip'])
         self.setCellWidget(pkg.table_index, col, item)
 
     def _set_col_version(self, col: int, pkg: PackageView):
@@ -343,8 +363,8 @@ class AppsTable(QTableWidget):
         item = QTableWidgetItem()
         item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
 
-        if pkg.model.name:
-            name = pkg.model.name
+        name = pkg.model.get_display_name()
+        if name:
             item.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
@@ -359,7 +379,7 @@ class AppsTable(QTableWidget):
         item.setText(name)
 
         icon_path = pkg.model.get_disk_icon_path()
-        if self.disk_cache and pkg.model.supports_disk_cache() and icon_path and os.path.isfile(icon_path):
+        if pkg.model.supports_disk_cache() and icon_path and os.path.isfile(icon_path):
             with open(icon_path, 'rb') as f:
                 icon_bytes = f.read()
                 pixmap = QPixmap()

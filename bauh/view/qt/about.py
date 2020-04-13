@@ -1,12 +1,12 @@
 from glob import glob
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout
 
 from bauh import __version__, __app_name__, ROOT_DIR
-from bauh.view.util import resource, util
-from bauh.view.util.translation import I18n
+from bauh.context import generate_i18n
+from bauh.view.util import resource
 
 PROJECT_URL = 'https://github.com/vinifmor/' + __app_name__
 LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.format(__app_name__)
@@ -14,14 +14,15 @@ LICENSE_URL = 'https://raw.githubusercontent.com/vinifmor/{}/master/LICENSE'.for
 
 class AboutDialog(QDialog):
 
-    def __init__(self, i18n: I18n):
+    def __init__(self, app_config: dict):
         super(AboutDialog, self).__init__()
-        self.setWindowTitle(i18n['tray.action.about'])
+        i18n = generate_i18n(app_config, resource.get_path('locale/about'))
+        self.setWindowTitle('{} ({})'.format(i18n['about.title'].capitalize(), __app_name__))
         layout = QVBoxLayout()
         self.setLayout(layout)
 
         label_logo = QLabel()
-        icon = util.get_default_icon()[1].pixmap(64, 64)
+        icon = QIcon(resource.get_path('img/logo.svg')).pixmap(64, 64)
         label_logo.setPixmap(icon)
         label_logo.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_logo)
@@ -31,7 +32,7 @@ class AboutDialog(QDialog):
         label_name.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_name)
 
-        label_version = QLabel(i18n['version'].lower() + ' ' + __version__)
+        label_version = QLabel(i18n['about.version'].lower() + ' ' + __version__)
         label_version.setStyleSheet('QLabel { font-size: 11px; font-weight: bold }')
         label_version.setAlignment(Qt.AlignCenter)
         layout.addWidget(label_version)

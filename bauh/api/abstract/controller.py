@@ -9,8 +9,9 @@ import yaml
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, PackageAction
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
+from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
+    CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent
 
 
@@ -25,6 +26,38 @@ class SearchResult:
         self.installed = installed
         self.new = new
         self.total = total
+
+
+class UpgradeRequirement:
+
+    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None):
+        """
+
+        :param pkg:
+        :param reason:
+        :param required_size: size in BYTES required to upgrade the package
+        :param extra_size: the extra size IN BYTES the upgrade will allocate in relation to the already allocated
+        """
+        self.pkg = pkg
+        self.reason = reason
+        self.required_size = required_size
+        self.extra_size = extra_size
+
+
+class UpgradeRequirements:
+
+    def __init__(self, to_install: List[UpgradeRequirement], to_remove: List[UpgradeRequirement],
+                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: List[UpgradeRequirement]):
+        """
+        :param to_install: additional packages that must be installed with the upgrade
+        :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
+        :param to_upgrade: the final packages to update
+        :param cannot_upgrade: packages which conflict with each other
+        """
+        self.to_install = to_install
+        self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
+        self.to_upgrade = to_upgrade
+        self.cannot_upgrade = cannot_upgrade
 
 
 class SoftwareManager(ABC):
@@ -82,27 +115,19 @@ class SoftwareManager(ABC):
         if pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def sort_update_order(self, pkgs: List[SoftwarePackage]) -> List[SoftwarePackage]:
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         """
-        sorts the best order to perform the update of some packages
-        :param pkgs:
-        :return:
-        """
-        return pkgs
-
-    def get_update_requirements(self, pkgs: List[SoftwarePackage], watcher: ProcessWatcher) -> List[SoftwarePackage]:
-        """
-        return additional required software that needs to be installed before updating a list of packages
+        return additional required software that needs to be installed / removed / updated before updating a list of packages
         :param pkgs:
         :param watcher
         :return:
         """
-        return []
+        return UpgradeRequirements(None, None, [UpgradeRequirement(p) for p in pkgs], None)
 
     @abstractmethod
-    def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         """
-        :param pkg:
+        :param requirements:
         :param root_password: the root user password (if required)
         :param watcher:
         :return:
@@ -182,7 +207,7 @@ class SoftwareManager(ABC):
         :param only_icon: if only the icon should be saved
         :return:
         """
-        if self.context.disk_cache and pkg.supports_disk_cache():
+        if pkg.supports_disk_cache():
             self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
@@ -217,7 +242,7 @@ class SoftwareManager(ABC):
     @abstractmethod
     def requires_root(self, action: str, pkg: SoftwarePackage):
         """
-        if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh'
+        if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh', 'prepare'
         :param action:
         :param pkg:
         :return:
@@ -225,9 +250,11 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def prepare(self):
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         """
         It prepares the manager to start working. It will be called by GUI. Do not call it within.
+        :param task_manager: a task manager instance used to register ongoing tasks during prepare
+        :param root_password
         :return:
         """
         pass
@@ -257,7 +284,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         """
         At the moment the GUI implements this action. No need to implement it yourself.
         :param action:
@@ -303,4 +330,13 @@ class SoftwareManager(ABC):
         """
         :return: a tuple with a bool informing if the settings were saved and a list of error messages
         """
+        pass
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        """
+        :return: custom actions
+        """
+        pass
+
+    def fill_sizes(self, pkgs: List[SoftwarePackage]):
         pass

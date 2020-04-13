@@ -14,22 +14,23 @@ from bauh.api.http import HttpClient
 class CategoriesDownloader(Thread):
 
     def __init__(self, id_: str, http_client: HttpClient, logger: logging.Logger, manager: SoftwareManager,
-                 disk_cache: bool, url_categories_file: str, disk_cache_dir: str, categories_path: str):
+                 url_categories_file: str, disk_cache_dir: str, categories_path: str, before=None, after=None):
         super(CategoriesDownloader, self).__init__(daemon=True)
         self.id_ = id_
         self.http_client = http_client
         self.logger = logger
         self.manager = manager
-        self.disk_cache = disk_cache
         self.url_categories_file = url_categories_file
         self.disk_cache_dir = disk_cache_dir
         self.categories_path = categories_path
+        self.before = before
+        self.after = after
 
     def _msg(self, msg: str):
         return '{}({}): {}'.format(self.__class__.__name__, self.id_, msg)
 
     def _read_categories_from_disk(self) -> Dict[str, List[str]]:
-        if self.disk_cache and os.path.exists(self.categories_path):
+        if os.path.exists(self.categories_path):
             self.logger.info(self._msg("Reading cached categories from the disk"))
 
             with open(self.categories_path) as f:
@@ -73,7 +74,7 @@ class CategoriesDownloader(Thread):
                     categories = self._map_categories(res.text)
                     self.logger.info(self._msg('Loaded categories for {} applications'.format(len(categories))))
 
-                    if self.disk_cache and categories:
+                    if categories:
                         Thread(target=self._cache_categories_to_disk, args=(res.text,), daemon=True).start()
 
                     return categories
@@ -97,6 +98,9 @@ class CategoriesDownloader(Thread):
         self._set_categories(self.download_categories())
 
     def run(self):
+        if self.before:
+            self.before()
+
         cached = self._read_categories_from_disk()
 
         if cached:
@@ -104,5 +108,8 @@ class CategoriesDownloader(Thread):
             Thread(target=self._download_and_set, daemon=True).start()
         else:
             self._download_and_set()
+
+        if self.after:
+            self.after()
 
         self.logger.info(self._msg('Finished'))

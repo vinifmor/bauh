@@ -4,16 +4,17 @@ from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
 
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
-from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
+    get_icon_path
 from bauh.gems.snap.constants import SNAP_API_URL
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.worker import SnapAsyncDataLoader
@@ -33,8 +34,6 @@ class SnapManager(SoftwareManager):
         self.logger = context.logger
         self.ubuntu_distro = context.distro == 'ubuntu'
         self.categories = {}
-        self.categories_downloader = CategoriesDownloader('snap', self.http_client, self.logger, self, context.disk_cache,
-                                                          URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH)
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
 
@@ -122,7 +121,6 @@ class SnapManager(SoftwareManager):
         info_path = self.get_info_path()
 
         if snap.is_snapd_running() and info_path:
-            self.categories_downloader.join()
             installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(info_path)]
             return SearchResult(installed, None, len(installed))
         else:
@@ -131,7 +129,7 @@ class SnapManager(SoftwareManager):
     def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.downgrade_and_stream(pkg.name, root_password), wrong_error_phrase=None))
 
-    def update(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
         raise Exception("'update' is not supported by {}".format(pkg.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
@@ -216,13 +214,25 @@ class SnapManager(SoftwareManager):
         return snap.is_installed()
 
     def requires_root(self, action: str, pkg: SnapApplication):
-        return action != 'search'
+        return action not in ('search', 'prepare')
 
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
-    def prepare(self):
-        self.categories_downloader.start()
+    def _start_category_task(self, task_man: TaskManager):
+        task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
+        task_man.update_progress('snap_cats', 50, None)
+
+    def _finish_category_task(self, task_man: TaskManager):
+        task_man.update_progress('snap_cats', 100, None)
+        task_man.finish_task('snap_cats')
+
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,
+                             url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=SNAP_CACHE_PATH,
+                             categories_path=CATEGORIES_FILE_PATH,
+                             before=lambda: self._start_category_task(task_manager),
+                             after=lambda: self._finish_category_task(task_manager)).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -268,7 +278,6 @@ class SnapManager(SoftwareManager):
                 return res
             else:
                 self.logger.info('Mapping suggestions')
-                self.categories_downloader.join()
 
                 suggestions, threads = [], []
                 installed = {i.name.lower() for i in self.read_installed(disk_loader=None).installed} if filter_installed else None

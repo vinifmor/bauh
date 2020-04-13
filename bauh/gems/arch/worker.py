@@ -2,18 +2,22 @@ import logging
 import os
 import re
 import time
-from multiprocessing import Process
+import traceback
 from pathlib import Path
 from threading import Thread
 
 import requests
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.commons.system import run_cmd
+from bauh.api.abstract.handler import TaskManager
+from bauh.commons.html import bold
+from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
-    AUR_INDEX_FILE, config
+    AUR_INDEX_FILE, get_icon_path, database, mirrors
+from bauh.gems.arch.aur import URL_INDEX
+from bauh.gems.arch.model import ArchPackage
+from bauh.view.util.translation import I18n
 
-URL_INDEX = 'https://aur.archlinux.org/packages.gz'
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
 
 GLOBAL_MAKEPKG = '/etc/makepkg.conf'
@@ -27,6 +31,7 @@ class AURIndexUpdater(Thread):
     def __init__(self, context: ApplicationContext):
         super(AURIndexUpdater, self).__init__(daemon=True)
         self.http_client = context.http_client
+        self.i18n = context.i18n
         self.logger = context.logger
 
     def run(self):
@@ -50,38 +55,101 @@ class AURIndexUpdater(Thread):
         except requests.exceptions.ConnectionError:
             self.logger.warning('No internet connection: could not pre-index packages')
 
+        self.logger.info("Finished")
 
-class ArchDiskCacheUpdater(Thread if bool(os.getenv('BAUH_DEBUG', 0)) else Process):
 
-    def __init__(self, logger: logging.Logger, disk_cache: bool):
+class ArchDiskCacheUpdater(Thread):
+
+    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
-        self.disk_cache = disk_cache
+        self.task_man = task_man
+        self.task_id = 'arch_cache_up'
+        self.i18n = i18n
+        self.prepared = 0
+        self.prepared_template = self.i18n['arch.task.disk_cache.prepared'] + ': {}/ {}'
+        self.indexed = 0
+        self.indexed_template = self.i18n['arch.task.disk_cache.indexed'] + ': {}/ {}'
+        self.to_index = 0
+        self.progress = 0  # progress is defined by the number of packages prepared and indexed
+        self.repositories = arch_config['repositories']
+        self.aur = arch_config['arch']
+
+    def update_prepared(self, pkgname: str, add: bool = True):
+        if add:
+            self.prepared += 1
+
+        sub = self.prepared_template.format(self.prepared, self.to_index)
+        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
+        self.task_man.update_progress(self.task_id, progress, sub)
+
+    def update_indexed(self, pkgname: str):
+        self.indexed += 1
+        sub = self.indexed_template.format(self.indexed, self.to_index)
+        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
+        self.task_man.update_progress(self.task_id, progress, sub)
 
     def run(self):
-        if self.disk_cache:
-            self.logger.info('Pre-caching installed AUR packages data to disk')
-            installed = pacman.list_and_map_installed()
+        if not any([self.aur, self.repositories]):
+            return
 
-            saved = 0
-            if installed and installed['not_signed']:
-                saved = disk.save_several({app for app in installed['not_signed']}, 'aur', overwrite=False)
+        ti = time.time()
+        self.task_man.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
 
-            self.logger.info('Pre-cached data of {} AUR packages to the disk'.format(saved))
+        self.logger.info('Pre-caching installed Arch packages data to disk')
+        installed = pacman.map_installed(repositories=self.repositories, aur=self.aur)
+
+        self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
+        for k in ('signed', 'not_signed'):
+            installed[k] = {p for p in installed[k] if not os.path.exists(ArchPackage.disk_cache_path(p))}
+
+        saved = 0
+        pkgs = {*installed['signed'], *installed['not_signed']}
+
+        repo_map = {}
+
+        if installed['not_signed']:
+            repo_map.update({p: 'arch' for p in installed['not_signed']})
+
+        if installed['signed']:
+            repo_map.update(pacman.map_repositories(installed['signed']))
+
+        self.to_index = len(pkgs)
+        self.progress = self.to_index * 2
+        self.update_prepared(None, add=False)
+
+        saved += disk.save_several(pkgs, repo_map, when_prepared=self.update_prepared, after_written=self.update_indexed)
+        self.task_man.update_progress(self.task_id, 100, None)
+        self.task_man.finish_task(self.task_id)
+
+        tf = time.time()
+        time_msg = 'Took {0:.2f} seconds'.format(tf - ti)
+        self.logger.info('Pre-cached data of {} Arch packages to the disk. {}'.format(saved, time_msg))
 
 
 class ArchCompilationOptimizer(Thread):
 
-    def __init__(self, logger: logging.Logger):
+    def __init__(self, arch_config: dict, i18n: I18n, logger: logging.Logger, task_man: TaskManager = None):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
+        self.i18n = i18n
         self.re_compress_xz = re.compile(r'#?\s*COMPRESSXZ\s*=\s*.+')
         self.re_compress_zst = re.compile(r'#?\s*COMPRESSZST\s*=\s*.+')
         self.re_build_env = re.compile(r'\s+BUILDENV\s*=.+')
         self.re_ccache = re.compile(r'!?ccache')
+        self.task_man = task_man
+        self.task_id = 'arch_make_optm'
+        self.optimizations = bool(arch_config['optimize'])
 
     def _is_ccache_installed(self) -> bool:
         return bool(run_cmd('which ccache', print_error=False))
+
+    def _update_progress(self, progress: float, substatus: str = None):
+        if self.task_man:
+            self.task_man.update_progress(self.task_id, progress, substatus)
+
+            if progress == 100:
+                self.task_man.finish_task(self.task_id)
 
     def optimize(self):
         ti = time.time()
@@ -115,6 +183,8 @@ class ArchCompilationOptimizer(Thread):
                 else:
                     optimizations.append('MAKEFLAGS="-j$(nproc)"')
 
+            self._update_progress(20)
+
             compress_xz = self.re_compress_xz.findall(custom_makepkg or global_makepkg)
 
             if compress_xz:
@@ -128,6 +198,8 @@ class ArchCompilationOptimizer(Thread):
             else:
                 optimizations.append('COMPRESSXZ=(xz -c -z - --threads=0)')
 
+            self._update_progress(40)
+
             compress_zst = self.re_compress_zst.findall(custom_makepkg or global_makepkg)
 
             if compress_zst:
@@ -140,6 +212,8 @@ class ArchCompilationOptimizer(Thread):
                     self.logger.warning("It seems '{}' COMPRESSZST is already customized".format(GLOBAL_MAKEPKG))
             else:
                 optimizations.append('COMPRESSZST=(zstd -c -z -q - --threads=0)')
+
+            self._update_progress(60)
 
             build_envs = self.re_build_env.findall(custom_makepkg or global_makepkg)
 
@@ -169,6 +243,8 @@ class ArchCompilationOptimizer(Thread):
                     self.logger.info('Adding a BUILDENV declaration')
                     optimizations.append('BUILDENV=(ccache)')
 
+            self._update_progress(80)
+
             if optimizations:
                 generated_by = '# <generated by bauh>\n'
                 custom_makepkg = custom_makepkg + '\n' + generated_by + '\n'.join(optimizations) + '\n'
@@ -185,13 +261,12 @@ class ArchCompilationOptimizer(Thread):
                     os.remove(CUSTOM_MAKEPKG_FILE)
 
             tf = time.time()
+            self._update_progress(100)
             self.logger.info("Optimizations took {0:.2f} seconds".format(tf - ti))
             self.logger.info('Finished')
 
     def run(self):
-        local_config = config.read_config(update_file=True)
-
-        if not local_config['optimize']:
+        if not self.optimizations:
             self.logger.info("Arch packages compilation optimizations are disabled")
 
             if os.path.exists(CUSTOM_MAKEPKG_FILE):
@@ -200,4 +275,113 @@ class ArchCompilationOptimizer(Thread):
 
             self.logger.info('Finished')
         else:
-           self.optimize()
+            if self.task_man:
+                self.task_man.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
+
+            self.optimize()
+
+
+class RefreshMirrors(Thread):
+
+    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, sort_limit: int, logger: logging.Logger):
+        super(RefreshMirrors, self).__init__(daemon=True)
+        self.taskman = taskman
+        self.i18n = i18n
+        self.logger = logger
+        self.root_password = root_password
+        self.task_id = "arch_mirrors"
+        self.sort_limit = sort_limit
+
+    def run(self):
+        self.logger.info("Refreshing mirrors")
+        self.taskman.register_task(self.task_id, self.i18n['arch.task.mirrors'], get_icon_path())
+
+        handler = ProcessHandler()
+        try:
+            success, output = handler.handle_simple(pacman.refresh_mirrors(self.root_password))
+
+            if success:
+
+                if self.sort_limit is not None and self.sort_limit >= 0:
+                    self.taskman.update_progress(self.task_id, 50, self.i18n['arch.custom_action.refresh_mirrors.status.updating'])
+                    try:
+                        handler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, self.sort_limit))
+                    except:
+                        self.logger.error("Could not sort mirrors by speed")
+                        traceback.print_exc()
+
+                mirrors.register_sync(self.logger)
+            else:
+                self.logger.error("It was not possible to refresh mirrors")
+        except:
+            self.logger.error("It was not possible to refresh mirrors")
+            traceback.print_exc()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        self.logger.info("Finished")
+
+
+class SyncDatabases(Thread):
+
+    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger, refresh_mirrors: RefreshMirrors = None):
+        super(SyncDatabases, self).__init__(daemon=True)
+        self.task_man = taskman
+        self.i18n = i18n
+        self.taskman = taskman
+        self.task_id = "arch_dbsync"
+        self.root_password = root_password
+        self.refresh_mirrors = refresh_mirrors
+        self.logger = logger
+
+    def run(self) -> None:
+        self.logger.info("Synchronizing databases")
+        self.taskman.register_task(self.task_id, self.i18n['arch.sync_databases.substatus'], get_icon_path())
+
+        if self.refresh_mirrors and self.refresh_mirrors.is_alive():
+            self.taskman.update_progress(self.task_id, 0, self.i18n['arch.task.sync_databases.waiting'])
+            self.refresh_mirrors.join()
+
+        progress = 10
+        dbs = pacman.get_databases()
+        self.taskman.update_progress(self.task_id, progress, None)
+
+        if dbs:
+            inc = 90 / len(dbs)
+            try:
+                p = new_root_subprocess(['pacman', '-Syy'], self.root_password)
+
+                dbs_read, last_db = 0, None
+
+                for o in p.stdout:
+                    line = o.decode().strip()
+
+                    if line and line.startswith('downloading'):
+                        db = line.split(' ')[1].strip()
+
+                        if last_db is None or last_db != db:
+                            last_db = db
+                            dbs_read += 1
+                            progress = dbs_read * inc
+                        else:
+                            progress += 0.25
+
+                        self.taskman.update_progress(self.task_id, progress, self.i18n['arch.task.sync_sb.status'].format(db))
+
+                for o in p.stderr:
+                    o.decode()
+
+                p.wait()
+
+                if p.returncode == 0:
+                    database.register_sync(self.logger)
+                else:
+                    self.logger.error("Could not synchronize database")
+
+            except:
+                self.logger.info("Error while synchronizing databases")
+                traceback.print_exc()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        self.logger.info("Finished")

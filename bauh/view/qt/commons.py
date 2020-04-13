@@ -15,7 +15,7 @@ def new_pkgs_info() -> dict:
 
 
 def update_info(pkgv: PackageView, pkgs_info: dict):
-    pkgs_info['available_types'][pkgv.model.get_type()] = pkgv.model.get_type_icon_path()
+    pkgs_info['available_types'][pkgv.model.get_type()] = {'icon': pkgv.model.get_type_icon_path(), 'label': pkgv.get_type_label()}
 
     if pkgv.model.is_application():
         pkgs_info['apps_count'] += 1

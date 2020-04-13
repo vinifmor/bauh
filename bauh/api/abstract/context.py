@@ -10,11 +10,10 @@ from bauh.view.util.translation import I18n
 
 class ApplicationContext:
 
-    def __init__(self, disk_cache: bool, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: I18n,
+    def __init__(self, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: I18n,
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
                  logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str):
         """
-        :param disk_cache: if package data should be cached to disk
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
         :param app_root_dir: GUI root dir
@@ -25,8 +24,8 @@ class ApplicationContext:
         :param file_downloader
         :param distro
         :param app_name
+        :param root_password
         """
-        self.disk_cache = disk_cache
         self.download_icons = download_icons
         self.http_client = http_client
         self.app_root_dir = app_root_dir
@@ -40,6 +39,7 @@ class ApplicationContext:
         self.default_categories = ('AudioVideo', 'Audio', 'Video', 'Development', 'Education', 'Game',
                                    'Graphics', 'Network', 'Office', 'Science', 'Settings', 'System', 'Utility')
         self.app_name = app_name
+        self.root_password = None
 
     def is_system_x86_64(self):
         return self.arch_x86_64

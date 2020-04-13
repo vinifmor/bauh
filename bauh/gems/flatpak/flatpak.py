@@ -2,10 +2,11 @@ import re
 import subprocess
 import traceback
 from datetime import datetime
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Iterable
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
+from bauh.commons.util import size_to_byte
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 
@@ -385,3 +386,28 @@ def list_remotes() -> Dict[str, Set[str]]:
 
 def run(app_id: str):
     subprocess.Popen(['flatpak', 'run', app_id])
+
+
+def map_update_download_size(app_ids: Iterable[str], installation: str, version: str) -> Dict[str, int]:
+    success, output = ProcessHandler().handle_simple(SimpleProcess(['flatpak', 'update', '--{}'.format(installation)]))
+    if version >= '1.5':
+        res = {}
+        p = re.compile(r'^\d+.\t')
+        p2 = re.compile(r'\s([0-9.?a-zA-Z]+)\s?')
+        for l in output.split('\n'):
+            if l:
+                line = l.strip()
+
+                if line:
+                    found = p.match(line)
+
+                    if found:
+                        line_split = line.split('\t')
+                        line_id = line_split[2].strip()
+
+                        related_id = [appid for appid in app_ids if appid == line_id]
+
+                        if related_id:
+                            size = p2.findall(line_split[6])[0].split('?')
+                            res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+        return res

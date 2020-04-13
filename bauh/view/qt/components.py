@@ -1,13 +1,15 @@
 import os
+import time
 import traceback
 from pathlib import Path
+from threading import Thread
 from typing import Tuple
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider
+    QSlider, QScrollArea, QFrame
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
@@ -24,6 +26,9 @@ class RadioButtonQt(QRadioButton):
         self.model = model
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
+
+        if model.icon_path:
+            self.setIcon(QIcon(model.icon_path))
 
         if self.model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -90,7 +95,8 @@ class FormComboBoxQt(QComboBox):
             self.setMaximumWidth(model.max_width)
 
         for idx, op in enumerate(self.model.options):
-            self.addItem(op.label, op.value)
+            icon = QIcon(op.icon_path) if op.icon_path else QIcon()
+            self.addItem(icon, op.label, op.value)
 
             if op.tooltip:
                 self.setItemData(idx, op.tooltip, Qt.ToolTipRole)
@@ -178,7 +184,7 @@ class ComboSelectQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label + ' :'), 0, 0)
+        self.layout().addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
         self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
@@ -352,14 +358,26 @@ class InputFilter(QLineEdit):
         super(InputFilter, self).__init__()
         self.on_key_press = on_key_press
         self.last_text = ''
+        self.typing = None
 
-    def keyPressEvent(self, event):
-        super(InputFilter, self).keyPressEvent(event)
+    def notify_text_change(self):
+        time.sleep(2)
         text = self.text().strip()
 
         if text != self.last_text:
             self.last_text = text
             self.on_key_press()
+
+        self.typing = None
+
+    def keyPressEvent(self, event):
+        super(InputFilter, self).keyPressEvent(event)
+
+        if self.typing:
+            return
+
+        self.typing = Thread(target=self.notify_text_change, daemon=True)
+        self.typing.start()
 
     def get_text(self):
         return self.last_text
@@ -464,11 +482,17 @@ class FormQt(QGroupBox):
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
 
+        if hasattr(comp, 'size') and comp.size is not None:
+            label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
+
         attr = 'label' if hasattr(comp,'label') else 'value'
         text = getattr(comp, attr)
 
         if text:
-            label_comp.setText(text.capitalize())
+            if hasattr(comp, 'capitalize_label') and getattr(comp, 'capitalize_label'):
+                label_comp.setText(text.capitalize())
+            else:
+                label_comp.setText(text)
 
             if comp.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(comp.tooltip))
@@ -499,7 +523,7 @@ class FormQt(QGroupBox):
             line_edit.setPlaceholderText(c.placeholder)
 
         if c.value:
-            line_edit.setText(c.value)
+            line_edit.setText(str(c.value) if c.value else '')
             line_edit.setCursorPosition(0)
 
         if c.read_only:
@@ -604,7 +628,11 @@ class TabGroupQt(QTabWidget):
                 traceback.print_exc()
                 icon = QIcon()
 
-            self.addTab(to_widget(c.content, i18n), icon, c.label)
+            scroll = QScrollArea()
+            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(to_widget(c.content, i18n))
+            self.addTab(scroll, icon, c.label)
 
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:
@@ -643,6 +671,10 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return TwoStateButtonQt(comp)
     elif isinstance(comp, TextComponent):
         label = QLabel(comp.value)
+
+        if comp.size is not None:
+            label.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
+
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         return label
     elif isinstance(comp, SpacerComponent):

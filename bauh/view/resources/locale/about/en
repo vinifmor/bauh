@@ -1,0 +1,9 @@
+about.title=about
+about.info.desc=Graphical interface for managing your Linux applications
+about.info.link=More information at
+about.info.license=Free license
+about.info.rate.question=Like this tool ?
+about.info.rate.answer=Give it a star on GitHub to strengthen the project
+about.info.trouble.question=Any trouble ?
+about.info.trouble.answer=Open a GitHub issue so the developers can help you
+about.version=version

@@ -6,7 +6,7 @@ from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 from bauh.view.util.translation import I18n
 
-CACHED_ATTRS = {'command', 'icon_path', 'mirror', 'maintainer', 'desktop_entry', 'categories'}
+CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories'}
 
 
 class ArchPackage(SoftwarePackage):
@@ -14,7 +14,7 @@ class ArchPackage(SoftwarePackage):
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
-                 maintainer: str = None, url_download: str = None, pkgbuild: str = None, mirror: str = None,
+                 maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  i18n: I18n = None):
 
@@ -22,12 +22,12 @@ class ArchPackage(SoftwarePackage):
         self.package_base = package_base
         self.votes = votes
         self.popularity = popularity
-        self.maintainer = maintainer
+        self.maintainer = maintainer if maintainer else (repository if repository != 'arch' else None)
         self.url_download = url_download
         self.first_submitted = first_submitted
         self.last_modified = last_modified
         self.pkgbuild = pkgbuild
-        self.mirror = mirror
+        self.repository = repository
         self.command = None
         self.icon_path = None
         self.downgrade_enabled = False
@@ -37,27 +37,31 @@ class ArchPackage(SoftwarePackage):
         self.i18n = i18n
 
     @staticmethod
-    def disk_cache_path(pkgname: str, mirror: str):
-        return ARCH_CACHE_PATH + '/installed/' + ('aur' if mirror == 'aur' else 'mirror') + '/' + pkgname
+    def disk_cache_path(pkgname: str):
+        return ARCH_CACHE_PATH + '/installed/' + pkgname
 
     def get_pkg_build_url(self):
         if self.package_base:
             return 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=' + self.package_base
 
     def has_history(self):
-        return self.installed
+        return self.installed and self.repository == 'arch'
 
     def has_info(self):
         return True
 
-    def can_be_installed(self):
-        return super(ArchPackage, self).can_be_installed() and self.url_download
+    def can_be_installed(self) -> bool:
+        if super(ArchPackage, self).can_be_installed():
+            return bool(self.url_download) if self.repository == 'arch' else True
 
     def can_be_downgraded(self):
-        return self.installed and self.downgrade_enabled
+        return self.installed and self.downgrade_enabled and self.repository == 'arch'
 
     def get_type(self):
-        return 'aur' if self.mirror == 'aur' else 'arch'
+        return 'arch' if self.repository == 'arch' else 'arch_repo'
+
+    def get_update_type(self):
+        return 'Arch - {}'.format('AUR' if self.repository == 'arch' else 'Repository')
 
     def get_default_icon_path(self) -> str:
         return self.get_type_icon_path()
@@ -66,7 +70,7 @@ class ArchPackage(SoftwarePackage):
         return self.icon_path
 
     def get_type_icon_path(self):
-        return resource.get_path('img/{}.svg'.format('arch' if self.mirror == 'aur' else 'mirror'), ROOT_DIR)
+        return resource.get_path('img/{}.svg'.format('arch' if self.get_type() == 'arch' else 'repo'), ROOT_DIR)
 
     def is_application(self):
         return self.can_be_run()
@@ -79,7 +83,7 @@ class ArchPackage(SoftwarePackage):
 
     def get_disk_cache_path(self) -> str:
         if self.name:
-            return self.disk_cache_path(self.name, self.mirror)
+            return self.disk_cache_path(self.name)
 
     def get_data_to_cache(self) -> dict:
         cache = {}
@@ -125,7 +129,10 @@ class ArchPackage(SoftwarePackage):
         return False
 
     def get_name_tooltip(self) -> str:
-        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.mirror)
+        return '{} ( {}: {} )'.format(self.name, self.i18n['repository'], self.repository)
+
+    def supports_backup(self) -> bool:
+        return True
 
     def __str__(self):
         return self.__repr__()

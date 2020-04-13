@@ -1,0 +1,7 @@
+tray.action.manage=Aplicacions
+tray.action.exit=Surt
+tray.action.about=Quant a
+tray.action.refreshing=Refrescant
+tray.settings=configuració
+notification.update={} actualització disponible
+notification.updates={} actualitzacions disponibles

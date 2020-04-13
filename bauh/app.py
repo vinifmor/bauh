@@ -1,28 +1,15 @@
 import os
 import sys
-from threading import Thread
 
 import urllib3
-from PyQt5.QtCore import Qt, QCoreApplication
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QCoreApplication, Qt
 
-from bauh import __version__, __app_name__, app_args, ROOT_DIR
-from bauh.api.abstract.controller import ApplicationContext
-from bauh.api.http import HttpClient
-from bauh.view.core import gems, config
-from bauh.view.core.controller import GenericSoftwareManager
-from bauh.view.core.downloader import AdaptableFileDownloader
-from bauh.view.qt.systray import TrayIcon
-from bauh.view.qt.window import ManageWindow
-from bauh.view.util import util, logs, translation
-from bauh.view.util.cache import DefaultMemoryCacheFactory, CacheCleaner
-from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
-from bauh.view.util.translation import I18n
-
-DEFAULT_I18N_KEY = 'en'
+from bauh import __app_name__, app_args
+from bauh.view.core import config
+from bauh.view.util import logs
 
 
-def main():
+def main(tray: bool = False):
     if not os.getenv('PYTHONUNBUFFERED'):
         os.environ['PYTHONUNBUFFERED'] = '1'
 
@@ -32,90 +19,30 @@ def main():
 
     logger = logs.new_logger(__app_name__, bool(args.logs))
 
-    local_config = config.read_config(update_file=True)
+    app_config = config.read_config(update_file=True)
 
-    if local_config['ui']['auto_scale']:
+    if bool(app_config['ui']['auto_scale']):
         os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
         logger.info("Auto screen scale factor activated")
 
-    if local_config['ui']['hdpi']:
+    if bool(app_config['ui']['hdpi']):
         logger.info("HDPI settings activated")
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
-    i18n_key, current_i18n = translation.get_locale_keys(local_config['locale'])
-    default_i18n = translation.get_locale_keys(DEFAULT_I18N_KEY)[1] if i18n_key != DEFAULT_I18N_KEY else {}
-    i18n = I18n(i18n_key, current_i18n, DEFAULT_I18N_KEY, default_i18n)
-
-    cache_cleaner = CacheCleaner()
-    cache_factory = DefaultMemoryCacheFactory(expiration_time=int(local_config['memory_cache']['data_expiration']), cleaner=cache_cleaner)
-    icon_cache = cache_factory.new(int(local_config['memory_cache']['icon_expiration']))
-
-    http_client = HttpClient(logger)
-
-    context = ApplicationContext(i18n=i18n,
-                                 http_client=http_client,
-                                 disk_cache=bool(local_config['disk_cache']['enabled']),
-                                 download_icons=bool(local_config['download']['icons']),
-                                 app_root_dir=ROOT_DIR,
-                                 cache_factory=cache_factory,
-                                 disk_loader_factory=DefaultDiskCacheLoaderFactory(disk_cache_enabled=bool(local_config['disk_cache']['enabled']), logger=logger),
-                                 logger=logger,
-                                 distro=util.get_distro(),
-                                 file_downloader=AdaptableFileDownloader(logger, bool(local_config['download']['multithreaded']),
-                                                                         i18n, http_client),
-                                 app_name=__app_name__)
-
-    managers = gems.load_managers(context=context, locale=i18n_key, config=local_config, default_locale=DEFAULT_I18N_KEY)
-
-    if args.reset:
-        util.clean_app_files(managers)
-        exit(0)
-
-    manager = GenericSoftwareManager(managers, context=context, config=local_config)
-    manager.prepare()
-
-    app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)   # otherwise windows opened through the tray icon kill the aplication when closed
-    app.setApplicationName(__app_name__)
-    app.setApplicationVersion(__version__)
-    app_icon = util.get_default_icon()[1]
-    app.setWindowIcon(app_icon)
-
-    if local_config['ui']['style']:
-        app.setStyle(str(local_config['ui']['style']))
+    if tray or bool(args.tray):
+        from bauh.tray import new_tray_icon
+        app, widget = new_tray_icon(app_config)
     else:
-        if app.style().objectName().lower() not in {'fusion', 'breeze'}:
-            app.setStyle('Fusion')
+        from bauh.manage import new_manage_panel
+        app, widget = new_manage_panel(args, app_config, logger)
 
-    manage_window = ManageWindow(i18n=i18n,
-                                 manager=manager,
-                                 icon_cache=icon_cache,
-                                 screen_size=app.primaryScreen().size(),
-                                 config=local_config,
-                                 context=context,
-                                 http_client=http_client,
-                                 icon=app_icon,
-                                 logger=logger)
-
-    if args.tray:
-        tray_icon = TrayIcon(i18n=i18n,
-                             manager=manager,
-                             manage_window=manage_window,
-                             screen_size=app.primaryScreen().size(),
-                             config=local_config)
-        manage_window.set_tray_icon(tray_icon)
-        tray_icon.show()
-
-        if args.show_panel:
-            tray_icon.show_manage_window()
-    else:
-        manage_window.refresh_apps()
-        manage_window.show()
-
-    cache_cleaner.start()
-    Thread(target=config.remove_old_config, args=(logger,), daemon=True).start()
+    widget.show()
     sys.exit(app.exec_())
+
+
+def tray():
+    main(tray=True)
 
 
 if __name__ == '__main__':

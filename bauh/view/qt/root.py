@@ -1,9 +1,12 @@
 import os
+from typing import Tuple
 
 from PyQt5.QtWidgets import QInputDialog, QLineEdit
 
+from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
+from bauh.view.core.config import read_config
 from bauh.view.qt.dialog import show_message
 from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util.translation import I18n
@@ -13,7 +16,14 @@ def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(i18n: I18n):
+def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict = None) -> Tuple[str, bool]:
+
+    cur_config = read_config() if not app_config else app_config
+    store_password = bool(cur_config['store_root_password'])
+
+    if store_password and context.root_password and validate_password(context.root_password):
+        return context.root_password, True
+
     diag = QInputDialog()
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)
@@ -44,6 +54,9 @@ def ask_root_password(i18n: I18n):
                 diag.setTextValue('')
 
             if ok:
+                if store_password:
+                    context.root_password = diag.textValue()
+
                 return diag.textValue(), ok
         else:
             break

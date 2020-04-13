@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR
-from bauh.commons import user
+from bauh.commons import user, resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
@@ -15,7 +15,7 @@ NODE_BIN_PATH = '{}/bin/node'.format(NODE_DIR_PATH)
 NPM_BIN_PATH = '{}/bin/npm'.format(NODE_DIR_PATH)
 NODE_MODULES_PATH = '{}/node_modules'.format(ENV_PATH)
 NATIVEFIER_BIN_PATH = '{}/.bin/nativefier'.format(NODE_MODULES_PATH)
-ELECTRON_PATH = '{}/.cache/electron'.format(Path.home())
+ELECTRON_PATH = '{}/.cache/electron'.format(str(Path.home()))
 ELECTRON_DOWNLOAD_URL = 'https://github.com/electron/electron/releases/download/v{version}/electron-v{version}-linux-{arch}.zip'
 ELECTRON_SHA256_URL = 'https://github.com/electron/electron/releases/download/v{version}/SHASUMS256.txt'
 URL_ENVIRONMENT_SETTINGS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/environment.yml'
@@ -29,3 +29,6 @@ SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
 URL_NATIVEFIER = 'https://github.com/jiahaog/nativefier/archive/v{version}.tar.gz'
 
+
+def get_icon_path() -> str:
+    return resource.get_path('img/web.svg', ROOT_DIR)

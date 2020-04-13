@@ -1,9 +1,7 @@
 import glob
 import locale
-import traceback
+import os
 from typing import Tuple, Set
-
-from colorama import Fore
 
 from bauh.view.util import resource
 
@@ -43,7 +41,7 @@ class I18n(dict):
 
 def get_available_keys() -> Set[str]:
     locale_dir = resource.get_path('locale')
-    return {file.split('/')[-1] for file in glob.glob(locale_dir + '/*')}
+    return {file.split('/')[-1] for file in glob.glob(locale_dir + '/*') if os.path.isfile(file)}
 
 
 def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale')) -> Tuple[str, dict]:

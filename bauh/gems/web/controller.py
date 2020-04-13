@@ -17,10 +17,11 @@ from colorama import Fore
 from requests import exceptions, Response
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager, SearchResult
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
-from bauh.api.abstract.model import SoftwarePackage, PackageAction, PackageSuggestion, PackageUpdate, PackageHistory, \
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
+    PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
@@ -28,9 +29,9 @@ from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource, user
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
-from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str
+from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH, ELECTRON_PATH
 from bauh.gems.web.config import read_config
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -68,13 +69,46 @@ class WebApplicationManager(SoftwareManager):
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
         self.suggestions = {}
-
+        self.custom_actions = [CustomSoftwareAction(i18_label_key='web.custom_action.clean_env',
+                                                    i18n_status_key='web.custom_action.clean_env.status',
+                                                    manager=self,
+                                                    manager_method='clean_environment',
+                                                    icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                                    requires_root=False)]
     def _get_lang_header(self) -> str:
         try:
             system_locale = locale.getdefaultlocale()
             return system_locale[0] if system_locale else 'en_US'
         except:
             return 'en_US'
+
+    def clean_environment(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
+
+        success = True
+        for path in (ENV_PATH, ELECTRON_PATH):
+            self.logger.info("Checking path '{}'".format(path))
+            if os.path.exists(path):
+                try:
+                    self.logger.info('Removing path {}'.format(path))
+                    res, output = handler.handle_simple(SimpleProcess(['rm', '-rf', path]))
+
+                    if not res:
+                        success = False
+                except:
+                    watcher.print(traceback.format_exc())
+                    success = False
+
+        if success:
+            watcher.show_message(title=self.i18n['success'].capitalize(),
+                                 body=self.i18n['web.custom_action.clean_env.success'],
+                                 type_=MessageType.INFO)
+        else:
+            watcher.show_message(title=self.i18n['error'].capitalize(),
+                                 body=self.i18n['web.custom_action.clean_env.failed'],
+                                 type_=MessageType.ERROR)
+
+        return success
 
     def _get_app_name(self, url_no_protocol: str, soup: "BeautifulSoup") -> str:
         name_tag = soup.head.find('meta', attrs={'name': 'application-name'})
@@ -304,7 +338,7 @@ class WebApplicationManager(SoftwareManager):
     def downgrade(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
         pass
 
-    def update(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
     def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
@@ -408,7 +442,7 @@ class WebApplicationManager(SoftwareManager):
         inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
 
         cat_ops = [InputOption(label=self.i18n['web.install.option.category.none'].capitalize(), value=0)]
-        cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
+        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c).capitalize(), value=c) for c in self.context.default_categories])
 
         def_cat = cat_ops[0]
 
@@ -760,23 +794,24 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: str, pkg: SoftwarePackage):
         return False
 
-    def _update_env_settings(self):
-        self.env_settings = self.env_updater.read_settings()
+    def _update_env_settings(self, task_manager: TaskManager = None):
+        self.env_settings = self.env_updater.read_settings(task_manager)
 
-    def _download_suggestions(self):
-        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client)
+    def _download_suggestions(self, taskman: TaskManager = None):
+        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n, taskman=taskman)
         self.suggestions = downloader.download()
 
         if self.suggestions:
             index_gen = SearchIndexGenerator(logger=self.logger)
             Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
 
-    def prepare(self):
-        self.env_thread = Thread(target=self._update_env_settings, daemon=True)
-        self.env_thread.start()
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        if internet_available:
+            self.env_thread = Thread(target=self._update_env_settings, args=(task_manager,), daemon=True)
+            self.env_thread.start()
 
-        self.suggestions_downloader = Thread(target=self._download_suggestions, daemon=True)
-        self.suggestions_downloader.start()
+            self.suggestions_downloader = Thread(target=self._download_suggestions, args=(task_manager,), daemon=True)
+            self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -850,7 +885,7 @@ class WebApplicationManager(SoftwareManager):
             self.suggestions_downloader.join(5)
             suggestions = self.suggestions
         else:
-            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client).download()
+            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n).download()
 
         # cleaning memory
         self.suggestions_downloader = None
@@ -897,7 +932,7 @@ class WebApplicationManager(SoftwareManager):
 
             return res
 
-    def execute_custom_action(self, action: PackageAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
     def is_default_enabled(self) -> bool:
@@ -970,3 +1005,6 @@ class WebApplicationManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        return self.custom_actions

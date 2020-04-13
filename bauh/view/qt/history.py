@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
+from bauh.view.qt.view_model import get_type_label, PackageView
 from bauh.view.util.translation import I18n
 
 
@@ -16,7 +17,9 @@ class HistoryDialog(QDialog):
         super(HistoryDialog, self).__init__()
         self.setWindowFlags(self.windowFlags() | Qt.WindowSystemMenuHint | Qt.WindowMinMaxButtonsHint)
 
-        self.setWindowTitle('{} - {} ({})'.format(i18n['popup.history.title'], history.pkg.name, history.pkg.get_type()))
+        view = PackageView(model=history.pkg, i18n=i18n)
+
+        self.setWindowTitle('{} - {}'.format(i18n['popup.history.title'], view))
 
         layout = QVBoxLayout()
         self.setLayout(layout)

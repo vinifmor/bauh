@@ -1,6 +1,3 @@
-import logging
-import os
-import traceback
 from pathlib import Path
 
 import yaml
@@ -21,16 +18,11 @@ def read_config(update_file: bool = False) -> dict:
         },
         'locale': None,
         'updates': {
-            'check_interval': 30,
-            'sort_packages': True,
-            "pre_dependency_checking": True
+            'check_interval': 30
         },
         'system': {
           'notifications': True,
           'single_dependency_checking': False
-        },
-        'disk_cache': {
-            'enabled': True
         },
         'suggestions': {
             'enabled': True,
@@ -52,7 +44,20 @@ def read_config(update_file: bool = False) -> dict:
         'download': {
             'multithreaded': True,
             'icons': True
+        },
+        'store_root_password': True,
+        'disk': {
+            'trim_after_update': False
+        },
+        'backup': {
+            'enabled': True,
+            'install': None,
+            'uninstall': None,
+            'downgrade': None,
+            'upgrade': None,
+            'mode': 'incremental'
         }
+
     }
     return read(FILE_PATH, default, update_file=update_file, update_async=True)
 
@@ -62,14 +67,3 @@ def save(config: dict):
 
     with open(FILE_PATH, 'w+') as f:
         f.write(yaml.safe_dump(config))
-
-
-def remove_old_config(logger: logging.Logger):
-    old_file = FILE_PATH.replace('.yml', '.json')
-    if os.path.exists(old_file):
-        try:
-            os.remove(old_file)
-            logger.info('Old configuration file {} deleted'.format(old_file))
-        except:
-            logger.error('Could not delete the old configuration file {}'.format(old_file))
-            traceback.print_exc()

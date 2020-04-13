@@ -1,16 +1,13 @@
-import logging
-
-import requests
-
-from bauh.api.http import HttpClient
+import subprocess
+import traceback
+from subprocess import Popen
 
 
-def is_available(client: HttpClient, logger: logging.Logger) -> bool:
+def is_available() -> bool:
     try:
-        client.exists('https://google.com')
-        return True
-    except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-        if logger:
-            logger.warning('Internet connection seems to be off')
+        res = Popen(['ping', '-q', '-w1', '-c1', 'google.com'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        res.wait()
+        return res.returncode == 0
+    except:
+        traceback.print_exc()
         return False
-

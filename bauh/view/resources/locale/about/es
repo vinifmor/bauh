@@ -1,0 +1,9 @@
+about.title=Acerca de
+about.info.desc=Interfaz grafica para administración de aplicaciones para Linux
+about.info.link=Mas información en
+about.info.license=Licencia gratuita
+about.info.rate.question=¿Le gusta esta herramienta?
+about.info.rate.answer=Dele una estrella en GitHub para fortalecer el proyecto
+about.info.trouble.question=¿Problemas?
+about.info.trouble.answer=Abra un issue en GitHub para que los desarrolladores puedan ayudarlo
+about.version=versión

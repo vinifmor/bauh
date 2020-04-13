@@ -1,9 +1,10 @@
 
 import os
+
 from setuptools import setup, find_packages
 
 DESCRIPTION = (
-    "Graphical interface to manage Flatpak, Snap, AppImage, AUR and Web applications"
+    "Graphical interface to manage Linux applications (AppImage, Arch / AUR, Flatpak, Snap and Web)"
 )
 
 AUTHOR = "bauh developers"
@@ -31,12 +32,14 @@ setup(
     python_requires=">=3.5",
     url=URL,
     packages=find_packages(exclude=["tests.*", "tests"]),
-    package_data={NAME: ["view/resources/locale/*", "view/resources/img/*", "gems/*/resources/img/*", "gems/*/resources/locale/*"]},
+    package_data={NAME: ["view/resources/locale/*", "view/resources/img/*", "gems/*/resources/img/*", "gems/*/resources/locale/*", "desktop/*"]},
     install_requires=requirements,
     test_suite="tests",
     entry_points={
         "console_scripts": [
-            "{name}={name}.app:main".format(name=NAME)
+            "{name}={name}.app:main".format(name=NAME),
+            "{name}-tray={name}.app:tray".format(name=NAME),
+            "{name}-cli={name}.cli.app:main".format(name=NAME)
         ]
     },
     include_package_data=True,
@@ -46,6 +49,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8'
     ]
 )
