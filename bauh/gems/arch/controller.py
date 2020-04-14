@@ -1198,7 +1198,7 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 65)
 
         if pkgbuilt:
-            gen_file = [fname for root, dirs, files in os.walk(context.build_dir) for fname in files if re.match(r'^{}-.+\.tar\.(xz|ztd)'.format(context.name), fname)]
+            gen_file = [fname for root, dirs, files in os.walk(context.build_dir) for fname in files if re.match(r'^{}-.+\.tar\.(xz|zst)'.format(context.name), fname)]
 
             if not gen_file:
                 context.watcher.print('Could not find the built package. Aborting...')
