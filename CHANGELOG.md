@@ -72,6 +72,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch / AUR:
     - sorting algorithm was providing wrong results for some cases
     - not caching data about packages with no desktop entry files
+    - error output when was not able to optimize the **makepkg.conf** [#84](https://github.com/vinifmor/bauh/issues/84)
+    - error when building AUR packages with extensions different from .tar.xz [#84](https://github.com/vinifmor/bauh/issues/84)
 
 ### Settings
 - Default
