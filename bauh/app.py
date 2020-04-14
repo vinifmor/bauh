@@ -32,7 +32,7 @@ def main(tray: bool = False):
 
     if tray or bool(args.tray):
         from bauh.tray import new_tray_icon
-        app, widget = new_tray_icon(app_config)
+        app, widget = new_tray_icon(app_config, logger)
     else:
         from bauh.manage import new_manage_panel
         app, widget = new_manage_panel(args, app_config, logger)

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import sys
 import time
@@ -21,13 +22,20 @@ from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import util, resource
 
+CLI_PATH = '{}/bin/bauh-cli'.format(sys.exec_prefix)
 
-def list_updates() -> List[PackageUpdate]:
-    if run_cmd('which bauh-cli', print_error=False):
-        output = run_cmd('bauh-cli updates -f json')
+
+def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
+    if os.path.exists(CLI_PATH):
+        output = run_cmd('{} updates -f json'.format(CLI_PATH))
 
         if output:
             return [PackageUpdate(pkg_id=o['id'], name=o['name'], version=o['version'], pkg_type=o['type']) for o in json.loads(output)]
+        else:
+            logger.info("No updates found")
+
+    else:
+        logger.warning('bauh-cli seems not to be installed ({})'.format(CLI_PATH))
 
     return []
 
@@ -36,16 +44,17 @@ class UpdateCheck(QThread):
 
     signal = pyqtSignal(list)
 
-    def __init__(self, check_interval: int, lock: Lock, check_file: bool, parent=None):
+    def __init__(self, check_interval: int, lock: Lock, check_file: bool, logger: logging.Logger, parent=None):
         super(UpdateCheck, self).__init__(parent)
         self.check_interval = check_interval
         self.lock = lock
         self.check_file = check_file
+        self.logger = logger
 
     def _notify_updates(self):
         self.lock.acquire()
         try:
-            updates = list_updates()
+            updates = list_updates(self.logger)
 
             if updates is not None:
                 self.signal.emit(updates)
@@ -71,12 +80,13 @@ class UpdateCheck(QThread):
 
 class TrayIcon(QSystemTrayIcon):
 
-    def __init__(self, config: dict, screen_size: QSize, manage_process: Popen = None, settings_process: Popen = None):
+    def __init__(self, config: dict, screen_size: QSize, logger: logging.Logger, manage_process: Popen = None, settings_process: Popen = None):
         super(TrayIcon, self).__init__()
         self.i18n = generate_i18n(config, resource.get_path('locale/tray'))
         self.screen_size = screen_size
         self.manage_process = manage_process
         self.settings_process = settings_process
+        self.logger = logger
 
         if config['ui']['tray']['default_icon']:
             self.icon_default = QIcon(config['ui']['tray']['default_icon'])
@@ -117,11 +127,11 @@ class TrayIcon(QSystemTrayIcon):
         self.settings_window = None
 
         self.check_lock = Lock()
-        self.check_thread = UpdateCheck(check_interval=int(config['updates']['check_interval']), check_file=False, lock=self.check_lock)
+        self.check_thread = UpdateCheck(check_interval=int(config['updates']['check_interval']), check_file=False, lock=self.check_lock, logger=logger)
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
-        self.recheck_thread = UpdateCheck(check_interval=2, check_file=True, lock=self.check_lock)
+        self.recheck_thread = UpdateCheck(check_interval=2, check_file=True, lock=self.check_lock, logger=logger)
         self.recheck_thread.signal.connect(self.notify_updates)
         self.recheck_thread.start()
 
@@ -150,6 +160,7 @@ class TrayIcon(QSystemTrayIcon):
 
         try:
             if len(updates) > 0:
+                self.logger.info("{} updates available".format(len(updates)))
                 update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
 
                 new_icon = self.icon_updates
