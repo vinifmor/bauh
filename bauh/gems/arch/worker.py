@@ -298,6 +298,7 @@ class RefreshMirrors(Thread):
 
         handler = ProcessHandler()
         try:
+            self.taskman.update_progress(self.task_id, 10, '')
             success, output = handler.handle_simple(pacman.refresh_mirrors(self.root_password))
 
             if success:
