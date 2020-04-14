@@ -236,7 +236,7 @@ class PreparePanel(QWidget, TaskManager):
         lb_icon.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if icon_path:
-            lb_icon.setPixmap(QIcon(icon_path).pixmap(14, 14))
+            lb_icon.setPixmap(QIcon(icon_path).pixmap(12, 12))
 
         self.table.setCellWidget(task_row, 0, lb_icon)
 
