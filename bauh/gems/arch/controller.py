@@ -1724,7 +1724,10 @@ class ArchManager(SoftwareManager):
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
-        return [PackageUpdate(p.name, p.latest_version, p.get_update_type(), p.name) for p in installed if p.update]
+
+        aur_type, repo_type = self.i18n['gem.arch.type.aur.label'], self.i18n['gem.arch.type.arch_repo.label']
+
+        return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update]
 
     def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []

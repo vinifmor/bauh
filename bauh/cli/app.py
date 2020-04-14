@@ -7,13 +7,13 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
 from bauh.cli import __app_name__, cli_args
 from bauh.cli.controller import CLIManager
+from bauh.context import generate_i18n, DEFAULT_I18N_KEY
 from bauh.view.core import config, gems
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
-from bauh.view.util import logs, util
+from bauh.view.util import logs, util, resource
 from bauh.view.util.cache import DefaultMemoryCacheFactory
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
-from bauh.view.util.translation import I18n
 
 
 def main():
@@ -28,11 +28,11 @@ def main():
     app_config = config.read_config(update_file=True)
     http_client = HttpClient(logger)
 
-    empty_i18n = I18n('en', {}, 'en', {})
+    i18n = generate_i18n(app_config, resource.get_path('locale'))
 
     cache_factory = DefaultMemoryCacheFactory(expiration_time=0)
 
-    context = ApplicationContext(i18n=empty_i18n,
+    context = ApplicationContext(i18n=i18n,
                                  http_client=http_client,
                                  download_icons=bool(app_config['download']['icons']),
                                  app_root_dir=ROOT_DIR,
@@ -41,10 +41,10 @@ def main():
                                  logger=logger,
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
-                                                                         empty_i18n, http_client),
+                                                                         i18n, http_client),
                                  app_name=__app_name__)
 
-    managers = gems.load_managers(context=context, locale=empty_i18n.current_key, config=app_config, default_locale='en')
+    managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
 
     cli = CLIManager(GenericSoftwareManager(managers, context=context, config=app_config))
 

@@ -60,9 +60,6 @@ class ArchPackage(SoftwarePackage):
     def get_type(self):
         return 'aur' if self.repository == 'aur' else 'arch_repo'
 
-    def get_update_type(self):
-        return 'Arch - {}'.format('AUR' if self.repository == 'aur' else 'Repository')
-
     def get_default_icon_path(self) -> str:
         return self.get_type_icon_path()
 
