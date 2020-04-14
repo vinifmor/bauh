@@ -295,7 +295,8 @@ class UpgradeSelected(AsyncAction):
                 if not success:
                     return
 
-            self.change_substatus(self.i18n['action.disk_trim'].capitalize())
+            self.change_status(self.i18n['action.disk_trim'].capitalize())
+            self.change_substatus('')
 
             success, output = ProcessHandler(self).handle_simple(SimpleProcess(['fstrim', '/', '-v'], root_password=pwd))
 
