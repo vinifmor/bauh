@@ -691,12 +691,8 @@ def list_installed_names() -> Set[str]:
     return {p for p in run_cmd('pacman -Qq').split('\n') if p}
 
 
-def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
-    cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
-    if root_password:
-        return SystemProcess(new_root_subprocess(cmd, root_password), wrong_error_phrase='warning:')
-    else:
-        return SystemProcess(new_subprocess(cmd), wrong_error_phrase='warning:')
+def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'], root_password=root_password)
 
 
 def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:

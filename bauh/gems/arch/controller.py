@@ -728,7 +728,7 @@ class ArchManager(SoftwareManager):
             try:
                 output_handler = TransactionStatusHandler(watcher, self.i18n, len(repo_pkgs_names), self.logger)
                 output_handler.start()
-                success = handler.handle(pacman.upgrade_several(repo_pkgs_names, root_password), output_handler=output_handler.handle)
+                success = handler.handle_simple(pacman.upgrade_several(repo_pkgs_names, root_password), output_handler=output_handler.handle)
                 output_handler.stop_working()
                 output_handler.join()
 
@@ -741,7 +741,7 @@ class ArchManager(SoftwareManager):
                     disk.save_several(repo_pkgs_names, repo_map=repo_map, overwrite=True, maintainer=None)
 
                 else:
-                    self.logger.error("An error occurred while upgrading repository packages")
+                    self.logger.error("'pacman' returned an unexpected response after upgrading the repository packages")
                     return False
             except:
                 watcher.change_substatus('')
