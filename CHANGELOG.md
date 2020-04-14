@@ -93,7 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - adding mutual exclusion to some parameters (`--settings`, `--tray`, `--reset`)
 
 ### i18n contributions
-    - Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
+- Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
 
     
 ## [0.8.5] - 2020-03-11
