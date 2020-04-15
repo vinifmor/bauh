@@ -135,13 +135,13 @@ def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # retur
     return pkgs
 
 
-def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.') -> SystemProcess:
+def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.') -> SimpleProcess:
     if file:
         cmd = ['pacman', '-U', *pkgpaths, '--noconfirm']  # pkgpath = install file path
     else:
         cmd = ['pacman', '-S', *pkgpaths, '--noconfirm']  # pkgpath = pkgname
 
-    return SystemProcess(new_root_subprocess(cmd, root_password, cwd=pkgdir), wrong_error_phrase='warning:')
+    return SimpleProcess(cmd=cmd, root_password=root_password, cwd=pkgdir)
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:

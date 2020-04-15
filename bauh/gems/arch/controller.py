@@ -728,7 +728,7 @@ class ArchManager(SoftwareManager):
             try:
                 output_handler = TransactionStatusHandler(watcher, self.i18n, len(repo_pkgs_names), self.logger)
                 output_handler.start()
-                success = handler.handle_simple(pacman.upgrade_several(repo_pkgs_names, root_password), output_handler=output_handler.handle)
+                success, _ = handler.handle_simple(pacman.upgrade_several(repo_pkgs_names, root_password), output_handler=output_handler.handle)
                 output_handler.stop_working()
                 output_handler.join()
 
@@ -1107,9 +1107,10 @@ class ArchManager(SoftwareManager):
 
             status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_deps), self.logger, percentage=len(repo_deps) > 1)
             status_handler.start()
-            installed = context.handler.handle(pacman.install_as_process(pkgpaths=repo_deps,
-                                                                         root_password=context.root_password,
-                                                                         file=False), output_handler=status_handler.handle)
+            installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_deps,
+                                                                                   root_password=context.root_password,
+                                                                                   file=False),
+                                                         output_handler=status_handler.handle)
 
             if installed:
                 progress += len(repo_deps) * progress_increment
@@ -1459,11 +1460,11 @@ class ArchManager(SoftwareManager):
         else:
             status_handler = None
 
-        installed = context.handler.handle(process=pacman.install_as_process(pkgpaths=to_install,
-                                                                             root_password=context.root_password,
-                                                                             file=context.has_install_file(),
-                                                                             pkgdir=context.project_dir),
-                                           output_handler=status_handler.handle if status_handler else None)
+        installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=to_install,
+                                                                               root_password=context.root_password,
+                                                                               file=context.has_install_file(),
+                                                                               pkgdir=context.project_dir),
+                                                     output_handler=status_handler.handle if status_handler else None)
         if status_handler:
             status_handler.stop_working()
             status_handler.join()
