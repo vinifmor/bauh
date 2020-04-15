@@ -4,18 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.0] - 2020-04
+## [0.9.0] - 2020-04-15
 ### Features
 - Backup
     - Timeshift integration ( if available on the system ): it can generate snapshots before installing, uninstalling, upgrading...
     - you can enable / disable this feature via the settings file or UI.
+
 - UI
     - new initialization dialog showing tasks that need to be done before use
     - new custom actions button ( displays specific action available for each packaging provider )
+
 - Arch
-    - support for packages from configured repositories ( search, install, upgrade and info. **History and downgrade are not supported yet** )
+    - supporting packages from configured repositories ( search, install, upgrade and info. **History and downgrade are not supported yet** )
     - custom actions ( available through the new custom actions button )
-        - **synchronize packages database**: synchronizes the database against the configured mirrors
+        - **synchronize packages database**: synchronizes the databases against the configured mirrors
         - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest
         - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
         - **clean cache**: it cleans the pacman cache diretory ( default: `/var/cache/pacman/pkg` )
@@ -24,23 +26,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      - uninstall: allowing to remove all transitive dependencies
      - able to handle the installation of dependencies with multiple providers
      - multi-threaded downloads ( using aria2c ) are **not supported yet** for repository packages
-- Web
-    - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )
+
 - AppImage
     - Custom actions
         - **Install AppImage file**: allows to install a external AppImage file
         - **Upgrade file**: allows to upgrade a manually installed AppImage file
-- CLI:
+- Web
+    - Custom actions
+        - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )
+    
+- CLI mode:
     - a beginning for the command line mode (`bauh-cli`). Only **list updates** command is available for now ( `bauh-cli updates` ) [#54](https://github.com/vinifmor/bauh/issues/54)
+
 - Core
     - allowing to trim the disk after all upgrades are applied ( **disabled by default**. It can be enabled on settings, Make sure your SSD supports TRIM before enabling this option. )
     - new warning dialog informing when there is a new bauh update / release available      
     
 ### Improvements
 - Core
-    - now the root password is asked only once ( can be disabled through the new settings property `store_root_password` )
-    - new upgrade model: now all packages selected to upgrade are handled at once by the underlying gem
+    - root password is asked only once ( can be disabled through the new settings property `store_root_password` )
     - upgrade logs are now generated at **/tmp/bauh/logs/upgrade**
+    - new upgrade model: now all packages selected to upgrade are handled at once by the underlying gem
+    
 - Arch
     - dependency checking algorithm
         - faster for scenarios involving several packages ( taking =~ 95% less time )
@@ -72,7 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch / AUR:
     - sorting algorithm was providing wrong results for some cases
     - not caching data about packages with no desktop entry files
-    - error output when was not able to optimize the **makepkg.conf** [#84](https://github.com/vinifmor/bauh/issues/84)
+    - error output when it was not able to optimize the **makepkg.conf** [#84](https://github.com/vinifmor/bauh/issues/84)
     - error when building AUR packages with **.tar.zst** extensions
 
 ### Settings
