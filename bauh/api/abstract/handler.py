@@ -17,7 +17,7 @@ class ProcessWatcher:
         """
         pass
 
-    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None)-> bool:
+    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None, deny_button: bool = True)-> bool:
         """
         request a user confirmation. In the current GUI implementation, it shows a popup to the user.
         :param title: popup title
@@ -25,7 +25,14 @@ class ProcessWatcher:
         :param components: extra view components that will be rendered to the confirmation popup.
         :param confirmation_label: optional confirmation button label (default to 'yes')
         :param deny_label: optional deny button label (default to 'no')
+        :param deny_button: if the deny button should be displayed
         :return: if the request was confirmed by the user
+        """
+        pass
+
+    def request_reboot(self, msg: str) -> bool:
+        """
+        :return: requests a system reboot
         """
         pass
 
@@ -71,3 +78,32 @@ class ProcessWatcher:
         asks the root password for the user
         :return: a tuple with the typed password and if it is valid
         """
+
+
+class TaskManager:
+
+    def register_task(self, id_: str, label: str, icon_path: str):
+        """
+        :param id_: an unique identifier for the task
+        :param label: an i18n label
+        :param icon_path: str
+        :return:
+        """
+        pass
+
+    def update_progress(self, task_id: str, progress: float, substatus: str):
+        """
+        :param task_id:
+        :param progress: a float between 0 and 100.
+        :param substatus: a substatus string representing the current state
+        :return:
+        """
+        pass
+
+    def finish_task(self, task_id: str):
+        """
+        marks a task as finished
+        :param task_id:
+        :return:
+        """
+        pass

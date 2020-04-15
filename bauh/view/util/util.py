@@ -25,25 +25,22 @@ def notify_user(msg: str, icon_path: str = None):
     os.system("notify-send -a {} {} '{}'".format(__app_name__, "-i {}".format(icon_id) if icon_id else '', msg))
 
 
-def get_default_icon() -> Tuple[str, QIcon]:
-    system_icon = QIcon.fromTheme(__app_name__)
-    if not system_icon.isNull():
-        return system_icon.name(), system_icon
-    else:
-        path = resource.get_path('img/logo.svg')
-        return path, QIcon(path)
+def get_default_icon(system: bool = True) -> Tuple[str, QIcon]:
+    if system:
+        system_icon = QIcon.fromTheme(__app_name__)
+        if not system_icon.isNull():
+            return system_icon.name(), system_icon
+
+    path = resource.get_path('img/logo.svg')
+    return path, QIcon(path)
 
 
-def restart_app(show_panel: bool):
+def restart_app():
     """
     :param show_panel: if the panel should be displayed after the app restart
     :return:
     """
     restart_cmd = [sys.executable, *sys.argv]
-
-    if show_panel:
-        restart_cmd.append('--show-panel')
-
     subprocess.Popen(restart_cmd)
     QCoreApplication.exit()
 

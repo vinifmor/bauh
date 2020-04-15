@@ -11,7 +11,7 @@ from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
     FileChooserComponent
-from bauh.view.core import config
+from bauh.view.core import config, timeshift
 from bauh.view.core.config import read_config
 from bauh.view.util import translation
 from bauh.view.util.translation import I18n
@@ -70,6 +70,11 @@ class GenericSettingsManager:
         tabs.append(self._gen_tray_settings(core_config, screen_width, screen_height))
         tabs.append(self._gen_adv_settings(core_config, screen_width, screen_height))
 
+        bkp_settings = self._gen_backup_settings(core_config, screen_width, screen_height)
+
+        if bkp_settings:
+            tabs.append(bkp_settings)
+
         for tab in gem_tabs:
             tabs.append(tab)
 
@@ -77,12 +82,6 @@ class GenericSettingsManager:
 
     def _gen_adv_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
         default_width = floor(0.11 * screen_width)
-
-        select_dcache = self._gen_bool_component(label=self.i18n['core.config.disk_cache'],
-                                                 tooltip=self.i18n['core.config.disk_cache.tip'],
-                                                 value=core_config['disk_cache']['enabled'],
-                                                 max_width=default_width,
-                                                 id_='dcache')
 
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
@@ -98,17 +97,11 @@ class GenericSettingsManager:
                                             max_width=default_width,
                                             id_="icon_exp")
 
-        select_update_sort = self._gen_bool_component(label=self.i18n['core.config.updates.sort_pkgs'],
-                                                      tooltip=self.i18n['core.config.updates.sort_pkgs.tip'],
-                                                      value=bool(core_config['updates']['sort_packages']),
-                                                      max_width=default_width,
-                                                      id_="up_sort")
-
-        select_update_check = self._gen_bool_component(label=self.i18n['core.config.updates.dep_check'],
-                                                       tooltip=self.i18n['core.config.updates.dep_check.tip'],
-                                                       value=bool(core_config['updates']['pre_dependency_checking']),
-                                                       max_width=default_width,
-                                                       id_="up_dep_check")
+        select_trim_up = self._gen_bool_component(label=self.i18n['core.config.trim_after_update'],
+                                                  tooltip=self.i18n['core.config.trim_after_update.tip'],
+                                                  value=bool(core_config['disk']['trim_after_update']),
+                                                  max_width=default_width,
+                                                  id_='trim_after_update')
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
                                                     tooltip=self.i18n['core.config.system.dep_checking.tip'],
@@ -122,7 +115,7 @@ class GenericSettingsManager:
                                                    max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
-        sub_comps = [FormComponent([select_dcache, select_dmthread, select_update_check, select_update_sort, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
+        sub_comps = [FormComponent([select_dmthread, select_trim_up, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
     def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
@@ -219,6 +212,12 @@ class GenericSettingsManager:
                                               max_width=default_width,
                                               id_='locale')
 
+        select_store_pwd = self._gen_bool_component(label=self.i18n['core.config.store_password'].capitalize(),
+                                                    tooltip=self.i18n['core.config.store_password.tip'].capitalize(),
+                                                    id_="store_pwd",
+                                                    max_width=default_width,
+                                                    value=bool(core_config['store_root_password']))
+
         select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
                                                     tooltip=self.i18n['core.config.system.notifications.tip'].capitalize(),
                                                     value=bool(core_config['system']['notifications']),
@@ -238,7 +237,7 @@ class GenericSettingsManager:
                                       max_width=default_width,
                                       id_="sugs_by_type")
 
-        sub_comps = [FormComponent([select_locale, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -256,6 +255,7 @@ class GenericSettingsManager:
 
     def _save_settings(self, general: PanelComponent,
                        advanced: PanelComponent,
+                       backup: PanelComponent,
                        ui: PanelComponent,
                        tray: PanelComponent,
                        gems_panel: PanelComponent) -> Tuple[bool, List[str]]:
@@ -271,19 +271,16 @@ class GenericSettingsManager:
 
         core_config['system']['notifications'] = general_form.get_component('sys_notify').get_selected()
         core_config['suggestions']['enabled'] = general_form.get_component('sugs_enabled').get_selected()
+        core_config['store_root_password'] = general_form.get_component('store_pwd').get_selected()
 
         sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type
 
         # advanced
         adv_form = advanced.components[0]
-        core_config['disk_cache']['enabled'] = adv_form.get_component('dcache').get_selected()
 
         download_mthreaded = adv_form.get_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
-
-        core_config['updates']['pre_dependency_checking'] = adv_form.get_component('up_dep_check').get_selected()
-        core_config['updates']['sort_packages'] = adv_form.get_component('up_sort').get_selected()
 
         single_dep_check = adv_form.get_component('dep_check').get_selected()
         core_config['system']['single_dependency_checking'] = single_dep_check
@@ -293,6 +290,19 @@ class GenericSettingsManager:
 
         icon_exp = adv_form.get_component('icon_exp').get_int_value()
         core_config['memory_cache']['icon_expiration'] = icon_exp
+
+        core_config['disk']['trim_after_update'] = adv_form.get_component('trim_after_update').get_selected()
+
+        # backup
+        if backup:
+            bkp_form = backup.components[0]
+
+            core_config['backup']['enabled'] = bkp_form.get_component('enabled').get_selected()
+            core_config['backup']['mode'] = bkp_form.get_component('mode').get_selected()
+            core_config['backup']['install'] = bkp_form.get_component('install').get_selected()
+            core_config['backup']['uninstall'] = bkp_form.get_component('uninstall').get_selected()
+            core_config['backup']['upgrade'] = bkp_form.get_component('upgrade').get_selected()
+            core_config['backup']['downgrade'] = bkp_form.get_component('downgrade').get_selected()
 
         # tray
         tray_form = tray.components[0]
@@ -346,9 +356,11 @@ class GenericSettingsManager:
 
         saved, warnings = True, []
 
+        bkp = component.get_tab('core.bkp')
         success, errors = self._save_settings(general=component.get_tab('core.gen').content,
                                               advanced=component.get_tab('core.adv').content,
                                               tray=component.get_tab('core.tray').content,
+                                              backup=bkp.content if bkp else None,
                                               ui=component.get_tab('core.ui').content,
                                               gems_panel=component.get_tab('core.types').content)
 
@@ -378,3 +390,71 @@ class GenericSettingsManager:
                             warnings.extend(errors)
 
         return saved, warnings
+
+    def _gen_backup_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+        if timeshift.is_available():
+            default_width = floor(0.22 * screen_width)
+
+            enabled_opt = self._gen_bool_component(label=self.i18n['core.config.backup'],
+                                                   tooltip=None,
+                                                   value=bool(core_config['backup']['enabled']),
+                                                   id_='enabled',
+                                                   max_width=default_width)
+
+            ops_opts = [(self.i18n['yes'].capitalize(), True, None),
+                        (self.i18n['no'].capitalize(), False, None),
+                        (self.i18n['ask'].capitalize(), None, None)]
+
+            install_mode = self._gen_select(label=self.i18n['core.config.backup.install'],
+                                            tip=None,
+                                            value=core_config['backup']['install'],
+                                            opts=ops_opts,
+                                            max_width=default_width,
+                                            id_='install')
+
+            uninstall_mode = self._gen_select(label=self.i18n['core.config.backup.uninstall'],
+                                              tip=None,
+                                              value=core_config['backup']['uninstall'],
+                                              opts=ops_opts,
+                                              max_width=default_width,
+                                              id_='uninstall')
+
+            upgrade_mode = self._gen_select(label=self.i18n['core.config.backup.upgrade'],
+                                            tip=None,
+                                            value=core_config['backup']['upgrade'],
+                                            opts=ops_opts,
+                                            max_width=default_width,
+                                            id_='upgrade')
+
+            downgrade_mode = self._gen_select(label=self.i18n['core.config.backup.downgrade'],
+                                              tip=None,
+                                              value=core_config['backup']['downgrade'],
+                                              opts=ops_opts,
+                                              max_width=default_width,
+                                              id_='downgrade')
+
+            mode = self._gen_select(label=self.i18n['core.config.backup.mode'],
+                                              tip=None,
+                                              value=core_config['backup']['mode'],
+                                              opts=[
+                                                  (self.i18n['core.config.backup.mode.incremental'], 'incremental', self.i18n['core.config.backup.mode.incremental.tip']),
+                                                  (self.i18n['core.config.backup.mode.only_one'], 'only_one', self.i18n['core.config.backup.mode.only_one.tip'])
+                                              ],
+                                              max_width=default_width,
+                                              id_='mode')
+
+            sub_comps = [FormComponent([enabled_opt, mode, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
+            return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')
+
+    def _gen_select(self, label: str, tip: str, id_: str, opts: List[tuple], value: str, max_width: int, type_: SelectViewType = SelectViewType.RADIO):
+        inp_opts = [InputOption(label=o[0].capitalize(), value=o[1], tooltip=o[2]) for o in opts]
+        def_opt = [o for o in inp_opts if o.value == value]
+        return SingleSelectComponent(label=label,
+                                     tooltip=tip,
+                                     options=inp_opts,
+                                     default_option=def_opt[0] if def_opt else inp_opts[0],
+                                     max_per_line=len(inp_opts),
+                                     max_width=max_width,
+                                     type_=type_,
+                                     id_=id_)
+

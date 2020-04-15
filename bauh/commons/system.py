@@ -106,7 +106,7 @@ class ProcessHandler:
         if self.watcher:
             self.watcher.print(msg)
 
-    def handle(self, process: SystemProcess, error_output: StringIO = None) -> bool:
+    def handle(self, process: SystemProcess, error_output: StringIO = None, output_handler=None) -> bool:
         self._notify_watcher(' '.join(process.subproc.args) + '\n')
 
         already_succeeded = False
@@ -116,6 +116,9 @@ class ProcessHandler:
                 line = output.decode().strip()
                 if line:
                     self._notify_watcher(line)
+
+                    if output_handler:
+                        output_handler(line)
 
                     if process.success_phrases and [p in line for p in process.success_phrases]:
                         already_succeeded = True
@@ -131,6 +134,9 @@ class ProcessHandler:
                 line = output.decode().strip()
                 if line:
                     self._notify_watcher(line)
+
+                    if output_handler:
+                        output_handler(line)
 
                     if error_output is not None:
                         error_output.write(line)
@@ -151,18 +157,22 @@ class ProcessHandler:
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
-    def handle_simple(self, proc: SimpleProcess) -> Tuple[bool, str]:
+    def handle_simple(self, proc: SimpleProcess, output_handler=None) -> Tuple[bool, str]:
         self._notify_watcher(' '.join(proc.instance.args) + '\n')
 
         output = StringIO()
         for o in proc.instance.stdout:
             if o:
                 line = o.decode()
+
                 output.write(line)
 
                 line = line.strip()
 
                 if line:
+                    if output_handler:
+                        output_handler(line)
+                        
                     self._notify_watcher(line)
 
         output.seek(0)
@@ -241,6 +251,10 @@ def get_dir_size(start_path='.'):
 
 def get_human_size_str(size) -> str:
     int_size = int(size)
+
+    if int_size == 0:
+        return '0'
+
     for m in SIZE_MULTIPLIERS:
         size_str = str(int_size * m[0])
 

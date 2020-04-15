@@ -49,7 +49,7 @@ class InfoDialog(QDialog):
 
         for idx, attr in enumerate(sorted(app.keys())):
             if attr not in IGNORED_ATTRS and app[attr]:
-                i18n_key = app['__app__'].model.get_type().lower() + '.info.' + attr.lower()
+                i18n_key = app['__app__'].model.gem_name + '.info.' + attr.lower()
 
                 if isinstance(app[attr], list):
                     val = ' '.join([str(e).strip() for e in app[attr] if e])

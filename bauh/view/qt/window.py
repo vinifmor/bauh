@@ -1,22 +1,25 @@
 import logging
 import time
+import traceback
 from pathlib import Path
-from typing import List, Type, Set
+from typing import List, Type, Set, Tuple
 
-from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QCoreApplication
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent
+from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy
+    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
+    QMenu, QAction
 
+from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.abstract.model import SoftwarePackage, PackageAction
+from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
-from bauh.gems.web import TEMP_PATH
+from bauh.view.core.tray_client import notify_tray
 from bauh.view.qt import dialog, commons, qt_utils, root
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
@@ -27,10 +30,11 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
-from bauh.view.qt.thread import UpdateSelectedApps, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
-    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, VerifyModels, FindSuggestions, ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomAction, GetScreenshots
-from bauh.view.qt.view_model import PackageView
+from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+    GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesReady, FindSuggestions, \
+    ListWarnings, \
+    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded
+from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -49,12 +53,11 @@ class ManageWindow(QWidget):
     signal_table_update = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
-                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon, tray_icon=None):
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.i18n = i18n
         self.logger = logger
         self.manager = manager
-        self.tray_icon = tray_icon
         self.working = False  # restrict the number of threaded actions
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
@@ -188,7 +191,7 @@ class ManageWindow(QWidget):
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
-        self.bt_installed.clicked.connect(self._show_installed)
+        self.bt_installed.clicked.connect(self._begin_loading_installed)
         self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
         toolbar_bts.append(self.bt_installed)
@@ -211,7 +214,7 @@ class ManageWindow(QWidget):
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
         self.bt_refresh.setStyleSheet(toolbar_button_style('#2368AD'))
-        self.bt_refresh.clicked.connect(lambda: self.refresh_apps(keep_console=False))
+        self.bt_refresh.clicked.connect(lambda: self.refresh_packages(keep_console=False))
         toolbar_bts.append(self.bt_refresh)
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
@@ -238,9 +241,7 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar)
 
-        self.table_apps = AppsTable(self, self.icon_cache,
-                                    disk_cache=bool(self.config['disk_cache']['enabled']),
-                                    download_icons=bool(self.config['download']['icons']))
+        self.table_apps = AppsTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
 
         self.layout.addWidget(self.table_apps)
@@ -275,9 +276,9 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
-        self.thread_update = self._bind_async_action(UpdateSelectedApps(self.manager, self.i18n), finished_call=self._finish_update_selected)
+        self.thread_update = self._bind_async_action(UpgradeSelected(self.manager, self.i18n), finished_call=self._finish_upgrade_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
-        self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache), finished_call=self._finish_uninstall)
+        self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
         self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
         self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.i18n), finished_call=self._finish_get_history)
         self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
@@ -292,14 +293,15 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
 
-        self.thread_install = InstallPackage(manager=self.manager, disk_cache=bool(self.config['disk_cache']['enabled']), icon_cache=self.icon_cache, i18n=self.i18n)
+        self.thread_install = InstallPackage(manager=self.manager, icon_cache=self.icon_cache, i18n=self.i18n)
         self._bind_async_action(self.thread_install, finished_call=self._finish_install)
 
         self.thread_animate_progress = AnimateProgress()
         self.thread_animate_progress.signal_change.connect(self._update_progress)
 
-        self.thread_verify_models = VerifyModels()
-        self.thread_verify_models.signal_updates.connect(self._notify_model_data_change)
+        self.thread_notify_pkgs_ready = NotifyPackagesReady()
+        self.thread_notify_pkgs_ready.signal_changed.connect(self._update_package_data)
+        self.thread_notify_pkgs_ready.signal_finished.connect(self._update_state_when_pkgs_ready)
 
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
@@ -314,6 +316,15 @@ class ManageWindow(QWidget):
         self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
 
         self.toolbar_bottom.addWidget(new_spacer())
+
+        self.custom_actions = manager.get_custom_actions()
+        bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
+                                       action=self.show_custom_actions,
+                                       background="#669900",
+                                       i18n=self.i18n,
+                                       tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
+        bt_custom_actions.setVisible(bool(self.custom_actions))
+        self.ref_bt_custom_actions = self.toolbar_bottom.addWidget(bt_custom_actions)
 
         bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
                                  action=self.show_settings,
@@ -351,15 +362,20 @@ class ManageWindow(QWidget):
         self.settings_window = None
         self.search_performed = False
 
-    def set_tray_icon(self, tray_icon):
-        self.tray_icon = tray_icon
-        # self.combo_styles.show_panel_after_restart = bool(tray_icon)
+        self.thread_load_installed = NotifyInstalledLoaded()
+        self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
+
+    def update_custom_actions(self):
+        self.custom_actions = self.manager.get_custom_actions()
+        self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
             self.thread_animate_progress.set_progress(val)
 
     def apply_filters_async(self):
+        self.thread_notify_pkgs_ready.work = False
+        self.thread_notify_pkgs_ready.wait(5)
         self.label_status.setText(self.i18n['manage_window.status.filtering'] + '...')
 
         self.ref_toolbar_search.setVisible(False)
@@ -370,19 +386,32 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.checkbox_only_apps.setEnabled(False)
+        self.combo_categories.setEnabled(False)
+        self.combo_filter_type.setEnabled(False)
+        self.input_name_filter.setEnabled(False)
+        self.checkbox_updates.setEnabled(False)
+        self.table_apps.setEnabled(False)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
         self.update_bt_upgrade(pkgs_info)
 
-        if self.pkgs_available:
-            self._notify_model_data_change()
-            self.thread_verify_models.work = False
-            self.thread_verify_models.wait(50)
-            self.thread_verify_models.apps = self.pkgs_available
-            self.thread_verify_models.start()
+        if self.pkgs:
+            self._update_state_when_pkgs_ready()
+            self.thread_notify_pkgs_ready.work = False
+            self.thread_notify_pkgs_ready.wait(5)
+            self.thread_notify_pkgs_ready.pkgs = self.pkgs
+            self.thread_notify_pkgs_ready.work = True
+            self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.checkbox_only_apps.setEnabled(True)
+        self.checkbox_updates.setEnabled(True)
+        self.combo_categories.setEnabled(True)
+        self.combo_filter_type.setEnabled(True)
+        self.input_name_filter.setEnabled(True)
+        self.table_apps.setEnabled(True)
         self.label_status.setText('')
         self.ref_toolbar_search.setVisible(True)
 
@@ -399,7 +428,8 @@ class ManageWindow(QWidget):
             action.signal_status.connect(self._change_label_status)
             action.signal_substatus.connect(self._change_label_substatus)
             action.signal_progress.connect(self._update_process_progress)
-            action.signal_root_password.connect(self._ask_root_password)
+            action.signal_progress_control.connect(self.set_progress_controll)
+            action.signal_root_password.connect(self._pause_and_ask_root_password)
 
             self.signal_user_res.connect(action.confirm)
             self.signal_root_password.connect(action.set_root_password)
@@ -414,14 +444,16 @@ class ManageWindow(QWidget):
                                   components=msg['components'],
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'],
+                                  deny_button=msg['deny_button'],
                                   screen_size=self.screen_size)
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
 
-    def _ask_root_password(self):
+    def _pause_and_ask_root_password(self):
         self.thread_animate_progress.pause()
-        password, valid = root.ask_root_password(self.i18n)
+        password, valid = root.ask_root_password(self.context, self.i18n)
+
         self.thread_animate_progress.animate()
         self.signal_root_password.emit(password, valid)
 
@@ -443,19 +475,23 @@ class ManageWindow(QWidget):
     def verify_warnings(self):
         self.thread_warnings.start()
 
-    def _show_installed(self):
+    def _begin_loading_installed(self):
         if self.pkgs_installed:
-            self.finish_action()
             self.search_performed = False
             self.ref_bt_upgrade.setVisible(True)
             self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
             self.input_name_filter.setText('')
-            self.update_pkgs(new_pkgs=None, as_installed=True)
+            self._begin_action(self.i18n['manage_window.status.installed'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+            self.thread_load_installed.start()
+
+    def _finish_loading_installed(self):
+        self.finish_action()
+        self.update_pkgs(new_pkgs=None, as_installed=True)
 
     def _show_about(self):
         if self.dialog_about is None:
-            self.dialog_about = AboutDialog(self.i18n)
+            self.dialog_about = AboutDialog(self.config)
 
         self.dialog_about.show()
 
@@ -476,12 +512,20 @@ class ManageWindow(QWidget):
         self.category_filter = self.combo_categories.itemData(idx)
         self.apply_filters_async()
 
-    def _notify_model_data_change(self):
-        self.table_apps.fill_async_data()
+    def _update_state_when_pkgs_ready(self):
+        if self.progress_bar.isVisible():
+            return
 
         if not self.recent_installation:
-            if not self.ref_progress_bar.isVisible():
-                self._reload_categories()
+            self._reload_categories()
+
+        self.resize_and_center()
+
+    def _update_package_data(self, idx: int):
+        if self.table_apps.isEnabled():
+            pkg = self.pkgs[idx]
+            pkg.status = PackageViewStatus.READY
+            self.table_apps.update_package(pkg)
 
     def _reload_categories(self):
         categories = set()
@@ -500,14 +544,6 @@ class ManageWindow(QWidget):
             policy = QHeaderView.Stretch if self._maximized else QHeaderView.ResizeToContents
             self.table_apps.change_headers_policy(policy)
 
-    def closeEvent(self, event):
-        if self.tray_icon:
-            event.ignore()
-            self.hide()
-            self._handle_console_option(False)
-        else:
-            QCoreApplication.exit()  # needed because QuitOnLastWindowClosed is disabled
-
     def _handle_console(self, checked: bool):
 
         if checked:
@@ -524,7 +560,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh_apps(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
+    def refresh_packages(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
         self.recent_installation = False
         self.input_search.clear()
 
@@ -561,20 +597,16 @@ class ManageWindow(QWidget):
         self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
-        pwd = None
-        requires_root = self.manager.requires_root('uninstall', app.model)
+        pwd, proceed = self._ask_root_password('uninstall', app)
 
-        if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
-
-            if not ok:
-                return
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name), clear_filters=False)
 
         self.thread_uninstall.app = app
-        self.thread_uninstall.root_password = pwd
+        self.thread_uninstall.root_pwd = pwd
         self.thread_uninstall.start()
 
     def run_app(self, app: PackageView):
@@ -595,10 +627,9 @@ class ManageWindow(QWidget):
                 only_pkg_type = False
 
             self.recent_uninstall = True
-            self.refresh_apps(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+            self.refresh_packages(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
 
-            if self.tray_icon:
-                self.tray_icon.verify_updates()
+            notify_tray()
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
@@ -615,10 +646,9 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
-            self.refresh_apps(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
+            self.refresh_packages(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
 
-            if self.tray_icon:
-                self.tray_icon.verify_updates(notify_user=False)
+            notify_tray()
         else:
             if self._can_notify_user():
                 util.notify_user(self.i18n['notification.downgrade.failed'])
@@ -638,7 +668,7 @@ class ManageWindow(QWidget):
     def _update_table(self, pkgs_info: dict, signal: bool = False):
         self.pkgs = pkgs_info['pkgs_displayed']
 
-        self.table_apps.update_pkgs(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
+        self.table_apps.update_packages(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
 
         if not self._maximized:
             self.table_apps.change_headers_policy(QHeaderView.Stretch)
@@ -692,20 +722,20 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def _gen_filters(self, updates: int = 0, ignore_updates: bool = False) -> dict:
+    def _gen_filters(self, ignore_updates: bool = False) -> dict:
         return {
             'only_apps': False if self.search_performed else self.filter_only_apps,
             'type': self.type_filter,
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name_filter.get_text().lower() if self.input_name_filter.get_text() else None,
-            'display_limit': self.display_limit if updates <= 0 else None
+            'display_limit': None if self.filter_updates else self.display_limit
         }
 
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False, keep_filters: bool = False):
         self.input_name_filter.setText('')
         pkgs_info = commons.new_pkgs_info()
-        filters = self._gen_filters(ignore_updates)
+        filters = self._gen_filters(ignore_updates=ignore_updates)
 
         if new_pkgs is not None:
             old_installed = None
@@ -715,7 +745,7 @@ class ManageWindow(QWidget):
                 self.pkgs_installed = []
 
             for pkg in new_pkgs:
-                app_model = PackageView(model=pkg)
+                app_model = PackageView(model=pkg, i18n=self.i18n)
                 commons.update_info(app_model, pkgs_info)
                 commons.apply_filters(app_model, filters, pkgs_info)
 
@@ -764,8 +794,8 @@ class ManageWindow(QWidget):
         self._update_table(pkgs_info=pkgs_info)
 
         if new_pkgs:
-            self.thread_verify_models.apps = self.pkgs
-            self.thread_verify_models.start()
+            self.thread_notify_pkgs_ready.pkgs = self.pkgs
+            self.thread_notify_pkgs_ready.start()
 
         if self.pkgs_installed:
             self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)
@@ -774,7 +804,7 @@ class ManageWindow(QWidget):
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
-        filters = self._gen_filters(updates=pkgs_info['updates'], ignore_updates=ignore_updates)
+        filters = self._gen_filters(ignore_updates=ignore_updates)
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 
@@ -795,7 +825,7 @@ class ManageWindow(QWidget):
 
                 sel_type = -1
                 for idx, item in enumerate(available_types.items()):
-                    app_type, icon_path = item[0], item[1]
+                    app_type, icon_path, label = item[0], item[1]['icon'], item[1]['label']
 
                     icon = self.cache_type_filter_icons.get(app_type)
 
@@ -803,7 +833,7 @@ class ManageWindow(QWidget):
                         icon = QIcon(icon_path)
                         self.cache_type_filter_icons[app_type] = icon
 
-                    self.combo_filter_type.addItem(icon, app_type.capitalize(), app_type)
+                    self.combo_filter_type.addItem(icon, label, app_type)
 
                     if keeping_selected and app_type == self.type_filter:
                         sel_type = idx + 1
@@ -816,7 +846,6 @@ class ManageWindow(QWidget):
                 self.ref_combo_filter_type.setVisible(False)
 
     def _update_categories(self, categories: Set[str] = None, keep_selected: bool = False):
-
         if categories is None:
             self.ref_combo_categories.setVisible(self.combo_categories.count() > 1)
         else:
@@ -835,9 +864,8 @@ class ManageWindow(QWidget):
                 cat_list.sort()
 
                 for idx, c in enumerate(cat_list):
-                    i18n_cat = self.i18n.get(c)
-                    cat_label = i18n_cat if i18n_cat else c
-                    self.combo_categories.addItem(cat_label.capitalize(), c)
+                    i18n_cat = self.i18n.get('category.{}'.format(c), self.i18n.get(c, c))
+                    self.combo_categories.addItem(i18n_cat.capitalize(), c)
 
                     if keeping_selected and c == self.category_filter:
                         selected_cat = idx + 1
@@ -863,49 +891,45 @@ class ManageWindow(QWidget):
 
         qt_utils.centralize(self)
 
+    def set_progress_controll(self, enabled: bool):
+        self.progress_controll_enabled = enumerate
+
     def update_selected(self):
-        if self.pkgs:
-            requires_root = False
+        if dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
+                                   body=self.i18n['manage_window.upgrade_all.popup.body'],
+                                   i18n=self.i18n,
+                                   widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
 
-            to_update = []
+            self._handle_console_option(True)
+            self._begin_action(self.i18n['manage_window.status.upgrading'])
+            self.thread_update.pkgs = self.pkgs
+            self.thread_update.start()
 
-            for app_v in self.pkgs:
-                if app_v.update_checked:
-                    to_update.append(app_v)
-
-                    if self.manager.requires_root('update', app_v.model):
-                        requires_root = True
-
-            if to_update and dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
-                                                     body=self.i18n['manage_window.upgrade_all.popup.body'],
-                                                     i18n=self.i18n,
-                                                     widgets=[UpdateToggleButton(None, self, self.i18n, clickable=False)]):
-                pwd = None
-
-                if not user.is_root() and requires_root:
-                    pwd, ok = ask_root_password(self.i18n)
-
-                    if not ok:
-                        return
-
-                self._handle_console_option(True)
-                self.progress_controll_enabled = len(to_update) == 1
-                self._begin_action(self.i18n['manage_window.status.upgrading'])
-                self.thread_update.pkgs = to_update
-                self.thread_update.root_password = pwd
-                self.thread_update.start()
-
-    def _finish_update_selected(self, res: dict):
+    def _finish_upgrade_selected(self, res: dict):
         self.finish_action()
+
+        if res.get('id'):
+            output = self.textarea_output.toPlainText()
+
+            if output:
+                try:
+                    Path(UpgradeSelected.LOGS_DIR).mkdir(parents=True, exist_ok=True)
+                    logs_path = '{}/{}.log'.format(UpgradeSelected.LOGS_DIR, res['id'])
+                    with open(logs_path, 'w+') as f:
+                        f.write(output)
+
+                    self.textarea_output.appendPlainText('\n*Upgrade summary generated at: {}'.format(UpgradeSelected.SUMMARY_FILE.format(res['id'])))
+                    self.textarea_output.appendPlainText('*Upgrade logs generated at: {}'.format(logs_path))
+                except:
+                    traceback.print_exc()
 
         if res['success']:
             if self._can_notify_user():
                 util.notify_user('{} {}'.format(res['updated'], self.i18n['notification.update_selected.success']))
 
-            self.refresh_apps(pkg_types=res['types'])
+            self.refresh_packages(pkg_types=res['types'])
 
-            if self.tray_icon:
-                self.tray_icon.verify_updates()
+            notify_tray()
         else:
             if self._can_notify_user():
                 util.notify_user(self.i18n['notification.update_selected.failed'])
@@ -920,6 +944,7 @@ class ManageWindow(QWidget):
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_combo_categories.setVisible(False)
+        self.ref_bt_custom_actions.setVisible(False)
         self.ref_bt_settings.setVisible(False)
         self.ref_bt_about.setVisible(False)
         self.thread_animate_progress.stop = False
@@ -961,6 +986,7 @@ class ManageWindow(QWidget):
         self.progress_bar.setTextVisible(False)
 
         self._change_label_substatus('')
+        self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
         self.ref_bt_settings.setVisible(True)
         self.ref_bt_about.setVisible(True)
 
@@ -997,20 +1023,16 @@ class ManageWindow(QWidget):
             self.ref_input_name_filter.setVisible(False)
 
     def downgrade(self, pkgv: PackageView):
-        pwd = None
-        requires_root = self.manager.requires_root('downgrade', pkgv.model)
+        pwd, proceed = self._ask_root_password('downgrade', pkgv)
 
-        if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
-
-            if not ok:
-                return
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.downgrading'], pkgv.model.name))
 
         self.thread_downgrade.app = pkgv
-        self.thread_downgrade.root_password = pwd
+        self.thread_downgrade.root_pwd = pwd
         self.thread_downgrade.start()
 
     def get_app_info(self, pkg: dict):
@@ -1043,7 +1065,7 @@ class ManageWindow(QWidget):
                                 body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
                                 type_=MessageType.ERROR)
 
-    def get_app_history(self, app: dict):
+    def get_app_history(self, app: PackageView):
         self._handle_console_option(False)
         self._begin_action(self.i18n['manage_window.status.history'])
 
@@ -1062,6 +1084,10 @@ class ManageWindow(QWidget):
             self._handle_console_option(True)
             self.textarea_output.appendPlainText(res['error'])
             self.checkbox_console.setChecked(True)
+        elif not res['history'].history:
+            dialog.show_message(title=self.i18n['action.history.no_history.title'],
+                                body=self.i18n['action.history.no_history.body'].format(bold(res['history'].pkg.name)),
+                                type_=MessageType.WARNING)
         else:
             dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
             dialog_history.exec_()
@@ -1090,21 +1116,29 @@ class ManageWindow(QWidget):
         else:
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=self.i18n[res['error']], type_=MessageType.WARNING)
 
-    def install(self, pkg: PackageView):
+    def _ask_root_password(self, action: str, pkg: PackageView) -> Tuple[str, bool]:
         pwd = None
-        requires_root = self.manager.requires_root('install', pkg.model)
+        requires_root = self.manager.requires_root(action, pkg.model)
 
         if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.i18n)
+            pwd, ok = ask_root_password(self.context, self.i18n)
 
             if not ok:
-                return
+                return pwd, False
+
+        return pwd, True
+
+    def install(self, pkg: PackageView):
+        pwd, proceed = self._ask_root_password('install', pkg)
+
+        if not proceed:
+            return
 
         self._handle_console_option(True)
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.installing'], pkg.model.name))
 
         self.thread_install.pkg = pkg
-        self.thread_install.root_password = pwd
+        self.thread_install.root_pwd = pwd
         self.thread_install.start()
 
     def _finish_install(self, res: dict):
@@ -1114,7 +1148,7 @@ class ManageWindow(QWidget):
         console_output = self.textarea_output.toPlainText()
 
         if console_output:
-            log_path = '{}/logs/install/{}/{}'.format(TEMP_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
+            log_path = '{}/install/{}/{}'.format(LOGS_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
             try:
                 Path(log_path).mkdir(parents=True, exist_ok=True)
 
@@ -1146,27 +1180,34 @@ class ManageWindow(QWidget):
     def _finish_run_app(self, success: bool):
         self.finish_action()
 
-    def execute_custom_action(self, pkg: PackageView, action: PackageAction):
+    def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
+
+        if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18_label_key].capitalize())),
+                                                       icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
+                                                       i18n=self.i18n):
+            return False
+
         pwd = None
 
         if not user.is_root() and action.requires_root:
-            pwd, ok = ask_root_password(self.i18n)
+            pwd, ok = ask_root_password(self.context, self.i18n)
 
             if not ok:
                 return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n[action.i18n_status_key], pkg.model.name))
+        self._begin_action('{}{}'.format(self.i18n[action.i18n_status_key], ' {}'.format(pkg.model.name) if pkg else ''))
 
         self.thread_custom_action.pkg = pkg
-        self.thread_custom_action.root_password = pwd
+        self.thread_custom_action.root_pwd = pwd
         self.thread_custom_action.custom_action = action
         self.thread_custom_action.start()
 
     def _finish_custom_action(self, res: dict):
         self.finish_action()
         if res['success']:
-            self.refresh_apps(pkg_types={res['pkg'].model.__class__})
+            self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
         else:
             self.checkbox_console.setChecked(True)
 
@@ -1174,9 +1215,24 @@ class ManageWindow(QWidget):
         if self.settings_window:
             self.settings_window.handle_display()
         else:
-            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self.tray_icon, self)
+            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self)
             self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
             self.settings_window.resize(self.size())
             self.settings_window.adjustSize()
             qt_utils.centralize(self.settings_window)
             self.settings_window.show()
+
+    def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
+        custom_action = QAction(self.i18n[action.i18_label_key])
+        custom_action.setIcon(QIcon(action.icon_path))
+        custom_action.triggered.connect(lambda: self.execute_custom_action(None, action))
+        return custom_action
+
+    def show_custom_actions(self):
+        if self.custom_actions:
+            menu_row = QMenu()
+            actions = [self._map_custom_action(a) for a in self.custom_actions]
+            menu_row.addActions(actions)
+            menu_row.adjustSize()
+            menu_row.popup(QCursor.pos())
+            menu_row.exec_()

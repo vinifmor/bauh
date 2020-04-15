@@ -9,3 +9,7 @@ def strip_html(string: str):
 
 def bold(text: str) -> str:
     return '<span style="font-weight: bold">{}</span>'.format(text)
+
+
+def link(url: str) -> str:
+    return '<a href="{}">{}</a>'.format(url, url)

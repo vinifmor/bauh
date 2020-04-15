@@ -1,0 +1,9 @@
+about.title=О программе
+about.info.desc=Графический интерфейс для управления приложениями Linux
+about.info.link=Ещё информация на
+about.info.license=Свободная лицензия
+about.info.rate.question=Понравилось это приложеие ?
+about.info.rate.answer=Поставьте ему звезду на GitHub, чтобы поддержать проект
+about.info.trouble.question=Возникли проблемы ?
+about.info.trouble.answer=Откройте GitHub, чтобы разработчики могли вам помочь
+about.version=версия

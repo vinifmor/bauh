@@ -1,62 +1,70 @@
+import os
 import re
 from threading import Thread
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Dict, Iterable
 
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess, \
+    ProcessHandler
+from bauh.commons.util import size_to_byte
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
+RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
+RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
+RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
+RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 
 
-def is_enabled() -> bool:
-    res = run_cmd('which pacman')
+def is_available() -> bool:
+    res = run_cmd('which pacman', print_error=False)
     return res and not res.strip().startswith('which ')
 
 
-def get_repositories(pkgs: Set[str]) -> dict:
+def get_repositories(pkgs: Iterable[str]) -> dict:
     pkgre = '|'.join(pkgs).replace('+', r'\+').replace('.', r'\.')
 
     searchres = new_subprocess(['pacman', '-Ss', pkgre]).stdout
-    mirrors = {}
+    repositories = {}
 
     for line in new_subprocess(['grep', '-E', '.+/({}) '.format(pkgre)], stdin=searchres).stdout:
         if line:
             match = line.decode()
             for p in pkgs:
                 if p in match:
-                    mirrors[p] = match.split('/')[0]
+                    repositories[p] = match.split('/')[0]
 
-    not_found = {pkg for pkg in pkgs if pkg and pkg not in mirrors}
+    not_found = {pkg for pkg in pkgs if pkg and pkg not in repositories}
 
     if not_found:  # if there are some packages not found, try to find via the single method:
         for dep in not_found:
-            mirror_data = guess_repository(dep)
+            repo_data = guess_repository(dep)
 
-            if mirror_data:
-                mirrors[mirror_data[0]] = mirror_data[1]
+            if repo_data:
+                repositories[repo_data[0]] = repo_data[1]
 
-    return mirrors
+    return repositories
 
 
 def is_available_in_repositories(pkg_name: str) -> bool:
     return bool(run_cmd('pacman -Ss ' + pkg_name))
 
 
-def get_info(pkg_name) -> str:
-    return run_cmd('pacman -Qi ' + pkg_name)
+def get_info(pkg_name, remote: bool = False) -> str:
+    return run_cmd('pacman -{}i {}'.format('Q' if not remote else 'S', pkg_name))
 
 
-def get_info_list(pkg_name: str) -> List[tuple]:
-    info = get_info(pkg_name)
+def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
+    info = get_info(pkg_name, remote)
     if info:
         return re.findall(r'(\w+\s?\w+)\s*:\s*(.+(\n\s+.+)*)', info)
 
 
-def get_info_dict(pkg_name: str) -> dict:
-    info_list = get_info_list(pkg_name)
+def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
+    list_attrs = {'depends on', 'required by'}
+    info_list = get_info_list(pkg_name, remote)
 
     if info_list:
         info_dict = {}
@@ -69,14 +77,10 @@ def get_info_dict(pkg_name: str) -> dict:
 
             if attr == 'optional deps' and info_dict[attr]:
                 info_dict[attr] = info_dict[attr].split('\n')
-            elif attr == 'depends on' and info_dict[attr]:
+            elif attr in list_attrs and info_dict[attr]:
                 info_dict[attr] = [d.strip() for d in info_dict[attr].split(' ') if d]
 
         return info_dict
-
-
-def list_installed() -> Set[str]:
-    return {out.decode().strip() for out in new_subprocess(['pacman', '-Qq']).stdout if out}
 
 
 def check_installed(pkg: str) -> bool:
@@ -88,57 +92,56 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def list_and_map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
-    installed = new_subprocess(['pacman', '-Qq']).stdout  # retrieving all installed package names
-    allinfo = new_subprocess(['pacman', '-Qi'], stdin=installed).stdout  # retrieving all installed packages info
-
+def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
     ignored = {}
-    thread_ignored = Thread(target=_fill_ignored, args=(ignored,))
+    thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
 
-    pkgs, current_pkg = {'mirrors': {}, 'not_signed': {}}, {}
-    for out in new_subprocess(['grep', '-E', '(Name|Description|Version|Validated By)'],
-                              stdin=allinfo).stdout:  # filtering only the Name and Validated By fields:
-        if out:
-            line = out.decode()
+    allinfo = run_cmd('pacman -Qi')
 
-            if line.startswith('Name'):
-                current_pkg['name'] = line.split(':')[1].strip()
-            elif line.startswith('Version'):
-                version = line.split(':')
-                current_pkg['version'] = version[len(version) - 1].strip()
-            elif line.startswith('Description'):
-                current_pkg['description'] = line.split(':')[1].strip()
-            elif line.startswith('Validated'):
+    pkgs = {'signed': {}, 'not_signed': {}}
+    current_pkg = {}
+    for idx, field_tuple in enumerate(RE_INSTALLED_FIELDS.findall(allinfo)):
+        if field_tuple[0].startswith('N'):
+            current_pkg['name'] = field_tuple[1].strip()
+        elif field_tuple[0].startswith('Ve'):
+            current_pkg['version'] = field_tuple[1].split(':')[-1].strip()
+        elif field_tuple[0].startswith('D'):
+            current_pkg['description'] = field_tuple[1].strip()
+        elif field_tuple[0].startswith('Va'):
+            if field_tuple[1].strip().lower() == 'none' and aur:
+                pkgs['not_signed'][current_pkg['name']] = current_pkg
+                del current_pkg['name']
+            elif repositories:
+                pkgs['signed'][current_pkg['name']] = current_pkg
+                del current_pkg['name']
 
-                if line.split(':')[1].strip().lower() == 'none':
-                    pkgs['not_signed'][current_pkg['name']] = {'version': current_pkg['version'],
-                                                               'description': current_pkg['description']}
+            current_pkg = {}
 
-                current_pkg = {}
-
-    if pkgs and pkgs.get('not_signed'):
+    if pkgs['signed'] or pkgs['not_signed']:
         thread_ignored.join()
 
         if ignored['pkgs']:
             to_del = set()
-            for pkg in pkgs['not_signed'].keys():
-                if pkg in ignored['pkgs']:
-                    to_del.add(pkg)
 
-            for pkg in to_del:
-                del pkgs['not_signed'][pkg]
+            for key in ('signed', 'not_signed'):
+                if pkgs.get(key):
+                    for pkg in pkgs[key].keys():
+                        if pkg in ignored['pkgs']:
+                            to_del.add(pkg)
 
+                for pkg in to_del:
+                    del pkgs[key][pkg]
     return pkgs
 
 
-def install_as_process(pkgpath: str, root_password: str, aur: bool, pkgdir: str = '.') -> SystemProcess:
-    if aur:
-        cmd = ['pacman', '-U', pkgpath, '--noconfirm']  # pkgpath = install file path
+def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.') -> SimpleProcess:
+    if file:
+        cmd = ['pacman', '-U', *pkgpaths, '--noconfirm']  # pkgpath = install file path
     else:
-        cmd = ['pacman', '-S', pkgpath, '--noconfirm']  # pkgpath = pkgname
+        cmd = ['pacman', '-S', *pkgpaths, '--noconfirm']  # pkgpath = pkgname
 
-    return SystemProcess(new_root_subprocess(cmd, root_password, cwd=pkgdir), wrong_error_phrase='warning:')
+    return SimpleProcess(cmd=cmd, root_password=root_password, cwd=pkgdir)
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
@@ -261,20 +264,19 @@ def read_repository_from_info(name: str) -> str:
     if not_found:
         return
 
-    mirror = None
+    repository = None
 
     for o in new_subprocess(['grep', '-Po', "Repository\s+:\s+\K.+"], stdin=info.stdout).stdout:
         if o:
             line = o.decode().strip()
 
             if line:
-                mirror = line
+                repository = line
 
-    return mirror
+    return repository
 
 
 def guess_repository(name: str) -> Tuple[str, str]:
-
     if not name:
         raise Exception("'name' cannot be None or blank")
 
@@ -366,3 +368,470 @@ def get_version_for_not_installed(pkgname: str) -> str:
 
     if output:
         return output.split('\n')[0].split(' ')[1].strip()
+
+
+def map_repositories(pkgnames: Iterable[str] = None) -> Dict[str, str]:
+    info = run_cmd('pacman -Si {}'.format(' '.join(pkgnames) if pkgnames else ''), print_error=False, ignore_return_code=True)
+    if info:
+        repos = re.findall(r'(Name|Repository)\s*:\s*(.+)', info)
+
+        if repos:
+            return {repos[idx+1][1].strip(): repo_data[1].strip() for idx, repo_data in enumerate(repos) if idx % 2 == 0}
+
+    return {}
+
+
+def list_repository_updates() -> Dict[str, str]:
+    output = run_cmd('pacman -Qu')
+    res = {}
+    if output:
+        for line in output.split('\n'):
+            if line:
+                line_split = line.split(' ')
+                res[line_split[0]] = line_split[-1]
+    return res
+
+
+def map_sorting_data(pkgnames: List[str]) -> Dict[str, dict]:
+    allinfo = new_subprocess(['pacman', '-Qi', *pkgnames]).stdout
+
+    pkgs, current_pkg = {}, {}
+    mapped_attrs = 0
+    for out in new_subprocess(["grep", "-Po", "(Name|Provides|Depends On)\s*:\s*\K(.+)"], stdin=allinfo).stdout:
+        if out:
+            line = out.decode().strip()
+
+            if line:
+                if mapped_attrs == 0:
+                    current_pkg['name'] = line
+                elif mapped_attrs == 1:
+                    provides = set() if line == 'None' else set(line.split(' '))
+                    provides.add(current_pkg['name'])
+                    current_pkg['provides'] = provides
+                elif mapped_attrs == 2:
+                    current_pkg['depends'] = line.split(':')[1].strip()
+                    pkgs[current_pkg['name']] = current_pkg
+                    del current_pkg['name']
+
+                    mapped_attrs = 0
+                    current_pkg = {}
+    return pkgs
+
+
+def get_build_date(pkgname: str) -> str:
+    output = run_cmd('pacman -Qi {}'.format(pkgname))
+
+    if output:
+        bdate_line = [l for l in output.split('\n') if l.startswith('Build Date')]
+
+        if bdate_line:
+            return ':'.join(bdate_line[0].split(':')[1:]).strip()
+
+
+def search(words: str) -> Dict[str, dict]:
+    output = run_cmd('pacman -Ss ' + words)
+
+    if output:
+        found, current = {}, {}
+        for l in output.split('\n'):
+            if l:
+                if l.startswith(' '):
+                    current['description'] = l.strip()
+                    found[current['name']] = current
+                    del current['name']
+                    current = None
+                else:
+                    if current is None:
+                        current = {}
+
+                    repo_split = l.split('/')
+                    current['repository'] = repo_split[0]
+
+                    data_split = repo_split[1].split(' ')
+                    current['name'] = data_split[0]
+
+                    version = data_split[1].split(':')
+                    current['version'] = version[0] if len(version) == 1 else version[1]
+        return found
+
+
+def get_databases() -> Set[str]:
+    with open('/etc/pacman.conf') as f:
+        conf_str = f.read()
+
+    return {db for db in re.findall(r'[\n|\s]+\[(\w+)\]', conf_str) if db != 'options'}
+
+
+def can_refresh_mirrors() -> bool:
+    output = run_cmd('which pacman-mirrors', print_error=False)
+    return True if output else False
+
+
+def refresh_mirrors(root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman-mirrors', '-g'], root_password=root_password)
+
+
+def update_mirrors(root_password: str, countries: List[str]) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman-mirrors', '-c', ','.join(countries)], root_password=root_password)
+
+
+def sort_fastest_mirrors(root_password: str, limit: int) -> SimpleProcess:
+    cmd = ['pacman-mirrors', '--fasttrack']
+
+    if limit > 0:
+        cmd.append(str(limit))
+
+    return SimpleProcess(cmd=cmd, root_password=root_password)
+
+
+def list_mirror_countries() -> List[str]:
+    output = run_cmd('pacman-mirrors -l')
+
+    if output:
+        return [c for c in output.split('\n') if c]
+
+
+def get_current_mirror_countries() -> List[str]:
+    output = run_cmd('pacman-mirrors -lc').strip()
+    return ['all'] if not output else [c for c in output.split('\n') if c]
+
+
+def is_mirrors_available() -> bool:
+    res = run_cmd('which pacman-mirrors', print_error=False)
+    return res and not res.strip().startswith('which ')
+
+
+def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+
+    if output:
+        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+
+    return {}
+
+
+def get_installed_size(pkgs: List[str]) -> Dict[str, int]:  # bytes
+    output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
+
+    if output:
+        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+
+    return {}
+
+
+def upgrade_system(root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
+
+
+def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[str, str]:
+    proc = SimpleProcess(cmd=['pacman', '-R', *pkgs, '--confirm'], root_password=root_password)
+    success, output = ProcessHandler().handle_simple(proc)
+
+    if not output:
+        return {}
+
+    return {t[1]: t[0] for t in RE_REMOVE_TRANSITIVE_DEPS.findall(output)}
+
+
+def fill_provided_map(key: str, val: str, output: dict):
+    current_val = output.get(key)
+
+    if current_val is None:
+        output[key] = {val}
+    else:
+        current_val.add(val)
+
+
+def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs) if pkgs else ''))
+
+    if output:
+        provided_map = {}
+        latest_name, latest_version, provided = None, None, False
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx + 1:].strip()
+
+                    if field == 'Name':
+                        latest_name = val
+                    elif field == 'Version':
+                        latest_version = val.split('=')[0]
+                    elif field == 'Provides':
+                        fill_provided_map(latest_name, latest_name, provided_map)
+                        fill_provided_map('{}={}'.format(latest_name, latest_version), latest_name, provided_map)
+
+                        if val != 'None':
+                            for w in val.split(' '):
+                                if w:
+                                    word = w.strip()
+                                    fill_provided_map(word, latest_name, provided_map)
+
+                                    word_split = word.split('=')
+
+                                    if word_split[0] != word:
+                                        fill_provided_map(word_split[0], latest_name, provided_map)
+                        else:
+                            provided = True
+
+                    elif provided:
+                        latest_name = None
+                        latest_version = None
+                        provided = False
+
+                elif provided:
+                    for w in l.split(' '):
+                        if w:
+                            word = w.strip()
+                            fill_provided_map(word, latest_name, provided_map)
+
+                            word_split = word.split('=')
+
+                            if word_split[0] != word:
+                                fill_provided_map(word_split[0], latest_name, provided_map)
+
+        return provided_map
+
+
+def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
+    if files:
+        output = run_cmd('pacman -Qi -p {}'.format(' '.join(pkgs)))
+    else:
+        output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+
+    if output:
+        res = {}
+        latest_name = None
+        data = {'ds': None, 's': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
+        latest_field = None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx + 1:].strip()
+
+                    if field == 'Repository':
+                        data['r'] = val
+                        latest_field = 'r'
+                    elif field == 'Name':
+                        latest_name = val
+                        latest_field = 'n'
+                    elif field == 'Version':
+                        data['v'] = val.split('=')[0]
+                        latest_field = 'v'
+                    elif field == 'Provides':
+                        latest_field = 'p'
+                        data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'])}
+                        if val != 'None':
+                            for w in val.split(' '):
+                                if w:
+                                    word = w.strip()
+                                    data['p'].add(word)
+
+                                    word_split = word.split('=')
+
+                                    if word_split[0] != word:
+                                        data['p'].add(word_split[0])
+                    elif field == 'Depends On':
+                        val = val.strip()
+
+                        if val == 'None':
+                            data['d'] = None
+                        else:
+                            data['d'] = {w.strip().split(':')[0].strip() for w in val.split(' ') if w}
+                            latest_field = 'd'
+                    elif field == 'Conflicts With':
+                        if val == 'None':
+                            data['c'] = None
+                        else:
+                            data['c'] = {w.strip() for w in val.split(' ') if w}
+
+                        latest_field = 'c'
+                    elif field == 'Download Size':
+                        size = val.split(' ')
+                        data['ds'] = size_to_byte(float(size[0]), size[1])
+                        latest_field = 'ds'
+                    elif field == 'Installed Size':
+                        size = val.split(' ')
+                        data['s'] = size_to_byte(float(size[0]), size[1])
+                        latest_field = 's'
+                    elif latest_name and latest_field == 's':
+                        res[latest_name] = data
+                        latest_name = None
+                        latest_field = None
+                        data = {'ds': None, 's': None, 'c': None, 'p': None, 'd': None, 'r': None,  'v': None}
+                    else:
+                        latest_field = None
+
+                elif latest_field and latest_field in ('p', 'c', 'd'):
+                    if latest_field == 'p':
+                        for w in l.split(' '):
+                            if w:
+                                word = w.strip()
+                                data['p'].add(word)
+
+                                word_split = word.split('=')
+
+                                if word_split[0] != word:
+                                    data['p'].add(word_split[0])
+                    else:
+                        data[latest_field].update((w.strip() for w in l.split(' ') if w))
+
+        return res
+
+
+def list_installed_names() -> Set[str]:
+    return {p for p in run_cmd('pacman -Qq').split('\n') if p}
+
+
+def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'], root_password=root_password)
+
+
+def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
+    cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
+    if root_password:
+        return SystemProcess(new_root_subprocess(cmd, root_password), wrong_error_phrase='warning:')
+    else:
+        return SystemProcess(new_subprocess(cmd), wrong_error_phrase='warning:')
+
+
+def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = False) -> Dict[str, Dict[str, str]]:
+    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
+
+    if output:
+        res = {}
+        latest_name, deps = None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                    elif field == 'Optional Deps':
+                        val = line[field_sep_idx + 1:].strip()
+                        deps = {}
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+                                desc = dep_info[1].strip()
+
+                                if desc and not_installed and '[installed]' in desc:
+                                    continue
+
+                                deps[dep_info[0].strip()] = desc
+                            else:
+                                sev_deps = {dep.strip(): '' for dep in val.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
+                                deps.update(sev_deps)
+                    elif latest_name and deps is not None:
+                        res[latest_name] = deps
+                        latest_name, deps = None, None
+
+                elif latest_name and deps is not None:
+                    if ':' in l:
+                        dep_info = l.split(':')
+                        desc = dep_info[1].strip()
+
+                        if desc and not_installed and '[installed]' in desc:
+                            continue
+
+                        deps[dep_info[0].strip()] = desc
+                    else:
+                        sev_deps = {dep.strip(): '' for dep in l.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
+                        deps.update(sev_deps)
+
+        return res
+
+
+def get_cache_dir() -> str:
+    dir_pattern = re.compile(r'.*CacheDir\s*=\s*.+')
+
+    if os.path.exists('/etc/pacman.conf'):
+        with open('/etc/pacman.conf') as f:
+            config_str = f.read()
+
+        cache_dirs = []
+
+        for string in dir_pattern.findall(config_str):
+            if not string.strip().startswith('#'):
+                cache_dirs.append(string.split('=')[1].strip())
+
+        return cache_dirs[-1] if cache_dirs else '/var/cache/pacman/pkg/'
+
+
+def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
+
+    if output:
+        res = {}
+        latest_name, required = None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                    elif field == 'Required By':
+                        val = line[field_sep_idx + 1:].strip()
+                        required = set()
+                        if val != 'None':
+                            required.update((d for d in val.split(' ') if d))
+
+                    elif latest_name and required is not None:
+                        res[latest_name] = required
+                        latest_name, required = None, None
+
+                elif latest_name and required is not None:
+                    required.update(required.update((d for d in l.strip().split(' ') if d)))
+
+        return res
+
+
+def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
+
+    if output:
+        res = {}
+        latest_name, conflicts = None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                    elif field == 'Conflicts With':
+                        val = line[field_sep_idx + 1:].strip()
+                        conflicts = set()
+                        if val != 'None':
+                            conflicts.update((d for d in val.split(' ') if d))
+
+                    elif latest_name and conflicts is not None:
+                        res[latest_name] = conflicts
+                        latest_name, conflicts = None, None
+
+                elif latest_name and conflicts is not None:
+                    conflicts.update(conflicts.update((d for d in l.strip().split(' ') if d)))
+
+        return res

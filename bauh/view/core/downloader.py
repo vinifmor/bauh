@@ -13,6 +13,7 @@ from bauh.view.util.translation import I18n
 
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
+
 class AdaptableFileDownloader(FileDownloader):
 
     def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient):
@@ -22,7 +23,7 @@ class AdaptableFileDownloader(FileDownloader):
         self.http_client = http_client
 
     def is_aria2c_available(self) -> bool:
-        return bool(run_cmd('which aria2c'))
+        return bool(run_cmd('which aria2c', print_error=False))
 
     def _get_aria2c_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
         cmd = ['aria2c', url,
@@ -125,4 +126,3 @@ class AdaptableFileDownloader(FileDownloader):
 
     def get_default_client_name(self) -> str:
         return 'aria2c' if self. is_multithreaded() else 'wget'
-

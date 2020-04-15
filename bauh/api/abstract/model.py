@@ -5,22 +5,31 @@ from typing import List
 from bauh.api.constants import CACHE_PATH
 
 
-class PackageAction:
+class CustomSoftwareAction:
 
-    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool):
+    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool, manager: "SoftwareManager" = None, backup: bool = False):
         """
         :param i18_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
         :param icon_path: the action icon path. Use None for no icon
         :param manager_method: the SoftwareManager method name that should be called. The method must has the following parameters: (pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher)
+        :param manager: the instance that will execute the action ( optional )
+        :param backup: if a system backup should be performed before executing the action
         :param requires_root:
         """
-        self.id = id
         self.i18_label_key = i18_label_key
         self.i18n_status_key = i18n_status_key
         self.icon_path = icon_path
         self.manager_method = manager_method
         self.requires_root = requires_root
+        self.manager = manager
+        self.backup = backup
+
+    def __hash__(self):
+        return self.i18_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()
+
+    def __repr__(self):
+        return "CustomAction (label={}, method={})".format(self.i18_label_key, self.manager_method)
 
 
 class PackageStatus(Enum):
@@ -58,6 +67,7 @@ class SoftwarePackage(ABC):
         self.size = size
         self.categories = categories
         self.license = license
+        self.gem_name = self.__module__.split('.')[2]
 
     @abstractmethod
     def has_history(self):
@@ -122,11 +132,21 @@ class SoftwarePackage(ABC):
         """
         return CACHE_PATH + '/' + self.get_type()
 
+    def can_be_updated(self) -> bool:
+        """
+        :return: if the package can be updated.
+        """
+        return self.installed and self.update
+
     def get_disk_icon_path(self):
-        return '{}/icon.png'.format(self.get_disk_cache_path())
+        path = self.get_disk_cache_path()
+        if path:
+            return '{}/icon.png'.format(path)
 
     def get_disk_data_path(self):
-        return '{}/data.json'.format(self.get_disk_cache_path())
+        path = self.get_disk_cache_path()
+        if path:
+            return '{}/data.json'.format(path)
 
     @abstractmethod
     def get_data_to_cache(self) -> dict:
@@ -163,7 +183,7 @@ class SoftwarePackage(ABC):
         """
         pass
 
-    def get_custom_supported_actions(self) -> List[PackageAction]:
+    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
         """
         :return: custom supported actions
         """
@@ -181,24 +201,35 @@ class SoftwarePackage(ABC):
         """
         return self.name
 
+    def get_display_name(self) -> str:
+        """
+        :return: name displayed on the table
+        """
+        return self.name
+
+    @abstractmethod
+    def supports_backup(self) -> bool:
+        pass
+
     def __str__(self):
         return '{} (id={}, name={})'.format(self.__class__.__name__, self.id, self.name)
 
 
 class PackageUpdate:
 
-    def __init__(self, pkg_id: str, version: str, pkg_type: str):
+    def __init__(self, pkg_id: str, version: str, pkg_type: str, name: str):
         """
         :param pkg_id: an unique package identifier
         :param version: the new version
         :param pkg_type: the package type
         """
         self.id = pkg_id
+        self.name = name
         self.version = version
         self.type = pkg_type
 
     def __str__(self):
-        return '{} (id={}, type={}, new_version={})'.format(self.__class__.__name__, self.id, self.type, self.type)
+        return '{} (id={}, name={}, version={}, type={})'.format(self.__class__.__name__, self.id, self.name, self.version, self.type)
 
 
 class PackageHistory:

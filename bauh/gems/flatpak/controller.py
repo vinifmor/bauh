@@ -4,17 +4,18 @@ from math import floor
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
-from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext
+from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
+    UpgradeRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
-    SuggestionPriority
+    SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons import user
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler, SimpleProcess
+from bauh.commons.system import SystemProcess, ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -59,6 +60,7 @@ class FlatpakManager(SoftwareManager):
 
         else:
             app.fill_cached_data(api_data)
+            app.status = PackageStatus.READY
 
         return app
 
@@ -184,18 +186,35 @@ class FlatpakManager(SoftwareManager):
         super(FlatpakManager, self).clean_cache_for(pkg)
         self.api_cache.delete(pkg.id)
 
-    def update(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        related, deps = False, False
-        ref = pkg.ref
+    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+        flatpak_version = flatpak.get_version()
+        for req in requirements.to_upgrade:
+            watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
+            related, deps = False, False
+            ref = req.pkg.ref
 
-        if pkg.partial and flatpak.get_version() < '1.5':
-            related, deps = True, True
-            ref = pkg.base_ref
+            if req.pkg.partial and flatpak_version < '1.5':
+                related, deps = True, True
+                ref = req.pkg.base_ref
 
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
-                                                                                   installation=pkg.installation,
-                                                                                   related=related,
-                                                                                   deps=deps)))
+            try:
+                res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
+                                                                                          installation=req.pkg.installation,
+                                                                                          related=related,
+                                                                                          deps=deps)))
+
+                watcher.change_substatus('')
+                if not res:
+                    self.logger.warning("Could not upgrade '{}'".format(req.pkg.id))
+                    return False
+            except:
+                watcher.change_substatus('')
+                self.logger.error("An error occurred while upgrading '{}'".format(req.pkg.id))
+                traceback.print_exc()
+                return False
+
+        watcher.change_substatus('')
+        return True
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
@@ -337,8 +356,8 @@ class FlatpakManager(SoftwareManager):
     def requires_root(self, action: str, pkg: FlatpakApplication):
         return action == 'downgrade' and pkg.installation == 'system'
 
-    def prepare(self):
-        Thread(target=read_config, daemon=True).start()
+    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        Thread(target=read_config, args=(True,), daemon=True).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
@@ -360,7 +379,8 @@ class FlatpakManager(SoftwareManager):
 
             for app in to_update:
                 updates.append(PackageUpdate(pkg_id='{}:{}:{}'.format(app.id, app.branch, app.installation),
-                                             pkg_type='flatpak',
+                                             pkg_type='Flatpak',
+                                             name=app.name,
                                              version=app.version))
 
         return updates
@@ -447,7 +467,7 @@ class FlatpakManager(SoftwareManager):
                         InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
                                     value='user',
                                     tooltip=self.i18n['flatpak.config.install_level.user.tip']),
-                        InputOption(label=self.i18n['flatpak.config.install_level.ask'].capitalize(),
+                        InputOption(label=self.i18n['ask'].capitalize(),
                                     value=None,
                                     tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
         fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
@@ -468,6 +488,28 @@ class FlatpakManager(SoftwareManager):
             return True, None
         except:
             return False, [traceback.format_exc()]
+
+    def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+        flatpak_version = flatpak.get_version()
+
+        user_pkgs, system_pkgs = [], []
+
+        for pkg in pkgs:
+            if pkg.installation == 'user':
+                user_pkgs.append(pkg)
+            else:
+                system_pkgs.append(pkg)
+
+        for apps_by_install in ((user_pkgs, 'user'), (system_pkgs, 'system')):
+            if apps_by_install[0]:
+                sizes = flatpak.map_update_download_size([str(p.id) for p in apps_by_install[0]], apps_by_install[1], flatpak_version)
+
+                if sizes:
+                    for p in apps_by_install[0]:
+                        p.size = sizes.get(str(p.id))
+
+        to_update = [UpgradeRequirement(pkg=p, extra_size=p.size, required_size=p.size) for p in self.sort_update_order(pkgs)]
+        return UpgradeRequirements(None, None, to_update, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
         partials, runtimes, apps = [], [], []

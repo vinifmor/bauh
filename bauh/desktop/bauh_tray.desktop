@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=Applications (bauh-tray)
+Name[pt]=Aplicativos (bauh-bandeja)
+Name[es]=Aplicaciones (bauh-bandeja)
+Name[ca]=Aplicacions (bauh-safata)
+Name[it]=Applicazioni (bauh-vassoio)
+Name[de]=Anwendungen (bauh - tablett)
+Categories=System;
+Comment=Install and remove applications (AppImage, Arch, Flatpak, Snap, Web)
+Comment[pt]=Instale e remova aplicativos (AppImage, Arch, Flatpak, Snap, Web)
+Comment[es]=Instalar y eliminar aplicaciones (AppImage, Arch, Flatpak, Snap, Web)
+Comment[it]=Installa e rimuovi applicazioni (AppImage, Arch, Flatpak, Snap, Web)
+Comment[de]=Anwendungen installieren und entfernen (AppImage, Arch, Flatpak, Snap, Web)
+Comment[ca]=Instal·lar i eliminar aplicacions (AppImage, Arch, Flatpak, Snap, Web)
+Exec=/usr/bin/bauh-tray
+Icon=bauh

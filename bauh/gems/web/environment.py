@@ -11,7 +11,7 @@ import requests
 import yaml
 
 from bauh.api.abstract.download import FileDownloader
-from bauh.api.abstract.handler import ProcessWatcher
+from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import system
@@ -19,7 +19,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, URL_NATIVEFIER
+    nativefier, URL_NATIVEFIER, get_icon_path
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
@@ -243,20 +243,33 @@ class EnvironmentUpdater:
 
         return res
 
-    def read_settings(self) -> dict:
+    def _finish_task_download_settings(self, task_man: TaskManager):
+        if task_man:
+            task_man.update_progress('web_down_sets', 100, None)
+            task_man.finish_task('web_down_sets')
+
+    def read_settings(self, task_man: TaskManager = None) -> dict:
         try:
+            if task_man:
+                task_man.register_task('web_down_sets', self.i18n['web.task.download_settings'], get_icon_path())
+                task_man.update_progress('web_down_sets', 10, None)
+
             res = self.http_client.get(URL_ENVIRONMENT_SETTINGS)
 
             if not res:
                 self.logger.warning('Could not retrieve the environments settings from the cloud')
+                self._finish_task_download_settings(task_man)
                 return
 
             try:
+                self._finish_task_download_settings(task_man)
                 return yaml.safe_load(res.content)
             except yaml.YAMLError:
                 self.logger.error('Could not parse environment settings: {}'.format(res.text))
+                self._finish_task_download_settings(task_man)
                 return
         except requests.exceptions.ConnectionError:
+            self._finish_task_download_settings(task_man)
             return
 
     def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, output: List[EnvironmentComponent]):

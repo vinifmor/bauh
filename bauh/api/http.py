@@ -67,7 +67,7 @@ class HttpClient:
         res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects, session=session)
         return yaml.safe_load(res.text) if res else None
 
-    def get_content_length(self, url: str, session: bool = True) -> str:
+    def get_content_length_in_bytes(self, url: str, session: bool = True) -> int:
         params = {'url': url, 'allow_redirects': True, 'stream': True}
         if session:
             res = self.session.get(**params)
@@ -77,8 +77,17 @@ class HttpClient:
         if res.status_code == 200:
             size = res.headers.get('Content-Length')
 
-            if size is not None:
-                return system.get_human_size_str(size)
+            if size:
+                try:
+                    return int(size)
+                except:
+                    pass
+
+    def get_content_length(self, url: str, session: bool = True) -> str:
+        size = self.get_content_length_in_bytes(url, session)
+
+        if size:
+            return system.get_human_size_str(size)
 
     def exists(self, url: str, session: bool = True) -> bool:
         params = {'url': url, 'allow_redirects': True, 'verify': False, 'timeout': 5}

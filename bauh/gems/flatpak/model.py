@@ -1,6 +1,4 @@
-import copy
-
-from bauh.api.abstract.model import SoftwarePackage
+from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.commons import resource
 from bauh.gems.flatpak import ROOT_DIR
 from bauh.view.util.translation import I18n
@@ -50,7 +48,7 @@ class FlatpakApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self):
-        return not self.runtime
+        return not self.runtime and not self.partial
 
     def get_disk_cache_path(self):
         return super(FlatpakApplication, self).get_disk_cache_path() + '/installed/' + self.id
@@ -77,15 +75,27 @@ class FlatpakApplication(SoftwarePackage):
         return self.origin
 
     def gen_partial(self, partial_id: str) -> "FlatpakApplication":
-        partial = copy.deepcopy(self)
+        partial = FlatpakApplication()
+        partial.partial = True
         partial.id = partial_id
         partial.base_id = self.id
+        partial.installation = self.installation
+        partial.origin = self.origin
+        partial.branch = self.branch
+        partial.i18n = self.i18n
+        partial.arch = self.arch
+        partial.name = self.name
+        partial.version = self.version
+        partial.latest_version = self.latest_version
+        partial.installed = self.installed
+        partial.runtime = True
 
         if self.ref:
             partial.base_ref = self.ref
             partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
+            partial.status = PackageStatus.READY
+            partial.name += ' ( {} )'.format(partial_id.split('.')[-1])
 
-        partial.partial = True
         return partial
 
     def get_name_tooltip(self) -> str:
@@ -93,3 +103,6 @@ class FlatpakApplication(SoftwarePackage):
             return '{} ( {} )'.format(self.name, self.i18n[self.installation.lower()])
 
         return self.name
+
+    def supports_backup(self) -> bool:
+        return True

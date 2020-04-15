@@ -4,6 +4,105 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.0] - 2020-04-15
+### Features
+- Backup
+    - Timeshift integration ( if available on the system ): it can generate snapshots before installing, uninstalling, upgrading...
+    - you can enable / disable this feature via the settings file or UI.
+
+- UI
+    - new initialization dialog showing tasks that need to be done before use
+    - new custom actions button ( displays specific action available for each packaging provider )
+
+- Arch
+    - supporting packages from configured repositories ( search, install, upgrade and info. **History and downgrade are not supported yet** )
+    - custom actions ( available through the new custom actions button )
+        - **synchronize packages database**: synchronizes the databases against the configured mirrors
+        - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest
+        - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
+        - **clean cache**: it cleans the pacman cache diretory ( default: `/var/cache/pacman/pkg` )
+     - mirrors refreshing on startup ( **disabled by default**. Can be enabled on settings -> **refresh_mirrors_startup** )
+     - new settings to enable / disable AUR and repository packages management: `aur` and `repositories`
+     - uninstall: allowing to remove all transitive dependencies
+     - able to handle the installation of dependencies with multiple providers
+     - multi-threaded downloads ( using aria2c ) are **not supported yet** for repository packages
+
+- AppImage
+    - Custom actions
+        - **Install AppImage file**: allows to install a external AppImage file
+        - **Upgrade file**: allows to upgrade a manually installed AppImage file
+- Web
+    - Custom actions
+        - **Clean installation environment** custom action: removes all the installation environment folders ( it does not remove installed apps )
+    
+- CLI mode:
+    - a beginning for the command line mode (`bauh-cli`). Only **list updates** command is available for now ( `bauh-cli updates` ) [#54](https://github.com/vinifmor/bauh/issues/54)
+
+- Core
+    - allowing to trim the disk after all upgrades are applied ( **disabled by default**. It can be enabled on settings, Make sure your SSD supports TRIM before enabling this option. )
+    - new warning dialog informing when there is a new bauh update / release available      
+    
+### Improvements
+- Core
+    - root password is asked only once ( can be disabled through the new settings property `store_root_password` )
+    - upgrade logs are now generated at **/tmp/bauh/logs/upgrade**
+    - new upgrade model: now all packages selected to upgrade are handled at once by the underlying gem
+    
+- Arch
+    - dependency checking algorithm
+        - faster for scenarios involving several packages ( taking =~ 95% less time )
+        - faster for AUR installations ( taking an average of 23% less time )
+    - the AUR compilation optimizations now include setting the device processors to **performance** mode
+    - if the pacman database is locked, a dialog is displayed requesting if the database should be unlocked to proceed with the ongoing action
+    - displaying missing repository dependencies sizes
+    - dialog design when the package cannot be uninstalled due to required packages
+    - removing old cached versions from the disk cache when uninstalling a package ( can be disabled on settings -> **clean_cached** )
+    - database synchronization on startup ( **enabled by default**. Can be disabled on settings -> **sync_databases_startup** )
+    - single pacman call to install repository dependencies
+    - improved conflict checking algorithm
+    - overall speed improvements
+    - code refactoring
+- UI
+    - the name filter now delays 2 seconds before being applied
+    - upgrades: upgrade order and required dialogs were merged in a **single summary dialog**
+    - displaying the upgrade size ( Flatpak, AppImage and Arch )
+    - time to determine the selected packages to upgrade takes less time
+    - table update performance
+    - tray
+        - treated as an application apart and not sharing the memory with the management panel ( first step to reduce its memory usage )
+        - sorting types on update notification 
+    
+### Fixes
+- table not displaying all updates when the "updates filter" is clicked several times
+- installation logs written to the wrong temp directory
+- crashes when Python is not able to retrieve the default locale [#84](https://github.com/vinifmor/bauh/issues/84)
+- Arch / AUR:
+    - sorting algorithm was providing wrong results for some cases
+    - not caching data about packages with no desktop entry files
+    - error output when it was not able to optimize the **makepkg.conf** [#84](https://github.com/vinifmor/bauh/issues/84)
+    - error when building AUR packages with **.tar.zst** extensions
+
+### Settings
+- Default
+    - **pre_dependency_checking** dropped ( now is always enabled )
+    - **sort_packages** dropped ( now the gems decide if it makes sense to sort the packages )
+    - **disk_cache** dropped ( now is always enabled )
+- Arch / AUR:
+    - **transitive_checking** dropped ( now is always enabled )
+    - **simple_checking** dropped ( now is always disabled )
+    
+### Params / Environment Variables
+- param **--show-panel** dropped
+- env vars **BAUH_TRAY** and **BAUH_LOGS** dropped ( the equivalent parameters remain )
+- new parameter `--settings`: opens only the settings panel
+- now to open the tray use only the parameter `--tray` instead of `--tray=1`
+- now to activate the logs use only the parameter `--logs` instead of `--logs=1`
+- adding mutual exclusion to some parameters (`--settings`, `--tray`, `--reset`)
+
+### i18n contributions
+- Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
+
+    
 ## [0.8.5] - 2020-03-11
 ### Fixes
 - Web

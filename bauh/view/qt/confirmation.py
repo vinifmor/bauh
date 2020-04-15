@@ -12,7 +12,7 @@ from bauh.view.util.translation import I18n
 class ConfirmationDialog(QMessageBox):
 
     def __init__(self, title: str, body: str, i18n: I18n, screen_size: QSize,  components: List[ViewComponent] = None,
-                 confirmation_label: str = None, deny_label: str = None):
+                 confirmation_label: str = None, deny_label: str = None, deny_button: bool = True):
         super(ConfirmationDialog, self).__init__()
         self.setWindowTitle(title)
         self.setStyleSheet('QLabel { margin-right: 25px; }')
@@ -20,7 +20,8 @@ class ConfirmationDialog(QMessageBox):
         self.bt_yes.setStyleSheet(css.OK_BUTTON)
         self.setDefaultButton(self.bt_yes)
 
-        self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
+        if deny_button:
+            self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
 
         label = None
         if body:
