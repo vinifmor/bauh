@@ -804,7 +804,7 @@ class ArchManager(SoftwareManager):
             msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(context.name), bold(str(len(reqs)))),
                                               self.i18n['arch.uninstall.required_by.advice'])
 
-            if not context.watcher.request_confirmation(title=self.i18n['action.not_allowed'].capitalize(),
+            if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
                                                         body=msg,
                                                         components=[reqs_select],
                                                         confirmation_label=self.i18n['proceed'].capitalize(),
