@@ -1,13 +1,12 @@
-import subprocess
-import traceback
-from subprocess import Popen
+import http.client as http_client
 
 
 def is_available() -> bool:
+    conn = http_client.HTTPConnection("www.google.com", timeout=5)
     try:
-        res = Popen(['ping', '-q', '-w1', '-c1', 'google.com'], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        res.wait()
-        return res.returncode == 0
+        conn.request("HEAD", "/")
+        conn.close()
+        return True
     except:
-        traceback.print_exc()
+        conn.close()
         return False
