@@ -741,7 +741,7 @@ class ArchManager(SoftwareManager):
                     disk.save_several(repo_pkgs_names, repo_map=repo_map, overwrite=True, maintainer=None)
 
                 else:
-                    self.logger.error("'pacman' returned an unexpected response after upgrading the repository packages")
+                    self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
                     return False
             except:
                 watcher.change_substatus('')
