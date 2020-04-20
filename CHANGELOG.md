@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - Tray
     - displaying a notification when there is a new bauh release
+- Arch
+    - allowing to uninstall no longer needed packages after a package uninstall [#87](https://github.com/vinifmor/bauh/issues/87)
     
 ### Improvements
 - Internet availability checking code

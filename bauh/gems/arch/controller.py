@@ -798,7 +798,54 @@ class ArchManager(SoftwareManager):
 
         return res
 
-    def _uninstall(self, context: TransactionContext):
+    def _request_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext) -> bool:
+        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+
+        msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(context.name), bold(str(len(reqs)))),
+                                          self.i18n['arch.uninstall.required_by.advice'])
+
+        if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                    body=msg,
+                                                    components=[reqs_select],
+                                                    confirmation_label=self.i18n['proceed'].capitalize(),
+                                                    deny_label=self.i18n['cancel'].capitalize()):
+            context.watcher.print("Aborted")
+            return False
+
+        return True
+
+    def _request_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext) -> List[str]:
+        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in pkgs]
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+
+        msg = '{}. {}:'.format(self.i18n['arch.uninstall.unnecessary.l1'].format(bold(str(len(reqs)))),
+                               self.i18n['arch.uninstall.unnecessary.l2'])
+
+        if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                    body=msg,
+                                                    components=[reqs_select],
+                                                    confirmation_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
+                                                    deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize()):
+            return
+
+        return reqs_select.get_selected_values()
+
+    def _request_all_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext):
+        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+
+        if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                    body=self.i18n['arch.uninstall.unnecessary.all'].format(len(pkgs)),
+                                                    components=[reqs_select],
+                                                    confirmation_label=self.i18n['proceed'].capitalize(),
+                                                    deny_label=self.i18n['cancel'].capitalize()):
+            context.watcher.print("Aborted")
+            return False
+
+        return True
+
+    def _uninstall(self, context: TransactionContext, remove_unneeded: bool = False):
         self._update_progress(context, 10)
 
         required_by = self.deps_analyser.map_all_required_by({context.name}, set())
@@ -811,25 +858,59 @@ class ArchManager(SoftwareManager):
         if required_by:
             to_uninstall.update(required_by)
 
-            reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in required_by]
-            reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
-
-            msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(context.name), bold(str(len(reqs)))),
-                                              self.i18n['arch.uninstall.required_by.advice'])
-
-            if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                        body=msg,
-                                                        components=[reqs_select],
-                                                        confirmation_label=self.i18n['proceed'].capitalize(),
-                                                        deny_label=self.i18n['cancel'].capitalize()):
-                context.watcher.print("Aborted")
+            if not self._request_uninstall_confirmation(required_by, context):
                 return False
+
+        if remove_unneeded:
+            optdeps = pacman.map_optional_deps(names=to_uninstall, remote=False)  # retrieving the optdeps to check if they are still necessary
+        else:
+            optdeps = None
 
         uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler)
 
         if uninstalled:
             self._update_progress(context, 70)
 
+            if optdeps:
+                context.watcher.change_substatus(self.i18n['arch.checking_unnecessary_deps'])
+                all_opt_deps = set()
+
+                all_provided = pacman.map_provided(remote=False)
+                for deps in optdeps.values():
+                    for dep in deps.keys():
+                        real_deps = all_provided.get(dep)
+
+                        if real_deps:
+                            all_opt_deps.update(real_deps)
+
+                if all_opt_deps:
+                    self.logger.info("Mapping optdeps required packages")
+                    optdeps_reqs = pacman.map_required_by(all_opt_deps)
+
+                    no_longer_needed = set()
+                    if optdeps_reqs:
+                        for dep, reqs in optdeps_reqs.items():
+                            if not reqs:
+                                no_longer_needed.add(dep)
+
+                    if no_longer_needed:
+                        self.logger.info("{} packages no longer needed found".format(len(no_longer_needed)))
+                        opt_to_uninstall = self._request_unncessary_uninstall_confirmation(no_longer_needed, context)
+
+                        if opt_to_uninstall:
+                            opt_required = self.deps_analyser.map_all_required_by(opt_to_uninstall, set())
+                            unnecessary_to_uninstall = {*opt_to_uninstall, *opt_required}
+
+                            if len(opt_to_uninstall) == len(unnecessary_to_uninstall) or self._request_all_unncessary_uninstall_confirmation(unnecessary_to_uninstall, context):
+                                unneded_uninstalled = self._uninstall_pkgs(unnecessary_to_uninstall, context.root_password, context.handler)
+
+                                if unneded_uninstalled:
+                                    to_uninstall.update(unnecessary_to_uninstall)
+                                else:
+                                    self.logger.error("Could not uninstall some unnecessary packages")
+                                    context.watcher.print("Could not uninstall some unnecessary packages")
+
+            self._update_progress(context, 90)
             if bool(context.config['clean_cached']):  # cleaning old versions
                 context.watcher.change_substatus(self.i18n['arch.uninstall.clean_cached.substatus'])
                 if os.path.isdir('/var/cache/pacman/pkg'):
@@ -857,7 +938,8 @@ class ArchManager(SoftwareManager):
                                                   arch_config=read_config(),
                                                   watcher=watcher,
                                                   root_password=root_password,
-                                                  handler=handler))
+                                                  handler=handler),
+                               remove_unneeded=True)
 
     def get_managed_types(self) -> Set["type"]:
         return {ArchPackage}
