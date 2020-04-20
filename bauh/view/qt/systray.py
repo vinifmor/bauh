@@ -15,12 +15,15 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate
+from bauh.api.http import HttpClient
 from bauh.commons.system import run_cmd
 from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
+from bauh.view.core.update import check_for_update
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import util, resource
+from bauh.view.util.translation import I18n
 
 CLI_PATH = '{}/bin/bauh-cli'.format(sys.exec_prefix)
 
@@ -78,6 +81,25 @@ class UpdateCheck(QThread):
                 self._notify_updates()
 
 
+class AppUpdateCheck(Thread):
+
+    def __init__(self, http_client: HttpClient, logger: logging.Logger, i18n: I18n, interval: int = 300):
+        super(AppUpdateCheck, self).__init__(daemon=True)
+        self.interval = interval
+        self.http_client = http_client
+        self.logger = logger
+        self.i18n = i18n
+
+    def run(self):
+        while True:
+            update_msg = check_for_update(http_client=self.http_client, logger=self.logger, i18n=self.i18n, tray=True)
+
+            if update_msg:
+                util.notify_user(msg=update_msg)
+
+            time.sleep(self.interval)
+
+
 class TrayIcon(QSystemTrayIcon):
 
     def __init__(self, config: dict, screen_size: QSize, logger: logging.Logger, manage_process: Popen = None, settings_process: Popen = None):
@@ -87,6 +109,7 @@ class TrayIcon(QSystemTrayIcon):
         self.manage_process = manage_process
         self.settings_process = settings_process
         self.logger = logger
+        self.http_client = HttpClient(logger=logger)
 
         if config['ui']['tray']['default_icon']:
             self.icon_default = QIcon(config['ui']['tray']['default_icon'])
@@ -134,6 +157,9 @@ class TrayIcon(QSystemTrayIcon):
         self.recheck_thread = UpdateCheck(check_interval=2, check_file=True, lock=self.check_lock, logger=logger)
         self.recheck_thread.signal.connect(self.notify_updates)
         self.recheck_thread.start()
+
+        self.update_thread = AppUpdateCheck(http_client=self.http_client, logger=self.logger, i18n=self.i18n)
+        self.update_thread.start()
 
         self.last_updates = set()
         self.update_notification = bool(config['system']['notifications'])

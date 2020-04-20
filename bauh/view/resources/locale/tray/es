@@ -5,3 +5,4 @@ tray.action.refreshing=Recargando
 tray.settings=configuraciones
 notification.update={} actualización disponible
 notification.updates={} actualizaciones disponibles
+tray.warning.update_available=Nueva versión de {} disponible ({})
