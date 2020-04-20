@@ -769,10 +769,14 @@ class ArchManager(SoftwareManager):
 
                 try:
                     if not self.install(pkg=pkg, root_password=root_password, watcher=watcher, context=context):
+                        watcher.print(self.i18n['arch.upgrade.fail'].format('"{}"'.format(pkg.name)))
                         self.logger.error("Could not upgrade AUR package '{}'".format(pkg.name))
                         watcher.change_substatus('')
                         return False
+                    else:
+                        watcher.print(self.i18n['arch.upgrade.success'].format('"{}"'.format(pkg.name)))
                 except:
+                    watcher.print(self.i18n['arch.upgrade.fail'].format('"{}"'.format(pkg.name)))
                     watcher.change_substatus('')
                     self.logger.error("An error occurred when upgrading AUR package '{}'".format(pkg.name))
                     traceback.print_exc()

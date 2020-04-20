@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.1] 2020
 ### Improvements
 - Internet availability checking code
+- Arch
+    - displaying on the details if the AUR package was successfully upgraded [#89](https://github.com/vinifmor/bauh/issues/89)
 
 ### Fixes
 - Arch
