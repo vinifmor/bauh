@@ -26,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
     - not detecting some updates ( e.g: RPCS3 )
     
+### UI
+- Changed the **Installed** button color
+    
 ## [0.9.0] - 2020-04-15
 ### Features
 - Backup

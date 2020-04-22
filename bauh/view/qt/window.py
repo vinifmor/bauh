@@ -192,7 +192,7 @@ class ManageWindow(QWidget):
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         self.bt_installed.clicked.connect(self._begin_loading_installed)
-        self.bt_installed.setStyleSheet(toolbar_button_style('#A94E0A'))
+        self.bt_installed.setStyleSheet(toolbar_button_style('#8716CF'))
         self.ref_bt_installed = self.toolbar.addWidget(self.bt_installed)
         toolbar_bts.append(self.bt_installed)
 
