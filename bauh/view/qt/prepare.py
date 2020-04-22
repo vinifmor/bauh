@@ -296,7 +296,7 @@ class PreparePanel(QWidget, TaskManager):
         self.signal_status.emit(self.ntasks, self.ftasks)
 
         if self.ntasks == self.ftasks:
-            self.label_top.setText("... {} ...".format(self.i18n['ready'].capitalize()))
+            self.label_top.setText(self.i18n['ready'].capitalize())
 
     def finish(self):
         if self.isVisible():
