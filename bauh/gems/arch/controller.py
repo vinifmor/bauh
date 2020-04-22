@@ -819,14 +819,15 @@ class ArchManager(SoftwareManager):
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in pkgs]
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
 
-        msg = '{}. {}:'.format(self.i18n['arch.uninstall.unnecessary.l1'].format(bold(str(len(reqs)))),
-                               self.i18n['arch.uninstall.unnecessary.l2'])
+        msg = '<p>{}</p><p>{}:</p>'.format(self.i18n['arch.uninstall.unnecessary.l1'].format(bold(context.name)),
+                                           self.i18n['arch.uninstall.unnecessary.l2'])
 
         if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
                                                     body=msg,
                                                     components=[reqs_select],
                                                     confirmation_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
-                                                    deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize()):
+                                                    deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
+                                                    window_cancel=False):
             return
 
         return reqs_select.get_selected_values()
@@ -862,30 +863,30 @@ class ArchManager(SoftwareManager):
                 return False
 
         if remove_unneeded:
-            optdeps = pacman.map_optional_deps(names=to_uninstall, remote=False)  # retrieving the optdeps to check if they are still necessary
+            all_deps_map = pacman.map_all_deps(names=to_uninstall, only_installed=True)  # retrieving the deps to check if they are still necessary
         else:
-            optdeps = None
+            all_deps_map = None
 
         uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler)
 
         if uninstalled:
             self._update_progress(context, 70)
 
-            if optdeps:
+            if all_deps_map:
                 context.watcher.change_substatus(self.i18n['arch.checking_unnecessary_deps'])
-                all_opt_deps = set()
+                all_deps = set()
 
                 all_provided = pacman.map_provided(remote=False)
-                for deps in optdeps.values():
-                    for dep in deps.keys():
+                for deps in all_deps_map.values():
+                    for dep in deps:
                         real_deps = all_provided.get(dep)
 
                         if real_deps:
-                            all_opt_deps.update(real_deps)
+                            all_deps.update(real_deps)
 
-                if all_opt_deps:
-                    self.logger.info("Mapping optdeps required packages")
-                    optdeps_reqs = pacman.map_required_by(all_opt_deps)
+                if all_deps:
+                    self.logger.info("Mapping dependencies required packages of uninstalled packages")
+                    optdeps_reqs = pacman.map_required_by(all_deps)
 
                     no_longer_needed = set()
                     if optdeps_reqs:

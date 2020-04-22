@@ -760,6 +760,67 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
         return res
 
 
+def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
+
+    if output:
+        res = {}
+        deps_fields = {'Depends On', 'Optional Deps'}
+        latest_name, deps, latest_field = None, None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        latest_field = field
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                        deps = None
+                    elif field in deps_fields:
+                        latest_field = field
+                        val = line[field_sep_idx + 1:].strip()
+                        opt_deps = latest_field == 'Optional Deps'
+
+                        if deps is None:
+                            deps = set()
+
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+                                desc = dep_info[1].strip()
+
+                                if desc and opt_deps and only_installed and '[installed]' not in desc:
+                                    continue
+
+                                deps.add(dep_info[0].strip())
+                            else:
+                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+
+                    elif latest_name and deps is not None:
+                        res[latest_name] = deps
+                        latest_name, deps, latest_field = None, None, None
+
+                elif latest_name and deps is not None:
+                    opt_deps = latest_field == 'Optional Deps'
+
+                    if ':' in l:
+                        dep_info = l.split(':')
+                        desc = dep_info[1].strip()
+
+                        if desc and opt_deps and only_installed and '[installed]' not in desc:
+                            continue
+
+                        deps.add(dep_info[0].strip())
+                    else:
+                        deps.update({dep.strip() for dep in l.split(' ') if dep})
+
+        return res
+
+
 def get_cache_dir() -> str:
     dir_pattern = re.compile(r'.*CacheDir\s*=\s*.+')
 

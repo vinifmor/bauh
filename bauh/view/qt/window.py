@@ -445,6 +445,7 @@ class ManageWindow(QWidget):
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'],
                                   deny_button=msg['deny_button'],
+                                  window_cancel=msg['window_cancel'],
                                   screen_size=self.screen_size)
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
