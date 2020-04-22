@@ -296,7 +296,9 @@ ui:
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
 disk:
-    trim_after_update: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` )
+    trim:
+        after_upgrade: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` ). 'true' will automatically perform the trim and 'null' will display a confirmation dialog
+
 backup:
     enabled: true  # generate timeshift snapshots before an action ( if timeshift is installed on the system )
     mode: 'incremental' # incremental=generates a new snapshot based on another pre-exising one. 'only_one'=deletes all pre-existing snapshots and generates a fresh one.

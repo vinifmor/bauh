@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Internet availability checking code
 - Arch
     - displaying on the details if the AUR package was successfully upgraded [#89](https://github.com/vinifmor/bauh/issues/89)
+- Settings
+    - **disk.trim_after_update** has changed to **disk.trim.after_upgrade** and accepts 3 possible values: **false** (No): disabled, **true** (Yes): automatically trims, **null** (Ask): displays a confirmation dialog
 
 ### Fixes
 - Arch
