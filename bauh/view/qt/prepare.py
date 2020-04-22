@@ -116,6 +116,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
         super(PreparePanel, self).__init__()
+        self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
