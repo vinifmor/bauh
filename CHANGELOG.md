@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not stopping the upgrade process if a transaction error happens
     - search not displaying installed packages that are no longer available on the databases ( e.g: indicator-application )
     - wrong dialog titles
+- AppImage
+    - not detecting some updates ( e.g: RPCS3 )
     
 ## [0.9.0] - 2020-04-15
 ### Features
