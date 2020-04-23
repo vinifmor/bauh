@@ -302,7 +302,7 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkg)
 
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#ff1a1a'), uninstall)
             else:
                 item = QLabel()
                 item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
