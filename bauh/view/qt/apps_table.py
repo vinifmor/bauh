@@ -473,7 +473,7 @@ class AppsTable(QTableWidget):
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='#ac00e6', tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
