@@ -17,7 +17,8 @@ class ProcessWatcher:
         """
         pass
 
-    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None, deny_button: bool = True)-> bool:
+    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None,
+                             deny_label: str = None, deny_button: bool = True, window_cancel: bool = True) -> bool:
         """
         request a user confirmation. In the current GUI implementation, it shows a popup to the user.
         :param title: popup title
@@ -26,6 +27,7 @@ class ProcessWatcher:
         :param confirmation_label: optional confirmation button label (default to 'yes')
         :param deny_label: optional deny button label (default to 'no')
         :param deny_button: if the deny button should be displayed
+        :param window_cancel: if the window cancel button should be visible
         :return: if the request was confirmed by the user
         """
         pass

@@ -1,6 +1,6 @@
 from typing import List
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
 from bauh.api.abstract.view import ViewComponent
@@ -12,8 +12,12 @@ from bauh.view.util.translation import I18n
 class ConfirmationDialog(QMessageBox):
 
     def __init__(self, title: str, body: str, i18n: I18n, screen_size: QSize,  components: List[ViewComponent] = None,
-                 confirmation_label: str = None, deny_label: str = None, deny_button: bool = True):
+                 confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = True):
         super(ConfirmationDialog, self).__init__()
+
+        if not window_cancel:
+            self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+
         self.setWindowTitle(title)
         self.setStyleSheet('QLabel { margin-right: 25px; }')
         self.bt_yes = self.addButton(i18n['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)

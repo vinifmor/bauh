@@ -47,7 +47,9 @@ def read_config(update_file: bool = False) -> dict:
         },
         'store_root_password': True,
         'disk': {
-            'trim_after_update': False
+            'trim': {
+                'after_upgrade': False
+            }
         },
         'backup': {
             'enabled': True,

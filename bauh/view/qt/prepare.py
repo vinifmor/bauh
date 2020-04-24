@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
     QProgressBar, QApplication
 
+from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
@@ -116,10 +117,11 @@ class PreparePanel(QWidget, TaskManager):
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
         super(PreparePanel, self).__init__()
+        self.setWindowFlag(Qt.WindowCloseButtonHint, False)
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
-        self.setWindowTitle(' ')
+        self.setWindowTitle('{} ({})'.format(self.i18n['prepare_panel.title.start'].capitalize(), __app_name__))
         self.setMinimumWidth(screen_size.width() * 0.5)
         self.setMinimumHeight(screen_size.height() * 0.35)
         self.setMaximumHeight(screen_size.height() * 0.95)
@@ -295,7 +297,7 @@ class PreparePanel(QWidget, TaskManager):
         self.signal_status.emit(self.ntasks, self.ftasks)
 
         if self.ntasks == self.ftasks:
-            self.label_top.setText("... {} ...".format(self.i18n['ready'].capitalize()))
+            self.label_top.setText(self.i18n['ready'].capitalize())
 
     def finish(self):
         if self.isVisible():

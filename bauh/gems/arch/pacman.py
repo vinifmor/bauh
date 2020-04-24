@@ -141,7 +141,10 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
     else:
         cmd = ['pacman', '-S', *pkgpaths, '--noconfirm']  # pkgpath = pkgname
 
-    return SimpleProcess(cmd=cmd, root_password=root_password, cwd=pkgdir)
+    return SimpleProcess(cmd=cmd,
+                         root_password=root_password,
+                         cwd=pkgdir,
+                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction'})
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
@@ -692,7 +695,9 @@ def list_installed_names() -> Set[str]:
 
 
 def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SimpleProcess:
-    return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'], root_password=root_password)
+    return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'],
+                         root_password=root_password,
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction'})
 
 
 def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
@@ -751,6 +756,67 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
                     else:
                         sev_deps = {dep.strip(): '' for dep in l.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
                         deps.update(sev_deps)
+
+        return res
+
+
+def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
+
+    if output:
+        res = {}
+        deps_fields = {'Depends On', 'Optional Deps'}
+        latest_name, deps, latest_field = None, None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        latest_field = field
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                        deps = None
+                    elif field in deps_fields:
+                        latest_field = field
+                        val = line[field_sep_idx + 1:].strip()
+                        opt_deps = latest_field == 'Optional Deps'
+
+                        if deps is None:
+                            deps = set()
+
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+                                desc = dep_info[1].strip()
+
+                                if desc and opt_deps and only_installed and '[installed]' not in desc:
+                                    continue
+
+                                deps.add(dep_info[0].strip())
+                            else:
+                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+
+                    elif latest_name and deps is not None:
+                        res[latest_name] = deps
+                        latest_name, deps, latest_field = None, None, None
+
+                elif latest_name and deps is not None:
+                    opt_deps = latest_field == 'Optional Deps'
+
+                    if ':' in l:
+                        dep_info = l.split(':')
+                        desc = dep_info[1].strip()
+
+                        if desc and opt_deps and only_installed and '[installed]' not in desc:
+                            continue
+
+                        deps.add(dep_info[0].strip())
+                    else:
+                        deps.update({dep.strip() for dep in l.split(' ') if dep})
 
         return res
 
@@ -835,3 +901,111 @@ def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]
                     conflicts.update(conflicts.update((d for d in l.strip().split(' ') if d)))
 
         return res
+
+
+def _list_unnecessary_deps(pkgs: Iterable[str], already_checked: Set[str], all_provided: Dict[str, Set[str]], recursive: bool = False) -> Set[str]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
+
+    if output:
+        res = set()
+        deps_field = False
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Depends On':
+                        deps_field = True
+                        val = line[field_sep_idx + 1:].strip()
+
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+
+                                real_deps = all_provided.get(dep_info[0].strip())
+
+                                if real_deps:
+                                    res.update(real_deps)
+                            else:
+                                for dep in val.split(' '):
+                                    if dep:
+                                        real_deps = all_provided.get(dep.strip())
+
+                                        if real_deps:
+                                            res.update(real_deps)
+
+                    elif deps_field:
+                        latest_field = False
+
+                elif deps_field:
+                    if ':' in l:
+                        dep_info = l.split(':')
+
+                        real_deps = all_provided.get(dep_info[0].strip())
+
+                        if real_deps:
+                            res.update(real_deps)
+                    else:
+                        for dep in l.split(' '):
+                            if dep:
+                                real_deps = all_provided.get(dep.strip())
+
+                                if real_deps:
+                                    res.update(real_deps)
+
+        if res:
+            res = {dep for dep in res if dep not in already_checked}
+            already_checked.update(res)
+
+            if recursive and res:
+                subdeps = _list_unnecessary_deps(res, already_checked, all_provided)
+
+                if subdeps:
+                    res.update(subdeps)
+
+        return res
+
+
+def list_unnecessary_deps(pkgs: Iterable[str], all_provided: Dict[str, Set[str]] = None) -> Set[str]:
+    all_checked = set(pkgs)
+    all_deps = _list_unnecessary_deps(pkgs, all_checked, map_provided(remote=False) if not all_provided else all_provided, recursive=True)
+
+    unnecessary = set(pkgs)
+    if all_deps:
+        requirements_map = map_required_by(all_deps)
+
+        to_clean = set()
+        for dep, required_by in requirements_map.items():
+            if not required_by or not required_by.difference(unnecessary):
+                unnecessary.add(dep)
+                to_clean.add(dep)
+            elif required_by.difference(all_checked):  # checking if there are requirements outside the context
+                to_clean.add(dep)
+
+        if to_clean:
+            for dep in to_clean:
+                del requirements_map[dep]
+
+        if requirements_map:
+            while True:
+                to_clean = set()
+                for dep, required_by in requirements_map.items():
+                    if not required_by.difference(unnecessary):
+                        unnecessary.add(dep)
+                        to_clean.add(dep)
+
+                if to_clean:
+                    for dep in to_clean:
+                        del requirements_map[dep]
+                else:
+                    break
+
+            if requirements_map:  # if it reaches this points it is possible to exist mutual dependent packages
+                for dep, required_by in requirements_map.items():
+                    if not required_by.difference({*requirements_map.keys(), *unnecessary}):
+                        unnecessary.add(dep)
+
+    return unnecessary.difference(pkgs)

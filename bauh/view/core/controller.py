@@ -1,12 +1,10 @@
-import os
+import re
 import re
 import time
 import traceback
-from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
-from bauh import __app_name__, __version__
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -14,11 +12,10 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
     CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
-from bauh.api.constants import CACHE_PATH
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
-from bauh.commons.html import bold, link
 from bauh.view.core.settings import GenericSettingsManager
+from bauh.view.core.update import check_for_update
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
@@ -330,50 +327,13 @@ class GenericSoftwareManager(SoftwareManager):
 
         return updates
 
-    def _check_for_updates(self) -> str:
-        self.logger.info("Checking for updates")
-
-        try:
-            releases = self.http_client.get_json('https://api.github.com/repos/vinifmor/bauh/releases')
-
-            if releases:
-                latest = None
-
-                for r in releases:
-                    if not r['draft']:
-                        latest = r
-                        break
-
-                if latest and latest.get('tag_name'):
-                    notifications_dir = '{}/updates'.format(CACHE_PATH)
-                    release_file = '{}/{}'.format(notifications_dir, latest['tag_name'])
-                    if os.path.exists(release_file):
-                        self.logger.info("Release {} already notified".format(latest['tag_name']))
-                    elif latest['tag_name'] > __version__:
-                        try:
-                            Path(notifications_dir).mkdir(parents=True, exist_ok=True)
-                            with open(release_file, 'w+') as f:
-                                f.write('')
-                        except:
-                            self.logger.error("An error occurred while trying to create the update notification file: {}".format(release_file))
-
-                        return self.i18n['warning.update_available'].format(bold(__app_name__), bold(latest['tag_name']), link(latest.get('html_url', '?')))
-                    else:
-                        self.logger.info("No updates available")
-                else:
-                    self.logger.warning("No official release found")
-            else:
-                self.logger.warning("No releases returned from the GitHub API")
-        except:
-            self.logger.error("An error occurred while trying to retrieve the current releases")
-
     def list_warnings(self, internet_available: bool = None) -> List[str]:
         warnings = []
 
         int_available = internet.is_available()
 
         if int_available:
-            updates_msg = self._check_for_updates()
+            updates_msg = check_for_update(self.logger, self.http_client, self.i18n)
 
             if updates_msg:
                 warnings.append(updates_msg)

@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import traceback
 from datetime import datetime
+from distutils.version import LooseVersion
 from math import floor
 from pathlib import Path
 from threading import Lock
@@ -216,7 +217,7 @@ class AppImageManager(SoftwareManager):
                             for tup in cursor.fetchall():
                                 for app in res.installed:
                                     if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
-                                        app.update = tup[2] > app.version
+                                        app.update = LooseVersion(tup[2]) > LooseVersion(app.version) if tup[2] else False
 
                                         if app.update:
                                             app.latest_version = tup[2]

@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.1] 2020-04-24
+### Features
+- Tray
+    - displaying a notification when there is a new bauh release
+- Arch
+    - allowing to uninstall no longer needed packages after a package uninstall [#87](https://github.com/vinifmor/bauh/issues/87)
+    
+### Improvements
+- Internet availability checking code
+- Arch
+    - displaying if an AUR package was successfully upgraded on the details output [#89](https://github.com/vinifmor/bauh/issues/89)
+- Settings
+    - **disk.trim_after_update** has changed to **disk.trim.after_upgrade** and accepts 3 possible values: **false** (No): disabled, **true** (Yes): automatically trims, **null** (Ask): displays a confirmation dialog
+
+### Fixes
+- Arch
+    - not stopping the upgrade process if a transaction error happens
+    - search not displaying installed packages that are no longer available on the databases ( e.g: indicator-application )
+    - wrong upgrade substatus in some scenarios
+    - wrong dialog titles
+- AppImage
+    - not detecting some updates ( e.g: RPCS3 )
+    
+### UI
+- Changed the main toolbar buttons and custom actions button ('+') styles
+- Changed some colors
+- Removed the **x** button from some dialogs
+    
 ## [0.9.0] - 2020-04-15
 ### Features
 - Backup

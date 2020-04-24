@@ -49,9 +49,10 @@ class AsyncAction(QThread, ProcessWatcher):
         self.root_password = None
         self.stop = False
 
-    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None, deny_label: str = None, deny_button: bool = True) -> bool:
+    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
+                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = True) -> bool:
         self.wait_confirmation = True
-        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button})
+        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button, 'window_cancel': window_cancel})
         self.wait_user()
         return self.confirmation_res
 
@@ -283,9 +284,8 @@ class UpgradeSelected(AsyncAction):
 
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
-    def _trim_disk(self, root_password: str):
-        if self.request_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                     body=self.i18n['action.trim_disk.ask']):
+    def _trim_disk(self, root_password: str, ask: bool):
+        if not ask or self.request_confirmation(title=self.i18n['confirmation'].capitalize(), body=self.i18n['action.trim_disk.ask']):
 
             pwd = root_password
 
@@ -295,7 +295,7 @@ class UpgradeSelected(AsyncAction):
                 if not success:
                     return
 
-            self.change_status(self.i18n['action.disk_trim'].capitalize())
+            self.change_status('{}...'.format(self.i18n['action.disk_trim'].capitalize()))
             self.change_substatus('')
 
             success, output = ProcessHandler(self).handle_simple(SimpleProcess(['fstrim', '/', '-v'], root_password=pwd))
@@ -460,8 +460,8 @@ class UpgradeSelected(AsyncAction):
             updated = len(requirements.to_upgrade)
             updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
 
-            if bool(app_config['disk']['trim_after_update']):
-                self._trim_disk(root_password)
+            if app_config['disk']['trim']['after_upgrade'] is not False:
+                self._trim_disk(root_password, ask=app_config['disk']['trim']['after_upgrade'] is None)
 
             msg = '<p>{}</p>{}</p><br/><p>{}</p>'.format(self.i18n['action.update.success.reboot.line1'],
                                                          self.i18n['action.update.success.reboot.line2'],

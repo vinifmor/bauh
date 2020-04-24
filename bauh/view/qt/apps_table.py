@@ -302,7 +302,7 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkg)
 
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#cc0000'), uninstall)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#ff1a1a'), uninstall)
             else:
                 item = QLabel()
                 item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
@@ -473,7 +473,7 @@ class AppsTable(QTableWidget):
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='purple', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='#ac00e6', tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
