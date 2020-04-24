@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not detecting some updates ( e.g: RPCS3 )
     
 ### UI
-- Changed the main toolbar buttons style
+- Changed the main toolbar buttons and custom actions button ('+') styles
 - Changed some colors
 - Removed the **x** button from some dialogs
     
