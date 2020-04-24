@@ -144,7 +144,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
                          cwd=pkgdir,
-                         error_phrases={"error: failed to prepare transaction"})
+                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction'})
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
@@ -697,7 +697,7 @@ def list_installed_names() -> Set[str]:
 def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'],
                          root_password=root_password,
-                         error_phrases={'error: failed to prepare transaction'})
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction'})
 
 
 def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:

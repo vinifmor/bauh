@@ -787,7 +787,8 @@ class ArchManager(SoftwareManager):
     def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: str, handler: ProcessHandler) -> bool:
         all_uninstalled, _ = handler.handle_simple(SimpleProcess(cmd=['pacman', '-R', *pkgs, '--noconfirm'],
                                                                  root_password=root_password,
-                                                                 error_phrases={'error: failed to prepare transaction'}))
+                                                                 error_phrases={'error: failed to prepare transaction',
+                                                                                'error: failed to commit transaction'}))
 
         installed = pacman.list_installed_names()
 
