@@ -9,6 +9,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
     QProgressBar, QApplication
 
+from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
@@ -120,7 +121,7 @@ class PreparePanel(QWidget, TaskManager):
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
-        self.setWindowTitle(' ')
+        self.setWindowTitle(__app_name__)
         self.setMinimumWidth(screen_size.width() * 0.5)
         self.setMinimumHeight(screen_size.height() * 0.35)
         self.setMaximumHeight(screen_size.height() * 0.95)
