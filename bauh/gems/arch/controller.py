@@ -303,7 +303,7 @@ class ArchManager(SoftwareManager):
             pkgname = words.split(' ')[0].strip()
             pkg_found = pacman.get_info_dict(pkgname, remote=False)
 
-            if pkg_found:
+            if pkg_found and pkg_found['validated by']:
                 repo_search = {pkgname: {'version': pkg_found.get('version'),
                                          'repository': 'unknown',
                                          'description': pkg_found.get('description')}}

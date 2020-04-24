@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.1] 2020
+## [0.9.1] 2020-04-24
 ### Features
 - Tray
     - displaying a notification when there is a new bauh release
@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Internet availability checking code
 - Arch
-    - displaying on the details if the AUR package was successfully upgraded [#89](https://github.com/vinifmor/bauh/issues/89)
+    - displaying if an AUR package was successfully upgraded on the details output [#89](https://github.com/vinifmor/bauh/issues/89)
 - Settings
     - **disk.trim_after_update** has changed to **disk.trim.after_upgrade** and accepts 3 possible values: **false** (No): disabled, **true** (Yes): automatically trims, **null** (Ask): displays a confirmation dialog
 
@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### UI
 - Changed the main toolbar buttons style
 - Changed some colors
-- Removed the **x** button from some windows
+- Removed the **x** button from some dialogs
     
 ## [0.9.0] - 2020-04-15
 ### Features
