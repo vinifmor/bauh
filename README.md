@@ -101,11 +101,6 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 
-<p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/flatpak/search.gif">
-</p>
-
-
 - Supported actions: search, install, uninstall, downgrade, launch, history
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
@@ -117,11 +112,6 @@ installation_level: null # defines a default installation level: user or system.
 
 #### Snap ( snap )
 
-<p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/snap/search.gif">
-</p>
-
-
 - Supported actions: search, install, uninstall, launch, downgrade
 - Custom actions: refresh
 - Required dependencies:
@@ -129,11 +119,8 @@ installation_level: null # defines a default installation level: user or system.
 
 #### AppImage ( appimage )
 
-<p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/appimage/search.gif">
-</p>
-
 - Supported actions: search, install, uninstall, downgrade, launch, history
+- **Only x86_64 AppImage files are available through the search mechanism at the moment**
 - Custom actions
     - **Install AppImage file**: allows to install a external AppImage file
     - **Upgrade file**: allows to upgrade a manually installed AppImage file
@@ -158,11 +145,6 @@ db_updater:
     - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
 
 #### Arch ( Repositories / AUR )
-
-<p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/arch/search.gif">
-</p>
-
 - Only available for **Arch-based systems**
 - Repository packages supported actions: search, install, uninstall, launch
 - AUR packages supported actions: search, install, uninstall, downgrade, launch, history
