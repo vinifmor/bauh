@@ -121,7 +121,7 @@ class PreparePanel(QWidget, TaskManager):
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
-        self.setWindowTitle(__app_name__)
+        self.setWindowTitle('{} ({})'.format(self.i18n['prepare_panel.title.start'].capitalize(), __app_name__))
         self.setMinimumWidth(screen_size.width() * 0.5)
         self.setMinimumHeight(screen_size.height() * 0.35)
         self.setMaximumHeight(screen_size.height() * 0.95)
