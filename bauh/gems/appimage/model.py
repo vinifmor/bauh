@@ -8,12 +8,6 @@ from bauh.view.util.translation import I18n
 CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
                 'icon_path', 'github', 'categories', 'imported', 'install_dir'}
 
-CUSTOM_ACTIONS = [CustomSoftwareAction(i18_label_key='appimage.custom_action.manual_update',
-                                       i18n_status_key='appimage.custom_action.manual_update.status',
-                                       manager_method='update_file',
-                                       requires_root=False,
-                                       icon_path=resource.get_path('img/refresh.svg', ROOT_DIR))]
-
 
 class AppImage(SoftwarePackage):
 
@@ -21,7 +15,7 @@ class AppImage(SoftwarePackage):
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
-                 i18n: I18n = None, install_dir: str = None, **kwargs):
+                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
@@ -37,6 +31,7 @@ class AppImage(SoftwarePackage):
         self.imported = imported
         self.i18n = i18n
         self.install_dir = install_dir
+        self.custom_actions = custom_actions
 
     def __repr__(self):
         return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
@@ -108,7 +103,7 @@ class AppImage(SoftwarePackage):
 
     def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
         if self.imported:
-            return CUSTOM_ACTIONS
+            return self.custom_actions
 
     def supports_backup(self) -> bool:
         return False

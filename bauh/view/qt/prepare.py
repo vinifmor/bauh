@@ -13,7 +13,7 @@ from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
-from bauh.view.qt import root
+from bauh.view.qt import root, styles
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.qt_utils import centralize
 from bauh.view.qt.thread import AnimateProgress
@@ -121,7 +121,7 @@ class PreparePanel(QWidget, TaskManager):
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
-        self.setWindowTitle('{} ({})'.format(self.i18n['prepare_panel.title.start'].capitalize(), __app_name__))
+        self.setWindowTitle('{} ({})'.format(__app_name__, self.i18n['prepare_panel.title.start'].lower()))
         self.setMinimumWidth(screen_size.width() * 0.5)
         self.setMinimumHeight(screen_size.height() * 0.35)
         self.setMaximumHeight(screen_size.height() * 0.95)
@@ -177,6 +177,7 @@ class PreparePanel(QWidget, TaskManager):
 
         toolbar.addWidget(new_spacer())
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
@@ -245,7 +246,7 @@ class PreparePanel(QWidget, TaskManager):
         lb_status = QLabel(label)
         lb_status.setMinimumWidth(50)
         lb_status.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        lb_status.setStyleSheet("QLabel { color: blue; font-weight: bold; }")
+        lb_status.setStyleSheet("QLabel { font-weight: bold; }")
         self.table.setCellWidget(task_row, 1, lb_status)
 
         lb_sub = QLabel()
@@ -256,7 +257,7 @@ class PreparePanel(QWidget, TaskManager):
 
         lb_progress = QLabel('{0:.2f}'.format(0) + '%')
         lb_progress.setContentsMargins(10, 0, 10, 0)
-        lb_progress.setStyleSheet("QLabel { color: blue; font-weight: bold; }")
+        lb_progress.setStyleSheet("QLabel { font-weight: bold; }")
         lb_progress.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         self.table.setCellWidget(task_row, 3, lb_progress)
@@ -288,7 +289,7 @@ class PreparePanel(QWidget, TaskManager):
         task['lb_sub'].setText('')
 
         for key in ('lb_prog', 'lb_status'):
-            task[key].setStyleSheet('QLabel { color: green; text-decoration: line-through; }')
+            task[key].setStyleSheet('QLabel { color: #68A92E; text-decoration: line-through; }')
 
         task['finished'] = True
         self._resize_columns()

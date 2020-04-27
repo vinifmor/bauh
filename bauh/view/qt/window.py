@@ -20,9 +20,10 @@ from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.view.core.tray_client import notify_tray
-from bauh.view.qt import dialog, commons, qt_utils, root
+from bauh.view.qt import dialog, commons, qt_utils, root, styles
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
+from bauh.view.qt.colors import GREEN
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
@@ -231,7 +232,7 @@ class ManageWindow(QWidget):
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.setStyleSheet(toolbar_button_style('#20A435', 'white'))
+        self.bt_upgrade.setStyleSheet(toolbar_button_style(GREEN, 'white'))
         self.bt_upgrade.clicked.connect(self.update_selected)
         toolbar_bts.append(self.bt_upgrade)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
@@ -319,6 +320,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
 
         self.progress_bar.setTextVisible(False)
@@ -334,16 +336,14 @@ class ManageWindow(QWidget):
         bt_custom_actions.setVisible(bool(self.custom_actions))
         self.ref_bt_custom_actions = self.toolbar_bottom.addWidget(bt_custom_actions)
 
-        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
+        bt_settings = IconButton(QIcon(resource.get_path('img/settings.svg')),
                                  action=self.show_settings,
-                                 background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
-        bt_about = IconButton(QIcon(resource.get_path('img/question.svg')),
+        bt_about = IconButton(QIcon(resource.get_path('img/app_info.svg')),
                               action=self._show_about,
-                              background='#2E68D3',
                               i18n=self.i18n,
                               tooltip=self.i18n['manage_window.settings.about'])
         self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)

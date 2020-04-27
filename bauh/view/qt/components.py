@@ -401,7 +401,7 @@ class IconButton(QWidget):
 
         if background:
             style = 'QToolButton { color: white; background: ' + background + '} '
-            style += 'QToolButton:disabled { color: white; background: grey }'
+            style += 'QToolButton:disabled { color: white; background: blue }'
             self.bt.setStyleSheet(style)
 
         if tooltip:
