@@ -57,7 +57,8 @@ def read_config(update_file: bool = False) -> dict:
             'uninstall': None,
             'downgrade': None,
             'upgrade': None,
-            'mode': 'incremental'
+            'mode': 'incremental',
+            'type': 'rsync'
         }
 
     }

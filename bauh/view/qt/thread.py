@@ -144,7 +144,7 @@ class AsyncAction(QThread, ProcessWatcher):
                     return False
 
             self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.create']))
-            created, _ = handler.handle_simple(timeshift.create_snapshot(root_pwd))
+            created, _ = handler.handle_simple(timeshift.create_snapshot(root_pwd, app_config['backup']['type']))
 
             if not created and not self.request_confirmation(title=i18n['core.config.tab.backup'],
                                                              body='{}. {}'.format(i18n['action.backup.error.create'],

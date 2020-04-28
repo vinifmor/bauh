@@ -302,6 +302,7 @@ class GenericSettingsManager:
 
             core_config['backup']['enabled'] = bkp_form.get_component('enabled').get_selected()
             core_config['backup']['mode'] = bkp_form.get_component('mode').get_selected()
+            core_config['backup']['type'] = bkp_form.get_component('type').get_selected()
             core_config['backup']['install'] = bkp_form.get_component('install').get_selected()
             core_config['backup']['uninstall'] = bkp_form.get_component('uninstall').get_selected()
             core_config['backup']['upgrade'] = bkp_form.get_component('upgrade').get_selected()
@@ -447,8 +448,14 @@ class GenericSettingsManager:
                                     ],
                                     max_width=default_width,
                                     id_='mode')
+            type_ = self._gen_select(label=self.i18n['type'].capitalize(),
+                                     tip=None,
+                                     value=core_config['backup']['type'],
+                                     opts=[('rsync', 'rsync', None), ('btrfs', 'btrfs', None)],
+                                     max_width=default_width,
+                                     id_='type')
 
-            sub_comps = [FormComponent([enabled_opt, mode, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
+            sub_comps = [FormComponent([enabled_opt, mode, type_, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
             return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')
 
     def _gen_select(self, label: str, tip: str, id_: str, opts: List[tuple], value: object, max_width: int, type_: SelectViewType = SelectViewType.RADIO):
