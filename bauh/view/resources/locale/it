@@ -258,6 +258,7 @@ locale.es=spagnolo
 locale.it=italiano
 locale.pt=portoghese
 locale.ru=russo
+locale.tr=turco
 manage_window.apps_table.row.actions.downgrade=Downgrade
 manage_window.apps_table.row.actions.downgrade.popup.body=Vuoi veramente fare il downgrade {} ?
 manage_window.apps_table.row.actions.history=Cronologia
