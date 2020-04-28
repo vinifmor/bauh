@@ -1,0 +1,8 @@
+tray.action.manage=Uygulamalar
+tray.action.exit=Çıkış
+tray.action.about=Hakkında
+tray.action.refreshing=Yenileniyor
+tray.settings=Ayarlar
+notification.update={} güncellemeleri kontrol et
+notification.updates={} güncellemeleri kontrol et
+tray.warning.update_available=Yeni {} sürümü mevcut ({})
