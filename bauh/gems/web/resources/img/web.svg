@@ -7,13 +7,13 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="24"
-   height="24"
+   width="512"
+   height="512"
    version="1.1"
-   viewBox="0 0 24 24"
+   viewBox="0 0 512 512"
    id="svg2382"
    sodipodi:docname="web.svg"
-   inkscape:version="0.92.4 5da689c313, 2019-01-14">
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
   <metadata
      id="metadata2388">
     <rdf:RDF>
@@ -37,25 +37,25 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1360"
-     inkscape:window-height="703"
+     inkscape:window-width="1366"
+     inkscape:window-height="731"
      id="namedview2384"
      showgrid="false"
-     showborder="false"
+     showborder="true"
      fit-margin-top="0"
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:zoom="1.84375"
-     inkscape:cx="129.15254"
-     inkscape:cy="-99.812854"
+     inkscape:zoom="0.23046875"
+     inkscape:cx="-206.58349"
+     inkscape:cy="27.685718"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="svg2382" />
   <g
      id="g2943"
-     transform="translate(-4,-37)">
+     transform="matrix(18.983042,0,0,18.80225,-47.728672,-665.31025)">
     <path
        inkscape:connector-curvature="0"
        id="path2362"

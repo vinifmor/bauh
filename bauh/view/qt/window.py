@@ -342,7 +342,7 @@ class ManageWindow(QWidget):
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
-        bt_about = IconButton(QIcon(resource.get_path('img/app_info.svg')),
+        bt_about = IconButton(QIcon(resource.get_path('img/info.svg')),
                               action=self._show_about,
                               i18n=self.i18n,
                               tooltip=self.i18n['manage_window.settings.about'])
@@ -400,6 +400,7 @@ class ManageWindow(QWidget):
         self.input_name_filter.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
         self.table_apps.setEnabled(False)
+        self.setFocus(Qt.NoFocusReason)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)

@@ -14,7 +14,7 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
-from bauh.view.qt.colors import DARK_GREEN, GREEN
+from bauh.view.qt.colors import GREEN
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util import resource
@@ -301,7 +301,7 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkg)
 
-                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c='#996633')
+                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c='#c87137')
                 item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
             else:
                 item = QLabel()
@@ -350,7 +350,7 @@ class AppsTable(QTableWidget):
             tooltip = self.i18n['version.unknown']
 
         if pkg.model.update:
-            label_version.setStyleSheet("color: {}; font-weight: bold".format(DARK_GREEN))
+            label_version.setStyleSheet("color: {}; font-weight: bold".format(GREEN))
             tooltip = self.i18n['version.installed_outdated']
 
         if pkg.model.installed and pkg.model.update and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
@@ -468,26 +468,25 @@ class AppsTable(QTableWidget):
 
         settings = self.has_any_settings(pkg)
         if pkg.model.installed:
-            icon = QIcon(QIcon(resource.get_path('img/custom_actions.svg')).pixmap(12, 12))
-            bt = IconButton(icon, i18n=self.i18n, action=handle_click, tooltip=self.i18n['action.settings.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/app_actions.svg')), i18n=self.i18n, action=handle_click, tooltip=self.i18n['action.settings.tooltip'])
             bt.setEnabled(bool(settings))
             item.addWidget(bt)
-
-        def get_info():
-            self.window.get_app_info(pkg)
-
-        icon = QIcon(QIcon(resource.get_path('img/app_info.svg')).pixmap(14, 14))
-        bt = IconButton(icon, i18n=self.i18n, action=get_info, tooltip=self.i18n['action.info.tooltip'])
-        bt.setEnabled(bool(pkg.model.has_info()))
-        item.addWidget(bt)
 
         if not pkg.model.installed:
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, tooltip=self.i18n['action.screenshots.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots,
+                            tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
+
+        def get_info():
+            self.window.get_app_info(pkg)
+
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, tooltip=self.i18n['action.info.tooltip'])
+        bt.setEnabled(bool(pkg.model.has_info()))
+        item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)
 

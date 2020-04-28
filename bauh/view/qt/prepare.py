@@ -14,6 +14,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.handler import TaskManager
 from bauh.view.qt import root, styles
+from bauh.view.qt.colors import GREEN
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.qt_utils import centralize
 from bauh.view.qt.thread import AnimateProgress
@@ -289,7 +290,7 @@ class PreparePanel(QWidget, TaskManager):
         task['lb_sub'].setText('')
 
         for key in ('lb_prog', 'lb_status'):
-            task[key].setStyleSheet('QLabel { color: #68A92E; text-decoration: line-through; }')
+            task[key].setStyleSheet('QLabel { color: %s; text-decoration: line-through; }' % GREEN)
 
         task['finished'] = True
         self._resize_columns()

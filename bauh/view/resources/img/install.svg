@@ -18,10 +18,10 @@
    viewBox="0 0 12 12"
    xml:space="preserve"
    sodipodi:docname="install.svg"
-   inkscape:version="0.92.3 (2405546, 2018-03-11)"><metadata
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"><metadata
    id="metadata135"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
-         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title /></cc:Work></rdf:RDF></metadata><defs
    id="defs133" /><sodipodi:namedview
    pagecolor="#ffffff"
    bordercolor="#666666"
@@ -32,7 +32,7 @@
    inkscape:pageopacity="0"
    inkscape:pageshadow="2"
    inkscape:window-width="1366"
-   inkscape:window-height="703"
+   inkscape:window-height="739"
    id="namedview131"
    showgrid="false"
    showborder="false"
@@ -41,21 +41,21 @@
    fit-margin-right="0"
    fit-margin-bottom="0"
    inkscape:zoom="1.9124627"
-   inkscape:cx="58.262905"
+   inkscape:cx="-35.595135"
    inkscape:cy="42.640588"
    inkscape:window-x="0"
-   inkscape:window-y="260"
+   inkscape:window-y="0"
    inkscape:window-maximized="1"
    inkscape:current-layer="Capa_1" />
 <g
    id="g98"
    transform="scale(0.034381)"
-   style="fill:#00ff00">
+   style="fill:#91a069;fill-opacity:1">
 	<path
    d="m 349.03,141.226 v 66.579 c 0,5.012 -4.061,9.079 -9.079,9.079 H 216.884 v 123.067 c 0,5.019 -4.067,9.079 -9.079,9.079 h -66.579 c -5.009,0 -9.079,-4.061 -9.079,-9.079 V 216.884 H 9.079 C 4.063,216.884 0,212.817 0,207.805 v -66.579 c 0,-5.013 4.063,-9.079 9.079,-9.079 H 132.147 V 9.079 C 132.147,4.061 136.216,0 141.226,0 h 66.579 c 5.012,0 9.079,4.061 9.079,9.079 v 123.068 h 123.067 c 5.019,0 9.079,4.066 9.079,9.079 z"
    id="path96"
    inkscape:connector-curvature="0"
-   style="fill:#00ff00" />
+   style="fill:#91a069;fill-opacity:1" />
 </g>
 <g
    id="g100"
