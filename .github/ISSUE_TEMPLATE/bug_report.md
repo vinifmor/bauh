@@ -12,6 +12,6 @@ A clear and concise description of what the bug is.
 
 **Software Environment**
 bauh version: 
-O.S (name and version): 
+O.S: name and version 
 Python version:
-Installation method (manual, package manager, ...):
+bauh installation method: manual / package manager
