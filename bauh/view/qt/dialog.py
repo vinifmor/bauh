@@ -1,11 +1,12 @@
 from typing import List
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
-from bauh.api.abstract.view import MessageType
 
-from bauh.view.util import resource
+from bauh.api.abstract.view import MessageType
 from bauh.view.qt import css
+from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
 MSG_TYPE_MAP = {
@@ -32,6 +33,7 @@ def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(reso
     diag.setIcon(QMessageBox.Question)
     diag.setWindowTitle(title)
     diag.setStyleSheet('QLabel { margin-right: 25px; }')
+    diag.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
 
     wbody = QWidget()
     wbody.setLayout(QHBoxLayout())

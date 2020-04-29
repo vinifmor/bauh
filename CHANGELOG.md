@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
 ### UI
     - icons, buttons and colors changes
+    - removed more unnecessary **x** buttons from some dialogs
     
 ### i18n contributors
     - Turkish (tr): [tuliana](https://github.com/tulliana)

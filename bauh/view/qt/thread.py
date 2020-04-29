@@ -50,7 +50,7 @@ class AsyncAction(QThread, ProcessWatcher):
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
-                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = True) -> bool:
+                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = False) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button, 'window_cancel': window_cancel})
         self.wait_user()
