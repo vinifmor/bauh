@@ -15,6 +15,7 @@ from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleS
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
     TwoStateButtonComponent, TextComponent, SpacerComponent
 from bauh.view.qt import css
+from bauh.view.qt.colors import RED
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -607,7 +608,7 @@ class FormQt(QGroupBox):
             traceback.print_exc()
             icon = QIcon()
 
-        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background='#cc0000', tooltip=self.i18n['action.run.tooltip'])
+        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background=RED, tooltip=self.i18n['action.run.tooltip'])
 
         wrapped.layout().addWidget(bt)
         return label, wrapped

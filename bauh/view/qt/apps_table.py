@@ -14,7 +14,7 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
-from bauh.view.qt.colors import GREEN
+from bauh.view.qt.colors import GREEN, BROWN
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util import resource
@@ -301,7 +301,7 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkg)
 
-                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c='#c87137')
+                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
                 item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
             else:
                 item = QLabel()
