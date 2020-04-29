@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Backup
     - new **type** field on settings to specify the Timeshift backup mode: **RSYNC** or **BTRFS**
+- Trim
+    - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
 ### UI
     - icons, buttons and colors changes
     
