@@ -13,12 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Settings
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
 ### UI
-    - icons, buttons and colors changes
-    - removed more unnecessary **x** buttons from some dialogs
+- icons, buttons and colors changes
+- removed more unnecessary **x** buttons from some dialogs
     
 ### i18n contributors
-    - Turkish (tr): [tuliana](https://github.com/tulliana)
-    - Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
+- Turkish (tr): [tuliana](https://github.com/tulliana)
+- Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
 
 ## [0.9.1] 2020-04-24
 ### Features
