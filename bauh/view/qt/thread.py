@@ -458,10 +458,11 @@ class UpgradeSelected(AsyncAction):
             if should_trim:
                 self._trim_disk(root_password)
 
-            msg = '<p>{}</p>{}</p><br/><p>{}</p>'.format(self.i18n['action.update.success.reboot.line1'],
-                                                         self.i18n['action.update.success.reboot.line2'],
-                                                         self.i18n['action.update.success.reboot.line3'])
-            self.request_reboot(msg)
+            if bool(app_config['updates']['ask_for_reboot']):
+                msg = '<p>{}</p>{}</p><br/><p>{}</p>'.format(self.i18n['action.update.success.reboot.line1'],
+                                                             self.i18n['action.update.success.reboot.line2'],
+                                                             self.i18n['action.update.success.reboot.line3'])
+                self.request_reboot(msg)
 
         self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': upgrade_id})
         self.pkgs = None

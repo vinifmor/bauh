@@ -277,6 +277,7 @@ ui:
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
+  ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade
 disk:
     trim:
         after_upgrade: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` ). 'true' will automatically perform the trim and 'null' will display a confirmation dialog

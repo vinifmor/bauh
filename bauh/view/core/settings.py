@@ -240,7 +240,14 @@ class GenericSettingsManager:
                                       max_width=default_width,
                                       id_="sugs_by_type")
 
-        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
+        inp_reboot = self._gen_select(label=self.i18n['core.config.updates.reboot'],
+                                      tip=self.i18n['core.config.updates.reboot.tip'],
+                                      id_='ask_for_reboot',
+                                      max_width=default_width,
+                                      value=bool(core_config['updates']['ask_for_reboot']),
+                                      opts=[(self.i18n['ask'].capitalize(), True, None), (self.i18n['no'].capitalize(), False, None)])
+
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -278,6 +285,8 @@ class GenericSettingsManager:
 
         sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type
+
+        core_config['updates']['ask_for_reboot'] = general_form.get_component('ask_for_reboot').get_selected()
 
         # advanced
         adv_form = advanced.components[0]
