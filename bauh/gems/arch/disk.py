@@ -71,7 +71,7 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
                 raise
 
             for f in desktop_files:
-                if ends_with.match(f):
+                if ends_with.match(f) and os.path.isfile(f):
                     desktop_matches[pkg] = f
                     break
 
@@ -82,13 +82,14 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
                 entries = pacman.list_desktop_entries({pkg})
 
                 if entries:
-                    desktop_matches[pkg] = entries[0]
-
                     if len(entries) > 1:
                         for e in entries:
-                            if e.startswith('/usr/share/applications'):
+                            if e.startswith('/usr/share/applications') and os.path.isfile(e):
                                 desktop_matches[pkg] = e
                                 break
+                    else:
+                        if os.path.isfile(entries[0]):
+                            desktop_matches[pkg] = entries[0]
 
         if not desktop_matches:
             no_desktop_files = to_cache

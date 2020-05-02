@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
 - Settings
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
+    
+### Fixes
+- Arch
+    - file not found error while organizing the data of installed packages [#101](https://github.com/vinifmor/bauh/issues/101)    
+    
 ### UI
 - icons, buttons and colors changes
 - removed more unnecessary **x** buttons from some dialogs
