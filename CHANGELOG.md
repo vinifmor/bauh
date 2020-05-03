@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/files_conflict.png">
     </p>
+    - displaying more upgrade substatus
     
 ### Fixes
 - Arch

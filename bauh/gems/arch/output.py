@@ -20,11 +20,12 @@ class TransactionStatusHandler(Thread):
         self.work = True
         self.logger = logger
         self.percentage = percentage
-        self.accepted = {'checking keyring',
-                         'checking package integrity',
-                         'loading package files',
-                         'checking for file conflicts',
-                         'checking available disk space'}
+        self.accepted = {'checking keyring': 'keyring',
+                         'checking package integrity': 'integrity',
+                         'loading package files': 'loading_files',
+                         'checking for file conflicts': 'conflicts',
+                         'checking available disk space': 'disk_space',
+                         ':: Running pre-transaction hooks': 'pre_hooks'}
 
     def gen_percentage(self) -> str:
         if self.percentage:
@@ -69,9 +70,9 @@ class TransactionStatusHandler(Thread):
             else:
                 substatus_found = False
                 lower_output = output.lower()
-                for msg in self.accepted:
+                for msg, key in self.accepted.items():
                     if lower_output.startswith(msg):
-                        self.watcher.change_substatus(self.i18n['arch.substatus.{}'.format(msg)].capitalize())
+                        self.watcher.change_substatus(self.i18n['arch.substatus.{}'.format(key)].capitalize())
                         substatus_found = True
                         break
 
