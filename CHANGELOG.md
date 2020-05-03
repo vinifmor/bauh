@@ -32,6 +32,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### UI
 - icons, buttons and colors changes
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/color_design.png">
+</p>
+
 - more unnecessary **x** buttons were removed from dialogs
 - "click" cursor set for most "clickable" components
 - minor improvements
