@@ -216,6 +216,7 @@ core.config.ui.hdpi=HDPI
 core.config.ui.hdpi.tip=Si se deben activar las mejoras relacionadas con las resoluciones HDPI
 core.config.ui.max_displayed=Aplicaciones mostradas
 core.config.ui.max_displayed.tip=Número máximo de aplicaciones que se muestran en la tabla
+core.config.ui.style.default=Predeterminado
 core.config.ui.tray.default_icon=Ícono predeterminado
 core.config.ui.tray.default_icon.tip=El icono predeterminado que se muestra en la bandeja
 core.config.ui.tray.updates_icon=Icono de actualización

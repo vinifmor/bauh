@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Arch
     - file not found error while organizing the data of installed packages [#101](https://github.com/vinifmor/bauh/issues/101)    
+- Settings
+    - crashing when an unknown Qt style is set [#69](https://github.com/vinifmor/bauh/issues/69)
     
 ### UI
 - icons, buttons and colors changes

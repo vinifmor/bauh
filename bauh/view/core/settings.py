@@ -165,10 +165,20 @@ class GenericSettingsManager:
                                                  id_='auto_scale')
 
         cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
-        style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
+        style_opts = [InputOption(label=self.i18n['core.config.ui.style.default'].capitalize(), value=None)]
+        style_opts.extend([InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()])
+
+        default_style = [o for o in style_opts if o.value == cur_style]
+
+        if not default_style:
+            default_style = InputOption(label=cur_style, value=cur_style)
+            style_opts.append(default_style)
+        else:
+            default_style = default_style[0]
+
         select_style = SingleSelectComponent(label=self.i18n['style'].capitalize(),
                                              options=style_opts,
-                                             default_option=[o for o in style_opts if o.value == cur_style][0],
+                                             default_option=default_style,
                                              type_=SelectViewType.COMBO,
                                              max_width=default_width,
                                              id_="style")

@@ -215,6 +215,7 @@ core.config.ui.hdpi.tip=HDPI çözünürlükleri ile ilgili iyileştirmeler etki
 core.config.ui.hdpi=HDPI
 core.config.ui.max_displayed.tip=Tabloda görüntülenen azami uygulama sayısı
 core.config.ui.max_displayed=Görüntülenen uygulamalar
+core.config.ui.style.default=Default
 core.config.ui.tray.default_icon.tip=Tepside görüntülenen {app} için varsayılan simge
 core.config.ui.tray.default_icon=Varsayılan simge
 core.config.ui.tray.updates_icon.tip=Güncelleme mevcut olduğunda görüntülenen simge

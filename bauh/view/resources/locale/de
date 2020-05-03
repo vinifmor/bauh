@@ -215,6 +215,7 @@ core.config.ui.hdpi=HiDPI
 core.config.ui.hdpi.tip=Falls aktiviert werden Optimierungen für hochauflösende Displays vorgenommen
 core.config.ui.max_displayed=Anzahl der Anwendungen
 core.config.ui.max_displayed.tip=Maximale Anzahl von Anwendungen, die in der Tabelle angezeigt werden
+core.config.ui.style.default=Default
 core.config.ui.tray.default_icon=Anwendungs-Icon
 core.config.ui.tray.default_icon.tip=The default icon for {app} displayed on the tray
 core.config.ui.tray.updates_icon=Icon bei Updates
