@@ -102,6 +102,15 @@ class TaskManager:
         """
         pass
 
+    def update_output(self, task_id: str, output: str):
+        """
+        updates the task output
+        :param task_id:
+        :param output:
+        :return:
+        """
+        pass
+
     def finish_task(self, task_id: str):
         """
         marks a task as finished

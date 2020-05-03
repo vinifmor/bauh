@@ -5,9 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.2] 2020
+### Features
+- UI
+    - it is possible to view details of some initialization tasks by clicking on their icons
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_icon.png">
+    </p>
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_output.png">
+    </p>
+    
 ### Improvements
 - Backup
     - new **type** field on settings to specify the Timeshift backup mode: **RSYNC** or **BTRFS**
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/backup_mode.png">
+    </p>
 - Trim
     - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
 - Settings

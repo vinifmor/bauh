@@ -500,8 +500,7 @@ def get_current_mirror_countries() -> List[str]:
 
 
 def is_mirrors_available() -> bool:
-    res = run_cmd('which pacman-mirrors', print_error=False)
-    return res and not res.strip().startswith('which ')
+    return bool(run_cmd('which pacman-mirrors', print_error=False))
 
 
 def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:

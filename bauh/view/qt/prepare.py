@@ -5,9 +5,9 @@ from functools import reduce
 from typing import Tuple
 
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
-    QProgressBar, QApplication
+    QProgressBar, QApplication, QPlainTextEdit, QToolButton, QHBoxLayout
 
 from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
@@ -27,6 +27,7 @@ class Prepare(QThread, TaskManager):
     signal_finished = pyqtSignal(str)
     signal_started = pyqtSignal()
     signal_ask_password = pyqtSignal()
+    signal_output = pyqtSignal(str, str)
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager, i18n: I18n):
         super(Prepare, self).__init__()
@@ -63,6 +64,9 @@ class Prepare(QThread, TaskManager):
     def update_progress(self, task_id: str, progress: float, substatus: str):
         self.signal_update.emit(task_id, progress, substatus)
 
+    def update_output(self, task_id: str, output: str):
+        self.signal_output.emit(task_id, output)
+
     def register_task(self, id_: str, label: str, icon_path: str):
         self.signal_register.emit(id_, label, icon_path)
 
@@ -79,6 +83,7 @@ class CheckFinished(QThread):
         self.finished = None
 
     def run(self):
+        time.sleep(3)
         while True:
             if self.total is not None and self.finished is not None:
                 if self.total == self.finished:
@@ -117,8 +122,7 @@ class PreparePanel(QWidget, TaskManager):
     signal_password_response = pyqtSignal(str, bool)
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
-        super(PreparePanel, self).__init__()
-        self.setWindowFlag(Qt.WindowCloseButtonHint, False)
+        super(PreparePanel, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.i18n = i18n
         self.context = context
         self.manage_window = manage_window
@@ -130,6 +134,7 @@ class PreparePanel(QWidget, TaskManager):
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.manager = manager
         self.tasks = {}
+        self.output = {}
         self.ntasks = 0
         self.ftasks = 0
         self.self_close = False
@@ -140,6 +145,7 @@ class PreparePanel(QWidget, TaskManager):
         self.prepare_thread.signal_finished.connect(self.finish_task)
         self.prepare_thread.signal_started.connect(self.start)
         self.prepare_thread.signal_ask_password.connect(self.ask_root_password)
+        self.prepare_thread.signal_output.connect(self.update_output)
         self.signal_password_response.connect(self.prepare_thread.set_password_reply)
 
         self.check_thread = CheckFinished()
@@ -170,27 +176,60 @@ class PreparePanel(QWidget, TaskManager):
         self.table.setHorizontalHeaderLabels(['' for _ in range(4)])
         self.layout().addWidget(self.table)
 
-        toolbar = QToolBar()
+        self.textarea_output = QPlainTextEdit(self)
+        self.textarea_output.resize(self.table.size())
+        self.textarea_output.setStyleSheet("background: black; color: white;")
+        self.layout().addWidget(self.textarea_output)
+        self.textarea_output.setVisible(False)
+        self.textarea_output.setReadOnly(True)
+        self.textarea_output.setMaximumHeight(100)
+        self.current_output_task = None
+
+        self.bottom_widget = QWidget()
+        self.bottom_widget.setLayout(QHBoxLayout())
+        self.bottom_widget.layout().addStretch()
+        bt_hide_output = QPushButton('Hide details')
+        bt_hide_output.setStyleSheet('QPushButton { text-decoration: underline; border: 0px; background: none } ')
+        bt_hide_output.clicked.connect(self.hide_output)
+        bt_hide_output.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bottom_widget.layout().addWidget(bt_hide_output)
+        self.bottom_widget.layout().addStretch()
+        self.layout().addWidget(self.bottom_widget)
+        self.bottom_widget.setVisible(False)
+
+        self.bt_bar = QToolBar()
         self.bt_close = QPushButton(self.i18n['close'].capitalize())
+        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_close.clicked.connect(self.close)
         self.bt_close.setVisible(False)
-        self.ref_bt_close = toolbar.addWidget(self.bt_close)
+        self.ref_bt_close = self.bt_bar.addWidget(self.bt_close)
 
-        toolbar.addWidget(new_spacer())
+        self.bt_bar.addWidget(new_spacer())
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
-        self.ref_progress_bar = toolbar.addWidget(self.progress_bar)
-        toolbar.addWidget(new_spacer())
+        self.ref_progress_bar = self.bt_bar.addWidget(self.progress_bar)
+        self.bt_bar.addWidget(new_spacer())
 
         self.bt_skip = QPushButton(self.i18n['prepare_panel.bt_skip.label'].capitalize())
         self.bt_skip.clicked.connect(self.finish)
         self.bt_skip.setEnabled(False)
-        toolbar.addWidget(self.bt_skip)
+        self.bt_bar.addWidget(self.bt_skip)
 
-        self.layout().addWidget(toolbar)
+        self.layout().addWidget(self.bt_bar)
+
+    def hide_output(self):
+        self.current_output_task = None
+        self.textarea_output.setVisible(False)
+        self.textarea_output.clear()
+        self.bottom_widget.setVisible(False)
+        self._resize_columns()
+        self.setFocus(Qt.NoFocusReason)
+
+        if not self.bt_bar.isVisible():
+            self.bt_bar.setVisible(True)
 
     def ask_root_password(self):
         root_pwd, ok = root.ask_root_password(self.context, self.i18n)
@@ -198,6 +237,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def _enable_skip_button(self):
         self.bt_skip.setEnabled(True)
+        self.bt_skip.setCursor(QCursor(Qt.PointingHandCursor))
 
     def _change_progress(self, value: int):
         self.progress_bar.setValue(value)
@@ -235,14 +275,40 @@ class PreparePanel(QWidget, TaskManager):
 
         task_row = self.ntasks - 1
 
-        lb_icon = QLabel()
-        lb_icon.setContentsMargins(10, 0, 10, 0)
-        lb_icon.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        icon_widget = QWidget()
+        icon_widget.setLayout(QHBoxLayout())
+        icon_widget.layout().setContentsMargins(10, 0, 10, 0)
+        bt_icon = QToolButton()
+        bt_icon.setEnabled(False)
+        bt_icon.setToolTip(self.i18n['prepare.bt_icon.no_output'])
+        bt_icon.setFixedSize(QSize(24, 24))
+        bt_icon.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if icon_path:
-            lb_icon.setPixmap(QIcon(icon_path).pixmap(14, 14))
+            bt_icon.setIcon(QIcon(icon_path))
 
-        self.table.setCellWidget(task_row, 0, lb_icon)
+        def _show_output():
+            lines = self.output[id_]
+
+            if lines:
+                self.current_output_task = id_
+                self.textarea_output.clear()
+                self.textarea_output.setVisible(True)
+
+                for l in lines:
+                    self.textarea_output.appendPlainText(l)
+
+                self.bottom_widget.setVisible(True)
+
+            self.setFocus(Qt.NoFocusReason)
+
+            if self.bt_bar.isVisible():
+                self.bt_bar.setVisible(False)
+
+        bt_icon.clicked.connect(_show_output)
+        icon_widget.layout().addWidget(bt_icon)
+
+        self.table.setCellWidget(task_row, 0, icon_widget)
 
         lb_status = QLabel(label)
         lb_status.setMinimumWidth(50)
@@ -263,7 +329,8 @@ class PreparePanel(QWidget, TaskManager):
 
         self.table.setCellWidget(task_row, 3, lb_progress)
 
-        self.tasks[id_] = {'lb_status': lb_status,
+        self.tasks[id_] = {'bt_icon': bt_icon,
+                           'lb_status': lb_status,
                            'lb_prog': lb_progress,
                            'progress': 0,
                            'lb_sub': lb_sub,
@@ -284,6 +351,22 @@ class PreparePanel(QWidget, TaskManager):
             task['lb_sub'].setText('')
 
         self._resize_columns()
+
+    def update_output(self, task_id: str, output: str):
+        full_output = self.output.get(task_id)
+
+        if full_output is None:
+            full_output = []
+            self.output[task_id] = full_output
+            task = self.tasks[task_id]
+            task['bt_icon'].setEnabled(True)
+            task['bt_icon'].setCursor(QCursor(Qt.PointingHandCursor))
+            task['bt_icon'].setToolTip(self.i18n['prepare.bt_icon.output'])
+
+        full_output.append(output)
+
+        if self.current_output_task == task_id:
+            self.textarea_output.appendPlainText(output)
 
     def finish_task(self, task_id: str):
         task = self.tasks[task_id]

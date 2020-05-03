@@ -1,14 +1,16 @@
 import os
 from typing import Tuple
 
-from PyQt5.QtWidgets import QInputDialog, QLineEdit
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialogButtonBox
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
 from bauh.view.core.config import read_config
+from bauh.view.qt import css
 from bauh.view.qt.dialog import show_message
-from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import util
 from bauh.view.util.translation import I18n
 
@@ -25,7 +27,7 @@ def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict 
     if store_password and context.root_password and validate_password(context.root_password):
         return context.root_password, True
 
-    diag = QInputDialog()
+    diag = QInputDialog(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
     diag.setStyleSheet("""QLineEdit {  border-radius: 5px; font-size: 16px; border: 1px solid lightblue }""")
     diag.setInputMode(QInputDialog.TextInput)
     diag.setTextEchoMode(QLineEdit.Password)
@@ -34,6 +36,16 @@ def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict 
     diag.setLabelText('')
     diag.setOkButtonText(i18n['popup.root.continue'].capitalize())
     diag.setCancelButtonText(i18n['popup.button.cancel'].capitalize())
+
+    bt_box = [c for c in diag.children() if isinstance(c, QDialogButtonBox)][0]
+
+    for bt in bt_box.buttons():
+        if bt_box.buttonRole(bt) == QDialogButtonBox.AcceptRole:
+            bt.setStyleSheet(css.OK_BUTTON)
+
+        bt.setCursor(QCursor(Qt.PointingHandCursor))
+        bt.setIcon(QIcon())
+
     diag.resize(400, 200)
 
     for attempt in range(3):
