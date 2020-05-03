@@ -188,7 +188,7 @@ class PreparePanel(QWidget, TaskManager):
         self.bottom_widget = QWidget()
         self.bottom_widget.setLayout(QHBoxLayout())
         self.bottom_widget.layout().addStretch()
-        bt_hide_output = QPushButton('Hide details')
+        bt_hide_output = QPushButton(self.i18n['prepare.bt_hide_details'])
         bt_hide_output.setStyleSheet('QPushButton { text-decoration: underline; border: 0px; background: none } ')
         bt_hide_output.clicked.connect(self.hide_output)
         bt_hide_output.setCursor(QCursor(Qt.PointingHandCursor))

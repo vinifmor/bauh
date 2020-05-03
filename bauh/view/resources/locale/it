@@ -336,6 +336,7 @@ popup.root.continue=continuare
 popup.root.title=Richiede la tua password per continuare
 popup.screenshots.no_screenshot.body=non è stato possibile recuperare {} schermate
 prepar_panel.bt_skip.label=saltare
+prepare.bt_hide_details=Hide details
 prepare.bt_icon.no_output=There are no progress details for this task to be displayed
 prepare.bt_icon.output=Click here to display the progress details of this task
 prepare_panel.bt_skip.label=skip

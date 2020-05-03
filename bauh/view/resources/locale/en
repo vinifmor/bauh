@@ -333,6 +333,7 @@ popup.root.bad_password.title=Error
 popup.root.continue=continue
 popup.root.title=Requires your password to continue
 popup.screenshots.no_screenshot.body=it was not possible to retrieve {} screenshots
+prepare.bt_hide_details=Hide details
 prepare.bt_icon.no_output=There are no progress details for this task to be displayed
 prepare.bt_icon.output=Click here to display the progress details of this task
 prepare_panel.bt_skip.label=skip
