@@ -39,6 +39,7 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QToolButton()
+        self.bt.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt.setCheckable(True)
         self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
@@ -115,8 +116,9 @@ class AppsTable(QTableWidget):
                pkg.model.can_be_downgraded() or \
                bool(pkg.model.get_custom_supported_actions())
 
-    def show_pkg_settings(self, pkg: PackageView):
+    def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
+        menu_row.setCursor(QCursor(Qt.PointingHandCursor))
 
         if pkg.model.installed:
             if pkg.model.has_history():
@@ -256,7 +258,7 @@ class AppsTable(QTableWidget):
         self._set_col_publisher(3, pkg)
         self._set_col_type(4, pkg)
         self._set_col_installed(5, pkg)
-        self._set_col_settings(6, pkg)
+        self._set_col_actions(6, pkg)
 
         if change_update_col:
             col_update = None
@@ -277,6 +279,7 @@ class AppsTable(QTableWidget):
         col.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         col_bt = QToolButton()
+        col_bt.setCursor(QCursor(Qt.PointingHandCursor))
         col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         col_bt.setText(text)
         col_bt.setStyleSheet('QToolButton { ' + style + '}')
@@ -451,7 +454,7 @@ class AppsTable(QTableWidget):
 
         self.setCellWidget(pkg.table_index, col, item)
 
-    def _set_col_settings(self, col: int, pkg: PackageView):
+    def _set_col_actions(self, col: int, pkg: PackageView):
         item = QToolBar()
         item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
@@ -464,7 +467,7 @@ class AppsTable(QTableWidget):
             item.addWidget(bt)
 
         def handle_click():
-            self.show_pkg_settings(pkg)
+            self.show_pkg_actions(pkg)
 
         settings = self.has_any_settings(pkg)
         if pkg.model.installed:

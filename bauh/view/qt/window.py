@@ -150,11 +150,13 @@ class ManageWindow(QWidget):
         self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.checkbox_updates = QCheckBox()
+        self.checkbox_updates.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_updates.setText(self.i18n['updates'].capitalize())
         self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
         self.ref_checkbox_updates = self.toolbar.addWidget(self.checkbox_updates)
 
         self.checkbox_only_apps = QCheckBox()
+        self.checkbox_only_apps.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_only_apps.setText(self.i18n['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
@@ -163,6 +165,7 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_filter_type.setIconSize(QSize(14, 14))
@@ -176,6 +179,7 @@ class ManageWindow(QWidget):
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
+        self.combo_categories.setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_categories.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_categories.setEditable(True)
@@ -199,6 +203,7 @@ class ManageWindow(QWidget):
 
         if config['suggestions']['enabled']:
             self.bt_suggestions = QPushButton()
+            self.bt_suggestions.setCursor(QCursor(Qt.PointingHandCursor))
             self.bt_suggestions.setToolTip(self.i18n['manage_window.bt.suggestions.tooltip'])
             self.bt_suggestions.setText(self.i18n['manage_window.bt.suggestions.text'].capitalize())
             self.bt_suggestions.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
@@ -211,6 +216,7 @@ class ManageWindow(QWidget):
             self.ref_bt_suggestions = None
 
         self.bt_installed = QPushButton()
+        self.bt_installed.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
@@ -220,6 +226,7 @@ class ManageWindow(QWidget):
         toolbar_bts.append(self.bt_installed)
 
         self.bt_refresh = QPushButton()
+        self.bt_refresh.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
@@ -229,6 +236,7 @@ class ManageWindow(QWidget):
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
+        self.bt_upgrade.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
@@ -259,6 +267,7 @@ class ManageWindow(QWidget):
         toolbar_console = QToolBar()
 
         self.checkbox_console = QCheckBox()
+        self.checkbox_console.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_console.setText(self.i18n['manage_window.checkbox.show_details'])
         self.checkbox_console.stateChanged.connect(self._handle_console)
         self.checkbox_console.setVisible(False)
@@ -1241,6 +1250,7 @@ class ManageWindow(QWidget):
     def show_custom_actions(self):
         if self.custom_actions:
             menu_row = QMenu()
+            menu_row.setCursor(QCursor(Qt.PointingHandCursor))
             actions = [self._map_custom_action(a) for a in self.custom_actions]
             menu_row.addActions(actions)
             menu_row.adjustSize()

@@ -3,7 +3,7 @@ from threading import Thread
 from typing import List
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtGui import QIcon, QPixmap, QCursor
 from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QToolBar, QVBoxLayout, QProgressBar, QApplication
 
 from bauh.api.abstract.cache import MemoryCache
@@ -54,6 +54,7 @@ class ScreenshotsDialog(QDialog):
         self.bottom_bar = QToolBar()
 
         self.bt_back = QPushButton(' < ' + self.i18n['screenshots.bt_back.label'].capitalize())
+        self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_back.clicked.connect(self.back)
         self.ref_bt_back = self.bottom_bar.addWidget(self.bt_back)
         self.bottom_bar.addWidget(new_spacer(50))
@@ -66,6 +67,7 @@ class ScreenshotsDialog(QDialog):
         self.bottom_bar.addWidget(new_spacer(50))
 
         self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize() + ' > ')
+        self.bt_next.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_next.clicked.connect(self.next)
         self.ref_bt_next = self.bottom_bar.addWidget(self.bt_next)
 

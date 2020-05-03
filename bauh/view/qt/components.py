@@ -6,7 +6,7 @@ from threading import Thread
 from typing import Tuple
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
+from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
     QSlider, QScrollArea, QFrame
@@ -393,6 +393,7 @@ class IconButton(QWidget):
     def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
         super(IconButton, self).__init__()
         self.bt = QToolButton()
+        self.bt.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt.setIcon(icon)
         self.bt.clicked.connect(action)
         self.i18n = i18n

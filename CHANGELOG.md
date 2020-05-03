@@ -32,7 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### UI
 - icons, buttons and colors changes
-- removed more unnecessary **x** buttons from some dialogs
+- more unnecessary **x** buttons were removed from dialogs
+- "click" cursor set for most "clickable" components
+- minor improvements
     
 ### i18n contributors
 - Turkish (tr): [tuliana](https://github.com/tulliana)
