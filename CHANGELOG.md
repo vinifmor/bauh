@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
 - Arch
     - able to handle upgrade scenarios when a package wants to overwrite files of another installed package
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/files_conflict.png">
+    </p>
     
 ### Fixes
 - Arch
