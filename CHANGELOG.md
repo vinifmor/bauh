@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
 - Settings
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
+- Arch
+    - able to handle upgrade scenarios when a package wants to overwrite files of another installed package
     
 ### Fixes
 - Arch

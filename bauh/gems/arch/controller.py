@@ -21,7 +21,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user
 from bauh.commons.category import CategoriesDownloader
@@ -189,6 +189,7 @@ class ArchManager(SoftwareManager):
                                                 manager=self)
         }
         self.index_aur = None
+        self.re_file_conflict = re.compile(r'[\w\d\-_.]+:')
 
     @staticmethod
     def get_semantic_search_map() -> Dict[str, str]:
@@ -690,6 +691,66 @@ class ArchManager(SoftwareManager):
 
         return False
 
+    def _map_conflicting_file(self, output: str) -> List[TextComponent]:
+        error_idx = None
+        lines = output.split('\n')
+        for idx, l in enumerate(lines):
+            if l and l.strip().lower().startswith('error: failed to commit transaction (conflicting files)'):
+                error_idx = idx
+                break
+
+        files = []
+
+        if error_idx and error_idx + 1 < len(lines):
+            for idx in range(error_idx + 1, len(lines)):
+                line = lines[idx].strip()
+
+                if line and self.re_file_conflict.match(line):
+                    files.append(TextComponent(' - {}'.format(line)))
+
+        return files
+
+    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False) -> bool:
+        try:
+            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+            output_handler.start()
+            success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
+                                                                                   root_password=root_password,
+                                                                                   overwrite_conflicting_files=overwrite_files),
+                                                            output_handler=output_handler.handle,)
+            output_handler.stop_working()
+            output_handler.join()
+
+            handler.watcher.change_substatus('')
+
+            if success:
+                handler.watcher.print("Repository packages successfully upgraded")
+                handler.watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
+                repo_map = pacman.map_repositories(pkgs)
+                disk.save_several(pkgs, repo_map=repo_map, overwrite=True, maintainer=None)
+                return True
+            elif 'conflicting files' in upgrade_output:
+                files = self._map_conflicting_file(upgrade_output)
+                if not handler.watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
+                                                            body=self.i18n['arch.upgrade.error.conflicting_files'] + ':',
+                                                            deny_label=self.i18n['arch.upgrade.conflicting_files.proceed'],
+                                                            confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
+                                                            components=files):
+
+                    return self._upgrade_repo_pkgs(pkgs=pkgs, handler=handler, root_password=root_password, overwrite_files=True)
+                else:
+                    handler.watcher.print("Aborted by the user")
+                    return False
+            else:
+                self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
+                return False
+        except:
+            handler.watcher.change_substatus('')
+            handler.watcher.print("An error occurred while upgrading repository packages")
+            self.logger.error("An error occurred while upgrading repository packages")
+            traceback.print_exc()
+            return False
+
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         self.aur_client.clean_caches()
         watcher.change_status("{}...".format(self.i18n['manage_window.status.upgrading']))
@@ -733,29 +794,7 @@ class ArchManager(SoftwareManager):
             self.logger.info("Upgrading {} repository packages: {}".format(len(repo_pkgs_names),
                                                                            ', '.join(repo_pkgs_names)))
 
-            try:
-                output_handler = TransactionStatusHandler(watcher, self.i18n, len(repo_pkgs_names), self.logger)
-                output_handler.start()
-                success, _ = handler.handle_simple(pacman.upgrade_several(repo_pkgs_names, root_password), output_handler=output_handler.handle)
-                output_handler.stop_working()
-                output_handler.join()
-
-                watcher.change_substatus('')
-
-                if success:
-                    watcher.print("Repository packages successfully upgraded")
-                    watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
-                    repo_map = pacman.map_repositories(repo_pkgs_names)
-                    disk.save_several(repo_pkgs_names, repo_map=repo_map, overwrite=True, maintainer=None)
-
-                else:
-                    self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
-                    return False
-            except:
-                watcher.change_substatus('')
-                watcher.print("An error occurred while upgrading repository packages")
-                self.logger.error("An error occurred while upgrading repository packages")
-                traceback.print_exc()
+            if not self._upgrade_repo_pkgs(pkgs=repo_pkgs_names, handler=handler, root_password=root_password):
                 return False
 
         watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))

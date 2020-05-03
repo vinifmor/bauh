@@ -144,7 +144,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
                          cwd=pkgdir,
-                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction'})
+                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'})
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
@@ -693,10 +693,15 @@ def list_installed_names() -> Set[str]:
     return {p for p in run_cmd('pacman -Qq').split('\n') if p}
 
 
-def upgrade_several(pkgnames: Iterable[str], root_password: str) -> SimpleProcess:
-    return SimpleProcess(cmd=['pacman', '-S', *pkgnames, '--noconfirm'],
+def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False) -> SimpleProcess:
+    cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
+
+    if overwrite_conflicting_files:
+        cmd.append('--overwrite=*')
+
+    return SimpleProcess(cmd=cmd,
                          root_password=root_password,
-                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction'})
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
 
 
 def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
