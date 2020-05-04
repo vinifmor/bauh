@@ -8,8 +8,9 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
-    SuggestionPriority
+    SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
+from bauh.commons import resource
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
@@ -36,6 +37,13 @@ class SnapManager(SoftwareManager):
         self.categories = {}
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
+        self.custom_actions = [
+            CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
+                                 i18_label_key='snap.action.refresh.label',
+                                 icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
+                                 manager_method='refresh',
+                                 requires_root=True)
+        ]
 
     def get_info_path(self) -> str:
         if self.info_path is None:
@@ -53,7 +61,8 @@ class SnapManager(SoftwareManager):
                               version=app_json.get('version'),
                               latest_version=app_json.get('version'),
                               description=app_json.get('description', app_json.get('summary')),
-                              verified_publisher=app_json.get('developer_validation', '') == 'verified')
+                              verified_publisher=app_json.get('developer_validation', '') == 'verified',
+                              extra_actions=self.custom_actions)
 
         if app.publisher and app.publisher.endswith('*'):
             app.verified_publisher = True

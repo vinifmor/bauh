@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
 
@@ -22,6 +22,7 @@ class InfoDialog(QDialog):
         self.toolbar_field = QToolBar()
         self.bt_back = QPushButton(i18n['back'].capitalize())
         self.bt_back.clicked.connect(self.back_to_info)
+        self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
         self.toolbar_field.addWidget(self.bt_back)
         self.layout().addWidget(self.toolbar_field)
         self.toolbar_field.hide()
@@ -89,6 +90,7 @@ class InfoDialog(QDialog):
             self.text_field.setPlainText(val)
 
         bt_full_field = QPushButton(self.i18n['show'].capitalize())
+        bt_full_field.setCursor(QCursor(Qt.PointingHandCursor))
         bt_full_field.clicked.connect(show_full_field)
         self.gbox_info_layout.addWidget(bt_full_field, idx, 2)
 

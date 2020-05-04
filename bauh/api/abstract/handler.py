@@ -18,7 +18,7 @@ class ProcessWatcher:
         pass
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None,
-                             deny_label: str = None, deny_button: bool = True, window_cancel: bool = True) -> bool:
+                             deny_label: str = None, deny_button: bool = True, window_cancel: bool = False) -> bool:
         """
         request a user confirmation. In the current GUI implementation, it shows a popup to the user.
         :param title: popup title
@@ -98,6 +98,15 @@ class TaskManager:
         :param task_id:
         :param progress: a float between 0 and 100.
         :param substatus: a substatus string representing the current state
+        :return:
+        """
+        pass
+
+    def update_output(self, task_id: str, output: str):
+        """
+        updates the task output
+        :param task_id:
+        :param output:
         :return:
         """
         pass

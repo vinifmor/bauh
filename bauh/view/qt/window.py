@@ -20,9 +20,10 @@ from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.view.core.tray_client import notify_tray
-from bauh.view.qt import dialog, commons, qt_utils, root
+from bauh.view.qt import dialog, commons, qt_utils, root, styles
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
+from bauh.view.qt.colors import GREEN
 from bauh.view.qt.components import new_spacer, InputFilter, IconButton
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
@@ -149,11 +150,13 @@ class ManageWindow(QWidget):
         self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.checkbox_updates = QCheckBox()
+        self.checkbox_updates.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_updates.setText(self.i18n['updates'].capitalize())
         self.checkbox_updates.stateChanged.connect(self._handle_updates_filter)
         self.ref_checkbox_updates = self.toolbar.addWidget(self.checkbox_updates)
 
         self.checkbox_only_apps = QCheckBox()
+        self.checkbox_only_apps.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_only_apps.setText(self.i18n['manage_window.checkbox.only_apps'])
         self.checkbox_only_apps.setChecked(True)
         self.checkbox_only_apps.stateChanged.connect(self._handle_filter_only_apps)
@@ -162,6 +165,7 @@ class ManageWindow(QWidget):
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_filter_type.setView(QListView())
         self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_filter_type.setIconSize(QSize(14, 14))
@@ -175,6 +179,7 @@ class ManageWindow(QWidget):
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
+        self.combo_categories.setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_categories.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_categories.setEditable(True)
@@ -198,6 +203,7 @@ class ManageWindow(QWidget):
 
         if config['suggestions']['enabled']:
             self.bt_suggestions = QPushButton()
+            self.bt_suggestions.setCursor(QCursor(Qt.PointingHandCursor))
             self.bt_suggestions.setToolTip(self.i18n['manage_window.bt.suggestions.tooltip'])
             self.bt_suggestions.setText(self.i18n['manage_window.bt.suggestions.text'].capitalize())
             self.bt_suggestions.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
@@ -210,6 +216,7 @@ class ManageWindow(QWidget):
             self.ref_bt_suggestions = None
 
         self.bt_installed = QPushButton()
+        self.bt_installed.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         self.bt_installed.setIcon(QIcon(resource.get_path('img/disk.svg')))
         self.bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
@@ -219,6 +226,7 @@ class ManageWindow(QWidget):
         toolbar_bts.append(self.bt_installed)
 
         self.bt_refresh = QPushButton()
+        self.bt_refresh.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         self.bt_refresh.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         self.bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
@@ -228,10 +236,11 @@ class ManageWindow(QWidget):
         self.ref_bt_refresh = self.toolbar.addWidget(self.bt_refresh)
 
         self.bt_upgrade = QPushButton()
+        self.bt_upgrade.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.setStyleSheet(toolbar_button_style('#20A435', 'white'))
+        self.bt_upgrade.setStyleSheet(toolbar_button_style(GREEN, 'white'))
         self.bt_upgrade.clicked.connect(self.update_selected)
         toolbar_bts.append(self.bt_upgrade)
         self.ref_bt_upgrade = self.toolbar.addWidget(self.bt_upgrade)
@@ -258,6 +267,7 @@ class ManageWindow(QWidget):
         toolbar_console = QToolBar()
 
         self.checkbox_console = QCheckBox()
+        self.checkbox_console.setCursor(QCursor(Qt.PointingHandCursor))
         self.checkbox_console.setText(self.i18n['manage_window.checkbox.show_details'])
         self.checkbox_console.stateChanged.connect(self._handle_console)
         self.checkbox_console.setVisible(False)
@@ -319,6 +329,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
 
         self.progress_bar.setTextVisible(False)
@@ -334,16 +345,14 @@ class ManageWindow(QWidget):
         bt_custom_actions.setVisible(bool(self.custom_actions))
         self.ref_bt_custom_actions = self.toolbar_bottom.addWidget(bt_custom_actions)
 
-        bt_settings = IconButton(QIcon(resource.get_path('img/app_settings.svg')),
+        bt_settings = IconButton(QIcon(resource.get_path('img/settings.svg')),
                                  action=self.show_settings,
-                                 background='#12ABAB',
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
         self.ref_bt_settings = self.toolbar_bottom.addWidget(bt_settings)
 
-        bt_about = IconButton(QIcon(resource.get_path('img/question.svg')),
+        bt_about = IconButton(QIcon(resource.get_path('img/info.svg')),
                               action=self._show_about,
-                              background='#2E68D3',
                               i18n=self.i18n,
                               tooltip=self.i18n['manage_window.settings.about'])
         self.ref_bt_about = self.toolbar_bottom.addWidget(bt_about)
@@ -400,6 +409,7 @@ class ManageWindow(QWidget):
         self.input_name_filter.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
         self.table_apps.setEnabled(False)
+        self.setFocus(Qt.NoFocusReason)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
@@ -1192,7 +1202,7 @@ class ManageWindow(QWidget):
     def execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
 
         if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18_label_key].capitalize())),
+                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18_label_key])),
                                                        icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
                                                        i18n=self.i18n):
             return False
@@ -1240,6 +1250,7 @@ class ManageWindow(QWidget):
     def show_custom_actions(self):
         if self.custom_actions:
             menu_row = QMenu()
+            menu_row.setCursor(QCursor(Qt.PointingHandCursor))
             actions = [self._map_custom_action(a) for a in self.custom_actions]
             menu_row.addActions(actions)
             menu_row.adjustSize()

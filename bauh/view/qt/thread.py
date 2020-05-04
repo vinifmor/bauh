@@ -50,7 +50,7 @@ class AsyncAction(QThread, ProcessWatcher):
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
-                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = True) -> bool:
+                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = False) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button, 'window_cancel': window_cancel})
         self.wait_user()
@@ -144,7 +144,7 @@ class AsyncAction(QThread, ProcessWatcher):
                     return False
 
             self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.create']))
-            created, _ = handler.handle_simple(timeshift.create_snapshot(root_pwd))
+            created, _ = handler.handle_simple(timeshift.create_snapshot(root_pwd, app_config['backup']['type']))
 
             if not created and not self.request_confirmation(title=i18n['core.config.tab.backup'],
                                                              body='{}. {}'.format(i18n['action.backup.error.create'],
@@ -213,19 +213,6 @@ class UpgradeSelected(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def filter_to_update(self) -> Tuple[List[PackageView], bool]:  # packages to update and if they require root privileges
-        to_update, requires_root = [], False
-        root_user = user.is_root()
-
-        for pkg in self.pkgs:
-            if pkg.model.update and pkg.update_checked:
-                to_update.append(pkg)
-
-            if not root_user and not requires_root and self.manager.requires_root('update', pkg.model):
-                requires_root = True
-
-        return to_update, requires_root
-
     def _sum_pkgs_size(self, reqs: List[UpgradeRequirement]) -> Tuple[int, int]:
         required, extra = 0, 0
         for r in reqs:
@@ -284,26 +271,30 @@ class UpgradeSelected(AsyncAction):
 
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
-    def _trim_disk(self, root_password: str, ask: bool):
-        if not ask or self.request_confirmation(title=self.i18n['confirmation'].capitalize(), body=self.i18n['action.trim_disk.ask']):
-
-            pwd = root_password
-
-            if not pwd and user.is_root():
-                pwd, success = self.request_root_password()
-
-                if not success:
-                    return
-
-            self.change_status('{}...'.format(self.i18n['action.disk_trim'].capitalize()))
-            self.change_substatus('')
-
-            success, output = ProcessHandler(self).handle_simple(SimpleProcess(['fstrim', '/', '-v'], root_password=pwd))
+    def _request_password(self) -> Tuple[bool, str]:
+        if not user.is_root():
+            pwd, success = self.request_root_password()
 
             if not success:
-                self.show_message(title=self.i18n['success'].capitalize(),
-                                  body=self.i18n['action.disk_trim.error'],
-                                  type_=MessageType.ERROR)
+                return False, None
+
+            return True, pwd
+
+        return True, None
+
+    def _ask_for_trim(self) -> bool:
+        return self.request_confirmation(title=self.i18n['confirmation'].capitalize(), body=self.i18n['action.trim_disk.ask'])
+
+    def _trim_disk(self, root_password: str):
+        self.change_status('{}...'.format(self.i18n['action.disk_trim'].capitalize()))
+        self.change_substatus('')
+
+        success, output = ProcessHandler(self).handle_simple(SimpleProcess(['fstrim', '/', '-v'], root_password=root_password))
+
+        if not success:
+            self.show_message(title=self.i18n['success'].capitalize(),
+                              body=self.i18n['action.disk_trim.error'],
+                              type_=MessageType.ERROR)
 
     def _write_summary_log(self, upgrade_id: str, requirements: UpgradeRequirements):
         try:
@@ -366,17 +357,14 @@ class UpgradeSelected(AsyncAction):
             traceback.print_exc()
 
     def run(self):
-        to_update, requires_root = self.filter_to_update()
-        
-        root_password = None
+        valid_password, root_password = self._request_password()
 
-        if not user.is_root() and requires_root:
-            root_password, ok = self.request_root_password()
+        if not valid_password:
+            self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
+            self.pkgs = None
+            return
 
-            if not ok:
-                self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
-                self.pkgs = None
-                return
+        to_update = [pkg for pkg in self.pkgs if pkg.model.update and pkg.update_checked]
 
         if len(to_update) > 1:
             self.disable_progress_controll()
@@ -432,6 +420,13 @@ class UpgradeSelected(AsyncAction):
 
         app_config = read_config()
 
+        # trim dialog
+        if app_config['disk']['trim']['after_upgrade'] is not False:
+            should_trim = app_config['disk']['trim']['after_upgrade'] or self._ask_for_trim()
+        else:
+            should_trim = False
+
+        # backup process ( if enabled, supported and accepted )
         if bool(app_config['backup']['enabled']) and app_config['backup']['upgrade'] in (True, None) and timeshift.is_available():
             any_requires_bkp = False
 
@@ -460,13 +455,14 @@ class UpgradeSelected(AsyncAction):
             updated = len(requirements.to_upgrade)
             updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
 
-            if app_config['disk']['trim']['after_upgrade'] is not False:
-                self._trim_disk(root_password, ask=app_config['disk']['trim']['after_upgrade'] is None)
+            if should_trim:
+                self._trim_disk(root_password)
 
-            msg = '<p>{}</p>{}</p><br/><p>{}</p>'.format(self.i18n['action.update.success.reboot.line1'],
-                                                         self.i18n['action.update.success.reboot.line2'],
-                                                         self.i18n['action.update.success.reboot.line3'])
-            self.request_reboot(msg)
+            if bool(app_config['updates']['ask_for_reboot']):
+                msg = '<p>{}</p>{}</p><br/><p>{}</p>'.format(self.i18n['action.update.success.reboot.line1'],
+                                                             self.i18n['action.update.success.reboot.line2'],
+                                                             self.i18n['action.update.success.reboot.line3'])
+                self.request_reboot(msg)
 
         self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': upgrade_id})
         self.pkgs = None

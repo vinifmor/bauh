@@ -165,10 +165,20 @@ class GenericSettingsManager:
                                                  id_='auto_scale')
 
         cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
-        style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
+        style_opts = [InputOption(label=self.i18n['core.config.ui.style.default'].capitalize(), value=None)]
+        style_opts.extend([InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()])
+
+        default_style = [o for o in style_opts if o.value == cur_style]
+
+        if not default_style:
+            default_style = InputOption(label=cur_style, value=cur_style)
+            style_opts.append(default_style)
+        else:
+            default_style = default_style[0]
+
         select_style = SingleSelectComponent(label=self.i18n['style'].capitalize(),
                                              options=style_opts,
-                                             default_option=[o for o in style_opts if o.value == cur_style][0],
+                                             default_option=default_style,
                                              type_=SelectViewType.COMBO,
                                              max_width=default_width,
                                              id_="style")
@@ -240,7 +250,14 @@ class GenericSettingsManager:
                                       max_width=default_width,
                                       id_="sugs_by_type")
 
-        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs], spaces=False)]
+        inp_reboot = self._gen_select(label=self.i18n['core.config.updates.reboot'],
+                                      tip=self.i18n['core.config.updates.reboot.tip'],
+                                      id_='ask_for_reboot',
+                                      max_width=default_width,
+                                      value=bool(core_config['updates']['ask_for_reboot']),
+                                      opts=[(self.i18n['ask'].capitalize(), True, None), (self.i18n['no'].capitalize(), False, None)])
+
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -279,6 +296,8 @@ class GenericSettingsManager:
         sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type
 
+        core_config['updates']['ask_for_reboot'] = general_form.get_component('ask_for_reboot').get_selected()
+
         # advanced
         adv_form = advanced.components[0]
 
@@ -302,6 +321,7 @@ class GenericSettingsManager:
 
             core_config['backup']['enabled'] = bkp_form.get_component('enabled').get_selected()
             core_config['backup']['mode'] = bkp_form.get_component('mode').get_selected()
+            core_config['backup']['type'] = bkp_form.get_component('type').get_selected()
             core_config['backup']['install'] = bkp_form.get_component('install').get_selected()
             core_config['backup']['uninstall'] = bkp_form.get_component('uninstall').get_selected()
             core_config['backup']['upgrade'] = bkp_form.get_component('upgrade').get_selected()
@@ -447,8 +467,14 @@ class GenericSettingsManager:
                                     ],
                                     max_width=default_width,
                                     id_='mode')
+            type_ = self._gen_select(label=self.i18n['type'].capitalize(),
+                                     tip=None,
+                                     value=core_config['backup']['type'],
+                                     opts=[('rsync', 'rsync', None), ('btrfs', 'btrfs', None)],
+                                     max_width=default_width,
+                                     id_='type')
 
-            sub_comps = [FormComponent([enabled_opt, mode, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
+            sub_comps = [FormComponent([enabled_opt, mode, type_, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
             return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')
 
     def _gen_select(self, label: str, tip: str, id_: str, opts: List[tuple], value: object, max_width: int, type_: SelectViewType = SelectViewType.RADIO):

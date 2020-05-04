@@ -43,3 +43,6 @@ class ApplicationContext:
 
     def is_system_x86_64(self):
         return self.arch_x86_64
+
+    def get_view_path(self):
+        return self.app_root_dir + '/view'

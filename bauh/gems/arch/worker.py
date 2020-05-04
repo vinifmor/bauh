@@ -292,21 +292,24 @@ class RefreshMirrors(Thread):
         self.task_id = "arch_mirrors"
         self.sort_limit = sort_limit
 
+    def _notify_output(self, output: str):
+        self.taskman.update_output(self.task_id, output)
+
     def run(self):
-        self.logger.info("Refreshing mirrors")
         self.taskman.register_task(self.task_id, self.i18n['arch.task.mirrors'], get_icon_path())
+        self.logger.info("Refreshing mirrors")
 
         handler = ProcessHandler()
         try:
             self.taskman.update_progress(self.task_id, 10, '')
-            success, output = handler.handle_simple(pacman.refresh_mirrors(self.root_password))
+            success, output = handler.handle_simple(pacman.refresh_mirrors(self.root_password), output_handler=self._notify_output)
 
             if success:
 
                 if self.sort_limit is not None and self.sort_limit >= 0:
                     self.taskman.update_progress(self.task_id, 50, self.i18n['arch.custom_action.refresh_mirrors.status.updating'])
                     try:
-                        handler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, self.sort_limit))
+                        handler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, self.sort_limit), output_handler=self._notify_output)
                     except:
                         self.logger.error("Could not sort mirrors by speed")
                         traceback.print_exc()
@@ -340,7 +343,7 @@ class SyncDatabases(Thread):
         self.taskman.register_task(self.task_id, self.i18n['arch.sync_databases.substatus'], get_icon_path())
 
         if self.refresh_mirrors and self.refresh_mirrors.is_alive():
-            self.taskman.update_progress(self.task_id, 0, self.i18n['arch.task.sync_databases.waiting'])
+            self.taskman.update_progress(self.task_id, 0, self.i18n['arch.task.sync_databases.waiting'].format('"{}"'.format(self.i18n['arch.task.mirrors'])))
             self.refresh_mirrors.join()
 
         progress = 10
@@ -357,20 +360,25 @@ class SyncDatabases(Thread):
                 for o in p.stdout:
                     line = o.decode().strip()
 
-                    if line and line.startswith('downloading'):
-                        db = line.split(' ')[1].strip()
+                    if line:
+                        self.task_man.update_output(self.task_id, line)
+                        if line.startswith('downloading'):
+                            db = line.split(' ')[1].strip()
 
-                        if last_db is None or last_db != db:
-                            last_db = db
-                            dbs_read += 1
-                            progress = dbs_read * inc
-                        else:
-                            progress += 0.25
+                            if last_db is None or last_db != db:
+                                last_db = db
+                                dbs_read += 1
+                                progress = dbs_read * inc
+                            else:
+                                progress += 0.25
 
-                        self.taskman.update_progress(self.task_id, progress, self.i18n['arch.task.sync_sb.status'].format(db))
+                            self.taskman.update_progress(self.task_id, progress, self.i18n['arch.task.sync_sb.status'].format(db))
 
                 for o in p.stderr:
-                    o.decode()
+                    line = o.decode().strip()
+
+                    if line:
+                        self.task_man.update_output(self.task_id, line)
 
                 p.wait()
 

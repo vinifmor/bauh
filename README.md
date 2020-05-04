@@ -277,6 +277,7 @@ ui:
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments ( like Gnome )
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
+  ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade
 disk:
     trim:
         after_upgrade: false # it trims the hard disk after a successfull packages upgrade ( `fstrim -a -v` ). 'true' will automatically perform the trim and 'null' will display a confirmation dialog
@@ -288,7 +289,7 @@ backup:
     uninstall: null  # defines if the backup should be performed before uninstalling a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     upgrade: null  # defines if the backup should be performed before upgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     downgrade: null  # defines if the backup should be performed before downgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
-    
+    type: rsync  # defines the Timeshift backup mode -> 'rsync' (default) or 'btrfs'
 ```
 #### Tray icons
 Priority: 

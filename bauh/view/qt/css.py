@@ -1,7 +1,7 @@
+from bauh.view.qt.colors import GREEN
 
-OK_BUTTON = """QPushButton { background: green; color: white; font-weight: bold} 
-               QPushButton:disabled { background-color: gray; }
-             """
+OK_BUTTON = """QPushButton { background: %s; color: white; font-weight: bold} 
+               QPushButton:disabled { background-color: gray; }""" % GREEN
 
 GROUP_BOX = """
 QGroupBox {

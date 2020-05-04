@@ -9,11 +9,11 @@
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    id="Capa_1"
    enable-background="new 0 0 512 512"
-   height="23.967955"
-   viewBox="0 0 15.215549 23.967955"
-   width="15.215549"
+   height="12"
+   viewBox="0 0 12 12"
+   width="12"
    version="1.1"
-   sodipodi:docname="question.svg"
+   sodipodi:docname="info.svg"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
   <metadata
      id="metadata877">
@@ -23,7 +23,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -42,10 +42,10 @@
      inkscape:window-height="739"
      id="namedview873"
      showgrid="false"
-     showborder="false"
-     inkscape:zoom="5.6679028"
-     inkscape:cx="-23.418989"
-     inkscape:cy="9.6513721"
+     showborder="true"
+     inkscape:zoom="11.335805"
+     inkscape:cx="23.192934"
+     inkscape:cy="10.264189"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -56,18 +56,18 @@
      fit-margin-bottom="0" />
   <g
      id="g7850"
-     transform="scale(1.0021734,0.95647647)"
-     style="stroke:#0088aa">
+     transform="matrix(0.49966773,0,0,0.47688398,2.2068848,0.02497908)"
+     style="stroke:#37abc8;stroke-width:1.53208435;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1">
     <circle
        cx="7.5912747"
        cy="21.699696"
        r="2.6452355"
        id="circle866"
-       style="fill:none;stroke:#0088aa;stroke-width:1.42732489" />
+       style="fill:none;stroke:#37abc8;stroke-width:1.53208435;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
     <path
        d="m 7.591275,0.71366244 c -3.7923421,0 -6.8776126,3.08527056 -6.8776126,6.87761256 V 8.2525839 H 6.0041336 V 7.591275 c 0,-0.8751762 0.7119652,-1.5871414 1.5871414,-1.5871414 0.8751762,0 1.5871413,0.7119652 1.5871413,1.5871414 0,0.466355 -0.2046971,0.9077567 -0.5616717,1.2111211 L 4.9460394,11.923201 v 4.75005 h 5.2904716 v -2.303912 l 1.806519,-1.535868 c 1.541643,-1.310009 2.425858,-3.2206629 2.425858,-5.242196 0,-3.792342 -3.085271,-6.87761256 -6.877613,-6.87761256 z"
        id="path868"
-       style="fill:none;stroke:#0088aa;stroke-width:1.42732489"
+       style="fill:none;stroke:#37abc8;stroke-width:1.53208435;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        inkscape:connector-curvature="0" />
   </g>
 </svg>

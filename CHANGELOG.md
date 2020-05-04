@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.2] 2020-05-04
+### Features
+- UI
+    - it is possible to view details of some initialization tasks by clicking on their icons
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_icon.png">
+    </p>
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_output.png">
+    </p>
+    
+### Improvements
+- Backup
+    - new **type** field on settings to specify the Timeshift backup mode: **RSYNC** or **BTRFS**
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/backup_mode.png">
+    </p>
+- Trim
+    - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
+- Settings
+    - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/ask_reboot.png">
+    </p>
+- Arch
+    - able to handle upgrade scenarios when a package wants to overwrite files of another installed package
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/files_conflict.png">
+    </p>
+    - displaying more upgrade substatus
+    
+### Fixes
+- Arch
+    - file not found error while organizing the data of installed packages [#101](https://github.com/vinifmor/bauh/issues/101)    
+- Settings
+    - crashing when an unknown Qt style is set [#69](https://github.com/vinifmor/bauh/issues/69)
+    
+### UI
+- icons, buttons and colors changes
+
+<p align="center">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/color_design.png">
+</p>
+
+- more unnecessary **x** buttons were removed from dialogs
+- "click" cursor set for most "clickable" components
+- minor improvements
+    
+### i18n contributors
+- Turkish (tr): [tuliana](https://github.com/tulliana)
+- Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
+
+#### Code changes (PullRequest): [#103](https://github.com/vinifmor/bauh/pull/103/files)
+
+
 ## [0.9.1] 2020-04-24
 ### Features
 - Tray

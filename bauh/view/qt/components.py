@@ -6,7 +6,7 @@ from threading import Thread
 from typing import Tuple
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QIcon, QPixmap, QIntValidator
+from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
     QSlider, QScrollArea, QFrame
@@ -15,6 +15,7 @@ from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleS
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
     TwoStateButtonComponent, TextComponent, SpacerComponent
 from bauh.view.qt import css
+from bauh.view.qt.colors import RED
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -392,6 +393,7 @@ class IconButton(QWidget):
     def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
         super(IconButton, self).__init__()
         self.bt = QToolButton()
+        self.bt.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt.setIcon(icon)
         self.bt.clicked.connect(action)
         self.i18n = i18n
@@ -401,7 +403,7 @@ class IconButton(QWidget):
 
         if background:
             style = 'QToolButton { color: white; background: ' + background + '} '
-            style += 'QToolButton:disabled { color: white; background: grey }'
+            style += 'QToolButton:disabled { color: white; background: blue }'
             self.bt.setStyleSheet(style)
 
         if tooltip:
@@ -607,7 +609,7 @@ class FormQt(QGroupBox):
             traceback.print_exc()
             icon = QIcon()
 
-        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background='#cc0000', tooltip=self.i18n['action.run.tooltip'])
+        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background=RED, tooltip=self.i18n['action.run.tooltip'])
 
         wrapped.layout().addWidget(bt)
         return label, wrapped

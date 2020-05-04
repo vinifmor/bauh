@@ -163,14 +163,15 @@ class UpdatesSummarizer:
                 else:
                     self._handle_conflict_both_to_update(pkg1, pkg2, context)  # adding both to the 'cannot update' list
 
-            for pkg1, pkg2 in mutual_conflicts.items():  # removing conflicting packages from the packages selected to update
+            for pkg1, pkg2 in mutual_conflicts.items():  # removing conflicting packages from the packages selected to upgrade
                 for p in (pkg1, pkg2):
-                    for c in context.pkgs_data[p]['c']:
-                        # source = provided_map[c]
-                        if c in root_conflict:
-                            del root_conflict[c]
-
                     if p in context.pkgs_data:
+                        if context.pkgs_data[p].get('c'):
+                            for c in context.pkgs_data[p]['c']:
+                                # source = provided_map[c]
+                                if c in root_conflict:
+                                    del root_conflict[c]
+
                         del context.pkgs_data[p]
 
         return root_conflict

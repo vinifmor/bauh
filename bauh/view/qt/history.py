@@ -7,7 +7,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
-from bauh.view.qt.view_model import get_type_label, PackageView
+from bauh.view.qt.colors import GREEN, ORANGE
+from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
 
@@ -43,7 +44,7 @@ class HistoryDialog(QDialog):
                 item.setText(str(data[key]))
 
                 if current_status:
-                    item.setBackground(QColor('#ffbf00' if row != 0 else '#32CD32'))
+                    item.setBackground(QColor(ORANGE if row != 0 else GREEN))
                     tip = '{}. {}.'.format(i18n['popup.history.selected.tooltip'], i18n['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 
                     item.setToolTip(tip)

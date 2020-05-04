@@ -14,12 +14,11 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
 from bauh.commons.html import strip_html
 from bauh.view.qt import dialog
+from bauh.view.qt.colors import GREEN, BROWN
 from bauh.view.qt.components import IconButton
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
-
-INSTALL_BT_STYLE = 'background: {back}; color: white; font-size: 10px; font-weight: bold'
 
 NAME_MAX_SIZE = 30
 DESC_MAX_SIZE = 40
@@ -40,13 +39,14 @@ class UpdateToggleButton(QWidget):
         self.setLayout(layout)
 
         self.bt = QToolButton()
+        self.bt.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt.setCheckable(True)
         self.bt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if clickable:
             self.bt.clicked.connect(self.change_state)
 
-        self.bt.setStyleSheet('QToolButton { background: #20A435 } ' +
+        self.bt.setStyleSheet('QToolButton { background: ' + GREEN + ' }' +
                               'QToolButton:checked { background: gray } ' +
                               ('QToolButton:disabled { background: #d69003 }' if not clickable and not checked else ''))
 
@@ -116,8 +116,9 @@ class AppsTable(QTableWidget):
                pkg.model.can_be_downgraded() or \
                bool(pkg.model.get_custom_supported_actions())
 
-    def show_pkg_settings(self, pkg: PackageView):
+    def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
+        menu_row.setCursor(QCursor(Qt.PointingHandCursor))
 
         if pkg.model.installed:
             if pkg.model.has_history():
@@ -257,7 +258,7 @@ class AppsTable(QTableWidget):
         self._set_col_publisher(3, pkg)
         self._set_col_type(4, pkg)
         self._set_col_installed(5, pkg)
-        self._set_col_settings(6, pkg)
+        self._set_col_actions(6, pkg)
 
         if change_update_col:
             col_update = None
@@ -278,6 +279,7 @@ class AppsTable(QTableWidget):
         col.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         col_bt = QToolButton()
+        col_bt.setCursor(QCursor(Qt.PointingHandCursor))
         col_bt.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         col_bt.setText(text)
         col_bt.setStyleSheet('QToolButton { ' + style + '}')
@@ -302,7 +304,8 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall_app(pkg)
 
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), INSTALL_BT_STYLE.format(back='#ff1a1a'), uninstall)
+                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
             else:
                 item = QLabel()
                 item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
@@ -312,7 +315,8 @@ class AppsTable(QTableWidget):
             def install():
                 self._install_app(pkg)
 
-            item = self._gen_row_button(self.i18n['install'].capitalize(), INSTALL_BT_STYLE.format(back='#088A08'), install)
+            style = 'background: {b}; color: white; font-size: 10px; font-weight: bold'.format(b=GREEN)
+            item = self._gen_row_button(self.i18n['install'].capitalize(), style, install)
         else:
             item = None
 
@@ -349,7 +353,7 @@ class AppsTable(QTableWidget):
             tooltip = self.i18n['version.unknown']
 
         if pkg.model.update:
-            label_version.setStyleSheet("color: #20A435; font-weight: bold")
+            label_version.setStyleSheet("color: {}; font-weight: bold".format(GREEN))
             tooltip = self.i18n['version.installed_outdated']
 
         if pkg.model.installed and pkg.model.update and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
@@ -450,7 +454,7 @@ class AppsTable(QTableWidget):
 
         self.setCellWidget(pkg.table_index, col, item)
 
-    def _set_col_settings(self, col: int, pkg: PackageView):
+    def _set_col_actions(self, col: int, pkg: PackageView):
         item = QToolBar()
         item.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
@@ -458,33 +462,34 @@ class AppsTable(QTableWidget):
             def run():
                 self.window.run_app(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, background='#088A08', tooltip=self.i18n['action.run.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, tooltip=self.i18n['action.run.tooltip'])
             bt.setEnabled(pkg.model.can_be_run())
             item.addWidget(bt)
 
-        def get_info():
-            self.window.get_app_info(pkg)
+        def handle_click():
+            self.show_pkg_actions(pkg)
 
-        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, background='#2E68D3', tooltip=self.i18n['action.info.tooltip'])
-        bt.setEnabled(bool(pkg.model.has_info()))
-        item.addWidget(bt)
+        settings = self.has_any_settings(pkg)
+        if pkg.model.installed:
+            bt = IconButton(QIcon(resource.get_path('img/app_actions.svg')), i18n=self.i18n, action=handle_click, tooltip=self.i18n['action.settings.tooltip'])
+            bt.setEnabled(bool(settings))
+            item.addWidget(bt)
 
         if not pkg.model.installed:
             def get_screenshots():
                 self.window.get_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots, background='#ac00e6', tooltip=self.i18n['action.screenshots.tooltip'])
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots,
+                            tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
-        def handle_click():
-            self.show_pkg_settings(pkg)
+        def get_info():
+            self.window.get_app_info(pkg)
 
-        settings = self.has_any_settings(pkg)
-        if pkg.model.installed:
-            bt = IconButton(QIcon(resource.get_path('img/app_settings.svg')), i18n=self.i18n, action=handle_click, background='#12ABAB', tooltip=self.i18n['action.settings.tooltip'])
-            bt.setEnabled(bool(settings))
-            item.addWidget(bt)
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, tooltip=self.i18n['action.info.tooltip'])
+        bt.setEnabled(bool(pkg.model.has_info()))
+        item.addWidget(bt)
 
         self.setCellWidget(pkg.table_index, col, item)
 

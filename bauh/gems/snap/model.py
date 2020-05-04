@@ -4,14 +4,6 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.snap import ROOT_DIR
 
-EXTRA_INSTALLED_ACTIONS = [
-    CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
-                         i18_label_key='snap.action.refresh.label',
-                         icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                         manager_method='refresh',
-                         requires_root=True)
-]
-
 KNOWN_RUNTIME_NAMES = {'snapd', 'snapcraft', 'multipass'}
 
 
@@ -19,7 +11,7 @@ class SnapApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, publisher: str = None, rev: str = None, notes: str = None,
-                 confinement: str = None, has_apps_field: bool = None, verified_publisher: bool = False):
+                 confinement: str = None, has_apps_field: bool = None, verified_publisher: bool = False, extra_actions: List[CustomSoftwareAction] = None):
         super(SnapApplication, self).__init__(id=id, name=name, version=version,
                                               latest_version=latest_version, description=description)
         self.publisher = publisher
@@ -28,6 +20,7 @@ class SnapApplication(SoftwarePackage):
         self.confinement = confinement
         self.has_apps_field = has_apps_field
         self.verified_publisher = verified_publisher
+        self.extra_actions = extra_actions
 
     def supports_disk_cache(self):
         return self.installed
@@ -81,7 +74,7 @@ class SnapApplication(SoftwarePackage):
 
     def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
         if self.installed:
-            return EXTRA_INSTALLED_ACTIONS
+            return self.extra_actions
 
     def supports_backup(self) -> bool:
         return True

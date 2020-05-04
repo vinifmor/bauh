@@ -60,6 +60,11 @@ class AppImageManager(SoftwareManager):
                                                     manager_method='install_file',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
                                                     requires_root=False)]
+        self.custom_app_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.manual_update',
+                                                        i18n_status_key='appimage.custom_action.manual_update.status',
+                                                        manager_method='update_file',
+                                                        requires_root=False,
+                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
@@ -92,7 +97,7 @@ class AppImageManager(SoftwareManager):
             else:
                 return False
 
-        appim = AppImage(i18n=self.i18n, imported=True)
+        appim = AppImage(i18n=self.i18n, imported=True, custom_actions=self.custom_app_actions)
         appim.name = input_name.get_value().strip()
         appim.local_file_path = file_chooser.file_path
         appim.version = input_version.get_value()
@@ -164,7 +169,7 @@ class AppImageManager(SoftwareManager):
                 found_map = {}
                 idx = 0
                 for l in cursor.fetchall():
-                    app = AppImage(*l, i18n=self.i18n)
+                    app = AppImage(*l, i18n=self.i18n, custom_actions=self.custom_app_actions)
                     res.new.append(app)
                     found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1
@@ -200,7 +205,7 @@ class AppImageManager(SoftwareManager):
                 for path in installed.split('\n'):
                     if path:
                         with open(path) as f:
-                            app = AppImage(installed=True, i18n=self.i18n, **json.loads(f.read()))
+                            app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
                         res.installed.append(app)
@@ -576,7 +581,7 @@ class AppImageManager(SoftwareManager):
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
 
                     for t in cursor.fetchall():
-                        app = AppImage(*t, i18n=self.i18n)
+                        app = AppImage(*t, i18n=self.i18n, custom_actions=self.custom_app_actions)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
                     self.logger.info("Mapped {} suggestions".format(len(res)))
                 except:
