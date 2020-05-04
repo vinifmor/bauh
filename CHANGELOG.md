@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.2] 2020
+## [0.9.2] 2020-05-04
 ### Features
 - UI
     - it is possible to view details of some initialization tasks by clicking on their icons
@@ -55,6 +55,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### i18n contributors
 - Turkish (tr): [tuliana](https://github.com/tulliana)
 - Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
+
+Code changes (PullRequest): [#103](https://github.com/vinifmor/bauh/pull/103)
 
 ## [0.9.1] 2020-04-24
 ### Features
