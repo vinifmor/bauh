@@ -56,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Turkish (tr): [tuliana](https://github.com/tulliana)
 - Russian (ru): [mountain-biker85](https://github.com/mountain-biker85)
 
-Code changes (PullRequest): [#103](https://github.com/vinifmor/bauh/pull/103)
+### Code changes (PullRequest): [#103](https://github.com/vinifmor/bauh/pull/103/files)
 
 ## [0.9.1] 2020-04-24
 ### Features
