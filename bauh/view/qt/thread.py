@@ -225,7 +225,7 @@ class UpgradeSelected(AsyncAction):
         return required, extra
 
     def _gen_cannot_update_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r.pkg, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
 
         return FormComponent(label=self.i18n['action.update.cannot_update_label'], components=comps)
