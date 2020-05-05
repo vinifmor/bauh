@@ -16,6 +16,7 @@ RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
+RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+(http.+)')
 
 
 def is_available() -> bool:
@@ -1013,3 +1014,13 @@ def list_unnecessary_deps(pkgs: Iterable[str], all_provided: Dict[str, Set[str]]
                         unnecessary.add(dep)
 
     return unnecessary.difference(pkgs)
+
+
+def list_available_mirrors() -> Set[str]:
+    output = run_cmd('pacman-mirrors --status --no-color', print_error=False)
+    return set(RE_AVAILABLE_MIRRORS.findall(output))
+
+
+def get_mirrors_branch() -> str:
+    return run_cmd('pacman-mirrors -G', print_error=False).strip()
+
