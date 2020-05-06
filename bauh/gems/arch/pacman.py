@@ -3,6 +3,7 @@ import re
 from threading import Thread
 from typing import List, Set, Tuple, Dict, Iterable
 
+from bauh.commons import system
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess, \
     ProcessHandler
 from bauh.commons.util import size_to_byte
@@ -16,7 +17,7 @@ RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
-RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+(http.+)')
+RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
 
 
 def is_available() -> bool:
@@ -600,6 +601,36 @@ def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Dict[str, 
         return provided_map
 
 
+def list_download_data(pkgs: Iterable[str]) -> List[Dict[str, str]]:
+    _, output = system.run(['pacman', '-Si', *pkgs])
+
+    if output:
+        res = []
+        data = {'a': None, 'v': None, 'r': None, 'n': None}
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+                    val = line[field_sep_idx + 1:].strip()
+
+                    if field == 'Repository':
+                        data['r'] = val
+                    elif field == 'Name':
+                        data['n'] = val
+                    elif field == 'Version':
+                        data['v'] = val.split('=')[0]
+                    elif field == 'Architecture':
+                        data['a'] = val
+                    elif data.get('a'):
+                        res.append(data)
+                        data = {'a': None, 'v': None, 'r': None, 'n': None}
+
+        return res
+
+
 def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
     if files:
         output = run_cmd('pacman -Qi -p {}'.format(' '.join(pkgs)))
@@ -1016,11 +1047,17 @@ def list_unnecessary_deps(pkgs: Iterable[str], all_provided: Dict[str, Set[str]]
     return unnecessary.difference(pkgs)
 
 
-def list_available_mirrors() -> Set[str]:
-    output = run_cmd('pacman-mirrors --status --no-color', print_error=False)
-    return set(RE_AVAILABLE_MIRRORS.findall(output))
+def list_available_mirrors() -> List[str]:
+    _, output = system.run(['pacman-mirrors', '--status', '--no-color'])
+
+    if output:
+        mirrors = RE_AVAILABLE_MIRRORS.findall(output)
+
+        if mirrors:
+            mirrors.sort(key=lambda o: o[0])
+            return [m[1] for m in mirrors]
 
 
 def get_mirrors_branch() -> str:
-    return run_cmd('pacman-mirrors -G', print_error=False).strip()
-
+    _, output = system.run(['pacman-mirrors', '--status', '--no-color'])
+    return output.strip()

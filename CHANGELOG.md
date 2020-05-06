@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.3] 2020
+### Features
+- Arch
+    - supporting repository packages multi-threaded download (it is not enabled by default, but can be enabled through the settings window)
+     
 ### Fixes
 - upgrade: crashing for scenarios when there are packages that cannot upgrade to be displayed on the summary window
 - settings: crashing when an empty Qt style is defined [#104](https://github.com/vinifmor/bauh/issues/104) 

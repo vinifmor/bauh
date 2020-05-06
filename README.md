@@ -179,6 +179,7 @@ refresh_mirrors_startup: false # if the package mirrors should be refreshed duri
 mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
 aur:  true  # allows to manage AUR packages
 repositories: true  # allows to manage packages from the configured repositories
+repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2 is installed
 ``` 
 - Required dependencies:
     - **pacman**

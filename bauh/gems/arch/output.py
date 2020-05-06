@@ -8,12 +8,13 @@ from bauh.view.util.translation import I18n
 
 class TransactionStatusHandler(Thread):
 
-    def __init__(self, watcher: ProcessWatcher, i18n: I18n, npkgs: int, logger: logging.Logger, percentage: bool = True):
+    def __init__(self, watcher: ProcessWatcher, i18n: I18n, npkgs: int, logger: logging.Logger,
+                 percentage: bool = True, downloading: int = 0):
         super(TransactionStatusHandler, self).__init__(daemon=True)
         self.watcher = watcher
         self.i18n = i18n
         self.npkgs = npkgs
-        self.downloading = 0
+        self.downloading = downloading
         self.upgrading = 0
         self.installing = 0
         self.outputs = []

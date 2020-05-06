@@ -272,3 +272,8 @@ def get_human_size_str(size) -> str:
         if len(size_str.split('.')[0]) < 4:
             return '{0:.2f}'.format(float(size_str)) + ' ' + m[1]
     return str(int_size)
+
+
+def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.returncode == success_code, p.stdout.decode()

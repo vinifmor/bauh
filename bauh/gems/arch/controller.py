@@ -34,6 +34,7 @@ from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmatio
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
+from bauh.gems.arch.download import MultiThreadedDownloader, MultithreadedDownloadService, UnexpectedDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -1545,7 +1546,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _install(self, context: TransactionContext):
+    def _install(self, context: TransactionContext) -> bool:
         check_install_output = []
         pkgpath = context.get_package_path()
 
@@ -1593,8 +1594,27 @@ class ArchManager(SoftwareManager):
 
         to_install.append(pkgpath)
 
+        downloaded = 0
+        if bool(context.config['repositories_mthread_download']) and self.context.file_downloader.is_multithreaded():
+            download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
+                                                            http_client=self.http_client,
+                                                            logger=self.context.logger,
+                                                            i18n=self.i18n)
+            to_download = [p for p in to_install if not p.startswith('/')]  # only names, no files
+
+            if to_download:
+                self.logger.info("Initializing multi-threaded download for {} package(s)".format(len(to_download)))
+                try:
+                    downloaded = download_service.download_packages(pkgs=to_download,
+                                                                    handler=context.handler,
+                                                                    root_password=context.root_password)
+                except UnexpectedDownloadException:
+                    return False
+
         if not context.dependency:
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(to_install), self.logger, percentage=len(to_install) > 1) if not context.dependency else None
+            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(to_install), self.logger,
+                                                      percentage=len(to_install) > 1,
+                                                      downloading=downloaded) if not context.dependency else None
             status_handler.start()
         else:
             status_handler = None
@@ -1967,6 +1987,12 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.optimize.tip',
                                     value=bool(local_config['optimize']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='mthread_download',
+                                    label_key='arch.config.pacman_mthread_download',
+                                    tooltip_key='arch.config.pacman_mthread_download.tip',
+                                    value=local_config['repositories_mthread_download'],
+                                    max_width=max_width,
+                                    capitalize_label=True),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
@@ -2005,6 +2031,7 @@ class ArchManager(SoftwareManager):
         config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
         config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
+        config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
