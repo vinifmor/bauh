@@ -838,7 +838,13 @@ def get_cache_dir() -> str:
             if not string.strip().startswith('#'):
                 cache_dirs.append(string.split('=')[1].strip())
 
-        return cache_dirs[-1] if cache_dirs else '/var/cache/pacman/pkg/'
+        if cache_dirs:
+            if cache_dirs[-1][-1] == '/':
+                return cache_dirs[-1][0:-1]
+            else:
+                return cache_dirs[-1]
+        else:
+            return '/var/cache/pacman/pkg'
 
 
 def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:
