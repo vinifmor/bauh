@@ -710,9 +710,10 @@ class ArchManager(SoftwareManager):
 
         return files
 
-    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False) -> bool:
+    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False,
+                           status_handler: TransactionStatusHandler = None) -> bool:
         try:
-            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger) if not status_handler else status_handler
             output_handler.start()
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
                                                                                    root_password=root_password,
@@ -737,7 +738,11 @@ class ArchManager(SoftwareManager):
                                                             confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
                                                             components=files):
 
-                    return self._upgrade_repo_pkgs(pkgs=pkgs, handler=handler, root_password=root_password, overwrite_files=True)
+                    return self._upgrade_repo_pkgs(pkgs=pkgs,
+                                                   handler=handler,
+                                                   root_password=root_password,
+                                                   overwrite_files=True,
+                                                   status_handler=output_handler)
                 else:
                     handler.watcher.print("Aborted by the user")
                     return False
