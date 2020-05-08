@@ -2165,20 +2165,16 @@ class ArchManager(SoftwareManager):
                                         deny_label=self.i18n['cancel'].capitalize()):
 
             handler = ProcessHandler(watcher)
-            success = True
-            for f in glob.glob('{}/*'.format(cache_dir)):
-                rm = SimpleProcess(cmd=['rm', '-rf', f], root_password=root_password)
-
-                success, _ = handler.handle_simple(rm)
-
-                if not success:
-                    success = False
-                    break
+            rm = SimpleProcess(cmd=['rm', '-rf', cache_dir], root_password=root_password)
+            success, _ = handler.handle_simple(rm)
 
             if success:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                      body=self.i18n['arch.custom_action.clean_cache.success'],
                                      type_=MessageType.INFO)
+
+                mkcache = SimpleProcess(cmd=['mkdir', '-p', cache_dir], root_password=root_password)
+                handler.handle_simple(mkcache)
                 return True
             else:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
