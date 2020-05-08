@@ -713,18 +713,21 @@ class ArchManager(SoftwareManager):
     def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False,
                            status_handler: TransactionStatusHandler = None) -> bool:
         try:
-            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger) if not status_handler else status_handler
-            output_handler.start()
+            if status_handler:
+                output_handler = status_handler
+            else:
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+                output_handler.start()
+
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
                                                                                    root_password=root_password,
                                                                                    overwrite_conflicting_files=overwrite_files),
                                                             output_handler=output_handler.handle,)
-            output_handler.stop_working()
-            output_handler.join()
-
             handler.watcher.change_substatus('')
 
             if success:
+                output_handler.stop_working()
+                output_handler.join()
                 handler.watcher.print("Repository packages successfully upgraded")
                 handler.watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
                 repo_map = pacman.map_repositories(pkgs)
@@ -744,6 +747,8 @@ class ArchManager(SoftwareManager):
                                                    overwrite_files=True,
                                                    status_handler=output_handler)
                 else:
+                    output_handler.stop_working()
+                    output_handler.join()
                     handler.watcher.print("Aborted by the user")
                     return False
             else:
