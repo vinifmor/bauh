@@ -157,7 +157,6 @@ arch.missing_deps.title=Dependencias faltantes
 arch.missing_deps_found=Dependencias faltantes para {}
 arch.mthread_downloaded.error.cache_dir=No fue posible crear el directorio de caché {}
 arch.mthread_downloaded.error.cancelled=Operación cancelada
-arch.mthread_downloaded.error.pkg2cache=No fue posible agregar el paquete descargado {} al directorio de caché {}
 arch.optdeps.checking=Verificando las dependencias opcionales de {}
 arch.providers=proveedores
 arch.substatus.conflicts=Verificando conflictos

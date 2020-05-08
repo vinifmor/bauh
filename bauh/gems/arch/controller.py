@@ -34,7 +34,7 @@ from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmatio
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
-from bauh.gems.arch.download import MultiThreadedDownloader, MultithreadedDownloadService, UnexpectedDownloadException
+from bauh.gems.arch.download import MultiThreadedDownloader, MultithreadedDownloadService, ArchDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -1608,7 +1608,7 @@ class ArchManager(SoftwareManager):
                     downloaded = download_service.download_packages(pkgs=to_download,
                                                                     handler=context.handler,
                                                                     root_password=context.root_password)
-                except UnexpectedDownloadException:
+                except ArchDownloadException:
                     return False
 
         if not context.dependency:

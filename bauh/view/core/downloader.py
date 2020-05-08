@@ -8,7 +8,8 @@ from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
+from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess, \
+    new_root_subprocess
 from bauh.view.util.translation import I18n
 
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
@@ -25,7 +26,7 @@ class AdaptableFileDownloader(FileDownloader):
     def is_aria2c_available(self) -> bool:
         return bool(run_cmd('which aria2c', print_error=False))
 
-    def _get_aria2c_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
+    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SystemProcess:
         cmd = ['aria2c', url,
                '--no-conf',
                '--max-connection-per-server=16',
@@ -46,20 +47,25 @@ class AdaptableFileDownloader(FileDownloader):
             cmd.append('--dir=' + '/'.join(output_split[:-1]))
             cmd.append('--out=' + output_split[-1])
 
-        return SystemProcess(new_subprocess(cmd=cmd, cwd=cwd),
+        if root_password:
+            proc = new_root_subprocess(cmd=cmd, cwd=cwd, root_password=root_password)
+        else:
+            proc = new_subprocess(cmd=cmd, cwd=cwd)
+
+        return SystemProcess(proc,
                              skip_stdout=True,
                              check_error_output=False,
                              success_phrases=['download completed'],
                              output_delay=0.001)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SimpleProcess:
+    def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SimpleProcess:
         cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
 
         if output_path:
             cmd.append('-O')
             cmd.append(output_path)
 
-        return SimpleProcess(cmd=cmd, cwd=cwd)
+        return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
     def _rm_bad_file(self, file_name: str, output_path: str, cwd):
         to_delete = output_path if output_path else '{}/{}'.format(cwd, file_name)
@@ -68,7 +74,7 @@ class AdaptableFileDownloader(FileDownloader):
             self.logger.info('Removing downloaded file {}'.format(to_delete))
             os.remove(to_delete)
 
-    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None) -> bool:
+    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True) -> bool:
         self.logger.info('Downloading {}'.format(file_url))
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]
@@ -85,21 +91,26 @@ class AdaptableFileDownloader(FileDownloader):
 
             if self.is_multithreaded():
                 ti = time.time()
-                process = self._get_aria2c_process(file_url, output_path, final_cwd)
+                process = self._get_aria2c_process(file_url, output_path, final_cwd, root_password)
                 downloader = 'aria2c'
             else:
                 ti = time.time()
-                process = self._get_wget_process(file_url, output_path, final_cwd)
+                process = self._get_wget_process(file_url, output_path, final_cwd, root_password)
                 downloader = 'wget'
 
-            file_size = self.http_client.get_content_length(file_url)
+            file_size = self.http_client.get_content_length(file_url) if display_file_size else None
 
             name = file_url.split('/')[-1]
 
             if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
                 name = output_path.split('/')[-1]
 
-            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name) + (' ( {} )'.format(file_size) if file_size else '')
+            if substatus_prefix:
+                msg = substatus_prefix + ' '
+            else:
+                msg = ''
+
+            msg += bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name) + (' ( {} )'.format(file_size) if file_size else '')
 
             if watcher:
                 watcher.change_substatus(msg)

@@ -1059,5 +1059,5 @@ def list_available_mirrors() -> List[str]:
 
 
 def get_mirrors_branch() -> str:
-    _, output = system.run(['pacman-mirrors', '--status', '--no-color'])
+    _, output = system.run(['pacman-mirrors', '-G'])
     return output.strip()

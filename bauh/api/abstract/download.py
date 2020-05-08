@@ -6,12 +6,15 @@ from bauh.api.abstract.handler import ProcessWatcher
 class FileDownloader(ABC):
 
     @abstractmethod
-    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str, cwd: str) -> bool:
+    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str, cwd: str, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True) -> bool:
         """
         :param file_url:
         :param watcher:
         :param output_path: the downloaded file output path. Leave None for the current directory and the same file name
         :param cwd: current working directory. Leave None if does not matter.
+        :param root_password: (if the output directory is protected)
+        :param substatus_prefix: custom substatus prefix ('prefix downloading xpto')
+        :param display_file_size: if the file size should be displayed on the substatus
         :return: success / failure
         """
         pass

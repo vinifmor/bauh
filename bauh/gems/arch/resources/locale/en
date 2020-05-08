@@ -157,7 +157,6 @@ arch.missing_deps.title=Missing dependencies
 arch.missing_deps_found=Missing dependencies for {}
 arch.mthread_downloaded.error.cache_dir=It was not possible to create the cache directory {}
 arch.mthread_downloaded.error.cancelled=Operation cancelled
-arch.mthread_downloaded.error.pkg2cache=It was not possible to add the downloaded package {} to the cache directory {}
 arch.optdeps.checking=Checking {} optional dependencies
 arch.providers=providers
 arch.substatus.conflicts=Checking for conflicts
