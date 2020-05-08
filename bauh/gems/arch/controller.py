@@ -752,6 +752,8 @@ class ArchManager(SoftwareManager):
                     handler.watcher.print("Aborted by the user")
                     return False
             else:
+                output_handler.stop_working()
+                output_handler.join()
                 self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
                 return False
         except:
