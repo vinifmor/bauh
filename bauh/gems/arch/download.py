@@ -2,7 +2,7 @@ import glob
 import logging
 import os
 import traceback
-from typing import Tuple, List, Iterable, Dict
+from typing import List, Iterable, Dict
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -34,15 +34,13 @@ class MultiThreadedDownloader:
         self.cache_dir = cache_dir
         self.logger = logger
 
-    def download_package(self, pkg: Dict[str, str], root_password: str, substatus_prefix: str, watcher: ProcessWatcher) -> Tuple[bool, str]:
+    def download_package(self, pkg: Dict[str, str], root_password: str, substatus_prefix: str, watcher: ProcessWatcher) -> bool:
         if self.mirrors and self.branch:
             pkgname = '{}-{}{}.pkg'.format(pkg['n'], pkg['v'], ('-{}'.format(pkg['a']) if pkg['a'] else ''))
 
-            filepath = [f for f in glob.glob(self.cache_dir + '/*') if f.split('/')[-1].startswith(pkgname)]
-
-            if filepath:
+            if {f for f in glob.glob(self.cache_dir + '/*') if f.split('/')[-1].startswith(pkgname)}:
                 watcher.print("{} ({}) file found o cache dir {}. Skipping download.".format(pkg['n'], pkg['v'], self.cache_dir))
-                return True, filepath[0]
+                return True
 
             arch = pkg['a'] if pkg.get('a') and pkg['a'] != 'any' else 'x86_64'
 
@@ -53,9 +51,9 @@ class MultiThreadedDownloader:
                     url = '{}{}{}'.format(mirror, url_base, ext)
                     output_path = base_output_path + ext
 
-                    if self.http_client.exists(url, timeout=1):  # TODO test speed
+                    if self.http_client.exists(url, timeout=1):
                         watcher.print("Downloading '{}' from mirror '{}'".format(pkgname, mirror))
-                        downloaded = self.downloader.download(file_url=url, watcher=watcher, output_path=base_output_path,
+                        downloaded = self.downloader.download(file_url=url, watcher=watcher, output_path=output_path,
                                                               cwd='.', root_password=root_password, display_file_size=False,
                                                               substatus_prefix=substatus_prefix)
                         if not downloaded:
@@ -64,9 +62,9 @@ class MultiThreadedDownloader:
                             break
                         else:
                             self.logger.info("Package '{}' successfully downloaded".format(pkg['n']))
-                            return True, output_path.split('/')[-1]
+                            return True
 
-        return False, ''
+        return False
 
 
 class MultithreadedDownloadService:
@@ -113,6 +111,7 @@ class MultithreadedDownloadService:
                                              mirrors_available=mirrors,
                                              mirrors_branch=branch,
                                              http_client=self.http_client,
+                                             logger=self.logger,
                                              cache_dir=cache_dir)
 
         downloaded = 0
@@ -122,7 +121,7 @@ class MultithreadedDownloadService:
             self.logger.info('Preparing to download package: {} ({})'.format(pkg['n'], pkg['v']))
             try:
                 perc = '({0:.2f}%)'.format((downloaded / (2 * len(pkgs))) * 100)
-                status_prefix = '{} [{}/{}] {} {}'.format(perc, downloaded, len(pkgs), self.i18n['downloading'].capitalize(), pkg['n'])
+                status_prefix = '{} [{}/{}]'.format(perc, downloaded, len(pkgs))
 
                 if downloader.download_package(pkg=pkg, root_password=root_password, watcher=handler.watcher, substatus_prefix=status_prefix):
                     downloaded += 1
