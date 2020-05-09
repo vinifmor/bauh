@@ -376,8 +376,10 @@ class ArchManager(SoftwareManager):
             return SearchResult([], [], 0)
 
         installed = {}
+        repo_map = pacman.map_repositories()
         read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=arch_config['repositories'],
-                                                                                     aur=arch_config['aur'])), daemon=True)
+                                                                                     aur=arch_config['aur'],
+                                                                                     repo_map=repo_map)), daemon=True)
         read_installed.start()
 
         res = SearchResult([], [], 0)
@@ -442,13 +444,11 @@ class ArchManager(SoftwareManager):
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, signed: dict, pkgs: list, disk_loader: DiskCacheLoader):
+    def _fill_repo_pkgs(self, signed: dict, pkgs: list, repo_map: Dict[str, str], disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
         thread_updates.start()
-
-        repo_map = pacman.map_repositories(list(signed.keys()))
 
         if len(repo_map) != len(signed):
             self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(signed)))
@@ -483,7 +483,8 @@ class ArchManager(SoftwareManager):
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
-        installed = pacman.map_installed(repositories=arch_config['repositories'], aur=arch_config['aur'])
+        repo_map = pacman.map_repositories()
+        installed = pacman.map_installed(repo_map=repo_map, repositories=arch_config['repositories'], aur=arch_config['aur'])
 
         pkgs = []
         if installed and (installed['not_signed'] or installed['signed']):
@@ -495,7 +496,7 @@ class ArchManager(SoftwareManager):
                 map_threads.append(t)
 
             if installed['signed']:
-                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], pkgs, disk_loader), daemon=True)
+                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], pkgs, repo_map, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -711,20 +712,24 @@ class ArchManager(SoftwareManager):
 
         return files
 
-    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False) -> bool:
+    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False,
+                           status_handler: TransactionStatusHandler = None) -> bool:
         try:
-            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
-            output_handler.start()
+            if status_handler:
+                output_handler = status_handler
+            else:
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+                output_handler.start()
+
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
                                                                                    root_password=root_password,
                                                                                    overwrite_conflicting_files=overwrite_files),
                                                             output_handler=output_handler.handle,)
-            output_handler.stop_working()
-            output_handler.join()
-
             handler.watcher.change_substatus('')
 
             if success:
+                output_handler.stop_working()
+                output_handler.join()
                 handler.watcher.print("Repository packages successfully upgraded")
                 handler.watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
                 repo_map = pacman.map_repositories(pkgs)
@@ -738,11 +743,19 @@ class ArchManager(SoftwareManager):
                                                             confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
                                                             components=files):
 
-                    return self._upgrade_repo_pkgs(pkgs=pkgs, handler=handler, root_password=root_password, overwrite_files=True)
+                    return self._upgrade_repo_pkgs(pkgs=pkgs,
+                                                   handler=handler,
+                                                   root_password=root_password,
+                                                   overwrite_files=True,
+                                                   status_handler=output_handler)
                 else:
+                    output_handler.stop_working()
+                    output_handler.join()
                     handler.watcher.print("Aborted by the user")
                     return False
             else:
+                output_handler.stop_working()
+                output_handler.join()
                 self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
                 return False
         except:
@@ -2097,7 +2110,8 @@ class ArchManager(SoftwareManager):
                         p.size = new_size - p.size
 
     def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        installed = pacman.map_installed(repositories=True, aur=False)
+        repo_map = pacman.map_repositories()
+        installed = pacman.map_installed(repo_map=repo_map, repositories=True, aur=False)
 
         if not installed or not installed['signed']:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
@@ -2190,15 +2204,18 @@ class ArchManager(SoftwareManager):
                                         body=text,
                                         confirmation_label=self.i18n['clean'].capitalize(),
                                         deny_label=self.i18n['cancel'].capitalize()):
-            rm = SimpleProcess(cmd=['rm', '-rf', '{}/*'.format(cache_dir)], root_password=root_password)
 
             handler = ProcessHandler(watcher)
-            success, output = handler.handle_simple(rm)
+            rm = SimpleProcess(cmd=['rm', '-rf', cache_dir], root_password=root_password)
+            success, _ = handler.handle_simple(rm)
 
             if success:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                      body=self.i18n['arch.custom_action.clean_cache.success'],
                                      type_=MessageType.INFO)
+
+                mkcache = SimpleProcess(cmd=['mkdir', '-p', cache_dir], root_password=root_password)
+                handler.handle_simple(mkcache)
                 return True
             else:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),

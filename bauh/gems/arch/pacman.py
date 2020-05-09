@@ -94,7 +94,7 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
+def map_installed(repo_map: Dict[str, str], repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
     ignored = {}
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
@@ -119,6 +119,12 @@ def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # retur
                 del current_pkg['name']
 
             current_pkg = {}
+
+    if pkgs['not_signed']:
+        for name in {*pkgs['not_signed'].keys()}:
+            if repo_map.get(name):
+                pkgs['signed'][name] = pkgs['not_signed'][name]
+                del pkgs['not_signed'][name]
 
     if pkgs['signed'] or pkgs['not_signed']:
         thread_ignored.join()
