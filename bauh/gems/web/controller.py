@@ -74,7 +74,9 @@ class WebApplicationManager(SoftwareManager):
                                                     manager=self,
                                                     manager_method='clean_environment',
                                                     icon_path=resource.get_path('img/web.svg', ROOT_DIR),
-                                                    requires_root=False)]
+                                                    requires_root=False,
+                                                    refresh=False)]
+        
     def _get_lang_header(self) -> str:
         try:
             system_locale = locale.getdefaultlocale()

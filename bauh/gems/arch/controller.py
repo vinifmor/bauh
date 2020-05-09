@@ -186,6 +186,7 @@ class ArchManager(SoftwareManager):
                                                 manager_method='clean_cache',
                                                 icon_path=get_icon_path(),
                                                 requires_root=True,
+                                                refresh=False,
                                                 manager=self)
         }
         self.index_aur = None
@@ -2167,7 +2168,7 @@ class ArchManager(SoftwareManager):
             watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                  body=self.i18n['arch.custom_action.clean_cache.no_dir'.format(bold(cache_dir))].capitalize(),
                                  type_=MessageType.WARNING)
-            return False
+            return True
 
         text = '<p>{}.</p><p>{}.</p><p>{}.</p>'.format(self.i18n['arch.custom_action.clean_cache.msg1'],
                                                        self.i18n['arch.custom_action.clean_cache.msg2'],
@@ -2194,5 +2195,6 @@ class ArchManager(SoftwareManager):
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                      body=self.i18n['arch.custom_action.clean_cache.fail'],
                                      type_=MessageType.ERROR)
+                return False
 
-        return False
+        return True
