@@ -121,7 +121,7 @@ class MultithreadedDownloadService:
             self.logger.info('Preparing to download package: {} ({})'.format(pkg['n'], pkg['v']))
             try:
                 perc = '({0:.2f}%)'.format((downloaded / (2 * len(pkgs))) * 100)
-                status_prefix = '{} [{}/{}]'.format(perc, downloaded, len(pkgs))
+                status_prefix = '{} [{}/{}]'.format(perc, downloaded + 1, len(pkgs))
 
                 if downloader.download_package(pkg=pkg, root_password=root_password, watcher=handler.watcher, substatus_prefix=status_prefix):
                     downloaded += 1
