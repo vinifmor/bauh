@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.3] 2020
+## [0.9.3] 2020-05
+### Features
+- new **restore** action to restore bauh settings and cache through the 'custom actions' button (**+**). It is equivalent to the command `bauh --reset`.
+
 ### Fixes
 - Arch
     - 'clean cache' operation was not working in some scenarios

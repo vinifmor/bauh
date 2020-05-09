@@ -874,7 +874,7 @@ class CustomAction(AsyncAction):
         if self.custom_action.backup:
             app_config = read_config()
             if not self.request_backup(app_config, None, self.i18n, self.root_pwd):
-                self.notify_finished({'success': False, 'pkg': self.pkg})
+                self.notify_finished({'success': False, 'pkg': self.pkg, 'action': self.custom_action})
                 self.pkg = None
                 self.custom_action = None
                 self.root_pwd = None
@@ -889,7 +889,7 @@ class CustomAction(AsyncAction):
             success = False
             self.signal_output.emit(self.i18n['internet.required'])
 
-        self.notify_finished({'success': success, 'pkg': self.pkg})
+        self.notify_finished({'success': success, 'pkg': self.pkg, 'action': self.custom_action})
         self.pkg = None
         self.custom_action = None
         self.root_pwd = None

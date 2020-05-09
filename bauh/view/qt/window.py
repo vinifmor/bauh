@@ -1226,7 +1226,8 @@ class ManageWindow(QWidget):
     def _finish_custom_action(self, res: dict):
         self.finish_action()
         if res['success']:
-            self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
+            if res['action'].refresh:
+                self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
         else:
             self.checkbox_console.setChecked(True)
 

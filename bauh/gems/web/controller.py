@@ -944,16 +944,19 @@ class WebApplicationManager(SoftwareManager):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
 
-    def clear_data(self):
+    def clear_data(self, logs: bool = True):
         if os.path.exists(ENV_PATH):
-            print('[bauh][web] Deleting directory {}'.format(ENV_PATH))
+            if logs:
+                print('[bauh][web] Deleting directory {}'.format(ENV_PATH))
 
             try:
                 shutil.rmtree(ENV_PATH)
-                print('{}[bauh][web] Directory {} deleted{}'.format(Fore.YELLOW, ENV_PATH, Fore.RESET))
+                if logs:
+                    print('{}[bauh][web] Directory {} deleted{}'.format(Fore.YELLOW, ENV_PATH, Fore.RESET))
             except:
-                print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
-                traceback.print_exc()
+                if logs:
+                    print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
+                    traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()
