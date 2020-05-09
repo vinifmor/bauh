@@ -97,7 +97,8 @@ class ArchDiskCacheUpdater(Thread):
         self.task_man.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
 
         self.logger.info('Pre-caching installed Arch packages data to disk')
-        installed = pacman.map_installed(repositories=self.repositories, aur=self.aur)
+        repo_map = pacman.map_repositories()
+        installed = pacman.map_installed(repositories=self.repositories, aur=self.aur, repo_map=repo_map)
 
         self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
         for k in ('signed', 'not_signed'):
@@ -106,13 +107,8 @@ class ArchDiskCacheUpdater(Thread):
         saved = 0
         pkgs = {*installed['signed'], *installed['not_signed']}
 
-        repo_map = {}
-
         if installed['not_signed']:
             repo_map.update({p: 'aur' for p in installed['not_signed']})
-
-        if installed['signed']:
-            repo_map.update(pacman.map_repositories(installed['signed']))
 
         self.to_index = len(pkgs)
         self.progress = self.to_index * 2
