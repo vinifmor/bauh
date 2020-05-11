@@ -560,8 +560,7 @@ class ManageWindow(QWidget):
     def changeEvent(self, e: QEvent):
         if isinstance(e, QWindowStateChangeEvent):
             self._maximized = self.isMaximized()
-            policy = QHeaderView.Stretch if self._maximized else QHeaderView.ResizeToContents
-            self.table_apps.change_headers_policy(policy)
+            self.table_apps.change_headers_policy(maximized=self._maximized)
 
     def _handle_console(self, checked: bool):
 
