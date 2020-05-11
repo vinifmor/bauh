@@ -1648,9 +1648,20 @@ class ArchManager(SoftwareManager):
         if installed:
             context.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(context.name)))
 
+            if not context.maintainer:
+                if context.pkg and context.pkg.maintainer:
+                    pkg_maintainer = context.pkg.maintainer
+                elif context.repository == 'aur':
+                    aur_infos = self.aur_client.get_info({context.name})
+                    pkg_maintainer = aur_infos[0].get('Maintainer') if aur_infos else None
+                else:
+                    pkg_maintainer = context.repository
+            else:
+                pkg_maintainer = context.maintainer
+
             cache_map = {context.name: ArchPackage(name=context.name,
                                                    repository=context.repository,
-                                                   maintainer=context.maintainer,
+                                                   maintainer=pkg_maintainer,
                                                    categories=self.categories.get(context.name))}
             if context.missing_deps:
                 aur_deps = {dep[0] for dep in context.missing_deps if dep[1] == 'aur'}

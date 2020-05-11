@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - 'clean cache' operation was not working in some scenarios
     - upgrading progress when conflicting files are detected
     - not detecting some installed 'not-signed' repository packages
+    - not properly caching data of installed dependencies
     
 - upgrade: crashing for scenarios when there are packages that cannot upgrade to be displayed on the summary window
 - settings: crashing when an empty Qt style is defined [#104](https://github.com/vinifmor/bauh/issues/104) 
