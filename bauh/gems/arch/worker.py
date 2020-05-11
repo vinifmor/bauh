@@ -105,7 +105,7 @@ class ArchDiskCacheUpdater(Thread):
         self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
 
         saved = 0
-        pkgs = {p.name: p for p in installed if not os.path.exists(p.get_disk_cache_path())}
+        pkgs = {p.name: p for p in installed if ((self.aur and p.repository == 'aur') or (self.repositories and p.repository != 'aur')) and not os.path.exists(p.get_disk_cache_path())}
 
         self.to_index = len(pkgs)
         self.progress = self.to_index * 2

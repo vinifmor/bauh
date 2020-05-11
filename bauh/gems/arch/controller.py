@@ -506,9 +506,11 @@ class ArchManager(SoftwareManager):
                     if repo_pkgs is not None:
                         repo_pkgs[pkg] = installed['not_signed'][pkg]
 
-                    del installed['not_signed'][pkg]
+                    if arch_config['aur']:
+                        del installed['not_signed'][pkg]
 
-            aur_pkgs = installed['not_signed']
+            if arch_config['aur']:
+                aur_pkgs = installed['not_signed']
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
