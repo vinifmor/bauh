@@ -80,8 +80,11 @@ class AURClient:
         return self.http_client.get_json(URL_SEARCH + words)
 
     def get_info(self, names: Iterable[str]) -> List[dict]:
-        res = self.http_client.get_json(URL_INFO + self._map_names_as_queries(names))
-        return res['results'] if res and res.get('results') else []
+        try:
+            res = self.http_client.get_json(URL_INFO + self._map_names_as_queries(names))
+            return res['results'] if res and res.get('results') else []
+        except:
+            return []
 
     def get_src_info(self, name: str) -> dict:
         srcinfo = self.srcinfo_cache.get(name)
@@ -171,18 +174,21 @@ class AURClient:
         self.logger.info("Finished")
 
     def read_index(self) -> Iterable[str]:
-        index = self.read_local_index()
+        try:
+            index = self.read_local_index()
 
-        if not index:
-            self.logger.warning("Cached AUR index file not found")
-            pkgnames = self.download_names()
+            if not index:
+                self.logger.warning("Cached AUR index file not found")
+                pkgnames = self.download_names()
 
-            if pkgnames:
-                return pkgnames
+                if pkgnames:
+                    return pkgnames
+                else:
+                    self.logger.warning("Could not load AUR index on the context")
             else:
-                self.logger.warning("Could not load AUR index on the context")
-        else:
-            return index.values()
+                return index.values()
+        except:
+            return set()
 
     def clean_caches(self):
         self.srcinfo_cache.clear()

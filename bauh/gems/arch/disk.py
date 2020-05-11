@@ -2,7 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import List, Dict, Iterable
+from typing import List, Dict
 
 from bauh.gems.arch import pacman
 from bauh.gems.arch.model import ArchPackage
@@ -48,12 +48,11 @@ def set_icon_path(pkg: ArchPackage, icon_name: str = None):
                 break
 
 
-def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: bool = True, maintainer: str = None,
-                 categories: dict = None, when_prepared=None, after_written=None) -> int:
+def save_several(pkgs: Dict[str, ArchPackage], overwrite: bool = True, maintainer: str = None, when_prepared=None, after_written=None) -> int:
     if overwrite:
-        to_cache = pkgnames
+        to_cache = {p.name for p in pkgs.values()}
     else:
-        to_cache = {n for n in pkgnames if not os.path.exists(ArchPackage.disk_cache_path(n))}
+        to_cache = {p.name for p in pkgs.values() if not os.path.exists(p.get_disk_cache_path())}
 
     desktop_files = pacman.list_desktop_entries(to_cache)
 
@@ -78,18 +77,18 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
             if pkg not in desktop_matches:
                 no_exact_match.add(pkg)
         if no_exact_match:  # check every not matched app individually
-            for pkg in no_exact_match:
-                entries = pacman.list_desktop_entries({pkg})
+            for pkgname in no_exact_match:
+                entries = pacman.list_desktop_entries({pkgname})
 
                 if entries:
                     if len(entries) > 1:
                         for e in entries:
                             if e.startswith('/usr/share/applications') and os.path.isfile(e):
-                                desktop_matches[pkg] = e
+                                desktop_matches[pkgname] = e
                                 break
                     else:
                         if os.path.isfile(entries[0]):
-                            desktop_matches[pkg] = entries[0]
+                            desktop_matches[pkgname] = entries[0]
 
         if not desktop_matches:
             no_desktop_files = to_cache
@@ -97,10 +96,10 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
             if len(desktop_matches) != len(to_cache):
                 no_desktop_files = {p for p in to_cache if p not in desktop_matches}
 
-            pkgs, apps_icons_noabspath = [], []
+            instances, apps_icons_noabspath = [], []
 
             for pkgname, file in desktop_matches.items():
-                p = ArchPackage(name=pkgname, repository=repo_map.get(pkgname))
+                p = pkgs[pkgname]
 
                 with open(file) as f:
                     try:
@@ -124,7 +123,7 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
                     except:
                         continue
 
-                pkgs.append(p)
+                instances.append(p)
 
                 if when_prepared:
                     when_prepared(p.name)
@@ -135,17 +134,17 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
                     for p in apps_icons_noabspath:
                         fill_icon_path(p, icon_paths, False)
 
-            for p in pkgs:
+            for p in instances:
                 to_write.append(p)
     else:
-        no_desktop_files = {*pkgnames}
+        no_desktop_files = {n for n in to_cache}
 
     if no_desktop_files:
         bin_paths = pacman.list_bin_paths(no_desktop_files)
         icon_paths = pacman.list_icon_paths(no_desktop_files)
 
         for n in no_desktop_files:
-            p = ArchPackage(name=n, repository=repo_map.get(n))
+            p = pkgs[n]
 
             if bin_paths:
                 clean_name = RE_CLEAN_NAME.sub('', p.name)
@@ -166,9 +165,6 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
     if to_write:
         written = set()
         for p in to_write:
-            if categories:
-                p.categories = categories.get(p.name)
-
             if maintainer and not p.maintainer:
                 p.maintainer = maintainer
 
@@ -180,11 +176,11 @@ def save_several(pkgnames: Iterable[str], repo_map: Dict[str, str], overwrite: b
             written.add(p.name)
 
         if len(to_write) != len(to_cache):
-            for n in pkgnames:
-                if n not in written:
-                    Path(ArchPackage.disk_cache_path(n)).mkdir(parents=True, exist_ok=True)
+            for pkgname in to_cache:
+                if pkgname not in written:
+                    Path(ArchPackage.disk_cache_path(pkgname)).mkdir(parents=True, exist_ok=True)
                     if after_written:
-                        after_written(n)
+                        after_written(pkgname)
 
         return len(to_write)
     return 0
