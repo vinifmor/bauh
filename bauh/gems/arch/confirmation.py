@@ -22,11 +22,11 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
 
     for p, d in pkg_repos.items():
         size = sizes.get(p)
-        op = InputOption('{}{} ( {}: {} ) - {}: {}'.format(p, ': ' + d['desc'] if d['desc'] else '',
-                                                           i18n['repository'],
-                                                           d['repository'].upper(),
-                                                           i18n['size'].capitalize(),
-                                                           get_human_size_str(size) if size else '?'), p)
+        op = InputOption('{}{} ({}: {}) - {}: {}'.format(p, ': ' + d['desc'] if d['desc'] else '',
+                                                         i18n['repository'],
+                                                         d['repository'].lower(),
+                                                         i18n['size'].capitalize(),
+                                                         get_human_size_str(size) if size else '?'), p)
         op.icon_path = _get_repo_icon(d['repository'])
         opts.append(op)
 
@@ -54,11 +54,11 @@ def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watc
 
     for dep in deps:
         size = sizes.get(dep[0])
-        op = InputOption('{} ( {}: {} ) - {}: {}'.format(dep[0],
-                                                         i18n['repository'],
-                                                         dep[1].upper(),
-                                                         i18n['size'].capitalize(),
-                                                         get_human_size_str(size) if size else '?'), dep[0])
+        op = InputOption('{} ({}: {}) - {}: {}'.format(dep[0],
+                                                       i18n['repository'],
+                                                       dep[1].lower(),
+                                                       i18n['size'].capitalize(),
+                                                       get_human_size_str(size) if size else '?'), dep[0])
         op.read_only = True
         op.icon_path = _get_repo_icon(dep[1])
         opts.append(op)
