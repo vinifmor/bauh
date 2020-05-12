@@ -1263,7 +1263,7 @@ class ArchManager(SoftwareManager):
         progress = 0
         self._update_progress(context, 1)
 
-        repo_deps, aur_deps_context = [], []
+        repo_deps, repo_dep_names, aur_deps_context = [], None, []
 
         for dep in deps:
             context.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ({})'.format(dep[0], dep[1]))))
@@ -1274,14 +1274,15 @@ class ArchManager(SoftwareManager):
                 dep_context.base = dep_src['pkgbase']
                 aur_deps_context.append(dep_context)
             else:
-                repo_deps.append(dep[0])
+                repo_deps.append(dep)
 
         if repo_deps:
+            repo_dep_names = [d[0] for d in repo_deps]
             context.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(context.name)))
 
             all_provided = context.get_provided_map()
 
-            for dep, conflicts in pacman.map_conflicts_with(repo_deps, remote=True).items():
+            for dep, conflicts in pacman.map_conflicts_with(repo_dep_names, remote=True).items():
                 if conflicts:
                     for c in conflicts:
                         source_conflict = all_provided.get(c)
@@ -1293,18 +1294,21 @@ class ArchManager(SoftwareManager):
                                 if not self._request_conflict_resolution(dep, conflict_pkg , context):
                                     return {dep}
 
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_deps), self.logger, percentage=len(repo_deps) > 1)
+            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_dep_names), self.logger, percentage=len(repo_deps) > 1)
             status_handler.start()
-            installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_deps,
+            installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
                                                                                    root_password=context.root_password,
                                                                                    file=False),
                                                          output_handler=status_handler.handle)
 
             if installed:
+                pkg_map = {d[0]: ArchPackage(name=d[0], repository=d[1], maintainer=d[1],
+                                             categories=self.categories.get(d[0])) for d in repo_deps}
+                disk.save_several(pkg_map, overwrite=True, maintainer=None)
                 progress += len(repo_deps) * progress_increment
                 self._update_progress(context, progress)
             else:
-                return repo_deps
+                return repo_dep_names
 
         for aur_context in aur_deps_context:
             installed = self._install_from_aur(aur_context)
