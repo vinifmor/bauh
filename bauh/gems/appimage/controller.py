@@ -613,15 +613,19 @@ class AppImageManager(SoftwareManager):
 
         return []
 
-    def clear_data(self):
+    def clear_data(self, logs: bool = True):
         for f in glob.glob('{}/*.db'.format(LOCAL_PATH)):
             try:
-                print('[bauh][appimage] Deleting {}'.format(f))
+                if logs:
+                    print('[bauh][appimage] Deleting {}'.format(f))
                 os.remove(f)
-                print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
+
+                if logs:
+                    print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
             except:
-                print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, f, Fore.RESET))
-                traceback.print_exc()
+                if logs:
+                    print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, f, Fore.RESET))
+                    traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         config = read_config()

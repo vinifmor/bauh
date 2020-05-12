@@ -69,7 +69,7 @@ python3 -m venv bauh_env ( creates a virtualenv in a folder called "bauh_env" )
 bauh_env/bin/pip install bauh ( installs bauh in the isolated environment )
 bauh_env/bin/bauh  ( launches bauh )
 
-# P.S: if you want to launch it attached to your system tray, replace the last command by: bauh_env/bin/bauh --tray=1
+# P.S: if you want to launch it attached to your system tray, replace the last command by: bauh_env/bin/bauh-tray
 ```
 
 - To update your isolated bauh to the latest version:

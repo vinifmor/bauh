@@ -53,7 +53,7 @@ def is_available_in_repositories(pkg_name: str) -> bool:
 
 
 def get_info(pkg_name, remote: bool = False) -> str:
-    return run_cmd('pacman -{}i {}'.format('Q' if not remote else 'S', pkg_name))
+    return run_cmd('pacman -{}i {}'.format('Q' if not remote else 'S', pkg_name), print_error=False)
 
 
 def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
@@ -92,7 +92,7 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # returns a dict with with package names as keys and versions as values
+def map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
     ignored = {}
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
@@ -109,10 +109,10 @@ def map_installed(repositories: bool = True, aur: bool = True) -> dict:  # retur
         elif field_tuple[0].startswith('D'):
             current_pkg['description'] = field_tuple[1].strip()
         elif field_tuple[0].startswith('Va'):
-            if field_tuple[1].strip().lower() == 'none' and aur:
+            if field_tuple[1].strip().lower() == 'none':
                 pkgs['not_signed'][current_pkg['name']] = current_pkg
                 del current_pkg['name']
-            elif repositories:
+            else:
                 pkgs['signed'][current_pkg['name']] = current_pkg
                 del current_pkg['name']
 
@@ -432,7 +432,7 @@ def get_build_date(pkgname: str) -> str:
 
 
 def search(words: str) -> Dict[str, dict]:
-    output = run_cmd('pacman -Ss ' + words)
+    output = run_cmd('pacman -Ss ' + words, print_error=False)
 
     if output:
         found, current = {}, {}
@@ -838,7 +838,13 @@ def get_cache_dir() -> str:
             if not string.strip().startswith('#'):
                 cache_dirs.append(string.split('=')[1].strip())
 
-        return cache_dirs[-1] if cache_dirs else '/var/cache/pacman/pkg/'
+        if cache_dirs:
+            if cache_dirs[-1][-1] == '/':
+                return cache_dirs[-1][0:-1]
+            else:
+                return cache_dirs[-1]
+        else:
+            return '/var/cache/pacman/pkg'
 
 
 def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:

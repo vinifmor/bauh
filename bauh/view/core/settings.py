@@ -171,8 +171,11 @@ class GenericSettingsManager:
         default_style = [o for o in style_opts if o.value == cur_style]
 
         if not default_style:
-            default_style = InputOption(label=cur_style, value=cur_style)
-            style_opts.append(default_style)
+            if cur_style:
+                default_style = InputOption(label=cur_style, value=cur_style)
+                style_opts.append(default_style)
+            else:
+                default_style = style_opts[0]
         else:
             default_style = default_style[0]
 

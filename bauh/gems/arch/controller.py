@@ -23,7 +23,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
-from bauh.commons import user
+from bauh.commons import user, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -186,6 +186,7 @@ class ArchManager(SoftwareManager):
                                                 manager_method='clean_cache',
                                                 icon_path=get_icon_path(),
                                                 requires_root=True,
+                                                refresh=False,
                                                 manager=self)
         }
         self.index_aur = None
@@ -283,21 +284,21 @@ class ArchManager(SoftwareManager):
         database.register_sync(self.logger)
         return True
 
-    def _upgrade_search_result(self, apidata: dict, installed_pkgs: dict, downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
-        app = self.mapper.map_api_data(apidata, installed_pkgs['not_signed'], self.categories)
-        app.downgrade_enabled = downgrade_enabled
+    def _upgrade_search_result(self, apidata: dict, installed_pkgs: Dict[str, ArchPackage], downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
+        pkg = installed_pkgs.get(apidata['Name'])
 
-        if app.installed:
-            res.installed.append(app)
+        if not pkg:
+            pkg = self.mapper.map_api_data(apidata, None, self.categories)
+            pkg.downgrade_enabled = downgrade_enabled
 
-            if disk_loader:
-                disk_loader.fill(app)
+        if pkg.installed:
+            res.installed.append(pkg)
         else:
-            res.new.append(app)
+            res.new.append(pkg)
 
-        Thread(target=self.mapper.fill_package_build, args=(app,), daemon=True).start()
+        Thread(target=self.mapper.fill_package_build, args=(pkg,), daemon=True).start()
 
-    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: dict, res: SearchResult):
+    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
         repo_search = pacman.search(words)
 
         if not repo_search:  # the package may not be mapped on the databases anymore
@@ -319,27 +320,26 @@ class ArchManager(SoftwareManager):
             if repo_pkgs:
                 read_installed.join()
 
+                repo_installed = {p.name: p for p in installed if p.repository != 'aur'} if installed else {}
+
                 for pkg in repo_pkgs:
-                    if installed['signed'] and pkg.name in installed['signed']:
-                        pkg.installed = True
-
-                        if disk_loader:
-                            disk_loader.fill(pkg)
-
-                        res.installed.append(pkg)
+                    pkg_installed = repo_installed.get(pkg.name)
+                    if pkg_installed:
+                        res.installed.append(pkg_installed)
                     else:
                         pkg.installed = False
                         res.new.append(pkg)
 
-    def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: dict, res: SearchResult):
+    def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
         api_res = self.aur_client.search(words)
 
         if api_res and api_res.get('results'):
             read_installed.join()
+            aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
 
             downgrade_enabled = git.is_enabled()
             for pkgdata in api_res['results']:
-                self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
+                self._upgrade_search_result(pkgdata, aur_installed, downgrade_enabled, res, disk_loader)
 
         else:  # if there are no results from the API (it could be because there were too many), tries the names index:
             if self.index_aur:
@@ -360,10 +360,11 @@ class ArchManager(SoftwareManager):
 
                 if pkgsinfo:
                     read_installed.join()
+                    aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
                     downgrade_enabled = git.is_enabled()
 
                     for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, installed, downgrade_enabled, res, disk_loader)
+                        self._upgrade_search_result(pkgdata, aur_installed, downgrade_enabled, res, disk_loader)
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
@@ -374,9 +375,11 @@ class ArchManager(SoftwareManager):
         if not any([arch_config['repositories'], arch_config['aur']]):
             return SearchResult([], [], 0)
 
-        installed = {}
-        read_installed = Thread(target=lambda: installed.update(pacman.map_installed(repositories=arch_config['repositories'],
-                                                                                     aur=arch_config['aur'])), daemon=True)
+        installed = []
+        read_installed = Thread(target=lambda: installed.extend(self.read_installed(disk_loader=disk_loader,
+                                                                                    only_apps=False,
+                                                                                    limit=-1,
+                                                                                    internet_available=True).installed), daemon=True)
         read_installed.start()
 
         res = SearchResult([], [], 0)
@@ -401,30 +404,30 @@ class ArchManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def _fill_aur_pkgs(self, not_signed: dict, pkgs: list, disk_loader: DiskCacheLoader, internet_available: bool):
+    def _fill_aur_pkgs(self, aur_pkgs: dict, output: list, disk_loader: DiskCacheLoader, internet_available: bool):
         downgrade_enabled = git.is_enabled()
 
         if internet_available:
             try:
-                pkgsinfo = self.aur_client.get_info(not_signed.keys())
+                pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
 
                 if pkgsinfo:
                     for pkgdata in pkgsinfo:
-                        pkg = self.mapper.map_api_data(pkgdata, not_signed, self.categories)
+                        pkg = self.mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
                         pkg.downgrade_enabled = downgrade_enabled
 
                         if disk_loader:
                             disk_loader.fill(pkg)
                             pkg.status = PackageStatus.READY
 
-                        pkgs.append(pkg)
+                        output.append(pkg)
 
                 return
             except requests.exceptions.ConnectionError:
                 self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
                 self.logger.info("Reading only local AUR packages data")
 
-        for name, data in not_signed.items():
+        for name, data in aur_pkgs.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
                               installed=True, repository='aur', i18n=self.i18n)
@@ -436,36 +439,38 @@ class ArchManager(SoftwareManager):
                 disk_loader.fill(pkg)
                 pkg.status = PackageStatus.READY
 
-            pkgs.append(pkg)
+            output.append(pkg)
 
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, signed: dict, pkgs: list, disk_loader: DiskCacheLoader):
+    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
         thread_updates.start()
 
-        repo_map = pacman.map_repositories(list(signed.keys()))
-
-        if len(repo_map) != len(signed):
-            self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(signed)))
+        repo_map = pacman.map_repositories(repo_pkgs)
+        if len(repo_map) != len(repo_pkgs):
+            self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(repo_pkgs)))
 
         thread_updates.join()
 
         self.logger.info("Repository updates found" if updates else "No repository updates found")
 
-        for name, data in signed.items():
+        for name, data in repo_pkgs.items():
+            pkgversion = data.get('version')
+            pkgrepo = repo_map.get(name)
             pkg = ArchPackage(name=name,
-                              version=data.get('version'),
-                              latest_version=data.get('version'),
+                              version=pkgversion,
+                              latest_version=pkgversion,
                               description=data.get('description'),
+                              maintainer=pkgrepo,
                               i18n=self.i18n,
                               installed=True,
-                              repository=repo_map.get(name))
-            pkg.categories = self.categories.get(pkg.name)
-            pkg.downgrade_enabled = True
+                              repository=pkgrepo,
+                              categories=self.categories.get(name))
+            pkg.downgrade_enabled = False
 
             if updates:
                 update_version = updates.get(pkg.name)
@@ -482,19 +487,42 @@ class ArchManager(SoftwareManager):
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
-        installed = pacman.map_installed(repositories=arch_config['repositories'], aur=arch_config['aur'])
+
+        installed = pacman.map_installed()
+
+        aur_pkgs, repo_pkgs = None, None
+
+        if arch_config['repositories'] and installed['signed']:
+            repo_pkgs = installed['signed']
+
+        if installed['not_signed']:
+            if self.index_aur:
+                self.index_aur.join()
+
+            aur_index = self.aur_client.read_index()
+
+            for pkg in {*installed['not_signed']}:
+                if pkg not in aur_index:
+                    if repo_pkgs is not None:
+                        repo_pkgs[pkg] = installed['not_signed'][pkg]
+
+                    if arch_config['aur']:
+                        del installed['not_signed'][pkg]
+
+            if arch_config['aur']:
+                aur_pkgs = installed['not_signed']
 
         pkgs = []
-        if installed and (installed['not_signed'] or installed['signed']):
+        if repo_pkgs or aur_pkgs:
             map_threads = []
 
-            if installed['not_signed']:
-                t = Thread(target=self._fill_aur_pkgs, args=(installed['not_signed'], pkgs, disk_loader, internet_available), daemon=True)
+            if aur_pkgs:
+                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available), daemon=True)
                 t.start()
                 map_threads.append(t)
 
-            if installed['signed']:
-                t = Thread(target=self._fill_repo_pkgs, args=(installed['signed'], pkgs, disk_loader), daemon=True)
+            if repo_pkgs:
+                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -710,24 +738,37 @@ class ArchManager(SoftwareManager):
 
         return files
 
-    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False) -> bool:
+    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False,
+                           status_handler: TransactionStatusHandler = None) -> bool:
         try:
-            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
-            output_handler.start()
+            if status_handler:
+                output_handler = status_handler
+            else:
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+                output_handler.start()
+
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
                                                                                    root_password=root_password,
                                                                                    overwrite_conflicting_files=overwrite_files),
                                                             output_handler=output_handler.handle,)
-            output_handler.stop_working()
-            output_handler.join()
-
             handler.watcher.change_substatus('')
 
             if success:
+                output_handler.stop_working()
+                output_handler.join()
                 handler.watcher.print("Repository packages successfully upgraded")
                 handler.watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
                 repo_map = pacman.map_repositories(pkgs)
-                disk.save_several(pkgs, repo_map=repo_map, overwrite=True, maintainer=None)
+
+                pkg_map = {}
+                for name in pkgs:
+                    repo = repo_map.get(name)
+                    pkg_map[name] = ArchPackage(name=name,
+                                                repository=repo,
+                                                maintainer=repo,
+                                                categories=self.categories.get(name))
+
+                disk.save_several(pkg_map, overwrite=True, maintainer=None)
                 return True
             elif 'conflicting files' in upgrade_output:
                 files = self._map_conflicting_file(upgrade_output)
@@ -737,11 +778,19 @@ class ArchManager(SoftwareManager):
                                                             confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
                                                             components=files):
 
-                    return self._upgrade_repo_pkgs(pkgs=pkgs, handler=handler, root_password=root_password, overwrite_files=True)
+                    return self._upgrade_repo_pkgs(pkgs=pkgs,
+                                                   handler=handler,
+                                                   root_password=root_password,
+                                                   overwrite_files=True,
+                                                   status_handler=output_handler)
                 else:
+                    output_handler.stop_working()
+                    output_handler.join()
                     handler.watcher.print("Aborted by the user")
                     return False
             else:
+                output_handler.stop_working()
+                output_handler.join()
                 self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
                 return False
         except:
@@ -1214,7 +1263,7 @@ class ArchManager(SoftwareManager):
         progress = 0
         self._update_progress(context, 1)
 
-        repo_deps, aur_deps_context = [], []
+        repo_deps, repo_dep_names, aur_deps_context = [], None, []
 
         for dep in deps:
             context.watcher.change_substatus(self.i18n['arch.install.dependency.install'].format(bold('{} ({})'.format(dep[0], dep[1]))))
@@ -1225,14 +1274,15 @@ class ArchManager(SoftwareManager):
                 dep_context.base = dep_src['pkgbase']
                 aur_deps_context.append(dep_context)
             else:
-                repo_deps.append(dep[0])
+                repo_deps.append(dep)
 
         if repo_deps:
+            repo_dep_names = [d[0] for d in repo_deps]
             context.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(context.name)))
 
             all_provided = context.get_provided_map()
 
-            for dep, conflicts in pacman.map_conflicts_with(repo_deps, remote=True).items():
+            for dep, conflicts in pacman.map_conflicts_with(repo_dep_names, remote=True).items():
                 if conflicts:
                     for c in conflicts:
                         source_conflict = all_provided.get(c)
@@ -1244,18 +1294,21 @@ class ArchManager(SoftwareManager):
                                 if not self._request_conflict_resolution(dep, conflict_pkg , context):
                                     return {dep}
 
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_deps), self.logger, percentage=len(repo_deps) > 1)
+            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_dep_names), self.logger, percentage=len(repo_deps) > 1)
             status_handler.start()
-            installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_deps,
+            installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
                                                                                    root_password=context.root_password,
                                                                                    file=False),
                                                          output_handler=status_handler.handle)
 
             if installed:
+                pkg_map = {d[0]: ArchPackage(name=d[0], repository=d[1], maintainer=d[1],
+                                             categories=self.categories.get(d[0])) for d in repo_deps}
+                disk.save_several(pkg_map, overwrite=True, maintainer=None)
                 progress += len(repo_deps) * progress_increment
                 self._update_progress(context, progress)
             else:
-                return repo_deps
+                return repo_dep_names
 
         for aur_context in aur_deps_context:
             installed = self._install_from_aur(aur_context)
@@ -1358,18 +1411,6 @@ class ArchManager(SoftwareManager):
                     return True
 
         return False
-
-    def _map_unknown_missing_deps(self, deps: List[str], watcher: ProcessWatcher, check_subdeps: bool = True) -> List[Tuple[str, str]]:
-        depnames = {RE_SPLIT_VERSION.split(dep)[0] for dep in deps}
-        dep_repos = self._map_repos(depnames)
-
-        if len(depnames) != len(dep_repos):  # checking if a dependency could not be found in any repository
-            for dep in depnames:
-                if dep not in dep_repos:
-                    message.show_dep_not_found(dep, self.i18n, watcher)
-                    return
-
-        return self.deps_analyser.map_known_missing_deps(dep_repos, watcher, check_subdeps)
 
     def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
@@ -1612,19 +1653,42 @@ class ArchManager(SoftwareManager):
 
         if installed:
             context.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(context.name)))
-            pkgnames = {context.name}
-            repo_map = {context.name: context.repository}
 
+            if not context.maintainer:
+                if context.pkg and context.pkg.maintainer:
+                    pkg_maintainer = context.pkg.maintainer
+                elif context.repository == 'aur':
+                    aur_infos = self.aur_client.get_info({context.name})
+                    pkg_maintainer = aur_infos[0].get('Maintainer') if aur_infos else None
+                else:
+                    pkg_maintainer = context.repository
+            else:
+                pkg_maintainer = context.maintainer
+
+            cache_map = {context.name: ArchPackage(name=context.name,
+                                                   repository=context.repository,
+                                                   maintainer=pkg_maintainer,
+                                                   categories=self.categories.get(context.name))}
             if context.missing_deps:
-                for dep in context.missing_deps:
-                    pkgnames.add(dep[0])
-                    repo_map[dep[0]] = dep[1]
+                aur_deps = {dep[0] for dep in context.missing_deps if dep[1] == 'aur'}
 
-            disk.save_several(pkgnames=pkgnames,
-                              repo_map=repo_map,
-                              maintainer=context.maintainer,
-                              overwrite=True,
-                              categories=self.categories)
+                if aur_deps:
+                    aur_data = self.aur_client.get_info(aur_deps)
+
+                    if aur_data:
+                        aur_data = {info['Name']: info for info in aur_data}
+                    else:
+                        aur_data = {n: {} for n in aur_deps}
+                else:
+                    aur_data = None
+
+                for dep in context.missing_deps:
+                    cache_map[dep[0]] = ArchPackage(name=dep[0],
+                                                    repository=dep[1],
+                                                    maintainer=dep[1] if dep[1] != 'aur' else (aur_data[dep[0]].get('Maintainer') if aur_data else None),
+                                                    categories=self.categories.get(context.name))
+
+            disk.save_several(pkgs=cache_map, maintainer=None, overwrite=True)
 
             self._update_progress(context, 100)
 
@@ -1834,7 +1898,8 @@ class ArchManager(SoftwareManager):
         arch_config = read_config(update_file=True)
 
         if arch_config['aur'] or arch_config['repositories']:
-            ArchDiskCacheUpdater(task_manager, arch_config, self.i18n, self.context.logger).start()
+            ArchDiskCacheUpdater(task_man=task_manager, arch_config=arch_config, i18n=self.i18n, logger=self.context.logger,
+                                 controller=self, internet_available=internet_available).start()
 
         if arch_config['aur']:
             ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
@@ -2070,18 +2135,16 @@ class ArchManager(SoftwareManager):
                         p.size = new_size - p.size
 
     def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        installed = pacman.map_installed(repositories=True, aur=False)
+        repo_map = pacman.map_repositories()
+        installed = self.read_installed(limit=-1, only_apps=False, pkg_types=None, internet_available=internet.is_available(), disk_loader=None).installed
 
-        if not installed or not installed['signed']:
+        if not installed:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
                                  body=self.i18n['arch.custom_action.upgrade_system.no_updates'],
                                  type_=MessageType.INFO)
             return False
 
-        pkgs = []
-        self._fill_repo_pkgs(installed['signed'], pkgs, None)
-
-        to_update = [p for p in pkgs if p.update]
+        to_update = [p for p in installed if p.repository != 'aur' and p.update]
 
         if not to_update:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
@@ -2153,7 +2216,7 @@ class ArchManager(SoftwareManager):
             watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                  body=self.i18n['arch.custom_action.clean_cache.no_dir'.format(bold(cache_dir))].capitalize(),
                                  type_=MessageType.WARNING)
-            return False
+            return True
 
         text = '<p>{}.</p><p>{}.</p><p>{}.</p>'.format(self.i18n['arch.custom_action.clean_cache.msg1'],
                                                        self.i18n['arch.custom_action.clean_cache.msg2'],
@@ -2163,19 +2226,23 @@ class ArchManager(SoftwareManager):
                                         body=text,
                                         confirmation_label=self.i18n['clean'].capitalize(),
                                         deny_label=self.i18n['cancel'].capitalize()):
-            rm = SimpleProcess(cmd=['rm', '-rf', '{}/*'.format(cache_dir)], root_password=root_password)
 
             handler = ProcessHandler(watcher)
-            success, output = handler.handle_simple(rm)
+            rm = SimpleProcess(cmd=['rm', '-rf', cache_dir], root_password=root_password)
+            success, _ = handler.handle_simple(rm)
 
             if success:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                      body=self.i18n['arch.custom_action.clean_cache.success'],
                                      type_=MessageType.INFO)
+
+                mkcache = SimpleProcess(cmd=['mkdir', '-p', cache_dir], root_password=root_password)
+                handler.handle_simple(mkcache)
                 return True
             else:
                 watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
                                      body=self.i18n['arch.custom_action.clean_cache.fail'],
                                      type_=MessageType.ERROR)
+                return False
 
-        return False
+        return True

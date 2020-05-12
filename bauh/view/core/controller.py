@@ -14,8 +14,11 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
+from bauh.commons.html import bold
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
+from bauh.view.util import resource
+from bauh.view.util.util import clean_app_files, restart_app
 
 RE_IS_URL = re.compile(r'^https?://.+')
 
@@ -47,6 +50,13 @@ class GenericSoftwareManager(SoftwareManager):
         self.config = config
         self.settings_manager = settings_manager
         self.http_client = context.http_client
+        self.extra_actions = [CustomSoftwareAction(i18_label_key='action.reset',
+                                                   i18n_status_key='action.reset.status',
+                                                   manager_method='reset',
+                                                   manager=self,
+                                                   icon_path=resource.get_path('img/logo.svg'),
+                                                   requires_root=False,
+                                                   refresh=False)]
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -473,10 +483,25 @@ class GenericSoftwareManager(SoftwareManager):
 
         return res
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        if self.managers:
-            actions = []
+    def reset(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        body = '<p>{}</p><p>{}</p>'.format(self.i18n['action.reset.body_1'].format(bold(self.context.app_name)),
+                                           self.i18n['action.reset.body_2'])
+        if watcher.request_confirmation(title=self.i18n['action.reset'],
+                                        body=body,
+                                        confirmation_label=self.i18n['proceed'].capitalize(),
+                                        deny_label=self.i18n['cancel'].capitalize()):
 
+            try:
+                clean_app_files(managers=self.managers, logs=False)
+                restart_app()
+            except:
+                return False
+
+        return True
+
+    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+        actions = []
+        if self.managers:
             working_managers = []
 
             for man in self.managers:
@@ -492,7 +517,8 @@ class GenericSoftwareManager(SoftwareManager):
                     if man_actions:
                         actions.extend(man_actions)
 
-            return actions
+        actions.extend(self.extra_actions)
+        return actions
 
     def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
         ti = time.time()

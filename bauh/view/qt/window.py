@@ -560,8 +560,7 @@ class ManageWindow(QWidget):
     def changeEvent(self, e: QEvent):
         if isinstance(e, QWindowStateChangeEvent):
             self._maximized = self.isMaximized()
-            policy = QHeaderView.Stretch if self._maximized else QHeaderView.ResizeToContents
-            self.table_apps.change_headers_policy(policy)
+            self.table_apps.change_headers_policy(maximized=self._maximized)
 
     def _handle_console(self, checked: bool):
 
@@ -1226,7 +1225,8 @@ class ManageWindow(QWidget):
     def _finish_custom_action(self, res: dict):
         self.finish_action()
         if res['success']:
-            self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
+            if res['action'].refresh:
+                self.refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
         else:
             self.checkbox_console.setChecked(True)
 

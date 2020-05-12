@@ -7,7 +7,7 @@ from bauh.api.constants import CACHE_PATH
 
 class CustomSoftwareAction:
 
-    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool, manager: "SoftwareManager" = None, backup: bool = False):
+    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool, manager: "SoftwareManager" = None, backup: bool = False, refresh: bool = True):
         """
         :param i18_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
@@ -16,6 +16,7 @@ class CustomSoftwareAction:
         :param manager: the instance that will execute the action ( optional )
         :param backup: if a system backup should be performed before executing the action
         :param requires_root:
+        :param refresh: if the a full app refresh should be done if the action succeeds
         """
         self.i18_label_key = i18_label_key
         self.i18n_status_key = i18n_status_key
@@ -24,6 +25,7 @@ class CustomSoftwareAction:
         self.requires_root = requires_root
         self.manager = manager
         self.backup = backup
+        self.refresh = refresh
 
     def __hash__(self):
         return self.i18_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()

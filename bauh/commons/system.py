@@ -63,7 +63,7 @@ class SystemProcess:
 
 class SimpleProcess:
 
-    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = None,
+    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None):
         pwdin, final_cmd = None, []
@@ -179,7 +179,7 @@ class ProcessHandler:
         proc.instance.wait()
         output.seek(0)
 
-        success = proc.instance.returncode == proc.expected_code,
+        success = proc.instance.returncode == proc.expected_code
         string_output = output.read()
 
         if proc.error_phrases:

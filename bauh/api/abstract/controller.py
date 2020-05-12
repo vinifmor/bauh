@@ -312,7 +312,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def clear_data(self):
+    def clear_data(self, logs: bool = True):
         """
         Removes all data created by the SoftwareManager instance
         """

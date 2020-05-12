@@ -340,7 +340,6 @@ class AppsTable(QTableWidget):
 
     def _set_col_version(self, col: int, pkg: PackageView):
         label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
-        label_version.setMinimumWidth(100)
         label_version.setAlignment(Qt.AlignCenter)
 
         item = QWidget()
@@ -402,7 +401,6 @@ class AppsTable(QTableWidget):
 
     def _set_col_description(self, col: int, pkg: PackageView):
         item = QLabel()
-        item.setMinimumWidth(300)
 
         if pkg.model.description is not None or not pkg.model.is_application() or pkg.model.status == PackageStatus.READY:
             desc = pkg.model.description.split('\n')[0] if pkg.model.description else pkg.model.description
@@ -493,10 +491,16 @@ class AppsTable(QTableWidget):
 
         self.setCellWidget(pkg.table_index, col, item)
 
-    def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents):
+    def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents, maximized: bool = False):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
-            header_horizontal.setSectionResizeMode(i, policy)
+            if maximized:
+                if i in (1, 2):
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+                else:
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)
+            else:
+                header_horizontal.setSectionResizeMode(i, policy)
 
     def get_width(self):
         return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])
