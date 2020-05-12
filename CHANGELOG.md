@@ -6,22 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.3] 2020-05
 ### Features
-- new **restore** action to restore bauh settings and cache through the 'custom actions' button (**+**). It is equivalent to the command `bauh --reset`.
+- new **restore** action to restore all bauh settings and cache through the 'custom actions' button (**+**). It is equivalent to the command `bauh --reset`.
 
 ### Improvements
 - some custom actions not related to installed packages state will not refresh the table after succeeded
 
 ### Fixes
 - Arch
-    - 'clean cache' operation was not working in some scenarios
+    - "clean cache"**" operation was not working in some scenarios
     - upgrading progress when conflicting files are detected
-    - not detecting some installed 'not-signed' repository packages
+    - not detecting some installed "not-signed" repository packages
     - not properly caching data of installed dependencies
 - UI
     - some fields in the table are overlapped by others when maximized [#107](https://github.com/vinifmor/bauh/issues/107)
     
-- upgrade: crashing for scenarios when there are packages that cannot upgrade to be displayed on the summary window
-- settings: crashing when an empty Qt style is defined [#104](https://github.com/vinifmor/bauh/issues/104) 
+- upgrade: crashing when there are packages to be displayed on the summary window that cannot upgrade
+- settings: crashing when an empty Qt style is detected or defined [#104](https://github.com/vinifmor/bauh/issues/104) 
 
 ## [0.9.2] 2020-05-04
 ### Features
