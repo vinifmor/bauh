@@ -24,11 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - settings: crashing when an empty Qt style is detected or defined [#104](https://github.com/vinifmor/bauh/issues/104)
 
 
-* Arch-based distro users: it is recommended to clean the bauh's Arch cache after upgrading to this release so it will remap all installed packages during the next initialization. 3 possible ways to clean the Arch cache:
+### Recommendations
+- Arch-based distro users: clean the bauh's Arch cache after upgrading to this release so it will remap all installed packages during the next initialization. 3 possible ways to do it:
 
-1) type on the command line: `rm -rf ~/.cache/bauh/arch/installed` (it will reset only the Arch cache)
-2) type on the command line: `bauh --reset` (it will reset all caches and settings)
-3) click on the new 'Restore' custom action on the UI (it will reset all caches and settings)
+    - type on the command line: `rm -rf ~/.cache/bauh/arch/installed` (it will reset only the Arch cache)
+    - type on the command line: `bauh --reset` (it will reset all caches and settings)
+    - click on the new **Restore** custom action on the UI (it will reset all caches and settings)
 
 
 ## [0.9.2] 2020-05-04
