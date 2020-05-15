@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
     - faster caching data process during initialization
+    - i18n
 
 ### Fixes
 - not caching data of repository packages with unknown repository names
