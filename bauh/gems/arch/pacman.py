@@ -92,12 +92,12 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def map_installed() -> dict:  # returns a dict with with package names as keys and versions as values
+def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with with package names as keys and versions as values
     ignored = {}
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
 
-    allinfo = run_cmd('pacman -Qi')
+    allinfo = run_cmd('pacman -Qi{}'.format(' ' + ' '.join(names) if names else ''))
 
     pkgs = {'signed': {}, 'not_signed': {}}
     current_pkg = {}
@@ -689,10 +689,6 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
         return res
 
 
-def list_installed_names() -> Set[str]:
-    return {p for p in run_cmd('pacman -Qq').split('\n') if p}
-
-
 def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
 
@@ -1019,3 +1015,9 @@ def list_unnecessary_deps(pkgs: Iterable[str], all_provided: Dict[str, Set[str]]
                         unnecessary.add(dep)
 
     return unnecessary.difference(pkgs)
+
+
+def list_installed_names() -> Set[str]:
+    output = run_cmd('pacman -Qq', print_error=False)
+    return {name.strip() for name in output.split('\n') if name} if output else set()
+

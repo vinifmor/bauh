@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.4] 2020
+### Improvements
+- Arch
+    - faster caching data process during initialization
+
+### Fixes
+- not caching data of repository packages with unknown repository names
+
 ## [0.9.3] 2020-05-12
 ### Features
 - new **restore** action to restore all bauh settings and cache through the 'custom actions' button (**+**). It is equivalent to the command `bauh --reset`.

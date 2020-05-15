@@ -484,11 +484,11 @@ class ArchManager(SoftwareManager):
 
             pkgs.append(pkg)
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
 
-        installed = pacman.map_installed()
+        installed = pacman.map_installed(names=names)
 
         aur_pkgs, repo_pkgs = None, None
 

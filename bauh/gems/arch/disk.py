@@ -14,11 +14,10 @@ RE_CLEAN_NAME = re.compile(r'[+*?%]')
 def write(pkg: ArchPackage):
     data = pkg.get_data_to_cache()
 
-    if data:
-        Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
+    Path(pkg.get_disk_cache_path()).mkdir(parents=True, exist_ok=True)
 
-        with open(pkg.get_disk_data_path(), 'w+') as f:
-            f.write(json.dumps(data))
+    with open(pkg.get_disk_data_path(), 'w+') as f:
+        f.write(json.dumps(data))
 
 
 def fill_icon_path(pkg: ArchPackage, icon_paths: List[str], only_exact_match: bool):
