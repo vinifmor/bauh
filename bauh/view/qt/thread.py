@@ -907,3 +907,26 @@ class GetScreenshots(AsyncAction):
             self.notify_finished({'pkg': self.pkg, 'screenshots': self.manager.get_screenshots(self.pkg.model)})
 
         self.pkg = None
+
+
+class IgnorePackageUpdates(AsyncAction):
+
+    def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
+        super(IgnorePackageUpdates, self).__init__()
+        self.pkg = pkg
+        self.manager = manager
+
+    def run(self):
+        if self.pkg:
+            try:
+                if self.pkg.model.is_update_ignored():
+                    self.manager.revert_ignored_update(self.pkg.model)
+                    res = {'action': 'ignore_updates_reverse', 'success': not self.pkg.model.is_update_ignored(), 'pkg': self.pkg}
+                else:
+                    self.manager.ignore_update(self.pkg.model)
+                    res = {'action': 'ignore_updates', 'success': self.pkg.model.is_update_ignored(), 'pkg': self.pkg}
+
+                self.notify_finished(res)
+
+            finally:
+                self.pkg = None

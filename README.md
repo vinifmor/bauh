@@ -3,11 +3,11 @@
 </p>
 
 
-**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications / packages. It currently supports 
-the following types: AppImage, Arch ( repositories / AUR ), Flatpak, Snap and native Web applications. 
+**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications/packages. It currently supports 
+the following formats: AppImage, Arch ( repositories / AUR ), Flatpak, Snap and native Web applications. 
 
 Key features:
-- A management panel where you can: search, install, uninstall, launch, downgrade and retrieve the release history from software packages. 
+- A management panel where you can: search, install, uninstall, upgrade, downgrade, launch, ignore updates and retrieve releases history from software packages./ 
 - Tray mode: launches attached to the system tray and publishes notifications when there are software updates available
 - System backup: it integrates with **Timeshift** to provide a simple and safe backup process before applying any change to your system.
 
@@ -169,6 +169,7 @@ db_updater:
     - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy` )
     - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
     - **clean cache**: it cleans the pacman cache diretory ( default: `/var/cache/pacman/pkg` )
+- Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements

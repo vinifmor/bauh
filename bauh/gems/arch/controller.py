@@ -30,7 +30,8 @@ from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH
+    CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
+    CONFIG_DIR
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -529,6 +530,14 @@ class ArchManager(SoftwareManager):
             for t in map_threads:
                 t.join()
 
+        if pkgs:
+            ignored = self._list_ignored_updates()
+
+            if ignored:
+                for p in pkgs:
+                    if p.name in ignored:
+                        p.update_ignored = True
+
         return SearchResult(pkgs, None, len(pkgs))
 
     def _downgrade_aur_pkg(self, context: TransactionContext):
@@ -1015,6 +1024,8 @@ class ArchManager(SoftwareManager):
                             context.watcher.show_message(title=self.i18n['error'],
                                                          body=self.i18n['arch.uninstall.clean_cached.error'].format(bold(p)),
                                                          type_=MessageType.WARNING)
+
+                self._revert_ignored_updates(to_uninstall)
 
         self._update_progress(context, 100)
         return uninstalled
@@ -1932,7 +1943,7 @@ class ArchManager(SoftwareManager):
 
         aur_type, repo_type = self.i18n['gem.arch.type.aur.label'], self.i18n['gem.arch.type.arch_repo.label']
 
-        return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update]
+        return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update and not p.is_update_ignored()]
 
     def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []
@@ -2246,3 +2257,37 @@ class ArchManager(SoftwareManager):
                 return False
 
         return True
+
+    def _list_ignored_updates(self) -> Set[str]:
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            with open(UPDATES_IGNORED_FILE) as f:
+                return {line.strip() for line in f.read().split('\n') if line}
+
+    def ignore_update(self, pkg: ArchPackage):
+        ignored = self._list_ignored_updates()
+
+        if not ignored or pkg.name not in ignored:
+            Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+
+            with open(UPDATES_IGNORED_FILE, 'a+') as f:
+                f.write('{}\n'.format(pkg.name))
+
+            pkg.update_ignored = True
+
+    def _revert_ignored_updates(self, pkgs: Iterable[str]):
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            ignored = []
+            with open(UPDATES_IGNORED_FILE) as f:
+                for line in f.read().split('\n'):
+                    if line:
+                        clean_line = line.strip()
+
+                        if clean_line and clean_line not in pkgs:
+                            ignored.append(clean_line)
+
+            with open(UPDATES_IGNORED_FILE, 'w+') as f:
+                f.writelines(ignored)
+
+    def revert_ignored_update(self, pkg: ArchPackage):
+        self._revert_ignored_updates({pkg.name})
+        pkg.update_ignored = False

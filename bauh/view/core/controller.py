@@ -539,3 +539,15 @@ class GenericSoftwareManager(SoftwareManager):
 
             for t in threads:
                 t.join()
+
+    def ignore_update(self, pkg: SoftwarePackage):
+        manager = self._get_manager_for(pkg)
+
+        if manager:
+            manager.ignore_update(pkg)
+
+    def revert_ignored_update(self, pkg: SoftwarePackage):
+        manager = self._get_manager_for(pkg)
+
+        if manager:
+            manager.revert_ignored_update(pkg)

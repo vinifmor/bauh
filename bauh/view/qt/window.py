@@ -34,7 +34,8 @@ from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesReady, FindSuggestions, \
     ListWarnings, \
-    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded
+    AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded, \
+    IgnorePackageUpdates
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -321,6 +322,9 @@ class ManageWindow(QWidget):
         self.thread_notify_pkgs_ready = NotifyPackagesReady()
         self.thread_notify_pkgs_ready.signal_changed.connect(self._update_package_data)
         self.thread_notify_pkgs_ready.signal_finished.connect(self._update_state_when_pkgs_ready)
+
+        self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
+        self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
 
         self.toolbar_bottom = QToolBar()
         self.toolbar_bottom.setIconSize(QSize(16, 16))
@@ -1256,3 +1260,22 @@ class ManageWindow(QWidget):
             menu_row.adjustSize()
             menu_row.popup(QCursor.pos())
             menu_row.exec_()
+
+    def ignore_updates(self, pkg: PackageView):
+        status_key = 'ignore_updates' if not pkg.model.is_update_ignored() else 'ignore_updates_reverse'
+        self._begin_action(self.i18n['manage_window.status.{}'.format(status_key)].format(pkg.model.name))
+        self.thread_ignore_updates.pkg = pkg
+        self.thread_ignore_updates.start()
+
+    def finish_ignore_updates(self, res: dict):
+        self.finish_action()
+
+        if res['success']:
+            self.table_apps.update_package(res['pkg'])
+            dialog.show_message(title=self.i18n['success'].capitalize(),
+                                body=self.i18n['action.{}.success'.format(res['action'])].format(bold(res['pkg'].model.name)),
+                                type_=MessageType.INFO)
+        else:
+            dialog.show_message(title=self.i18n['fail'].capitalize(),
+                                body=self.i18n['action.{}.fail'.format(res['action'])].format(bold(res['pkg'].model.name)),
+                                type_=MessageType.ERROR)

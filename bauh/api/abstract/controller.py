@@ -340,3 +340,9 @@ class SoftwareManager(ABC):
 
     def fill_sizes(self, pkgs: List[SoftwarePackage]):
         pass
+
+    def ignore_update(self, pkg: SoftwarePackage):
+        pass
+
+    def revert_ignored_update(self, pkg: SoftwarePackage):
+        pass

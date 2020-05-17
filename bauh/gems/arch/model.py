@@ -16,7 +16,7 @@ class ArchPackage(SoftwarePackage):
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
-                 categories: List[str] = None, i18n: I18n = None):
+                 categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -36,6 +36,7 @@ class ArchPackage(SoftwarePackage):
         self.src_info = srcinfo
         self.dependencies = dependencies
         self.i18n = i18n
+        self.update_ignored = update_ignored
 
     @staticmethod
     def disk_cache_path(pkgname: str):
@@ -131,6 +132,12 @@ class ArchPackage(SoftwarePackage):
 
     def supports_backup(self) -> bool:
         return True
+
+    def is_update_ignored(self) -> bool:
+        return self.update_ignored
+
+    def supports_ignored_updates(self) -> bool:
+        return self.installed
 
     def __str__(self):
         return self.__repr__()

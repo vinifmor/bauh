@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.4] 2020
+### Features
+- Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages
+
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/ignore_updates.png">
+    </p>
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/revert_ignored_updates.png">
+    </p>
+- Packages with ignored updates have their versions displayed with a brown shade
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/version_ignored_updates.png">
+    </p>
+
+
 ### Improvements
 - Arch
     - faster caching data process during initialization
