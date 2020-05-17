@@ -114,6 +114,7 @@ class AppsTable(QTableWidget):
     def has_any_settings(self, pkg: PackageView):
         return pkg.model.has_history() or \
                pkg.model.can_be_downgraded() or \
+               pkg.model.supports_ignored_updates() or \
                bool(pkg.model.get_custom_supported_actions())
 
     def show_pkg_actions(self, pkg: PackageView):
