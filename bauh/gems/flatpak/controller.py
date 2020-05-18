@@ -16,7 +16,7 @@ from bauh.commons import user
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, get_icon_path
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -357,7 +357,14 @@ class FlatpakManager(SoftwareManager):
         return action == 'downgrade' and pkg.installation == 'system'
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        task_id = 'flatpak'
+        task_manager.register_task(task_id, self.i18n['flatpak.task.read_config'], get_icon_path())
+        task_manager.update_progress(task_id, 10, None)
+        
         Thread(target=read_config, args=(True,), daemon=True).start()
+        
+        task_manager.update_progress(task_id, 100, None)
+        task_manager.finish_task(task_id)
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
