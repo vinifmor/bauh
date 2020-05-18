@@ -58,8 +58,8 @@ class Prepare(QThread, TaskManager):
             if not ok:
                 QCoreApplication.exit(1)
 
-        self.signal_started.emit()
         self.manager.prepare(self, root_pwd, None)
+        self.signal_started.emit()
 
     def update_progress(self, task_id: str, progress: float, substatus: str):
         self.signal_update.emit(task_id, progress, substatus)
@@ -85,9 +85,8 @@ class CheckFinished(QThread):
     def run(self):
         time.sleep(3)
         while True:
-            if self.total is not None and self.finished is not None:
-                if self.total == self.finished:
-                    break
+            if self.total == self.finished:
+                break
 
             time.sleep(0.01)
 
