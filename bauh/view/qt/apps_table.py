@@ -186,13 +186,13 @@ class AppsTable(QTableWidget):
     def refresh(self, pkg: PackageView):
         self._update_row(pkg, update_check_enabled=False, change_update_col=False)
 
-    def update_package(self, pkg: PackageView):
+    def update_package(self, pkg: PackageView, change_update_col: bool = False):
         if self.download_icons and pkg.model.icon_url:
             icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
             icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
             self.network_man.get(icon_request)
 
-        self._update_row(pkg, change_update_col=False)
+        self._update_row(pkg, change_update_col=change_update_col)
 
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
