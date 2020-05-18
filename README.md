@@ -101,7 +101,8 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 
-- Supported actions: search, install, uninstall, downgrade, launch, history
+- Supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
+- Applications with ignored updates are defined at **~/.config/bauh/flatpak/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
 installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
@@ -119,7 +120,7 @@ installation_level: null # defines a default installation level: user or system.
 
 #### AppImage ( appimage )
 
-- Supported actions: search, install, uninstall, downgrade, launch, history
+- Supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
 - **Only x86_64 AppImage files are available through the search mechanism at the moment**
 - Custom actions
     - **Install AppImage file**: allows to install a external AppImage file
@@ -147,8 +148,8 @@ db_updater:
 
 #### Arch ( Repositories / AUR )
 - Only available for **Arch-based systems**
-- Repository packages supported actions: search, install, uninstall, launch
-- AUR packages supported actions: search, install, uninstall, downgrade, launch, history
+- Repository packages supported actions: search, install, uninstall, launch and ignore updates
+- AUR packages supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
 - It handles conflicts, missing / optional packages installations, and several providers scenarios
 - Automatically makes simple package compilation improvements:
 

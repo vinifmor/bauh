@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.4] 2020
 ### Features
-- Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages
+- Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages, Flatpaks and AppImages
 
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/ignore_updates.png">

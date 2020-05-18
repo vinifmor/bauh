@@ -709,8 +709,6 @@ class AppImageManager(SoftwareManager):
         return ignored
 
     def ignore_update(self, pkg: AppImage):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
-
         current_ignored = self._read_ignored_updates()
 
         if pkg.name not in current_ignored:
@@ -720,6 +718,7 @@ class AppImageManager(SoftwareManager):
         pkg.updates_ignored = True
 
     def _write_ignored_updates(self, names: Set[str]):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*names]
         ignored_list.sort()
 
