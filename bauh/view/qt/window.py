@@ -1273,6 +1273,12 @@ class ManageWindow(QWidget):
         if res['success']:
             if self.ref_checkbox_updates.isVisible() and self.filter_updates:
                 self.table_apps.model().removeRow(res['pkg'].table_index)
+                del self.pkgs[res['pkg'].table_index]
+
+                if self.pkgs:
+                    for idx, p in enumerate(self.pkgs):
+                        p.table_index = idx
+
             else:
                 self.table_apps.update_package(res['pkg'], change_update_col=True)
 

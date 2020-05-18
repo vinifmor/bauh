@@ -364,7 +364,7 @@ class UpgradeSelected(AsyncAction):
             self.pkgs = None
             return
 
-        to_update = [pkg for pkg in self.pkgs if pkg.model.update and pkg.update_checked]
+        to_update = [pkg for pkg in self.pkgs if pkg.model.update and not pkg.model.is_update_ignored() and pkg.update_checked]
 
         if len(to_update) > 1:
             self.disable_progress_controll()
