@@ -1271,7 +1271,11 @@ class ManageWindow(QWidget):
         self.finish_action()
 
         if res['success']:
-            self.table_apps.update_package(res['pkg'], change_update_col=True)
+            if self.ref_checkbox_updates.isVisible() and self.filter_updates:
+                self.table_apps.model().removeRow(res['pkg'].table_index)
+            else:
+                self.table_apps.update_package(res['pkg'], change_update_col=True)
+
             dialog.show_message(title=self.i18n['success'].capitalize(),
                                 body=self.i18n['action.{}.success'.format(res['action'])].format(bold(res['pkg'].model.name)),
                                 type_=MessageType.INFO)
