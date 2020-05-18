@@ -132,6 +132,7 @@ installation_level: null # defines a default installation level: user or system.
 - Databases updater daemon running every 20 minutes ( it can be customized via the configuration file described below )
 - Crashes may happen during an AppImage installation if **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an application.
 - All supported application names can be found at [apps.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt)
+- Applications with ignored updates are defined at **~/.config/bauh/appimage/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
 db_updater:

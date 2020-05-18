@@ -27,7 +27,8 @@ from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
+    CONFIG_DIR, UPDATES_IGNORED_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -234,6 +235,13 @@ class AppImageManager(SoftwareManager):
                         finally:
                             if not connection:
                                 self._close_connection(DB_APPS_PATH, con)
+
+                    ignored_updates = self._read_ignored_updates()
+
+                    if ignored_updates:
+                        for app in res.installed:
+                            if app.supports_ignored_updates() and app.name in ignored_updates:
+                                app.updates_ignored = True
 
         res.total = len(res.installed)
         return res
@@ -684,3 +692,47 @@ class AppImageManager(SoftwareManager):
             to_update.append(requirement)
 
         return UpgradeRequirements([], [], to_update, [])
+
+    def _read_ignored_updates(self) -> Set[str]:
+        ignored = set()
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            with open(UPDATES_IGNORED_FILE) as f:
+                ignored_txt = f.read()
+
+            for l in ignored_txt.split('\n'):
+                if l:
+                    line_clean = l.strip()
+
+                    if line_clean:
+                        ignored.add(line_clean)
+
+        return ignored
+
+    def ignore_update(self, pkg: AppImage):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+
+        current_ignored = self._read_ignored_updates()
+
+        if pkg.name not in current_ignored:
+            current_ignored.add(pkg.name)
+            self._write_ignored_updates(current_ignored)
+
+        pkg.updates_ignored = True
+
+    def _write_ignored_updates(self, names: Set[str]):
+        ignored_list = [*names]
+        ignored_list.sort()
+
+        with open(UPDATES_IGNORED_FILE, 'w+') as f:
+            for ignored in ignored_list:
+                f.write('{}\n'.format(ignored))
+
+    def revert_ignored_update(self, pkg: AppImage):
+        current_ignored = self._read_ignored_updates()
+
+        if current_ignored and pkg.name in current_ignored:
+            current_ignored.remove(pkg.name)
+
+            self._write_ignored_updates(current_ignored)
+
+        pkg.updates_ignored = False
