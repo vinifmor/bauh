@@ -316,6 +316,8 @@ class AppImageManager(SoftwareManager):
             if os.path.exists(de_path):
                 os.remove(de_path)
 
+            self.revert_ignored_update(pkg)
+
         return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
@@ -723,8 +725,11 @@ class AppImageManager(SoftwareManager):
         ignored_list.sort()
 
         with open(UPDATES_IGNORED_FILE, 'w+') as f:
-            for ignored in ignored_list:
-                f.write('{}\n'.format(ignored))
+            if ignored_list:
+                for ignored in ignored_list:
+                    f.write('{}\n'.format(ignored))
+            else:
+                f.write('')
 
     def revert_ignored_update(self, pkg: AppImage):
         current_ignored = self._read_ignored_updates()

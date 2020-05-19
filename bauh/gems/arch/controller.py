@@ -2259,34 +2259,49 @@ class ArchManager(SoftwareManager):
         return True
 
     def _list_ignored_updates(self) -> Set[str]:
+        ignored = set()
         if os.path.exists(UPDATES_IGNORED_FILE):
             with open(UPDATES_IGNORED_FILE) as f:
-                return {line.strip() for line in f.read().split('\n') if line}
+                ignored_lines = f.readlines()
+
+            for line in ignored_lines:
+                if line:
+                    line_clean = line.strip()
+
+                    if line_clean:
+                        ignored.add(line_clean)
+
+        return ignored
+
+    def _write_ignored(self, names: Set[str]):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        ignored_list = [*names]
+        ignored_list.sort()
+
+        with open(UPDATES_IGNORED_FILE, 'w+') as f:
+            if ignored_list:
+                for pkg in ignored_list:
+                    f.write('{}\n'.format(pkg))
+            else:
+                f.write('')
 
     def ignore_update(self, pkg: ArchPackage):
         ignored = self._list_ignored_updates()
 
-        if not ignored or pkg.name not in ignored:
-            Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        if pkg.name not in ignored:
+            ignored.add(pkg.name)
+            self._write_ignored(ignored)
 
-            with open(UPDATES_IGNORED_FILE, 'a+') as f:
-                f.write('{}\n'.format(pkg.name))
-
-            pkg.update_ignored = True
+        pkg.update_ignored = True
 
     def _revert_ignored_updates(self, pkgs: Iterable[str]):
-        if os.path.exists(UPDATES_IGNORED_FILE):
-            ignored = []
-            with open(UPDATES_IGNORED_FILE) as f:
-                for line in f.read().split('\n'):
-                    if line:
-                        clean_line = line.strip()
+        ignored = self._list_ignored_updates()
 
-                        if clean_line and clean_line not in pkgs:
-                            ignored.append(clean_line)
+        for p in pkgs:
+            if p in ignored:
+                ignored.remove(p)
 
-            with open(UPDATES_IGNORED_FILE, 'w+') as f:
-                f.writelines(ignored)
+        self._write_ignored(ignored)
 
     def revert_ignored_update(self, pkg: ArchPackage):
         self._revert_ignored_updates({pkg.name})

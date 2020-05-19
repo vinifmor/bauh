@@ -232,6 +232,8 @@ class FlatpakManager(SoftwareManager):
         if self.suggestions_cache:
             self.suggestions_cache.delete(pkg.id)
 
+        self.revert_ignored_update(pkg)
+
         return uninstalled
 
     def get_info(self, app: FlatpakApplication) -> dict:
@@ -568,8 +570,11 @@ class FlatpakManager(SoftwareManager):
         ignored_list.sort()
 
         with open(UPDATES_IGNORED_FILE, 'w+') as f:
-            for ignored in ignored_list:
-                f.write('{}\n'.format(ignored))
+            if ignored_list:
+                for ignored in ignored_list:
+                    f.write('{}\n'.format(ignored))
+            else:
+                f.write('')
 
     def ignore_update(self, pkg: FlatpakApplication):
         ignored_keys = self._read_ignored_updates()
