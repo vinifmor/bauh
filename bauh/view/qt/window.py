@@ -708,7 +708,7 @@ class ManageWindow(QWidget):
 
         if not pkgs_info or pkgs_info['not_installed'] == 0:
             for app_v in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
-                if app_v.update_checked:
+                if not app_v.model.is_update_ignored() and app_v.update_checked:
                     show_bt_upgrade = True
                     break
 
@@ -1271,16 +1271,17 @@ class ManageWindow(QWidget):
         self.finish_action()
 
         if res['success']:
-            if self.ref_checkbox_updates.isVisible() and self.filter_updates:
-                self.table_apps.model().removeRow(res['pkg'].table_index)
-                del self.pkgs[res['pkg'].table_index]
-
-                if self.pkgs:
-                    for idx, p in enumerate(self.pkgs):
-                        p.table_index = idx
-
-            else:
-                self.table_apps.update_package(res['pkg'], change_update_col=True)
+            self.apply_filters_async()
+            # if self.ref_checkbox_updates.isVisible() and self.filter_updates:
+            #     self.table_apps.model().removeRow(res['pkg'].table_index)
+            #     del self.pkgs[res['pkg'].table_index]
+            #
+            #     if self.pkgs:
+            #         for idx, p in enumerate(self.pkgs):
+            #             p.table_index = idx
+            #
+            # else:
+            #     self.table_apps.update_package(res['pkg'], change_update_col=True)
 
             dialog.show_message(title=self.i18n['success'].capitalize(),
                                 body=self.i18n['action.{}.success'.format(res['action'])].format(bold(res['pkg'].model.name)),
