@@ -373,7 +373,7 @@ class FlatpakManager(SoftwareManager):
         updates = []
         installed = self.read_installed(None, internet_available=internet_available).installed
 
-        to_update = [p for p in installed if p.update]
+        to_update = [p for p in installed if p.update and not p.is_update_ignored()]
 
         if to_update:
             loaders = []

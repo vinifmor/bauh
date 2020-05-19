@@ -543,7 +543,7 @@ class AppImageManager(SoftwareManager):
         updates = []
         if res.installed:
             for app in res.installed:
-                if app.update:
+                if app.update and not app.is_update_ignored():
                     updates.append(PackageUpdate(pkg_id=app.name, pkg_type='AppImage', version=app.latest_version, name=app.name))
 
         return updates
