@@ -90,7 +90,7 @@ class FlatpakManager(SoftwareManager):
 
         if apps_found:
             already_read = set()
-            installed_apps = self.read_installed(disk_loader=disk_loader).installed
+            installed_apps = self.read_installed(disk_loader=disk_loader, internet_available=True).installed
 
             if installed_apps:
                 for app_found in apps_found:
