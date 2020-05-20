@@ -383,7 +383,7 @@ class ManageWindow(QWidget):
 
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
-        self.setMinimumHeight(int(screen_size.height() * 0.4))
+        self.setMinimumHeight(int(screen_size.height() * 0.5))
         self.setMinimumWidth(int(screen_size.width() * 0.6))
 
     def update_custom_actions(self):
