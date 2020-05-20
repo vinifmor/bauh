@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - i18n
 - AppImage
     - Categories are now translated on the Info window
+    
+- minor UI changes
 
 ### Fixes
 - Flatpak

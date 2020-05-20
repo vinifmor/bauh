@@ -407,7 +407,7 @@ class UpgradeSelected(AsyncAction):
         extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
         req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
                                         get_human_size_str(required_size))
-        comps.insert(0, TextComponent(bold('{}  |  {}').format(extra_size_text, req_size_text), size=14))
+        comps.insert(0, TextComponent('{}  |  {}'.format(extra_size_text, req_size_text), size=14))
         comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
