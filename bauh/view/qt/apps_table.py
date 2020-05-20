@@ -516,7 +516,7 @@ class AppsTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             if maximized:
-                if i in (1, 2):
+                if i in (0, 1, 2):
                     header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
                 else:
                     header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)

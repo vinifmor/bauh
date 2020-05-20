@@ -31,7 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
     - Categories are now translated on the Info window
     
-- minor UI changes
+- UI
+    - only centralizing the apps table after the initialization process
+    - defining a minimum width and height based on the screen size
+    - minor changes
 
 ### Fixes
 - Flatpak
