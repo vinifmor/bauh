@@ -18,12 +18,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/version_ignored_updates.png">
     </p>
+- It is possible to filter all you packages with updates ignored through the new category **Updates ignored**
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/updates_ignored_category.png">
+    </p>
 
 
 ### Improvements
 - Arch
     - faster caching data process during initialization
     - i18n
+- AppImage
+    - Categories are now translated on the Info window
 
 ### Fixes
 - Flatpak

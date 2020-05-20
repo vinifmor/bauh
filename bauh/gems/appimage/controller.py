@@ -334,6 +334,11 @@ class AppImageManager(SoftwareManager):
             if size:
                 data['size'] = size
 
+        categories = data.get('categories')
+
+        if categories:
+            data['categories'] = [self.i18n.get('category.{}'.format(c.lower()), self.i18n.get(c, c)).capitalize() for c in data['categories']]
+
         return data
 
     def get_history(self, pkg: AppImage) -> PackageHistory:

@@ -160,6 +160,7 @@ category.system=system
 category.terminalemulator=terminal
 category.text editor=text editor
 category.texteditor=text editor
+category.updates_ignored=Updates ignored
 category.utilities=utilities
 category.utility=utility
 category.vectorgraphics=vector graphics
