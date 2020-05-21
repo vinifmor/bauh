@@ -34,8 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - only centralizing the apps table after the initialization process
     - defining a minimum width and height based on the screen size
-    - minor changes
     - info window now has a height limit, a lower bar with Back and Close buttons, and is scrollable
+    - minor changes
 
 ### Fixes
 - Flatpak
