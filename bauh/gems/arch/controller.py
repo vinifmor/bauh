@@ -855,8 +855,8 @@ class ArchManager(SoftwareManager):
             if not self._upgrade_repo_pkgs(pkgs=repo_pkgs_names, handler=handler, root_password=root_password):
                 return False
 
-        watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))
         if aur_pkgs:
+            watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))
             for pkg in aur_pkgs:
                 watcher.change_substatus("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], pkg.name, pkg.version))
                 context = TransactionContext.gen_context_from(pkg=pkg, arch_config=arch_config,
