@@ -1,9 +1,10 @@
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
-    QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar
+    QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QToolBar, QScrollArea, QFrame, QWidget
 
 from bauh.api.abstract.cache import MemoryCache
+from bauh.view.qt.components import new_spacer
 from bauh.view.util.translation import I18n
 
 IGNORED_ATTRS = {'name', '__app__'}
@@ -11,34 +12,31 @@ IGNORED_ATTRS = {'name', '__app__'}
 
 class InfoDialog(QDialog):
 
-    def __init__(self, app: dict, icon_cache: MemoryCache, i18n: I18n, screen_size: QSize()):
-        super(InfoDialog, self).__init__()
+    def __init__(self, app: dict, icon_cache: MemoryCache, i18n: I18n, screen_size: QSize):
+        super(InfoDialog, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.setWindowTitle(str(app['__app__']))
         self.screen_size = screen_size
         self.i18n = i18n
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.toolbar_field = QToolBar()
-        self.bt_back = QPushButton(i18n['back'].capitalize())
-        self.bt_back.clicked.connect(self.back_to_info)
-        self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
-        self.toolbar_field.addWidget(self.bt_back)
-        self.layout().addWidget(self.toolbar_field)
-        self.toolbar_field.hide()
+        scroll = QScrollArea(self)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setWidgetResizable(True)
+        comps_container = QWidget()
+        comps_container.setLayout(QVBoxLayout())
+        scroll.setWidget(comps_container)
 
         # shows complete field string
         self.text_field = QPlainTextEdit()
         self.text_field.setReadOnly(True)
-        self.layout().addWidget(self.text_field)
+        comps_container.layout().addWidget(self.text_field)
         self.text_field.hide()
 
         self.gbox_info = QGroupBox()
-        self.gbox_info.setMaximumHeight(self.screen_size.height() - self.screen_size.height() * 0.1)
-        self.gbox_info_layout = QGridLayout()
-        self.gbox_info.setLayout(self.gbox_info_layout)
+        self.gbox_info.setLayout(QGridLayout())
 
-        layout.addWidget(self.gbox_info)
+        comps_container.layout().addWidget(self.gbox_info)
 
         # THERE ARE CRASHES WITH SOME RARE ICONS ( like insomnia ). IT CAN BE A QT BUG. IN THE MEANTIME, ONLY THE TYPE ICON WILL BE RENDERED
         #
@@ -75,27 +73,46 @@ class InfoDialog(QDialog):
                 label = QLabel(i18n.get(i18n_key, i18n.get(attr.lower(), attr)).capitalize())
                 label.setStyleSheet("font-weight: bold")
 
-                self.gbox_info_layout.addWidget(label, idx, 0)
-                self.gbox_info_layout.addWidget(text, idx, 1)
+                self.gbox_info.layout().addWidget(label, idx, 0)
+                self.gbox_info.layout().addWidget(text, idx, 1)
                 self._gen_show_button(idx, show_val)
 
+        layout.addWidget(scroll)
+
+        lower_bar = QToolBar()
+        bt_back = QPushButton(self.i18n['back'].capitalize())
+        bt_back.setVisible(False)
+        bt_back.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_back.clicked.connect(self.back_to_info)
+
+        self.ref_bt_back = lower_bar.addWidget(bt_back)
+        lower_bar.addWidget(new_spacer())
+
+        bt_close = QPushButton(self.i18n['close'].capitalize())
+        bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_close.clicked.connect(lambda: self.close())
+
+        lower_bar.addWidget(bt_close)
+        layout.addWidget(lower_bar)
+        self.setMinimumWidth(self.gbox_info.sizeHint().width() * 1.2)
+        self.setMaximumHeight(screen_size.height() * 0.8)
         self.adjustSize()
 
     def _gen_show_button(self, idx: int, val):
 
         def show_full_field():
             self.gbox_info.hide()
-            self.toolbar_field.show()
+            self.ref_bt_back.setVisible(True)
             self.text_field.show()
             self.text_field.setPlainText(val)
 
         bt_full_field = QPushButton(self.i18n['show'].capitalize())
         bt_full_field.setCursor(QCursor(Qt.PointingHandCursor))
         bt_full_field.clicked.connect(show_full_field)
-        self.gbox_info_layout.addWidget(bt_full_field, idx, 2)
+        self.gbox_info.layout().addWidget(bt_full_field, idx, 2)
 
     def back_to_info(self):
         self.text_field.setPlainText("")
         self.text_field.hide()
-        self.toolbar_field.hide()
         self.gbox_info.show()
+        self.ref_bt_back.setVisible(False)
