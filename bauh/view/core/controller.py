@@ -432,7 +432,8 @@ class GenericSoftwareManager(SoftwareManager):
             self.settings_manager = GenericSettingsManager(managers=self.managers,
                                                            working_managers=self.working_managers,
                                                            logger=self.logger,
-                                                           i18n=self.i18n)
+                                                           i18n=self.i18n,
+                                                           file_downloader=self.context.file_downloader)
         else:
             self.settings_manager.managers = self.managers
             self.settings_manager.working_managers = self.working_managers

@@ -5,6 +5,7 @@ import time
 import traceback
 from math import floor
 from threading import Thread
+from typing import Iterable
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -18,27 +19,27 @@ RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient):
+    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient, multithread_client: str):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
         self.i18n = i18n
         self.http_client = http_client
+        self.supported_multithread_clients = {'aria2', 'axel'}
+        self.multithread_client = multithread_client
 
-    def is_aria2c_available(self) -> bool:
+    @staticmethod
+    def is_aria2c_available() -> bool:
         return bool(run_cmd('which aria2c', print_error=False))
 
-    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, max_threads: int, known_size: int) -> SimpleProcess:
+    @staticmethod
+    def is_axel_available() -> bool:
+        return bool(run_cmd('which axel', print_error=False))
 
-        if max_threads and max_threads > 0:
-            threads = max_threads
-        elif known_size:
-            threads = 16 if known_size >= 16000000 else floor(known_size / 1000000)
+    @staticmethod
+    def is_wget_available() -> bool:
+        return bool(run_cmd('which wget', print_error=False))
 
-            if threads <= 0:
-                threads = 1
-        else:
-            threads = 16
-
+    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
         cmd = ['aria2c', url,
                '--no-conf',
                '--max-connection-per-server={}'.format(threads),
@@ -63,6 +64,18 @@ class AdaptableFileDownloader(FileDownloader):
             cmd.append('--out=' + output_split[-1])
 
         return SimpleProcess(cmd=cmd, root_password=root_password, cwd=cwd)
+
+    def _get_axel_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
+        cmd = ['axel', url,
+               '--num-connections={}'.format(threads),
+               '--ipv4',
+               '--no-clobber',
+               '--timeout=5']
+
+        if output_path:
+            cmd.append('--output={}'.format(output_path))
+
+        return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SimpleProcess:
         cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
@@ -90,6 +103,19 @@ class AdaptableFileDownloader(FileDownloader):
         except:
             pass
 
+    def _get_appropriate_threads_number(self, max_threads: int, known_size: int) -> int:
+        if max_threads and max_threads > 0:
+            threads = max_threads
+        elif known_size:
+            threads = 16 if known_size >= 16000000 else floor(known_size / 1000000)
+
+            if threads <= 0:
+                threads = 1
+        else:
+            threads = 16
+
+        return threads
+
     def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
         self.logger.info('Downloading {}'.format(file_url))
         handler = ProcessHandler(watcher)
@@ -105,10 +131,18 @@ class AdaptableFileDownloader(FileDownloader):
                 os.remove(output_path)
                 self.logger.info("Old file {} removed".format(output_path))
 
-            if self.is_multithreaded():
-                ti = time.time()
-                process = self._get_aria2c_process(file_url, output_path, final_cwd, root_password, max_threads, known_size)
-                downloader = 'aria2'
+            client = self.get_available_multithreaded_tool()
+            if client:
+                threads = self._get_appropriate_threads_number(max_threads, known_size)
+
+                if client == 'aria2':
+                    ti = time.time()
+                    process = self._get_aria2c_process(file_url, output_path, final_cwd, root_password, threads)
+                    downloader = 'aria2'
+                else:
+                    ti = time.time()
+                    process = self._get_axel_process(file_url, output_path, final_cwd, root_password, threads)
+                    downloader = 'axel'
             else:
                 ti = time.time()
                 process = self._get_wget_process(file_url, output_path, final_cwd, root_password)
@@ -150,7 +184,22 @@ class AdaptableFileDownloader(FileDownloader):
         return success
 
     def is_multithreaded(self) -> bool:
-        return self.multithread_enabled and self.is_aria2c_available()
+        return self.multithread_enabled and (self.is_aria2c_available() or self.is_axel_available())
 
-    def get_default_client_name(self) -> str:
-        return 'aria2c' if self. is_multithreaded() else 'wget'
+    def get_available_multithreaded_tool(self) -> str:
+        if self.multithread_enabled:
+            if self.multithread_client is None:
+                if self.is_aria2c_available():
+                    return 'aria2'
+                elif self.is_axel_available():
+                    return 'axel'
+            elif (self.multithread_client == 'aria2' or self.multithread_client not in self.get_supported_multithreaded_clients()) and self.is_aria2c_available():
+                return 'aria2'
+            elif self.is_axel_available():
+                return 'axel'
+
+    def can_work(self) -> bool:
+        return self.is_wget_available() or self.is_multithreaded()
+
+    def get_supported_multithreaded_clients(self) -> Iterable[str]:
+        return self.supported_multithread_clients

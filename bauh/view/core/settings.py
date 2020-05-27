@@ -8,11 +8,13 @@ from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 from bauh import ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
     FileChooserComponent
 from bauh.view.core import config, timeshift
 from bauh.view.core.config import read_config
+from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import translation
 from bauh.view.util.translation import I18n
 
@@ -20,11 +22,12 @@ from bauh.view.util.translation import I18n
 class GenericSettingsManager:
 
     def __init__(self, managers: List[SoftwareManager], working_managers: List[SoftwareManager],
-                 logger: logging.Logger, i18n: I18n):
+                 logger: logging.Logger, i18n: I18n, file_downloader: FileDownloader):
         self.i18n = i18n
         self.managers = managers
         self.working_managers = working_managers
         self.logger = logger
+        self.file_downloader = file_downloader
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         tabs = list()
@@ -118,7 +121,22 @@ class GenericSettingsManager:
                                                    max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
-        sub_comps = [FormComponent([select_dmthread, select_trim_up, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
+        supported_mthread_clients = self.file_downloader.get_supported_multithreaded_clients()
+        mthread_client_opts = [(self.i18n['default'].capitalize(), None, None)]
+        mthread_client_opts.extend(((d, d, None) for d in supported_mthread_clients))
+        current_mthread_client = core_config['download']['multithreaded_client']
+
+        if current_mthread_client not in supported_mthread_clients:
+            current_mthread_client = None
+
+        select_mthread_client = self._gen_select(label=self.i18n['core.config.download.multithreaded_client'],
+                                                 tip=self.i18n['core.config.download.multithreaded_client.tip'],
+                                                 id_="mthread_client",
+                                                 max_width=default_width,
+                                                 opts=mthread_client_opts,
+                                                 value=current_mthread_client)
+
+        sub_comps = [FormComponent([select_dmthread, select_mthread_client, select_trim_up, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
 
     def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
@@ -306,6 +324,13 @@ class GenericSettingsManager:
 
         download_mthreaded = adv_form.get_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
+
+        mthread_client = adv_form.get_component('mthread_client').get_selected()
+        core_config['download']['multithreaded_client'] = mthread_client
+
+        if isinstance(self.file_downloader, AdaptableFileDownloader):
+            self.file_downloader.multithread_client = mthread_client
+            self.file_downloader.multithread_enabled = download_mthreaded
 
         single_dep_check = adv_form.get_component('dep_check').get_selected()
         core_config['system']['single_dependency_checking'] = single_dep_check

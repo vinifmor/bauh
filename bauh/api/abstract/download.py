@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Iterable
 
 from bauh.api.abstract.handler import ProcessWatcher
 
@@ -26,8 +27,9 @@ class FileDownloader(ABC):
         pass
 
     @abstractmethod
-    def get_default_client_name(self) -> str:
-        """
-        :return: retrieve current downloader client name
-        """
+    def can_work(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_supported_multithreaded_clients(self) -> Iterable[str]:
         pass

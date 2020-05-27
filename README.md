@@ -257,7 +257,8 @@ You can change some application settings via environment variables or arguments 
 ```
 download:
   icons: true # allows bauh to download the applications icons when they are not saved on the disk
-  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
+  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster
+  multithreaded_client: null  # defines the multi-threaded download tool to be used. If null, the default installed tool will be used (priority: aria2 > axel). Possible tools/values: aria2, axel
 gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
 locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
 store_root_password: true  # if the root password should be asked only once
