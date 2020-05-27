@@ -10,5 +10,6 @@ def read_config(update_file: bool = False) -> dict:
                 'repositories': True,
                 "refresh_mirrors_startup": False,
                 "sync_databases_startup": True,
-                'mirrors_sort_limit': 5}
+                'mirrors_sort_limit': 5,
+                'repositories_mthread_download': True}
     return read(CONFIG_FILE, template, update_file=update_file)

@@ -44,13 +44,16 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
+def request_install_missing_deps(pkgname: str, deps: List[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n, context: "TransactionContext") -> bool:
     msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname) if pkgname else '', deps=bold(str(len(deps)))))
 
     opts = []
 
     repo_deps = [d[0] for d in deps if d[1] != 'aur']
     sizes = pacman.get_update_size(repo_deps) if repo_deps else {}
+
+    if context and sizes:
+        context.pkg_sizes.update(sizes)
 
     for dep in deps:
         size = sizes.get(dep[0])

@@ -16,7 +16,7 @@ class ArchPackage(SoftwarePackage):
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
-                 categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False):
+                 categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -35,6 +35,7 @@ class ArchPackage(SoftwarePackage):
         self.desktop_entry = desktop_entry
         self.src_info = srcinfo
         self.dependencies = dependencies
+        self.arch = arch
         self.i18n = i18n
         self.update_ignored = update_ignored
 

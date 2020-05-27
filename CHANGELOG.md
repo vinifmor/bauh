@@ -22,6 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/updates_ignored_category.png">
     </p>
+    
+- Arch
+	- supporting multi-threaded download for repository packages (enabled by default)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/arch_repo_mthread.png">
+    </p>
 
 
 ### Improvements
@@ -36,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - defining a minimum width and height based on the screen size
     - info window now has a height limit, a lower bar with Back and Close buttons, and is scrollable
     - minor changes
+- Downloads
+    - retrieving the downloading file sizes asynchronously
 
 ### Fixes
 - Flatpak

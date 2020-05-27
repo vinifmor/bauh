@@ -3,12 +3,14 @@ import os
 import re
 import time
 import traceback
+from math import floor
+from threading import Thread
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd, new_subprocess, ProcessHandler, SystemProcess, SimpleProcess
+from bauh.commons.system import run_cmd, ProcessHandler, SimpleProcess, get_human_size_str
 from bauh.view.util.translation import I18n
 
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
@@ -25,11 +27,21 @@ class AdaptableFileDownloader(FileDownloader):
     def is_aria2c_available(self) -> bool:
         return bool(run_cmd('which aria2c', print_error=False))
 
-    def _get_aria2c_process(self, url: str, output_path: str, cwd: str) -> SystemProcess:
+    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, max_threads: int, known_size: int) -> SimpleProcess:
+
+        if max_threads and max_threads > 0:
+            threads = max_threads
+        elif known_size:
+            threads = 16 if known_size >= 16000000 else floor(known_size / 1000000)
+
+            if threads <= 0:
+                threads = 1
+        else:
+            threads = 16
+
         cmd = ['aria2c', url,
                '--no-conf',
-               '--max-connection-per-server=16',
-               '--split=16',
+               '--max-connection-per-server={}'.format(threads),
                '--enable-color=false',
                '--stderr=true',
                '--summary-interval=0',
@@ -39,36 +51,46 @@ class AdaptableFileDownloader(FileDownloader):
                '--continue=true',
                '--timeout=5',
                '--max-file-not-found=3',
+               '--file-allocation=falloc',
                '--remote-time=true']
+
+        if threads > 1:
+            cmd.append('--split={}'.format(threads))
 
         if output_path:
             output_split = output_path.split('/')
             cmd.append('--dir=' + '/'.join(output_split[:-1]))
             cmd.append('--out=' + output_split[-1])
 
-        return SystemProcess(new_subprocess(cmd=cmd, cwd=cwd),
-                             skip_stdout=True,
-                             check_error_output=False,
-                             success_phrases=['download completed'],
-                             output_delay=0.001)
+        return SimpleProcess(cmd=cmd, root_password=root_password, cwd=cwd)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str) -> SimpleProcess:
+    def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SimpleProcess:
         cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
 
         if output_path:
             cmd.append('-O')
             cmd.append(output_path)
 
-        return SimpleProcess(cmd=cmd, cwd=cwd)
+        return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
-    def _rm_bad_file(self, file_name: str, output_path: str, cwd):
+    def _rm_bad_file(self, file_name: str, output_path: str, cwd, handler: ProcessHandler, root_password: str):
         to_delete = output_path if output_path else '{}/{}'.format(cwd, file_name)
 
         if to_delete and os.path.exists(to_delete):
             self.logger.info('Removing downloaded file {}'.format(to_delete))
-            os.remove(to_delete)
+            success, _ = handler.handle_simple(SimpleProcess(['rm', '-rf',to_delete], root_password=root_password))
+            return success
 
-    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None) -> bool:
+    def _display_file_size(self, file_url: str, base_substatus, watcher: ProcessWatcher):
+        try:
+            size = self.http_client.get_content_length(file_url)
+
+            if size:
+                watcher.change_substatus(base_substatus + ' ( {} )'.format(size))
+        except:
+            pass
+
+    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
         self.logger.info('Downloading {}'.format(file_url))
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]
@@ -85,39 +107,45 @@ class AdaptableFileDownloader(FileDownloader):
 
             if self.is_multithreaded():
                 ti = time.time()
-                process = self._get_aria2c_process(file_url, output_path, final_cwd)
-                downloader = 'aria2c'
+                process = self._get_aria2c_process(file_url, output_path, final_cwd, root_password, max_threads, known_size)
+                downloader = 'aria2'
             else:
                 ti = time.time()
-                process = self._get_wget_process(file_url, output_path, final_cwd)
+                process = self._get_wget_process(file_url, output_path, final_cwd, root_password)
                 downloader = 'wget'
-
-            file_size = self.http_client.get_content_length(file_url)
 
             name = file_url.split('/')[-1]
 
             if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
                 name = output_path.split('/')[-1]
 
-            msg = bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name) + (' ( {} )'.format(file_size) if file_size else '')
+            if substatus_prefix:
+                msg = substatus_prefix + ' '
+            else:
+                msg = ''
+
+            msg += bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name)
 
             if watcher:
                 watcher.change_substatus(msg)
 
-            if isinstance(process, SimpleProcess):
-                success = handler.handle_simple(process)
-            else:
-                success = handler.handle(process)
+                if display_file_size:
+                    if known_size:
+                        watcher.change_substatus(msg + ' ( {} )'.format(get_human_size_str(known_size)))
+                    else:
+                        Thread(target=self._display_file_size, args=(file_url, msg, watcher)).start()
+
+            success, _ = handler.handle_simple(process)
         except:
             traceback.print_exc()
-            self._rm_bad_file(file_name, output_path, final_cwd)
+            self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         tf = time.time()
         self.logger.info(file_name + ' download took {0:.2f} minutes'.format((tf - ti) / 60))
 
         if not success:
             self.logger.error("Could not download '{}'".format(file_name))
-            self._rm_bad_file(file_name, output_path, final_cwd)
+            self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         return success
 
