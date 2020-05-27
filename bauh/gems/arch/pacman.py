@@ -15,6 +15,7 @@ RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
+RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
@@ -505,11 +506,20 @@ def is_mirrors_available() -> bool:
     return bool(run_cmd('which pacman-mirrors', print_error=False))
 
 
-def get_update_size(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
         return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+
+    return {}
+
+
+def map_download_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+    output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+
+    if output:
+        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_DOWNLOAD_SIZE.findall(output))}
 
     return {}
 

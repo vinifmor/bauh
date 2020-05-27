@@ -63,7 +63,7 @@ class TransactionContext:
                  install_file: str = None, repository: str = None, pkg: ArchPackage = None,
                  remote_repo_map: Dict[str, str] = None, provided_map: Dict[str, Set[str]] = None,
                  remote_provided_map: Dict[str, Set[str]] = None, aur_idx: Set[str] = None,
-                 missing_deps: List[Tuple[str, str]] = None, pkg_sizes: Dict[str, int] = {}):
+                 missing_deps: List[Tuple[str, str]] = None):
         self.name = name
         self.base = base
         self.maintainer = maintainer
@@ -84,7 +84,6 @@ class TransactionContext:
         self.remote_provided_map = remote_provided_map
         self.aur_idx = aur_idx
         self.missing_deps = missing_deps
-        self.pkg_sizes = pkg_sizes
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
@@ -1329,7 +1328,8 @@ class ArchManager(SoftwareManager):
             downloaded = 0
             if self._should_download_packages(context.config):
                 try:
-                    downloaded = self._download_packages(repo_dep_names, context.handler, context.root_password, context.pkg_sizes)
+                    pkg_sizes = pacman.map_download_sizes(repo_dep_names)
+                    downloaded = self._download_packages(repo_dep_names, context.handler, context.root_password, pkg_sizes)
                 except ArchDownloadException:
                     return False
 
@@ -1455,7 +1455,7 @@ class ArchManager(SoftwareManager):
     def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
 
-        if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n, context):
+        if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n):
             context.watcher.print(self.i18n['action.cancelled'])
             return False
 
@@ -1612,7 +1612,7 @@ class ArchManager(SoftwareManager):
 
                 sorted_deps = sorting.sort(to_sort, {**deps_data, **subdeps_data}, provided_map)
 
-                if display_deps_dialog and not confirmation.request_install_missing_deps(None, sorted_deps, context.watcher, self.i18n, context):
+                if display_deps_dialog and not confirmation.request_install_missing_deps(None, sorted_deps, context.watcher, self.i18n):
                     context.watcher.print(self.i18n['action.cancelled'])
                     return True  # because the main package installation was successful
 
@@ -1693,7 +1693,8 @@ class ArchManager(SoftwareManager):
 
             if to_download:
                 try:
-                    downloaded = self._download_packages(to_download, context.handler, context.root_password, context.pkg_sizes)
+                    pkg_sizes = pacman.map_download_sizes(to_download)
+                    downloaded = self._download_packages(to_download, context.handler, context.root_password, pkg_sizes)
                 except ArchDownloadException:
                     return False
 
@@ -1903,7 +1904,7 @@ class ArchManager(SoftwareManager):
             context.missing_deps = missing_deps
             context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
 
-            if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n, context):
+            if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n):
                 context.watcher.print(self.i18n['action.cancelled'])
                 return False
 
@@ -2188,7 +2189,7 @@ class ArchManager(SoftwareManager):
                 else:
                     new.append(p)
 
-        new_sizes = pacman.get_update_size(all_names)
+        new_sizes = pacman.map_update_sizes(all_names)
 
         if new_sizes:
             if new:
