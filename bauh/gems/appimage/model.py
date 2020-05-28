@@ -114,3 +114,7 @@ class AppImage(SoftwarePackage):
 
     def is_update_ignored(self) -> bool:
         return self.updates_ignored
+
+    def __eq__(self, other):
+        if isinstance(other, AppImage):
+            return self.local_file_path == other.local_file_path

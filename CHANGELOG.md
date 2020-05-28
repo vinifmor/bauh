@@ -59,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - crashing while reading the installed packages when the internet is unstable
 
 - initialization dialog hangs when there is no task to wait for [#112](https://github.com/vinifmor/bauh/issues/112)
-- not caching data of repository packages with unknown repository names
+- not caching data of installed packages with no signatures and unknown repositories
 
 ## [0.9.3] 2020-05-12
 ### Features

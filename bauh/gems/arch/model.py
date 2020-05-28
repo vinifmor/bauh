@@ -145,3 +145,7 @@ class ArchPackage(SoftwarePackage):
 
     def __repr__(self):
         return '{} (name={}, command={}, icon_path={})'.format(self.__class__.__name__, self.name, self.command, self.icon_path)
+
+    def __eq__(self, other):
+        if isinstance(other, ArchPackage):
+            return self.name == other.name and self.repository == other.repository

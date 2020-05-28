@@ -116,3 +116,7 @@ class FlatpakApplication(SoftwarePackage):
 
     def get_update_ignore_key(self) -> str:
         return '{}:{}:{}'.format(self.installation, self.id, self.branch)
+
+    def __eq__(self, other):
+        if isinstance(other, FlatpakApplication):
+            return self.id == other.id and self.installation == other.installation and self.branch == other.branch

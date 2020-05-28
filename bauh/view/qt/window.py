@@ -1277,6 +1277,12 @@ class ManageWindow(QWidget):
         if res['success']:
             self.apply_filters_async()
 
+            if self.pkgs_installed:
+                cached_installed = [idx for idx, p in enumerate(self.pkgs_installed) if p == res['pkg']]
+
+                for idx in cached_installed:
+                    self.pkgs_installed[idx] = res['pkg']
+
             dialog.show_message(title=self.i18n['success'].capitalize(),
                                 body=self.i18n['action.{}.success'.format(res['action'])].format(bold(res['pkg'].model.name)),
                                 type_=MessageType.INFO)
