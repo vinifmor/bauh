@@ -3,7 +3,7 @@ import logging
 import os
 import time
 import traceback
-from math import floor
+from threading import Lock, Thread
 from typing import List, Iterable, Dict
 
 from bauh.api.abstract.download import FileDownloader
@@ -35,6 +35,30 @@ class MultiThreadedDownloader:
         self.extensions = ['.tar.zst', '.tar.xz']
         self.cache_dir = cache_dir
         self.logger = logger
+        self.async_downloads = []
+        self.async_downloads_lock = Lock()
+
+    def download_package_signature(self, pkg: dict, file_url: str, output_path: str, root_password: str, watcher: ProcessWatcher):
+        try:
+            self.logger.info("Downloading package '{}' signature".format(pkg['n']))
+
+            sig_downloaded = self.downloader.download(file_url=file_url + '.sig', watcher=None,
+                                                      output_path=output_path + '.sig',
+                                                      cwd='.', root_password=root_password,
+                                                      display_file_size=False,
+                                                      max_threads=1)
+
+            if not sig_downloaded:
+                msg = "Could not download package '{}' signature".format(pkg['n'])
+                self.logger.warning(msg)
+                watcher.print('[warning] {}'.format(msg))
+            else:
+                msg = "Package '{}' signature successfully downloaded".format(pkg['n'])
+                self.logger.info(msg)
+                watcher.print(msg)
+        except:
+            self.logger.warning("An error occurred while download package '{}' signature".format(pkg['n']))
+            traceback.print_exc()
 
     def download_package(self, pkg: Dict[str, str], root_password: str, substatus_prefix: str, watcher: ProcessWatcher, size: int) -> bool:
         if self.mirrors and self.branch:
@@ -64,21 +88,25 @@ class MultiThreadedDownloader:
                         watcher.print("Could not download '{}' from mirror '{}'".format(pkgname, mirror))
                     else:
                         self.logger.info("Package '{}' successfully downloaded".format(pkg['n']))
-                        self.logger.info("Downloading package '{}' signature".format(pkg['n']))
-
-                        sig_downloaded = self.downloader.download(file_url=url + '.sig', watcher=watcher,
-                                                                  output_path=output_path + '.sig',
-                                                                  cwd='.', root_password=root_password,
-                                                                  display_file_size=False,
-                                                                  substatus_prefix=substatus_prefix,
-                                                                  max_threads=1)
-
-                        if not sig_downloaded:
-                            self.logger.warning("Could not download package '{}' signature".format(pkg['n']))
-                        else:
-                            self.logger.info("Package '{}' signature successfully downloaded".format(pkg['n']))
-                            return True
+                        t = Thread(target=self.download_package_signature, args=(pkg, url, output_path, root_password, watcher), daemon=True)
+                        t.start()
+                        self.async_downloads_lock.acquire()
+                        self.async_downloads.append(t)
+                        self.async_downloads_lock.release()
+                        return True
         return False
+
+    def wait_for_async_downloads(self):
+        self.async_downloads_lock.acquire()
+
+        try:
+            if self.async_downloads:
+                for t in self.async_downloads:
+                    t.join()
+
+            self.async_downloads.clear()
+        finally:
+            self.async_downloads_lock.release()
 
 
 class MultithreadedDownloadService:
@@ -150,6 +178,10 @@ class MultithreadedDownloadService:
                                      body=self.i18n['arch.mthread_downloaded.error.cancelled'],
                                      type_=MessageType.ERROR)
                 raise ArchDownloadException()
+
+        self.logger.info("Waiting for signature downloads to complete")
+        downloader.wait_for_async_downloads()
+        self.logger.info("Signature downloads finished")
         tf = time.time()
         self.logger.info("Download time: {0:.2f} seconds".format(tf - ti))
         return downloaded
