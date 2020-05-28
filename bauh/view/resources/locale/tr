@@ -193,6 +193,7 @@ core.config.download.icons=Simgeleri indir
 core.config.download.multithreaded.tip=Uygulamaların, paketlerin ve dosyaların iş parçacıklarıyla (daha hızlı) çalışan bir araçla indirilip indirilmeyeceği.
 core.config.download.multithreaded=Çoklu parçalı indirme
 core.config.download.multithreaded_client=Multi-threaded download tool
+core.config.download.multithreaded_client.none=None available
 core.config.download.multithreaded_client.tip=The download tool that should be used for multi-threaded downloads. It must be installed on the system for this configuration to work.
 core.config.downloads=indirilenler
 core.config.locale.label=dil

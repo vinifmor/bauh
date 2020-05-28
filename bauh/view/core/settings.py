@@ -121,23 +121,32 @@ class GenericSettingsManager:
                                                    max_width=default_width,
                                                    value=core_config['download']['multithreaded'])
 
-        supported_mthread_clients = self.file_downloader.get_supported_multithreaded_clients()
-        mthread_client_opts = [(self.i18n['default'].capitalize(), None, None)]
-        mthread_client_opts.extend(((d, d, None) for d in supported_mthread_clients))
-        current_mthread_client = core_config['download']['multithreaded_client']
-
-        if current_mthread_client not in supported_mthread_clients:
-            current_mthread_client = None
-
-        select_mthread_client = self._gen_select(label=self.i18n['core.config.download.multithreaded_client'],
-                                                 tip=self.i18n['core.config.download.multithreaded_client.tip'],
-                                                 id_="mthread_client",
-                                                 max_width=default_width,
-                                                 opts=mthread_client_opts,
-                                                 value=current_mthread_client)
+        select_mthread_client = self._gen_multithread_client_select(core_config, default_width)
 
         sub_comps = [FormComponent([select_dmthread, select_mthread_client, select_trim_up, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
+
+    def _gen_multithread_client_select(self, core_config: dict, default_width: int) -> SingleSelectComponent:
+        available_mthread_clients = self.file_downloader.list_available_multithreaded_clients()
+        available_mthread_clients.sort()
+
+        default_i18n_key = 'default' if available_mthread_clients else 'core.config.download.multithreaded_client.none'
+        mthread_client_opts = [(self.i18n[default_i18n_key].capitalize(), None, None)]
+
+        for client in available_mthread_clients:
+            mthread_client_opts.append((client, client, None))
+
+        current_mthread_client = core_config['download']['multithreaded_client']
+
+        if current_mthread_client not in available_mthread_clients:
+            current_mthread_client = None
+
+        return self._gen_select(label=self.i18n['core.config.download.multithreaded_client'],
+                                tip=self.i18n['core.config.download.multithreaded_client.tip'],
+                                id_="mthread_client",
+                                max_width=default_width,
+                                opts=mthread_client_opts,
+                                value=current_mthread_client)
 
     def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
         default_width = floor(0.22 * screen_width)

@@ -194,6 +194,7 @@ core.config.download.icons.tip=Si los íconos de las aplicaciones se deben desca
 core.config.download.multithreaded=Descarga segmentada
 core.config.download.multithreaded.tip=Si las aplicaciones, paquetes y archivos deben descargarse con una herramienta que usa segmentación / threads (más rápido).
 core.config.download.multithreaded_client=Herramienta para descarga segmentada
+core.config.download.multithreaded_client.none=Ninguna disponible
 core.config.download.multithreaded_client.tip=La herramienta que debe usarse para descargas segmentadas. Ella debe estar instalada en el sistema para que esta configuración funcione.
 core.config.downloads=downloads
 core.config.locale.label=idioma

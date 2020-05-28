@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     </p>
 
 - Settings
-    - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab
+    - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab (check **Default** for bauh to decide which one to use)
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/mthread_tool.png">
     </p>

@@ -194,6 +194,7 @@ core.config.download.icons.tip=If the application icons should be downloaded and
 core.config.download.multithreaded=Multithreaded download
 core.config.download.multithreaded.tip=Whether applications, packages and files should be downloaded with a tool that works with threads (faster).
 core.config.download.multithreaded_client=Multi-threaded download tool
+core.config.download.multithreaded_client.none=None available
 core.config.download.multithreaded_client.tip=The download tool that should be used for multi-threaded downloads. It must be installed on the system for this configuration to work.
 core.config.downloads=downloads
 core.config.locale.label=language

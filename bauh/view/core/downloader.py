@@ -5,7 +5,7 @@ import time
 import traceback
 from math import floor
 from threading import Thread
-from typing import Iterable
+from typing import Iterable, List
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -24,7 +24,7 @@ class AdaptableFileDownloader(FileDownloader):
         self.multithread_enabled = multithread_enabled
         self.i18n = i18n
         self.http_client = http_client
-        self.supported_multithread_clients = {'aria2', 'axel'}
+        self.supported_multithread_clients = ['aria2', 'axel']
         self.multithread_client = multithread_client
 
     @staticmethod
@@ -184,22 +184,39 @@ class AdaptableFileDownloader(FileDownloader):
         return success
 
     def is_multithreaded(self) -> bool:
-        return self.multithread_enabled and (self.is_aria2c_available() or self.is_axel_available())
+        return bool(self.get_available_multithreaded_tool())
 
     def get_available_multithreaded_tool(self) -> str:
         if self.multithread_enabled:
-            if self.multithread_client is None:
-                if self.is_aria2c_available():
-                    return 'aria2'
-                elif self.is_axel_available():
-                    return 'axel'
-            elif (self.multithread_client == 'aria2' or self.multithread_client not in self.get_supported_multithreaded_clients()) and self.is_aria2c_available():
-                return 'aria2'
-            elif self.is_axel_available():
-                return 'axel'
+            if self.multithread_client is None or self.multithread_client not in self.supported_multithread_clients:
+                for client in self.supported_multithread_clients:
+                    if self.is_multithreaded_client_available(client):
+                        return client
+            else:
+                possible_clients = {*self.supported_multithread_clients}
+
+                if self.is_multithreaded_client_available(self.multithread_client):
+                    return self.multithread_client
+                else:
+                    possible_clients.remove(self.multithread_client)
+
+                    for client in possible_clients:
+                        if self.is_multithreaded_client_available(client):
+                            return client
 
     def can_work(self) -> bool:
         return self.is_wget_available() or self.is_multithreaded()
 
     def get_supported_multithreaded_clients(self) -> Iterable[str]:
         return self.supported_multithread_clients
+
+    def is_multithreaded_client_available(self, name: str) -> bool:
+        if name == 'aria2':
+            return self.is_aria2c_available()
+        elif name == 'axel':
+            return self.is_axel_available()
+        else:
+            return False
+
+    def list_available_multithreaded_clients(self) -> List[str]:
+        return [c for c in self.supported_multithread_clients if self.is_multithreaded_client_available(c)]
