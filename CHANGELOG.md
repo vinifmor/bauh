@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.4] 2020
+## [0.9.4] 2020-05-29
 ### Features
 - Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages, Flatpaks and AppImages
 
@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     </p>
 
 - Settings
-    - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab (check **Default** for bauh to decide which one to use)
+    - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The download tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab (check **Default** for bauh to decide which one to use)
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/mthread_tool.png">
     </p>
@@ -60,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - initialization dialog hangs when there is no task to wait for [#112](https://github.com/vinifmor/bauh/issues/112)
 - not caching data of installed packages with no signatures and unknown repositories
+
 
 ## [0.9.3] 2020-05-12
 ### Features
