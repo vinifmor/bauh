@@ -30,10 +30,12 @@ from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH
+    CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
+    CONFIG_DIR
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
+from bauh.gems.arch.download import MultithreadedDownloadService, ArchDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
@@ -484,11 +486,11 @@ class ArchManager(SoftwareManager):
 
             pkgs.append(pkg)
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
 
-        installed = pacman.map_installed()
+        installed = pacman.map_installed(names=names)
 
         aur_pkgs, repo_pkgs = None, None
 
@@ -528,6 +530,14 @@ class ArchManager(SoftwareManager):
 
             for t in map_threads:
                 t.join()
+
+        if pkgs:
+            ignored = self._list_ignored_updates()
+
+            if ignored:
+                for p in pkgs:
+                    if p.name in ignored:
+                        p.update_ignored = True
 
         return SearchResult(pkgs, None, len(pkgs))
 
@@ -738,13 +748,23 @@ class ArchManager(SoftwareManager):
 
         return files
 
-    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, overwrite_files: bool = False,
-                           status_handler: TransactionStatusHandler = None) -> bool:
+    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, arch_config: dict, overwrite_files: bool = False,
+                           status_handler: TransactionStatusHandler = None, already_downloaded: bool = False, sizes: Dict[str, int] = None) -> bool:
+
+        downloaded = 0
+
+        if not already_downloaded:
+            if self._should_download_packages(arch_config):
+                try:
+                    downloaded = self._download_packages(pkgs, handler, root_password, sizes)
+                except ArchDownloadException:
+                    return False
+
         try:
             if status_handler:
                 output_handler = status_handler
             else:
-                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger)
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger, downloading=downloaded)
                 output_handler.start()
 
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
@@ -782,7 +802,10 @@ class ArchManager(SoftwareManager):
                                                    handler=handler,
                                                    root_password=root_password,
                                                    overwrite_files=True,
-                                                   status_handler=output_handler)
+                                                   status_handler=output_handler,
+                                                   already_downloaded=True,
+                                                   arch_config=arch_config,
+                                                   sizes=sizes)
                 else:
                     output_handler.stop_working()
                     output_handler.join()
@@ -810,13 +833,15 @@ class ArchManager(SoftwareManager):
             watcher.change_substatus('')
             return False
 
-        aur_pkgs, repo_pkgs = [], []
+        aur_pkgs, repo_pkgs, pkg_sizes = [], [], {}
 
         for req in (*requirements.to_install, *requirements.to_upgrade):
             if req.pkg.repository == 'aur':
                 aur_pkgs.append(req.pkg)
             else:
                 repo_pkgs.append(req.pkg)
+
+            pkg_sizes[req.pkg.name] = req.required_size
 
         if aur_pkgs and not self._check_action_allowed(aur_pkgs[0], watcher):
             return False
@@ -843,11 +868,15 @@ class ArchManager(SoftwareManager):
             self.logger.info("Upgrading {} repository packages: {}".format(len(repo_pkgs_names),
                                                                            ', '.join(repo_pkgs_names)))
 
-            if not self._upgrade_repo_pkgs(pkgs=repo_pkgs_names, handler=handler, root_password=root_password):
+            if not self._upgrade_repo_pkgs(pkgs=repo_pkgs_names,
+                                           handler=handler,
+                                           root_password=root_password,
+                                           arch_config=arch_config,
+                                           sizes=pkg_sizes):
                 return False
 
-        watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))
         if aur_pkgs:
+            watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))
             for pkg in aur_pkgs:
                 watcher.change_substatus("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], pkg.name, pkg.version))
                 context = TransactionContext.gen_context_from(pkg=pkg, arch_config=arch_config,
@@ -1015,6 +1044,8 @@ class ArchManager(SoftwareManager):
                             context.watcher.show_message(title=self.i18n['error'],
                                                          body=self.i18n['arch.uninstall.clean_cached.error'].format(bold(p)),
                                                          type_=MessageType.WARNING)
+
+                self._revert_ignored_updates(to_uninstall)
 
         self._update_progress(context, 100)
         return uninstalled
@@ -1252,7 +1283,7 @@ class ArchManager(SoftwareManager):
 
             return True
 
-    def _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
+    def  _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
         """
         :param pkgs_repos:
         :param root_password:
@@ -1294,7 +1325,16 @@ class ArchManager(SoftwareManager):
                                 if not self._request_conflict_resolution(dep, conflict_pkg , context):
                                     return {dep}
 
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(repo_dep_names), self.logger, percentage=len(repo_deps) > 1)
+            downloaded = 0
+            if self._should_download_packages(context.config):
+                try:
+                    pkg_sizes = pacman.map_download_sizes(repo_dep_names)
+                    downloaded = self._download_packages(repo_dep_names, context.handler, context.root_password, pkg_sizes)
+                except ArchDownloadException:
+                    return False
+
+            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, npkgs=len(repo_dep_names),
+                                                      logger=self.logger, percentage=len(repo_deps) > 1, downloading=downloaded)
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
                                                                                    root_password=context.root_password,
@@ -1586,7 +1626,21 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _install(self, context: TransactionContext):
+    def _should_download_packages(self, arch_config: dict) -> bool:
+        return bool(arch_config['repositories_mthread_download']) and self.context.file_downloader.is_multithreaded()
+
+    def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None) -> int:
+        download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
+                                                        http_client=self.http_client,
+                                                        logger=self.context.logger,
+                                                        i18n=self.i18n)
+        self.logger.info("Initializing multi-threaded download for {} package(s)".format(len(pkgnames)))
+        return download_service.download_packages(pkgs=pkgnames,
+                                                  handler=handler,
+                                                  sizes=sizes,
+                                                  root_password=root_password)
+
+    def _install(self, context: TransactionContext) -> bool:
         check_install_output = []
         pkgpath = context.get_package_path()
 
@@ -1624,7 +1678,6 @@ class ArchManager(SoftwareManager):
         else:
             self.logger.info("No conflict detected for '{}'".format(context.name))
 
-        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
         self._update_progress(context, 80)
 
         to_install = []
@@ -1634,12 +1687,26 @@ class ArchManager(SoftwareManager):
 
         to_install.append(pkgpath)
 
+        downloaded = 0
+        if self._should_download_packages(context.config):
+            to_download = [p for p in to_install if not p.startswith('/')]
+
+            if to_download:
+                try:
+                    pkg_sizes = pacman.map_download_sizes(to_download)
+                    downloaded = self._download_packages(to_download, context.handler, context.root_password, pkg_sizes)
+                except ArchDownloadException:
+                    return False
+
         if not context.dependency:
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(to_install), self.logger, percentage=len(to_install) > 1) if not context.dependency else None
+            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(to_install), self.logger,
+                                                      percentage=len(to_install) > 1,
+                                                      downloading=downloaded) if not context.dependency else None
             status_handler.start()
         else:
             status_handler = None
 
+        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
         installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=to_install,
                                                                                root_password=context.root_password,
                                                                                file=context.has_install_file(),
@@ -1932,7 +1999,7 @@ class ArchManager(SoftwareManager):
 
         aur_type, repo_type = self.i18n['gem.arch.type.aur.label'], self.i18n['gem.arch.type.arch_repo.label']
 
-        return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update]
+        return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update and not p.is_update_ignored()]
 
     def list_warnings(self, internet_available: bool) -> List[str]:
         warnings = []
@@ -2032,6 +2099,12 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.optimize.tip',
                                     value=bool(local_config['optimize']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='mthread_download',
+                                    label_key='arch.config.pacman_mthread_download',
+                                    tooltip_key='arch.config.pacman_mthread_download.tip',
+                                    value=local_config['repositories_mthread_download'],
+                                    max_width=max_width,
+                                    capitalize_label=True),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
@@ -2070,6 +2143,7 @@ class ArchManager(SoftwareManager):
         config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
         config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
+        config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
@@ -2115,7 +2189,7 @@ class ArchManager(SoftwareManager):
                 else:
                     new.append(p)
 
-        new_sizes = pacman.get_update_size(all_names)
+        new_sizes = pacman.map_update_sizes(all_names)
 
         if new_sizes:
             if new:
@@ -2246,3 +2320,52 @@ class ArchManager(SoftwareManager):
                 return False
 
         return True
+
+    def _list_ignored_updates(self) -> Set[str]:
+        ignored = set()
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            with open(UPDATES_IGNORED_FILE) as f:
+                ignored_lines = f.readlines()
+
+            for line in ignored_lines:
+                if line:
+                    line_clean = line.strip()
+
+                    if line_clean:
+                        ignored.add(line_clean)
+
+        return ignored
+
+    def _write_ignored(self, names: Set[str]):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        ignored_list = [*names]
+        ignored_list.sort()
+
+        with open(UPDATES_IGNORED_FILE, 'w+') as f:
+            if ignored_list:
+                for pkg in ignored_list:
+                    f.write('{}\n'.format(pkg))
+            else:
+                f.write('')
+
+    def ignore_update(self, pkg: ArchPackage):
+        ignored = self._list_ignored_updates()
+
+        if pkg.name not in ignored:
+            ignored.add(pkg.name)
+            self._write_ignored(ignored)
+
+        pkg.update_ignored = True
+
+    def _revert_ignored_updates(self, pkgs: Iterable[str]):
+        ignored = self._list_ignored_updates()
+
+        for p in pkgs:
+            if p in ignored:
+                ignored.remove(p)
+
+        self._write_ignored(ignored)
+
+    def revert_ignored_update(self, pkg: ArchPackage):
+        self._revert_ignored_updates({pkg.name})
+        pkg.update_ignored = False

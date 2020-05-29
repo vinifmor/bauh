@@ -114,6 +114,7 @@ class AppsTable(QTableWidget):
     def has_any_settings(self, pkg: PackageView):
         return pkg.model.has_history() or \
                pkg.model.can_be_downgraded() or \
+               pkg.model.supports_ignored_updates() or \
                bool(pkg.model.get_custom_supported_actions())
 
     def show_pkg_actions(self, pkg: PackageView):
@@ -121,6 +122,7 @@ class AppsTable(QTableWidget):
         menu_row.setCursor(QCursor(Qt.PointingHandCursor))
 
         if pkg.model.installed:
+
             if pkg.model.has_history():
                 action_history = QAction(self.i18n["manage_window.apps_table.row.actions.history"])
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
@@ -144,6 +146,21 @@ class AppsTable(QTableWidget):
                 action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
                 menu_row.addAction(action_downgrade)
+
+            if pkg.model.supports_ignored_updates():
+                if pkg.model.is_update_ignored():
+                    action_ignore_updates = QAction(
+                        self.i18n["manage_window.apps_table.row.actions.ignore_updates_reverse"])
+                    action_ignore_updates.setIcon(QIcon(resource.get_path('img/revert_update_ignored.svg')))
+                else:
+                    action_ignore_updates = QAction(self.i18n["manage_window.apps_table.row.actions.ignore_updates"])
+                    action_ignore_updates.setIcon(QIcon(resource.get_path('img/ignore_update.svg')))
+
+                def ignore_updates():
+                    self.window.ignore_updates(pkg)
+
+                action_ignore_updates.triggered.connect(ignore_updates)
+                menu_row.addAction(action_ignore_updates)
 
         if bool(pkg.model.get_custom_supported_actions()):
             for action in pkg.model.get_custom_supported_actions():
@@ -169,13 +186,13 @@ class AppsTable(QTableWidget):
     def refresh(self, pkg: PackageView):
         self._update_row(pkg, update_check_enabled=False, change_update_col=False)
 
-    def update_package(self, pkg: PackageView):
+    def update_package(self, pkg: PackageView, change_update_col: bool = False):
         if self.download_icons and pkg.model.icon_url:
             icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
             icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
             self.network_man.get(icon_request)
 
-        self._update_row(pkg, change_update_col=False)
+        self._update_row(pkg, change_update_col=change_update_col)
 
     def _uninstall_app(self, app_v: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
@@ -263,7 +280,7 @@ class AppsTable(QTableWidget):
         if change_update_col:
             col_update = None
 
-            if update_check_enabled and pkg.model.update:
+            if update_check_enabled and not pkg.model.is_update_ignored() and pkg.model.update:
                 col_update = QToolBar()
                 col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
                 col_update.addWidget(UpdateToggleButton(pkg=pkg,
@@ -351,11 +368,15 @@ class AppsTable(QTableWidget):
         else:
             tooltip = self.i18n['version.unknown']
 
-        if pkg.model.update:
+        if pkg.model.update and not pkg.model.is_update_ignored():
             label_version.setStyleSheet("color: {}; font-weight: bold".format(GREEN))
             tooltip = self.i18n['version.installed_outdated']
 
-        if pkg.model.installed and pkg.model.update and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
+        if pkg.model.is_update_ignored():
+            label_version.setStyleSheet("color: {}; font-weight: bold".format(BROWN))
+            tooltip = self.i18n['version.updates_ignored']
+
+        if pkg.model.installed and pkg.model.update and not pkg.model.is_update_ignored() and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
             tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], pkg.model.latest_version)
             label_version.setText(label_version.text() + '  >  {}'.format(pkg.model.latest_version))
 
@@ -495,7 +516,7 @@ class AppsTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             if maximized:
-                if i in (1, 2):
+                if i not in (3, 4, 7):
                     header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
                 else:
                     header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)

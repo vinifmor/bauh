@@ -15,7 +15,7 @@ class AppImage(SoftwarePackage):
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
-                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, **kwargs):
+                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, updates_ignored: bool = False, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
@@ -32,6 +32,7 @@ class AppImage(SoftwarePackage):
         self.i18n = i18n
         self.install_dir = install_dir
         self.custom_actions = custom_actions
+        self.updates_ignored = updates_ignored
 
     def __repr__(self):
         return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
@@ -107,3 +108,13 @@ class AppImage(SoftwarePackage):
 
     def supports_backup(self) -> bool:
         return False
+
+    def supports_ignored_updates(self) -> bool:
+        return self.installed and not self.imported
+
+    def is_update_ignored(self) -> bool:
+        return self.updates_ignored
+
+    def __eq__(self, other):
+        if isinstance(other, AppImage):
+            return self.local_file_path == other.local_file_path

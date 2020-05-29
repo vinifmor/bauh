@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QToolBar, QVBoxLayout,
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.http import HttpClient
-from bauh.view.qt import qt_utils
+from bauh.view.qt import qt_utils, styles
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.thread import AnimateProgress
 from bauh.view.qt.view_model import PackageView
@@ -31,6 +31,7 @@ class ScreenshotsDialog(QDialog):
         self.i18n = i18n
         self.http_client = http_client
         self.progress_bar = QProgressBar()
+        self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 6)
         self.progress_bar.setTextVisible(False)
         self.thread_progress = AnimateProgress()

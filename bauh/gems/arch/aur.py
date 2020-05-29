@@ -185,6 +185,7 @@ class AURClient:
                     return pkgnames
                 else:
                     self.logger.warning("Could not load AUR index on the context")
+                    return set()
             else:
                 return index.values()
         except:

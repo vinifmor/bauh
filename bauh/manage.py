@@ -38,7 +38,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  logger=logger,
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
-                                                                         i18n, http_client),
+                                                                         i18n, http_client, app_config['download']['multithreaded_client']),
                                  app_name=__app_name__)
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)

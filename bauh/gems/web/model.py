@@ -148,3 +148,7 @@ class WebApplication(SoftwarePackage):
 
     def supports_backup(self) -> bool:
         return False
+
+    def __eq__(self, other):
+        if isinstance(other, WebApplication):
+            return self.name == other.name and self.url == other.url

@@ -364,7 +364,7 @@ class UpgradeSelected(AsyncAction):
             self.pkgs = None
             return
 
-        to_update = [pkg for pkg in self.pkgs if pkg.model.update and pkg.update_checked]
+        to_update = [pkg for pkg in self.pkgs if pkg.model.update and not pkg.model.is_update_ignored() and pkg.update_checked]
 
         if len(to_update) > 1:
             self.disable_progress_controll()
@@ -407,7 +407,7 @@ class UpgradeSelected(AsyncAction):
         extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
         req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
                                         get_human_size_str(required_size))
-        comps.insert(0, TextComponent(bold('{}  |  {}').format(extra_size_text, req_size_text), size=14))
+        comps.insert(0, TextComponent('{}  |  {}'.format(extra_size_text, req_size_text), size=14))
         comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
@@ -907,3 +907,26 @@ class GetScreenshots(AsyncAction):
             self.notify_finished({'pkg': self.pkg, 'screenshots': self.manager.get_screenshots(self.pkg.model)})
 
         self.pkg = None
+
+
+class IgnorePackageUpdates(AsyncAction):
+
+    def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
+        super(IgnorePackageUpdates, self).__init__()
+        self.pkg = pkg
+        self.manager = manager
+
+    def run(self):
+        if self.pkg:
+            try:
+                if self.pkg.model.is_update_ignored():
+                    self.manager.revert_ignored_update(self.pkg.model)
+                    res = {'action': 'ignore_updates_reverse', 'success': not self.pkg.model.is_update_ignored(), 'pkg': self.pkg}
+                else:
+                    self.manager.ignore_update(self.pkg.model)
+                    res = {'action': 'ignore_updates', 'success': self.pkg.model.is_update_ignored(), 'pkg': self.pkg}
+
+                self.notify_finished(res)
+
+            finally:
+                self.pkg = None

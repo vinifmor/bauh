@@ -27,7 +27,8 @@ from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
+    CONFIG_DIR, UPDATES_IGNORED_FILE
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -235,6 +236,13 @@ class AppImageManager(SoftwareManager):
                             if not connection:
                                 self._close_connection(DB_APPS_PATH, con)
 
+                    ignored_updates = self._read_ignored_updates()
+
+                    if ignored_updates:
+                        for app in res.installed:
+                            if app.supports_ignored_updates() and app.name in ignored_updates:
+                                app.updates_ignored = True
+
         res.total = len(res.installed)
         return res
 
@@ -308,6 +316,8 @@ class AppImageManager(SoftwareManager):
             if os.path.exists(de_path):
                 os.remove(de_path)
 
+            self.revert_ignored_update(pkg)
+
         return True
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
@@ -323,6 +333,11 @@ class AppImageManager(SoftwareManager):
             size = self.http_client.get_content_length(data['url_download'])
             if size:
                 data['size'] = size
+
+        categories = data.get('categories')
+
+        if categories:
+            data['categories'] = [self.i18n.get('category.{}'.format(c.lower()), self.i18n.get(c, c)).capitalize() for c in data['categories']]
 
         return data
 
@@ -502,16 +517,8 @@ class AppImageManager(SoftwareManager):
         res = run_cmd('which sqlite3')
         return res and not res.strip().startswith('which ')
 
-    def _is_wget_available(self):
-        res = run_cmd('which wget')
-        return res and not res.strip().startswith('which ')
-
-    def _is_aria2_available(self):
-        res = run_cmd('which aria2c')
-        return res and not res.strip().startswith('which ')
-
     def can_work(self) -> bool:
-        return self._is_sqlite3_available() and (self._is_wget_available() or self._is_aria2_available())
+        return self._is_sqlite3_available() and self.file_downloader.can_work()
 
     def requires_root(self, action: str, pkg: AppImage):
         return False
@@ -535,7 +542,7 @@ class AppImageManager(SoftwareManager):
         updates = []
         if res.installed:
             for app in res.installed:
-                if app.update:
+                if app.update and not app.is_update_ignored():
                     updates.append(PackageUpdate(pkg_id=app.name, pkg_type='AppImage', version=app.latest_version, name=app.name))
 
         return updates
@@ -684,3 +691,49 @@ class AppImageManager(SoftwareManager):
             to_update.append(requirement)
 
         return UpgradeRequirements([], [], to_update, [])
+
+    def _read_ignored_updates(self) -> Set[str]:
+        ignored = set()
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            with open(UPDATES_IGNORED_FILE) as f:
+                ignored_txt = f.read()
+
+            for l in ignored_txt.split('\n'):
+                if l:
+                    line_clean = l.strip()
+
+                    if line_clean:
+                        ignored.add(line_clean)
+
+        return ignored
+
+    def ignore_update(self, pkg: AppImage):
+        current_ignored = self._read_ignored_updates()
+
+        if pkg.name not in current_ignored:
+            current_ignored.add(pkg.name)
+            self._write_ignored_updates(current_ignored)
+
+        pkg.updates_ignored = True
+
+    def _write_ignored_updates(self, names: Set[str]):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        ignored_list = [*names]
+        ignored_list.sort()
+
+        with open(UPDATES_IGNORED_FILE, 'w+') as f:
+            if ignored_list:
+                for ignored in ignored_list:
+                    f.write('{}\n'.format(ignored))
+            else:
+                f.write('')
+
+    def revert_ignored_update(self, pkg: AppImage):
+        current_ignored = self._read_ignored_updates()
+
+        if current_ignored and pkg.name in current_ignored:
+            current_ignored.remove(pkg.name)
+
+            self._write_ignored_updates(current_ignored)
+
+        pkg.updates_ignored = False

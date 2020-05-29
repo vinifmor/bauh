@@ -3,11 +3,11 @@
 </p>
 
 
-**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications / packages. It currently supports 
-the following types: AppImage, Arch ( repositories / AUR ), Flatpak, Snap and native Web applications. 
+**bauh** ( ba-oo ), formerly known as **fpakman**, is a graphical interface for managing your Linux applications/packages. It currently supports 
+the following formats: AppImage, Arch ( repositories / AUR ), Flatpak, Snap and native Web applications. 
 
 Key features:
-- A management panel where you can: search, install, uninstall, launch, downgrade and retrieve the release history from software packages. 
+- A management panel where you can: search, install, uninstall, upgrade, downgrade, launch, ignore updates and retrieve releases history from software packages./ 
 - Tray mode: launches attached to the system tray and publishes notifications when there are software updates available
 - System backup: it integrates with **Timeshift** to provide a simple and safe backup process before applying any change to your system.
 
@@ -101,7 +101,8 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 ### Gems ( package technology support )
 #### Flatpak ( flatpak )
 
-- Supported actions: search, install, uninstall, downgrade, launch, history
+- Supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
+- Applications with ignored updates are defined at **~/.config/bauh/flatpak/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
 installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
@@ -119,7 +120,7 @@ installation_level: null # defines a default installation level: user or system.
 
 #### AppImage ( appimage )
 
-- Supported actions: search, install, uninstall, downgrade, launch, history
+- Supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
 - **Only x86_64 AppImage files are available through the search mechanism at the moment**
 - Custom actions
     - **Install AppImage file**: allows to install a external AppImage file
@@ -132,6 +133,7 @@ installation_level: null # defines a default installation level: user or system.
 - Databases updater daemon running every 20 minutes ( it can be customized via the configuration file described below )
 - Crashes may happen during an AppImage installation if **AppImageLauncher** is installed. It is advisable to uninstall it and reboot the system before trying to install an application.
 - All supported application names can be found at [apps.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt)
+- Applications with ignored updates are defined at **~/.config/bauh/appimage/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
 db_updater:
@@ -146,8 +148,8 @@ db_updater:
 
 #### Arch ( Repositories / AUR )
 - Only available for **Arch-based systems**
-- Repository packages supported actions: search, install, uninstall, launch
-- AUR packages supported actions: search, install, uninstall, downgrade, launch, history
+- Repository packages supported actions: search, install, uninstall, launch and ignore updates
+- AUR packages supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
 - It handles conflicts, missing / optional packages installations, and several providers scenarios
 - Automatically makes simple package compilation improvements:
 
@@ -169,6 +171,7 @@ db_updater:
     - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest ( `sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy` )
     - **quick system upgrade**: it executes a default pacman upgrade ( `pacman -Syyu --noconfirm` )
     - **clean cache**: it cleans the pacman cache diretory ( default: `/var/cache/pacman/pkg` )
+- Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
 optimize: true  # if 'false': disables the auto-compilation improvements
@@ -179,6 +182,7 @@ refresh_mirrors_startup: false # if the package mirrors should be refreshed duri
 mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
 aur:  true  # allows to manage AUR packages
 repositories: true  # allows to manage packages from the configured repositories
+repositories_mthread_download: true  # enable multi-threaded download for repository packages if aria2 is installed
 ``` 
 - Required dependencies:
     - **pacman**
@@ -253,7 +257,8 @@ You can change some application settings via environment variables or arguments 
 ```
 download:
   icons: true # allows bauh to download the applications icons when they are not saved on the disk
-  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster ( current only **aria2** is supported )
+  multithreaded: true  # allows bauh to use a multithreaded download client installed on the system to download applications source files faster
+  multithreaded_client: null  # defines the multi-threaded download tool to be used. If null, the default installed tool will be used (priority: aria2 > axel). Possible tools/values: aria2, axel
 gems: null  # defines the enabled applications types managed by bauh ( a null value means all available ) 
 locale: null  # defines a different translation for bauh ( a null value will retrieve the system's default locale )
 store_root_password: true  # if the root password should be asked only once

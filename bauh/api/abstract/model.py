@@ -95,6 +95,12 @@ class SoftwarePackage(ABC):
     def can_be_installed(self):
         return not self.installed
 
+    def is_update_ignored(self) -> bool:
+        return False
+
+    def supports_ignored_updates(self) -> bool:
+        return False
+
     @abstractmethod
     def get_type(self):
         """

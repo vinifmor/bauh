@@ -1,6 +1,8 @@
+import os
 import traceback
 from datetime import datetime
 from math import floor
+from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple
 
@@ -16,7 +18,7 @@ from bauh.commons import user
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -88,7 +90,7 @@ class FlatpakManager(SoftwareManager):
 
         if apps_found:
             already_read = set()
-            installed_apps = self.read_installed(disk_loader=disk_loader).installed
+            installed_apps = self.read_installed(disk_loader=disk_loader, internet_available=True).installed
 
             if installed_apps:
                 for app_found in apps_found:
@@ -152,6 +154,14 @@ class FlatpakManager(SoftwareManager):
                                     models.append(partial_model)
                     else:
                         model.update = '{}/{}'.format(app_json['installation'], app_json['ref']) in update_map['full']
+
+        if models:
+            ignored = self._read_ignored_updates()
+
+            if ignored:
+                for model in models:
+                    if model.get_update_ignore_key() in ignored:
+                        model.updates_ignored = True
 
         return SearchResult(models, None, len(models))
 
@@ -221,6 +231,8 @@ class FlatpakManager(SoftwareManager):
 
         if self.suggestions_cache:
             self.suggestions_cache.delete(pkg.id)
+
+        self.revert_ignored_update(pkg)
 
         return uninstalled
 
@@ -363,7 +375,7 @@ class FlatpakManager(SoftwareManager):
         updates = []
         installed = self.read_installed(None, internet_available=internet_available).installed
 
-        to_update = [p for p in installed if p.update]
+        to_update = [p for p in installed if p.update and not p.is_update_ignored()]
 
         if to_update:
             loaders = []
@@ -536,3 +548,53 @@ class FlatpakManager(SoftwareManager):
             return [*all_runtimes, *apps]
         else:
             return [*runtimes, *apps]
+
+    def _read_ignored_updates(self) -> Set[str]:
+        ignored = set()
+        if os.path.exists(UPDATES_IGNORED_FILE):
+            with open(UPDATES_IGNORED_FILE) as f:
+                ignored_txt = f.read()
+
+            for l in ignored_txt.split('\n'):
+                if l:
+                    line_clean = l.strip()
+
+                    if line_clean:
+                        ignored.add(line_clean)
+
+        return ignored
+
+    def _write_ignored_updates(self, keys: Set[str]):
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        ignored_list = [*keys]
+        ignored_list.sort()
+
+        with open(UPDATES_IGNORED_FILE, 'w+') as f:
+            if ignored_list:
+                for ignored in ignored_list:
+                    f.write('{}\n'.format(ignored))
+            else:
+                f.write('')
+
+    def ignore_update(self, pkg: FlatpakApplication):
+        ignored_keys = self._read_ignored_updates()
+
+        pkg_key = pkg.get_update_ignore_key()
+
+        if pkg_key not in ignored_keys:
+            ignored_keys.add(pkg_key)
+            self._write_ignored_updates(ignored_keys)
+
+        pkg.updates_ignored = True
+
+    def revert_ignored_update(self, pkg: FlatpakApplication):
+        ignored_keys = self._read_ignored_updates()
+
+        if ignored_keys:
+            pkg_key = pkg.get_update_ignore_key()
+
+            if pkg_key in ignored_keys:
+                ignored_keys.remove(pkg_key)
+                self._write_ignored_updates(ignored_keys)
+
+        pkg.updates_ignored = False

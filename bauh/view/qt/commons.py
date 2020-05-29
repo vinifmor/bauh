@@ -22,7 +22,7 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
     else:
         pkgs_info['napps_count'] += 1
 
-    if pkgv.model.update:
+    if pkgv.model.update and not pkgv.model.is_update_ignored():
         if pkgv.model.is_application():
             pkgs_info['app_updates'] += 1
         else:
@@ -41,14 +41,14 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
 def apply_filters(pkgv: PackageView, filters: dict, info: dict):
     hidden = filters['only_apps'] and pkgv.model.installed and not pkgv.model.is_application()
 
+    if not hidden and filters['updates']:
+        hidden = not pkgv.model.update or pkgv.model.is_update_ignored()
+
     if not hidden and filters['type'] is not None and filters['type'] != 'any':
         hidden = pkgv.model.get_type() != filters['type']
 
     if not hidden and filters['category'] is not None and filters['category'] != 'any':
         hidden = not pkgv.model.categories or not [c for c in pkgv.model.categories if c.lower() == filters['category']]
-
-    if not hidden and filters['updates']:
-        hidden = not pkgv.model.update
 
     if not hidden and filters['name']:
         hidden = filters['name'] not in pkgv.model.name.lower()

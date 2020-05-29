@@ -4,6 +4,64 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.4] 2020-05-29
+### Features
+- Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages, Flatpaks and AppImages
+
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/ignore_updates.png">
+    </p>
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/revert_ignored_updates.png">
+    </p>
+- Packages with ignored updates have their versions displayed with a brown shade
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/version_ignored_updates.png">
+    </p>
+- It is possible to filter all you packages with updates ignored through the new category **Updates ignored**
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/updates_ignored_category.png">
+    </p>
+    
+- Arch
+	- supporting multi-threaded download for repository packages (enabled by default)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/arch_repo_mthread.png">
+    </p>
+
+- Settings
+    - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The download tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab (check **Default** for bauh to decide which one to use)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/mthread_tool.png">
+    </p>
+
+
+
+### Improvements
+- Arch
+    - faster caching data process during initialization
+    - i18n
+- AppImage
+    - Categories are now translated on the Info window
+    
+- UI
+    - only centralizing the apps table after the initialization process
+    - defining a minimum width and height based on the screen size
+    - info window now has a height limit, a lower bar with Back and Close buttons, and is scrollable
+    - minor changes
+- Downloads
+    - retrieving the downloading file sizes asynchronously
+
+### Fixes
+- Flatpak
+    - not displaying application updates on the search results
+- Arch
+    - crashing while reading the installed packages when the internet is unstable
+
+- initialization dialog hangs when there is no task to wait for [#112](https://github.com/vinifmor/bauh/issues/112)
+- not caching data of installed packages with no signatures and unknown repositories
+
+
 ## [0.9.3] 2020-05-12
 ### Features
 - new **restore** action to restore all bauh settings and cache through the 'custom actions' button (**+**). It is equivalent to the command `bauh --reset`.

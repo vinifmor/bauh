@@ -78,3 +78,7 @@ class SnapApplication(SoftwarePackage):
 
     def supports_backup(self) -> bool:
         return True
+
+    def __eq__(self, other):
+        if isinstance(other, SnapApplication):
+            return self.name == other.name

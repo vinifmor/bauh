@@ -44,6 +44,7 @@ def read_config(update_file: bool = False) -> dict:
         },
         'download': {
             'multithreaded': True,
+            'multithreaded_client': None,
             'icons': True
         },
         'store_root_password': True,

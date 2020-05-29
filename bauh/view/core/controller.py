@@ -213,6 +213,14 @@ class GenericSoftwareManager(SoftwareManager):
             disk_loader.stop_working()
             disk_loader.join()
 
+        if res.installed:
+            for p in res.installed:
+                if p.is_update_ignored():
+                    if p.categories is None:
+                        p.categories = ['updates_ignored']
+                    elif 'updates_ignored' not in p.categories:
+                        p.categories.append('updates_ignored')
+
         tf = time.time()
         self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
         return res
@@ -424,7 +432,8 @@ class GenericSoftwareManager(SoftwareManager):
             self.settings_manager = GenericSettingsManager(managers=self.managers,
                                                            working_managers=self.working_managers,
                                                            logger=self.logger,
-                                                           i18n=self.i18n)
+                                                           i18n=self.i18n,
+                                                           file_downloader=self.context.file_downloader)
         else:
             self.settings_manager.managers = self.managers
             self.settings_manager.working_managers = self.working_managers
@@ -539,3 +548,24 @@ class GenericSoftwareManager(SoftwareManager):
 
             for t in threads:
                 t.join()
+
+    def ignore_update(self, pkg: SoftwarePackage):
+        manager = self._get_manager_for(pkg)
+
+        if manager:
+            manager.ignore_update(pkg)
+
+            if pkg.is_update_ignored():
+                if pkg.categories is None:
+                    pkg.categories = ['updates_ignored']
+                elif 'updates_ignored' not in pkg.categories:
+                    pkg.categories.append('updates_ignored')
+
+    def revert_ignored_update(self, pkg: SoftwarePackage):
+        manager = self._get_manager_for(pkg)
+
+        if manager:
+            manager.revert_ignored_update(pkg)
+
+            if not pkg.is_update_ignored() and pkg.categories and 'updates_ignored' in pkg.categories:
+                pkg.categories.remove('updates_ignored')

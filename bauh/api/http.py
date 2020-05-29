@@ -89,11 +89,12 @@ class HttpClient:
         if size:
             return system.get_human_size_str(size)
 
-    def exists(self, url: str, session: bool = True) -> bool:
-        params = {'url': url, 'allow_redirects': True, 'verify': False, 'timeout': 5}
+    def exists(self, url: str, session: bool = True, timeout: int = 5) -> bool:
+        params = {'url': url, 'allow_redirects': True, 'verify': False, 'timeout': timeout}
         if session:
             res = self.session.head(**params)
         else:
             res = self.session.get(**params)
 
         return res.status_code in (200, 403)
+        return False
