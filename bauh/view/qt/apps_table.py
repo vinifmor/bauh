@@ -349,6 +349,7 @@ class AppsTable(QTableWidget):
             self.cache_type_icon[pkg.model.get_type()] = icon_data
 
         item = QLabel()
+        item.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
         item.setPixmap(icon_data['px'])
         item.setAlignment(Qt.AlignCenter)
 
