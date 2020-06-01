@@ -3,6 +3,7 @@ import time
 from threading import Thread
 
 from bauh.api.abstract.handler import ProcessWatcher
+from bauh.commons.html import bold
 from bauh.view.util.translation import I18n
 
 
@@ -45,8 +46,8 @@ class TransactionStatusHandler(Thread):
                     perc = self.gen_percentage()
                     self.downloading += 1
 
-                    self.watcher.change_substatus('{}[{}/{}] {} {}'.format(perc, self.downloading, self.npkgs,
-                                                                           self.i18n['downloading'].capitalize(), output.split(' ')[1].strip()))
+                    self.watcher.change_substatus('{}[{}/{}] {} {} {}'.format(perc, self.downloading, self.npkgs, bold('[pacman]'),
+                                                                              self.i18n['downloading'].capitalize(), output.split(' ')[1].strip()))
             elif output.startswith('upgrading'):
                 if self.get_performed() < self.npkgs:
                     perc = self.gen_percentage()
