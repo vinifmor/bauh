@@ -1627,7 +1627,9 @@ class ArchManager(SoftwareManager):
         return True
 
     def _should_download_packages(self, arch_config: dict) -> bool:
-        return bool(arch_config['repositories_mthread_download']) and self.context.file_downloader.is_multithreaded()
+        return bool(arch_config['repositories_mthread_download']) \
+               and self.context.file_downloader.is_multithreaded() \
+               and pacman.is_mirrors_available()
 
     def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None) -> int:
         download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
