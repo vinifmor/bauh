@@ -984,8 +984,9 @@ class ArchManager(SoftwareManager):
                     for pkg, deps in required_by_deps.items():
                         target_required_by = 0
                         for dep in deps:
-                            if dep in target_provided:
-                                dep_providers = all_provided.get(dep)
+                            dep_split = pacman.RE_DEP_OPERATORS.split(dep)
+                            if dep_split[0] in target_provided:
+                                dep_providers = all_provided.get(dep_split[0])
 
                                 if dep_providers:
                                     target_required_by += 1 if not dep_providers.difference(target_provided) else 0
