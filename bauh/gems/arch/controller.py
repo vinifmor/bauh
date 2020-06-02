@@ -972,6 +972,27 @@ class ArchManager(SoftwareManager):
 
         required_by = self.deps_analyser.map_all_required_by({context.name}, set())
 
+        if required_by:
+            target_provided = pacman.map_provided(pkgs={context.name}).keys()
+
+            if target_provided:
+                required_by_deps = pacman.map_all_deps(required_by, only_installed=True)
+
+                if required_by_deps:
+                    all_provided = pacman.map_provided()
+
+                    for pkg, deps in required_by_deps.items():
+                        target_required_by = 0
+                        for dep in deps:
+                            if dep in target_provided:
+                                dep_providers = all_provided.get(dep)
+
+                                if dep_providers:
+                                    target_required_by += 1 if not dep_providers.difference(target_provided) else 0
+
+                        if not target_required_by:
+                            required_by.remove(pkg)
+
         self._update_progress(context, 50)
 
         to_uninstall = set()
