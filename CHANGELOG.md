@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Arch: not checking if **pacman-mirrors** is available before starting to download repository packages (when multi-threaded download is enabled) [#117](https://github.com/vinifmor/bauh/issues/117)
 - Arch
     - uninstall: not checking if the are other installed providers for the target package
+    - not recursively asking for dependencies providers when installing / upgrading
 
 ## [0.9.4] 2020-05-29
 

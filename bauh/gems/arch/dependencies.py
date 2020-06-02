@@ -404,7 +404,7 @@ class DependenciesAnalyser:
                                                        remote_provided_map=remote_provided_map,
                                                        remote_repo_map=remote_repo_map,
                                                        watcher=watcher,
-                                                       choose_providers=False)
+                                                       choose_providers=True)
 
                 # cleaning the already mapped providers deps:
                 to_remove = []
