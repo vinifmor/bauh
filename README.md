@@ -183,6 +183,7 @@ mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used
 aur:  true  # allows to manage AUR packages
 repositories: true  # allows to manage packages from the configured repositories
 repositories_mthread_download: true  # enable multi-threaded download for repository packages if aria2 is installed
+automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false).
 ``` 
 - Required dependencies:
     - **pacman**

@@ -7,8 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.5] 2020
 
 ### Improvements
+- Arch
+    - new **automatch_providers** settings: bauh will automatically choose which provider will be used for a package dependency when both names are equal.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.5/arch_providers.png">
+    </p>
+
 - minor UI improvements
 - download clients parameters
+
 
 ### Fixes
 - regressions (from **0.9.4**)

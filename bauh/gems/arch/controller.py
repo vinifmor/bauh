@@ -1514,6 +1514,7 @@ class ArchManager(SoftwareManager):
                                                            sort=True,
                                                            remote_provided_map=context.get_remote_provided_map(),
                                                            remote_repo_map=context.get_remote_repo_map(),
+                                                           automatch_providers=context.config['automatch_providers'],
                                                            watcher=context.watcher)
 
         tf = time.time()
@@ -1615,6 +1616,7 @@ class ArchManager(SoftwareManager):
                                                                    watcher=context.watcher,
                                                                    remote_provided_map=remote_provided_map,
                                                                    remote_repo_map=remote_repo_map,
+                                                                   automatch_providers=context.config['automatch_providers'],
                                                                    sort=False)
 
                 if missing_deps is None:
@@ -2122,6 +2124,11 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.optimize.tip',
                                     value=bool(local_config['optimize']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='autoprovs',
+                                    label_key='arch.config.automatch_providers',
+                                    tooltip_key='arch.config.automatch_providers.tip',
+                                    value=bool(local_config['automatch_providers']),
+                                    max_width=max_width),
             self._gen_bool_selector(id_='mthread_download',
                                     label_key='arch.config.pacman_mthread_download',
                                     tooltip_key='arch.config.pacman_mthread_download.tip',
@@ -2167,6 +2174,7 @@ class ArchManager(SoftwareManager):
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
         config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
+        config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
