@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - download clients parameters
 
 ### Fixes
-- resetting some configuration fields during initialization
+- resetting the main configuration when tray mode is active [#118](https://github.com/vinifmor/bauh/issues/118)
+- bauh-cli crashing (https://github.com/vinifmor/bauh/issues/118)
 - Arch
     - not checking if **pacman-mirrors** is available before starting to download repository packages (when multi-threaded download is enabled) [#117](https://github.com/vinifmor/bauh/issues/117)
 
