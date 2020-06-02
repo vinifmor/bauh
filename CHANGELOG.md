@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - download clients parameters
 
 ### Fixes
-- regressions (from 0.9.4)
+- regressions (from **0.9.4**)
     - resetting the main configuration when tray mode is active [#118](https://github.com/vinifmor/bauh/issues/118)
     - bauh-cli crashing (https://github.com/vinifmor/bauh/issues/118)
     - Arch
