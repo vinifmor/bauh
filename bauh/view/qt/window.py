@@ -1,7 +1,6 @@
 import logging
 import time
 import traceback
-from datetime import datetime
 from pathlib import Path
 from typing import List, Type, Set, Tuple
 
@@ -777,7 +776,7 @@ class ManageWindow(QWidget):
 
             if old_installed and types:
                 for pkgv in old_installed:
-                    if not pkgv.model.__class__ in types:
+                    if pkgv.model.__class__ not in types:
                         commons.update_info(pkgv, pkgs_info)
                         commons.apply_filters(pkgv, filters, pkgs_info)
 
@@ -826,7 +825,7 @@ class ManageWindow(QWidget):
         if self.pkgs_installed:
             self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)
 
-        self._resize(accept_lower_width=self.pkgs_installed)
+        self._resize(accept_lower_width=bool(self.pkgs_installed))
 
         if self.first_refresh:
             qt_utils.centralize(self)
