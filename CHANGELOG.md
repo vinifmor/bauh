@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - uninstall: not checking if the are other installed providers for the target package
     - not recursively asking for dependencies providers when installing / upgrading
+- UI
+    - table overwrite effect when updating its content
 
 ## [0.9.4] 2020-05-29
 

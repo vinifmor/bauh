@@ -1,6 +1,7 @@
 import logging
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
 from typing import List, Type, Set, Tuple
 
@@ -406,16 +407,17 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.table_apps.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.combo_categories.setEnabled(False)
         self.combo_filter_type.setEnabled(False)
         self.input_name_filter.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
-        self.table_apps.setEnabled(False)
         self.setFocus(Qt.NoFocusReason)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
+        self.table_apps.setEnabled(False)
         self.update_bt_upgrade(pkgs_info)
 
         if self.pkgs:
@@ -427,6 +429,7 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.table_apps.setEnabled(True)
         self.checkbox_only_apps.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
         self.combo_categories.setEnabled(True)

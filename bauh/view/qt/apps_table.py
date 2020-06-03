@@ -254,7 +254,11 @@ class AppsTable(QTableWidget):
                             self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
     def update_packages(self, pkgs: List[PackageView], update_check_enabled: bool = True):
-        self.setRowCount(len(pkgs) if pkgs else 0)
+        self.setRowCount(0)  #  removes the overwrite effect when updates the table
+
+        if pkgs:
+            self.setRowCount(len(pkgs))
+
         self.setEnabled(True)
 
         if pkgs:
