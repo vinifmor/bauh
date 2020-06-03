@@ -188,7 +188,6 @@ class ManageWindow(QWidget):
         self.ref_combo_categories = self.toolbar.addWidget(self.combo_categories)
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
-        self.input_name_filter.setMaxLength(10)
         self.input_name_filter.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
         self.input_name_filter.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
         self.input_name_filter.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
