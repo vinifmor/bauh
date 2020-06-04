@@ -1252,7 +1252,19 @@ class ManageWindow(QWidget):
 
     def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
         custom_action = QAction(self.i18n[action.i18_label_key])
-        custom_action.setIcon(QIcon(action.icon_path))
+
+        if action.icon_path:
+            try:
+                if action.icon_path.startswith('/'):
+                    icon = QIcon(action.icon_path)
+                else:
+                    icon = QIcon.fromTheme(action.icon_path)
+
+                custom_action.setIcon(icon)
+
+            except:
+                pass
+
         custom_action.triggered.connect(lambda: self.execute_custom_action(None, action))
         return custom_action
 

@@ -2,6 +2,7 @@ import re
 import re
 import time
 import traceback
+from subprocess import Popen, PIPE, STDOUT
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
@@ -15,6 +16,7 @@ from bauh.api.abstract.view import ViewComponent, TabGroupComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.commons.html import bold
+from bauh.commons.system import run_cmd
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
 from bauh.view.util import resource
@@ -57,11 +59,29 @@ class GenericSoftwareManager(SoftwareManager):
                                                    icon_path=resource.get_path('img/logo.svg'),
                                                    requires_root=False,
                                                    refresh=False)]
+        self.dynamic_extra_actions = {CustomSoftwareAction(i18_label_key='action.backups',
+                                                           i18n_status_key='action.backups.status',
+                                                           manager_method='launch_timeshift',
+                                                           manager=self,
+                                                           icon_path='timeshift',
+                                                           requires_root=False,
+                                                           refresh=False): self._is_timeshift_launcher_available}
+
+    def _is_timeshift_launcher_available(self) -> bool:
+        return bool(run_cmd('which timeshift-launcher', print_error=False))
 
     def reset_cache(self):
         if self._available_cache is not None:
             self._available_cache = {}
             self.working_managers.clear()
+
+    def launch_timeshift(self, root_password: str, watcher: ProcessWatcher):
+        try:
+            Popen(['timeshift-launcher'], stderr=STDOUT)
+            return True
+        except:
+            traceback.print_exc()
+            return False
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
 
@@ -526,7 +546,12 @@ class GenericSoftwareManager(SoftwareManager):
                     if man_actions:
                         actions.extend(man_actions)
 
+        for action, available in self.dynamic_extra_actions.items():
+            if available():
+                actions.append(action)
+
         actions.extend(self.extra_actions)
+
         return actions
 
     def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
