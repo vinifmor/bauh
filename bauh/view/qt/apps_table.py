@@ -249,7 +249,7 @@ class AppsTable(QTableWidget):
                     col_name = self.item(idx, 0)
                     col_name.setIcon(icon_data['icon'])
 
-                    if app.model.supports_disk_cache() and app.model.get_disk_icon_path():
+                    if app.model.supports_disk_cache() and app.model.get_disk_icon_path() and icon_data['bytes']:
                         if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
                             self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'], only_icon=True)
 
@@ -406,13 +406,21 @@ class AppsTable(QTableWidget):
         item.setText(name)
 
         icon_path = pkg.model.get_disk_icon_path()
-        if pkg.model.supports_disk_cache() and icon_path and os.path.isfile(icon_path):
-            with open(icon_path, 'rb') as f:
-                icon_bytes = f.read()
-                pixmap = QPixmap()
-                pixmap.loadFromData(icon_bytes)
-                icon = QIcon(pixmap)
-                self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+        if pkg.model.supports_disk_cache() and icon_path:
+            if icon_path.startswith('/') and os.path.isfile(icon_path):
+                with open(icon_path, 'rb') as f:
+                    icon_bytes = f.read()
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(icon_bytes)
+                    icon = QIcon(pixmap)
+                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+            else:
+                try:
+                    icon = QIcon.fromTheme(icon_path)
+                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
+
+                except:
+                    icon = QIcon(pkg.model.get_default_icon_path())
 
         elif not pkg.model.icon_url:
             icon = QIcon(pkg.model.get_default_icon_path())
