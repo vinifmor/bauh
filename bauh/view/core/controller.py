@@ -2,7 +2,7 @@ import re
 import re
 import time
 import traceback
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, STDOUT
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
@@ -17,6 +17,7 @@ from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd
+from bauh.view.core.config import read_config
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
 from bauh.view.util import resource
@@ -65,10 +66,13 @@ class GenericSoftwareManager(SoftwareManager):
                                                            manager=self,
                                                            icon_path='timeshift',
                                                            requires_root=False,
-                                                           refresh=False): self._is_timeshift_launcher_available}
+                                                           refresh=False): self.is_backups_action_available}
 
     def _is_timeshift_launcher_available(self) -> bool:
         return bool(run_cmd('which timeshift-launcher', print_error=False))
+
+    def is_backups_action_available(self, app_config: dict) -> bool:
+        return bool(app_config['backup']['enabled']) and self._is_timeshift_launcher_available()
 
     def reset_cache(self):
         if self._available_cache is not None:
@@ -546,8 +550,10 @@ class GenericSoftwareManager(SoftwareManager):
                     if man_actions:
                         actions.extend(man_actions)
 
+        app_config = read_config()
+
         for action, available in self.dynamic_extra_actions.items():
-            if available():
+            if available(app_config):
                 actions.append(action)
 
         actions.extend(self.extra_actions)
