@@ -653,6 +653,7 @@ class ManageWindow(QWidget):
 
             self.recent_uninstall = True
             self.refresh_packages(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+            self.update_custom_actions()
 
             notify_tray()
         else:
@@ -672,7 +673,7 @@ class ManageWindow(QWidget):
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
             self.refresh_packages(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
-
+            self.update_custom_actions()
             notify_tray()
         else:
             if self._can_notify_user():
@@ -964,6 +965,8 @@ class ManageWindow(QWidget):
             self.ref_bt_upgrade.setVisible(True)
             self.checkbox_console.setChecked(True)
 
+        self.update_custom_actions()
+
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
 
@@ -1195,6 +1198,7 @@ class ManageWindow(QWidget):
             self._finish_refresh_apps({'installed': [res['pkg'].model], 'total': 1, 'types': None})
             self.ref_bt_installed.setVisible(False)
             self.ref_checkbox_only_apps.setVisible(False)
+            self.update_custom_actions()
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(res['pkg'].model.name, self.i18n['notification.install.failed']))

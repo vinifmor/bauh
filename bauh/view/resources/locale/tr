@@ -53,6 +53,7 @@ action.backup.substatus.create=Yeni bir sistem yedeklemesi oluştur
 action.backup.substatus.delete=Eski sistem yedeklemelerini kaldır
 action.backups=Backups
 action.backups.status=Opening backups tool
+action.backups.timeshift_not_installed=It was not possible to open the backups tool ({}).
 action.cancelled=işlem kullanıcı tarafından iptal edildi
 action.disk_trim.error=Diski optimize ederken bir sorun oluştu
 action.disk_trim=Diski optimize etme ( TRIM )

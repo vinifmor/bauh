@@ -53,6 +53,7 @@ action.backup.substatus.create=Generating a new system backup
 action.backup.substatus.delete=Removing old system backups
 action.backups=Backups
 action.backups.status=Opening backups tool
+action.backups.tool_error=It was not possible to open the backups tool ({}).
 action.cancelled=Aktion vom Nutzer abgebrochen
 action.disk_trim=Optimizing disc ( TRIM )
 action.disk_trim.error=There was a problem while optimizing the disk

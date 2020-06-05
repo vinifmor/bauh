@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - not limiting the name filter size
     - rendering package icons with no full paths declared
+    - refreshing custom actions (**+**) after installing/uninstalling/downgrading/upgrading packages
     - minor improvements
 - download clients parameters
 

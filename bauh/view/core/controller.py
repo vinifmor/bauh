@@ -12,7 +12,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
     CustomSoftwareAction
-from bauh.api.abstract.view import ViewComponent, TabGroupComponent
+from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons import internet
 from bauh.commons.html import bold
@@ -80,11 +80,20 @@ class GenericSoftwareManager(SoftwareManager):
             self.working_managers.clear()
 
     def launch_timeshift(self, root_password: str, watcher: ProcessWatcher):
-        try:
-            Popen(['timeshift-launcher'], stderr=STDOUT)
-            return True
-        except:
-            traceback.print_exc()
+        if self._is_timeshift_launcher_available():
+            try:
+                Popen(['timeshift-launcher'], stderr=STDOUT)
+                return True
+            except:
+                traceback.print_exc()
+                watcher.show_message(title=self.i18n["error"].capitalize(),
+                                     body=self.i18n['action.backups.tool_error'].format(bold('Timeshift')),
+                                     type_=MessageType.ERROR)
+                return False
+        else:
+            watcher.show_message(title=self.i18n["error"].capitalize(),
+                                 body=self.i18n['action.backups.tool_error'].format(bold('Timeshift')),
+                                 type_=MessageType.ERROR)
             return False
 
     def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:

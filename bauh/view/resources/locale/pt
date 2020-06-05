@@ -53,6 +53,7 @@ action.backup.substatus.create=Gerando uma nova cópia de segurança
 action.backup.substatus.delete=Removendo cópias de segurança antigas
 action.backups=Cópias de segurança
 action.backups.status=Abrindo ferramenta de cópias de segurança
+action.backups.tool_error=Não foi possível abrir a ferramenta para backups ({}).
 action.cancelled=operação cancelada pelo usuário
 action.disk_trim.error=Ocorreu um problema ao otimizar o disco
 action.disk_trim=Otimizando disco ( TRIM )
