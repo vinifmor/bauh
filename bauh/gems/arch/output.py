@@ -92,9 +92,8 @@ class TransactionStatusHandler(Thread):
 
                 if not substatus_found:
                     if self.pkgs_to_remove > 0:
-                        self.watcher.change_substatus('')
-
                         if self.pkgs_to_remove == self.removing:
+                            self.watcher.change_substatus('')
                             return False
                     else:
                         performed = self.get_performed()
