@@ -107,7 +107,7 @@ class TransactionStatusHandler(Thread):
         return True
 
     def handle(self, output: str):
-        self.outputs.append(output)
+        self.outputs.insert(0, output)
 
     def stop_working(self):
         self.work = False
