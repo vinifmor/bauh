@@ -91,13 +91,19 @@ class TransactionStatusHandler(Thread):
                         break
 
                 if not substatus_found:
-                    performed = self.get_performed()
-
-                    if performed == 0 and self.downloading > 0:
+                    if self.pkgs_to_remove > 0:
                         self.watcher.change_substatus('')
-                    elif performed == self.pkgs_to_sync:
-                        self.watcher.change_substatus(self.i18n['finishing'].capitalize())
-                        return False
+
+                        if self.pkgs_to_remove == self.removing:
+                            return False
+                    else:
+                        performed = self.get_performed()
+
+                        if performed == 0 and self.downloading > 0:
+                            self.watcher.change_substatus('')
+                        elif performed == self.pkgs_to_sync:
+                            self.watcher.change_substatus(self.i18n['finishing'].capitalize())
+                            return False
 
         return True
 
