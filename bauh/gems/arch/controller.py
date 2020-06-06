@@ -1793,6 +1793,7 @@ class ArchManager(SoftwareManager):
 
             disk.save_several(pkgs=cache_map, maintainer=None, overwrite=True)
 
+            context.watcher.change_substatus('')
             self._update_progress(context, 100)
 
         return installed
