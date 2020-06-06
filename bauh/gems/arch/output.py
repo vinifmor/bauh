@@ -53,7 +53,7 @@ class TransactionStatusHandler(Thread):
                 else:
                     self.watcher.change_substatus('{} {}'.format(self.i18n['uninstalling'].capitalize(), output.split(' ')[1].strip()))
 
-            if output.startswith('downloading'):
+            elif output.startswith('downloading'):
                 if self.downloading < self.pkgs_to_sync:
                     perc = self.gen_percentage()
                     self.downloading += 1
