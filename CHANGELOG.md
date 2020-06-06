@@ -37,6 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - table overwrite effect when updating its content
 
+### i18n contributions
+    - Turkish (tr): [#tulliana](https://github.com/tulliana)
+
 
 ## [0.9.4] 2020-05-29
 
