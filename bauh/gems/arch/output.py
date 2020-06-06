@@ -9,15 +9,17 @@ from bauh.view.util.translation import I18n
 
 class TransactionStatusHandler(Thread):
 
-    def __init__(self, watcher: ProcessWatcher, i18n: I18n, npkgs: int, logger: logging.Logger,
-                 percentage: bool = True, downloading: int = 0):
+    def __init__(self, watcher: ProcessWatcher, i18n: I18n, pkgs_to_sync: int, logger: logging.Logger,
+                 percentage: bool = True, downloading: int = 0, pkgs_to_remove: int = 0):
         super(TransactionStatusHandler, self).__init__(daemon=True)
         self.watcher = watcher
         self.i18n = i18n
-        self.npkgs = npkgs
+        self.pkgs_to_sync = pkgs_to_sync
+        self.pkgs_to_remove = pkgs_to_remove
         self.downloading = downloading
         self.upgrading = 0
         self.installing = 0
+        self.removing = 0
         self.outputs = []
         self.work = True
         self.logger = logger
@@ -32,7 +34,7 @@ class TransactionStatusHandler(Thread):
     def gen_percentage(self) -> str:
         if self.percentage:
             performed = self.downloading + self.upgrading + self.installing
-            return '({0:.2f}%) '.format((performed / (2 * self.npkgs)) * 100)
+            return '({0:.2f}%) '.format((performed / (2 * self.pkgs_to_sync)) * 100)
         else:
             return ''
 
@@ -41,32 +43,42 @@ class TransactionStatusHandler(Thread):
 
     def _handle(self, output: str) -> bool:
         if output:
+            if output.startswith('removing'):
+                if self.pkgs_to_remove > 0:
+                    self.removing += 1
+
+                    self.watcher.change_substatus(
+                        '[{}/{}] {} {}'.format(self.removing, self.pkgs_to_remove,
+                                               self.i18n['uninstalling'].capitalize(), output.split(' ')[1].strip()))
+                else:
+                    self.watcher.change_substatus('{} {}'.format(self.i18n['uninstalling'].capitalize(), output.split(' ')[1].strip()))
+
             if output.startswith('downloading'):
-                if self.downloading < self.npkgs:
+                if self.downloading < self.pkgs_to_sync:
                     perc = self.gen_percentage()
                     self.downloading += 1
 
-                    self.watcher.change_substatus('{}[{}/{}] {} {} {}'.format(perc, self.downloading, self.npkgs, bold('[pacman]'),
+                    self.watcher.change_substatus('{}[{}/{}] {} {} {}'.format(perc, self.downloading, self.pkgs_to_sync, bold('[pacman]'),
                                                                               self.i18n['downloading'].capitalize(), output.split(' ')[1].strip()))
             elif output.startswith('upgrading'):
-                if self.get_performed() < self.npkgs:
+                if self.get_performed() < self.pkgs_to_sync:
                     perc = self.gen_percentage()
                     self.upgrading += 1
 
                     performed = self.upgrading + self.installing
 
-                    if performed <= self.npkgs:
-                        self.watcher.change_substatus('{}[{}/{}] {} {}'.format(perc, self.upgrading, self.npkgs,
+                    if performed <= self.pkgs_to_sync:
+                        self.watcher.change_substatus('{}[{}/{}] {} {}'.format(perc, self.upgrading, self.pkgs_to_sync,
                                                                                self.i18n['manage_window.status.upgrading'].capitalize(), output.split(' ')[1].strip()))
             elif output.startswith('installing'):
-                if self.get_performed() < self.npkgs:
+                if self.get_performed() < self.pkgs_to_sync:
                     perc = self.gen_percentage()
                     self.installing += 1
 
                     performed = self.upgrading + self.installing
 
-                    if performed <= self.npkgs:
-                        self.watcher.change_substatus('{}[{}/{}] {} {}'.format(perc, self.installing, self.npkgs,
+                    if performed <= self.pkgs_to_sync:
+                        self.watcher.change_substatus('{}[{}/{}] {} {}'.format(perc, self.installing, self.pkgs_to_sync,
                                                                                self.i18n['manage_window.status.installing'].capitalize(),
                                                                                output.split(' ')[1].strip()))
             else:
@@ -83,7 +95,7 @@ class TransactionStatusHandler(Thread):
 
                     if performed == 0 and self.downloading > 0:
                         self.watcher.change_substatus('')
-                    elif performed == self.npkgs:
+                    elif performed == self.pkgs_to_sync:
                         self.watcher.change_substatus(self.i18n['finishing'].capitalize())
                         return False
 

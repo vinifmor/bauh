@@ -384,6 +384,7 @@ task.download_categories=Downloading categories [ {} ]
 type=Тип
 uninstall=Деинсталляция
 uninstalled=Деинсталлировано
+uninstalling=uninstalling
 unknown=неизвестный
 updates=Обновления
 user=Пользователь

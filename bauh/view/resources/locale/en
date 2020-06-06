@@ -384,6 +384,7 @@ task.download_categories=Downloading categories [ {} ]
 type=type
 uninstall=uninstall
 uninstalled=uninstalled
+uninstalling=uninstalling
 unknown=unknown
 updates=updates
 user=user

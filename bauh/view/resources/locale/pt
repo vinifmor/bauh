@@ -384,6 +384,7 @@ task.download_categories=Baixando categorias [ {} ]
 type=tipo
 uninstall=desinstalar
 uninstalled=desinstalado
+uninstalling=desinstalando
 unknown=desconhecido
 updates=atualizações
 user=usuário

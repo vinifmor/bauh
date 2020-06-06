@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - uninstall: not checking if the are other installed providers for the target package
     - not recursively asking for dependencies providers when installing / upgrading
+    - not displaying "removing" substatus during the upgrade process
 - UI
     - table overwrite effect when updating its content
 

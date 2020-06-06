@@ -384,6 +384,7 @@ task.download_categories=Kategoriler indiriliyor [ {} ]
 type=tür
 uninstall=kaldır
 uninstalled=kaldırıldı
+uninstalling=uninstalling
 unknown=bilinmeyen
 updates=güncellemeler
 user=kullanıcı

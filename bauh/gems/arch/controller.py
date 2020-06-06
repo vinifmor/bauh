@@ -851,15 +851,25 @@ class ArchManager(SoftwareManager):
 
         if requirements.to_remove:
             to_remove_names = {r.pkg.name for r in requirements.to_remove}
+            output_handler = TransactionStatusHandler(watcher=handler.watcher,
+                                                      i18n=self.i18n,
+                                                      pkgs_to_sync=0,
+                                                      logger=self.logger,
+                                                      pkgs_to_remove=len(to_remove_names))
+            output_handler.start()
             try:
-                success = handler.handle(pacman.remove_several(to_remove_names, root_password))
+                success = handler.handle(pacman.remove_several(to_remove_names, root_password), output_handler=output_handler.handle)
 
                 if not success:
                     self.logger.error("Could not remove packages: {}".format(', '.join(to_remove_names)))
+                    output_handler.stop_working()
+                    output_handler.join()
                     return False
             except:
                 self.logger.error("An error occured while removing packages: {}".format(', '.join(to_remove_names)))
                 traceback.print_exc()
+                output_handler.stop_working()
+                output_handler.join()
                 return False
 
         if repo_pkgs:
@@ -1305,7 +1315,7 @@ class ArchManager(SoftwareManager):
 
             return True
 
-    def  _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
+    def _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
         """
         :param pkgs_repos:
         :param root_password:
@@ -1355,7 +1365,7 @@ class ArchManager(SoftwareManager):
                 except ArchDownloadException:
                     return False
 
-            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, npkgs=len(repo_dep_names),
+            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, pkgs_to_sync=len(repo_dep_names),
                                                       logger=self.logger, percentage=len(repo_deps) > 1, downloading=downloaded)
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,

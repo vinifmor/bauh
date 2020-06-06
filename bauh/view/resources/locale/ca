@@ -385,6 +385,7 @@ task.download_categories=Download de categories [ {} ]
 type=tipus
 uninstall=desinstal·la
 uninstalled=desinstal·lada
+uninstalling=uninstalling
 unknown=desconegut
 updates=actualitzacions
 user=usuari
