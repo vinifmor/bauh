@@ -188,7 +188,6 @@ class ManageWindow(QWidget):
         self.ref_combo_categories = self.toolbar.addWidget(self.combo_categories)
 
         self.input_name_filter = InputFilter(self.apply_filters_async)
-        self.input_name_filter.setMaxLength(10)
         self.input_name_filter.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
         self.input_name_filter.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
         self.input_name_filter.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
@@ -407,16 +406,17 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.table_apps.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.combo_categories.setEnabled(False)
         self.combo_filter_type.setEnabled(False)
         self.input_name_filter.setEnabled(False)
         self.checkbox_updates.setEnabled(False)
-        self.table_apps.setEnabled(False)
         self.setFocus(Qt.NoFocusReason)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
+        self.table_apps.setEnabled(False)
         self.update_bt_upgrade(pkgs_info)
 
         if self.pkgs:
@@ -428,6 +428,7 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.table_apps.setEnabled(True)
         self.checkbox_only_apps.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
         self.combo_categories.setEnabled(True)
@@ -652,6 +653,7 @@ class ManageWindow(QWidget):
 
             self.recent_uninstall = True
             self.refresh_packages(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+            self.update_custom_actions()
 
             notify_tray()
         else:
@@ -671,7 +673,7 @@ class ManageWindow(QWidget):
                 util.notify_user('{} {}'.format(res['app'], self.i18n['downgraded']))
 
             self.refresh_packages(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
-
+            self.update_custom_actions()
             notify_tray()
         else:
             if self._can_notify_user():
@@ -775,7 +777,7 @@ class ManageWindow(QWidget):
 
             if old_installed and types:
                 for pkgv in old_installed:
-                    if not pkgv.model.__class__ in types:
+                    if pkgv.model.__class__ not in types:
                         commons.update_info(pkgv, pkgs_info)
                         commons.apply_filters(pkgv, filters, pkgs_info)
 
@@ -824,7 +826,7 @@ class ManageWindow(QWidget):
         if self.pkgs_installed:
             self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)
 
-        self._resize(accept_lower_width=self.pkgs_installed)
+        self._resize(accept_lower_width=bool(self.pkgs_installed))
 
         if self.first_refresh:
             qt_utils.centralize(self)
@@ -962,6 +964,8 @@ class ManageWindow(QWidget):
 
             self.ref_bt_upgrade.setVisible(True)
             self.checkbox_console.setChecked(True)
+
+        self.update_custom_actions()
 
     def _update_action_output(self, output: str):
         self.textarea_output.appendPlainText(output)
@@ -1194,6 +1198,7 @@ class ManageWindow(QWidget):
             self._finish_refresh_apps({'installed': [res['pkg'].model], 'total': 1, 'types': None})
             self.ref_bt_installed.setVisible(False)
             self.ref_checkbox_only_apps.setVisible(False)
+            self.update_custom_actions()
         else:
             if self._can_notify_user():
                 util.notify_user('{}: {}'.format(res['pkg'].model.name, self.i18n['notification.install.failed']))
@@ -1251,7 +1256,19 @@ class ManageWindow(QWidget):
 
     def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
         custom_action = QAction(self.i18n[action.i18_label_key])
-        custom_action.setIcon(QIcon(action.icon_path))
+
+        if action.icon_path:
+            try:
+                if action.icon_path.startswith('/'):
+                    icon = QIcon(action.icon_path)
+                else:
+                    icon = QIcon.fromTheme(action.icon_path)
+
+                custom_action.setIcon(icon)
+
+            except:
+                pass
+
         custom_action.triggered.connect(lambda: self.execute_custom_action(None, action))
         return custom_action
 

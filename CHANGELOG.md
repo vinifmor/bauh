@@ -4,7 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.5] 2020-06-07
+### Features
+- new custom action (**+**) to open the system backups (snapshots). It is just a shortcut to Timeshift.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.5/backup_action.png">
+    </p>
+
+### Improvements
+- Arch
+    - new **automatch_providers** settings: bauh will automatically choose which provider will be used for a package dependency when both names are equal (enabled by default).
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.5/arch_providers.png">
+    </p>
+
+- UI
+    - not limiting the name filter size
+    - rendering package icons with no full paths declared
+    - refreshing custom actions (**+**) after installing/uninstalling/downgrading/upgrading packages
+    - minor improvements
+- download clients parameters
+
+### Fixes
+- regressions (from **0.9.4**)
+    - resetting the main configuration when tray mode is active [#118](https://github.com/vinifmor/bauh/issues/118)
+    - bauh-cli crashing
+    - tray mode not publishing update notifications
+    - Arch: not checking if **pacman-mirrors** is available before starting to download repository packages (when multi-threaded download is enabled) [#117](https://github.com/vinifmor/bauh/issues/117)
+- Arch
+    - uninstall: not checking if there are other installed providers for the target package
+    - not recursively asking for dependencies providers when installing / upgrading / downgrading
+    - not displaying "removing" substatus during the upgrade process
+- UI
+    - table overwrite effect when updating its content
+
+### i18n contributions
+
+- Turkish (tr): [tulliana](https://github.com/tulliana)
+
+
 ## [0.9.4] 2020-05-29
+
 ### Features
 - Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages, Flatpaks and AppImages
 

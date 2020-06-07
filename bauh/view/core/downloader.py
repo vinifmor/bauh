@@ -42,35 +42,34 @@ class AdaptableFileDownloader(FileDownloader):
     def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
         cmd = ['aria2c', url,
                '--no-conf',
-               '--max-connection-per-server={}'.format(threads),
+               '-x', '16',
                '--enable-color=false',
                '--stderr=true',
                '--summary-interval=0',
                '--disable-ipv6',
-               '--min-split-size=1M',
+               '-k', '1M',
                '--allow-overwrite=true',
-               '--continue=true',
-               '--timeout=5',
+               '-c',
+               '-t', '5',
                '--max-file-not-found=3',
-               '--file-allocation=falloc',
-               '--remote-time=true']
+               '--file-allocation=none',
+               '--console-log-level=error']
 
         if threads > 1:
-            cmd.append('--split={}'.format(threads))
+            cmd.append('-s')
+            cmd.append(str(threads))
 
         if output_path:
             output_split = output_path.split('/')
-            cmd.append('--dir=' + '/'.join(output_split[:-1]))
-            cmd.append('--out=' + output_split[-1])
+            cmd.append('-d')
+            cmd.append('/'.join(output_split[:-1]))
+            cmd.append('-o')
+            cmd.append(output_split[-1])
 
         return SimpleProcess(cmd=cmd, root_password=root_password, cwd=cwd)
 
     def _get_axel_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
-        cmd = ['axel', url,
-               '--num-connections={}'.format(threads),
-               '--ipv4',
-               '--no-clobber',
-               '--timeout=5']
+        cmd = ['axel', url, '-n', str(threads), '-4', '-c', '-T', '5']
 
         if output_path:
             cmd.append('--output={}'.format(output_path))
@@ -78,7 +77,7 @@ class AdaptableFileDownloader(FileDownloader):
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SimpleProcess:
-        cmd = ['wget', url, '--continue', '--retry-connrefused', '--tries=10', '--no-config']
+        cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '--no-config', '-nc']
 
         if output_path:
             cmd.append('-O')

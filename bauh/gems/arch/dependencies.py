@@ -178,7 +178,8 @@ class DependenciesAnalyser:
     def _fill_missing_dep(self, dep_name: str, dep_exp: str, aur_index: Iterable[str],
                           missing_deps: Set[Tuple[str, str]],
                           remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
-                          repo_deps: Set[str], aur_deps: Set[str], deps_data: Dict[str, dict], watcher: ProcessWatcher):
+                          repo_deps: Set[str], aur_deps: Set[str], deps_data: Dict[str, dict], watcher: ProcessWatcher,
+                          automatch_providers: bool):
 
         if dep_name == dep_exp:
             providers = remote_provided_map.get(dep_name)
@@ -222,7 +223,16 @@ class DependenciesAnalyser:
 
         if providers:
             if len(providers) > 1:
-                dep_data = (dep_name, '__several__')
+                dep_data = None
+
+                if automatch_providers:
+                    exact_matches = [p for p in providers if p == dep_name]
+
+                    if exact_matches:
+                        dep_data = (exact_matches[0], remote_repo_map.get(exact_matches[0]))
+
+                if not dep_data:
+                    dep_data = (dep_name, '__several__')
             else:
                 real_name = providers.pop()
                 dep_data = (real_name, remote_repo_map.get(real_name))
@@ -246,7 +256,8 @@ class DependenciesAnalyser:
     def map_missing_deps(self, pkgs_data: Dict[str, dict], provided_map: Dict[str, Set[str]],
                          remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                          aur_index: Iterable[str], deps_checked: Set[str], deps_data: Dict[str, dict],
-                         sort: bool, watcher: ProcessWatcher, choose_providers: bool = True) -> List[Tuple[str, str]]:
+                         sort: bool, watcher: ProcessWatcher, choose_providers: bool = True,
+                         automatch_providers: bool = False) -> List[Tuple[str, str]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps, repo_missing, aur_missing = set(), set(), set()
@@ -271,7 +282,8 @@ class DependenciesAnalyser:
                                                        remote_provided_map=remote_provided_map,
                                                        remote_repo_map=remote_repo_map,
                                                        repo_deps=repo_missing, aur_deps=aur_missing, watcher=watcher,
-                                                       deps_data=deps_data)
+                                                       deps_data=deps_data,
+                                                       automatch_providers=automatch_providers)
                             else:
                                 version_pattern = '{}='.format(dep_name)
                                 version_found = [p for p in provided_map if p.startswith(version_pattern)]
@@ -297,7 +309,8 @@ class DependenciesAnalyser:
                                                                remote_repo_map=remote_repo_map,
                                                                repo_deps=repo_missing, aur_deps=aur_missing,
                                                                watcher=watcher,
-                                                               deps_data=deps_data)
+                                                               deps_data=deps_data,
+                                                               automatch_providers=automatch_providers)
                                 else:
                                     self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
                                                            missing_deps=missing_deps,
@@ -305,7 +318,8 @@ class DependenciesAnalyser:
                                                            remote_repo_map=remote_repo_map,
                                                            repo_deps=repo_missing, aur_deps=aur_missing,
                                                            watcher=watcher,
-                                                           deps_data=deps_data)
+                                                           deps_data=deps_data,
+                                                           automatch_providers=automatch_providers)
 
         if missing_deps:
             if repo_missing:
@@ -339,6 +353,7 @@ class DependenciesAnalyser:
                                                     watcher=watcher,
                                                     remote_provided_map=remote_provided_map,
                                                     remote_repo_map=remote_repo_map,
+                                                    automatch_providers=automatch_providers,
                                                     choose_providers=False)
 
             if missing_subdeps:
@@ -353,7 +368,8 @@ class DependenciesAnalyser:
             return self.fill_providers_deps(missing_deps=sorted_deps, provided_map=provided_map,
                                             remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
                                             watcher=watcher, sort=sort, already_checked=deps_checked,
-                                            aur_idx=aur_index, deps_data=deps_data)
+                                            aur_idx=aur_index, deps_data=deps_data,
+                                            automatch_providers=automatch_providers)
 
         return sorted_deps
 
@@ -361,7 +377,7 @@ class DependenciesAnalyser:
                             provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                             already_checked: Set[str], remote_provided_map: Dict[str, Set[str]],
                             deps_data: Dict[str, dict], aur_idx: Iterable[str], sort: bool,
-                            watcher: ProcessWatcher) -> List[Tuple[str, str]]:
+                            watcher: ProcessWatcher, automatch_providers: bool) -> List[Tuple[str, str]]:
         """
         :param missing_deps:
         :param provided_map:
@@ -372,6 +388,7 @@ class DependenciesAnalyser:
         :param aur_idx:
         :param sort:
         :param watcher:
+        :param automatch_providers
         :return: all deps sorted or None if the user declined the providers options
         """
 
@@ -404,7 +421,8 @@ class DependenciesAnalyser:
                                                        remote_provided_map=remote_provided_map,
                                                        remote_repo_map=remote_repo_map,
                                                        watcher=watcher,
-                                                       choose_providers=False)
+                                                       choose_providers=True,
+                                                       automatch_providers=automatch_providers)
 
                 # cleaning the already mapped providers deps:
                 to_remove = []
@@ -427,7 +445,8 @@ class DependenciesAnalyser:
                 if not self.fill_providers_deps(missing_deps=missing_deps, provided_map=provided_map,
                                                 remote_repo_map=remote_repo_map, already_checked=already_checked,
                                                 aur_idx=aur_idx, remote_provided_map=remote_provided_map,
-                                                deps_data=deps_data, sort=False, watcher=watcher):
+                                                deps_data=deps_data, sort=False, watcher=watcher,
+                                                automatch_providers=automatch_providers):
                     return
 
                 if sort:

@@ -253,7 +253,8 @@ class UpdatesSummarizer:
                                                    deps_data=deps_data,
                                                    remote_provided_map=context.remote_provided_map,
                                                    remote_repo_map=context.remote_repo_map,
-                                                   watcher=self.watcher)
+                                                   watcher=self.watcher,
+                                                   automatch_providers=context.arch_config['automatch_providers'])
 
         if deps is None:
             tf = time.time()

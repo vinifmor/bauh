@@ -851,15 +851,25 @@ class ArchManager(SoftwareManager):
 
         if requirements.to_remove:
             to_remove_names = {r.pkg.name for r in requirements.to_remove}
+            output_handler = TransactionStatusHandler(watcher=handler.watcher,
+                                                      i18n=self.i18n,
+                                                      pkgs_to_sync=0,
+                                                      logger=self.logger,
+                                                      pkgs_to_remove=len(to_remove_names))
+            output_handler.start()
             try:
-                success = handler.handle(pacman.remove_several(to_remove_names, root_password))
+                success = handler.handle(pacman.remove_several(to_remove_names, root_password), output_handler=output_handler.handle)
 
                 if not success:
                     self.logger.error("Could not remove packages: {}".format(', '.join(to_remove_names)))
+                    output_handler.stop_working()
+                    output_handler.join()
                     return False
             except:
                 self.logger.error("An error occured while removing packages: {}".format(', '.join(to_remove_names)))
                 traceback.print_exc()
+                output_handler.stop_working()
+                output_handler.join()
                 return False
 
         if repo_pkgs:
@@ -971,6 +981,28 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 10)
 
         required_by = self.deps_analyser.map_all_required_by({context.name}, set())
+
+        if required_by:
+            target_provided = pacman.map_provided(pkgs={context.name}).keys()
+
+            if target_provided:
+                required_by_deps = pacman.map_all_deps(required_by, only_installed=True)
+
+                if required_by_deps:
+                    all_provided = pacman.map_provided()
+
+                    for pkg, deps in required_by_deps.items():
+                        target_required_by = 0
+                        for dep in deps:
+                            dep_split = pacman.RE_DEP_OPERATORS.split(dep)
+                            if dep_split[0] in target_provided:
+                                dep_providers = all_provided.get(dep_split[0])
+
+                                if dep_providers:
+                                    target_required_by += 1 if not dep_providers.difference(target_provided) else 0
+
+                        if not target_required_by:
+                            required_by.remove(pkg)
 
         self._update_progress(context, 50)
 
@@ -1283,7 +1315,7 @@ class ArchManager(SoftwareManager):
 
             return True
 
-    def  _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
+    def _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
         """
         :param pkgs_repos:
         :param root_password:
@@ -1333,7 +1365,7 @@ class ArchManager(SoftwareManager):
                 except ArchDownloadException:
                     return False
 
-            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, npkgs=len(repo_dep_names),
+            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, pkgs_to_sync=len(repo_dep_names),
                                                       logger=self.logger, percentage=len(repo_deps) > 1, downloading=downloaded)
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
@@ -1493,6 +1525,7 @@ class ArchManager(SoftwareManager):
                                                            sort=True,
                                                            remote_provided_map=context.get_remote_provided_map(),
                                                            remote_repo_map=context.get_remote_repo_map(),
+                                                           automatch_providers=context.config['automatch_providers'],
                                                            watcher=context.watcher)
 
         tf = time.time()
@@ -1594,6 +1627,7 @@ class ArchManager(SoftwareManager):
                                                                    watcher=context.watcher,
                                                                    remote_provided_map=remote_provided_map,
                                                                    remote_repo_map=remote_repo_map,
+                                                                   automatch_providers=context.config['automatch_providers'],
                                                                    sort=False)
 
                 if missing_deps is None:
@@ -1627,7 +1661,9 @@ class ArchManager(SoftwareManager):
         return True
 
     def _should_download_packages(self, arch_config: dict) -> bool:
-        return bool(arch_config['repositories_mthread_download']) and self.context.file_downloader.is_multithreaded()
+        return bool(arch_config['repositories_mthread_download']) \
+               and self.context.file_downloader.is_multithreaded() \
+               and pacman.is_mirrors_available()
 
     def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None) -> int:
         download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
@@ -1757,6 +1793,7 @@ class ArchManager(SoftwareManager):
 
             disk.save_several(pkgs=cache_map, maintainer=None, overwrite=True)
 
+            context.watcher.change_substatus('')
             self._update_progress(context, 100)
 
         return installed
@@ -2099,6 +2136,11 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.optimize.tip',
                                     value=bool(local_config['optimize']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='autoprovs',
+                                    label_key='arch.config.automatch_providers',
+                                    tooltip_key='arch.config.automatch_providers.tip',
+                                    value=bool(local_config['automatch_providers']),
+                                    max_width=max_width),
             self._gen_bool_selector(id_='mthread_download',
                                     label_key='arch.config.pacman_mthread_download',
                                     tooltip_key='arch.config.pacman_mthread_download.tip',
@@ -2144,6 +2186,7 @@ class ArchManager(SoftwareManager):
         config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
         config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
+        config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
