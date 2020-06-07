@@ -32,8 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - tray mode not publishing update notifications
     - Arch: not checking if **pacman-mirrors** is available before starting to download repository packages (when multi-threaded download is enabled) [#117](https://github.com/vinifmor/bauh/issues/117)
 - Arch
-    - uninstall: not checking if the are other installed providers for the target package
-    - not recursively asking for dependencies providers when installing / upgrading
+    - uninstall: not checking if there are other installed providers for the target package
+    - not recursively asking for dependencies providers when installing / upgrading / downgrading
     - not displaying "removing" substatus during the upgrade process
 - UI
     - table overwrite effect when updating its content
