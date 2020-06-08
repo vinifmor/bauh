@@ -838,7 +838,10 @@ class WebApplicationManager(SoftwareManager):
             if not app.description:
                 app.description = self._get_app_description(app.url, soup)
 
-            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+            try:
+                find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+            except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+                find_url = None
 
             if find_url:
                 app.icon_url = self._get_app_icon_url(app.url, soup)
