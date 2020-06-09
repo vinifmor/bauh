@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.6] 2020
+### Improvements
+- UI
+    - name filter now compares the typed word with the beginning of the package name
 ### Fixes
 - Web
     - handling unexpected connection errors
