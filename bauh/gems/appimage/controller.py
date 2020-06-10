@@ -169,8 +169,8 @@ class AppImageManager(SoftwareManager):
 
                 found_map = {}
                 idx = 0
-                for l in cursor.fetchall():
-                    app = AppImage(*l, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                for r in cursor.fetchall():
+                    app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
                     res.new.append(app)
                     found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1

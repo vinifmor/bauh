@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - filters algorithm speed and sorting
 ### Fixes
+- AppImage
+    - allowing some apps to be filled with empty category elements
 - Web
     - handling unexpected connection errors
     - handling web page fetch errors

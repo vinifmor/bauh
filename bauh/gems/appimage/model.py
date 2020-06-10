@@ -21,7 +21,7 @@ class AppImage(SoftwarePackage):
                                        installed=installed)
         self.source = source
         self.github = github
-        self.categories = categories.split(',') if isinstance(categories, str) else categories
+        self.categories = (categories.split(',') if isinstance(categories, str) else categories) if categories else None
         self.url_download = url_download
         self.icon_path = icon_path
         self.url_screenshot = url_screenshot
