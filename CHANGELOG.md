@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.6] 2020
 ### Improvements
+- AppImage
+    - able to update AppImages with continuous releases
 - UI
     - filters algorithm speed and sorting
 ### Fixes
