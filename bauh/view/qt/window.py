@@ -401,6 +401,7 @@ class ManageWindow(QWidget):
         self.thread_notify_pkgs_ready.work = False
         self.thread_notify_pkgs_ready.wait(5)
         self.label_status.setText(self.i18n['manage_window.status.filtering'] + '...')
+        self.label_status.setCursor(QCursor(Qt.WaitCursor))
 
         self.ref_toolbar_search.setVisible(False)
 
@@ -410,6 +411,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
+        self.table_container.setCursor(QCursor(Qt.WaitCursor))
         self.table_apps.setEnabled(False)
         self.checkbox_only_apps.setEnabled(False)
         self.combo_categories.setEnabled(False)
@@ -432,6 +434,7 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
     def _finish_apply_filters_async(self, success: bool):
+        self.table_container.unsetCursor()
         self.table_apps.setEnabled(True)
         self.checkbox_only_apps.setEnabled(True)
         self.checkbox_updates.setEnabled(True)
@@ -440,6 +443,7 @@ class ManageWindow(QWidget):
         self.input_name_filter.setEnabled(True)
         self.table_apps.setEnabled(True)
         self.label_status.setText('')
+        self.label_status.unsetCursor()
         self.ref_toolbar_search.setVisible(True)
 
         if self.ref_input_name_filter.isVisible():
