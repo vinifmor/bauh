@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - handling unexpected connection errors
     - handling web page fetch errors
+- UI
+    - displaying empty categories
 
 ## [0.9.5] 2020-06-07
 ### Features

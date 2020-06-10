@@ -32,7 +32,10 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
 
     if pkgv.model.categories:
         for c in pkgv.model.categories:
-            pkgs_info['categories'].add(c.lower())
+            if c:
+                cat = c.lower().strip()
+                if cat:
+                    pkgs_info['categories'].add(cat)
 
     pkgs_info['pkgs'].append(pkgv)
     pkgs_info['not_installed'] += 1 if not pkgv.model.installed else 0

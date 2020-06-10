@@ -559,7 +559,10 @@ class ManageWindow(QWidget):
         for p in self.pkgs_available:
             if p.model.categories:
                 for c in p.model.categories:
-                    categories.add(c.lower())
+                    if c:
+                        cat = c.strip().lower()
+                        if cat:
+                            categories.add(cat)
 
         if categories:
             self._update_categories(categories, keep_selected=True)
