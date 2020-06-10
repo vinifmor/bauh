@@ -256,10 +256,13 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.toolbar)
 
+        self.table_container = QWidget()
+        self.table_container.setLayout(QVBoxLayout())
         self.table_apps = AppsTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
+        self.table_container.layout().addWidget(self.table_apps)
 
-        self.layout.addWidget(self.table_apps)
+        self.layout.addWidget(self.table_container)
 
         toolbar_console = QToolBar()
 
@@ -287,6 +290,7 @@ class ManageWindow(QWidget):
         self.toolbar_substatus = QToolBar()
         self.toolbar_substatus.addWidget(new_spacer())
         self.label_substatus = QLabel()
+        self.label_substatus.setCursor(QCursor(Qt.WaitCursor))
         self.toolbar_substatus.addWidget(self.label_substatus)
         self.toolbar_substatus.addWidget(new_spacer())
         self.layout.addWidget(self.toolbar_substatus)
@@ -329,6 +333,7 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.progress_bar = QProgressBar()
+        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
         self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
 
@@ -387,7 +392,6 @@ class ManageWindow(QWidget):
 
     def update_custom_actions(self):
         self.custom_actions = self.manager.get_custom_actions()
-        self.ref_bt_custom_actions.setVisible(bool(self.custom_actions))
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
@@ -677,6 +681,7 @@ class ManageWindow(QWidget):
 
             self.refresh_packages(pkg_types={res['app'].model.__class__} if len(self.pkgs) > 1 else None)
             self.update_custom_actions()
+
             notify_tray()
         else:
             if self._can_notify_user():
@@ -974,6 +979,7 @@ class ManageWindow(QWidget):
         self.textarea_output.appendPlainText(output)
 
     def _begin_action(self, action_label: str, keep_search: bool = False, keep_bt_installed: bool = True, clear_filters: bool = False):
+        self.table_container.setCursor(QCursor(Qt.WaitCursor))
         self.ref_input_name_filter.setVisible(False)
         self.ref_combo_filter_type.setVisible(False)
         self.ref_combo_categories.setVisible(False)
@@ -985,6 +991,7 @@ class ManageWindow(QWidget):
         self.ref_progress_bar.setVisible(True)
 
         self.label_status.setText(action_label + "...")
+        self.label_status.setCursor(QCursor(Qt.WaitCursor))
         self.ref_bt_upgrade.setVisible(False)
         self.ref_bt_refresh.setVisible(False)
 
@@ -1012,6 +1019,7 @@ class ManageWindow(QWidget):
             self.combo_filter_type.setEnabled(False)
 
     def finish_action(self, keep_filters: bool = False):
+        self.table_container.unsetCursor()
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
         self.ref_progress_bar.setVisible(False)
@@ -1028,6 +1036,7 @@ class ManageWindow(QWidget):
         self.table_apps.setEnabled(True)
         self.input_search.setEnabled(True)
         self.label_status.setText('')
+        self.label_status.unsetCursor()
         self.label_substatus.setText('')
         self.ref_toolbar_search.setVisible(True)
         self.ref_toolbar_search.setEnabled(True)

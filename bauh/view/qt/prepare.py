@@ -158,6 +158,7 @@ class PreparePanel(QWidget, TaskManager):
         self.progress_thread.signal_change.connect(self._change_progress)
 
         self.label_top = QLabel()
+        self.label_top.setCursor(QCursor(Qt.WaitCursor))
         self.label_top.setText("{}...".format(self.i18n['prepare_panel.title.start'].capitalize()))
         self.label_top.setAlignment(Qt.AlignHCenter)
         self.label_top.setStyleSheet("QLabel { font-size: 14px; font-weight: bold; }")
@@ -165,6 +166,7 @@ class PreparePanel(QWidget, TaskManager):
         self.layout().addWidget(QLabel())
 
         self.table = QTableWidget()
+        self.table.setCursor(QCursor(Qt.WaitCursor))
         self.table.setStyleSheet("QTableWidget { background-color: transparent; }")
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.setShowGrid(False)
@@ -209,12 +211,14 @@ class PreparePanel(QWidget, TaskManager):
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
+        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
         self.ref_progress_bar = self.bt_bar.addWidget(self.progress_bar)
         self.bt_bar.addWidget(new_spacer())
 
         self.bt_skip = QPushButton(self.i18n['prepare_panel.bt_skip.label'].capitalize())
         self.bt_skip.clicked.connect(self.finish)
         self.bt_skip.setEnabled(False)
+        self.bt_skip.setCursor(QCursor(Qt.WaitCursor))
         self.bt_bar.addWidget(self.bt_skip)
 
         self.layout().addWidget(self.bt_bar)
@@ -278,6 +282,7 @@ class PreparePanel(QWidget, TaskManager):
         icon_widget.setLayout(QHBoxLayout())
         icon_widget.layout().setContentsMargins(10, 0, 10, 0)
         bt_icon = QToolButton()
+        bt_icon.setCursor(QCursor(Qt.WaitCursor))
         bt_icon.setEnabled(False)
         bt_icon.setToolTip(self.i18n['prepare.bt_icon.no_output'])
         bt_icon.setFixedSize(QSize(24, 24))
@@ -310,18 +315,21 @@ class PreparePanel(QWidget, TaskManager):
         self.table.setCellWidget(task_row, 0, icon_widget)
 
         lb_status = QLabel(label)
+        lb_status.setCursor(Qt.WaitCursor)
         lb_status.setMinimumWidth(50)
         lb_status.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         lb_status.setStyleSheet("QLabel { font-weight: bold; }")
         self.table.setCellWidget(task_row, 1, lb_status)
 
         lb_sub = QLabel()
+        lb_status.setCursor(Qt.WaitCursor)
         lb_sub.setContentsMargins(10, 0, 10, 0)
         lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         lb_sub.setMinimumWidth(50)
         self.table.setCellWidget(task_row, 2, lb_sub)
 
         lb_progress = QLabel('{0:.2f}'.format(0) + '%')
+        lb_progress.setCursor(Qt.WaitCursor)
         lb_progress.setContentsMargins(10, 0, 10, 0)
         lb_progress.setStyleSheet("QLabel { font-weight: bold; }")
         lb_progress.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)

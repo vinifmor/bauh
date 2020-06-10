@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - able to update AppImages with continuous releases
 - UI
     - filters algorithm speed and sorting
+    - displaying wait cursor over some components
 ### Fixes
 - AppImage
     - allowing some apps to be filled with empty category elements
@@ -18,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - handling web page fetch errors
 - UI
     - displaying empty categories
+    - minor fixes
 
 ## [0.9.5] 2020-06-07
 ### Features
