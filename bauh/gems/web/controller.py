@@ -202,7 +202,8 @@ class WebApplicationManager(SoftwareManager):
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
-        return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
+        if url_res:
+            return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}

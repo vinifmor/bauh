@@ -38,20 +38,21 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
     pkgs_info['not_installed'] += 1 if not pkgv.model.installed else 0
 
 
-def apply_filters(pkgv: PackageView, filters: dict, info: dict):
-    hidden = filters['only_apps'] and pkgv.model.installed and not pkgv.model.is_application()
+def apply_filters(pkgv: PackageView, filters: dict, info: dict, limit: bool = True):
+    if not limit or not filters['display_limit'] or len(info['pkgs_displayed']) < filters['display_limit']:
+        hidden = filters['only_apps'] and pkgv.model.installed and not pkgv.model.is_application()
 
-    if not hidden and filters['updates']:
-        hidden = not pkgv.model.update or pkgv.model.is_update_ignored()
+        if not hidden and filters['updates']:
+            hidden = not pkgv.model.update or pkgv.model.is_update_ignored()
 
-    if not hidden and filters['type'] is not None and filters['type'] != 'any':
-        hidden = pkgv.model.get_type() != filters['type']
+        if not hidden and filters['type'] is not None and filters['type'] != 'any':
+            hidden = pkgv.model.get_type() != filters['type']
 
-    if not hidden and filters['category'] is not None and filters['category'] != 'any':
-        hidden = not pkgv.model.categories or not [c for c in pkgv.model.categories if c.lower() == filters['category']]
+        if not hidden and filters['category'] is not None and filters['category'] != 'any':
+            hidden = not pkgv.model.categories or not [c for c in pkgv.model.categories if c.lower() == filters['category']]
 
-    if not hidden and filters['name']:
-        hidden = not pkgv.model.name.lower().startswith(filters['name'])
+        if not hidden and filters['name']:
+            hidden = not filters['name'] in pkgv.model.name.lower()
 
-    if not hidden and (not filters['display_limit'] or len(info['pkgs_displayed']) < filters['display_limit']):
-        info['pkgs_displayed'].append(pkgv)
+        if not hidden:
+            info['pkgs_displayed'].append(pkgv)

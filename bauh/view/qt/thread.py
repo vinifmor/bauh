@@ -843,13 +843,62 @@ class ApplyFilters(AsyncAction):
     def stop_waiting(self):
         self.wait_table_update = False
 
+    def _sort_by_word(self, word: str, pkgs: List[PackageView], limit: int) -> List[PackageView]:
+        norm_word = word.strip().lower()
+        exact_installed, exact_not_installed = [], []
+        starts_installed, starts_not_installed = [], []
+        contains_installed, contains_not_installed = [], []
+
+        for p in pkgs:
+            lower_name = p.model.name.lower()
+
+            if norm_word == lower_name:
+                if p.model.installed:
+                    exact_installed.append(p)
+                else:
+                    exact_not_installed.append(p)
+            elif lower_name.startswith(norm_word):
+                if p.model.installed:
+                    starts_installed.append(p)
+                else:
+                    starts_not_installed.append(p)
+            else:
+                if p.model.installed:
+                    contains_installed.append(p)
+                else:
+                    contains_not_installed.append(p)
+
+        res = []
+        for matches in (exact_installed, exact_not_installed,
+                        starts_installed, starts_not_installed,
+                        contains_installed, contains_not_installed):
+            if matches:
+                matches.sort(key=lambda p: p.model.name.lower())
+
+                if limit:
+                    res.extend(matches[0:limit - len(res)])
+
+                    if len(res) == limit:
+                        break
+                else:
+                    res.extend(matches)
+
+        return res
+
     def run(self):
         if self.pkgs:
             pkgs_info = commons.new_pkgs_info()
 
+            name_filtering = bool(self.filters['name'])
+
             for pkgv in self.pkgs:
                 commons.update_info(pkgv, pkgs_info)
-                commons.apply_filters(pkgv, self.filters, pkgs_info)
+                commons.apply_filters(pkgv, self.filters, pkgs_info, limit=not name_filtering)
+
+            if name_filtering and pkgs_info['pkgs_displayed']:
+                pkgs_info['pkgs_displayed'] = self._sort_by_word(word=self.filters['name'],
+                                                                 pkgs=pkgs_info['pkgs_displayed'],
+                                                                 limit=self.filters['display_limit'])
 
             self.wait_table_update = True
             self.signal_table.emit(pkgs_info)

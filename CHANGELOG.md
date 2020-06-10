@@ -7,10 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.6] 2020
 ### Improvements
 - UI
-    - name filter now compares the typed word with the beginning of the package name
+    - filters algorithm speed and sorting
 ### Fixes
 - Web
     - handling unexpected connection errors
+    - handling web page fetch errors
 
 ## [0.9.5] 2020-06-07
 ### Features
