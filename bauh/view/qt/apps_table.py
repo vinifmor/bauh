@@ -270,6 +270,8 @@ class AppsTable(QTableWidget):
 
                 self._update_row(pkg, update_check_enabled)
 
+            self.scrollToTop()
+
     def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_name(0, pkg)
         self._set_col_version(1, pkg)
