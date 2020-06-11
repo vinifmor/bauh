@@ -366,6 +366,11 @@ class GenericSoftwareManager(SoftwareManager):
                     man.prepare(taskman, root_password, internet_on)
                     self._already_prepared.append(man)
 
+    def cache_available_managers(self):
+        if self.managers:
+            for man in self.managers:
+                self._can_work(man)
+
     def list_updates(self, internet_available: bool = None) -> List[PackageUpdate]:
         self._wait_to_be_ready()
 

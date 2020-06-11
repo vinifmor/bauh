@@ -502,7 +502,7 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None) -> SearchResult:
+    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
 
@@ -532,7 +532,8 @@ class ArchManager(SoftwareManager):
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
-            self._wait_for_disk_cache()
+            if wait_disk_cache:
+                self._wait_for_disk_cache()
 
             map_threads = []
 

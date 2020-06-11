@@ -52,7 +52,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
     app = new_qt_application(app_config, quit_on_last_closed=True)
 
     if app_args.settings:  # only settings window
-        manager.prepare(None, None, None)  # only checks the available managers
+        manager.cache_available_managers()
         return app, SettingsWindow(manager=manager, i18n=i18n, screen_size=app.primaryScreen().size(), window=None)
     else:
         manage_window = ManageWindow(i18n=i18n,
