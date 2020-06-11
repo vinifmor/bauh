@@ -144,8 +144,9 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_top)
 
         self.toolbar = QToolBar()
-        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px; margin-bottom: 5px}')
+        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px;}')
         self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar.setContentsMargins(0, 0, 0, 0)
 
         self.checkbox_updates = QCheckBox()
         self.checkbox_updates.setCursor(QCursor(Qt.PointingHandCursor))
@@ -257,7 +258,10 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar)
 
         self.table_container = QWidget()
+        self.table_container.setContentsMargins(0, 0, 0, 0)
         self.table_container.setLayout(QVBoxLayout())
+        self.table_container.layout().setContentsMargins(0, 0, 0, 0)
+
         self.table_apps = AppsTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
