@@ -65,7 +65,7 @@ class TransactionContext:
                  remote_repo_map: Dict[str, str] = None, provided_map: Dict[str, Set[str]] = None,
                  remote_provided_map: Dict[str, Set[str]] = None, aur_idx: Set[str] = None,
                  missing_deps: List[Tuple[str, str]] = None, installed: Set[str] = None, removed: Dict[str, SoftwarePackage] = None,
-                 disk_loader: DiskCacheLoader = None):
+                 disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None):
         self.name = name
         self.base = base
         self.maintainer = maintainer
@@ -89,6 +89,7 @@ class TransactionContext:
         self.installed = installed
         self.removed = removed
         self.disk_loader = disk_loader
+        self.disk_cache_updater = disk_cache_updater
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
@@ -156,7 +157,7 @@ class TransactionContext:
 
 class ArchManager(SoftwareManager):
 
-    def __init__(self, context: ApplicationContext):
+    def __init__(self, context: ApplicationContext, disk_cache_updater: ArchDiskCacheUpdater = None):
         super(ArchManager, self).__init__(context=context)
         self.aur_cache = context.cache_factory.new()
         # context.disk_loader_factory.map(ArchPackage, self.aur_cache) TODO
@@ -201,6 +202,7 @@ class ArchManager(SoftwareManager):
         }
         self.index_aur = None
         self.re_file_conflict = re.compile(r'[\w\d\-_.]+:')
+        self.disk_cache_updater = disk_cache_updater
 
     @staticmethod
     def get_semantic_search_map() -> Dict[str, str]:
@@ -494,6 +496,12 @@ class ArchManager(SoftwareManager):
 
             pkgs.append(pkg)
 
+    def _wait_for_disk_cache(self):
+        if self.disk_cache_updater and self.disk_cache_updater.is_alive():
+            self.logger.info("Waiting for disk cache path be ready")
+            self.disk_cache_updater.join()
+            self.logger.info("Disk cache ready")
+
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
@@ -524,6 +532,8 @@ class ArchManager(SoftwareManager):
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
+            self._wait_for_disk_cache()
+
             map_threads = []
 
             if aur_pkgs:
@@ -2062,8 +2072,13 @@ class ArchManager(SoftwareManager):
         arch_config = read_config(update_file=True)
 
         if arch_config['aur'] or arch_config['repositories']:
-            ArchDiskCacheUpdater(task_man=task_manager, arch_config=arch_config, i18n=self.i18n, logger=self.context.logger,
-                                 controller=self, internet_available=internet_available).start()
+            self.disk_cache_updater = ArchDiskCacheUpdater(task_man=task_manager,
+                                                           arch_config=arch_config,
+                                                           i18n=self.i18n,
+                                                           logger=self.context.logger,
+                                                           controller=self,
+                                                           internet_available=internet_available)
+            self.disk_cache_updater.start()
 
         if arch_config['aur']:
             ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
