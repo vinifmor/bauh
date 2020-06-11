@@ -498,7 +498,7 @@ class ArchManager(SoftwareManager):
 
     def _wait_for_disk_cache(self):
         if self.disk_cache_updater and self.disk_cache_updater.is_alive():
-            self.logger.info("Waiting for disk cache path be ready")
+            self.logger.info("Waiting for disk cache to be ready")
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
