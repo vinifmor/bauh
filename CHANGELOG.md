@@ -9,8 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
     - able to update AppImages with continuous releases
 - UI
+    - not performing a full table refresh after installing a new package
     - filters algorithm speed and sorting
     - displaying wait cursor over some components
+
 ### Fixes
 - AppImage
     - allowing some apps to be filled with empty category elements
@@ -23,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not scrolling the table to top after updating its content
     - not calling initial required tasks after enabling a new package type on settings
     - minor fixes
+
 
 ## [0.9.5] 2020-06-07
 ### Features

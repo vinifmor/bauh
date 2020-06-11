@@ -7,7 +7,7 @@ from threading import Thread
 from typing import List, Set, Type, Tuple
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement
+    UpgradeRequirement, TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
@@ -296,7 +296,7 @@ class FlatpakManager(SoftwareManager):
 
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
-    def install(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
 
         config = read_config()
 
@@ -310,7 +310,7 @@ class FlatpakManager(SoftwareManager):
                                      body=self.i18n['flatpak.install.bad_install_level.body'].format(field=bold('installation_level'),
                                                                                                      file=bold(CONFIG_FILE)),
                                      type_=MessageType.ERROR)
-                return False
+                return TransactionResult(success=False, installed=[], removed=[])
 
             pkg.installation = install_level
         else:
@@ -333,14 +333,14 @@ class FlatpakManager(SoftwareManager):
                 user_password, valid = watcher.request_root_password()
                 if not valid:
                     watcher.print('Operation aborted')
-                    return False
+                    return TransactionResult(success=False, installed=[], removed=[])
                 else:
                     if not handler.handle_simple(flatpak.set_default_remotes('system', user_password)):
                         watcher.show_message(title=self.i18n['error'].capitalize(),
                                              body=self.i18n['flatpak.remotes.system_flathub.error'],
                                              type_=MessageType.ERROR)
                         watcher.print("Operation cancelled")
-                        return False
+                        return TransactionResult(success=False, installed=[], removed=[])
 
         res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
@@ -354,7 +354,8 @@ class FlatpakManager(SoftwareManager):
             except:
                 traceback.print_exc()
 
-        return res
+        pkg.installed = res
+        return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
 
     def is_enabled(self):
         return self.enabled

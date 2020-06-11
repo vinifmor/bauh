@@ -631,17 +631,20 @@ class InstallPackage(AsyncAction):
 
     def run(self):
         if self.pkg:
-            success = False
+            res = {'success': False, 'installed': None, 'removed': None, 'pkg': self.pkg}
 
             if self.pkg.model.supports_backup():
                 if not self.request_backup(read_config(), 'install', self.i18n, self.root_pwd):
-                    self.signal_finished.emit({'success': False, 'pkg': self.pkg})
+                    self.signal_finished.emit(res)
                     return
 
             try:
-                success = self.manager.install(self.pkg.model, self.root_pwd, self)
+                transaction_res = self.manager.install(self.pkg.model, self.root_pwd, None, self)
+                res['success'] = transaction_res.success
+                res['installed'] = transaction_res.installed
+                res['removed'] = transaction_res.removed
 
-                if success:
+                if transaction_res.success:
                     self.pkg.model.installed = True
 
                     if self.pkg.model.supports_disk_cache():
@@ -650,10 +653,10 @@ class InstallPackage(AsyncAction):
                                                    icon_bytes=icon_data.get('bytes') if icon_data else None,
                                                    only_icon=False)
             except (requests.exceptions.ConnectionError, NoInternetException):
-                success = False
+                res['success'] = False
                 self.print(self.i18n['internet.required'])
             finally:
-                self.signal_finished.emit({'success': success, 'pkg': self.pkg})
+                self.signal_finished.emit(res)
                 self.pkg = None
 
 

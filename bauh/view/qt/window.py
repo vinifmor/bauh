@@ -1211,7 +1211,23 @@ class ManageWindow(QWidget):
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 
-            self._finish_refresh_apps({'installed': [res['pkg'].model], 'total': 1, 'types': None})
+            models_updated = []
+
+            for key in ('installed', 'removed'):
+                if res.get(key):
+                    models_updated.extend(res[key])
+
+            if models_updated:
+                view_to_update = []
+                for displayed in self.pkgs:
+                    for p in models_updated:
+                        if displayed.model == p:
+                            displayed.model = p
+                            view_to_update.append(displayed)
+
+                for pkgv in view_to_update:
+                    self.table_apps.update_package(pkgv)
+
             self.ref_bt_installed.setVisible(False)
             self.ref_checkbox_only_apps.setVisible(False)
             self.update_custom_actions()
@@ -1323,4 +1339,5 @@ class ManageWindow(QWidget):
             dialog.show_message(title=self.i18n['fail'].capitalize(),
                                 body=self.i18n['action.{}.fail'.format(res['action'])].format(bold(res['pkg'].model.name)),
                                 type_=MessageType.ERROR)
+
 
