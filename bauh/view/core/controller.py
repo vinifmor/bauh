@@ -356,10 +356,10 @@ class GenericSoftwareManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if self.managers:
             internet_on = internet.is_available()
+            taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    if task_manager:
-                        man.prepare(task_manager, root_password, internet_on)
+                    man.prepare(taskman, root_password, internet_on)
                     self._already_prepared.append(man)
 
     def list_updates(self, internet_available: bool = None) -> List[PackageUpdate]:

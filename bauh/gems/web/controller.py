@@ -251,6 +251,10 @@ class WebApplicationManager(SoftwareManager):
 
             index = self._read_search_index()
 
+            if not index and self.suggestions_downloader and self.suggestions_downloader.is_alive():
+                self.suggestions_downloader.join()
+                index = self._read_search_index()
+
             if index:
                 split_words = lower_words.split(' ')
                 singleword = ''.join(lower_words)

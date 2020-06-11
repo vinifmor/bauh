@@ -139,7 +139,7 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.downgrade_and_stream(pkg.name, root_password), wrong_error_phrase=None))
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
-        raise Exception("'update' is not supported by {}".format(pkg.__class__.__name__))
+        raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
@@ -229,12 +229,14 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def _start_category_task(self, task_man: TaskManager):
-        task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
-        task_man.update_progress('snap_cats', 50, None)
+        if task_man:
+            task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
+            task_man.update_progress('snap_cats', 50, None)
 
     def _finish_category_task(self, task_man: TaskManager):
-        task_man.update_progress('snap_cats', 100, None)
-        task_man.finish_task('snap_cats')
+        if task_man:
+            task_man.update_progress('snap_cats', 100, None)
+            task_man.finish_task('snap_cats')
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,

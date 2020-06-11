@@ -17,9 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - handling unexpected connection errors
     - handling web page fetch errors
+    - not able to search apps by their names after being enabled on settings
 - UI
     - displaying empty categories
     - not scrolling the table to top after updating its content
+    - not calling initial required tasks after enabling a new package type on settings
     - minor fixes
 
 ## [0.9.5] 2020-06-07
