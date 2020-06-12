@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate
 from bauh.api.http import HttpClient
+from bauh.commons import system
 from bauh.commons.system import run_cmd
 from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
@@ -25,12 +26,18 @@ from bauh.view.qt.view_utils import load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
-CLI_PATH = '{}/bin/bauh-cli'.format(sys.exec_prefix)
+
+def get_cli_path() -> str:
+    cli_path = system.run_cmd('which bauh-cli', print_error=False)
+    
+    if cli_path:
+        return cli_path.strip()
 
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
-    if os.path.exists(CLI_PATH):
-        output = run_cmd('{} updates -f json'.format(CLI_PATH))
+    cli_path = get_cli_path()
+    if cli_path:
+        output = run_cmd('{} updates -f json'.format(cli_path))
 
         if output:
             return [PackageUpdate(pkg_id=o['id'], name=o['name'], version=o['version'], pkg_type=o['type']) for o in json.loads(output)]
@@ -38,7 +45,7 @@ def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
             logger.info("No updates found")
 
     else:
-        logger.warning('bauh-cli seems not to be installed ({})'.format(CLI_PATH))
+        logger.warning('bauh-cli seems not to be installed')
 
     return []
 

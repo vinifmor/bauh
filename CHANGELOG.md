@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not scrolling the table to top after updating its content
     - not calling initial required tasks after enabling a new package type on settings
     - minor fixes
+- Tray
+    - notifications not working on Ubuntu (and possibly other distros)
 
 
 ## [0.9.5] 2020-06-07
