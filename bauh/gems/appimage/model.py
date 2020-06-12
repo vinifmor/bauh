@@ -117,4 +117,4 @@ class AppImage(SoftwarePackage):
 
     def __eq__(self, other):
         if isinstance(other, AppImage):
-            return self.local_file_path == other.local_file_path
+            return self.name == other.name and self.local_file_path == other.local_file_path
