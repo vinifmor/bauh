@@ -26,8 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not calling initial required tasks after enabling a new package type on settings
     - minor fixes
 - Tray
-    - notifications not working on Ubuntu 18.04
-
+    - update notifications not working on Ubuntu 18.04
+    - update notifications not working when launched through IDEs
 
 ## [0.9.5] 2020-06-07
 ### Features

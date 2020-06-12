@@ -28,10 +28,23 @@ from bauh.view.util.translation import I18n
 
 
 def get_cli_path() -> str:
-    cli_path = system.run_cmd('which bauh-cli', print_error=False)
+    venv = os.getenv('VIRTUAL_ENV')
+
+    if venv:
+        cli_path = '{}/bin/bauh-cli'.format(venv)
+
+        if os.path.exists(cli_path):
+            return cli_path
+    elif not sys.executable.startswith('/usr'):
+        cli_path = '{}/bin/bauh-cli'.format(sys.prefix)
+
+        if os.path.exists(cli_path):
+            return cli_path
+    else:
+        cli_path = system.run_cmd('which bauh-cli', print_error=False)
     
-    if cli_path:
-        return cli_path.strip()
+        if cli_path:
+            return cli_path.strip()
 
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
