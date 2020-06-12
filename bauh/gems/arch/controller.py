@@ -696,7 +696,8 @@ class ArchManager(SoftwareManager):
 
         context = TransactionContext(name=pkg.name, base=pkg.get_base_name(), skip_opt_deps=True,
                                      change_progress=True, dependency=False, repository=pkg.repository, pkg=pkg,
-                                     arch_config=read_config(), watcher=watcher, handler=handler, root_password=root_password)
+                                     arch_config=read_config(), watcher=watcher, handler=handler, root_password=root_password,
+                                     installed=set(), removed={})
 
         self._sync_databases(context.config, root_password, handler)
 
