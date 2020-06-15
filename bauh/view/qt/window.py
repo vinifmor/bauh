@@ -853,7 +853,7 @@ class ManageWindow(QWidget):
     def _update_type_filters(self, available_types: dict = None, keep_selected: bool = False):
 
         if available_types is None:
-            self.ref_combo_filter_type.setVisible(self.combo_filter_type.count() > 1)
+            self.ref_combo_filter_type.setVisible(self.combo_filter_type.count() > 2)
         else:
             keeping_selected = keep_selected and available_types and self.type_filter in available_types
 

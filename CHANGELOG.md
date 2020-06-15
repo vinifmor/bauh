@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not scrolling the table to top after updating its content
     - not calling initial required tasks after enabling a new package type on settings
     - not updating the type filters if only type is available after refreshing the table
+    - displaying the type filters on the search results when there is only one type available and some actions are done
     - minor fixes
 - Tray
     - update notifications not working on Ubuntu 18.04
