@@ -1181,7 +1181,6 @@ class ManageWindow(QWidget):
         self.thread_install.start()
 
     def _finish_install(self, res: dict):
-        self.input_search.setText('')
         self.finish_action()
 
         console_output = self.textarea_output.toPlainText()
