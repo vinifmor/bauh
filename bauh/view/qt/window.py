@@ -864,7 +864,7 @@ class ManageWindow(QWidget):
             if not keeping_selected:
                 self.type_filter = self.any_type_filter
 
-            if available_types and len(available_types) > 1:
+            if available_types:
                 if self.combo_filter_type.count() > 1:
                     for _ in range(self.combo_filter_type.count() - 1):
                         self.combo_filter_type.removeItem(1)
@@ -887,7 +887,7 @@ class ManageWindow(QWidget):
                 self.combo_filter_type.blockSignals(True)
                 self.combo_filter_type.setCurrentIndex(sel_type if sel_type > -1 else 0)
                 self.combo_filter_type.blockSignals(False)
-                self.ref_combo_filter_type.setVisible(True)
+                self.ref_combo_filter_type.setVisible(len(available_types) > 1)
             else:
                 self.ref_combo_filter_type.setVisible(False)
 
