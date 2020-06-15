@@ -898,10 +898,10 @@ class ApplyFilters(AsyncAction):
                 commons.update_info(pkgv, pkgs_info)
                 commons.apply_filters(pkgv, self.filters, pkgs_info, limit=not name_filtering)
 
-            if name_filtering and pkgs_info['pkgs_displayed']:
-                pkgs_info['pkgs_displayed'] = self._sort_by_word(word=self.filters['name'],
-                                                                 pkgs=pkgs_info['pkgs_displayed'],
-                                                                 limit=self.filters['display_limit'])
+            if pkgs_info['pkgs_displayed'] and name_filtering:
+                    pkgs_info['pkgs_displayed'] = self._sort_by_word(word=self.filters['name'],
+                                                                     pkgs=pkgs_info['pkgs_displayed'],
+                                                                     limit=self.filters['display_limit'])
 
             self.wait_table_update = True
             self.signal_table.emit(pkgs_info)

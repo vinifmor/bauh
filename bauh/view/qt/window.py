@@ -1,4 +1,5 @@
 import logging
+import operator
 import time
 import traceback
 from pathlib import Path
@@ -1210,15 +1211,31 @@ class ManageWindow(QWidget):
                     models_updated.extend(res[key])
 
             if models_updated:
-                view_to_update = []
+                installed_available_idxs = []
+                for idx, available in enumerate(self.pkgs_available):
+                    for pidx, p in enumerate(models_updated):
+                        if available.model == p:
+                            available.model = p
+                            if p.installed:
+                                installed_available_idxs.append((idx, pidx, available))
+
+                # re-indexing all installed so they always will be be displayed when no filters are applied
+                if installed_available_idxs:
+                    # removing from available
+                    installed_available_idxs.sort(key=operator.itemgetter(0))
+                    for decrement, data in enumerate(installed_available_idxs):
+                        del self.pkgs_available[data[0] - decrement]
+
+                    # re-inserting into the available
+                    installed_available_idxs.sort(key=operator.itemgetter(1))
+                    for new_idx, data in enumerate(installed_available_idxs):
+                        self.pkgs_available.insert(new_idx, data[2])
+
+                # updating the respective table rows:
                 for displayed in self.pkgs:
                     for p in models_updated:
                         if displayed.model == p:
-                            displayed.model = p
-                            view_to_update.append(displayed)
-
-                for pkgv in view_to_update:
-                    self.table_apps.update_package(pkgv)
+                            self.table_apps.update_package(displayed)
 
             self.ref_bt_installed.setVisible(False)
             self.ref_checkbox_only_apps.setVisible(False)
