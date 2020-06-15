@@ -701,7 +701,7 @@ class ManageWindow(QWidget):
         self.label_substatus.setText('<p>{}</p>'.format(substatus))
         if not substatus:
             self.toolbar_substatus.hide()
-        elif not self.toolbar_substatus.isVisible():
+        elif not self.toolbar_substatus.isVisible() and self.progress_bar.isVisible():
             self.toolbar_substatus.show()
 
     def _update_table(self, pkgs_info: dict, signal: bool = False):
