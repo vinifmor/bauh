@@ -1233,7 +1233,24 @@ class ManageWindow(QWidget):
                         if displayed.model == p:
                             self.table_apps.update_package(displayed)
 
-            self.ref_bt_installed.setVisible(False)
+            # updating installed packages
+            if res['removed'] and self.pkgs_installed:
+                to_remove = []
+                for idx, p in enumerate(self.pkgs_installed):
+                    for model in res['removed']:
+                        if p.model == model:
+                            to_remove.append(idx)
+
+                if to_remove:
+                    to_remove.sort()
+
+                    for decrement, idx in enumerate(to_remove):
+                        del self.pkgs_installed[idx - decrement]
+
+            if res['installed']:
+                for idx, p in enumerate(res['installed']):
+                    self.pkgs_installed.insert(idx, PackageView(p, self.i18n))
+
             self.ref_checkbox_only_apps.setVisible(False)
             self.update_custom_actions()
         else:
