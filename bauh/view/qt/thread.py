@@ -470,37 +470,30 @@ class UpgradeSelected(AsyncAction):
 
 class RefreshApps(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
+    def __init__(self, manager: SoftwareManager, pkg_types: Set[Type[SoftwarePackage]] = None):
         super(RefreshApps, self).__init__()
         self.manager = manager
-        self.app = app  # app that should be on list top
         self.pkg_types = pkg_types
 
     def run(self):
-        res = self.manager.read_installed(pkg_types=self.pkg_types)
-        refreshed_types = set()
+        try:
+            res = self.manager.read_installed(pkg_types=self.pkg_types)
+            refreshed_types = set()
 
-        if res:
-            idx_found, app_found = None, None
-            for idx, ins in enumerate(res.installed):
-                if self.pkg_types:
-                    refreshed_types.add(ins.__class__)
+            if res:
+                for idx, ins in enumerate(res.installed):
+                    if self.pkg_types:
+                        refreshed_types.add(ins.__class__)
 
-                if self.app and ins.get_type() == self.app.model.get_type() and ins.id == self.app.model.id:
-                    idx_found = idx
-                    app_found = ins
-                    break
+            elif self.pkg_types:
+                refreshed_types = self.pkg_types
 
-            if app_found:
-                del res.installed[idx_found]
-                res.installed.insert(0, app_found)
-
-        elif self.pkg_types:
-            refreshed_types = self.pkg_types
-
-        self.notify_finished({'installed': res.installed, 'total': res.total, 'types': refreshed_types})
-        self.app = None
-        self.pkg_types = None
+            self.notify_finished({'installed': res.installed, 'total': res.total, 'types': refreshed_types})
+        except:
+            traceback.print_exc()
+            self.notify_finished({'installed': [], 'total': 0, 'types': set()})
+        finally:
+            self.pkg_types = None
 
 
 class UninstallApp(AsyncAction):

@@ -598,8 +598,7 @@ class ManageWindow(QWidget):
         self.checkbox_console.setChecked(False)
         self.textarea_output.hide()
 
-    def refresh_packages(self, keep_console: bool = True, top_app: PackageView = None, pkg_types: Set[Type[SoftwarePackage]] = None):
-        self.recent_installation = False
+    def refresh_packages(self, keep_console: bool = True, pkg_types: Set[Type[SoftwarePackage]] = None):
         self.input_search.clear()
 
         if not keep_console:
@@ -609,7 +608,6 @@ class ManageWindow(QWidget):
         self.ref_checkbox_only_apps.setVisible(False)
         self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
 
-        self.thread_refresh.app = top_app  # the app will be on top when refresh happens
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
@@ -1199,7 +1197,6 @@ class ManageWindow(QWidget):
                 self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
 
         if res['success']:
-            self.recent_installation = True
             if self._can_notify_user():
                 util.notify_user(msg='{} ({}) {}'.format(res['pkg'].model.name, res['pkg'].model.get_type(), self.i18n['installed']))
 
