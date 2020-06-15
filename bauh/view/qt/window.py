@@ -376,7 +376,6 @@ class ManageWindow(QWidget):
         self.filter_updates = False
         self._maximized = False
         self.progress_controll_enabled = True
-        self.recent_installation = False
         self.recent_uninstall = False
         self.types_changed = False
 
@@ -554,9 +553,7 @@ class ManageWindow(QWidget):
         if self.progress_bar.isVisible():
             return
 
-        if not self.recent_installation:
-            self._reload_categories()
-
+        self._reload_categories()
         self._resize()
 
     def _update_package_data(self, idx: int):
@@ -634,7 +631,6 @@ class ManageWindow(QWidget):
         self.load_suggestions = False
         self.recent_uninstall = False
         self.types_changed = False
-        self._hide_fields_after_recent_installation()
 
     def uninstall_app(self, app: PackageView):
         pwd, proceed = self._ask_root_password('uninstall', app)
@@ -840,7 +836,7 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
         if self.pkgs_installed:
-            self.ref_bt_installed.setVisible(not as_installed and not self.recent_installation)
+            self.ref_bt_installed.setVisible(not as_installed)
 
         self._resize(accept_lower_width=bool(self.pkgs_installed))
 
@@ -1063,14 +1059,6 @@ class ManageWindow(QWidget):
 
             if self.ref_bt_installed.isVisible():
                 self.ref_bt_installed.setEnabled(True)
-
-        self._hide_fields_after_recent_installation()
-
-    def _hide_fields_after_recent_installation(self):
-        if self.recent_installation:
-            self.ref_combo_filter_type.setVisible(False)
-            self.ref_combo_categories.setVisible(False)
-            self.ref_input_name_filter.setVisible(False)
 
     def downgrade(self, pkgv: PackageView):
         pwd, proceed = self._ask_root_password('downgrade', pkgv)
