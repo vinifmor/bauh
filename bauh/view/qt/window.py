@@ -667,13 +667,13 @@ class ManageWindow(QWidget):
                             for model in res['removed']:
                                 if pkgv.model == model:
                                     if list_idx == 0:  # updates the model
-                                        pkgv.model = model
+                                        pkgv.update_model(model)
 
                                     if not self.search_performed or list_idx == 2:  # always from the installed packages
                                         removed_idxs.append(pkgv_idx)
 
                                     if self.search_performed and list_idx == 1:  # only for displayed
-                                        self.table_apps.update_package(pkgv)
+                                        self.table_apps.update_package(pkgv, change_update_col=True)
 
                                     break  # as the model has been found, stops the loop
 
@@ -689,6 +689,8 @@ class ManageWindow(QWidget):
 
                                 for new_idx, pkgv in enumerate(self.pkgs):  # updating the package indexes
                                     pkgv.table_index = new_idx
+
+                        self.update_bt_upgrade()
 
             self.update_custom_actions()
 
@@ -1243,10 +1245,10 @@ class ManageWindow(QWidget):
             if models_updated:
                 installed_available_idxs = []
                 for idx, available in enumerate(self.pkgs_available):
-                    for pidx, p in enumerate(models_updated):
-                        if available.model == p:
-                            available.model = p
-                            if p.installed:
+                    for pidx, model in enumerate(models_updated):
+                        if available.model == model:
+                            available.update_model(model)
+                            if model.installed:
                                 installed_available_idxs.append((idx, pidx, available))
 
                 # re-indexing all installed so they always will be be displayed when no filters are applied
@@ -1263,16 +1265,18 @@ class ManageWindow(QWidget):
 
                 # updating the respective table rows:
                 for displayed in self.pkgs:
-                    for p in models_updated:
-                        if displayed.model == p:
-                            self.table_apps.update_package(displayed)
+                    for model in models_updated:
+                        if displayed.model == model:
+                            self.table_apps.update_package(displayed, change_update_col=True)
+
+                self.update_bt_upgrade()
 
             # updating installed packages
             if res['removed'] and self.pkgs_installed:
                 to_remove = []
-                for idx, p in enumerate(self.pkgs_installed):
+                for idx, model in enumerate(self.pkgs_installed):
                     for model in res['removed']:
-                        if p.model == model:
+                        if model.model == model:
                             to_remove.append(idx)
 
                 if to_remove:
@@ -1282,8 +1286,8 @@ class ManageWindow(QWidget):
                         del self.pkgs_installed[idx - decrement]
 
             if res['installed']:
-                for idx, p in enumerate(res['installed']):
-                    self.pkgs_installed.insert(idx, PackageView(p, self.i18n))
+                for idx, model in enumerate(res['installed']):
+                    self.pkgs_installed.insert(idx, PackageView(model, self.i18n))
 
             self.ref_checkbox_only_apps.setVisible(False)
             self.update_custom_actions()
