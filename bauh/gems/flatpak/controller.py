@@ -226,15 +226,17 @@ class FlatpakManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
 
-        if self.suggestions_cache:
-            self.suggestions_cache.delete(pkg.id)
+        if uninstalled:
+            if self.suggestions_cache:
+                self.suggestions_cache.delete(pkg.id)
 
-        self.revert_ignored_update(pkg)
+            self.revert_ignored_update(pkg)
+            return TransactionResult(success=True, installed=None, removed=[pkg])
 
-        return uninstalled
+        return TransactionResult.fail()
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
@@ -354,7 +356,6 @@ class FlatpakManager(SoftwareManager):
             except:
                 traceback.print_exc()
 
-        pkg.installed = res
         return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
 
     def is_enabled(self):

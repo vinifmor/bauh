@@ -142,13 +142,16 @@ class SnapManager(SoftwareManager):
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
         raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
 
-    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
 
-        if self.suggestions_cache:
-            self.suggestions_cache.delete(pkg.name)
+        if uninstalled:
+            if self.suggestions_cache:
+                self.suggestions_cache.delete(pkg.name)
 
-        return uninstalled
+            return TransactionResult(success=True, installed=None, removed=[pkg])
+
+        return TransactionResult.fail()
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {SnapApplication}
@@ -205,7 +208,6 @@ class SnapManager(SoftwareManager):
                         if res and info_path:
                             pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-                        pkg.installed = res
                         return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
                 else:
                     self.logger.error("Could not find available channels in the installation output: {}".format(output))
@@ -213,7 +215,6 @@ class SnapManager(SoftwareManager):
             if info_path:
                 pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-        pkg.installed = res
         return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
 
     def is_enabled(self) -> bool:

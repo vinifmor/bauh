@@ -496,34 +496,42 @@ class RefreshApps(AsyncAction):
             self.pkg_types = None
 
 
-class UninstallApp(AsyncAction):
+class UninstallPackage(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, icon_cache: MemoryCache, i18n: I18n, app: PackageView = None):
-        super(UninstallApp, self).__init__()
-        self.app = app
+    def __init__(self, manager: SoftwareManager, icon_cache: MemoryCache, i18n: I18n, pkg: PackageView = None):
+        super(UninstallPackage, self).__init__()
+        self.pkg = pkg
         self.manager = manager
         self.icon_cache = icon_cache
         self.root_pwd = None
         self.i18n = i18n
 
     def run(self):
-        if self.app:
-            if self.app.model.supports_backup():
+        if self.pkg:
+            if self.pkg.model.supports_backup():
                 if not self.request_backup(read_config(), 'uninstall', self.i18n, self.root_pwd):
                     self.notify_finished(False)
-                    self.app = None
+                    self.pkg = None
                     self.root_pwd = None
                     return
 
-            success = self.manager.uninstall(self.app.model, self.root_pwd, self)
+            try:
+                res = self.manager.uninstall(self.pkg.model, self.root_pwd, self, None)
 
-            if success:
-                self.icon_cache.delete(self.app.model.icon_url)
-                self.manager.clean_cache_for(self.app.model)
+                if res.success and res.removed:
+                    for p in res.removed:
+                        if p.icon_url:
+                            self.icon_cache.delete(p.icon_url)
 
-            self.notify_finished(self.app if success else None)
-            self.app = None
-            self.root_pwd = None
+                        self.manager.clean_cache_for(p)
+
+                self.notify_finished({'success': res.success, 'removed': res.removed, 'pkg': self.pkg})
+            except:
+                traceback.print_exc()
+                self.notify_finished({'success': False, 'removed': None, 'pkg': self.pkg})
+            finally:
+                self.pkg = None
+                self.root_pwd = None
 
 
 class DowngradeApp(AsyncAction):

@@ -285,19 +285,42 @@ class GenericSoftwareManager(SoftwareManager):
 
         return True
 
-    def uninstall(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
-        man = self._get_manager_for(app)
-
-        if man:
-            return man.uninstall(app, root_password, handler)
-
     def _fill_post_transaction_status(self, pkg: SoftwarePackage, installed: bool):
         pkg.installed = installed
-
         pkg.update = False
 
         if pkg.latest_version:
             pkg.version = pkg.latest_version
+
+    def _update_post_transaction_status(self, res: TransactionResult):
+        if res.success:
+            if res.installed:
+                for p in res.installed:
+                    self._fill_post_transaction_status(p, True)
+            if res.removed:
+                for p in res.removed:
+                    self._fill_post_transaction_status(p, False)
+
+    def uninstall(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+        man = self._get_manager_for(pkg)
+
+        if man:
+            ti = time.time()
+            disk_loader = self.disk_loader_factory.new()
+            disk_loader.start()
+            self.logger.info("Uninstalling {}".format(pkg.name))
+            try:
+                res = man.uninstall(pkg, root_password, handler, disk_loader)
+                disk_loader.stop_working()
+                disk_loader.join()
+                self._update_post_transaction_status(res)
+                return res
+            except:
+                traceback.print_exc()
+                return TransactionResult(success=False, installed=[], removed=[])
+            finally:
+                tf = time.time()
+                self.logger.info('Uninstallation of {}'.format(pkg) + 'took {0:.2f} minutes'.format((tf - ti) / 60))
 
     def install(self, app: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
         man = self._get_manager_for(app)
@@ -311,15 +334,7 @@ class GenericSoftwareManager(SoftwareManager):
                 res = man.install(app, root_password, disk_loader, handler)
                 disk_loader.stop_working()
                 disk_loader.join()
-
-                if res.success:
-                    if res.installed:
-                        for p in res.installed:
-                            self._fill_post_transaction_status(p, True)
-                    if res.removed:
-                        for p in res.removed:
-                            self._fill_post_transaction_status(p, False)
-
+                self._update_post_transaction_status(res)
                 return res
             except:
                 traceback.print_exc()

@@ -277,7 +277,7 @@ class AppImageManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
         else:
-            if self.uninstall(pkg, root_password, watcher):
+            if self.uninstall(pkg, root_password, watcher).success:
                 old_release = versions.history[versions.pkg_status_idx + 1]
                 pkg.version = old_release['0_version']
                 pkg.latest_version = pkg.version
@@ -300,7 +300,7 @@ class AppImageManager(SoftwareManager):
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
 
-            if not self.uninstall(req.pkg, root_password, watcher):
+            if not self.uninstall(req.pkg, root_password, watcher).success:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['appimage.error.uninstall_current_version'],
                                      type_=MessageType.ERROR)
@@ -316,13 +316,13 @@ class AppImageManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         if os.path.exists(pkg.get_disk_cache_path()):
             handler = ProcessHandler(watcher)
 
             if not handler.handle(SystemProcess(new_subprocess(['rm', '-rf', pkg.get_disk_cache_path()]))):
                 watcher.show_message(title=self.i18n['error'], body=self.i18n['appimage.uninstall.error.remove_folder'].format(bold(pkg.get_disk_cache_path())))
-                return False
+                return TransactionResult.fail()
 
             de_path = self._gen_desktop_entry_path(pkg)
             if os.path.exists(de_path):
@@ -330,7 +330,7 @@ class AppImageManager(SoftwareManager):
 
             self.revert_ignored_update(pkg)
 
-        return True
+        return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {AppImage}
@@ -508,7 +508,6 @@ class AppImageManager(SoftwareManager):
                     except:
                         traceback.print_exc()
 
-                    pkg.installed = True
                     return TransactionResult(success=True, installed=[pkg], removed=[])
                 else:
                     watcher.show_message(title=self.i18n['error'],

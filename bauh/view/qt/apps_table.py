@@ -194,11 +194,11 @@ class AppsTable(QTableWidget):
 
         self._update_row(pkg, change_update_col=change_update_col)
 
-    def _uninstall_app(self, app_v: PackageView):
+    def _uninstall(self, pkg: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
+                                   body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(pkg)))),
                                    i18n=self.i18n):
-            self.window.uninstall_app(app_v)
+            self.window.uninstall_package(pkg)
 
     def _bold(self, text: str) -> str:
         return '<span style="font-weight: bold">{}</span>'.format(text)
@@ -284,7 +284,7 @@ class AppsTable(QTableWidget):
         if change_update_col:
             col_update = None
 
-            if update_check_enabled and not pkg.model.is_update_ignored() and pkg.model.update:
+            if update_check_enabled and pkg.model.installed and not pkg.model.is_update_ignored() and pkg.model.update:
                 col_update = QToolBar()
                 col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
                 col_update.addWidget(UpdateToggleButton(pkg=pkg,
@@ -323,7 +323,7 @@ class AppsTable(QTableWidget):
         if pkg.model.installed:
             if pkg.model.can_be_uninstalled():
                 def uninstall():
-                    self._uninstall_app(pkg)
+                    self._uninstall(pkg)
 
                 style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
                 item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
@@ -408,7 +408,7 @@ class AppsTable(QTableWidget):
         item.setText(name)
 
         icon_path = pkg.model.get_disk_icon_path()
-        if pkg.model.supports_disk_cache() and icon_path:
+        if pkg.model.installed and pkg.model.supports_disk_cache() and icon_path:
             if icon_path.startswith('/') and os.path.isfile(icon_path):
                 with open(icon_path, 'rb') as f:
                     icon_bytes = f.read()

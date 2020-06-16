@@ -348,14 +348,14 @@ class WebApplicationManager(SoftwareManager):
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
-    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.logger.info("Checking if {} installation directory {} exists".format(pkg.name, pkg.installation_dir))
 
         if not os.path.exists(pkg.installation_dir):
             watcher.show_message(title=self.i18n['error'],
                                  body=self.i18n['web.uninstall.error.install_dir.not_found'].format(bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
-            return False
+            return TransactionResult.fail()
 
         self.logger.info("Removing {} installation directory {}".format(pkg.name, pkg.installation_dir))
         try:
@@ -365,7 +365,7 @@ class WebApplicationManager(SoftwareManager):
                                  body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
             traceback.print_exc()
-            return False
+            return TransactionResult.fail()
 
         self.logger.info("Checking if {} desktop entry file {} exists".format(pkg.name, pkg.desktop_entry))
         if os.path.exists(pkg.desktop_entry):
@@ -412,7 +412,8 @@ class WebApplicationManager(SoftwareManager):
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
                                      type_=MessageType.WARNING)
-        return True
+
+        return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {WebApplication}
@@ -763,7 +764,6 @@ class WebApplicationManager(SoftwareManager):
         if install_options:
             pkg.options_set = install_options
 
-        pkg.installed = True
         return TransactionResult(success=True, installed=[pkg], removed=[])
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:

@@ -32,7 +32,7 @@ from bauh.view.qt.info import InfoDialog
 from bauh.view.qt.root import ask_root_password
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
-from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallApp, DowngradeApp, GetAppInfo, \
+from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, DowngradeApp, GetAppInfo, \
     GetAppHistory, SearchPackages, InstallPackage, AnimateProgress, NotifyPackagesReady, FindSuggestions, \
     ListWarnings, \
     AsyncAction, LaunchApp, ApplyFilters, CustomSoftwareAction, GetScreenshots, CustomAction, NotifyInstalledLoaded, \
@@ -303,7 +303,7 @@ class ManageWindow(QWidget):
 
         self.thread_update = self._bind_async_action(UpgradeSelected(self.manager, self.i18n), finished_call=self._finish_upgrade_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_apps, only_finished=True)
-        self.thread_uninstall = self._bind_async_action(UninstallApp(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
+        self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
         self.thread_get_info = self._bind_async_action(GetAppInfo(self.manager), finished_call=self._finish_get_info)
         self.thread_get_history = self._bind_async_action(GetAppHistory(self.manager, self.i18n), finished_call=self._finish_get_history)
         self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
@@ -520,7 +520,7 @@ class ManageWindow(QWidget):
             self.ref_checkbox_only_apps.setVisible(True)
             self.input_search.setText('')
             self.input_name_filter.setText('')
-            self._begin_action(self.i18n['manage_window.status.installed'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+            self._begin_action(self.i18n['manage_window.status.installed'], keep_bt_installed=False)
             self.thread_load_installed.start()
 
     def _finish_loading_installed(self):
@@ -606,7 +606,7 @@ class ManageWindow(QWidget):
 
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+        self._begin_action(self.i18n['manage_window.status.refreshing'], keep_bt_installed=False)
 
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
@@ -616,7 +616,7 @@ class ManageWindow(QWidget):
         self._handle_console_option(False)
         self.ref_checkbox_updates.setVisible(False)
         self.ref_checkbox_only_apps.setVisible(False)
-        self._begin_action(self.i18n['manage_window.status.suggestions'], keep_bt_installed=False, clear_filters=not self.recent_uninstall)
+        self._begin_action(self.i18n['manage_window.status.suggestions'], keep_bt_installed=False)
         self.thread_suggestions.filter_installed = True
         self.thread_suggestions.start()
 
@@ -626,21 +626,20 @@ class ManageWindow(QWidget):
 
         self.ref_checkbox_only_apps.setVisible(bool(res['installed']))
         self.ref_bt_upgrade.setVisible(True)
-        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'], keep_filters=self.recent_uninstall and res['types'])
+        self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types'])
         self.load_suggestions = False
-        self.recent_uninstall = False
         self.types_changed = False
 
-    def uninstall_app(self, app: PackageView):
-        pwd, proceed = self._ask_root_password('uninstall', app)
+    def uninstall_package(self, pkg: PackageView):
+        pwd, proceed = self._ask_root_password('uninstall', pkg)
 
         if not proceed:
             return
 
         self._handle_console_option(True)
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], app.model.name), clear_filters=False)
+        self._begin_action('{} {}'.format(self.i18n['manage_window.status.uninstalling'], pkg.model.name), clear_filters=False)
 
-        self.thread_uninstall.app = app
+        self.thread_uninstall.pkg = pkg
         self.thread_uninstall.root_pwd = pwd
         self.thread_uninstall.start()
 
@@ -649,28 +648,63 @@ class ManageWindow(QWidget):
         self.thread_run_app.app = app
         self.thread_run_app.start()
 
-    def _finish_uninstall(self, pkgv: PackageView):
-        self.finish_action()
+    def _finish_uninstall(self, res: dict):
+        self.finish_action(keep_filters=True)
 
-        if pkgv:
+        if res['success']:
+            src_pkg = res['pkg']
             if self._can_notify_user():
-                util.notify_user('{} ({}) {}'.format(pkgv.model.name, pkgv.model.get_type(), self.i18n['uninstalled']))
+                util.notify_user('{} ({}) {}'.format(src_pkg.model.name, src_pkg.model.get_type(), self.i18n['uninstalled']))
 
-            if not self.search_performed:
-                only_pkg_type = len([p for p in self.pkgs if p.model.get_type() == pkgv.model.get_type()]) >= 2
-            else:
-                only_pkg_type = False
+            if res['removed']:
+                for list_idx, pkg_list in enumerate((self.pkgs_available, self.pkgs, self.pkgs_installed)):
+                    if pkg_list:
+                        removed_idxs = []
+                        for pkgv_idx, pkgv in enumerate(pkg_list):
+                            if len(removed_idxs) == len(res['removed']):
+                                break
 
-            self.recent_uninstall = True
-            self.refresh_packages(pkg_types={pkgv.model.__class__} if only_pkg_type else None)
+                            for model in res['removed']:
+                                if pkgv.model == model:
+                                    if list_idx == 0:  # updates the model
+                                        pkgv.model = model
+
+                                    if not self.search_performed or list_idx == 2:  # always from the installed packages
+                                        removed_idxs.append(pkgv_idx)
+
+                                    if self.search_performed and list_idx == 1:  # only for displayed
+                                        self.table_apps.update_package(pkgv)
+
+                                    break  # as the model has been found, stops the loop
+
+                        if removed_idxs:
+                            # updating the list
+                            removed_idxs.sort()
+                            for decrement, pkg_idx in enumerate(removed_idxs):
+                                del pkg_list[pkg_idx - decrement]
+
+                            if list_idx == 1:  # updates the rows if the current list reprents the displayed packages:
+                                for decrement, idx in enumerate(removed_idxs):
+                                    self.table_apps.removeRow(idx - decrement)
+
+                                for new_idx, pkgv in enumerate(self.pkgs):  # updating the package indexes
+                                    pkgv.table_index = new_idx
+
             self.update_custom_actions()
 
             notify_tray()
         else:
             if self._can_notify_user():
-                util.notify_user('{}: {}'.format(pkgv.model.name, self.i18n['notification.uninstall.failed']))
+                util.notify_user('{}: {}'.format(res['pkg'].model.name, self.i18n['notification.uninstall.failed']))
 
             self.checkbox_console.setChecked(True)
+
+        for ref in (self.ref_combo_categories, self.ref_input_name_filter):
+            if not ref.isVisible():
+                ref.setVisible(True)
+
+        if self.combo_filter_type.count() > 2 and not self.ref_combo_filter_type.isVisible():
+            self.ref_combo_filter_type.setVisible(True)
 
     def _can_notify_user(self):
         return bool(self.config['system']['notifications']) and (self.isHidden() or self.isMinimized())

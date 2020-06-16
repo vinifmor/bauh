@@ -70,6 +70,10 @@ class TransactionResult:
         self.installed = installed
         self.removed = removed
 
+    @staticmethod
+    def fail() -> "TransactionResult":
+        return TransactionResult(success=False, installed=None, removed=None)
+
 
 class SoftwareManager(ABC):
 
@@ -146,12 +150,13 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
         :param watcher:
-        :return: if the uninstall succeeded
+        :param disk_loader:
+        :return:
         """
         pass
 

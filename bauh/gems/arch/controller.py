@@ -997,8 +997,10 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _uninstall(self, context: TransactionContext, remove_unneeded: bool = False):
+    def _uninstall(self, context: TransactionContext, remove_unneeded: bool = False, disk_loader: DiskCacheLoader = None):
         self._update_progress(context, 10)
+
+        net_available = internet.is_available() if disk_loader else True
 
         required_by = self.deps_analyser.map_all_required_by({context.name}, set())
 
@@ -1040,9 +1042,26 @@ class ArchManager(SoftwareManager):
         else:
             all_deps_map = None
 
+        if disk_loader and len(to_uninstall) > 1:  # loading package instances in case the uninstall succeeds
+            instances = self.read_installed(disk_loader=disk_loader,
+                                            names={n for n in to_uninstall if n != context.name},
+                                            internet_available=net_available).installed
+
+            if len(instances) + 1 < len(to_uninstall):
+                self.logger.warning("Not all packages to be uninstalled could be read")
+        else:
+            instances = None
+
         uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler)
 
         if uninstalled:
+            if disk_loader:  # loading package instances in case the uninstall succeeds
+                context.removed[context.pkg.name] = context.pkg
+
+                if instances:
+                    for p in instances:
+                        context.removed[p.name] = p
+
             self._update_progress(context, 70)
 
             if all_deps_map:
@@ -1076,10 +1095,22 @@ class ArchManager(SoftwareManager):
                             all_unnecessary_to_uninstall = {*unnecessary_to_uninstall, *unnecessary_to_uninstall_deps}
 
                             if not unnecessary_to_uninstall_deps or self._request_all_unncessary_uninstall_confirmation(all_unnecessary_to_uninstall, context):
+
+                                if disk_loader:  # loading package instances in case the uninstall succeeds
+                                    unnecessary_instances = self.read_installed(disk_loader=disk_loader,
+                                                                                internet_available=net_available,
+                                                                                names=all_unnecessary_to_uninstall).installed
+                                else:
+                                    unnecessary_instances = None
+
                                 unneded_uninstalled = self._uninstall_pkgs(all_unnecessary_to_uninstall, context.root_password, context.handler)
 
                                 if unneded_uninstalled:
                                     to_uninstall.update(all_unnecessary_to_uninstall)
+
+                                    if disk_loader and unnecessary_instances:  # loading package instances in case the uninstall succeeds
+                                        for p in unnecessary_instances:
+                                            context.removed[p.name] = p
                                 else:
                                     self.logger.error("Could not uninstall some unnecessary packages")
                                     context.watcher.print("Could not uninstall some unnecessary packages")
@@ -1102,20 +1133,28 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 100)
         return uninstalled
 
-    def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.aur_client.clean_caches()
         handler = ProcessHandler(watcher)
 
         if self._is_database_locked(handler, root_password):
-            return False
+            return TransactionResult.fail()
 
-        return self._uninstall(TransactionContext(name=pkg.name,
-                                                  change_progress=True,
-                                                  arch_config=read_config(),
-                                                  watcher=watcher,
-                                                  root_password=root_password,
-                                                  handler=handler),
-                               remove_unneeded=True)
+        removed = {}
+        success = self._uninstall(TransactionContext(name=pkg.name,
+                                                     pkg=pkg,
+                                                     change_progress=True,
+                                                     arch_config=read_config(),
+                                                     watcher=watcher,
+                                                     root_password=root_password,
+                                                     handler=handler,
+                                                     removed=removed),
+                                  remove_unneeded=True,
+                                  disk_loader=disk_loader)  # to be able to return all uninstalled packages
+        if success:
+            return TransactionResult(success=True, installed=None, removed=[*removed.values()] if removed else [])
+        else:
+            return TransactionResult.fail()
 
     def get_managed_types(self) -> Set["type"]:
         return {ArchPackage}
@@ -1744,9 +1783,6 @@ class ArchManager(SoftwareManager):
                     else:
                         uninstalled = [p for p in pkgs_to_uninstall if p.name == conflict]
                         if uninstalled:
-                            uninstalled[0].icon_path = None
-                            uninstalled[0].icon_url = None
-                            uninstalled[0].installed = False
                             context.removed[conflict] = uninstalled[0]
         else:
             self.logger.info("No conflict detected for '{}'".format(context.name))
@@ -1799,9 +1835,6 @@ class ArchManager(SoftwareManager):
             if installed_with_same_name:
                 for p in installed_with_same_name:
                     context.removed[p.name] = p
-                    p.installed = False
-                    p.icon_path = None
-                    p.icon_url = None
 
             context.watcher.change_substatus(self.i18n['status.caching_data'].format(bold(context.name)))
 
