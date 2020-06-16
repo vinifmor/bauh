@@ -346,7 +346,7 @@ class FlatpakManager(SoftwareManager):
         # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
         flatpak_version = flatpak.get_version()
         installed = flatpak.list_installed(flatpak_version)
-        installed_by_level = len([p for p in installed if p['installation'] == pkg.installation]) if installed else 0
+        installed_by_level = {'{}:{}:{}'.format(p['id'], p['name'], p['branch']) for p in installed if p['installation'] == pkg.installation} if installed else None
 
         res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
@@ -365,10 +365,12 @@ class FlatpakManager(SoftwareManager):
             current_installed = flatpak.list_installed(flatpak_version)
             current_installed_by_level = [p for p in current_installed if p['installation'] == pkg.installation] if current_installed else None
 
-            if current_installed_by_level and len(current_installed_by_level) > (installed_by_level + 1):
+            if current_installed_by_level and (not installed_by_level or len(current_installed_by_level) > len(installed_by_level) + 1):
+                pkg_key = '{}:{}:{}'.format(pkg.id, pkg.name, pkg.branch)
                 net_available = internet.is_available()
                 for p in current_installed_by_level:
-                    if p['id'] != pkg.id and p['name'] != pkg.name and p['branch'] != pkg.branch:
+                    current_key = '{}:{}:{}'.format(p['id'], p['name'], p['branch'])
+                    if current_key != pkg_key and (not installed_by_level or current_key not in installed_by_level):
                         new_installed.append(self._map_to_model(app_json=p, installed=True,
                                                                 disk_loader=disk_loader, internet=net_available))
 
