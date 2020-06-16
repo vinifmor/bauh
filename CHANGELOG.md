@@ -26,11 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not calling initial required tasks after enabling a new package type on settings
     - not updating the type filters if only type is available after refreshing the table
     - displaying the type filters on the search results when there is only one type available and some actions are done
-    - not displaying the default type icon besides the package when its icon path does not exist (Snap runtimes are not displaying icons)
     - minor fixes
 - Tray
     - update notifications not working on Ubuntu 18.04
     - update notifications not working when launched through IDEs
+- Regressions (from 0.9.5):
+    - not displaying the default type icon besides the package when its icon path does not exist (Snap runtimes were rendered without icons)
 
 ## [0.9.5] 2020-06-07
 ### Features
