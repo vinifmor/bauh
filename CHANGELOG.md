@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AppImage
     - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
-    - new initialization task that checks if the installed AppImage files have symlinks associated with (it creates new symlinks if they don't)
+    - new initialization task that checks if the installed AppImage files have symlinks associated with (it creates new symlinks if needed)
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/appim_symlinks.png">
     </p>
