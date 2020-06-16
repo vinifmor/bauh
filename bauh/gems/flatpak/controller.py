@@ -14,7 +14,7 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
-from bauh.commons import user
+from bauh.commons import user, internet
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
@@ -299,7 +299,6 @@ class FlatpakManager(SoftwareManager):
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-
         config = read_config()
 
         install_level = config['installation_level']
@@ -344,6 +343,11 @@ class FlatpakManager(SoftwareManager):
                         watcher.print("Operation cancelled")
                         return TransactionResult(success=False, installed=[], removed=[])
 
+        # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
+        flatpak_version = flatpak.get_version()
+        installed = flatpak.list_installed(flatpak_version)
+        installed_by_level = len([p for p in installed if p['installation'] == pkg.installation]) if installed else 0
+
         res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
         if res:
@@ -356,7 +360,21 @@ class FlatpakManager(SoftwareManager):
             except:
                 traceback.print_exc()
 
-        return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
+        if res:
+            new_installed = [pkg]
+            current_installed = flatpak.list_installed(flatpak_version)
+            current_installed_by_level = [p for p in current_installed if p['installation'] == pkg.installation] if current_installed else None
+
+            if current_installed_by_level and len(current_installed_by_level) > (installed_by_level + 1):
+                net_available = internet.is_available()
+                for p in current_installed_by_level:
+                    if p['id'] != pkg.id and p['name'] != pkg.name and p['branch'] != pkg.branch:
+                        new_installed.append(self._map_to_model(app_json=p, installed=True,
+                                                                disk_loader=disk_loader, internet=net_available))
+
+            return TransactionResult(success=res, installed=new_installed, removed=[])
+        else:
+            return TransactionResult.fail()
 
     def is_enabled(self):
         return self.enabled
