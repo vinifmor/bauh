@@ -4,10 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.6] 2020
+## [0.9.6] 2020-06
 ### Improvements
 - AppImage
     - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
+    - new initialization task that checks if the installed AppImage files have symlinks associated with (it creates new symlinks if they don't)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/appim_symlinks.png">
+    </p>
     - able to update AppImages with continuous releases
 - UI
     - not performing a full table refresh after installing and uninstalling packages

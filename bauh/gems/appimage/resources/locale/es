@@ -32,6 +32,7 @@ appimage.install.extract=Extrayendo el contenido de {}
 appimage.install.imported.rename_error=No fue posible mover el archivo {} a {}
 appimage.install.permission=Concediendo permiso de ejecución a {}
 appimage.task.db_update=Actualizando base de datos
+appimage.task.symlink_check=Verificando links simbólicos
 appimage.uninstall.error.remove_folder=No se pudo eliminar el directorio de instalación de la aplicación {}
 gem.appimage.info=Aplicativos publicados en https://appimage.github.io/
 gem.appimage.label=AppImage

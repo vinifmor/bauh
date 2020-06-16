@@ -32,6 +32,7 @@ appimage.install.extract=Извлечь содержимое из {}
 appimage.install.imported.rename_error=Не удалось переместить файл {} в {}
 appimage.install.permission=Установить права на выполнение для {}
 appimage.task.db_update=Обновление базы данных
+appimage.task.symlink_check=Checking symlinks
 appimage.uninstall.error.remove_folder=Не удалось удалить каталог приложения {}
 gem.appimage.info=Приложения, опубликованные на https://appimage.github.io/
 gem.appimage.label=AppImage
