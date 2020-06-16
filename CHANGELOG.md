@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.6] 2020
 ### Improvements
 - AppImage
+    - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
     - able to update AppImages with continuous releases
 - UI
     - not performing a full table refresh after installing and uninstalling packages

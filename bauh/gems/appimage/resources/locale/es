@@ -23,6 +23,7 @@ appimage.info.icon_path=icono
 appimage.info.imported.false=No
 appimage.info.imported.true=Sí
 appimage.info.install_dir=Directorio de instalación
+appimage.info.symlink=Link simbólico
 appimage.info.url_download=URL del archivo
 appimage.install.appimagelauncher.error={appimgl} no permite la instalación de {app}. Desinstale {appimgl}, reinicie su sistema e intente instalar {app} nuevamente.
 appimage.install.desktop_entry=Creando un atajo en el menú

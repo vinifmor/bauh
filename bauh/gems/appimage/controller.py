@@ -29,7 +29,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE
+    CONFIG_DIR, UPDATES_IGNORED_FILE, SYMLINKS_DIR
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater
@@ -330,6 +330,19 @@ class AppImageManager(SoftwareManager):
 
             self.revert_ignored_update(pkg)
 
+        if pkg.symlink and os.path.islink(pkg.symlink):
+            self.logger.info("Removing symlink '{}'".format(pkg.symlink))
+
+            try:
+                os.remove(pkg.symlink)
+                self.logger.info("symlink '{}' successfully removed".format(pkg.symlink))
+            except:
+                msg = "could not remove symlink '{}'".format(pkg.symlink)
+                self.logger.error(msg)
+
+                if watcher:
+                    watcher.print("[error] {}".format(msg))
+
         return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
@@ -350,6 +363,9 @@ class AppImageManager(SoftwareManager):
 
         if categories:
             data['categories'] = [self.i18n.get('category.{}'.format(c.lower()), self.i18n.get(c, c)).capitalize() for c in data['categories']]
+
+        if data.get('symlink') and not os.path.islink(data['symlink']):
+            del data['symlink']
 
         return data
 
@@ -442,7 +458,7 @@ class AppImageManager(SoftwareManager):
                                      body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]), bold(output)),
                                      type_=MessageType.ERROR)
 
-                return TransactionResult(success=False, installed=[], removed=[])
+                return TransactionResult.fail()
 
         else:
             appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
@@ -470,14 +486,14 @@ class AppImageManager(SoftwareManager):
                                              body=self.i18n['appimage.install.appimagelauncher.error'].format(appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
                                              type_=MessageType.ERROR)
                         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                        return TransactionResult(success=False, installed=[], removed=[])
+                        return TransactionResult.fail()
                 except:
                     watcher.show_message(title=self.i18n['error'],
                                          body=traceback.format_exc(),
                                          type_=MessageType.ERROR)
                     traceback.print_exc()
                     handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                    return TransactionResult(success=False, installed=[], removed=[])
+                    return TransactionResult.fail()
 
                 watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
                 extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
@@ -508,6 +524,8 @@ class AppImageManager(SoftwareManager):
                     except:
                         traceback.print_exc()
 
+                    self._add_symlink(pkg, file_path, watcher)
+
                     return TransactionResult(success=True, installed=[pkg], removed=[])
                 else:
                     watcher.show_message(title=self.i18n['error'],
@@ -519,7 +537,60 @@ class AppImageManager(SoftwareManager):
                                  type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-        return TransactionResult(success=False, installed=[], removed=[])
+        return TransactionResult.fail()
+
+    def _add_symlink(self, app: AppImage, file_path: str, watcher: ProcessWatcher = None):
+        possible_names = (app.name.lower(), '{}-appimage'.format(app.name.lower()))
+
+        if os.path.exists(SYMLINKS_DIR) and not os.path.isdir(SYMLINKS_DIR):
+            self.logger.warning("'{}' is not a directory. It will not be possible to create a symlink for '{}'".format(SYMLINKS_DIR, app.name))
+            return
+
+        available_system_dirs = (SYMLINKS_DIR, *(l for l in ('/usr/bin', '/usr/local/bin') if os.path.isdir(l)))
+
+        # checking if the link already exists:
+
+        available_name = None
+        for name in possible_names:
+            available_name = name
+            for sysdir in available_system_dirs:
+                if os.path.exists('{}/{}'.format(sysdir, name)):
+                    available_name = None
+                    break
+
+            if available_name:
+                break
+
+        if not available_name:
+            msg = "It was not possible to create a symlink for '{}' because the names {} are already available on the system".format(app.name,
+                                                                                                                                     possible_names)
+            self.logger.warning(msg)
+            if watcher:
+                watcher.print('[warning] {}'.format(msg))
+        else:
+            try:
+                Path(SYMLINKS_DIR).mkdir(parents=True, exist_ok=True)
+            except:
+                self.logger.error("Could not create symlink directory '{}'".format(SYMLINKS_DIR))
+                return
+
+            symlink_path = '{}/{}'.format(SYMLINKS_DIR, available_name)
+
+            try:
+                os.symlink(src=file_path, dst=symlink_path)
+                app.symlink = symlink_path
+
+                msg = "symlink successfully created at {}".format(symlink_path)
+                self.logger.info(msg)
+
+                if watcher:
+                    watcher.print(msg)
+            except:
+                msg = "Could not create the symlink '{}'".format(symlink_path)
+                self.logger.error(msg)
+
+                if watcher:
+                    watcher.print('[error] {}'.format(msg))
 
     def _gen_desktop_entry_path(self, app: AppImage) -> str:
         return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.name.lower())

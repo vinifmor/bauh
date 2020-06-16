@@ -23,6 +23,7 @@ appimage.info.icon_path=icon
 appimage.info.imported.false=No
 appimage.info.imported.true=Yes
 appimage.info.install_dir=Installation directory
+appimage.info.symlink=Symlink
 appimage.info.url_download=File URL
 appimage.install.appimagelauncher.error={appimgl} is not allowing {app} to be installed. Uninstall {appimgl}, reboot your system and try to install {app} again.
 appimage.install.desktop_entry=Generating a menu shortcut

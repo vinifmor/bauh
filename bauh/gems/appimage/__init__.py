@@ -11,6 +11,7 @@ SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master
 CONFIG_FILE = '{}/appimage.yml'.format(CONFIG_PATH)
 CONFIG_DIR = '{}/appimage'.format(CONFIG_PATH)
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
+SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 
 
 def get_icon_path() -> str:

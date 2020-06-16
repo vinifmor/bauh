@@ -23,6 +23,7 @@ appimage.info.icon_path=icon
 appimage.info.imported.false=Nien
 appimage.info.imported.true=Ya
 appimage.info.install_dir=Installation directory
+appimage.info.symlink=Symlink
 appimage.info.url_download=Datei URL
 appimage.install.appimagelauncher.error={appimgl} verhindert die installation von {app}. Deinstalliere {appimgl}, starte deinen Computer neu und versuche die installation von {app} erneut.
 appimage.install.desktop_entry=Menü-Shortcut erstellen

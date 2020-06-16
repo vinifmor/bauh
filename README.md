@@ -128,6 +128,7 @@ installation_level: null # defines a default installation level: user or system.
 - Supported sources: [AppImageHub](https://appimage.github.io) ( **applications with no releases published to GitHub are currently not available** )
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
 - Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
+- Symlinks are created at **~/.local/bin**. They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: 'rpcs3-appimage')
 - Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
 - Databases are always updated when bauh starts
 - Databases updater daemon running every 20 minutes ( it can be customized via the configuration file described below )
