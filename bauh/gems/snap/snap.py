@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 from io import StringIO
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
 from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess, SimpleProcess
 from bauh.gems.snap.model import SnapApplication
@@ -237,3 +237,13 @@ def is_api_available() -> Tuple[bool, str]:
     output.seek(0)
     output = output.read()
     return 'error:' not in output, output
+
+
+def list_installed_names() -> Set[str]:
+    res = run_cmd('{} list'.format(BASE_CMD), print_error=False)
+
+    if res:
+        lines = res.split('\n')
+
+        if not lines[0].startswith('error'):
+            return {l.split(' ')[0].strip() for l in lines[1:] if l}

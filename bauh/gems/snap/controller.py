@@ -11,7 +11,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
-from bauh.commons import resource
+from bauh.commons import resource, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
@@ -184,6 +184,9 @@ class SnapManager(SoftwareManager):
         if not info_path:
             self.logger.warning('Information directory was not found. It will not be possible to determine if the installed application can be launched')
 
+        # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
+        installed_names = snap.list_installed_names()
+
         res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
         if 'error:' in output:
@@ -208,14 +211,34 @@ class SnapManager(SoftwareManager):
                         if res and info_path:
                             pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-                        return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
+                        return self._gen_installation_response(success=res, pkg=pkg,
+                                                               installed=installed_names, disk_loader=disk_loader)
                 else:
                     self.logger.error("Could not find available channels in the installation output: {}".format(output))
         else:
             if info_path:
                 pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-        return TransactionResult(success=res, installed=[pkg] if res else [], removed=[])
+        return self._gen_installation_response(success=res, pkg=pkg, installed=installed_names, disk_loader=disk_loader)
+
+    def _gen_installation_response(self, success: bool, pkg: SnapApplication, installed: Set[str], disk_loader: DiskCacheLoader):
+        if success:
+            new_installed = [pkg]
+
+            if installed:
+                try:
+                    current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
+                except:
+                    current_installed = None
+
+                if current_installed and (not installed or len(current_installed) > len(installed) + 1):
+                    for p in current_installed:
+                        if p.name != pkg.name and (not installed or p.name not in installed):
+                            new_installed.append(p)
+
+            return TransactionResult(success=success, installed=new_installed, removed=[])
+        else:
+            return TransactionResult.fail()
 
     def is_enabled(self) -> bool:
         return self.enabled
