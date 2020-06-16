@@ -835,6 +835,9 @@ class ManageWindow(QWidget):
 
         if pkgs_info['apps_count'] == 0:
             if self.load_suggestions or self.types_changed:
+                if as_installed:
+                    self.pkgs_installed = pkgs_info['pkgs']
+
                 self._begin_search('')
                 self.thread_suggestions.filter_installed = False
                 self.thread_suggestions.start()
