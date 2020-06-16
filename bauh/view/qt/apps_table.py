@@ -409,13 +409,16 @@ class AppsTable(QTableWidget):
 
         icon_path = pkg.model.get_disk_icon_path()
         if pkg.model.installed and pkg.model.supports_disk_cache() and icon_path:
-            if icon_path.startswith('/') and os.path.isfile(icon_path):
-                with open(icon_path, 'rb') as f:
-                    icon_bytes = f.read()
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(icon_bytes)
-                    icon = QIcon(pixmap)
-                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+            if icon_path.startswith('/'):
+                if os.path.isfile(icon_path):
+                    with open(icon_path, 'rb') as f:
+                        icon_bytes = f.read()
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(icon_bytes)
+                        icon = QIcon(pixmap)
+                        self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+                else:
+                    icon = QIcon(pkg.model.get_default_icon_path())
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
