@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not performing a full table refresh after installing and uninstalling packages
     - filters algorithm speed and sorting
     - displaying wait cursor over some components
+    - sorting installed packages by their names
 
 ### Fixes
 - AppImage

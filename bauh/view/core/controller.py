@@ -1,4 +1,4 @@
-import re
+import operator
 import re
 import time
 import traceback
@@ -200,6 +200,9 @@ class GenericSoftwareManager(SoftwareManager):
     def can_work(self) -> bool:
         return True
 
+    def _get_package_lower_name(self, pkg: SoftwarePackage):
+        return pkg.name.lower()
+
     def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
@@ -253,6 +256,8 @@ class GenericSoftwareManager(SoftwareManager):
                         p.categories = ['updates_ignored']
                     elif 'updates_ignored' not in p.categories:
                         p.categories.append('updates_ignored')
+
+            res.installed.sort(key=self._get_package_lower_name)
 
         tf = time.time()
         self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
