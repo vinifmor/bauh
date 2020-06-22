@@ -1,14 +1,13 @@
 import os
 import re
+import requests
 import time
 import traceback
+from PyQt5.QtCore import QThread, pyqtSignal
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import List, Type, Set, Tuple
-
-import requests
-from PyQt5.QtCore import QThread, pyqtSignal
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -83,7 +82,7 @@ class AsyncAction(QThread, ProcessWatcher):
     def show_message(self, title: str, body: str, type_: MessageType = MessageType.INFO):
         self.signal_message.emit({'title': title, 'body': body, 'type': type_})
 
-    def notify_finished(self, res: object):
+    def notify_finished(self, res: object = None):
         self.signal_finished.emit(res)
 
     def change_status(self, status: str):
@@ -534,68 +533,68 @@ class UninstallPackage(AsyncAction):
                 self.root_pwd = None
 
 
-class DowngradeApp(AsyncAction):
+class DowngradePackage(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, app: PackageView = None):
-        super(DowngradeApp, self).__init__()
+    def __init__(self, manager: SoftwareManager, i18n: I18n, pkg: PackageView = None):
+        super(DowngradePackage, self).__init__()
         self.manager = manager
-        self.app = app
+        self.pkg = pkg
         self.i18n = i18n
         self.root_pwd = None
 
     def run(self):
-        if self.app:
+        if self.pkg:
             success = False
 
-            if self.app.model.supports_backup():
+            if self.pkg.model.supports_backup():
                 if not self.request_backup(read_config(), 'downgrade', self.i18n, self.root_pwd):
-                    self.notify_finished({'app': self.app, 'success': success})
-                    self.app = None
+                    self.notify_finished({'app': self.pkg, 'success': success})
+                    self.pkg = None
                     self.root_pwd = None
                     return
 
             try:
-                success = self.manager.downgrade(self.app.model, self.root_pwd, self)
+                success = self.manager.downgrade(self.pkg.model, self.root_pwd, self)
             except (requests.exceptions.ConnectionError, NoInternetException) as e:
                 success = False
                 self.print(self.i18n['internet.required'])
             finally:
-                self.notify_finished({'app': self.app, 'success': success})
-                self.app = None
+                self.notify_finished({'app': self.pkg, 'success': success})
+                self.pkg = None
                 self.root_pwd = None
 
 
-class GetAppInfo(AsyncAction):
+class ShowPackageInfo(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, app: PackageView = None):
-        super(GetAppInfo, self).__init__()
-        self.app = app
+    def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
+        super(ShowPackageInfo, self).__init__()
+        self.pkg = pkg
         self.manager = manager
 
     def run(self):
-        if self.app:
-            info = {'__app__': self.app}
-            info.update(self.manager.get_info(self.app.model))
+        if self.pkg:
+            info = {'__app__': self.pkg}
+            info.update(self.manager.get_info(self.pkg.model))
             self.notify_finished(info)
-            self.app = None
+            self.pkg = None
 
 
-class GetAppHistory(AsyncAction):
+class ShowPackageHistory(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, app: PackageView = None):
-        super(GetAppHistory, self).__init__()
-        self.app = app
+    def __init__(self, manager: SoftwareManager, i18n: I18n, pkg: PackageView = None):
+        super(ShowPackageHistory, self).__init__()
+        self.pkg = pkg
         self.manager = manager
         self.i18n = i18n
 
     def run(self):
-        if self.app:
+        if self.pkg:
             try:
-                self.notify_finished({'history': self.manager.get_history(self.app.model)})
+                self.notify_finished({'history': self.manager.get_history(self.pkg.model)})
             except (requests.exceptions.ConnectionError, NoInternetException) as e:
                 self.notify_finished({'error': self.i18n['internet.required']})
             finally:
-                self.app = None
+                self.pkg = None
 
 
 class SearchPackages(AsyncAction):
@@ -816,21 +815,22 @@ class ListWarnings(QThread):
             self.signal_warnings.emit(warnings)
 
 
-class LaunchApp(AsyncAction):
+class LaunchPackage(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, app: PackageView = None):
-        super(LaunchApp, self).__init__()
-        self.app = app
+    def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
+        super(LaunchPackage, self).__init__()
+        self.pkg = pkg
         self.manager = manager
 
     def run(self):
-
-        if self.app:
+        if self.pkg:
             try:
                 time.sleep(0.25)
-                self.manager.launch(self.app.model)
+                self.manager.launch(self.pkg.model)
                 self.notify_finished(True)
             except:
+                traceback.print_exc()
+            finally:
                 self.notify_finished(False)
 
 
@@ -910,7 +910,7 @@ class ApplyFilters(AsyncAction):
             while self.wait_table_update:
                 time.sleep(0.005)
 
-        self.notify_finished(True)
+        self.notify_finished()
 
 
 class CustomAction(AsyncAction):
@@ -948,10 +948,10 @@ class CustomAction(AsyncAction):
         self.root_pwd = None
 
 
-class GetScreenshots(AsyncAction):
+class ShowScreenshots(AsyncAction):
 
     def __init__(self, manager: SoftwareManager, pkg: PackageView = None):
-        super(GetScreenshots, self).__init__()
+        super(ShowScreenshots, self).__init__()
         self.pkg = pkg
         self.manager = manager
 

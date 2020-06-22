@@ -12,9 +12,9 @@ IGNORED_ATTRS = {'name', '__app__'}
 
 class InfoDialog(QDialog):
 
-    def __init__(self, app: dict, icon_cache: MemoryCache, i18n: I18n, screen_size: QSize):
+    def __init__(self, pkg_info: dict, icon_cache: MemoryCache, i18n: I18n, screen_size: QSize):
         super(InfoDialog, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
-        self.setWindowTitle(str(app['__app__']))
+        self.setWindowTitle(str(pkg_info['__app__']))
         self.screen_size = screen_size
         self.i18n = i18n
         layout = QVBoxLayout()
@@ -44,17 +44,17 @@ class InfoDialog(QDialog):
         #
         # if icon_data and icon_data.get('icon'):
         #     self.setWindowIcon(icon_data.get('icon'))
-        self.setWindowIcon(QIcon(app['__app__'].model.get_type_icon_path()))
+        self.setWindowIcon(QIcon(pkg_info['__app__'].model.get_type_icon_path()))
 
-        for idx, attr in enumerate(sorted(app.keys())):
-            if attr not in IGNORED_ATTRS and app[attr]:
-                i18n_key = app['__app__'].model.gem_name + '.info.' + attr.lower()
+        for idx, attr in enumerate(sorted(pkg_info.keys())):
+            if attr not in IGNORED_ATTRS and pkg_info[attr]:
+                i18n_key = pkg_info['__app__'].model.gem_name + '.info.' + attr.lower()
 
-                if isinstance(app[attr], list):
-                    val = ' '.join([str(e).strip() for e in app[attr] if e])
-                    show_val = '\n'.join(['* ' + str(e).strip() for e in app[attr] if e])
+                if isinstance(pkg_info[attr], list):
+                    val = ' '.join([str(e).strip() for e in pkg_info[attr] if e])
+                    show_val = '\n'.join(['* ' + str(e).strip() for e in pkg_info[attr] if e])
                 else:
-                    val = str(app[attr]).strip()
+                    val = str(pkg_info[attr]).strip()
                     show_val = val
 
                 i18n_val = i18n.get('{}.{}'.format(i18n_key, val.lower()))
@@ -90,7 +90,7 @@ class InfoDialog(QDialog):
 
         bt_close = QPushButton(self.i18n['close'].capitalize())
         bt_close.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_close.clicked.connect(lambda: self.close())
+        bt_close.clicked.connect(self.close)
 
         lower_bar.addWidget(bt_close)
         layout.addWidget(lower_bar)

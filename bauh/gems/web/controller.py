@@ -623,7 +623,6 @@ class WebApplicationManager(SoftwareManager):
         continue_install, install_options = self._ask_install_options(pkg, watcher)
 
         if not continue_install:
-            watcher.print("Installation aborted by the user")
             return TransactionResult(success=False, installed=[], removed=[])
 
         watcher.change_substatus(self.i18n['web.env.checking'])

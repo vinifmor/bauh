@@ -21,11 +21,12 @@ class WebApplication(SoftwarePackage):
         self.source_url = source_url if source_url else url
         self.installation_dir = installation_dir
         self.desktop_entry = desktop_entry
-        self.set_custom_icon(custom_icon)
         self.preset_options = preset_options
         self.save_icon = save_icon  # if the icon_url should be used instead of the one retrieved by nativefier
         self.options_set = options_set
         self.package_name = package_name
+        self.custom_icon = custom_icon
+        self.set_custom_icon(custom_icon)
 
     def get_source_url(self):
         if self.source_url:

@@ -365,7 +365,12 @@ class GenericSoftwareManager(SoftwareManager):
             return history
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
-        pass
+        available_types = set()
+
+        for man in self.get_working_managers():
+            available_types.update(man.get_managed_types())
+
+        return available_types
 
     def is_enabled(self):
         return True

@@ -96,7 +96,7 @@ class GemSelectorPanel(QWidget):
         self.manager.prepare()
         self.window.verify_warnings()
         self.window.types_changed = True
-        self.window.refresh_packages()
+        self.window.begin_refresh_packages()
         self.close()
 
     def exit(self):

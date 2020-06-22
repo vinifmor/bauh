@@ -128,7 +128,7 @@ class AppsTable(QTableWidget):
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
 
                 def show_history():
-                    self.window.get_app_history(pkg)
+                    self.window.begin_show_history(pkg)
 
                 action_history.triggered.connect(show_history)
                 menu_row.addAction(action_history)
@@ -141,7 +141,7 @@ class AppsTable(QTableWidget):
                             title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
                             body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkg)))),
                             i18n=self.i18n):
-                        self.window.downgrade(pkg)
+                        self.window.begin_downgrade(pkg)
 
                 action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
@@ -157,7 +157,7 @@ class AppsTable(QTableWidget):
                     action_ignore_updates.setIcon(QIcon(resource.get_path('img/ignore_update.svg')))
 
                 def ignore_updates():
-                    self.window.ignore_updates(pkg)
+                    self.window.begin_ignore_updates(pkg)
 
                 action_ignore_updates.triggered.connect(ignore_updates)
                 menu_row.addAction(action_ignore_updates)
@@ -174,7 +174,7 @@ class AppsTable(QTableWidget):
                             title=self.i18n[action.i18_label_key],
                             body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
                             i18n=self.i18n):
-                        self.window.execute_custom_action(pkg, action)
+                        self.window.begin_execute_custom_action(pkg, action)
 
                 item.triggered.connect(custom_action)
                 menu_row.addAction(item)
@@ -198,7 +198,7 @@ class AppsTable(QTableWidget):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
                                    body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(pkg)))),
                                    i18n=self.i18n):
-            self.window.uninstall_package(pkg)
+            self.window.begin_uninstall(pkg)
 
     def _bold(self, text: str) -> str:
         return '<span style="font-weight: bold">{}</span>'.format(text)
@@ -495,7 +495,7 @@ class AppsTable(QTableWidget):
 
         if pkg.model.installed:
             def run():
-                self.window.run_app(pkg)
+                self.window.begin_launch_package(pkg)
 
             bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, tooltip=self.i18n['action.run.tooltip'])
             bt.setEnabled(pkg.model.can_be_run())
@@ -511,18 +511,18 @@ class AppsTable(QTableWidget):
             item.addWidget(bt)
 
         if not pkg.model.installed:
-            def get_screenshots():
-                self.window.get_screenshots(pkg)
+            def show_screenshots():
+                self.window.begin_show_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots,
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=show_screenshots,
                             tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
-        def get_info():
-            self.window.get_app_info(pkg)
+        def show_info():
+            self.window.begin_show_info(pkg)
 
-        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, tooltip=self.i18n['action.info.tooltip'])
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=show_info, tooltip=self.i18n['action.info.tooltip'])
         bt.setEnabled(bool(pkg.model.has_info()))
         item.addWidget(bt)
 

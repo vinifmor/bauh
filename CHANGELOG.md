@@ -16,8 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - not performing a full table refresh after installing and uninstalling packages
     - filters algorithm speed and sorting
-    - displaying wait cursor over some components
+    - "ignore updates" action now takes less time to update the table content
+    - displaying the "wait cursor" over some components while performing some actions
     - sorting installed packages by their names
+    - big refactoring regarding the components states (now it is easier to maintain the code)
 
 ### Fixes
 - AppImage
@@ -30,8 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying empty categories
     - not scrolling the table to top after updating its content
     - not calling initial required tasks after enabling a new package type on settings
-    - not updating the type filters if only type is available after refreshing the table
-    - displaying the type filters on the search results when there is only one type available and some actions are done
+    - not updating the type filters if only one type is available after refreshing the table
+    - displaying the type filters on the search results when there is only one type available after some actions finish
     - minor fixes
 - Tray
     - update notifications not working on Ubuntu 18.04

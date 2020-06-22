@@ -22,7 +22,7 @@ from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
 from bauh.view.core.update import check_for_update
 from bauh.view.qt.about import AboutDialog
-from bauh.view.qt.view_utils import load_resource_icon
+from bauh.view.qt.qt_utils import load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
