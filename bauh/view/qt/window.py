@@ -575,7 +575,7 @@ class ManageWindow(QWidget):
         self.inp_search.setText('')
         self.input_name.setText('')
         self._begin_action(self.i18n['manage_window.status.installed'])
-        self._handle_console(False)
+        self._handle_console_option(False)
         self.comp_manager.set_components_visible(False)
         self.suggestions_requested = False
         self.search_performed = False
@@ -672,8 +672,8 @@ class ManageWindow(QWidget):
         self.inp_search.clear()
 
         self._begin_action(self.i18n['manage_window.status.refreshing'])
-        self._handle_console(False)
         self.comp_manager.set_components_visible(False)
+        self._handle_console_option(False)
 
         self.suggestions_requested = False
         self.search_performed = False
@@ -702,7 +702,7 @@ class ManageWindow(QWidget):
     def _begin_load_suggestions(self, filter_installed: bool):
         self.inp_search.clear()
         self._begin_action(self.i18n['manage_window.status.suggestions'])
-        self._handle_console(False)
+        self._handle_console_option(False)
         self.comp_manager.set_components_visible(False)
         self.suggestions_requested = True
         self.thread_suggestions.filter_installed = filter_installed
