@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying the "wait cursor" over some components while performing some actions
     - sorting installed packages by their names
     - big refactoring regarding the components states (now it is easier to maintain the code)
+    - some components compatibility with the system's color scheme
 
 ### Fixes
 - AppImage
@@ -40,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - update notifications not working when launched through IDEs
 - Regressions (from 0.9.5):
     - not displaying the default type icon besides the package when its icon path does not exist (Snap runtimes were rendered without icons)
+
 
 ## [0.9.5] 2020-06-07
 ### Features

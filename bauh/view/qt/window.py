@@ -137,25 +137,12 @@ class ManageWindow(QWidget):
         self.search_bar.setStyleSheet("spacing: 0px;")
         self.search_bar.setContentsMargins(0, 0, 0, 0)
 
-        label_pre_search = QLabel()
-        label_pre_search.setStyleSheet("""
-            background: white; 
-            border-top-left-radius: 5px; 
-            border-bottom-left-radius: 5px;
-            border-left: 1px solid lightgrey; 
-            border-top: 1px solid lightgrey; 
-            border-bottom: 1px solid lightgrey;
-        """)
-
-        self.search_bar.addWidget(label_pre_search)
-
         self.inp_search = QLineEdit()
         self.inp_search.setFrame(False)
         self.inp_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
         self.inp_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
         self.inp_search.setStyleSheet("""QLineEdit { 
-                background-color: white; 
-                color: grey; 
+                color: grey;
                 spacing: 0; 
                 height: 30px; 
                 font-size: 12px; 
@@ -165,18 +152,33 @@ class ManageWindow(QWidget):
         } 
         """)
         self.inp_search.returnPressed.connect(self.search)
+        search_background_color = self.inp_search.palette().color(self.inp_search.backgroundRole()).name()
+
+        label_pre_search = QLabel()
+        label_pre_search.setStyleSheet("""
+            border-top-left-radius: 5px; 
+            border-bottom-left-radius: 5px;
+            border-left: 1px solid lightgrey; 
+            border-top: 1px solid lightgrey; 
+            border-bottom: 1px solid lightgrey;
+            background: %s;
+        """ % search_background_color)
+
+        self.search_bar.addWidget(label_pre_search)
+
         self.search_bar.addWidget(self.inp_search)
 
         label_pos_search = QLabel()
         label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10, 10)))
         label_pos_search.setStyleSheet("""
-            background: white; padding-right: 10px; 
+            padding-right: 10px; 
             border-top-right-radius: 5px; 
             border-bottom-right-radius: 5px; 
             border-right: 1px solid lightgrey; 
             border-top: 1px solid lightgrey; 
             border-bottom: 1px solid lightgrey;
-        """)
+            background: %s;
+        """ % search_background_color)
 
         self.search_bar.addWidget(label_pos_search)
 
@@ -237,7 +239,7 @@ class ManageWindow(QWidget):
         self.input_name = InputFilter(self.begin_apply_filters)
         self.input_name.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
         self.input_name.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
-        self.input_name.setStyleSheet("QLineEdit { background-color: white; color: gray;}")
+        self.input_name.setStyleSheet("QLineEdit { color: grey; }")
         self.input_name.setFixedWidth(130)
         self.input_name.sizePolicy().setRetainSizeWhenHidden(True)
         self.comp_manager.register_component(INP_NAME, self.input_name, self.toolbar.addWidget(self.input_name))
