@@ -27,6 +27,9 @@ PUBLISHER_MAX_SIZE = 25
 
 class UpdateToggleButton(QWidget):
 
+    STYLE_DEFAULT = 'QToolButton { background: ' + GREEN + ' } QToolButton:checked { background: gray } '
+    STYLE_UNCHECKED = 'QToolButton:disabled { background: #d69003 }'
+
     def __init__(self, pkg: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -46,9 +49,7 @@ class UpdateToggleButton(QWidget):
         if clickable:
             self.bt.clicked.connect(self.change_state)
 
-        self.bt.setStyleSheet('QToolButton { background: ' + GREEN + ' }' +
-                              'QToolButton:checked { background: gray } ' +
-                              ('QToolButton:disabled { background: #d69003 }' if not clickable and not checked else ''))
+        self.bt.setStyleSheet(self.STYLE_DEFAULT + (self.STYLE_UNCHECKED if not clickable and not checked else ''))
 
         layout.addWidget(self.bt)
 
@@ -83,6 +84,8 @@ class UpdateToggleButton(QWidget):
 class AppsTable(QTableWidget):
 
     COL_NUMBER = 8
+    STYLE_BT_INSTALL = 'background: {b}; color: white; font-size: 10px; font-weight: bold'.format(b=GREEN)
+    STYLE_BT_UNINSTALL = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
 
     def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
         super(AppsTable, self).__init__()
@@ -325,19 +328,15 @@ class AppsTable(QTableWidget):
                 def uninstall():
                     self._uninstall(pkg)
 
-                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), self.STYLE_BT_UNINSTALL, uninstall)
             else:
-                item = QLabel()
-                item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
-                item.setAlignment(Qt.AlignCenter)
-                item.setToolTip(self.i18n['installed'])
+                item = None
+
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
 
-            style = 'background: {b}; color: white; font-size: 10px; font-weight: bold'.format(b=GREEN)
-            item = self._gen_row_button(self.i18n['install'].capitalize(), style, install)
+            item = self._gen_row_button(self.i18n['install'].capitalize(), self.STYLE_BT_INSTALL, install)
         else:
             item = None
 
