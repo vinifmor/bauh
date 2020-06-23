@@ -20,7 +20,7 @@ def new_qt_application(app_config: dict, quit_on_last_closed: bool = False, name
     if app_config['ui']['style']:
         app.setStyle(str(app_config['ui']['style']))
     else:
-        if app.style().objectName().lower() not in {'fusion', 'breeze'}:
+        if app.style().objectName().lower() not in {'fusion', 'breeze', 'oxygen'}:
             app.setStyle('Fusion')
 
     return app

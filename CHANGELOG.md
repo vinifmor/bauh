@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - sorting installed packages by their names
     - big refactoring regarding the components states (now it is easier to maintain the code)
     - some components compatibility with the system's color scheme
+    - allowing "Oxygen" as a default style
 
 ### Fixes
 - AppImage
