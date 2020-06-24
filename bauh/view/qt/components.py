@@ -9,11 +9,11 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame, QAction
+    QSlider, QScrollArea, QFrame, QAction, QSpinBox
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent, SpacerComponent
+    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent
 from bauh.view.qt import css
 from bauh.view.qt.colors import RED
 from bauh.view.util import resource
@@ -699,6 +699,9 @@ class FormQt(QGroupBox):
                 label = self._new_label(c)
                 field = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
                 self.layout().addRow(label, self._wrap(field, c))
+            elif isinstance(c, RangeInputComponent):
+                label = self._new_label(c)
+                self.layout().addRow(label, self._wrap(self._new_range_input(c), c))
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
@@ -712,6 +715,8 @@ class FormQt(QGroupBox):
                 self.layout().addRow(label, FormMultipleSelectQt(c))
             elif isinstance(c, TextComponent):
                 self.layout().addRow(self._new_label(c), QWidget())
+            elif isinstance(c, RangeInputComponent):
+                self.layout()
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
 
@@ -791,6 +796,22 @@ class FormQt(QGroupBox):
                 label.layout().addWidget(self.gen_tip_icon(c.tooltip))
 
         return label, self._wrap(line_edit, c)
+
+    def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
+        spinner = QSpinBox()
+        spinner.setMinimum(model.min)
+        spinner.setMaximum(model.max)
+        spinner.setSingleStep(model.step)
+        spinner.setValue(model.value if model.value is not None else model.min)
+
+        if model.tooltip:
+            spinner.setToolTip(model.tooltip)
+
+        def _update_value():
+            model.value = spinner.value()
+
+        spinner.valueChanged.connect(_update_value)
+        return spinner
 
     def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
         field_container = QWidget()
@@ -904,6 +925,8 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return MultipleSelectQt(comp, None)
     elif isinstance(comp, TextInputComponent):
         return TextInputQt(comp)
+    elif isinstance(comp, RangeInputComponent):
+        return RangeInputQt(comp)
     elif isinstance(comp, FormComponent):
         return FormQt(comp, i18n)
     elif isinstance(comp, TabGroupComponent):
@@ -924,3 +947,32 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return new_spacer()
     else:
         raise Exception("Cannot render instances of " + comp.__class__.__name__)
+
+
+class RangeInputQt(QGroupBox):
+
+    def __init__(self, model: RangeInputComponent):
+        super(RangeInputQt, self).__init__()
+        self.model = model
+        self.setLayout(QGridLayout())
+        self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
+        self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
+
+        if self.model.max_width > 0:
+            self.setMaximumWidth(self.model.max_width)
+
+        self.spinner = QSpinBox()
+        self.spinner.setMinimum(model.min)
+        self.spinner.setMaximum(model.max)
+        self.spinner.setSingleStep(model.step)
+        self.spinner.setValue(model.value if model.value is not None else model.min)
+
+        if model.tooltip:
+            self.spinner.setToolTip(model.tooltip)
+
+        self.layout().addWidget(self.spinner, 0, 1)
+
+        self.spinner.valueChanged.connect(self._update_value)
+
+    def _update_value(self):
+        self.model.value = self.spinner.value()

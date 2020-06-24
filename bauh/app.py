@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 
 import urllib3
 from PyQt5.QtCore import QCoreApplication, Qt
@@ -24,6 +25,13 @@ def main(tray: bool = False):
     if bool(app_config['ui']['auto_scale']):
         os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
         logger.info("Auto screen scale factor activated")
+
+    try:
+        scale_factor = float(app_config['ui']['scale_factor'])
+        os.environ['QT_SCALE_FACTOR'] = str(scale_factor)
+        logger.info("Scale factor set to {}".format(scale_factor))
+    except:
+        traceback.print_exc()
 
     if bool(app_config['ui']['hdpi']):
         logger.info("HDPI settings activated")

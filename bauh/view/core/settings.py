@@ -11,7 +11,7 @@ from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
-    FileChooserComponent
+    FileChooserComponent, RangeInputComponent
 from bauh.view.core import config, timeshift
 from bauh.view.core.config import read_config
 from bauh.view.core.downloader import AdaptableFileDownloader
@@ -191,6 +191,19 @@ class GenericSettingsManager:
                                                  max_width=default_width,
                                                  id_='auto_scale')
 
+        try:
+            scale = float(core_config['ui']['scale_factor'])
+
+            if scale < 1.0:
+                scale = 1.0
+        except:
+            scale = 1.0
+
+        select_scale = RangeInputComponent(id_="scalef", label=self.i18n['core.config.ui.scale_factor'] + ' (%)',
+                                           tooltip=self.i18n['core.config.ui.scale_factor.tip'],
+                                           min_value=100, max_value=400, step_value=5, value=scale * 100,
+                                           max_width=default_width)
+
         cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
         style_opts = [InputOption(label=self.i18n['core.config.ui.style.default'].capitalize(), value=None)]
         style_opts.extend([InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()])
@@ -226,7 +239,7 @@ class GenericSettingsManager:
                                                  max_width=default_width,
                                                  value=core_config['download']['icons'])
 
-        sub_comps = [FormComponent([select_hdpi, select_ascale, select_dicons, select_style, input_maxd], spaces=False)]
+        sub_comps = [FormComponent([select_hdpi, select_ascale, select_scale, select_dicons, select_style, input_maxd], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
     def _gen_general_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
@@ -388,6 +401,7 @@ class GenericSettingsManager:
             self.logger.info("Deleting environment variable QT_AUTO_SCREEN_SCALE_FACTOR")
             del os.environ['QT_AUTO_SCREEN_SCALE_FACTOR']
 
+        core_config['ui']['scale_factor'] = ui_form.get_component('scalef').value / 100
         core_config['ui']['table']['max_displayed'] = ui_form.get_component('table_max').get_int_value()
 
         style = ui_form.get_component('style').get_selected()

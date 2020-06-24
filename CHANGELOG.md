@@ -22,6 +22,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - big refactoring regarding the components states (now it is easier to maintain the code)
     - some components compatibility with the system's color scheme
     - allowing "Oxygen" as a default style
+- Settings
+    - new property **ui.scale_factor** responsible for defining the interface scale factor. Useful if bauh looks
+    small on the screen. It can be changed through the settings window (Interface tab):
+     <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/scale.png">
+     </p>
 
 ### Fixes
 - AppImage
