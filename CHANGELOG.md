@@ -18,10 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - filters algorithm speed and sorting
     - "ignore updates" action now takes less time to update the table content
     - displaying the "wait cursor" over some components while performing some actions
-    - sorting installed packages by their names
-    - big refactoring regarding the components states (now it is easier to maintain the code)
+    - sorting installed packages by their names [#124](https://github.com/vinifmor/bauh/issues/124)
     - some components compatibility with the system's color scheme
     - allowing "Oxygen" as a default style
+    - big refactoring regarding the components states (now it is easier to maintain the code)
 - Settings
     - new property **ui.scale_factor** responsible for defining the interface scale factor. Useful if bauh looks
     small on the screen. It can be changed through the settings window (Interface tab):
@@ -45,7 +45,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - minor fixes
 - Tray
     - update notifications not working on Ubuntu 18.04
-    - update notifications not working when launched through IDEs
 - Regressions (from 0.9.5):
     - not displaying the default type icon besides the package when its icon path does not exist (Snap runtimes were rendered without icons)
 
