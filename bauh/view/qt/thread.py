@@ -772,6 +772,9 @@ class NotifyPackagesReady(QThread):
         self.work = True
         self.signal_finished.emit()
 
+    def stop_working(self):
+        self.work = False
+
 
 class NotifyInstalledLoaded(QThread):
     signal_loaded = pyqtSignal()

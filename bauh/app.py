@@ -1,3 +1,4 @@
+import faulthandler
 import os
 import sys
 import traceback
@@ -14,6 +15,7 @@ def main(tray: bool = False):
     if not os.getenv('PYTHONUNBUFFERED'):
         os.environ['PYTHONUNBUFFERED'] = '1'
 
+    faulthandler.enable()
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     args = app_args.read()

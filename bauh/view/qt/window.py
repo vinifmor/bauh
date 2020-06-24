@@ -1,3 +1,4 @@
+import datetime
 import logging
 import operator
 import time
@@ -100,6 +101,7 @@ class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
     signal_root_password = pyqtSignal(str, bool)
     signal_table_update = pyqtSignal()
+    signal_stop_notifying = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
@@ -376,6 +378,7 @@ class ManageWindow(QWidget):
         self.thread_notify_pkgs_ready = NotifyPackagesReady()
         self.thread_notify_pkgs_ready.signal_changed.connect(self._update_package_data)
         self.thread_notify_pkgs_ready.signal_finished.connect(self._update_state_when_pkgs_ready)
+        self.signal_stop_notifying.connect(self.thread_notify_pkgs_ready.stop_working)
 
         self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
@@ -486,8 +489,7 @@ class ManageWindow(QWidget):
             self.table_container.setCursor(QCursor(Qt.WaitCursor))
 
     def begin_apply_filters(self):
-        self.thread_notify_pkgs_ready.work = False
-        self.thread_notify_pkgs_ready.wait(5)
+        self.stop_notifying_package_states()
         self._begin_action(action_label=self.i18n['manage_window.status.filtering'],
                            action_id=ACTION_APPLY_FILTERS)
         self.comp_manager.disable_visible_from_groups(GROUP_UPPER_BAR, GROUP_LOWER_BTS)
@@ -502,13 +504,22 @@ class ManageWindow(QWidget):
         self._finish_action(ACTION_APPLY_FILTERS)
         self.update_bt_upgrade()
 
+    def stop_notifying_package_states(self):
+        if self.thread_notify_pkgs_ready.isRunning():
+            self.signal_stop_notifying.emit()
+
+            expires_at = datetime.datetime.now() + datetime.timedelta(seconds=5)
+
+            while datetime.datetime.now() < expires_at and self.thread_notify_pkgs_ready.isRunning():
+                time.sleep(0.1)
+
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
 
         if self.pkgs:
             self._update_state_when_pkgs_ready()
-            self.thread_notify_pkgs_ready.work = False
-            self.thread_notify_pkgs_ready.wait(5)
+
+            self.stop_notifying_package_states()
             self.thread_notify_pkgs_ready.pkgs = self.pkgs
             self.thread_notify_pkgs_ready.work = True
             self.thread_notify_pkgs_ready.start()
@@ -943,6 +954,8 @@ class ManageWindow(QWidget):
         self._update_table(pkgs_info=pkgs_info)
 
         if new_pkgs:
+            self.stop_notifying_package_states()
+            self.thread_notify_pkgs_ready.work = True
             self.thread_notify_pkgs_ready.pkgs = self.pkgs
             self.thread_notify_pkgs_ready.start()
 
