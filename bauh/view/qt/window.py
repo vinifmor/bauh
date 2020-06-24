@@ -501,7 +501,6 @@ class ManageWindow(QWidget):
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
         self.update_bt_upgrade()
-        self._reorganize()
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
@@ -841,6 +840,9 @@ class ManageWindow(QWidget):
                     break
 
         self.comp_manager.set_component_visible(BT_UPGRADE, show_bt_upgrade)
+
+        if show_bt_upgrade:
+            self._reorganize()
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True, keep_selected: bool = False):
         self.update_bt_upgrade(pkgs_info)
