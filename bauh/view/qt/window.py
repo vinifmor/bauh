@@ -501,6 +501,7 @@ class ManageWindow(QWidget):
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
         self.update_bt_upgrade()
+        self._reorganize()
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)
