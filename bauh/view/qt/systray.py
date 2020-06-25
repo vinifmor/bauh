@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import sys
-import time
 import traceback
 from io import StringIO
 from subprocess import Popen
@@ -84,7 +83,7 @@ class UpdateCheck(QThread):
         finally:
             self.lock.release()
 
-        time.sleep(self.check_interval)
+        self.sleep(self.check_interval)
 
     def run(self):
         while True:
@@ -96,15 +95,15 @@ class UpdateCheck(QThread):
                     except:
                         traceback.print_exc()
                 else:
-                    time.sleep(self.check_interval)
+                    self.sleep(self.check_interval)
             else:
                 self._notify_updates()
 
 
-class AppUpdateCheck(Thread):
+class AppUpdateCheck(QThread):
 
     def __init__(self, http_client: HttpClient, logger: logging.Logger, i18n: I18n, interval: int = 300):
-        super(AppUpdateCheck, self).__init__(daemon=True)
+        super(AppUpdateCheck, self).__init__()
         self.interval = interval
         self.http_client = http_client
         self.logger = logger
@@ -117,7 +116,7 @@ class AppUpdateCheck(Thread):
             if update_msg:
                 util.notify_user(msg=update_msg)
 
-            time.sleep(self.interval)
+            self.sleep(self.interval)
 
 
 class TrayIcon(QSystemTrayIcon):
