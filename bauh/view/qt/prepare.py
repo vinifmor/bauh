@@ -1,6 +1,5 @@
 import datetime
 import operator
-import time
 from functools import reduce
 from typing import Tuple
 
@@ -42,7 +41,7 @@ class Prepare(QThread, TaskManager):
         self.signal_ask_password.emit()
 
         while self.waiting_password:
-            time.sleep(0.1)  # waiting for user input
+            self.msleep(100)  # waiting for user input
 
         return self.password_response
 
@@ -83,12 +82,12 @@ class CheckFinished(QThread):
         self.finished = None
 
     def run(self):
-        time.sleep(3)
+        self.sleep(3)
         while True:
             if self.total == self.finished:
                 break
 
-            time.sleep(0.01)
+            self.msleep(10)
 
         self.signal_finished.emit()
 
@@ -112,7 +111,7 @@ class EnableSkip(QThread):
                 self.signal_timeout.emit()
                 break
 
-            time.sleep(0.1)
+            self.msleep(100)
 
 
 class PreparePanel(QWidget, TaskManager):

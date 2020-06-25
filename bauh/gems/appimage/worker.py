@@ -27,7 +27,7 @@ class DatabaseUpdater(Thread):
         self.http_client = http_client
         self.logger = logger
         self.db_locks = db_locks
-        self.sleep = interval
+        self.sleep_time = interval
         self.i18n = i18n
         self.task_man = task_man
         self.task_id = 'appim_db'
@@ -103,7 +103,7 @@ class DatabaseUpdater(Thread):
         while True:
             self.download_databases()
             self.logger.info('Sleeping')
-            time.sleep(self.sleep)
+            time.sleep(self.sleep_time)
 
 
 class SymlinksVerifier(Thread):

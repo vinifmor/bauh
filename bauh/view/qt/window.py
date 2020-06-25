@@ -1,4 +1,4 @@
-import datetime
+import logging
 import logging
 import operator
 import time
@@ -507,11 +507,7 @@ class ManageWindow(QWidget):
     def stop_notifying_package_states(self):
         if self.thread_notify_pkgs_ready.isRunning():
             self.signal_stop_notifying.emit()
-
-            expires_at = datetime.datetime.now() + datetime.timedelta(seconds=5)
-
-            while datetime.datetime.now() < expires_at and self.thread_notify_pkgs_ready.isRunning():
-                time.sleep(0.1)
+            self.thread_notify_pkgs_ready.wait(1000)
 
     def _update_table_and_upgrades(self, pkgs_info: dict):
         self._update_table(pkgs_info=pkgs_info, signal=True)

@@ -1,13 +1,14 @@
 import os
 import re
-import requests
 import time
 import traceback
-from PyQt5.QtCore import QThread, pyqtSignal
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import List, Type, Set, Tuple
+
+import requests
+from PyQt5.QtCore import QThread, pyqtSignal
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -73,7 +74,7 @@ class AsyncAction(QThread, ProcessWatcher):
 
     def wait_user(self):
         while self.wait_confirmation:
-            time.sleep(0.01)
+            self.msleep(10)
 
     def print(self, msg: str):
         if msg:
@@ -670,7 +671,7 @@ class AnimateProgress(QThread):
         self.increment = 5
         self.stop = False
         self.limit = 100
-        self.sleep = 0.05
+        self.wait_time = 50
         self.last_progress = 0
         self.manual = False
         self.paused = False
@@ -680,7 +681,7 @@ class AnimateProgress(QThread):
         self.increment = 5
         self.stop = False
         self.limit = 100
-        self.sleep = 0.05
+        self.wait_time = 50
         self.last_progress = 0
         self.manual = False
         self.paused = False
@@ -724,7 +725,7 @@ class AnimateProgress(QThread):
 
                 self.progress_value += current_increment
 
-            time.sleep(self.sleep)
+            super(AnimateProgress, self).msleep(self.wait_time)
 
         self.signal_change.emit(100)
         self._reset()
@@ -766,7 +767,7 @@ class NotifyPackagesReady(QThread):
             if not to_verify:
                 break
 
-            time.sleep(0.1)
+            self.msleep(100)
 
         self.pkgs = None
         self.work = True
@@ -787,7 +788,7 @@ class NotifyInstalledLoaded(QThread):
         self.loaded = True
 
     def run(self):
-        time.sleep(0.1)
+        self.msleep(100)
         self.signal_loaded.emit()
 
 
@@ -828,7 +829,7 @@ class LaunchPackage(AsyncAction):
     def run(self):
         if self.pkg:
             try:
-                time.sleep(0.25)
+                super(LaunchPackage, self).msleep(250)
                 self.manager.launch(self.pkg.model)
                 self.notify_finished(True)
             except:
@@ -911,7 +912,7 @@ class ApplyFilters(AsyncAction):
             self.signal_table.emit(pkgs_info)
 
             while self.wait_table_update:
-                time.sleep(0.005)
+                super(ApplyFilters, self).msleep(5)
 
         self.notify_finished()
 

@@ -1,11 +1,9 @@
 import os
-import time
 import traceback
 from pathlib import Path
-from threading import Thread
 from typing import Tuple, Dict, Optional, Set
 
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
@@ -600,26 +598,23 @@ class InputFilter(QLineEdit):
         super(InputFilter, self).__init__()
         self.on_key_press = on_key_press
         self.last_text = ''
-        self.typing = None
+        self.typing = QTimer()
+        self.typing.timeout.connect(self.notify_text_change)
 
     def notify_text_change(self):
-        time.sleep(2)
         text = self.text().strip()
 
         if text != self.last_text:
             self.last_text = text
             self.on_key_press()
 
-        self.typing = None
-
     def keyPressEvent(self, event):
         super(InputFilter, self).keyPressEvent(event)
 
-        if self.typing:
+        if self.typing.isActive():
             return
 
-        self.typing = Thread(target=self.notify_text_change, daemon=True)
-        self.typing.start()
+        self.typing.start(2000)
 
     def get_text(self):
         return self.last_text
