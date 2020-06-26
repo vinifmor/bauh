@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import sys
-import time
 import traceback
 from io import StringIO
 from subprocess import Popen
@@ -16,21 +15,41 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate
 from bauh.api.http import HttpClient
+from bauh.commons import system
 from bauh.commons.system import run_cmd
 from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
 from bauh.view.core.update import check_for_update
 from bauh.view.qt.about import AboutDialog
-from bauh.view.qt.view_utils import load_resource_icon
+from bauh.view.qt.qt_utils import load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
-CLI_PATH = '{}/bin/bauh-cli'.format(sys.exec_prefix)
+
+def get_cli_path() -> str:
+    venv = os.getenv('VIRTUAL_ENV')
+
+    if venv:
+        cli_path = '{}/bin/bauh-cli'.format(venv)
+
+        if os.path.exists(cli_path):
+            return cli_path
+    elif not sys.executable.startswith('/usr'):
+        cli_path = '{}/bin/bauh-cli'.format(sys.prefix)
+
+        if os.path.exists(cli_path):
+            return cli_path
+    else:
+        cli_path = system.run_cmd('which bauh-cli', print_error=False)
+    
+        if cli_path:
+            return cli_path.strip()
 
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
-    if os.path.exists(CLI_PATH):
-        output = run_cmd('{} updates -f json'.format(CLI_PATH))
+    cli_path = get_cli_path()
+    if cli_path:
+        output = run_cmd('{} updates -f json'.format(cli_path))
 
         if output:
             return [PackageUpdate(pkg_id=o['id'], name=o['name'], version=o['version'], pkg_type=o['type']) for o in json.loads(output)]
@@ -38,7 +57,7 @@ def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
             logger.info("No updates found")
 
     else:
-        logger.warning('bauh-cli seems not to be installed ({})'.format(CLI_PATH))
+        logger.warning('bauh-cli seems not to be installed')
 
     return []
 
@@ -64,7 +83,7 @@ class UpdateCheck(QThread):
         finally:
             self.lock.release()
 
-        time.sleep(self.check_interval)
+        self.sleep(self.check_interval)
 
     def run(self):
         while True:
@@ -76,15 +95,15 @@ class UpdateCheck(QThread):
                     except:
                         traceback.print_exc()
                 else:
-                    time.sleep(self.check_interval)
+                    self.sleep(self.check_interval)
             else:
                 self._notify_updates()
 
 
-class AppUpdateCheck(Thread):
+class AppUpdateCheck(QThread):
 
     def __init__(self, http_client: HttpClient, logger: logging.Logger, i18n: I18n, interval: int = 300):
-        super(AppUpdateCheck, self).__init__(daemon=True)
+        super(AppUpdateCheck, self).__init__()
         self.interval = interval
         self.http_client = http_client
         self.logger = logger
@@ -97,7 +116,7 @@ class AppUpdateCheck(Thread):
             if update_msg:
                 util.notify_user(msg=update_msg)
 
-            time.sleep(self.interval)
+            self.sleep(self.interval)
 
 
 class TrayIcon(QSystemTrayIcon):

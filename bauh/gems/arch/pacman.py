@@ -100,26 +100,28 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
 
-    allinfo = run_cmd('pacman -Qi{}'.format(' ' + ' '.join(names) if names else ''))
+    allinfo = run_cmd('pacman -Qi{}'.format(' ' + ' '.join(names) if names else ''), print_error=False)
 
     pkgs = {'signed': {}, 'not_signed': {}}
     current_pkg = {}
-    for idx, field_tuple in enumerate(RE_INSTALLED_FIELDS.findall(allinfo)):
-        if field_tuple[0].startswith('N'):
-            current_pkg['name'] = field_tuple[1].strip()
-        elif field_tuple[0].startswith('Ve'):
-            current_pkg['version'] = field_tuple[1].split(':')[-1].strip()
-        elif field_tuple[0].startswith('D'):
-            current_pkg['description'] = field_tuple[1].strip()
-        elif field_tuple[0].startswith('Va'):
-            if field_tuple[1].strip().lower() == 'none':
-                pkgs['not_signed'][current_pkg['name']] = current_pkg
-                del current_pkg['name']
-            else:
-                pkgs['signed'][current_pkg['name']] = current_pkg
-                del current_pkg['name']
 
-            current_pkg = {}
+    if allinfo:
+        for idx, field_tuple in enumerate(RE_INSTALLED_FIELDS.findall(allinfo)):
+            if field_tuple[0].startswith('N'):
+                current_pkg['name'] = field_tuple[1].strip()
+            elif field_tuple[0].startswith('Ve'):
+                current_pkg['version'] = field_tuple[1].split(':')[-1].strip()
+            elif field_tuple[0].startswith('D'):
+                current_pkg['description'] = field_tuple[1].strip()
+            elif field_tuple[0].startswith('Va'):
+                if field_tuple[1].strip().lower() == 'none':
+                    pkgs['not_signed'][current_pkg['name']] = current_pkg
+                    del current_pkg['name']
+                else:
+                    pkgs['signed'][current_pkg['name']] = current_pkg
+                    del current_pkg['name']
+
+                current_pkg = {}
 
     if pkgs['signed'] or pkgs['not_signed']:
         thread_ignored.join()

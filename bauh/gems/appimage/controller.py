@@ -16,7 +16,8 @@ from typing import Set, Type, List, Tuple
 from colorama import Fore
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
+    TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
@@ -28,10 +29,10 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE
+    CONFIG_DIR, UPDATES_IGNORED_FILE, util
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
-from bauh.gems.appimage.worker import DatabaseUpdater
+from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
 
 DB_APPS_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/apps.db')
 DB_RELEASES_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/releases.db')
@@ -49,7 +50,7 @@ class AppImageManager(SoftwareManager):
         super(AppImageManager, self).__init__(context=context)
         self.i18n = context.i18n
         self.api_cache = context.cache_factory.new()
-        context.disk_loader_factory.map(AppImageManager, self.api_cache)
+        context.disk_loader_factory.map(AppImage, self.api_cache)
         self.enabled = True
         self.http_client = context.http_client
         self.logger = context.logger
@@ -109,13 +110,13 @@ class AppImageManager(SoftwareManager):
         if inp_cat.get_selected() != cat_ops[0].value:
             appim.categories.append(inp_cat.get_selected())
 
-        installed = self.install(root_password=root_password, pkg=appim, watcher=watcher)
+        res = self.install(root_password=root_password, pkg=appim, disk_loader=None, watcher=watcher).success
 
-        if installed:
+        if res:
             appim.installed = True
             self.cache_to_disk(appim, None, False)
 
-        return installed
+        return res
 
     def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
@@ -169,8 +170,8 @@ class AppImageManager(SoftwareManager):
 
                 found_map = {}
                 idx = 0
-                for l in cursor.fetchall():
-                    app = AppImage(*l, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                for r in cursor.fetchall():
+                    app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
                     res.new.append(app)
                     found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                     idx += 1
@@ -223,7 +224,18 @@ class AppImageManager(SoftwareManager):
                             for tup in cursor.fetchall():
                                 for app in res.installed:
                                     if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
-                                        app.update = LooseVersion(tup[2]) > LooseVersion(app.version) if tup[2] else False
+                                        continuous_version = app.version == 'continuous'
+                                        continuous_update = tup[2] == 'continuous'
+                                        if continuous_version and not continuous_update:
+                                            app.update = True
+                                        elif continuous_update and not continuous_version:
+                                            app.update = False
+                                        else:
+                                            try:
+                                                app.update = LooseVersion(tup[2]) > LooseVersion(app.version) if tup[2] else False
+                                            except:
+                                                app.update = False
+                                                traceback.print_exc()
 
                                         if app.update:
                                             app.latest_version = tup[2]
@@ -265,12 +277,12 @@ class AppImageManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
         else:
-            if self.uninstall(pkg, root_password, watcher):
+            if self.uninstall(pkg, root_password, watcher).success:
                 old_release = versions.history[versions.pkg_status_idx + 1]
                 pkg.version = old_release['0_version']
                 pkg.latest_version = pkg.version
                 pkg.url_download = old_release['2_url_download']
-                if self.install(pkg, root_password, watcher):
+                if self.install(pkg, root_password, None, watcher).success:
                     self.cache_to_disk(pkg, None, False)
                     return True
                 else:
@@ -288,14 +300,14 @@ class AppImageManager(SoftwareManager):
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
 
-            if not self.uninstall(req.pkg, root_password, watcher):
+            if not self.uninstall(req.pkg, root_password, watcher).success:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['appimage.error.uninstall_current_version'],
                                      type_=MessageType.ERROR)
                 watcher.change_substatus('')
                 return False
 
-            if not self.install(req.pkg, root_password, watcher):
+            if not self.install(req.pkg, root_password, None, watcher).success:
                 watcher.change_substatus('')
                 return False
 
@@ -304,13 +316,13 @@ class AppImageManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         if os.path.exists(pkg.get_disk_cache_path()):
             handler = ProcessHandler(watcher)
 
             if not handler.handle(SystemProcess(new_subprocess(['rm', '-rf', pkg.get_disk_cache_path()]))):
                 watcher.show_message(title=self.i18n['error'], body=self.i18n['appimage.uninstall.error.remove_folder'].format(bold(pkg.get_disk_cache_path())))
-                return False
+                return TransactionResult.fail()
 
             de_path = self._gen_desktop_entry_path(pkg)
             if os.path.exists(de_path):
@@ -318,7 +330,20 @@ class AppImageManager(SoftwareManager):
 
             self.revert_ignored_update(pkg)
 
-        return True
+        if pkg.symlink and os.path.islink(pkg.symlink):
+            self.logger.info("Removing symlink '{}'".format(pkg.symlink))
+
+            try:
+                os.remove(pkg.symlink)
+                self.logger.info("symlink '{}' successfully removed".format(pkg.symlink))
+            except:
+                msg = "could not remove symlink '{}'".format(pkg.symlink)
+                self.logger.error(msg)
+
+                if watcher:
+                    watcher.print("[error] {}".format(msg))
+
+        return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {AppImage}
@@ -338,6 +363,9 @@ class AppImageManager(SoftwareManager):
 
         if categories:
             data['categories'] = [self.i18n.get('category.{}'.format(c.lower()), self.i18n.get(c, c)).capitalize() for c in data['categories']]
+
+        if data.get('symlink') and not os.path.islink(data['symlink']):
+            del data['symlink']
 
         return data
 
@@ -385,19 +413,13 @@ class AppImageManager(SoftwareManager):
                 if f.endswith('.desktop'):
                     return f
 
-    def _find_appimage_file(self, folder: str) -> str:
-        for r, d, files in os.walk(folder):
-            for f in files:
-                if f.lower().endswith('.appimage'):
-                    return '{}/{}'.format(folder, f)
-
     def _find_icon_file(self, folder: str) -> str:
         for r, d, files in os.walk(folder):
             for f in files:
                 if RE_ICON_ENDS_WITH.match(f):
                     return f
 
-    def install(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install(self, pkg: AppImage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         handler = ProcessHandler(watcher)
 
         out_dir = INSTALLATION_PATH + pkg.name.lower()
@@ -429,7 +451,8 @@ class AppImageManager(SoftwareManager):
                 watcher.show_message(title=self.i18n['error'].capitalize(),
                                      body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]), bold(output)),
                                      type_=MessageType.ERROR)
-                return False
+
+                return TransactionResult.fail()
 
         else:
             appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
@@ -457,14 +480,14 @@ class AppImageManager(SoftwareManager):
                                              body=self.i18n['appimage.install.appimagelauncher.error'].format(appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
                                              type_=MessageType.ERROR)
                         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                        return False
+                        return TransactionResult.fail()
                 except:
                     watcher.show_message(title=self.i18n['error'],
                                          body=traceback.format_exc(),
                                          type_=MessageType.ERROR)
                     traceback.print_exc()
                     handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                    return False
+                    return TransactionResult.fail()
 
                 watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
                 extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
@@ -490,8 +513,13 @@ class AppImageManager(SoftwareManager):
                     with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
                         f.write(de_content)
 
-                    shutil.rmtree(extracted_folder)
-                    return True
+                    try:
+                        shutil.rmtree(extracted_folder)
+                    except:
+                        traceback.print_exc()
+
+                    SymlinksVerifier.create_symlink(app=pkg, file_path=file_path, logger=self.logger, watcher=watcher)
+                    return TransactionResult(success=True, installed=[pkg], removed=[])
                 else:
                     watcher.show_message(title=self.i18n['error'],
                                          body='Could extract content from {}'.format(bold(file_name)),
@@ -502,7 +530,7 @@ class AppImageManager(SoftwareManager):
                                  type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-        return False
+        return TransactionResult.fail()
 
     def _gen_desktop_entry_path(self, app: AppImage) -> str:
         return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.name.lower())
@@ -535,6 +563,9 @@ class AppImageManager(SoftwareManager):
             updater.start()
         elif internet_available:
             updater.download_databases()  # only once
+
+        symlink_check = SymlinksVerifier(taskman=task_manager, i18n=self.i18n, logger=self.logger)
+        symlink_check.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
@@ -604,7 +635,7 @@ class AppImageManager(SoftwareManager):
     def launch(self, pkg: AppImage):
         installation_dir = pkg.get_disk_cache_path()
         if os.path.exists(installation_dir):
-            appimag_path = self._find_appimage_file(installation_dir)
+            appimag_path = util.find_appimage_file(installation_dir)
 
             if appimag_path:
                 subprocess.Popen([appimag_path])

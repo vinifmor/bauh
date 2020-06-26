@@ -18,7 +18,7 @@ from bauh.view.util.translation import I18n
 class SettingsWindow(QWidget):
 
     def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize, window: QWidget, parent: QWidget = None):
-        super(SettingsWindow, self).__init__(parent=parent)
+        super(SettingsWindow, self).__init__(parent=parent, flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.setWindowTitle('{} ({})'.format(i18n['settings'].capitalize(), __app_name__))
         self.setLayout(QVBoxLayout())
         self.manager = manager
@@ -96,7 +96,7 @@ class SettingsWindow(QWidget):
                     self.window.update_custom_actions()
                     self.window.verify_warnings()
                     self.window.types_changed = True
-                    self.window.refresh_packages()
+                    self.window.begin_refresh_packages()
                 self.close()
         else:
             msg = StringIO()

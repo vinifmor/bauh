@@ -31,6 +31,7 @@ class ScreenshotsDialog(QDialog):
         self.i18n = i18n
         self.http_client = http_client
         self.progress_bar = QProgressBar()
+        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
         self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 6)
         self.progress_bar.setTextVisible(False)
@@ -61,6 +62,7 @@ class ScreenshotsDialog(QDialog):
         self.bottom_bar.addWidget(new_spacer(50))
 
         self.img_label = QLabel()
+        self.img_label.setCursor(QCursor(Qt.WaitCursor))
         self.img_label.setStyleSheet('QLabel { font-weight: bold; text-align: center }')
         self.ref_img_label = self.bottom_bar.addWidget(self.img_label)
         self.ref_img_label.setVisible(False)
@@ -96,11 +98,13 @@ class ScreenshotsDialog(QDialog):
                 self.img_label.setText(img)
                 self.img.setPixmap(QPixmap())
 
+            self.img.unsetCursor()
             self.thread_progress.stop = True
             self.ref_progress_bar.setVisible(False)
             self.ref_img_label.setVisible(True)
         else:
             self.img.setPixmap(QPixmap())
+            self.img.setCursor(QCursor(Qt.WaitCursor))
             self.ref_img_label.setVisible(False)
             self.ref_progress_bar.setVisible(True)
             self.thread_progress.start()

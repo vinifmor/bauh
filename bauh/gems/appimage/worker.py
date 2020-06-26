@@ -1,4 +1,5 @@
 import glob
+import json
 import logging
 import os
 import tarfile
@@ -9,10 +10,11 @@ from threading import Thread
 
 import requests
 
-from bauh.api.abstract.handler import TaskManager
+from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons import internet
-from bauh.gems.appimage import LOCAL_PATH, get_icon_path
+from bauh.gems.appimage import LOCAL_PATH, get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util
+from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
 
 
@@ -25,7 +27,7 @@ class DatabaseUpdater(Thread):
         self.http_client = http_client
         self.logger = logger
         self.db_locks = db_locks
-        self.sleep = interval
+        self.sleep_time = interval
         self.i18n = i18n
         self.task_man = task_man
         self.task_id = 'appim_db'
@@ -101,4 +103,118 @@ class DatabaseUpdater(Thread):
         while True:
             self.download_databases()
             self.logger.info('Sleeping')
-            time.sleep(self.sleep)
+            time.sleep(self.sleep_time)
+
+
+class SymlinksVerifier(Thread):
+
+    def __init__(self, taskman: TaskManager, i18n: I18n, logger: logging.Logger):
+        super(SymlinksVerifier, self).__init__(daemon=True)
+        self.taskman = taskman
+        self.i18n = i18n
+        self.logger = logger
+        self.task_id = 'appim_symlink_check'
+
+    @staticmethod
+    def create_symlink(app: AppImage, file_path: str, logger: logging.Logger, watcher: ProcessWatcher = None):
+        logger.info("Creating a symlink for '{}'".format(app.name))
+        possible_names = (app.name.lower(), '{}-appimage'.format(app.name.lower()))
+
+        if os.path.exists(SYMLINKS_DIR) and not os.path.isdir(SYMLINKS_DIR):
+            logger.warning("'{}' is not a directory. It will not be possible to create a symlink for '{}'".format(SYMLINKS_DIR, app.name))
+            return
+
+        available_system_dirs = (SYMLINKS_DIR, *(l for l in ('/usr/bin', '/usr/local/bin') if os.path.isdir(l)))
+
+        # checking if the link already exists:
+
+        available_name = None
+        for name in possible_names:
+            available_name = name
+            for sysdir in available_system_dirs:
+                if os.path.exists('{}/{}'.format(sysdir, name)):
+                    available_name = None
+                    break
+
+            if available_name:
+                break
+
+        if not available_name:
+            msg = "It was not possible to create a symlink for '{}' because the names {} are already available on the system".format(app.name,
+                                                                                                                                     possible_names)
+            logger.warning(msg)
+            if watcher:
+                watcher.print('[warning] {}'.format(msg))
+        else:
+            try:
+                Path(SYMLINKS_DIR).mkdir(parents=True, exist_ok=True)
+            except:
+                logger.error("Could not create symlink directory '{}'".format(SYMLINKS_DIR))
+                return
+
+            symlink_path = '{}/{}'.format(SYMLINKS_DIR, available_name)
+
+            try:
+                os.symlink(src=file_path, dst=symlink_path)
+                app.symlink = symlink_path
+
+                msg = "symlink successfully created at {}".format(symlink_path)
+                logger.info(msg)
+
+                if watcher:
+                    watcher.print(msg)
+            except:
+                msg = "Could not create the symlink '{}'".format(symlink_path)
+                logger.error(msg)
+
+                if watcher:
+                    watcher.print('[error] {}'.format(msg))
+
+    def run(self):
+        self.taskman.register_task(self.task_id, self.i18n['appimage.task.symlink_check'], get_icon_path())
+
+        if os.path.exists(INSTALLATION_PATH):
+            installed_files = glob.glob('{}/*/*.json'.format(INSTALLATION_PATH))
+
+            if installed_files:
+                self.logger.info("Checking installed AppImage files with no symlinks created")
+
+                progress_per_file = (1/len(installed_files)) * 100
+                total_progress = 0
+                for json_file in installed_files:
+                    with open(json_file) as f:
+                        try:
+                            data = json.loads(f.read())
+                        except:
+                            self.logger.warning("Could not parse data from '{}'".format(json_file))
+                            data = None
+
+                    if data and not data.get('symlink'):
+                        app = AppImage(**data, i18n=self.i18n)
+                        file_path = util.find_appimage_file(app.install_dir)
+
+                        if file_path:
+                            self.create_symlink(app, file_path, self.logger)
+                            data['symlink'] = app.symlink
+
+                            # caching
+                            try:
+                                with open(json_file, 'w+') as f:
+                                    f.write(json.dumps(data))
+                            except:
+                                self.logger.warning("Could not update cached data on '{}'".format(json_file))
+                                traceback.print_exc()
+
+                        else:
+                            self.logger.warning("No AppImage file found on installation dir '{}'".format(file_path))
+
+                    total_progress += progress_per_file
+                    self.taskman.update_progress(self.task_id, total_progress, '')
+
+                self.taskman.update_progress(self.task_id, 100, '')
+                self.taskman.finish_task(self.task_id)
+                return
+
+        self.logger.info("No AppImage applications found. Aborting")
+        self.taskman.update_progress(self.task_id, 100, '')
+        self.taskman.finish_task(self.task_id)

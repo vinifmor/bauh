@@ -3,23 +3,28 @@ from typing import Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QIcon
-from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QInputDialog, QLineEdit, QDialogButtonBox, QApplication
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.view import MessageType
 from bauh.commons.system import new_subprocess
 from bauh.view.core.config import read_config
 from bauh.view.qt import css
+from bauh.view.qt.components import QtComponentsManager
 from bauh.view.qt.dialog import show_message
 from bauh.view.util import util
 from bauh.view.util.translation import I18n
+
+ACTION_ASK_ROOT = 99
 
 
 def is_root():
     return os.getuid() == 0
 
 
-def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict = None) -> Tuple[str, bool]:
+def ask_root_password(context: ApplicationContext, i18n: I18n,
+                      app_config: dict = None,
+                      comp_manager: QtComponentsManager = None) -> Tuple[str, bool]:
 
     cur_config = read_config() if not app_config else app_config
     store_password = bool(cur_config['store_root_password'])
@@ -48,13 +53,20 @@ def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict 
 
     diag.resize(400, 200)
 
+    if comp_manager:
+        comp_manager.save_states(state_id=ACTION_ASK_ROOT, only_visible=True)
+        comp_manager.disable_visible()
+
     for attempt in range(3):
 
         ok = diag.exec_()
 
         if ok:
-            if not validate_password(diag.textValue()):
+            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+            valid = validate_password(diag.textValue())
+            QApplication.restoreOverrideCursor()
 
+            if not valid:
                 body = i18n['popup.root.bad_password.body']
 
                 if attempt == 2:
@@ -70,9 +82,15 @@ def ask_root_password(context: ApplicationContext, i18n: I18n, app_config: dict 
                 if store_password:
                     context.root_password = diag.textValue()
 
+                if comp_manager:
+                    comp_manager.restore_state(ACTION_ASK_ROOT)
+
                 return diag.textValue(), ok
         else:
             break
+
+    if comp_manager:
+        comp_manager.restore_state(ACTION_ASK_ROOT)
 
     return '', False
 

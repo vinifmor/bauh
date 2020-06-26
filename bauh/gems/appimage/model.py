@@ -6,7 +6,7 @@ from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
-                'icon_path', 'github', 'categories', 'imported', 'install_dir'}
+                'icon_path', 'github', 'categories', 'imported', 'install_dir', 'symlink'}
 
 
 class AppImage(SoftwarePackage):
@@ -15,13 +15,14 @@ class AppImage(SoftwarePackage):
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
-                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, updates_ignored: bool = False, **kwargs):
+                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, updates_ignored: bool = False,
+                 symlink: str = None, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
         self.source = source
         self.github = github
-        self.categories = categories.split(',') if isinstance(categories, str) else categories
+        self.categories = (categories.split(',') if isinstance(categories, str) else categories) if categories else None
         self.url_download = url_download
         self.icon_path = icon_path
         self.url_screenshot = url_screenshot
@@ -33,6 +34,7 @@ class AppImage(SoftwarePackage):
         self.install_dir = install_dir
         self.custom_actions = custom_actions
         self.updates_ignored = updates_ignored
+        self.symlink = symlink
 
     def __repr__(self):
         return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
@@ -117,4 +119,4 @@ class AppImage(SoftwarePackage):
 
     def __eq__(self, other):
         if isinstance(other, AppImage):
-            return self.local_file_path == other.local_file_path
+            return self.name == other.name and self.local_file_path == other.local_file_path

@@ -1,4 +1,4 @@
-import re
+import operator
 import re
 import time
 import traceback
@@ -7,7 +7,7 @@ from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement
+    UpgradeRequirement, TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
@@ -200,6 +200,9 @@ class GenericSoftwareManager(SoftwareManager):
     def can_work(self) -> bool:
         return True
 
+    def _get_package_lower_name(self, pkg: SoftwarePackage):
+        return pkg.name.lower()
+
     def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
@@ -254,6 +257,8 @@ class GenericSoftwareManager(SoftwareManager):
                     elif 'updates_ignored' not in p.categories:
                         p.categories.append('updates_ignored')
 
+            res.installed.sort(key=self._get_package_lower_name)
+
         tf = time.time()
         self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
         return res
@@ -285,23 +290,60 @@ class GenericSoftwareManager(SoftwareManager):
 
         return True
 
-    def uninstall(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
-        man = self._get_manager_for(app)
+    def _fill_post_transaction_status(self, pkg: SoftwarePackage, installed: bool):
+        pkg.installed = installed
+        pkg.update = False
+
+        if pkg.latest_version:
+            pkg.version = pkg.latest_version
+
+    def _update_post_transaction_status(self, res: TransactionResult):
+        if res.success:
+            if res.installed:
+                for p in res.installed:
+                    self._fill_post_transaction_status(p, True)
+            if res.removed:
+                for p in res.removed:
+                    self._fill_post_transaction_status(p, False)
+
+    def uninstall(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+        man = self._get_manager_for(pkg)
 
         if man:
-            return man.uninstall(app, root_password, handler)
+            ti = time.time()
+            disk_loader = self.disk_loader_factory.new()
+            disk_loader.start()
+            self.logger.info("Uninstalling {}".format(pkg.name))
+            try:
+                res = man.uninstall(pkg, root_password, handler, disk_loader)
+                disk_loader.stop_working()
+                disk_loader.join()
+                self._update_post_transaction_status(res)
+                return res
+            except:
+                traceback.print_exc()
+                return TransactionResult(success=False, installed=[], removed=[])
+            finally:
+                tf = time.time()
+                self.logger.info('Uninstallation of {}'.format(pkg) + 'took {0:.2f} minutes'.format((tf - ti) / 60))
 
-    def install(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def install(self, app: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
         man = self._get_manager_for(app)
 
         if man:
             ti = time.time()
+            disk_loader = self.disk_loader_factory.new()
+            disk_loader.start()
             try:
                 self.logger.info('Installing {}'.format(app))
-                return man.install(app, root_password, handler)
+                res = man.install(app, root_password, disk_loader, handler)
+                disk_loader.stop_working()
+                disk_loader.join()
+                self._update_post_transaction_status(res)
+                return res
             except:
                 traceback.print_exc()
-                return False
+                return TransactionResult(success=False, installed=[], removed=[])
             finally:
                 tf = time.time()
                 self.logger.info('Installation of {}'.format(app) + 'took {0:.2f} minutes'.format((tf - ti)/60))
@@ -323,7 +365,12 @@ class GenericSoftwareManager(SoftwareManager):
             return history
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
-        pass
+        available_types = set()
+
+        for man in self.get_working_managers():
+            available_types.update(man.get_managed_types())
+
+        return available_types
 
     def is_enabled(self):
         return True
@@ -356,11 +403,16 @@ class GenericSoftwareManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if self.managers:
             internet_on = internet.is_available()
+            taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    if task_manager:
-                        man.prepare(task_manager, root_password, internet_on)
+                    man.prepare(taskman, root_password, internet_on)
                     self._already_prepared.append(man)
+
+    def cache_available_managers(self):
+        if self.managers:
+            for man in self.managers:
+                self._can_work(man)
 
     def list_updates(self, internet_available: bool = None) -> List[PackageUpdate]:
         self._wait_to_be_ready()

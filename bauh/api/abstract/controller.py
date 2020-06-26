@@ -60,6 +60,21 @@ class UpgradeRequirements:
         self.cannot_upgrade = cannot_upgrade
 
 
+class TransactionResult:
+    """
+    The result of a given operation
+    """
+
+    def __init__(self, success: bool, installed: List[SoftwarePackage], removed: List[SoftwarePackage]):
+        self.success = success
+        self.installed = installed
+        self.removed = removed
+
+    @staticmethod
+    def fail() -> "TransactionResult":
+        return TransactionResult(success=False, installed=None, removed=None)
+
+
 class SoftwareManager(ABC):
 
     """
@@ -135,12 +150,13 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
         :param watcher:
-        :return: if the uninstall succeeded
+        :param disk_loader:
+        :return:
         """
         pass
 
@@ -169,12 +185,13 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def install(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install(self, pkg: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
+        :param disk_loader
         :param watcher:
-        :return: if the installation succeeded
+        :return:
         """
         pass
 

@@ -124,7 +124,8 @@ class ArchDiskCacheUpdater(Thread):
         self.logger.info('Pre-caching installed Arch packages data to disk')
 
         installed = self.controller.read_installed(disk_loader=None, internet_available=self.internet_available,
-                                                   only_apps=False, pkg_types=None, limit=-1, names=not_cached_names).installed
+                                                   only_apps=False, pkg_types=None, limit=-1, names=not_cached_names,
+                                                   wait_disk_cache=False).installed
 
         self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
 

@@ -210,3 +210,17 @@ class TabGroupComponent(ViewComponent):
     def get_tab(self, id_: str) -> TabComponent:
         if self.tab_map:
             return self.tab_map.get(id_)
+
+
+class RangeInputComponent(InputViewComponent):
+
+    def __init__(self, id_: str, label: str, tooltip: str, min_value: float, max_value: float,
+                 step_value: float, value: float = None, max_width: int = None):
+        super(RangeInputComponent, self).__init__(id_=id_)
+        self.label = label
+        self.tooltip = tooltip
+        self.min = min_value
+        self.max = max_value
+        self.step = step_value
+        self.value = value
+        self.max_width = max_width

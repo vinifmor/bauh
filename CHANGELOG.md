@@ -4,6 +4,52 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.6] 2020-06-26
+### Improvements
+- AppImage
+    - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
+    - new initialization task that checks if the installed AppImage files have symlinks associated with (it creates new symlinks if needed)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/appim_symlinks.png">
+    </p>
+    - able to update AppImages with continuous releases
+- UI
+    - not performing a full table refresh after installing and uninstalling packages
+    - filters algorithm speed and sorting
+    - "ignore updates" action now takes less time to update the table content
+    - displaying the "wait cursor" over some components while performing some actions
+    - sorting installed packages by their names [#124](https://github.com/vinifmor/bauh/issues/124)
+    - some components compatibility with the system's color scheme
+    - allowing "Oxygen" as a default style
+    - big refactoring regarding the components states (now it is easier to maintain the code)
+- Settings
+    - new property **ui.scale_factor** responsible for defining the interface scale factor. Useful if bauh looks
+    small on the screen. It can be changed through the settings window (**Interface** tab):
+     <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/scale.png">
+     </p>
+
+### Fixes
+- AppImage
+    - allowing some apps to be filled with empty category elements
+- Web
+    - handling unexpected connection errors
+    - handling web page fetch errors
+    - not able to search applications by their names after being enabled on settings
+- UI
+    - displaying empty categories
+    - not scrolling the table to top after updating its content
+    - not calling initial required tasks for a given type after enabling it on settings
+    - not updating the type filters if only one type is available after refreshing the table
+    - displaying the type filters on the search results when there is only one type available after some actions finish
+    - using the sleep function wrongly within the Qt threads (causes random crashes)
+    - minor fixes
+- Tray
+    - update notifications not working on Ubuntu 18.04
+- Regressions (from 0.9.5):
+    - not displaying the default type icon besides the package when its icon path does not exist (Snap runtimes were rendered without icons)
+
+
 ## [0.9.5] 2020-06-07
 ### Features
 - new custom action (**+**) to open the system backups (snapshots). It is just a shortcut to Timeshift.

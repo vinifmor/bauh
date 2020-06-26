@@ -17,7 +17,7 @@ from colorama import Fore
 from requests import exceptions, Response
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
@@ -202,7 +202,8 @@ class WebApplicationManager(SoftwareManager):
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
-        return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
+        if url_res:
+            return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         local_config = {}
@@ -249,6 +250,10 @@ class WebApplicationManager(SoftwareManager):
             installed_matches = [app for app in installed if lower_words in app.name.lower()]
 
             index = self._read_search_index()
+
+            if not index and self.suggestions_downloader and self.suggestions_downloader.is_alive():
+                self.suggestions_downloader.join()
+                index = self._read_search_index()
 
             if index:
                 split_words = lower_words.split(' ')
@@ -343,14 +348,14 @@ class WebApplicationManager(SoftwareManager):
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         pass
 
-    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.logger.info("Checking if {} installation directory {} exists".format(pkg.name, pkg.installation_dir))
 
         if not os.path.exists(pkg.installation_dir):
             watcher.show_message(title=self.i18n['error'],
                                  body=self.i18n['web.uninstall.error.install_dir.not_found'].format(bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
-            return False
+            return TransactionResult.fail()
 
         self.logger.info("Removing {} installation directory {}".format(pkg.name, pkg.installation_dir))
         try:
@@ -360,7 +365,7 @@ class WebApplicationManager(SoftwareManager):
                                  body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
             traceback.print_exc()
-            return False
+            return TransactionResult.fail()
 
         self.logger.info("Checking if {} desktop entry file {} exists".format(pkg.name, pkg.desktop_entry))
         if os.path.exists(pkg.desktop_entry):
@@ -407,7 +412,8 @@ class WebApplicationManager(SoftwareManager):
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
                                      type_=MessageType.WARNING)
-        return True
+
+        return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {WebApplication}
@@ -612,13 +618,12 @@ class WebApplicationManager(SoftwareManager):
                                                                                                          pkg.name))
             traceback.print_exc()
 
-    def install(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
 
         continue_install, install_options = self._ask_install_options(pkg, watcher)
 
         if not continue_install:
-            watcher.print("Installation aborted by the user")
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
@@ -630,18 +635,18 @@ class WebApplicationManager(SoftwareManager):
             watcher.show_message(title=self.i18n['error'].capitalize(),
                                  body=self.i18n['web.install.global_nativefier.unavailable'].format(n=bold('Nativefier'), app=bold(pkg.name)) + '.',
                                  type_=MessageType.ERROR)
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings, is_x86_x64_arch=self.context.is_system_x86_64())
 
         comps_to_update = [c for c in env_components if c.update]
 
         if comps_to_update and not self._ask_update_permission(comps_to_update, watcher):
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         if not self.env_updater.update(components=comps_to_update,  handler=handler):
             watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
 
@@ -694,7 +699,7 @@ class WebApplicationManager(SoftwareManager):
             msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
                                   self.i18n['web.install.nativefier.error.unknown'].format(bold(self.i18n['details'].capitalize())))
             watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         inner_dir = os.listdir(app_dir)
 
@@ -702,7 +707,7 @@ class WebApplicationManager(SoftwareManager):
             msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
                                   self.i18n['web.install.nativefier.error.inner_dir'].format(bold(app_dir)))
             watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
-            return False
+            return TransactionResult(success=False, installed=[], removed=[])
 
         # bringing the inner app folder to the 'installed' folder level:
         inner_dir = '{}/{}'.format(app_dir, inner_dir[0])
@@ -758,7 +763,7 @@ class WebApplicationManager(SoftwareManager):
         if install_options:
             pkg.options_set = install_options
 
-        return True
+        return TransactionResult(success=True, installed=[pkg], removed=[])
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
         return """
@@ -838,7 +843,10 @@ class WebApplicationManager(SoftwareManager):
             if not app.description:
                 app.description = self._get_app_description(app.url, soup)
 
-            find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+            try:
+                find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+            except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
+                find_url = None
 
             if find_url:
                 app.icon_url = self._get_app_icon_url(app.url, soup)

@@ -4,13 +4,14 @@ from datetime import datetime
 from threading import Thread
 from typing import List, Set, Type
 
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
+    TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
-from bauh.commons import resource
+from bauh.commons import resource, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
@@ -139,15 +140,18 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.downgrade_and_stream(pkg.name, root_password), wrong_error_phrase=None))
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
-        raise Exception("'update' is not supported by {}".format(pkg.__class__.__name__))
+        raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
 
-    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
 
-        if self.suggestions_cache:
-            self.suggestions_cache.delete(pkg.name)
+        if uninstalled:
+            if self.suggestions_cache:
+                self.suggestions_cache.delete(pkg.name)
 
-        return uninstalled
+            return TransactionResult(success=True, installed=None, removed=[pkg])
+
+        return TransactionResult.fail()
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {SnapApplication}
@@ -174,11 +178,14 @@ class SnapManager(SoftwareManager):
     def get_history(self, pkg: SnapApplication) -> PackageHistory:
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
-    def install(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install(self, pkg: SnapApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         info_path = self.get_info_path()
 
         if not info_path:
             self.logger.warning('Information directory was not found. It will not be possible to determine if the installed application can be launched')
+
+        # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
+        installed_names = snap.list_installed_names()
 
         res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
@@ -204,14 +211,34 @@ class SnapManager(SoftwareManager):
                         if res and info_path:
                             pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-                        return res
+                        return self._gen_installation_response(success=res, pkg=pkg,
+                                                               installed=installed_names, disk_loader=disk_loader)
                 else:
                     self.logger.error("Could not find available channels in the installation output: {}".format(output))
         else:
             if info_path:
                 pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
-        return res
+        return self._gen_installation_response(success=res, pkg=pkg, installed=installed_names, disk_loader=disk_loader)
+
+    def _gen_installation_response(self, success: bool, pkg: SnapApplication, installed: Set[str], disk_loader: DiskCacheLoader):
+        if success:
+            new_installed = [pkg]
+
+            if installed:
+                try:
+                    current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
+                except:
+                    current_installed = None
+
+                if current_installed and (not installed or len(current_installed) > len(installed) + 1):
+                    for p in current_installed:
+                        if p.name != pkg.name and (not installed or p.name not in installed):
+                            new_installed.append(p)
+
+            return TransactionResult(success=success, installed=new_installed, removed=[])
+        else:
+            return TransactionResult.fail()
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -229,12 +256,14 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
 
     def _start_category_task(self, task_man: TaskManager):
-        task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
-        task_man.update_progress('snap_cats', 50, None)
+        if task_man:
+            task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
+            task_man.update_progress('snap_cats', 50, None)
 
     def _finish_category_task(self, task_man: TaskManager):
-        task_man.update_progress('snap_cats', 100, None)
-        task_man.finish_task('snap_cats')
+        if task_man:
+            task_man.update_progress('snap_cats', 100, None)
+            task_man.finish_task('snap_cats')
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,

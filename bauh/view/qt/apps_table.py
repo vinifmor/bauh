@@ -27,6 +27,9 @@ PUBLISHER_MAX_SIZE = 25
 
 class UpdateToggleButton(QWidget):
 
+    STYLE_DEFAULT = 'QToolButton { background: ' + GREEN + ' } QToolButton:checked { background: gray } '
+    STYLE_UNCHECKED = 'QToolButton:disabled { background: #d69003 }'
+
     def __init__(self, pkg: PackageView, root: QWidget, i18n: I18n, checked: bool = True, clickable: bool = True):
         super(UpdateToggleButton, self).__init__()
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -46,9 +49,7 @@ class UpdateToggleButton(QWidget):
         if clickable:
             self.bt.clicked.connect(self.change_state)
 
-        self.bt.setStyleSheet('QToolButton { background: ' + GREEN + ' }' +
-                              'QToolButton:checked { background: gray } ' +
-                              ('QToolButton:disabled { background: #d69003 }' if not clickable and not checked else ''))
+        self.bt.setStyleSheet(self.STYLE_DEFAULT + (self.STYLE_UNCHECKED if not clickable and not checked else ''))
 
         layout.addWidget(self.bt)
 
@@ -83,6 +84,8 @@ class UpdateToggleButton(QWidget):
 class AppsTable(QTableWidget):
 
     COL_NUMBER = 8
+    STYLE_BT_INSTALL = 'background: {b}; color: white; font-size: 10px; font-weight: bold'.format(b=GREEN)
+    STYLE_BT_UNINSTALL = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
 
     def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
         super(AppsTable, self).__init__()
@@ -128,7 +131,7 @@ class AppsTable(QTableWidget):
                 action_history.setIcon(QIcon(resource.get_path('img/history.svg')))
 
                 def show_history():
-                    self.window.get_app_history(pkg)
+                    self.window.begin_show_history(pkg)
 
                 action_history.triggered.connect(show_history)
                 menu_row.addAction(action_history)
@@ -141,7 +144,7 @@ class AppsTable(QTableWidget):
                             title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
                             body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkg)))),
                             i18n=self.i18n):
-                        self.window.downgrade(pkg)
+                        self.window.begin_downgrade(pkg)
 
                 action_downgrade.triggered.connect(downgrade)
                 action_downgrade.setIcon(QIcon(resource.get_path('img/downgrade.svg')))
@@ -157,7 +160,7 @@ class AppsTable(QTableWidget):
                     action_ignore_updates.setIcon(QIcon(resource.get_path('img/ignore_update.svg')))
 
                 def ignore_updates():
-                    self.window.ignore_updates(pkg)
+                    self.window.begin_ignore_updates(pkg)
 
                 action_ignore_updates.triggered.connect(ignore_updates)
                 menu_row.addAction(action_ignore_updates)
@@ -174,7 +177,7 @@ class AppsTable(QTableWidget):
                             title=self.i18n[action.i18_label_key],
                             body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
                             i18n=self.i18n):
-                        self.window.execute_custom_action(pkg, action)
+                        self.window.begin_execute_custom_action(pkg, action)
 
                 item.triggered.connect(custom_action)
                 menu_row.addAction(item)
@@ -194,11 +197,11 @@ class AppsTable(QTableWidget):
 
         self._update_row(pkg, change_update_col=change_update_col)
 
-    def _uninstall_app(self, app_v: PackageView):
+    def _uninstall(self, pkg: PackageView):
         if dialog.ask_confirmation(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
-                                   body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(app_v)))),
+                                   body=self._parag(self.i18n['manage_window.apps_table.row.actions.uninstall.popup.body'].format(self._bold(str(pkg)))),
                                    i18n=self.i18n):
-            self.window.uninstall_app(app_v)
+            self.window.begin_uninstall(pkg)
 
     def _bold(self, text: str) -> str:
         return '<span style="font-weight: bold">{}</span>'.format(text)
@@ -270,6 +273,8 @@ class AppsTable(QTableWidget):
 
                 self._update_row(pkg, update_check_enabled)
 
+            self.scrollToTop()
+
     def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_name(0, pkg)
         self._set_col_version(1, pkg)
@@ -282,7 +287,7 @@ class AppsTable(QTableWidget):
         if change_update_col:
             col_update = None
 
-            if update_check_enabled and not pkg.model.is_update_ignored() and pkg.model.update:
+            if update_check_enabled and pkg.model.installed and not pkg.model.is_update_ignored() and pkg.model.update:
                 col_update = QToolBar()
                 col_update.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
                 col_update.addWidget(UpdateToggleButton(pkg=pkg,
@@ -321,21 +326,17 @@ class AppsTable(QTableWidget):
         if pkg.model.installed:
             if pkg.model.can_be_uninstalled():
                 def uninstall():
-                    self._uninstall_app(pkg)
+                    self._uninstall(pkg)
 
-                style = 'color: {c}; font-size: 10px; font-weight: bold;'.format(c=BROWN)
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), style, uninstall)
+                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), self.STYLE_BT_UNINSTALL, uninstall)
             else:
-                item = QLabel()
-                item.setPixmap((QPixmap(resource.get_path('img/checked.svg'))))
-                item.setAlignment(Qt.AlignCenter)
-                item.setToolTip(self.i18n['installed'])
+                item = None
+
         elif pkg.model.can_be_installed():
             def install():
                 self._install_app(pkg)
 
-            style = 'background: {b}; color: white; font-size: 10px; font-weight: bold'.format(b=GREEN)
-            item = self._gen_row_button(self.i18n['install'].capitalize(), style, install)
+            item = self._gen_row_button(self.i18n['install'].capitalize(), self.STYLE_BT_INSTALL, install)
         else:
             item = None
 
@@ -406,14 +407,17 @@ class AppsTable(QTableWidget):
         item.setText(name)
 
         icon_path = pkg.model.get_disk_icon_path()
-        if pkg.model.supports_disk_cache() and icon_path:
-            if icon_path.startswith('/') and os.path.isfile(icon_path):
-                with open(icon_path, 'rb') as f:
-                    icon_bytes = f.read()
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(icon_bytes)
-                    icon = QIcon(pixmap)
-                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+        if pkg.model.installed and pkg.model.supports_disk_cache() and icon_path:
+            if icon_path.startswith('/'):
+                if os.path.isfile(icon_path):
+                    with open(icon_path, 'rb') as f:
+                        icon_bytes = f.read()
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(icon_bytes)
+                        icon = QIcon(pixmap)
+                        self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
+                else:
+                    icon = QIcon(pkg.model.get_default_icon_path())
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
@@ -490,7 +494,7 @@ class AppsTable(QTableWidget):
 
         if pkg.model.installed:
             def run():
-                self.window.run_app(pkg)
+                self.window.begin_launch_package(pkg)
 
             bt = IconButton(QIcon(resource.get_path('img/app_play.svg')), i18n=self.i18n, action=run, tooltip=self.i18n['action.run.tooltip'])
             bt.setEnabled(pkg.model.can_be_run())
@@ -506,18 +510,18 @@ class AppsTable(QTableWidget):
             item.addWidget(bt)
 
         if not pkg.model.installed:
-            def get_screenshots():
-                self.window.get_screenshots(pkg)
+            def show_screenshots():
+                self.window.begin_show_screenshots(pkg)
 
-            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=get_screenshots,
+            bt = IconButton(QIcon(resource.get_path('img/camera.svg')), i18n=self.i18n, action=show_screenshots,
                             tooltip=self.i18n['action.screenshots.tooltip'])
             bt.setEnabled(bool(pkg.model.has_screenshots()))
             item.addWidget(bt)
 
-        def get_info():
-            self.window.get_app_info(pkg)
+        def show_info():
+            self.window.begin_show_info(pkg)
 
-        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=get_info, tooltip=self.i18n['action.info.tooltip'])
+        bt = IconButton(QIcon(resource.get_path('img/app_info.svg')), i18n=self.i18n, action=show_info, tooltip=self.i18n['action.info.tooltip'])
         bt.setEnabled(bool(pkg.model.has_info()))
         item.addWidget(bt)
 
