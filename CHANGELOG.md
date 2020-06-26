@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.6] 2020-06
+## [0.9.6] 2020-06-26
 ### Improvements
 - AppImage
     - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - big refactoring regarding the components states (now it is easier to maintain the code)
 - Settings
     - new property **ui.scale_factor** responsible for defining the interface scale factor. Useful if bauh looks
-    small on the screen. It can be changed through the settings window (Interface tab):
+    small on the screen. It can be changed through the settings window (**Interface** tab):
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/scale.png">
      </p>
@@ -35,11 +35,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
     - handling unexpected connection errors
     - handling web page fetch errors
-    - not able to search apps by their names after being enabled on settings
+    - not able to search applications by their names after being enabled on settings
 - UI
     - displaying empty categories
     - not scrolling the table to top after updating its content
-    - not calling initial required tasks after enabling a new package type on settings
+    - not calling initial required tasks for a given type after enabling it on settings
     - not updating the type filters if only one type is available after refreshing the table
     - displaying the type filters on the search results when there is only one type available after some actions finish
     - using the sleep function wrongly within the Qt threads (causes random crashes)
