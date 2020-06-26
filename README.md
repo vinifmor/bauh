@@ -92,7 +92,7 @@ create a file named **bauh.desktop** in **~/.config/autostart** with the content
 ```
 [Desktop Entry]
 Type=Application
-Name=bauh ( tray )
+Name=bauh (tray)
 Exec=/path/to/bauh-tray
 ```
 
@@ -107,7 +107,7 @@ Before uninstalling bauh via your package manager, consider executing `bauh --re
 - Applications with ignored updates are defined at **~/.config/bauh/flatpak/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/flatpak.yml** and it allows the following customizations:
 ```
-installation_level: null # defines a default installation level: user or system. ( the popup will not be displayed if a value is defined )
+installation_level: null # defines a default installation level: user or system. (the popup will not be displayed if a value is defined)
 ```
 
 - Required dependencies:
@@ -140,14 +140,14 @@ installation_level: null # defines a default installation level: user or system.
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
 db_updater:
-  enabled: true  # if 'false': disables the daemon database updater ( bauh will not be able to see if there are updates for your already installed AppImages )
-  interval: 1200  # the databases update interval in SECONDS ( 1200 == 20 minutes )
+  enabled: true  # if 'false': disables the daemon database updater (bauh will not be able to see if there are updates for your already installed AppImages)
+  interval: 1200  # the databases update interval in SECONDS (1200 == 20 minutes)
 ```
 - Required dependencies
     - Arch-based systems: **sqlite**, **wget** (or **aria2**/**axel** for faster multi-threaded downloads)
     - Debian-based systems: **sqlite3**, **wget** (or **aria2**/**axel** for faster multi-threaded downloads)
     - [**fuse**](https://github.com/libfuse/libfuse) may be required to run AppImages on your system
-    - P.S: **aria2 will only be used if multi-threaded downloads are enabled**
+    - P.S: **aria2/axel will only be used if multi-threaded downloads are enabled**
 
 #### Arch (arch -> Repositories/AUR)
 - Only available for **Arch-based systems**
@@ -160,7 +160,7 @@ db_updater:
     then a copy of **/etc/makepkg.conf** will be generated at **~/.config/bauh/arch/makepkg.conf** defining MAKEFLAGS to work with
     the number of your machine processors (**-j${nproc}**).
 
-    b) same as previous, but related to **COMPRESSXZ** and **COMPRESSZST** definitions ( if '--threads=0' is not defined )
+    b) same as previous, but related to **COMPRESSXZ** and **COMPRESSZST** definitions (if '--threads=0' is not defined)
     
     c) **ccache** will be added to **BUILDENV** if it is installed on the system and already not defined 
     
