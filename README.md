@@ -77,7 +77,7 @@ bauh_env/bin/bauh  (launches bauh)
 ```
 bauh_env/bin/pip install bauh --upgrade
 ```
-P.S: if the command above does not work. Try: `bauh_env/bin/pip uninstall bauh -y && bauh_env/bin/pip install bauh --upgrade`
+P.S: if the command above does not work. Try: `bauh_env/bin/pip uninstall bauh -y && bauh_env/bin/pip install bauh`
 
 - To uninstall it just remove the **bauh_env** folder
 
