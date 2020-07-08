@@ -32,10 +32,12 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 - **pip3**
 - **python3-requests**
 - **python-yaml**
+- **python3-pyqt5.qtsvg**
+- **libqt5svg5**
 - **qt5dxcb-plugin**
-- **python3-venv** (only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation))
 - **libappindicator3** (for the **tray mode** in GTK3 desktop environments)
 - **timeshift** (optional: to allow system backups)
+- **python3-venv** (only for [Manual installation](https://github.com/vinifmor/bauh/tree/wgem#manual-installation))
 
 #### Arch-based distros
 - **python**
@@ -44,6 +46,7 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 - **python-pyqt5**
 - **python-pyqt5-sip**
 - **python-yaml**
+- **qt5-svg**
 - **libappindicator-gtk3** (for the **tray mode** in GTK3 desktop environments)
 - **timeshift** (optional: to allow system backups)
 
