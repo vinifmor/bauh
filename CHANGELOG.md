@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.7] 2020
+### Improvements
+- Arch
+    - upgrade summary: displaying the reason a given package must be installed
+     <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/arch_install_reason.png">
+     </p>
+
 ### Fixes
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)

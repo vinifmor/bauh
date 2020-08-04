@@ -236,7 +236,7 @@ class UpgradeSelected(AsyncAction):
         return FormComponent(label=self.i18n['action.update.cannot_update_label'], components=comps)
 
     def _gen_to_install_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
-        opts = [self._req_as_option(r) for r in reqs]
+        opts = [self._req_as_option(r, custom_tooltip=r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 

@@ -334,7 +334,7 @@ class UpdatesSummarizer:
                 context.aur_index.update(names)
                 self.logger.info("AUR index loaded on the context")
 
-    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None) -> UpgradeRequirement:
+    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None, to_install: bool = False, to_upgrade: Set[str] = None) -> UpgradeRequirement:
         requirement = UpgradeRequirement(pkg)
 
         if pkg.repository != 'aur':
@@ -346,6 +346,11 @@ class UpdatesSummarizer:
 
             if current_size is not None and data['s']:
                 requirement.extra_size = data['s'] - current_size
+
+            if to_install and context.pkgs_data and context.to_update:
+                names = context.pkgs_data[pkg.name].get('p', {pkg.name})
+                required_by = ','.join([p for p in to_upgrade if p != pkg.name and context.pkgs_data[p]['d'] and any([n for n in names if n in context.pkgs_data[p]['d']])])
+                requirement.reason = '{}: {}'.format(self.i18n['arch.info.required by'].capitalize(), required_by if required_by else '?')
 
         return requirement
 
@@ -422,6 +427,7 @@ class UpdatesSummarizer:
             res.cannot_upgrade = [d for d in context.cannot_upgrade.values()]
 
         if context.to_install:
-            res.to_install = [self._map_requirement(p, context) for p in context.to_install.values()]
+            to_upgrade = {r.pkg.name for r in res.to_upgrade} if res.to_upgrade else None
+            res.to_install = [self._map_requirement(p, context, to_install=True, to_upgrade=to_upgrade) for p in context.to_install.values()]
 
         return res
