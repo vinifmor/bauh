@@ -50,9 +50,14 @@ class AsyncAction(QThread, ProcessWatcher):
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
-                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = False) -> bool:
+                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True,
+                             window_cancel: bool = False,
+                             confirmation_button: bool = True) -> bool:
         self.wait_confirmation = True
-        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button, 'window_cancel': window_cancel})
+        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components,
+                                       'confirmation_label': confirmation_label, 'deny_label': deny_label,
+                                       'deny_button': deny_button, 'window_cancel': window_cancel,
+                                       'confirmation_button': confirmation_button})
         self.wait_user()
         return self.confirmation_res
 
@@ -399,10 +404,13 @@ class UpgradeSelected(AsyncAction):
         if requirements.to_remove:
             comps.append(self._gen_to_remove_form(requirements.to_remove))
 
-        updates_form, updates_size = self._gen_to_update_form(requirements.to_upgrade)
-        required_size += updates_size[0]
-        extra_size += updates_size[1]
-        comps.append(updates_form)
+        can_upgrade = False
+        if requirements.to_upgrade:
+            can_upgrade = True
+            updates_form, updates_size = self._gen_to_update_form(requirements.to_upgrade)
+            required_size += updates_size[0]
+            extra_size += updates_size[1]
+            comps.append(updates_form)
 
         extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
         req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
@@ -411,7 +419,8 @@ class UpgradeSelected(AsyncAction):
         comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
-                                         confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize()):
+                                         confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize(),
+                                         confirmation_button=can_upgrade):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return
