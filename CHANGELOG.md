@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
+    - Downloading some AUR packages sources twice when multi-threaded download is enabled
 - UI
     - crashing when nothing can be upgraded
 

@@ -1487,7 +1487,7 @@ class ArchManager(SoftwareManager):
                     if len(fdata) > 1:
                         args.update({'file_url': fdata[1], 'output_path': fdata[0]})
                     else:
-                        args.update({'file_url': fdata[0], 'output_path': None})
+                        args.update({'file_url': fdata[0], 'output_path': fdata[0].split('/')[-1]})
 
                     if not self.context.file_downloader.download(**args):
                         watcher.print('Could not download source file {}'.format(args['file_url']))
