@@ -144,7 +144,7 @@ class UpdatesSummarizer:
         for p, data in context.pkgs_data.items():
             if data['c']:
                 for c in data['c']:
-                    if c and c in context.installed_names:
+                    if c and c != p and c in context.installed_names:
                         # source = provided_map[c]
                         root_conflict[c] = p
 
