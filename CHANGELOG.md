@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
     - Downloading some AUR packages sources twice when multi-threaded download is enabled
+    - upgrade summary:
+        - not displaying all packages that must be uninstalled
+        - displaying "required size" for packages that must be uninstalled
+    - some conflict resolution scenarios when upgrading several packages
 - UI
     - crashing when nothing can be upgraded
 

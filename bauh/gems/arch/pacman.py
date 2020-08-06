@@ -4,8 +4,7 @@ from threading import Thread
 from typing import List, Set, Tuple, Dict, Iterable
 
 from bauh.commons import system
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess, \
-    ProcessHandler
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.commons.util import size_to_byte
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
@@ -539,16 +538,6 @@ def upgrade_system(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
 
-def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[str, str]:
-    proc = SimpleProcess(cmd=['pacman', '-R', *pkgs, '--confirm'], root_password=root_password)
-    success, output = ProcessHandler().handle_simple(proc)
-
-    if not output:
-        return {}
-
-    return {t[1]: t[0] for t in RE_REMOVE_TRANSITIVE_DEPS.findall(output)}
-
-
 def fill_provided_map(key: str, val: str, output: dict):
     current_val = output.get(key)
 
@@ -744,8 +733,12 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
                          error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
 
 
-def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
+def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SystemProcess:
     cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
+
+    if skip_checks:
+        cmd.append('-dd')
+
     if root_password:
         return SystemProcess(new_root_subprocess(cmd, root_password), wrong_error_phrase='warning:')
     else:
@@ -865,6 +858,51 @@ def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str
         return res
 
 
+def map_required_dependencies(*names: str) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names) if names else ''))
+
+    if output:
+        res = {}
+        latest_name, deps, latest_field = None, None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                        deps = None
+                    elif field == 'Depends On':
+                        val = line[field_sep_idx + 1:].strip()
+
+                        if deps is None:
+                            deps = set()
+
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+                                deps.add(dep_info[0].strip())
+                            else:
+                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+
+                    elif latest_name and deps is not None:
+                        res[latest_name] = deps
+                        latest_name, deps, latest_field = None, None, None
+
+                elif latest_name and deps is not None:
+                    if ':' in l:
+                        dep_info = l.split(':')
+                        deps.add(dep_info[0].strip())
+                    else:
+                        deps.update({dep.strip() for dep in l.split(' ') if dep})
+
+        return res
+
+
 def get_cache_dir() -> str:
     dir_pattern = re.compile(r'.*CacheDir\s*=\s*.+')
 
@@ -887,8 +925,8 @@ def get_cache_dir() -> str:
             return '/var/cache/pacman/pkg'
 
 
-def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:
-    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
+def map_required_by(names: Iterable[str] = None) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names) if names else ''))
 
     if output:
         res = {}

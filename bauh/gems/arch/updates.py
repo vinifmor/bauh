@@ -10,6 +10,7 @@ from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.model import ArchPackage
+from bauh.gems.arch.pacman import RE_DEP_OPERATORS
 from bauh.view.util.translation import I18n
 
 
@@ -181,44 +182,12 @@ class UpdatesSummarizer:
 
         root_conflict = self._filter_and_map_conflicts(context)
 
-        sub_conflict = pacman.get_dependencies_to_remove(root_conflict.keys(), context.root_password) if root_conflict else None
-
-        to_remove_map = {}
-        if sub_conflict:
-            for dep, source in sub_conflict.items():
-                if dep not in to_remove_map and (not blacklist or dep not in blacklist):
-                    req = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    to_remove_map[dep] = req
-                    reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source)
-                    context.to_remove[dep] = UpgradeRequirement(req, reason)
-
         if root_conflict:
             for dep, source in root_conflict.items():
-                if dep not in to_remove_map and (not blacklist or dep not in blacklist):
+                if dep not in context.to_remove and (not blacklist or dep not in blacklist):
                     req = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    to_remove_map[dep] = req
                     reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)
                     context.to_remove[dep] = UpgradeRequirement(req, reason)
-
-        if to_remove_map:
-            for name in to_remove_map.keys():  # upgrading lists
-                if name in context.pkgs_data:
-                    del context.pkgs_data[name]
-
-                if name in context.aur_to_update:
-                    del context.aur_to_update[name]
-
-                if name in context.repo_to_update:
-                    del context.repo_to_update[name]
-
-            removed_size = pacman.get_installed_size([*to_remove_map.keys()])
-
-            if removed_size:
-                for name, size in removed_size.items():
-                    if size is not None:
-                        req = context.to_remove.get(name)
-                        if req:
-                            req.extra_size = size
 
     def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
         version = None
@@ -334,7 +303,7 @@ class UpdatesSummarizer:
                 context.aur_index.update(names)
                 self.logger.info("AUR index loaded on the context")
 
-    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None, to_install: bool = False, to_upgrade: Set[str] = None) -> UpgradeRequirement:
+    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None, to_install: bool = False, to_sync: Set[str] = None) -> UpgradeRequirement:
         requirement = UpgradeRequirement(pkg)
 
         if pkg.repository != 'aur':
@@ -347,10 +316,32 @@ class UpdatesSummarizer:
             if current_size is not None and data['s']:
                 requirement.extra_size = data['s'] - current_size
 
-            if to_install and context.pkgs_data and context.to_update:
+            required_by = set()
+
+            if to_install and to_sync and context.pkgs_data:
                 names = context.pkgs_data[pkg.name].get('p', {pkg.name})
-                required_by = ','.join([p for p in to_upgrade if p != pkg.name and context.pkgs_data[p]['d'] and any([n for n in names if n in context.pkgs_data[p]['d']])])
-                requirement.reason = '{}: {}'.format(self.i18n['arch.info.required by'].capitalize(), required_by if required_by else '?')
+                to_sync_deps_cache = {}
+                for p in to_sync:
+                    if p != pkg.name and p in context.pkgs_data:
+                        deps = to_sync_deps_cache.get(p)
+
+                        if deps is None:
+                            deps = context.pkgs_data[p]['d']
+
+                            if deps is None:
+                                deps = set()
+                            else:
+                                deps = {RE_DEP_OPERATORS.split(d)[0] for d in deps}
+
+                            to_sync_deps_cache[p] = deps
+
+                        if deps:
+                            for n in names:
+                                if n in deps:
+                                    required_by.add(p)
+                                    break
+
+                requirement.reason = '{}: {}'.format(self.i18n['arch.info.required by'].capitalize(), ','.join(required_by) if required_by else '?')
 
         return requirement
 
@@ -403,6 +394,8 @@ class UpdatesSummarizer:
             self.logger.error("Package '{}' not found".format(e.name))
             return
 
+        self.__update_context_based_on_to_remove(context)
+
         if context.to_update:
             installed_sizes = pacman.get_installed_size(list(context.to_update.keys()))
 
@@ -427,7 +420,140 @@ class UpdatesSummarizer:
             res.cannot_upgrade = [d for d in context.cannot_upgrade.values()]
 
         if context.to_install:
-            to_upgrade = {r.pkg.name for r in res.to_upgrade} if res.to_upgrade else None
-            res.to_install = [self._map_requirement(p, context, to_install=True, to_upgrade=to_upgrade) for p in context.to_install.values()]
+            to_sync = {r.pkg.name for r in res.to_upgrade} if res.to_upgrade else {}
+            to_sync.update(context.to_install.keys())
+            res.to_install = [self._map_requirement(p, context, to_install=True, to_sync=to_sync) for p in context.to_install.values()]
 
         return res
+
+    def __update_context_based_on_to_remove(self, context: UpdateRequirementsContext):
+        if context.to_remove:
+            to_remove_provided = {}
+            # filtering all package to synchronization from the transaction context
+            to_sync = {*(context.to_update.keys() if context.to_update else set()), *(context.to_install.keys() if context.to_install else set())}
+            if to_sync:  # checking if any packages to sync on the context rely on the 'to remove' ones
+                to_remove_provided.update(pacman.map_provided(remote=False, pkgs=context.to_remove.keys()))
+                to_remove_from_sync = {}  # will store all packages that should be removed
+
+                for pname in to_sync:
+                    if pname in context.pkgs_data:
+                        deps = context.pkgs_data[pname].get('d')
+
+                        if deps:
+                            required = set()
+
+                            for pkg in context.to_remove:
+                                for provided in to_remove_provided[pkg]:
+                                    if provided in deps:
+                                        required.add(pkg)
+                                        break
+
+                            if required:
+                                to_remove_from_sync[pname] = required
+                    else:
+                        self.logger.warning("Conflict resolution: package '{}' marked to synchronization has no data loaded")
+
+                if to_remove_from_sync:  # removing all these packages and their dependents from the context
+                    self._add_to_remove(to_sync, to_remove_from_sync, context)
+
+            # checking if the installed packages that are not in the transaction context rely on the current packages to be removed:
+            current_to_remove = {*context.to_remove.keys()}
+            required_by_installed = self.deps_analyser.map_all_required_by(current_to_remove, {*to_sync})
+
+            if required_by_installed:
+                # updating provided context:
+                provided_not_mapped = set()
+                for pkg in current_to_remove.difference({*to_remove_provided.keys()}):
+                    if pkg not in context.pkgs_data:
+                        provided_not_mapped.add(pkg)
+                    else:
+                        provided = context.pkgs_data[pkg].get('p')
+                        if provided:
+                            to_remove_provided[pkg] = provided
+                        else:
+                            provided_not_mapped.add(pkg)
+
+                if provided_not_mapped:
+                    to_remove_provided.update(pacman.map_provided(remote=False, pkgs=provided_not_mapped))
+
+                deps_no_data = {dep for dep in required_by_installed if dep in context.pkgs_data}
+                deps_nodata_deps = pacman.map_required_dependencies(*deps_no_data) if deps_no_data else {}
+
+                reverse_to_remove_provided = {p: name for name, provided in to_remove_provided for p in provided}
+
+                for pkg in required_by_installed:
+                    if pkg not in context.to_remove:
+                        if pkg in context.pkgs_data:
+                            dep_deps = context.pkgs_data[pkg].get('d')
+                        else:
+                            dep_deps = deps_nodata_deps.get(pkg)
+
+                        if dep_deps:
+                            source = ', '.join((reverse_to_remove_provided[d] for d in dep_deps if d in reverse_to_remove_provided))
+                            reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source if source else '?')
+                            context.to_remove[pkg] = UpgradeRequirement(pkg=ArchPackage(name=pkg,
+                                                                                        installed=True,
+                                                                                        i18n=self.i18n),
+                                                                        reason=reason)
+
+            for name in context.to_remove:  # upgrading lists
+                if name in context.pkgs_data:
+                    del context.pkgs_data[name]
+
+                if name in context.aur_to_update:
+                    del context.aur_to_update[name]
+
+                if name in context.repo_to_update:
+                    del context.repo_to_update[name]
+
+            removed_size = pacman.get_installed_size([*context.to_remove.keys()])
+
+            if removed_size:
+                for name, size in removed_size.items():
+                    if size is not None:
+                        req = context.to_remove.get(name)
+                        if req:
+                            req.extra_size = size
+
+    def _add_to_remove(self, pkgs_to_sync: Set[str], names: Dict[str, Set[str]], context: UpdateRequirementsContext, to_ignore: Set[str] = None):
+        blacklist = to_ignore if to_ignore else set()
+        blacklist.update(names)
+
+        dependents = {}
+        for pname in pkgs_to_sync:
+            if pname not in blacklist:
+                data = context.pkgs_data.get(pname)
+
+                if data:
+                    deps = data.get('d')
+
+                    if deps:
+                        for n in names:
+                            if n in deps:
+                                all_deps = dependents.get(n, set())
+                                all_deps.update(pname)
+                                dependents[n] = all_deps
+
+                else:
+                    self.logger.warning("Package '{}' to sync could not be removed from the transaction context because its data was not loaded")
+
+        for n in names:
+            if n in context.pkgs_data:
+                if n not in context.to_remove:
+                    depends_on = names.get(n)
+                    if depends_on:
+                        reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), ', '.join(depends_on))
+                    else:
+                        reason = '?'
+
+                    context.to_remove[n] = UpgradeRequirement(pkg=ArchPackage(name=n,
+                                                                              installed=True,
+                                                                              i18n=self.i18n),
+                                                              reason=reason)
+
+                all_deps = dependents.get(n)
+
+                if all_deps:
+                    self._add_to_remove(pkgs_to_sync, {dep: {n} for dep in all_deps}, context, blacklist)
+            else:
+                self.logger.warning("Package '{}' could not be removed from the transaction context because its data was not loaded")

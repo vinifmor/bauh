@@ -192,7 +192,7 @@ class UpgradeSelected(AsyncAction):
         self.manager = manager
         self.i18n = i18n
 
-    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None) -> InputOption:
+    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True) -> InputOption:
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
@@ -204,7 +204,7 @@ class UpgradeSelected(AsyncAction):
 
         size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
                                    '?' if req.extra_size is None else get_human_size_str(req.extra_size))
-        if req.extra_size != req.required_size:
+        if required_size and req.extra_size != req.required_size:
             size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
                                              '?' if req.required_size is None else get_human_size_str(req.required_size))
 
@@ -250,7 +250,7 @@ class UpgradeSelected(AsyncAction):
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _gen_to_remove_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r, False, r.reason, required_size=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
