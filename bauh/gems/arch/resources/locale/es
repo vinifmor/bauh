@@ -199,6 +199,7 @@ arch.upgrade.error.conflicting_files=Algunos de los paquetes que se están actua
 arch.upgrade.conflicting_files.proceed=Permitir y continuar
 arch.upgrade.conflicting_files.stop=Cancelar la actualización
 arch.upgrade.fail=Falló la actualización del paquete {}
+arch.upgrade.mthreaddownload.fail=No fue posible descargar todos los paquetes para actualizar
 arch.upgrade.success=Paquete {} actualizado con éxito
 arch.upgrade.upgrade_aur_pkgs=Actualizando paquetes de AUR
 arch.upgrade.upgrade_repo_pkgs=Actualizando paquetes de repositorios

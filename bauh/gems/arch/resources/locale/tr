@@ -199,6 +199,7 @@ arch.upgrade.error.conflicting_files=Some of the packages being upgraded want to
 arch.upgrade.conflicting_files.proceed=Allow and continue
 arch.upgrade.conflicting_files.stop=Cancel upgrading
 arch.upgrade.fail={} paketi yükseltilemedi
+arch.upgrade.mthreaddownload.fail=It was not possible to download all packages for upgrading
 arch.upgrade.success={} paketi başarıyla yükseltildi
 arch.upgrade.upgrade_aur_pkgs=AUR paketleri yükseltiliyor
 arch.upgrade.upgrade_repo_pkgs=Resmi depo paketleri yükseltiliyor
