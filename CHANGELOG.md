@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/arch_install_reason.png">
      </p>
      - upgrade: only removing packages after downloading the required ones (when multi-threaded download is enabled)
+- Flatpak
+    - Creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages.
 
 ### Fixes
 - Arch

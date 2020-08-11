@@ -7,6 +7,7 @@ from typing import List, Dict, Set, Iterable
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
 from bauh.commons.util import size_to_byte
+from bauh.gems.flatpak import EXPORTS_PATH
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 
@@ -164,7 +165,7 @@ def update(app_ref: str, installation: str, related: bool = False, deps: bool = 
     if not deps:
         cmd.append('--no-deps')
 
-    return new_subprocess(cmd)
+    return new_subprocess(cmd=cmd, extra_paths={EXPORTS_PATH})
 
 
 def uninstall(app_ref: str, installation: str):
@@ -173,7 +174,8 @@ def uninstall(app_ref: str, installation: str):
     :param app_ref:
     :return:
     """
-    return new_subprocess(['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)])
+    return new_subprocess(cmd=['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)],
+                          extra_paths={EXPORTS_PATH})
 
 
 def list_updates_as_str(version: str) -> Dict[str, set]:
@@ -231,9 +233,9 @@ def downgrade(app_ref: str, commit: str, installation: str, root_password: str) 
     cmd = ['flatpak', 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     if installation == 'system':
-        return new_root_subprocess(cmd, root_password)
+        return new_root_subprocess(cmd=cmd, root_password=root_password, extra_paths={EXPORTS_PATH})
     else:
-        return new_subprocess(cmd)
+        return new_subprocess(cmd=cmd, extra_paths={EXPORTS_PATH})
 
 
 def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> List[str]:
@@ -354,7 +356,8 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
 
 
 def install(app_id: str, origin: str, installation: str):
-    return new_subprocess(['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)])
+    return new_subprocess(cmd=['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)],
+                          extra_paths={EXPORTS_PATH})
 
 
 def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
