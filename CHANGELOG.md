@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
+- Flatpak
+    - downgrading crashing with version 1.8.X
+    - history: the top commit is returned as "(null)"
 - UI
     - crashing when nothing can be upgraded
 

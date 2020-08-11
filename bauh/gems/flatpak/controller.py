@@ -180,7 +180,13 @@ class FlatpakManager(SoftwareManager):
         if commits is None:
             return False
 
-        commit_idx = commits.index(pkg.commit)
+        try:
+            commit_idx = commits.index(pkg.commit)
+        except ValueError:
+            if commits[0] == '(null)':
+                commit_idx = 0
+            else:
+                return False
 
         # downgrade is not possible if the app current commit in the first one:
         if commit_idx == len(commits) - 1:
@@ -301,12 +307,18 @@ class FlatpakManager(SoftwareManager):
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
+
         status_idx = 0
 
+        commit_found = False
         for idx, data in enumerate(commits):
             if data['commit'] == pkg.commit:
                 status_idx = idx
+                commit_found = True
                 break
+
+        if not commit_found and pkg.commit and commits[0]['commit'] == '(null)':
+            commits[0]['commit'] = pkg.commit
 
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 
