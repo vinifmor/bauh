@@ -424,6 +424,7 @@ class UpdatesSummarizer:
             to_sync.update(context.to_install.keys())
             res.to_install = [self._map_requirement(p, context, to_install=True, to_sync=to_sync) for p in context.to_install.values()]
 
+        res.context['data'] = context.pkgs_data
         return res
 
     def __update_context_based_on_to_remove(self, context: UpdateRequirementsContext):

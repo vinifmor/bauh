@@ -18,6 +18,7 @@ RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.I
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
+RE_PACMAN_SYNC_FIRST = re.compile(r'SyncFirst\s*=\s*(.+)')
 
 
 def is_available() -> bool:
@@ -733,6 +734,12 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
                          error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
 
 
+def download(root_password: str, *pkgnames: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm'],
+                         root_password=root_password,
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
+
+
 def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SystemProcess:
     cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
 
@@ -1119,3 +1126,13 @@ def get_mirrors_branch() -> str:
     _, output = system.run(['pacman-mirrors', '-G'])
     return output.strip()
 
+
+def get_packages_to_sync_first() -> Set[str]:
+    if os.path.exists('/etc/pacman.conf'):
+        with open('/etc/pacman.conf') as f:
+            to_sync_first = RE_PACMAN_SYNC_FIRST.findall(f.read())
+
+            if to_sync_first:
+                return {s.strip() for s in to_sync_first[0].split(' ') if s and s.strip()}
+
+    return set()

@@ -11,7 +11,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional
 
 import requests
 
@@ -768,25 +768,93 @@ class ArchManager(SoftwareManager):
 
         return files
 
-    def _upgrade_repo_pkgs(self, pkgs: List[str], handler: ProcessHandler, root_password: str, arch_config: dict, overwrite_files: bool = False,
-                           status_handler: TransactionStatusHandler = None, skip_download: bool = False, sizes: Dict[str, int] = None, already_downloaded: int = 0) -> bool:
+    def list_related(self, pkgs: Iterable[str], all_pkgs: Iterable[str], data: Dict[str, dict], related: Set[str], provided_map: Dict[str, Set[str]]) -> Set[str]:
+        related.update(pkgs)
 
-        if not skip_download and self._should_download_packages(arch_config):
+        deps = set()
+
+        for pkg in pkgs:
+            pkg_deps = data[pkg]['d']
+
+            if pkg_deps:
+                deps.update({d for d in pkg_deps if d not in related})
+
+        if deps:
+            if not provided_map:
+                for p in all_pkgs:
+                    for provided in data[p].get('p', {p}):
+                        sources = provided_map.get(provided, set())
+                        provided_map[provided] = sources
+                        sources.add(p)
+
+            added_sources = set()
+            for dep in deps:
+                sources = provided_map.get(dep)
+
+                if sources:
+                    for source in sources:
+                        if source not in related:
+                            related.add(source)
+                            added_sources.add(source)
+
+            if added_sources:
+                self.list_related(added_sources, all_pkgs, data, related, provided_map)
+
+        return related
+
+    def _upgrade_repo_pkgs(self, to_upgrade: List[str], to_remove: Optional[Set[str]], handler: ProcessHandler, root_password: str,
+                           multithread_download: bool, pkgs_data: Dict[str, dict], overwrite_files: bool = False,
+                           status_handler: TransactionStatusHandler = None, sizes: Dict[str, int] = None, download: bool = True,
+                           check_syncfirst: bool = True) -> bool:
+
+        to_sync_first = None
+        if check_syncfirst:
+            to_sync_first = [p for p in pacman.get_packages_to_sync_first() if p.endswith('-keyring') and p in to_upgrade]
+
+            if to_sync_first:
+                self.logger.info("Upgrading keyrings marked as 'SyncFirst'")
+                if not self._upgrade_repo_pkgs(to_upgrade=to_sync_first,
+                                               to_remove=None,
+                                               handler=handler,
+                                               root_password=root_password,
+                                               sizes=sizes,
+                                               download=True,
+                                               multithread_download=multithread_download,
+                                               pkgs_data=pkgs_data,
+                                               check_syncfirst=False):
+                    return False
+
+        to_upgrade_remaining = [p for p in to_upgrade if p not in to_sync_first] if to_sync_first else to_upgrade
+
+        # pre-downloading all packages before removing any
+        if download:
             try:
-                downloaded = self._download_packages(pkgs, handler, root_password, sizes)
+                downloaded = self._download_packages(pkgnames=to_upgrade_remaining,
+                                                     handler=handler,
+                                                     root_password=root_password,
+                                                     sizes=sizes,
+                                                     multithreaded=multithread_download)
+
+                if downloaded < len(to_upgrade_remaining):
+                    self._show_upgrade_download_failed(handler.watcher)
+                    return False
+
             except ArchDownloadException:
+                self._show_upgrade_download_failed(handler.watcher)
                 return False
-        else:
-            downloaded = already_downloaded
+
+        if to_remove and not self._remove_transaction_packages(to_remove, handler, root_password):
+            return False
 
         try:
             if status_handler:
                 output_handler = status_handler
             else:
-                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgs), self.logger, downloading=downloaded)
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(to_upgrade), self.logger, downloading=len(to_upgrade_remaining))
                 output_handler.start()
 
-            success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=pkgs,
+            self.logger.info("Upgrading {} repository packages: {}".format(len(to_upgrade), ', '.join(to_upgrade)))
+            success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=to_upgrade_remaining,
                                                                                    root_password=root_password,
                                                                                    overwrite_conflicting_files=overwrite_files),
                                                             output_handler=output_handler.handle,)
@@ -797,10 +865,10 @@ class ArchManager(SoftwareManager):
                 output_handler.join()
                 handler.watcher.print("Repository packages successfully upgraded")
                 handler.watcher.change_substatus(self.i18n['arch.upgrade.caching_pkgs_data'])
-                repo_map = pacman.map_repositories(pkgs)
+                repo_map = pacman.map_repositories(to_upgrade_remaining)
 
                 pkg_map = {}
-                for name in pkgs:
+                for name in to_upgrade_remaining:
                     repo = repo_map.get(name)
                     pkg_map[name] = ArchPackage(name=name,
                                                 repository=repo,
@@ -817,13 +885,16 @@ class ArchManager(SoftwareManager):
                                                             confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
                                                             components=files):
 
-                    return self._upgrade_repo_pkgs(pkgs=pkgs,
+                    return self._upgrade_repo_pkgs(to_upgrade=to_upgrade_remaining,
                                                    handler=handler,
                                                    root_password=root_password,
                                                    overwrite_files=True,
                                                    status_handler=output_handler,
-                                                   skip_download=True,
-                                                   arch_config=arch_config,
+                                                   multithread_download=multithread_download,
+                                                   download=False,
+                                                   check_syncfirst=False,
+                                                   pkgs_data=pkgs_data,
+                                                   to_remove=None,
                                                    sizes=sizes)
                 else:
                     output_handler.stop_working()
@@ -842,27 +913,26 @@ class ArchManager(SoftwareManager):
             traceback.print_exc()
             return False
 
-    def _remove_transaction_packages(self, requirements: UpgradeRequirements, handler: ProcessHandler, root_password: str) -> bool:
-        to_remove_names = {r.pkg.name for r in requirements.to_remove}
+    def _remove_transaction_packages(self, to_remove: Set[str], handler: ProcessHandler, root_password: str) -> bool:
         output_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
                                                   pkgs_to_sync=0,
                                                   logger=self.logger,
-                                                  pkgs_to_remove=len(to_remove_names))
+                                                  pkgs_to_remove=len(to_remove))
         output_handler.start()
         try:
-            success = handler.handle(pacman.remove_several(pkgnames=to_remove_names, root_password=root_password, skip_checks=True),
+            success = handler.handle(pacman.remove_several(pkgnames=to_remove, root_password=root_password, skip_checks=True),
                                      output_handler=output_handler.handle)
 
             if not success:
-                self.logger.error("Could not remove packages: {}".format(', '.join(to_remove_names)))
+                self.logger.error("Could not remove packages: {}".format(', '.join(to_remove)))
                 output_handler.stop_working()
                 output_handler.join()
                 return False
 
             return True
         except:
-            self.logger.error("An error occured while removing packages: {}".format(', '.join(to_remove_names)))
+            self.logger.error("An error occured while removing packages: {}".format(', '.join(to_remove)))
             traceback.print_exc()
             output_handler.stop_working()
             output_handler.join()
@@ -899,44 +969,18 @@ class ArchManager(SoftwareManager):
         arch_config = read_config()
         self._sync_databases(arch_config=arch_config, root_password=root_password, handler=handler)
 
-        # for now if the multithreaded-download is disabled packages will be removed before the download:
-        multithreaded_download = self._should_download_packages(arch_config)
-
-        if requirements.to_remove and (not repo_pkgs or not multithreaded_download):
-            if not self._remove_transaction_packages(requirements, handler, root_password):
-                return False
-
         if repo_pkgs:
-            repo_pkgs_names = [p.name for p in repo_pkgs]
-
-            downloaded = -1
-            if requirements.to_remove and multithreaded_download:  # pre-downloading all packages before removing any
-                try:
-                    downloaded = self._download_packages(repo_pkgs_names, handler, root_password, pkg_sizes)
-
-                    if downloaded < len(repo_pkgs_names):
-                        self._show_upgrade_download_failed(handler.watcher)
-                        return False
-
-                except ArchDownloadException:
-                    self._show_upgrade_download_failed(handler.watcher)
-                    return False
-
-                if not self._remove_transaction_packages(requirements, handler, root_password):
-                    return False
-
-            watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_repo_pkgs']))
-            self.logger.info("Upgrading {} repository packages: {}".format(len(repo_pkgs_names),
-                                                                           ', '.join(repo_pkgs_names)))
-
-            if not self._upgrade_repo_pkgs(pkgs=repo_pkgs_names,
+            if not self._upgrade_repo_pkgs(to_upgrade=[p.name for p in repo_pkgs],
+                                           to_remove={r.pkg.name for r in requirements.to_remove} if requirements.to_remove else None,
                                            handler=handler,
                                            root_password=root_password,
-                                           arch_config=arch_config,
-                                           skip_download=downloaded >= 0,
-                                           already_downloaded=0 if downloaded < 0 else downloaded,
+                                           multithread_download=self._multithreaded_download_enabled(arch_config),
+                                           pkgs_data=requirements.context['data'],
                                            sizes=pkg_sizes):
                 return False
+
+        elif requirements.to_remove and not self._remove_transaction_packages({r.pkg.name for r in requirements.to_remove}, handler, root_password):
+            return False
 
         if aur_pkgs:
             watcher.change_status('{}...'.format(self.i18n['arch.upgrade.upgrade_aur_pkgs']))
@@ -1450,10 +1494,10 @@ class ArchManager(SoftwareManager):
                                     return {dep}
 
             downloaded = 0
-            if self._should_download_packages(context.config):
+            if self._multithreaded_download_enabled(context.config):
                 try:
                     pkg_sizes = pacman.map_download_sizes(repo_dep_names)
-                    downloaded = self._download_packages(repo_dep_names, context.handler, context.root_password, pkg_sizes)
+                    downloaded = self._download_packages(repo_dep_names, context.handler, context.root_password, pkg_sizes, multithreaded=True)
                 except ArchDownloadException:
                     return False
 
@@ -1756,21 +1800,36 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _should_download_packages(self, arch_config: dict) -> bool:
+    def _multithreaded_download_enabled(self, arch_config: dict) -> bool:
         return bool(arch_config['repositories_mthread_download']) \
                and self.context.file_downloader.is_multithreaded() \
                and pacman.is_mirrors_available()
 
-    def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None) -> int:
-        download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
-                                                        http_client=self.http_client,
-                                                        logger=self.context.logger,
-                                                        i18n=self.i18n)
-        self.logger.info("Initializing multi-threaded download for {} package(s)".format(len(pkgnames)))
-        return download_service.download_packages(pkgs=pkgnames,
-                                                  handler=handler,
-                                                  sizes=sizes,
-                                                  root_password=root_password)
+    def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None, multithreaded: bool = True) -> int:
+        if multithreaded:
+            download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
+                                                            http_client=self.http_client,
+                                                            logger=self.context.logger,
+                                                            i18n=self.i18n)
+            self.logger.info("Initializing multi-threaded download for {} repository package(s)".format(len(pkgnames)))
+            return download_service.download_packages(pkgs=pkgnames,
+                                                      handler=handler,
+                                                      sizes=sizes,
+                                                      root_password=root_password)
+        else:
+            self.logger.info("Downloading {} repository package(s)".format(len(pkgnames)))
+            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgnames), self.logger)
+            output_handler.start()
+            try:
+                success, _ = handler.handle_simple(pacman.download(root_password, *pkgnames), output_handler=output_handler.handle)
+
+                if success:
+                    return len(pkgnames)
+                else:
+                    raise ArchDownloadException()
+            except:
+                traceback.print_exc()
+                raise ArchDownloadException()
 
     def _install(self, context: TransactionContext) -> bool:
         check_install_output = []
@@ -1830,13 +1889,13 @@ class ArchManager(SoftwareManager):
         to_install.append(pkgpath)
 
         downloaded = 0
-        if self._should_download_packages(context.config):
+        if self._multithreaded_download_enabled(context.config):
             to_download = [p for p in to_install if not p.startswith('/')]
 
             if to_download:
                 try:
                     pkg_sizes = pacman.map_download_sizes(to_download)
-                    downloaded = self._download_packages(to_download, context.handler, context.root_password, pkg_sizes)
+                    downloaded = self._download_packages(to_download, context.handler, context.root_password, pkg_sizes, multithreaded=True)
                 except ArchDownloadException:
                     return False
 

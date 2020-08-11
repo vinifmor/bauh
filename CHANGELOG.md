@@ -11,7 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/arch_install_reason.png">
      </p>
-     - upgrade: only removing packages after downloading the required ones (when multi-threaded download is enabled)
+     - upgrade:
+        - upgrading firstly the keyring packages declared in **SyncFirst** (**/etc/pacman.conf**) to avoid pacman downloading issues
+        - only removing packages after downloading the required ones
 
 ### Fixes
 - Arch

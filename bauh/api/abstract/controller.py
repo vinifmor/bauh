@@ -58,6 +58,7 @@ class UpgradeRequirements:
         self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
         self.to_upgrade = to_upgrade
         self.cannot_upgrade = cannot_upgrade
+        self.context = {}  # caches relevant data to actually perform the upgrade
 
 
 class TransactionResult:
