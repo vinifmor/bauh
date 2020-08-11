@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import List, Set
+from typing import List, Set, Optional
 
 
 class MessageType:
@@ -9,12 +9,22 @@ class MessageType:
     ERROR = 2
 
 
+class ViewObserver:
+
+    def on_change(self, change):
+        pass
+
+
 class ViewComponent(ABC):
     """
     Represents a GUI component
     """
-    def __init__(self, id_: str):
+    def __init__(self, id_: str, observers: List[ViewObserver] = None):
         self.id = id_
+        self.observers = observers if observers else []
+
+    def add_observer(self, obs):
+        self.observers.append(obs)
 
 
 class SpacerComponent(ViewComponent):
@@ -157,6 +167,14 @@ class TextInputComponent(ViewComponent):
         else:
             return ''
 
+    def set_value(self, val: Optional[str], caller: object = None):
+        self.value = val
+
+        if self.observers:
+            for o in self.observers:
+                if caller != o:
+                    o.on_change(val)
+
     def get_int_value(self) -> int:
         if self.value is not None:
             val = self.value.strip() if isinstance(self.value, str) else self.value
@@ -190,6 +208,13 @@ class FileChooserComponent(ViewComponent):
         self.tooltip = tooltip
         self.max_width = max_width
         self.search_path = search_path
+
+    def set_file_path(self, fpath: str):
+        self.file_path = fpath
+
+        if self.observers:
+            for o in self.observers:
+                o.on_change(self.file_path)
 
 
 class TabComponent(ViewComponent):

@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.7] 2020
 ### Improvements
 - AppImage
-    - Manual file installation default search path set to '~/Downloads'
+    - Manual file installation:
+        - default search path set to '~/Downloads'
+        - trying to auto-fill the 'Name' and 'Version' fields
 - Arch
     - upgrade summary: displaying the reason a given package must be installed
      <p align="center">

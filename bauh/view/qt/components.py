@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent
+    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver
 from bauh.view.qt import css
 from bauh.view.qt.colors import RED
 from bauh.view.util import resource
@@ -428,6 +428,15 @@ class ComboSelectQt(QGroupBox):
         self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
+class QLineEditObserver(QLineEdit, ViewObserver):
+
+    def __init__(self, **kwargs):
+        super(QLineEditObserver, self).__init__(**kwargs)
+
+    def on_change(self, change: str):
+        self.setText(change if change is not None else '')
+
+
 class TextInputQt(QGroupBox):
 
     def __init__(self, model: TextInputComponent):
@@ -440,7 +449,7 @@ class TextInputQt(QGroupBox):
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
 
-        self.text_input = QLineEdit()
+        self.text_input = QLineEditObserver()
 
         if model.only_int:
             self.text_input.setValidator(QIntValidator())
@@ -457,10 +466,11 @@ class TextInputQt(QGroupBox):
 
         self.text_input.textChanged.connect(self._update_model)
 
+        self.model.observers.append(self.text_input)
         self.layout().addWidget(self.text_input, 0, 1)
 
     def _update_model(self, text: str):
-        self.model.value = text
+        self.model.set_value(val=text, caller=self)
 
 
 class MultipleSelectQt(QGroupBox):
@@ -754,7 +764,7 @@ class FormQt(QGroupBox):
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
-        line_edit = QLineEdit()
+        line_edit = QLineEditObserver()
 
         if c.only_int:
             line_edit.setValidator(QIntValidator())
@@ -773,9 +783,10 @@ class FormQt(QGroupBox):
             line_edit.setEnabled(False)
 
         def update_model(text: str):
-            c.value = text
+            c.set_value(val=text, caller=line_edit)
 
         line_edit.textChanged.connect(update_model)
+        c.observers.append(line_edit)
 
         label = QWidget()
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -819,7 +830,7 @@ class FormQt(QGroupBox):
         return field_container
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
-        chooser = QLineEdit()
+        chooser = QLineEditObserver()
         chooser.setReadOnly(True)
 
         if c.max_width > 0:
@@ -828,6 +839,7 @@ class FormQt(QGroupBox):
         if c.file_path:
             chooser.setText(c.file_path)
 
+        c.observers.append(chooser)
         chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
 
         def open_chooser(e):
@@ -848,14 +860,12 @@ class FormQt(QGroupBox):
             file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=options)
 
             if file_path:
-                c.file_path = file_path
-                chooser.setText(file_path)
+                c.set_file_path(file_path)
 
             chooser.setCursorPosition(0)
 
         def clean_path():
-            c.file_path = None
-            chooser.setText('')
+            c.set_file_path(None)
 
         chooser.mousePressEvent = open_chooser
 

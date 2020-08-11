@@ -23,7 +23,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent
+    SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -42,6 +42,28 @@ DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
+RE_APPIMAGE_NAME = re.compile(r'(.+)\.appimage', flags=re.IGNORECASE)
+
+
+class ManualInstallationFileObserver(ViewObserver):
+
+    def __init__(self, name: TextInputComponent, version: TextInputComponent):
+        self.name = name
+        self.version = version
+
+    def on_change(self, file_path: str):
+        if file_path:
+            name_found = RE_APPIMAGE_NAME.findall(file_path.split('/')[-1])
+
+            if name_found:
+                name_split = name_found[0].split('-')
+                self.name.set_value(name_split[0].strip())
+
+                if len(name_split) > 1:
+                    self.version.set_value(name_split[1].strip())
+        else:
+            self.name.set_value(None)
+            self.version.set_value(None)
 
 
 class AppImageManager(SoftwareManager):
@@ -74,9 +96,13 @@ class AppImageManager(SoftwareManager):
         if not os.path.isdir(default_path):
             default_path = None
 
-        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'}, search_path=default_path)
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
+                                            allowed_extensions={'AppImage'},
+                                            search_path=default_path)
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+        file_chooser.observers.append(ManualInstallationFileObserver(input_name, input_version))
+
         input_description = TextInputComponent(label=self.i18n['description'].capitalize())
 
         cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
