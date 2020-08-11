@@ -182,13 +182,14 @@ class FormComponent(ViewComponent):
 class FileChooserComponent(ViewComponent):
 
     def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None,
-                 file_path: str = None, max_width: int = -1, id_: str = None):
+                 file_path: str = None, max_width: int = -1, id_: str = None, search_path: str = None):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
         self.file_path = file_path
         self.tooltip = tooltip
         self.max_width = max_width
+        self.search_path = search_path
 
 
 class TabComponent(ViewComponent):

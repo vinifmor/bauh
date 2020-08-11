@@ -840,6 +840,8 @@ class FormQt(QGroupBox):
 
             if c.file_path and os.path.isfile(c.file_path):
                 cur_path = c.file_path
+            elif c.search_path and os.path.exists(c.search_path):
+                cur_path = c.search_path
             else:
                 cur_path = str(Path.home())
 

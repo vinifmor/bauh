@@ -69,7 +69,12 @@ class AppImageManager(SoftwareManager):
                                                         icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        default_path = '{}/Downloads'.format(str(Path.home()))
+
+        if not os.path.isdir(default_path):
+            default_path = None
+
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'}, search_path=default_path)
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
         input_description = TextInputComponent(label=self.i18n['description'].capitalize())
