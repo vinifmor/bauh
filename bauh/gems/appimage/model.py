@@ -100,7 +100,7 @@ class AppImage(SoftwarePackage):
 
     def get_display_name(self) -> str:
         if self.name and self.imported:
-            return '{} ( {} )'.format(self.name, self.i18n['imported'])
+            return '{} ({})'.format(self.name, self.i18n['imported'])
 
         return self.name
 
