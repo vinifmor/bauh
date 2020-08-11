@@ -419,10 +419,9 @@ class AppImageManager(SoftwareManager):
                     return f
 
     def _find_icon_file(self, folder: str) -> str:
-        for r, d, files in os.walk(folder):
-            for f in files:
-                if RE_ICON_ENDS_WITH.match(f):
-                    return f
+        for f in glob.glob(folder + ('/**' if not folder.endswith('/') else '**'), recursive=True):
+            if RE_ICON_ENDS_WITH.match(f):
+                return f
 
     def install(self, pkg: AppImage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         handler = ProcessHandler(watcher)
@@ -508,8 +507,8 @@ class AppImageManager(SoftwareManager):
                     extracted_icon = self._find_icon_file(extracted_folder)
 
                     if extracted_icon:
-                        icon_path = out_dir + '/logo.' + extracted_icon.split('.')[-1]
-                        shutil.copy('{}/{}'.format(extracted_folder, extracted_icon), icon_path)
+                        icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
+                        shutil.copy(extracted_icon, icon_path)
                         de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
                         pkg.icon_path = icon_path
 
