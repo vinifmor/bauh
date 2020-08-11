@@ -11,7 +11,7 @@ from distutils.version import LooseVersion
 from math import floor
 from pathlib import Path
 from threading import Lock
-from typing import Set, Type, List, Tuple
+from typing import Set, Type, List, Tuple, Optional
 
 from colorama import Fore
 
@@ -29,7 +29,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE, util
+    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
@@ -47,7 +47,7 @@ RE_APPIMAGE_NAME = re.compile(r'(.+)\.appimage', flags=re.IGNORECASE)
 
 class ManualInstallationFileObserver(ViewObserver):
 
-    def __init__(self, name: TextInputComponent, version: TextInputComponent):
+    def __init__(self, name: Optional[TextInputComponent], version: TextInputComponent):
         self.name = name
         self.version = version
 
@@ -57,12 +57,16 @@ class ManualInstallationFileObserver(ViewObserver):
 
             if name_found:
                 name_split = name_found[0].split('-')
-                self.name.set_value(name_split[0].strip())
+
+                if self.name:
+                    self.name.set_value(name_split[0].strip())
 
                 if len(name_split) > 1:
                     self.version.set_value(name_split[1].strip())
         else:
-            self.name.set_value(None)
+            if self.name:
+                self.name.set_value(None)
+
             self.version.set_value(None)
 
 
@@ -91,14 +95,9 @@ class AppImageManager(SoftwareManager):
                                                         icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        default_path = '{}/Downloads'.format(str(Path.home()))
-
-        if not os.path.isdir(default_path):
-            default_path = None
-
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage'},
-                                            search_path=default_path)
+                                            search_path=get_default_manual_installation_file_dir())
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
         file_chooser.observers.append(ManualInstallationFileObserver(input_name, input_version))
@@ -150,8 +149,11 @@ class AppImageManager(SoftwareManager):
         return res
 
     def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
-        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
+                                            allowed_extensions={'AppImage'},
+                                            search_path=get_default_manual_installation_file_dir())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+        file_chooser.observers.append(ManualInstallationFileObserver(None, input_version))
 
         while True:
             if watcher.request_confirmation(title=self.i18n['appimage.custom_action.manual_update.details'], body=None,
