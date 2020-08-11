@@ -216,13 +216,14 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
-                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
+                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+                   extra_paths: Set[str] = None) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
         "stderr": PIPE,
         "cwd": cwd,
         "shell": shell,
-        "env": gen_env(global_interpreter, lang)
+        "env": gen_env(global_interpreter, lang, extra_paths)
     }
 
     if input:
@@ -232,7 +233,8 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
 
 
 def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
-                        global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
+                        global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+                        extra_paths: Set[str] = None) -> subprocess.Popen:
     pwdin, final_cmd = None, []
 
     if root_password is not None:
@@ -241,7 +243,7 @@ def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
 
     final_cmd.extend(cmd)
 
-    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang))
+    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang, extra_paths))
 
 
 def notify_user(msg: str, app_name: str, icon_path: str):

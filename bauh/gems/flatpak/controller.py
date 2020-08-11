@@ -18,7 +18,7 @@ from bauh.commons import user, internet
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -166,6 +166,10 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+
+        if not self._make_exports_dir(watcher):
+            return False
+
         handler = ProcessHandler(watcher)
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
 
@@ -176,7 +180,13 @@ class FlatpakManager(SoftwareManager):
         if commits is None:
             return False
 
-        commit_idx = commits.index(pkg.commit)
+        try:
+            commit_idx = commits.index(pkg.commit)
+        except ValueError:
+            if commits[0] == '(null)':
+                commit_idx = 0
+            else:
+                return False
 
         # downgrade is not possible if the app current commit in the first one:
         if commit_idx == len(commits) - 1:
@@ -198,6 +208,10 @@ class FlatpakManager(SoftwareManager):
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         flatpak_version = flatpak.get_version()
+
+        if not self._make_exports_dir(watcher):
+            return False
+
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
             related, deps = False, False
@@ -227,6 +241,10 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+
+        if not self._make_exports_dir(watcher):
+            return TransactionResult.fail()
+
         uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
 
         if uninstalled:
@@ -289,14 +307,32 @@ class FlatpakManager(SoftwareManager):
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
+
         status_idx = 0
 
+        commit_found = False
         for idx, data in enumerate(commits):
             if data['commit'] == pkg.commit:
                 status_idx = idx
+                commit_found = True
                 break
 
+        if not commit_found and pkg.commit and commits[0]['commit'] == '(null)':
+            commits[0]['commit'] = pkg.commit
+
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
+
+    def _make_exports_dir(self, watcher: ProcessWatcher) -> bool:
+        if not os.path.exists(EXPORTS_PATH):
+            self.logger.info("Creating dir '{}'".format(EXPORTS_PATH))
+            watcher.print('Creating dir {}'.format(EXPORTS_PATH))
+            try:
+                os.mkdir(EXPORTS_PATH)
+            except:
+                watcher.print('Error while creating the directory {}'.format(EXPORTS_PATH))
+                return False
+
+        return True
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         config = read_config()
@@ -347,6 +383,9 @@ class FlatpakManager(SoftwareManager):
         flatpak_version = flatpak.get_version()
         installed = flatpak.list_installed(flatpak_version)
         installed_by_level = {'{}:{}:{}'.format(p['id'], p['name'], p['branch']) for p in installed if p['installation'] == pkg.installation} if installed else None
+
+        if not self._make_exports_dir(handler.watcher):
+            return TransactionResult(success=False, installed=[], removed=[])
 
         res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
 
