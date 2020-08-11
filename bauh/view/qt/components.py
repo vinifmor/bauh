@@ -696,34 +696,45 @@ class FormQt(QGroupBox):
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
 
-        for c in model.components:
+        for idx, c in enumerate(model.components):
             if isinstance(c, TextInputComponent):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
                 label = self._new_label(c)
-                field = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
-                self.layout().addRow(label, self._wrap(field, c))
+                form = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
+                field = self._wrap(form, c)
+                self.layout().addRow(label, field)
             elif isinstance(c, RangeInputComponent):
                 label = self._new_label(c)
-                self.layout().addRow(label, self._wrap(self._new_range_input(c), c))
+                field = self._wrap(self._new_range_input(c), c)
+                self.layout().addRow(label, field)
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FormComponent):
-                self.layout().addRow(FormQt(c, self.i18n))
+                label, field = None,  FormQt(c, self.i18n)
+                self.layout().addRow(field)
             elif isinstance(c, TwoStateButtonComponent):
-                label = self._new_label(c)
-                self.layout().addRow(label, TwoStateButtonQt(c))
+                label, field = self._new_label(c), TwoStateButtonQt(c)
+                self.layout().addRow(label, field)
             elif isinstance(c, MultipleSelectComponent):
-                label = self._new_label(c)
-                self.layout().addRow(label, FormMultipleSelectQt(c))
+                label, field = self._new_label(c), FormMultipleSelectQt(c)
+                self.layout().addRow(label, field)
             elif isinstance(c, TextComponent):
-                self.layout().addRow(self._new_label(c), QWidget())
+                label, field = self._new_label(c), QWidget()
+                self.layout().addRow(label, field)
             elif isinstance(c, RangeInputComponent):
-                self.layout()
+                label, field = self._new_label(c), self._new_range_input(c)
+                self.layout().addRow(label, field)
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
+
+            if label:  # to prevent C++ wrap errors
+                setattr(self, 'label_{}'.format(idx), label)
+
+            if field:  # to prevent C++ wrap errors
+                setattr(self, 'field_{}'.format(idx), field)
 
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())

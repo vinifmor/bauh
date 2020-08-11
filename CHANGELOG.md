@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - history: the top commit is returned as "(null)"
 - UI
     - crashing when nothing can be upgraded
+    - random C++ wrapper errors with some forms due to missing references
 
 
 ## [0.9.6] 2020-06-26
