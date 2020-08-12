@@ -168,39 +168,27 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-
         if not self._make_exports_dir(watcher):
             return False
 
-        handler = ProcessHandler(watcher)
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
-
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation, handler)
 
-        if commits is None:
-            return False
-
-        try:
-            commit_idx = commits.index(pkg.commit)
-        except ValueError:
-            if commits[0] == '(null)':
-                commit_idx = 0
-            else:
-                return False
+        history = self.get_history(pkg)
 
         # downgrade is not possible if the app current commit in the first one:
-        if commit_idx == len(commits) - 1:
-            watcher.show_message(self.i18n['flatpak.downgrade.impossible.title'], self.i18n['flatpak.downgrade.impossible.body'], MessageType.WARNING)
+        if history.pkg_status_idx == len(history.history) - 1:
+            watcher.show_message(self.i18n['flatpak.downgrade.impossible.title'],
+                                 self.i18n['flatpak.downgrade.impossible.body'].format(bold(pkg.name)),
+                                 MessageType.ERROR)
             return False
 
-        commit = commits[commit_idx + 1]
+        commit = history.history[history.pkg_status_idx + 1]['commit']
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = handler.handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
-                                               success_phrases=['Changes complete.', 'Updates complete.'],
-                                               wrong_error_phrase='Warning'))
+        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
+                                                 success_phrases=['Changes complete.', 'Updates complete.'],
+                                                 wrong_error_phrase='Warning'))
         watcher.change_progress(100)
         return success
 
@@ -311,13 +299,19 @@ class FlatpakManager(SoftwareManager):
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
 
         status_idx = 0
-
         commit_found = False
-        for idx, data in enumerate(commits):
-            if data['commit'] == pkg.commit:
-                status_idx = idx
-                commit_found = True
-                break
+
+        if pkg.commit is None and len(commits) > 1 and commits[0]['commit'] == '(null)':
+            del commits[0]
+            pkg.commit = commits[0]
+            commit_found = True
+
+        if not commit_found:
+            for idx, data in enumerate(commits):
+                if data['commit'] == pkg.commit:
+                    status_idx = idx
+                    commit_found = True
+                    break
 
         if not commit_found and pkg.commit and commits[0]['commit'] == '(null)':
             commits[0]['commit'] = pkg.commit

@@ -2,7 +2,7 @@ import re
 import subprocess
 import traceback
 from datetime import datetime
-from typing import List, Dict, Set, Iterable
+from typing import List, Dict, Set, Iterable, Optional
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
@@ -10,6 +10,7 @@ from bauh.commons.util import size_to_byte
 from bauh.gems.flatpak import EXPORTS_PATH
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
+RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
 
 
 def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
@@ -76,12 +77,13 @@ def get_app_info(app_id: str, branch: str, installation: str):
         return ''
 
 
-def get_commit(app_id: str, branch: str, installation: str) -> str:
-    info = new_subprocess(['flatpak', 'info', app_id, branch, '--{}'.format(installation)])
+def get_commit(app_id: str, branch: str, installation: str) -> Optional[str]:
+    info = run_cmd('flatpak info {} {} --{}'.format(app_id, branch, installation))
 
-    for o in new_subprocess(['grep', 'Commit:', '--color=never'], stdin=info.stdout).stdout:
-        if o:
-            return o.decode().split(':')[1].strip()
+    if info:
+        commits = RE_COMMIT.findall(info)
+        if commits:
+            return commits[0][1].strip()
 
 
 def list_installed(version: str) -> List[dict]:
