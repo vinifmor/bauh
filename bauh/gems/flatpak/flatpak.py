@@ -415,5 +415,10 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
 
                         if related_id:
                             size = p2.findall(line_split[6])[0].split('?')
-                            res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+
+                            if size and len(size) > 1:
+                                try:
+                                    res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+                                except:
+                                    traceback.print_exc()
         return res

@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)" in version 1.8.X
+    - crashing when an update size cannot be read [#130](https://github.com/vinifmor/bauh/issues/130)
     - installation fails when there are multiple references for a given package (e.g: openh264)
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/flatpak_refs.png">
