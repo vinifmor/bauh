@@ -1,4 +1,5 @@
 import os
+import re
 import traceback
 from datetime import datetime
 from math import floor
@@ -25,6 +26,7 @@ from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
+RE_INSTALL_REFS = re.compile(r'\d+\)\s+(.+)')
 
 
 class FlatpakManager(SoftwareManager):
@@ -387,9 +389,30 @@ class FlatpakManager(SoftwareManager):
         if not self._make_exports_dir(handler.watcher):
             return TransactionResult(success=False, installed=[], removed=[])
 
-        res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
+        installed, output = handler.handle_simple(flatpak.install(str(pkg.id), pkg.origin, pkg.installation))
 
-        if res:
+        if not installed and 'error: No ref chosen to resolve matches' in output:
+            ref_opts = RE_INSTALL_REFS.findall(output)
+
+            if ref_opts and len(ref_opts) > 1:
+                view_opts = [InputOption(label=o, value=o.strip()) for o in ref_opts if o]
+                ref_select = SingleSelectComponent(type_=SelectViewType.RADIO, options=view_opts, default_option=view_opts[0], label='')
+                if watcher.request_confirmation(title=self.i18n['flatpak.install.ref_choose.title'],
+                                                body=self.i18n['flatpak.install.ref_choose.body'].format(bold(pkg.name)),
+                                                components=[ref_select],
+                                                confirmation_label=self.i18n['proceed'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize()):
+                    ref = ref_select.get_selected()
+                    installed, output = handler.handle_simple(flatpak.install(ref, pkg.origin, pkg.installation))
+                    pkg.ref = ref
+                    pkg.runtime = 'runtime' in ref
+                else:
+                    watcher.print('Aborted by the user')
+                    return TransactionResult.fail()
+            else:
+                return TransactionResult.fail()
+
+        if installed:
             try:
                 fields = flatpak.get_fields(str(pkg.id), pkg.branch, ['Ref', 'Branch'])
 
@@ -399,7 +422,7 @@ class FlatpakManager(SoftwareManager):
             except:
                 traceback.print_exc()
 
-        if res:
+        if installed:
             new_installed = [pkg]
             current_installed = flatpak.list_installed(flatpak_version)
             current_installed_by_level = [p for p in current_installed if p['installation'] == pkg.installation] if current_installed else None
@@ -413,7 +436,7 @@ class FlatpakManager(SoftwareManager):
                         new_installed.append(self._map_to_model(app_json=p, installed=True,
                                                                 disk_loader=disk_loader, internet=net_available))
 
-            return TransactionResult(success=res, installed=new_installed, removed=[])
+            return TransactionResult(success=installed, installed=new_installed, removed=[])
         else:
             return TransactionResult.fail()
 

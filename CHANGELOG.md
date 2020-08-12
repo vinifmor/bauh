@@ -40,6 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)"
+    - installation fails when there are multiple references for a given package (e.g: openh264)
+     <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/flatpak_refs.png">
+     </p>
 - UI
     - crashing when nothing can be upgraded
     - random C++ wrapper errors with some forms due to missing references

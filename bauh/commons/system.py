@@ -65,7 +65,7 @@ class SimpleProcess:
 
     def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
-                 extra_paths: Set[str] = None, error_phrases: Set[str] = None):
+                 extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None):
         pwdin, final_cmd = None, []
 
         if root_password is not None:
@@ -77,6 +77,7 @@ class SimpleProcess:
         self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths)
         self.expected_code = expected_code
         self.error_phrases = error_phrases
+        self.wrong_error_phrases = wrong_error_phrases
 
     def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None, extra_paths: Set[str] = None) -> subprocess.Popen:
 
@@ -182,11 +183,18 @@ class ProcessHandler:
         success = proc.instance.returncode == proc.expected_code
         string_output = output.read()
 
-        if proc.error_phrases:
+        if not success and proc.wrong_error_phrases:
+            for phrase in proc.wrong_error_phrases:
+                if phrase in string_output:
+                    success = True
+                    break
+
+        if success and proc.error_phrases:
             for phrase in proc.error_phrases:
                 if phrase in string_output:
                     success = False
                     break
+
         return success, string_output
 
 

@@ -355,9 +355,10 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
     return found
 
 
-def install(app_id: str, origin: str, installation: str):
-    return new_subprocess(cmd=['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)],
-                          extra_paths={EXPORTS_PATH})
+def install(app_id: str, origin: str, installation: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)],
+                         extra_paths={EXPORTS_PATH},
+                         wrong_error_phrases={'Warning'})
 
 
 def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
