@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
 
 - Flatpak
-    - Creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
+    - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
 
 - minor UI improvements
 
@@ -32,14 +32,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - crashing the application icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
-    - Downloading some AUR packages sources twice when multi-threaded download is enabled
+    - downloading some AUR packages sources twice when multi-threaded download is enabled
     - upgrade summary:
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
 - Flatpak
     - downgrading crashing with version 1.8.X
-    - history: the top commit is returned as "(null)"
+    - history: the top commit is returned as "(null)" in version 1.8.X
     - installation fails when there are multiple references for a given package (e.g: openh264)
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/flatpak_refs.png">
