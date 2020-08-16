@@ -69,7 +69,7 @@ class WebApplicationManager(SoftwareManager):
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
         self.suggestions = {}
-        self.custom_actions = [CustomSoftwareAction(i18_label_key='web.custom_action.clean_env',
+        self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
                                                     i18n_status_key='web.custom_action.clean_env.status',
                                                     manager=self,
                                                     manager_method='clean_environment',

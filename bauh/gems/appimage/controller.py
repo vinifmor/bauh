@@ -82,13 +82,13 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
-        self.custom_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.install_file',
+        self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                     i18n_status_key='appimage.custom_action.install_file.status',
                                                     manager=self,
                                                     manager_method='install_file',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
                                                     requires_root=False)]
-        self.custom_app_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.manual_update',
+        self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
                                                         requires_root=False,

@@ -177,6 +177,9 @@ db_updater:
     - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest (`sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy`)
     - **quick system upgrade**: it executes a default pacman upgrade (`pacman -Syyu --noconfirm`)
     - **clean cache**: it cleans the pacman cache diretory (default: `/var/cache/pacman/pkg`)
+    - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+    - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+- Installed AUR packages have their **PKGBUILD** files cached at **~/.cache/bauh/arch/installed/$pkgname**
 - Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
@@ -190,7 +193,8 @@ aur:  true  # allows to manage AUR packages
 repositories: true  # allows to manage packages from the configured repositories
 repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2/axel is installed
 automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false).
-``` 
+edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edition before the make process. true (PKGBUILD will always be displayed for edition), false (PKGBUILD never will be displayed), null (a popup will ask if the user want to edit the PKGBUILD)
+```
 - Required dependencies:
     - **pacman**
     - **wget**

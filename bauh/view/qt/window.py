@@ -1394,7 +1394,7 @@ class ManageWindow(QWidget):
 
     def begin_execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
         if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18_label_key])),
+                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18n_label_key])),
                                                        icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
                                                        i18n=self.i18n):
             return False
@@ -1450,7 +1450,7 @@ class ManageWindow(QWidget):
             self.settings_window.show()
 
     def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
-        custom_action = QAction(self.i18n[action.i18_label_key])
+        custom_action = QAction(self.i18n[action.i18n_label_key])
 
         if action.icon_path:
             try:

@@ -1,4 +1,5 @@
 gem.snap.info=Anwendungen von https://snapcraft.io/store
+snap.action.refresh.confirm=Erneuern {} ?
 snap.action.refresh.label=Erneuern
 snap.action.refresh.status=Erneuern
 snap.info.commands=Kommandos

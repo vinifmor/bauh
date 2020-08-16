@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.7] 2020
+### Features
+- Arch
+    - AUR:
+        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during this acctions allowing the PKGBUILD to be edited.
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/aur_pkgbuild.png">
+        </p>
+        - mark a given PKGBUILD of a package as editable (if the property above is enabled, the same behavior will be applied)
+         <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/mark_pkgbuild.png">
+         </p>
+        - unmark a given PKGBUILD of a package as editable (it prevents the behavior described above to happen)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.7/unmark_pkgbuild.png">
+         </p>
+
 ### Improvements
 - AppImage
     - Manual file installation/upgrade:
@@ -20,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - upgrading firstly the keyring packages declared in **SyncFirst** (**/etc/pacman.conf**) to avoid pacman downloading issues
         - only removing packages after downloading the required ones
      - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
+     - AUR: caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
 
 - Flatpak
     - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
@@ -38,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
+    - AUR: info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)" in version 1.8.X

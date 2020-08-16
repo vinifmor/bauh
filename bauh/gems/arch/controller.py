@@ -22,17 +22,18 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent, TextInputType
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
+from bauh.commons.view_utils import new_select
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR
+    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -65,7 +66,8 @@ class TransactionContext:
                  remote_repo_map: Dict[str, str] = None, provided_map: Dict[str, Set[str]] = None,
                  remote_provided_map: Dict[str, Set[str]] = None, aur_idx: Set[str] = None,
                  missing_deps: List[Tuple[str, str]] = None, installed: Set[str] = None, removed: Dict[str, SoftwarePackage] = None,
-                 disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None):
+                 disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None,
+                 new_pkg: bool = False):
         self.name = name
         self.base = base
         self.maintainer = maintainer
@@ -90,13 +92,15 @@ class TransactionContext:
         self.removed = removed
         self.disk_loader = disk_loader
         self.disk_cache_updater = disk_cache_updater
+        self.pkgbuild_edited = False
+        self.new_pkg = new_pkg
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
         return cls(name=pkg.name, base=pkg.get_base_name(), maintainer=pkg.maintainer, repository=pkg.repository,
                    arch_config=arch_config, watcher=handler.watcher, handler=handler, skip_opt_deps=True,
                    change_progress=True, root_password=root_password, dependency=False,
-                   installed=set(), removed={})
+                   installed=set(), removed={}, new_pkg=not pkg.installed)
 
     def get_base_name(self):
         return self.base if self.base else self.name
@@ -173,26 +177,26 @@ class ArchManager(SoftwareManager):
         self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n)
         self.http_client = context.http_client
         self.custom_actions = {
-            'sys_up': CustomSoftwareAction(i18_label_key='arch.custom_action.upgrade_system',
+            'sys_up': CustomSoftwareAction(i18n_label_key='arch.custom_action.upgrade_system',
                                            i18n_status_key='arch.custom_action.upgrade_system.status',
                                            manager_method='upgrade_system',
                                            icon_path=get_icon_path(),
                                            requires_root=True,
                                            backup=True,
                                            manager=self),
-            'ref_dbs': CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_dbs',
+            'ref_dbs': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_dbs',
                                             i18n_status_key='arch.sync_databases.substatus',
                                             manager_method='sync_databases',
                                             icon_path=get_icon_path(),
                                             requires_root=True,
                                             manager=self),
-            'ref_mirrors': CustomSoftwareAction(i18_label_key='arch.custom_action.refresh_mirrors',
+            'ref_mirrors': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_mirrors',
                                                 i18n_status_key='arch.task.mirrors',
                                                 manager_method='refresh_mirrors',
                                                 icon_path=get_icon_path(),
                                                 requires_root=True,
                                                 manager=self),
-            'clean_cache': CustomSoftwareAction(i18_label_key='arch.custom_action.clean_cache',
+            'clean_cache': CustomSoftwareAction(i18n_label_key='arch.custom_action.clean_cache',
                                                 i18n_status_key='arch.custom_action.clean_cache.status',
                                                 manager_method='clean_cache',
                                                 icon_path=get_icon_path(),
@@ -416,7 +420,8 @@ class ArchManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def _fill_aur_pkgs(self, aur_pkgs: dict, output: list, disk_loader: DiskCacheLoader, internet_available: bool):
+    def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
+                       arch_config: dict):
         downgrade_enabled = git.is_enabled()
 
         if internet_available:
@@ -424,9 +429,11 @@ class ArchManager(SoftwareManager):
                 pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
 
                 if pkgsinfo:
+                    editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
                     for pkgdata in pkgsinfo:
                         pkg = self.mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
                         pkg.downgrade_enabled = downgrade_enabled
+                        pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
                         if disk_loader:
                             disk_loader.fill(pkg)
@@ -434,11 +441,13 @@ class ArchManager(SoftwareManager):
 
                         output.append(pkg)
 
-                return
+                    return
+
             except requests.exceptions.ConnectionError:
                 self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
                 self.logger.info("Reading only local AUR packages data")
 
+        editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
         for name, data in aur_pkgs.items():
             pkg = ArchPackage(name=name, version=data.get('version'),
                               latest_version=data.get('version'), description=data.get('description'),
@@ -446,6 +455,7 @@ class ArchManager(SoftwareManager):
 
             pkg.categories = self.categories.get(pkg.name)
             pkg.downgrade_enabled = downgrade_enabled
+            pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
             if disk_loader:
                 disk_loader.fill(pkg)
@@ -538,7 +548,7 @@ class ArchManager(SoftwareManager):
             map_threads = []
 
             if aur_pkgs:
-                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available), daemon=True)
+                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -1207,6 +1217,8 @@ class ArchManager(SoftwareManager):
 
                 self._revert_ignored_updates(to_uninstall)
 
+            self._remove_from_editable_pkgbuilds(context.name)
+
         self._update_progress(context, 100)
         return uninstalled
 
@@ -1314,7 +1326,11 @@ class ArchManager(SoftwareManager):
             run_cmd('git clone ' + URL_GIT.format(base_name), print_error=False, cwd=temp_dir)
 
             clone_path = '{}/{}'.format(temp_dir, base_name)
+
             srcinfo_path = '{}/.SRCINFO'.format(clone_path)
+
+            if not os.path.exists(srcinfo_path):
+                return PackageHistory.empyt(pkg)
 
             commits = git.list_commits(clone_path)
 
@@ -1572,7 +1588,62 @@ class ArchManager(SoftwareManager):
 
         return True
 
+    def _display_pkgbuild_for_editing(self, pkgname: str, watcher: ProcessWatcher, pkgbuild_path: str) -> bool:
+        with open(pkgbuild_path) as f:
+            pkgbuild = f.read()
+
+        pkgbuild_input = TextInputComponent(label='', value=pkgbuild, type_=TextInputType.MULTIPLE_LINES)
+
+        watcher.request_confirmation(title='PKGBUILD ({})'.format(pkgname),
+                                     body='',
+                                     components=[pkgbuild_input],
+                                     confirmation_label=self.i18n['proceed'].capitalize(),
+                                     deny_button=False)
+
+        if pkgbuild_input.get_value() != pkgbuild:
+            with open(pkgbuild_path, 'w+') as f:
+                f.write(pkgbuild_input.get_value())
+
+            return makepkg.update_srcinfo('/'.join(pkgbuild_path.split('/')[0:-1]))
+
+        return False
+
+    def _ask_for_pkgbuild_edition(self, pkgname: str, arch_config: dict, watcher: ProcessWatcher, pkgbuild_path: str) -> bool:
+        if pkgbuild_path:
+            if arch_config['edit_aur_pkgbuild'] is None:
+                if watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                body=self.i18n['arch.aur.action.edit_pkgbuild.body'].format(
+                                                    bold(pkgname))):
+                    return self._display_pkgbuild_for_editing(pkgname, watcher, pkgbuild_path)
+            elif arch_config['edit_aur_pkgbuild']:
+                return self._display_pkgbuild_for_editing(pkgname, watcher, pkgbuild_path)
+
+        return False
+
+    def _edit_pkgbuild_and_update_context(self, context: TransactionContext):
+        if context.new_pkg or context.name in self._read_editable_pkgbuilds():
+            if self._ask_for_pkgbuild_edition(pkgname=context.name,
+                                              arch_config=context.config,
+                                              watcher=context.watcher,
+                                              pkgbuild_path='{}/PKGBUILD'.format(context.project_dir)):
+                context.pkgbuild_edited = True
+                srcinfo = aur.map_srcinfo(makepkg.gen_srcinfo(context.project_dir))
+
+                if srcinfo:
+                    context.name = srcinfo['pkgname']
+                    context.base = srcinfo['pkgbase']
+
+                    if context.pkg:
+                        for pkgattr, srcattr in {'name': 'pkgname',
+                                                 'package_base': 'pkgbase',
+                                                 'version': 'pkgversion',
+                                                 'latest_version': 'pkgversion',
+                                                 'license': 'license',
+                                                 'description': 'pkgdesc'}.items():
+                            setattr(context.pkg, pkgattr, srcinfo.get(srcattr, getattr(context.pkg, pkgattr)))
+
     def _build(self, context: TransactionContext) -> bool:
+        self._edit_pkgbuild_and_update_context(context)
         self._pre_download_source(context.project_dir, context.watcher)
         self._update_progress(context, 50)
 
@@ -1608,6 +1679,7 @@ class ArchManager(SoftwareManager):
             context.install_file = '{}/{}'.format(context.project_dir, gen_file[0])
 
             if self._install(context=context):
+                self._save_pkgbuild(context)
 
                 if context.dependency or context.skip_opt_deps:
                     return True
@@ -1619,6 +1691,24 @@ class ArchManager(SoftwareManager):
                     return True
 
         return False
+
+    def _save_pkgbuild(self, context: TransactionContext):
+        cache_path = ArchPackage.disk_cache_path(context.name)
+        if not os.path.exists(cache_path):
+            try:
+                os.mkdir(cache_path)
+            except:
+                print("Could not create cache directory '{}'".format(cache_path))
+                traceback.print_exc()
+                return
+
+        src_pkgbuild = '{}/PKGBUILD'.format(context.project_dir)
+        dest_pkgbuild = '{}/PKGBUILD'.format(cache_path)
+        try:
+            shutil.copy(src_pkgbuild, dest_pkgbuild)
+        except:
+            context.watcher.print("Could not copy '{}' to '{}'".format(src_pkgbuild, dest_pkgbuild))
+            traceback.print_exc()
 
     def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
@@ -2086,12 +2176,21 @@ class ArchManager(SoftwareManager):
         else:
             res = self._install_from_repository(install_context)
 
-        if res and os.path.exists(pkg.get_disk_data_path()):
-            with open(pkg.get_disk_data_path()) as f:
-                data = f.read()
-                if data:
-                    data = json.loads(data)
-                    pkg.fill_cached_data(data)
+        if res:
+            pkg.name = install_context.name  # changes the package name in case the PKGBUILD was edited
+
+            if os.path.exists(pkg.get_disk_data_path()):
+                with open(pkg.get_disk_data_path()) as f:
+                    data = f.read()
+                    if data:
+                        data = json.loads(data)
+                        pkg.fill_cached_data(data)
+
+            if install_context.new_pkg and install_context.config['edit_aur_pkgbuild'] is not False and pkg.repository == 'aur':
+                if install_context.pkgbuild_edited:
+                    pkg.pkgbuild_editable = self._add_as_editable_pkgbuild(pkg.name)
+                else:
+                    pkg.pkgbuild_editable = not self._remove_from_editable_pkgbuilds(pkg.name)
 
         installed = []
 
@@ -2311,7 +2410,7 @@ class ArchManager(SoftwareManager):
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         local_config = read_config()
-        max_width = floor(screen_width * 0.15)
+        max_width = floor(screen_width * 0.22)
 
         db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
                                                 label_key='arch.config.sync_dbs',
@@ -2370,7 +2469,19 @@ class ArchManager(SoftwareManager):
                                tooltip=self.i18n['arch.config.mirrors_sort_limit.tip'],
                                only_int=True,
                                max_width=max_width,
-                               value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else '')
+                               value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else ''),
+            new_select(label=self.i18n['arch.config.edit_aur_pkgbuild'],
+                       tip=self.i18n['arch.config.edit_aur_pkgbuild.tip'],
+                       id_='edit_aur_pkgbuild',
+                       opts=[(self.i18n['yes'].capitalize(), True, None),
+                             (self.i18n['no'].capitalize(), False, None),
+                             (self.i18n['ask'].capitalize(), None, None),
+                             ],
+                       value=local_config['edit_aur_pkgbuild'],
+                       max_width=max_width,
+                       type_=SelectViewType.RADIO,
+                       capitalize_label=False)
+
         ]
 
         return PanelComponent([FormComponent(fields, spaces=False)])
@@ -2389,6 +2500,7 @@ class ArchManager(SoftwareManager):
         config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
         config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
+        config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
 
         try:
             save_config(config, CONFIG_FILE)
@@ -2614,3 +2726,56 @@ class ArchManager(SoftwareManager):
     def revert_ignored_update(self, pkg: ArchPackage):
         self._revert_ignored_updates({pkg.name})
         pkg.update_ignored = False
+
+    def _add_as_editable_pkgbuild(self, pkgname: str):
+        try:
+            Path('/'.join(EDITABLE_PKGBUILDS_FILE.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
+
+            editable = self._read_editable_pkgbuilds()
+
+            if pkgname not in editable:
+                editable.add(pkgname)
+
+            self._write_editable_pkgbuilds(editable)
+            return True
+        except:
+            traceback.print_exc()
+            return False
+
+    def _write_editable_pkgbuilds(self, editable: Set[str]):
+        if editable:
+            with open(EDITABLE_PKGBUILDS_FILE, 'w+') as f:
+                for name in sorted([*editable]):
+                    f.write('{}\n'.format(name))
+        else:
+            os.remove(EDITABLE_PKGBUILDS_FILE)
+
+    def _remove_from_editable_pkgbuilds(self, pkgname: str):
+        if os.path.exists(EDITABLE_PKGBUILDS_FILE):
+            try:
+                editable = self._read_editable_pkgbuilds()
+
+                if pkgname in editable:
+                    editable.remove(pkgname)
+
+                self._write_editable_pkgbuilds(editable)
+            except:
+                traceback.print_exc()
+                return False
+
+        return True
+
+    def _read_editable_pkgbuilds(self) -> Set[str]:
+        if os.path.exists(EDITABLE_PKGBUILDS_FILE):
+            with open(EDITABLE_PKGBUILDS_FILE) as f:
+                return {l.strip() for l in f.readlines() if l and l.strip()}
+
+        return set()
+
+    def enable_pkgbuild_edition(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher):
+        if self._add_as_editable_pkgbuild(pkg.name):
+            pkg.pkgbuild_editable = True
+
+    def disable_pkgbuild_edition(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher):
+        if self._remove_from_editable_pkgbuilds(pkg.name):
+            pkg.pkgbuild_editable = False

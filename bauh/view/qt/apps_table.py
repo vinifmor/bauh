@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus
-from bauh.commons.html import strip_html
+from bauh.commons.html import strip_html, bold
 from bauh.view.qt import dialog
 from bauh.view.qt.colors import GREEN, BROWN
 from bauh.view.qt.components import IconButton
@@ -167,15 +167,20 @@ class AppsTable(QTableWidget):
 
         if bool(pkg.model.get_custom_supported_actions()):
             for action in pkg.model.get_custom_supported_actions():
-                item = QAction(self.i18n[action.i18_label_key])
+                item = QAction(self.i18n[action.i18n_label_key])
 
                 if action.icon_path:
                     item.setIcon(QIcon(action.icon_path))
 
                 def custom_action():
+                    if action.i18n_confirm_key:
+                        body = self.i18n[action.i18n_confirm_key].format(bold(pkg.model.name))
+                    else:
+                        body = '{} ?'.format(self.i18n[action.i18n_label_key])
+
                     if dialog.ask_confirmation(
-                            title=self.i18n[action.i18_label_key],
-                            body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
+                            title=self.i18n[action.i18n_label_key],
+                            body=self._parag(body),
                             i18n=self.i18n):
                         self.window.begin_execute_custom_action(pkg, action)
 

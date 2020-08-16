@@ -40,10 +40,11 @@ class SnapManager(SoftwareManager):
         self.info_path = None
         self.custom_actions = [
             CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
-                                 i18_label_key='snap.action.refresh.label',
+                                 i18n_label_key='snap.action.refresh.label',
                                  icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
                                  manager_method='refresh',
-                                 requires_root=True)
+                                 requires_root=True,
+                                 i18n_confirm_key='snap.action.refresh.confirm')
         ]
 
     def get_info_path(self) -> str:

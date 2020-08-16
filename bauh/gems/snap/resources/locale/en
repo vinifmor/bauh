@@ -1,4 +1,5 @@
 gem.snap.info=Applications published at https://snapcraft.io/store
+snap.action.refresh.confirm=Refresh {} ?
 snap.action.refresh.label=Refresh
 snap.action.refresh.status=Refreshing
 snap.info.commands=commands

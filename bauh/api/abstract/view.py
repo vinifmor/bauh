@@ -148,10 +148,15 @@ class TwoStateButtonComponent(ViewComponent):
         self.state = state
 
 
+class TextInputType(Enum):
+    SINGLE_LINE = 0
+    MULTIPLE_LINES = 1
+
+
 class TextInputComponent(ViewComponent):
 
     def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
-                 id_: str = None, only_int: bool = False, max_width: int = -1):
+                 id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -160,20 +165,22 @@ class TextInputComponent(ViewComponent):
         self.read_only = read_only
         self.only_int = only_int
         self.max_width = max_width
+        self.type = type_
 
     def get_value(self) -> str:
         if self.value is not None:
-            return self.value.strip()
+            return self.value
         else:
             return ''
 
     def set_value(self, val: Optional[str], caller: object = None):
-        self.value = val
+        if val != self.value:
+            self.value = val
 
-        if self.observers:
-            for o in self.observers:
-                if caller != o:
-                    o.on_change(val)
+            if self.observers:
+                for o in self.observers:
+                    if caller != o:
+                        o.on_change(val)
 
     def get_int_value(self) -> int:
         if self.value is not None:

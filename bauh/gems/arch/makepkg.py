@@ -55,3 +55,14 @@ def make(pkgdir: str, optimize: bool, handler: ProcessHandler) -> Tuple[bool, st
             handler.watcher.print('Custom optimized makepkg.conf ( {} ) not found'.format(CUSTOM_MAKEPKG_FILE))
 
     return handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir))
+
+
+def update_srcinfo(project_dir: str) -> bool:
+    updated_src = run_cmd('makepkg --printsrcinfo', cwd=project_dir)
+
+    if updated_src:
+        with open('{}/.SRCINFO'.format(project_dir), 'w+') as f:
+            f.write(updated_src)
+        return True
+
+    return False

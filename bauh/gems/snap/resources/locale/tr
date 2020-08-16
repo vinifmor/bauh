@@ -1,4 +1,5 @@
 gem.snap.info=https://snapcraft.io/store adresinde yayınlanan uygulamalar
+snap.action.refresh.confirm=Yenile {} ?
 snap.action.refresh.label=Yenile
 snap.action.refresh.status=Yenileniyor
 snap.info.commands=komutlar

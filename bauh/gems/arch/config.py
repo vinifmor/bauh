@@ -12,5 +12,6 @@ def read_config(update_file: bool = False) -> dict:
                 "sync_databases_startup": True,
                 'mirrors_sort_limit': 5,
                 'repositories_mthread_download': False,
-                'automatch_providers': True}
+                'automatch_providers': True,
+                'edit_aur_pkgbuild': False}
     return read(CONFIG_FILE, template, update_file=update_file)

@@ -53,14 +53,14 @@ class GenericSoftwareManager(SoftwareManager):
         self.config = config
         self.settings_manager = settings_manager
         self.http_client = context.http_client
-        self.extra_actions = [CustomSoftwareAction(i18_label_key='action.reset',
+        self.extra_actions = [CustomSoftwareAction(i18n_label_key='action.reset',
                                                    i18n_status_key='action.reset.status',
                                                    manager_method='reset',
                                                    manager=self,
                                                    icon_path=resource.get_path('img/logo.svg'),
                                                    requires_root=False,
                                                    refresh=False)]
-        self.dynamic_extra_actions = {CustomSoftwareAction(i18_label_key='action.backups',
+        self.dynamic_extra_actions = {CustomSoftwareAction(i18n_label_key='action.backups',
                                                            i18n_status_key='action.backups.status',
                                                            manager_method='launch_timeshift',
                                                            manager=self,

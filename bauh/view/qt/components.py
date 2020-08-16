@@ -7,11 +7,11 @@ from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame, QAction, QSpinBox
+    QSlider, QScrollArea, QFrame, QAction, QSpinBox, QPlainTextEdit
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver
+    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver, TextInputType
 from bauh.view.qt import css
 from bauh.view.qt.colors import RED
 from bauh.view.util import resource
@@ -434,7 +434,24 @@ class QLineEditObserver(QLineEdit, ViewObserver):
         super(QLineEditObserver, self).__init__(**kwargs)
 
     def on_change(self, change: str):
-        self.setText(change if change is not None else '')
+        if self.text() != change:
+            self.setText(change if change is not None else '')
+
+
+class QPlainTextEditObserver(QPlainTextEdit, ViewObserver):
+
+    def __init__(self, **kwargs):
+        super(QPlainTextEditObserver, self).__init__(**kwargs)
+
+    def on_change(self, change: str):
+        self.setText(change)
+
+    def setText(self, text: str):
+        if text != self.toPlainText():
+            self.setPlainText(text if text is not None else '')
+
+    def setCursorPosition(self, idx: int):
+        self.textCursor().setPosition(idx)
 
 
 class TextInputQt(QGroupBox):
@@ -449,7 +466,7 @@ class TextInputQt(QGroupBox):
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
 
-        self.text_input = QLineEditObserver()
+        self.text_input = QLineEditObserver() if model.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
 
         if model.only_int:
             self.text_input.setValidator(QIntValidator())
@@ -469,8 +486,9 @@ class TextInputQt(QGroupBox):
         self.model.observers.append(self.text_input)
         self.layout().addWidget(self.text_input, 0, 1)
 
-    def _update_model(self, text: str):
-        self.model.set_value(val=text, caller=self)
+    def _update_model(self, *args):
+        change = args[0] if args else self.text_input.toPlainText()
+        self.model.set_value(val=change, caller=self)
 
 
 class MultipleSelectQt(QGroupBox):
@@ -775,29 +793,29 @@ class FormQt(QGroupBox):
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
-        line_edit = QLineEditObserver()
+        view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
 
         if c.only_int:
-            line_edit.setValidator(QIntValidator())
+            view.setValidator(QIntValidator())
 
         if c.tooltip:
-            line_edit.setToolTip(c.tooltip)
+            view.setToolTip(c.tooltip)
 
         if c.placeholder:
-            line_edit.setPlaceholderText(c.placeholder)
+            view.setPlaceholderText(c.placeholder)
 
         if c.value:
-            line_edit.setText(str(c.value) if c.value else '')
-            line_edit.setCursorPosition(0)
+            view.setText(str(c.value) if c.value else '')
+            view.setCursorPosition(0)
 
         if c.read_only:
-            line_edit.setEnabled(False)
+            view.setEnabled(False)
 
         def update_model(text: str):
-            c.set_value(val=text, caller=line_edit)
+            c.set_value(val=text, caller=view)
 
-        line_edit.textChanged.connect(update_model)
-        c.observers.append(line_edit)
+        view.textChanged.connect(update_model)
+        c.observers.append(view)
 
         label = QWidget()
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -812,7 +830,7 @@ class FormQt(QGroupBox):
             if c.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(c.tooltip))
 
-        return label, self._wrap(line_edit, c)
+        return label, self._wrap(view, c)
 
     def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
         spinner = QSpinBox()

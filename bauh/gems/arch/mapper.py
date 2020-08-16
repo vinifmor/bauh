@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 
@@ -110,10 +111,15 @@ class ArchDataMapper:
         return False
 
     def fill_package_build(self, pkg: ArchPackage):
-        res = self.http_client.get(pkg.get_pkg_build_url())
+        cached_pkgbuild = pkg.get_cached_pkgbuild_path()
+        if os.path.exists(cached_pkgbuild):
+            with open(cached_pkgbuild) as f:
+                pkg.pkgbuild = f.read()
+        else:
+            res = self.http_client.get(pkg.get_pkg_build_url())
 
-        if res and res.status_code == 200 and res.text:
-            pkg.pkgbuild = res.text
+            if res and res.status_code == 200 and res.text:
+                pkg.pkgbuild = res.text
 
     def map_api_data(self, apidata: dict, installed: dict, categories: dict) -> ArchPackage:
         data = installed.get(apidata.get('Name')) if installed else None

@@ -1,4 +1,5 @@
 gem.snap.info=Aplicacions publicades a https://snapcraft.io/store
+snap.action.refresh.confirm=Actualitza {} ?
 snap.action.refresh.label=Actualitza
 snap.action.refresh.status=S’està actualitzant
 snap.info.commands=ordres
