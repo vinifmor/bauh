@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - creating a symlink for the installed applications at **~.local/bin** (the link will have the same name of the application. if the link already exists, it will be named as 'app_name-appimage') [#122](https://github.com/vinifmor/bauh/issues/122)
     - new initialization task that checks if the installed AppImage files have symlinks associated with (it creates new symlinks if needed)
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/appim_symlinks.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.6/appim_symlinks.png">
     </p>
     - able to update AppImages with continuous releases
 - UI
@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new property **ui.scale_factor** responsible for defining the interface scale factor. Useful if bauh looks
     small on the screen. It can be changed through the settings window (**Interface** tab):
      <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.6/scale.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.6/scale.png">
      </p>
 
 ### Fixes
@@ -54,14 +54,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - new custom action (**+**) to open the system backups (snapshots). It is just a shortcut to Timeshift.
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.5/backup_action.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.5/backup_action.png">
     </p>
 
 ### Improvements
 - Arch
     - new **automatch_providers** settings: bauh will automatically choose which provider will be used for a package dependency when both names are equal (enabled by default).
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.5/arch_providers.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.5/arch_providers.png">
     </p>
 
 - UI
@@ -95,30 +95,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Ignore updates: now it is possible to ignore updates from software packages through their actions button (**+**). Supported types: Arch packages, Flatpaks and AppImages
 
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/ignore_updates.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/ignore_updates.png">
     </p>
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/revert_ignored_updates.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/revert_ignored_updates.png">
     </p>
 - Packages with ignored updates have their versions displayed with a brown shade
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/version_ignored_updates.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/version_ignored_updates.png">
     </p>
 - It is possible to filter all you packages with updates ignored through the new category **Updates ignored**
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/updates_ignored_category.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/updates_ignored_category.png">
     </p>
     
 - Arch
 	- supporting multi-threaded download for repository packages (enabled by default)
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/arch_repo_mthread.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/arch_repo_mthread.png">
     </p>
 
 - Settings
     - [axel](https://github.com/axel-download-accelerator/axel) added as an alternative multi-threaded download tool. The download tool can be defined through the new field **Multi-threaded download tool** on the settings window **Advanced** tab (check **Default** for bauh to decide which one to use)
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.4/mthread_tool.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.4/mthread_tool.png">
     </p>
 
 
@@ -181,29 +181,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - it is possible to view details of some initialization tasks by clicking on their icons
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_icon.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/prepare_icon.png">
     </p>
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/prepare_output.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/prepare_output.png">
     </p>
     
 ### Improvements
 - Backup
     - new **type** field on settings to specify the Timeshift backup mode: **RSYNC** or **BTRFS**
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/backup_mode.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/backup_mode.png">
     </p>
 - Trim
     - the dialog is now displayed before the upgrading process (but the operation is only executed after a successful upgrade)
 - Settings
     - new option to disable the reboot dialog after a successful upgrade (`updates.ask_for_reboot`)
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/ask_reboot.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/ask_reboot.png">
     </p>
 - Arch
     - able to handle upgrade scenarios when a package wants to overwrite files of another installed package
     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/files_conflict.png">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/files_conflict.png">
     </p>
     - displaying more upgrade substatus
     
@@ -217,7 +217,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - icons, buttons and colors changes
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/releases/0.9.2/color_design.png">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.2/color_design.png">
 </p>
 
 - more unnecessary **x** buttons were removed from dialogs
