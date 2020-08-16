@@ -18,7 +18,7 @@ This project has an official Twitter account (**@bauh4linux**) so people can sta
 To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/panel.png">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/panel.png">
 </p>
 
 
@@ -206,14 +206,14 @@ edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edi
 - It allows the installation of native Web applications by typing their addresses/URLs on the search bar
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/url_search.gif">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/url_search.gif">
 </p>
 
 
 - It offers the possibility to customize the generated app the way you want:
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/options.gif">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/options.gif">
 </p>
 
 
@@ -221,7 +221,7 @@ edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edi
 defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/suggestions.gif">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/suggestions.gif">
 </p>
 
 
@@ -237,7 +237,7 @@ attach it to the generated app.
 allowing the application to launch automatically after the system's boot attached to the tray.
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh/staging/pictures/web/tray.gif">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/tray.gif">
 </p>
 
 
