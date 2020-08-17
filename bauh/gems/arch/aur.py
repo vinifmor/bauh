@@ -52,10 +52,9 @@ def map_srcinfo(string: str, fields: Set[str] = None) -> dict:
     else:
         field_re = RE_SRCINFO_KEYS
 
-    for match in field_re.finditer(string):
-        field = RE_SPLIT_DEP.split(match.group(0))
-        key = field[0].strip()
-        val = field[1].strip()
+    for tupl in field_re.findall(string):
+        key = tupl[0].strip()
+        val = tupl[1].strip()
 
         if key not in info:
             info[key] = [val] if key in KNOWN_LIST_FIELDS else val
@@ -64,6 +63,11 @@ def map_srcinfo(string: str, fields: Set[str] = None) -> dict:
                 info[key] = [info[key]]
 
             info[key].append(val)
+
+    pkgname = info.get('pkgname')
+
+    if isinstance(pkgname, list):
+        info['pkgname'] = pkgname[0]
 
     return info
 

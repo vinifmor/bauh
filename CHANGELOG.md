@@ -55,7 +55,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
-    - AUR: info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade
+    - AUR:
+        - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
+        - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)" in version 1.8.X
