@@ -33,7 +33,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE
+    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -1789,7 +1789,11 @@ class ArchManager(SoftwareManager):
                                                         body=self.i18n['arch.install.aur.unknown_key.body'].format(bold(context.name), bold(check_res['gpg_key']))):
                     context.watcher.change_substatus(self.i18n['arch.aur.install.unknown_key.status'].format(bold(check_res['gpg_key'])))
                     self.logger.info("Importing GPG key {}".format(check_res['gpg_key']))
-                    if not context.handler.handle(gpg.receive_key(check_res['gpg_key'])):
+
+                    gpg_res = self.context.http_client.get(URL_GPG_SERVERS)
+                    gpg_server = gpg_res.text.split('\n')[0] if gpg_res else None
+
+                    if not context.handler.handle(gpg.receive_key(check_res['gpg_key'], gpg_server)):
                         self.logger.error("An error occurred while importing the GPG key {}".format(check_res['gpg_key']))
                         context.watcher.show_message(title=self.i18n['error'].capitalize(),
                                                      body=self.i18n['arch.aur.install.unknown_key.receive_error'].format(bold(check_res['gpg_key'])))
