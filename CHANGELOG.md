@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - Arch
     - AUR:
-        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during this acctions allowing the PKGBUILD to be edited.
+        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during this actions allowing the PKGBUILD to be edited.
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_pkgbuild.png">
         </p>
@@ -26,7 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - Manual file installation/upgrade:
         - default search path set to '~/Downloads'
         - trying to auto-fill the 'Name' and 'Version' fields
-
 - Arch
     - upgrade summary: displaying the reason a given package must be installed
      <p align="center">
@@ -35,8 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      - upgrade:
         - upgrading firstly the keyring packages declared in **SyncFirst** (**/etc/pacman.conf**) to avoid pacman downloading issues
         - only removing packages after downloading the required ones
-     - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
-     - AUR: caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
+        - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
+        - AUR: caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
 
 - Flatpak
     - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
@@ -46,19 +45,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes
 - AppImage
-    - manual file installation:
+    - manual file installation
         - crashing the application icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
     - downloading some AUR packages sources twice when multi-threaded download is enabled
-    - upgrade summary:
+    - upgrade summary
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
-    - AUR:
+    - AUR
         - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
         - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)
-        - importing PGP keys (Generic error). Now the key server is specified: `gpg --keyserver SERVER --recv-key KEYID` (the server is retrieved from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/arch/gpgservers.txt))
+        - importing PGP keys (Generic error). Now the key server is specified: `gpg --keyserver SERVER --recv-key KEYID` (the server address is retrieved from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/arch/gpgservers.txt))
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)" in version 1.8.X
