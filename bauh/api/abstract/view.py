@@ -156,7 +156,8 @@ class TextInputType(Enum):
 class TextInputComponent(ViewComponent):
 
     def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
-                 id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE):
+                 id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE,
+                 capitalize_label: bool = True):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -166,6 +167,7 @@ class TextInputComponent(ViewComponent):
         self.only_int = only_int
         self.max_width = max_width
         self.type = type_
+        self.capitalize_label = capitalize_label
 
     def get_value(self) -> str:
         if self.value is not None:
@@ -188,6 +190,12 @@ class TextInputComponent(ViewComponent):
 
             if val:
                 return int(self.value)
+
+    def get_label(self) -> str:
+        if not self.label:
+            return ''
+        else:
+            return self.label.capitalize() if self.capitalize_label else self.label
 
 
 class FormComponent(ViewComponent):

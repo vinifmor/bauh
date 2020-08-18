@@ -754,9 +754,8 @@ def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: boo
 
 def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = False) -> Dict[str, Dict[str, str]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
-
+    res = {}
     if output:
-        res = {}
         latest_name, deps = None, None
 
         for l in output.split('\n'):
@@ -801,7 +800,7 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
                         sev_deps = {dep.strip(): '' for dep in l.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
                         deps.update(sev_deps)
 
-        return res
+    return res
 
 
 def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str, Set[str]]:

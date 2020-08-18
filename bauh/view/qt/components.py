@@ -461,7 +461,8 @@ class TextInputQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
+
+        self.layout().addWidget(QLabel(model.get_label()), 0, 0)
 
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
@@ -825,7 +826,7 @@ class FormQt(QGroupBox):
         label.layout().addWidget(label_component)
 
         if label:
-            label_component.setText(c.label.capitalize())
+            label_component.setText(c.get_label())
 
             if c.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(c.tooltip))

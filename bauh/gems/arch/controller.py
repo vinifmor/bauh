@@ -30,12 +30,12 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
 from bauh.commons.view_utils import new_select
-from bauh.gems.arch import BUILD_DIR, aur, pacman, makepkg, message, confirmation, disk, git, \
+from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS
+    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR
 from bauh.gems.arch.aur import AURClient
-from bauh.gems.arch.config import read_config
+from bauh.gems.arch.config import read_config, get_build_dir
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.download import MultithreadedDownloadService, ArchDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -571,7 +571,7 @@ class ArchManager(SoftwareManager):
         return SearchResult(pkgs, None, len(pkgs))
 
     def _downgrade_aur_pkg(self, context: TransactionContext):
-        context.build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
+        context.build_dir = '{}/build_{}'.format(get_build_dir(context.config), int(time.time()))
 
         try:
             if not os.path.exists(context.build_dir):
@@ -1318,7 +1318,8 @@ class ArchManager(SoftwareManager):
             return self._get_info_repo_pkg(pkg)
 
     def _get_history_aur_pkg(self, pkg: ArchPackage) -> PackageHistory:
-        temp_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
+        arch_config = read_config()
+        temp_dir = '{}/build_{}'.format(get_build_dir(arch_config), int(time.time()))
 
         try:
             Path(temp_dir).mkdir(parents=True)
@@ -1814,7 +1815,7 @@ class ArchManager(SoftwareManager):
         return True
 
     def _install_optdeps(self, context: TransactionContext) -> bool:
-        odeps = pacman.map_optional_deps({context.name}, remote=False, not_installed=True)[context.name]
+        odeps = pacman.map_optional_deps({context.name}, remote=False, not_installed=True).get(context.name)
 
         if not odeps:
             return True
@@ -2107,7 +2108,7 @@ class ArchManager(SoftwareManager):
     def _install_from_aur(self, context: TransactionContext) -> bool:
         self._optimize_makepkg(context.config, context.watcher)
 
-        context.build_dir = '{}/build_{}'.format(BUILD_DIR, int(time.time()))
+        context.build_dir = '{}/build_{}'.format(get_build_dir(context.config), int(time.time()))
 
         try:
             if not os.path.exists(context.build_dir):
@@ -2484,7 +2485,14 @@ class ArchManager(SoftwareManager):
                        value=local_config['edit_aur_pkgbuild'],
                        max_width=max_width,
                        type_=SelectViewType.RADIO,
-                       capitalize_label=False)
+                       capitalize_label=False),
+            TextInputComponent(id_='aur_build_dir',
+                               label=self.i18n['arch.config.aur_build_dir'],
+                               tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(BUILD_DIR),
+                               only_int=False,
+                               max_width=max_width,
+                               value=local_config.get('aur_build_dir', ''),
+                               capitalize_label=False)
 
         ]
 
@@ -2505,6 +2513,10 @@ class ArchManager(SoftwareManager):
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
         config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
         config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
+        config['aur_build_dir'] = form_install.get_component('aur_build_dir').get_value().strip()
+
+        if not config['aur_build_dir']:
+            config['aur_build_dir'] = None
 
         try:
             save_config(config, CONFIG_FILE)

@@ -13,8 +13,8 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, BUILD_DIR, \
-    AUR_INDEX_FILE, get_icon_path, database, mirrors, ARCH_CACHE_PATH
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
+    mirrors, ARCH_CACHE_PATH, BUILD_DIR
 from bauh.gems.arch.aur import URL_INDEX
 from bauh.view.util.translation import I18n
 

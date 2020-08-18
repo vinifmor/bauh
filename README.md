@@ -194,6 +194,7 @@ repositories: true  # allows to manage packages from the configured repositories
 repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2/axel is installed
 automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false).
 edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edition before the make process. true (PKGBUILD will always be displayed for edition), false (PKGBUILD never will be displayed), null (a popup will ask if the user want to edit the PKGBUILD)
+aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user))
 ```
 - Required dependencies:
     - **pacman**
