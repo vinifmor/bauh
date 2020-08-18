@@ -768,8 +768,11 @@ class FormQt(QGroupBox):
         if hasattr(comp, 'size') and comp.size is not None:
             label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
 
-        attr = 'label' if hasattr(comp,'label') else 'value'
-        text = getattr(comp, attr)
+        if hasattr(comp, 'get_label'):
+            text = comp.get_label()
+        else:
+            attr = 'label' if hasattr(comp,'label') else 'value'
+            text = getattr(comp, attr)
 
         if text:
             if hasattr(comp, 'capitalize_label') and getattr(comp, 'capitalize_label'):
@@ -868,17 +871,16 @@ class FormQt(QGroupBox):
 
         if c.file_path:
             chooser.setText(c.file_path)
+            chooser.setCursorPosition(0)
 
         c.observers.append(chooser)
         chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
 
         def open_chooser(e):
-            options = QFileDialog.Options()
-
             if c.allowed_extensions:
                 exts = ';;'.join({'*.{}'.format(e) for e in c.allowed_extensions})
             else:
-                exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
+                exts = '{} (*);;'.format(self.i18n['all_files'].capitalize())
 
             if c.file_path and os.path.isfile(c.file_path):
                 cur_path = c.file_path
@@ -887,7 +889,10 @@ class FormQt(QGroupBox):
             else:
                 cur_path = str(Path.home())
 
-            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=options)
+            if c.directory:
+                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=QFileDialog.Options())
+            else:
+                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.Options())
 
             if file_path:
                 c.set_file_path(file_path)

@@ -22,7 +22,8 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent, TextInputType
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent, TextInputType, \
+    FileChooserComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user, internet
 from bauh.commons.category import CategoriesDownloader
@@ -2415,7 +2416,7 @@ class ArchManager(SoftwareManager):
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         local_config = read_config()
-        max_width = floor(screen_width * 0.22)
+        max_width = floor(screen_width * 0.25)
 
         db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
                                                 label_key='arch.config.sync_dbs',
@@ -2486,14 +2487,13 @@ class ArchManager(SoftwareManager):
                        max_width=max_width,
                        type_=SelectViewType.RADIO,
                        capitalize_label=False),
-            TextInputComponent(id_='aur_build_dir',
-                               label=self.i18n['arch.config.aur_build_dir'],
-                               tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(BUILD_DIR),
-                               only_int=False,
-                               max_width=max_width,
-                               value=local_config.get('aur_build_dir', ''),
-                               capitalize_label=False)
-
+            FileChooserComponent(id_='aur_build_dir',
+                                 label=self.i18n['arch.config.aur_build_dir'],
+                                 tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(BUILD_DIR),
+                                 max_width=max_width,
+                                 file_path=local_config['aur_build_dir'],
+                                 capitalize_label=False,
+                                 directory=True)
         ]
 
         return PanelComponent([FormComponent(fields, spaces=False)])
@@ -2513,7 +2513,7 @@ class ArchManager(SoftwareManager):
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
         config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
         config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
-        config['aur_build_dir'] = form_install.get_component('aur_build_dir').get_value().strip()
+        config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
 
         if not config['aur_build_dir']:
             config['aur_build_dir'] = None

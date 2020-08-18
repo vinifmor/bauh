@@ -215,7 +215,8 @@ class FormComponent(ViewComponent):
 class FileChooserComponent(ViewComponent):
 
     def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None,
-                 file_path: str = None, max_width: int = -1, id_: str = None, search_path: str = None):
+                 file_path: str = None, max_width: int = -1, id_: str = None, search_path: str = None, capitalize_label: bool = True,
+                 directory: bool = False):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
@@ -223,6 +224,8 @@ class FileChooserComponent(ViewComponent):
         self.tooltip = tooltip
         self.max_width = max_width
         self.search_path = search_path
+        self.capitalize_label = capitalize_label
+        self.directory = directory
 
     def set_file_path(self, fpath: str):
         self.file_path = fpath
@@ -230,6 +233,12 @@ class FileChooserComponent(ViewComponent):
         if self.observers:
             for o in self.observers:
                 o.on_change(self.file_path)
+
+    def get_label(self) -> str:
+        if not self.label:
+            return ''
+        else:
+            return self.label.capitalize() if self.capitalize_label else self.label
 
 
 class TabComponent(ViewComponent):
