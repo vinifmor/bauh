@@ -1680,7 +1680,21 @@ class ArchManager(SoftwareManager):
                 context.watcher.print('Could not find the built package. Aborting...')
                 return False
 
-            context.install_file = '{}/{}'.format(context.project_dir, gen_file[0])
+            file_to_install = gen_file[0]
+
+            if len(gen_file) > 1:
+                srcinfo = aur.map_srcinfo(makepkg.gen_srcinfo(context.project_dir))
+                pkgver = '-{}'.format(srcinfo['pkgver']) if srcinfo.get('pkgver') else ''
+                pkgrel = '-{}'.format(srcinfo['pkgrel']) if srcinfo.get('pkgrel') else ''
+                arch = '-{}'.format(srcinfo['arch']) if srcinfo.get('arch') else ''
+                name_start = '{}{}{}{}'.format(context.name, pkgver, pkgrel, arch)
+
+                perfect_match = [f for f in gen_file if f.startswith(name_start)]
+
+                if perfect_match:
+                    file_to_install = perfect_match[0]
+
+            context.install_file = '{}/{}'.format(context.project_dir, file_to_install)
 
             if self._install(context=context):
                 self._save_pkgbuild(context)

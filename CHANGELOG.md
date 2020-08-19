@@ -64,6 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
         - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)
         - importing PGP keys (Generic error). Now the key server is specified: `gpg --keyserver SERVER --recv-key KEYID` (the server address is retrieved from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/arch/gpgservers.txt))
+        - not installing the correct package built when several are generated (e.g: linux-xanmod-lts)
     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, makepkg)
 - Flatpak
     - downgrading crashing with version 1.8.X
