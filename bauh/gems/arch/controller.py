@@ -932,8 +932,10 @@ class ArchManager(SoftwareManager):
                                                   pkgs_to_remove=len(to_remove))
         output_handler.start()
         try:
-            success = handler.handle(pacman.remove_several(pkgnames=to_remove, root_password=root_password, skip_checks=True),
-                                     output_handler=output_handler.handle)
+            success, _ = handler.handle_simple(pacman.remove_several(pkgnames=to_remove,
+                                                                     root_password=root_password,
+                                                                     skip_checks=True),
+                                               output_handler=output_handler.handle)
 
             if not success:
                 self.logger.error("Could not remove packages: {}".format(', '.join(to_remove)))

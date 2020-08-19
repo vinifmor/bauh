@@ -149,7 +149,8 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
                          cwd=pkgdir,
-                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'})
+                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
 
 
 def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
@@ -731,25 +732,24 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
-                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
 
 
 def download(root_password: str, *pkgnames: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm'],
                          root_password=root_password,
-                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
 
 
-def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SystemProcess:
+def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
 
     if skip_checks:
         cmd.append('-dd')
 
-    if root_password:
-        return SystemProcess(new_root_subprocess(cmd, root_password), wrong_error_phrase='warning:')
-    else:
-        return SystemProcess(new_subprocess(cmd), wrong_error_phrase='warning:')
+    return SimpleProcess(cmd=cmd, root_password=root_password, wrong_error_phrases={'warning:'}, shell=True)
 
 
 def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = False) -> Dict[str, Dict[str, str]]:

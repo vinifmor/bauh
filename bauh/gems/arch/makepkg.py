@@ -28,7 +28,7 @@ def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandl
         else:
             handler.watcher.print('Custom optimized makepkg.conf ( {} ) not found'.format(CUSTOM_MAKEPKG_FILE))
 
-    success, output = handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir))
+    success, output = handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir, shell=True))
 
     if missing_deps and 'Missing dependencies' in output:
         res['missing_deps'] = RE_DEPS_PATTERN.findall(output)
@@ -54,7 +54,7 @@ def make(pkgdir: str, optimize: bool, handler: ProcessHandler) -> Tuple[bool, st
         else:
             handler.watcher.print('Custom optimized makepkg.conf ( {} ) not found'.format(CUSTOM_MAKEPKG_FILE))
 
-    return handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir))
+    return handler.handle_simple(SimpleProcess(cmd, cwd=pkgdir, shell=True))
 
 
 def update_srcinfo(project_dir: str) -> bool:

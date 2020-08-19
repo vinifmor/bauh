@@ -26,20 +26,20 @@ SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000
 
 
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set[str] = None) -> dict:
-    res = {}
+    custom_env = dict(os.environ)
 
     if lang:
-        res['LANG'] = lang
+        custom_env['LANG'] = lang
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
-        res['PATH'] = GLOBAL_INTERPRETER_PATH
+        custom_env['PATH'] = GLOBAL_INTERPRETER_PATH
     else:
-        res['PATH'] = PATH
+        custom_env['PATH'] = PATH
 
     if extra_paths:
-        res['PATH'] = ':'.join(extra_paths) + ':' + res['PATH']
+        custom_env['PATH'] = ':'.join(extra_paths) + ':' + custom_env['PATH']
 
-    return res
+    return custom_env
 
 
 class SystemProcess:
@@ -65,9 +65,11 @@ class SimpleProcess:
 
     def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
-                 extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None):
+                 extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
+                 shell: bool = False):
         pwdin, final_cmd = None, []
 
+        self.shell = shell
         if root_password is not None:
             final_cmd.extend(['sudo', '-S'])
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
@@ -86,13 +88,14 @@ class SimpleProcess:
             "stderr": subprocess.STDOUT,
             "bufsize": -1,
             "cwd": cwd,
-            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths)
+            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths),
+            "shell": self.shell
         }
 
         if stdin:
             args['stdin'] = stdin
 
-        return subprocess.Popen(cmd, **args)
+        return subprocess.Popen(args=' '.join(cmd) if self.shell else cmd, **args)
 
 
 class ProcessHandler:
@@ -160,7 +163,7 @@ class ProcessHandler:
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
     def handle_simple(self, proc: SimpleProcess, output_handler=None) -> Tuple[bool, str]:
-        self._notify_watcher(' '.join(proc.instance.args) + '\n')
+        self._notify_watcher((proc.instance.args if proc.shell else ' '.join(proc.instance.args)) + '\n')
 
         output = StringIO()
         for o in proc.instance.stdout:
