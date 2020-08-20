@@ -475,6 +475,12 @@ class TextInputQt(QGroupBox):
         if model.placeholder:
             self.text_input.setPlaceholderText(model.placeholder)
 
+        if model.min_width >= 0:
+            self.text_input.setMinimumWidth(model.min_width)
+
+        if model.min_height >= 0:
+            self.text_input.setMinimumHeight(model.min_height)
+
         if model.tooltip:
             self.text_input.setToolTip(model.tooltip)
 
@@ -798,6 +804,12 @@ class FormQt(QGroupBox):
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
+
+        if c.min_width >= 0:
+            view.setMinimumWidth(c.min_width)
+
+        if c.min_height >= 0:
+            view.setMinimumHeight(c.min_height)
 
         if c.only_int:
             view.setValidator(QIntValidator())

@@ -157,7 +157,7 @@ class TextInputComponent(ViewComponent):
 
     def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
                  id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE,
-                 capitalize_label: bool = True):
+                 capitalize_label: bool = True, min_width: int = -1, min_height: int = -1):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -168,6 +168,8 @@ class TextInputComponent(ViewComponent):
         self.max_width = max_width
         self.type = type_
         self.capitalize_label = capitalize_label
+        self.min_width = min_width
+        self.min_height = min_height
 
     def get_value(self) -> str:
         if self.value is not None:

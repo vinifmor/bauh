@@ -1596,7 +1596,8 @@ class ArchManager(SoftwareManager):
         with open(pkgbuild_path) as f:
             pkgbuild = f.read()
 
-        pkgbuild_input = TextInputComponent(label='', value=pkgbuild, type_=TextInputType.MULTIPLE_LINES)
+        pkgbuild_input = TextInputComponent(label='', value=pkgbuild, type_=TextInputType.MULTIPLE_LINES,
+                                            min_width=500, min_height=350)
 
         watcher.request_confirmation(title='PKGBUILD ({})'.format(pkgname),
                                      body='',
