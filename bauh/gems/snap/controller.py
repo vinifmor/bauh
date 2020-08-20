@@ -138,13 +138,13 @@ class SnapManager(SoftwareManager):
             return SearchResult([], None, 0)
 
     def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.downgrade_and_stream(pkg.name, root_password), wrong_error_phrase=None))
+        return ProcessHandler(watcher).handle_simple(snap.downgrade_and_stream(pkg.name, root_password))[0]
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
         raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
-        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=snap.uninstall_and_stream(pkg.name, root_password)))
+        uninstalled = ProcessHandler(watcher).handle_simple(snap.uninstall_and_stream(pkg.name, root_password))[0]
 
         if uninstalled:
             if self.suggestions_cache:
@@ -254,7 +254,7 @@ class SnapManager(SoftwareManager):
         return action not in ('search', 'prepare')
 
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        return ProcessHandler(watcher).handle(SystemProcess(subproc=snap.refresh_and_stream(pkg.name, root_password)))
+        return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]
 
     def _start_category_task(self, task_man: TaskManager):
         if task_man:

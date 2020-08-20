@@ -5,7 +5,7 @@ import subprocess
 from io import StringIO
 from typing import List, Tuple, Set
 
-from bauh.commons.system import new_root_subprocess, run_cmd, new_subprocess, SimpleProcess
+from bauh.commons.system import run_cmd, new_subprocess, SimpleProcess
 from bauh.gems.snap.model import SnapApplication
 
 BASE_CMD = 'snap'
@@ -171,8 +171,10 @@ def search(word: str, exact_name: bool = False) -> List[dict]:
     return apps
 
 
-def uninstall_and_stream(app_name: str, root_password: str):
-    return new_root_subprocess([BASE_CMD, 'remove', app_name], root_password)
+def uninstall_and_stream(app_name: str, root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=[BASE_CMD, 'remove', app_name],
+                         root_password=root_password,
+                         shell=True)
 
 
 def install_and_stream(app_name: str, confinement: str, root_password: str) -> SimpleProcess:
@@ -182,16 +184,19 @@ def install_and_stream(app_name: str, confinement: str, root_password: str) -> S
     if confinement == 'classic':
         install_cmd.append('--classic')
 
-    # return new_root_subprocess(install_cmd, root_password)
-    return SimpleProcess(install_cmd, root_password=root_password)
+    return SimpleProcess(install_cmd, root_password=root_password, shell=True)
 
 
-def downgrade_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'revert', app_name], root_password)
+def downgrade_and_stream(app_name: str, root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=[BASE_CMD, 'revert', app_name],
+                         root_password=root_password,
+                         shell=True)
 
 
-def refresh_and_stream(app_name: str, root_password: str) -> subprocess.Popen:
-    return new_root_subprocess([BASE_CMD, 'refresh', app_name], root_password)
+def refresh_and_stream(app_name: str, root_password: str) -> SimpleProcess:
+    return SimpleProcess(cmd=[BASE_CMD, 'refresh', app_name],
+                         root_password=root_password,
+                         shell=True)
 
 
 def run(app: SnapApplication, logger: logging.Logger):
@@ -220,7 +225,7 @@ def run(app: SnapApplication, logger: logging.Logger):
 
         if command:
             logger.info("Running '{}'".format(command))
-            subprocess.Popen([BASE_CMD, 'run', command])
+            subprocess.Popen('{} run {}'.format(BASE_CMD, command), shell=True)
             return
 
         logger.error("No valid command found for '{}'".format(app_name))
