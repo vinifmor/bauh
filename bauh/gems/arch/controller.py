@@ -2412,7 +2412,7 @@ class ArchManager(SoftwareManager):
 
     def launch(self, pkg: ArchPackage):
         if pkg.command:
-            subprocess.Popen(pkg.command.split(' '))
+            subprocess.Popen(args=[pkg.command], shell=True, env={**os.environ})
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
