@@ -75,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/flatpak_refs.png">
      </p>
+     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall)
 - UI
     - crashing when nothing can be upgraded
     - random C++ wrapper errors with some forms due to missing references

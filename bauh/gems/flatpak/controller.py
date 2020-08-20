@@ -18,7 +18,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectCompo
 from bauh.commons import user, internet
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler
+from bauh.commons.system import ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -186,9 +186,10 @@ class FlatpakManager(SoftwareManager):
         commit = history.history[history.pkg_status_idx + 1]['commit']
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
-                                                 success_phrases=['Changes complete.', 'Updates complete.'],
-                                                 wrong_error_phrase='Warning'))
+        success, _ = ProcessHandler(watcher).handle_simple(flatpak.downgrade(pkg.ref,
+                                                                             commit,
+                                                                             pkg.installation,
+                                                                             root_password))
         watcher.change_progress(100)
         return success
 
@@ -212,10 +213,10 @@ class FlatpakManager(SoftwareManager):
                 ref = req.pkg.base_ref
 
             try:
-                res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
-                                                                                          installation=req.pkg.installation,
-                                                                                          related=related,
-                                                                                          deps=deps)))
+                res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
+                                                                              installation=req.pkg.installation,
+                                                                              related=related,
+                                                                              deps=deps))
 
                 watcher.change_substatus('')
                 if not res:
@@ -235,7 +236,7 @@ class FlatpakManager(SoftwareManager):
         if not self._make_exports_dir(watcher):
             return TransactionResult.fail()
 
-        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
+        uninstalled, _ = ProcessHandler(watcher).handle_simple(flatpak.uninstall(pkg.ref, pkg.installation))
 
         if uninstalled:
             if self.suggestions_cache:
