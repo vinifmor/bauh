@@ -670,7 +670,7 @@ class AppImageManager(SoftwareManager):
             appimag_path = util.find_appimage_file(installation_dir)
 
             if appimag_path:
-                subprocess.Popen([appimag_path])
+                subprocess.Popen(args=appimag_path, shell=True)
             else:
                 self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
 
