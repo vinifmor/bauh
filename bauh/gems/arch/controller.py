@@ -1616,9 +1616,10 @@ class ArchManager(SoftwareManager):
     def _ask_for_pkgbuild_edition(self, pkgname: str, arch_config: dict, watcher: ProcessWatcher, pkgbuild_path: str) -> bool:
         if pkgbuild_path:
             if arch_config['edit_aur_pkgbuild'] is None:
-                if watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                body=self.i18n['arch.aur.action.edit_pkgbuild.body'].format(
-                                                    bold(pkgname))):
+                if not watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                                    body=self.i18n['arch.aur.action.edit_pkgbuild.body'].format(bold(pkgname)),
+                                                    confirmation_label=self.i18n['no'].capitalize(),
+                                                    deny_label=self.i18n['yes'].capitalize()):
                     return self._display_pkgbuild_for_editing(pkgname, watcher, pkgbuild_path)
             elif arch_config['edit_aur_pkgbuild']:
                 return self._display_pkgbuild_for_editing(pkgname, watcher, pkgbuild_path)
