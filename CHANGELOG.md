@@ -80,6 +80,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      - minor fixes
 - Snap
     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
+- Web
+    - some environment variable are not available during the launch process
 - UI
     - crashing when nothing can be upgraded
     - random C++ wrapper errors with some forms due to missing references
