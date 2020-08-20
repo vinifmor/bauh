@@ -225,7 +225,7 @@ def run(app: SnapApplication, logger: logging.Logger):
 
         if command:
             logger.info("Running '{}'".format(command))
-            subprocess.Popen('{} run {}'.format(BASE_CMD, command), shell=True)
+            subprocess.Popen(['{} run {}'.format(BASE_CMD, command)], shell=True, env={**os.environ})
             return
 
         logger.error("No valid command found for '{}'".format(app_name))
