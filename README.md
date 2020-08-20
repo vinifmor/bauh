@@ -189,12 +189,13 @@ sync_databases_startup: true  # package databases synchronization once a day dur
 clean_cached: true  # defines if old cached versions should be removed from the disk cache during a package uninstallation
 refresh_mirrors_startup: false # if the package mirrors should be refreshed during startup
 mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
-aur:  true  # allows to manage AUR packages
-repositories: true  # allows to manage packages from the configured repositories
-repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2/axel is installed
-automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false).
-edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edition before the make process. true (PKGBUILD will always be displayed for edition), false (PKGBUILD never will be displayed), null (a popup will ask if the user want to edit the PKGBUILD)
-aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user))
+aur:  true. Default: true  # allows to manage AUR packages
+repositories: true  # allows to manage packages from the configured repositories. Default: true
+repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2/axel is installed (otherwise pacman will download the packages). Default: false
+automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false). Default: true.
+edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edition before the make process. true (PKGBUILD will always be displayed for edition), false (PKGBUILD never will be displayed), null (a popup will ask if the user want to edit the PKGBUILD). Default: false.
+aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user)). Default: null.
+aur_remove_build_dir: true  # it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Options: true, false (default: true).
 ```
 - Required dependencies:
     - **pacman**

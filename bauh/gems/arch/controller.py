@@ -642,7 +642,7 @@ class ArchManager(SoftwareManager):
                         return False
 
         finally:
-            if os.path.exists(context.build_dir):
+            if os.path.exists(context.build_dir) and context.config['aur_remove_build_dir']:
                 context.handler.handle(SystemProcess(subproc=new_subprocess(['rm', '-rf', context.build_dir])))
 
         return False
@@ -2150,7 +2150,7 @@ class ArchManager(SoftwareManager):
 
                             return self._build(context)
         finally:
-            if os.path.exists(context.build_dir):
+            if os.path.exists(context.build_dir) and context.config['aur_remove_build_dir']:
                 context.handler.handle(SystemProcess(new_subprocess(['rm', '-rf', context.build_dir])))
 
         return False
@@ -2503,6 +2503,12 @@ class ArchManager(SoftwareManager):
                        max_width=max_width,
                        type_=SelectViewType.RADIO,
                        capitalize_label=False),
+            self._gen_bool_selector(id_='aur_remove_build_dir',
+                                    label_key='arch.config.aur_remove_build_dir',
+                                    tooltip_key='arch.config.aur_remove_build_dir.tip',
+                                    value=bool(local_config['aur_remove_build_dir']),
+                                    max_width=max_width,
+                                    capitalize_label=False),
             FileChooserComponent(id_='aur_build_dir',
                                  label=self.i18n['arch.config.aur_build_dir'],
                                  tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(BUILD_DIR),
@@ -2529,6 +2535,7 @@ class ArchManager(SoftwareManager):
         config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
         config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
         config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
+        config['aur_remove_build_dir'] = form_install.get_component('aur_remove_build_dir').get_selected()
         config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
 
         if not config['aur_build_dir']:

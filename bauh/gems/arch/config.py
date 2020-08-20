@@ -16,7 +16,8 @@ def read_config(update_file: bool = False) -> dict:
                 'repositories_mthread_download': False,
                 'automatch_providers': True,
                 'edit_aur_pkgbuild': False,
-                'aur_build_dir': None}
+                'aur_build_dir': None,
+                'aur_remove_build_dir': True}
     return read(CONFIG_FILE, template, update_file=update_file)
 
 

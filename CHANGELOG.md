@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_buildir.png">
         </p>
+        - new settings property **aur_remove_build_dir** -> it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Default: true
      - preventing a possible error when the optional deps of a given package cannot be found
 
 - Flatpak
