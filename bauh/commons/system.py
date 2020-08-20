@@ -97,7 +97,7 @@ class SimpleProcess:
         if stdin:
             args['stdin'] = stdin
 
-        return subprocess.Popen(args=' '.join(cmd) if self.shell else cmd, **args)
+        return subprocess.Popen(args=[' '.join(cmd)] if self.shell else cmd, **args)
 
 
 class ProcessHandler:
