@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import traceback
@@ -384,7 +385,7 @@ def list_remotes() -> Dict[str, Set[str]]:
 
 
 def run(app_id: str):
-    subprocess.Popen(['flatpak', 'run', app_id])
+    subprocess.Popen(['flatpak run {}'.format(app_id)], shell=True, env={**os.environ})
 
 
 def map_update_download_size(app_ids: Iterable[str], installation: str, version: str) -> Dict[str, int]:
