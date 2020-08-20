@@ -369,7 +369,7 @@ class FlatpakManager(SoftwareManager):
                     watcher.print('Operation aborted')
                     return TransactionResult(success=False, installed=[], removed=[])
                 else:
-                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password)):
+                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password))[0]:
                         watcher.show_message(title=self.i18n['error'].capitalize(),
                                              body=self.i18n['flatpak.remotes.system_flathub.error'],
                                              type_=MessageType.ERROR)
