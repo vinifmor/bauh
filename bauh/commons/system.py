@@ -165,7 +165,7 @@ class ProcessHandler:
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
     def handle_simple(self, proc: SimpleProcess, output_handler=None) -> Tuple[bool, str]:
-        self._notify_watcher((proc.instance.args if proc.shell else ' '.join(proc.instance.args)) + '\n')
+        self._notify_watcher((proc.instance.args if isinstance(proc.instance.args, str) else ' '.join(proc.instance.args)) + '\n')
 
         output = StringIO()
         for o in proc.instance.stdout:
