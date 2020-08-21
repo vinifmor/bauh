@@ -324,7 +324,7 @@ class FlatpakManager(SoftwareManager):
             self.logger.info("Creating dir '{}'".format(EXPORTS_PATH))
             watcher.print('Creating dir {}'.format(EXPORTS_PATH))
             try:
-                os.mkdir(EXPORTS_PATH)
+                Path(EXPORTS_PATH).mkdir(parents=True, exist_ok=True)
             except:
                 watcher.print('Error while creating the directory {}'.format(EXPORTS_PATH))
                 return False
