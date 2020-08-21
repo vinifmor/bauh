@@ -886,7 +886,7 @@ class ArchManager(SoftwareManager):
                                                 maintainer=repo,
                                                 categories=self.categories.get(name))
 
-                disk.save_several(pkg_map, overwrite=True, maintainer=None)
+                disk.write_several(pkgs=pkg_map, overwrite=True, maintainer=None)
                 return True
             elif 'conflicting files' in upgrade_output:
                 files = self._map_conflicting_file(upgrade_output)
@@ -1532,7 +1532,7 @@ class ArchManager(SoftwareManager):
             if installed:
                 pkg_map = {d[0]: ArchPackage(name=d[0], repository=d[1], maintainer=d[1],
                                              categories=self.categories.get(d[0])) for d in repo_deps}
-                disk.save_several(pkg_map, overwrite=True, maintainer=None)
+                disk.write_several(pkg_map, overwrite=True, maintainer=None)
                 progress += len(repo_deps) * progress_increment
                 self._update_progress(context, progress)
             else:
@@ -2078,7 +2078,7 @@ class ArchManager(SoftwareManager):
                                                     maintainer=dep[1] if dep[1] != 'aur' else (aur_data[dep[0]].get('Maintainer') if aur_data else None),
                                                     categories=self.categories.get(context.name))
 
-            disk.save_several(pkgs=cache_map, maintainer=None, overwrite=True)
+            disk.write_several(pkgs=cache_map, maintainer=None, overwrite=True)
 
             context.watcher.change_substatus('')
             self._update_progress(context, 100)

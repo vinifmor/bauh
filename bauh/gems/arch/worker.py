@@ -66,8 +66,6 @@ class ArchDiskCacheUpdater(Thread):
         self.task_man = task_man
         self.task_id = 'arch_cache_up'
         self.i18n = i18n
-        self.prepared = 0
-        self.prepared_template = self.i18n['arch.task.disk_cache.prepared'] + ': {}/ {}'
         self.indexed = 0
         self.indexed_template = self.i18n['arch.task.disk_cache.indexed'] + ': {}/ {}'
         self.to_index = 0
@@ -79,19 +77,18 @@ class ArchDiskCacheUpdater(Thread):
         self.installed_hash_path = '{}/installed.sha1'.format(ARCH_CACHE_PATH)
         self.installed_cache_dir = '{}/installed'.format(ARCH_CACHE_PATH)
 
-    def update_prepared(self, pkgname: str, add: bool = True):
-        if add:
-            self.prepared += 1
-
-        sub = self.prepared_template.format(self.prepared, self.to_index)
-        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
-        self.task_man.update_progress(self.task_id, progress, sub)
-
     def update_indexed(self, pkgname: str):
         self.indexed += 1
         sub = self.indexed_template.format(self.indexed, self.to_index)
-        progress = ((self.prepared + self.indexed) / self.progress) * 100 if self.progress > 0 else 0
-        self.task_man.update_progress(self.task_id, progress, sub)
+        self.progress = self.progress + (self.indexed / self.to_index) * 50
+        self.task_man.update_progress(self.task_id, self.progress, sub)
+
+    def _update_progress(self, progress: float, msg: str):
+        self.progress = progress
+        self.task_man.update_progress(self.task_id, self.progress, msg)
+
+    def _notify_reading_files(self):
+        self._update_progress(50, self.i18n['arch.task.disk_cache.indexing'])
 
     def run(self):
         if not any([self.aur, self.repositories]):
@@ -100,19 +97,21 @@ class ArchDiskCacheUpdater(Thread):
         ti = time.time()
         self.task_man.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
 
-        self.task_man.update_progress(self.task_id, 1, '')
-
         self.logger.info("Checking already cached package data")
 
+        self._update_progress(1, self.i18n['arch.task.disk_cache.checking'])
         cache_dirs = [fpath for fpath in glob.glob('{}/*'.format(self.installed_cache_dir)) if os.path.isdir(fpath)]
 
         not_cached_names = None
 
+        self._update_progress(15, self.i18n['arch.task.disk_cache.checking'])
         if cache_dirs:  # if there are cache data
             installed_names = pacman.list_installed_names()
             cached_pkgs = {cache_dir.split('/')[-1] for cache_dir in cache_dirs}
 
             not_cached_names = installed_names.difference(cached_pkgs)
+            self._update_progress(20, self.i18n['arch.task.disk_cache.checking'])
+
             if not not_cached_names:
                 self.task_man.update_progress(self.task_id, 100, '')
                 self.task_man.finish_task(self.task_id)
@@ -123,21 +122,23 @@ class ArchDiskCacheUpdater(Thread):
 
         self.logger.info('Pre-caching installed Arch packages data to disk')
 
+        self._update_progress(20, self.i18n['arch.task.disk_cache.checking'])
         installed = self.controller.read_installed(disk_loader=None, internet_available=self.internet_available,
                                                    only_apps=False, pkg_types=None, limit=-1, names=not_cached_names,
                                                    wait_disk_cache=False).installed
 
-        self.task_man.update_progress(self.task_id, 0, self.i18n['arch.task.disk_cache.reading'])
+        self._update_progress(35, self.i18n['arch.task.disk_cache.checking'])
 
         saved = 0
-        pkgs = {p.name: p for p in installed if ((self.aur and p.repository == 'aur') or (self.repositories and p.repository != 'aur')) and not os.path.exists(p.get_disk_cache_path())}
 
+        pkgs = {p.name: p for p in installed if ((self.aur and p.repository == 'aur') or (self.repositories and p.repository != 'aur')) and not os.path.exists(p.get_disk_cache_path())}
         self.to_index = len(pkgs)
-        self.progress = self.to_index * 2
-        self.update_prepared(None, add=False)
 
         # overwrite == True because the verification already happened
-        saved += disk.save_several(pkgs, when_prepared=self.update_prepared, after_written=self.update_indexed, overwrite=True)
+        self._update_progress(40, self.i18n['arch.task.disk_cache.reading_files'])
+        saved += disk.write_several(pkgs=pkgs,
+                                    after_desktop_files=self._notify_reading_files,
+                                    after_written=self.update_indexed, overwrite=True)
         self.task_man.update_progress(self.task_id, 100, None)
         self.task_man.finish_task(self.task_id)
 

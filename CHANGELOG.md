@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - default search path set to '~/Downloads'
         - trying to auto-fill the 'Name' and 'Version' fields
 - Arch
+    - initializing task "Organizing data from installed packages" is taking about 80% less time (now is called "Indexing packages data")
     - upgrade summary: displaying the reason a given package must be installed
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">

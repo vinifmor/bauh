@@ -19,6 +19,7 @@ RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConf
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
 RE_PACMAN_SYNC_FIRST = re.compile(r'SyncFirst\s*=\s*(.+)')
+RE_DESKTOP_FILES = re.compile(r'\n?([\w\-_]+)\s+(/usr/share/.+\.desktop)')
 
 
 def is_available() -> bool:
@@ -153,42 +154,19 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
                          shell=True)
 
 
-def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
+def map_desktop_files(*pkgnames) -> Dict[str, List[str]]:
+    res = {}
+
     if pkgnames:
-        installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
+        output = run_cmd('pacman -Ql {}'.format(' '.join(pkgnames)), print_error=False)
 
-        desktop_files = []
-        for out in new_subprocess(['grep', '-E', ".desktop$"], stdin=installed_files.stdout).stdout:
-            if out:
-                desktop_files.append(out.decode().strip())
+        if output:
+            for match in RE_DESKTOP_FILES.findall(output):
+                pkgfiles = res.get(match[0], [])
+                res[match[0]] = pkgfiles
+                pkgfiles.append(match[1])
 
-        return desktop_files
-
-
-def list_icon_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
-
-    icon_files = []
-    for out in new_subprocess(['grep', '-E', '.(png|svg|xpm)$'], stdin=installed_files.stdout).stdout:
-        if out:
-            line = out.decode().strip()
-            if line:
-                icon_files.append(line)
-
-    return icon_files
-
-
-def list_bin_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
-
-    bin_paths = []
-    for out in new_subprocess(['grep', '-E', '^/usr/bin/.+'], stdin=installed_files.stdout).stdout:
-        if out:
-            line = out.decode().strip()
-            if line:
-                bin_paths.append(line)
-
-    return bin_paths
+    return res
 
 
 def list_installed_files(pkgname: str) -> List[str]:
