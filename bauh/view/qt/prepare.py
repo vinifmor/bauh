@@ -320,20 +320,20 @@ class PreparePanel(QWidget, TaskManager):
         lb_status.setStyleSheet("QLabel { font-weight: bold; }")
         self.table.setCellWidget(task_row, 1, lb_status)
 
-        lb_sub = QLabel()
-        lb_status.setCursor(Qt.WaitCursor)
-        lb_sub.setContentsMargins(10, 0, 10, 0)
-        lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        lb_sub.setMinimumWidth(50)
-        self.table.setCellWidget(task_row, 2, lb_sub)
-
         lb_progress = QLabel('{0:.2f}'.format(0) + '%')
         lb_progress.setCursor(Qt.WaitCursor)
         lb_progress.setContentsMargins(10, 0, 10, 0)
         lb_progress.setStyleSheet("QLabel { font-weight: bold; }")
         lb_progress.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
-        self.table.setCellWidget(task_row, 3, lb_progress)
+        self.table.setCellWidget(task_row, 2, lb_progress)
+
+        lb_sub = QLabel()
+        lb_status.setCursor(Qt.WaitCursor)
+        lb_sub.setContentsMargins(10, 0, 10, 0)
+        lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        lb_sub.setMinimumWidth(50)
+        self.table.setCellWidget(task_row, 3, lb_sub)
 
         self.tasks[id_] = {'bt_icon': bt_icon,
                            'lb_status': lb_status,
@@ -352,7 +352,7 @@ class PreparePanel(QWidget, TaskManager):
             task['lb_prog'].setText('{0:.2f}'.format(progress) + '%')
 
         if substatus:
-            task['lb_sub'].setText('( {} )'.format(substatus))
+            task['lb_sub'].setText('({})'.format(substatus))
         else:
             task['lb_sub'].setText('')
 
