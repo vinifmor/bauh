@@ -426,7 +426,11 @@ class AppsTable(QTableWidget):
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
-                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
+
+                    if icon.isNull():
+                        icon = QIcon(pkg.model.get_default_icon_path())
+                    else:
+                        self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
                 except:
                     icon = QIcon(pkg.model.get_default_icon_path())

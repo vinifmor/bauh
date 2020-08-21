@@ -86,6 +86,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - crashing when nothing can be upgraded
     - random C++ wrapper errors with some forms due to missing references
+    - icons that cannot be rendered are being displayed as an empty space (now the type icon is displayed instead)
 
 
 ## [0.9.6] 2020-06-26
