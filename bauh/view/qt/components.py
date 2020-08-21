@@ -268,7 +268,10 @@ class RadioButtonQt(QRadioButton):
         self.toggled.connect(self._set_checked)
 
         if model.icon_path:
-            self.setIcon(QIcon(model.icon_path))
+            if model.icon_path.startswith('/'):
+                self.setIcon(QIcon(model.icon_path))
+            else:
+                self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if self.model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -291,7 +294,10 @@ class CheckboxQt(QCheckBox):
         self.setToolTip(model.tooltip)
 
         if model.icon_path:
-            self.setIcon(QIcon(model.icon_path))
+            if model.icon_path.startswith('/'):
+                self.setIcon(QIcon(model.icon_path))
+            else:
+                self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)

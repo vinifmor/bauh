@@ -9,6 +9,7 @@ from typing import List, Type, Set, Tuple
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QIcon
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -196,7 +197,9 @@ class UpgradeSelected(AsyncAction):
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
-            if not icon_path or not os.path.isfile(icon_path):
+            if not icon_path:
+                icon_path = req.pkg.get_type_icon_path()
+            elif not os.path.isfile(icon_path) and QIcon.fromTheme(icon_path).isNull():
                 icon_path = req.pkg.get_type_icon_path()
 
         else:
