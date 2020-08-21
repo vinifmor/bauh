@@ -80,8 +80,8 @@ class ArchDiskCacheUpdater(Thread):
     def update_indexed(self, pkgname: str):
         self.indexed += 1
         sub = self.indexed_template.format(self.indexed, self.to_index)
-        self.progress = self.progress + (self.indexed / self.to_index) * 50
-        self.task_man.update_progress(self.task_id, self.progress, sub)
+        progress = self.progress + (self.indexed / self.to_index) * 50
+        self.task_man.update_progress(self.task_id, progress, sub)
 
     def _update_progress(self, progress: float, msg: str):
         self.progress = progress
