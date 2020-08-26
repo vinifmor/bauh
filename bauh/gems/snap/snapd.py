@@ -1,4 +1,3 @@
-import re
 import socket
 import traceback
 from logging import Logger
@@ -12,8 +11,6 @@ from urllib3.connectionpool import HTTPConnectionPool
 from bauh.commons.system import run_cmd
 
 URL_BASE = 'http://snapd/v2'
-RE_SNAPD_STATUS = re.compile('\s+')
-RE_SNAPD_SERVICES = re.compile(r'snapd\.\w+.+')
 
 
 class SnapdConnection(HTTPConnection):
@@ -112,25 +109,12 @@ class SnapdClient:
 
 
 def is_running() -> bool:
-    output = run_cmd('systemctl list-units', print_error=False)
-
-    if not output:
+    status = run_cmd('systemctl is-active snapd.service snapd.socket', print_error=False)
+    if not status:
         return False
+    else:
+        for status in status.split('\n'):
+            if status.strip().lower() == 'active':
+                return True
 
-    snapd_services = RE_SNAPD_SERVICES.findall(output)
-
-    snap_socket, socket_running, service, service_running = False, False, False, False
-    if snapd_services:
-        for service_line in snapd_services:
-            line_split = RE_SNAPD_STATUS.split(service_line)
-
-            running = line_split[3] in {'listening', 'running'}
-
-            if line_split[0] == 'snapd.service':
-                service = True
-                service_running = running
-            elif line_split[0] == 'snapd.socket':
-                snap_socket = True
-                socket_running = running
-
-    return snap_socket and socket_running and (not service or service_running)
+        return False
