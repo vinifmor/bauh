@@ -37,6 +37,7 @@ def downgrade_and_stream(app_name: str, root_password: str) -> SimpleProcess:
 def refresh_and_stream(app_name: str, root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=[BASE_CMD, 'refresh', app_name],
                          root_password=root_password,
+                         error_phrases={'no updates available'},
                          shell=True)
 
 

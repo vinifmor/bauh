@@ -84,6 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap
     - not able to install classic Snaps due to Ubuntu's old Snaps API shutdown
     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
+    - refresh app action: not returning an error when there is no update available
 - Web
     - some environment variable are not available during the launch process
 - UI
