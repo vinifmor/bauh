@@ -51,7 +51,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap
     - full support refactored to use the Snapd socket instead of the Ubuntu's old Snap API (which was recently disabled). Now the 'read' operations are faster, a only the icon is cached to the disk.
 
-- minor UI improvements
+- UI
+    - faster initialization dialog: improved the way it checks for finished tasks
+    - minor improvements
 
 ### Fixes
 - AppImage
