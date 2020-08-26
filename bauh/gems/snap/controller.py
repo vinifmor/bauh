@@ -1,5 +1,6 @@
 import re
 import time
+import traceback
 from threading import Thread
 from typing import List, Set, Type, Optional
 
@@ -205,16 +206,16 @@ class SnapManager(SoftwareManager):
         if success:
             new_installed = [pkg]
 
-            if installed:
-                try:
-                    current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
-                except:
-                    current_installed = None
+            try:
+                current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
+            except:
+                traceback.print_exc()
+                current_installed = None
 
-                if current_installed and (not installed or len(current_installed) > len(installed) + 1):
-                    for p in current_installed:
-                        if p.name != pkg.name and (not installed or p.name not in installed):
-                            new_installed.append(p)
+            if current_installed:
+                for p in current_installed:
+                    if p.name != pkg.name and (not installed or p.name not in installed):
+                        new_installed.append(p)
 
             return TransactionResult(success=success, installed=new_installed, removed=[])
         else:
