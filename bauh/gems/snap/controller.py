@@ -1,25 +1,23 @@
 import re
 import time
-from datetime import datetime
 from threading import Thread
-from typing import List, Set, Type
+from typing import List, Set, Type, Optional
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     TransactionResult
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
-    SuggestionPriority, CustomSoftwareAction
+    SuggestionPriority, CustomSoftwareAction, PackageStatus
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
 from bauh.commons import resource, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
+from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
-    get_icon_path
-from bauh.gems.snap.constants import SNAP_API_URL
+    get_icon_path, snapd
 from bauh.gems.snap.model import SnapApplication
-from bauh.gems.snap.worker import SnapAsyncDataLoader
+from bauh.gems.snap.snapd import SnapdClient
 
 RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
@@ -47,35 +45,11 @@ class SnapManager(SoftwareManager):
                                  i18n_confirm_key='snap.action.refresh.confirm')
         ]
 
-    def get_info_path(self) -> str:
-        if self.info_path is None:
-            self.info_path = snap.get_app_info_path()
-
-        return self.info_path
-
-    def map_json(self, app_json: dict, installed: bool,  disk_loader: DiskCacheLoader, internet: bool = True) -> SnapApplication:
-        app = SnapApplication(publisher=app_json.get('publisher'),
-                              rev=app_json.get('rev'),
-                              notes=app_json.get('notes'),
-                              has_apps_field=app_json.get('apps_field', False),
-                              id=app_json.get('name'),
-                              name=app_json.get('name'),
-                              version=app_json.get('version'),
-                              latest_version=app_json.get('version'),
-                              description=app_json.get('description', app_json.get('summary')),
-                              verified_publisher=app_json.get('developer_validation', '') == 'verified',
-                              extra_actions=self.custom_actions)
-
-        if app.publisher and app.publisher.endswith('*'):
-            app.verified_publisher = True
-            app.publisher = app.publisher.replace('*', '')
-
+    def _fill_categories(self, app: SnapApplication):
         categories = self.categories.get(app.name.lower())
 
         if categories:
             app.categories = categories
-
-        app.installed = installed
 
         if not app.is_application():
             categories = app.categories
@@ -87,70 +61,67 @@ class SnapManager(SoftwareManager):
             if 'runtime' not in categories:
                 categories.append('runtime')
 
-        api_data = self.api_cache.get(app_json['name'])
-        expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
-
-        if (not api_data or expired_data) and app.is_application():
-            if disk_loader and app.installed:
-                disk_loader.fill(app)
-
-            if internet:
-                SnapAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self, context=self.context).start()
-        else:
-            app.fill_cached_data(api_data)
-
-        return app
-
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
-        if is_url:
+        if is_url or (not snap.is_installed() and not snapd.is_running()):
             return SearchResult([], [], 0)
 
-        if snap.is_snapd_running():
+        snapd_client = SnapdClient(self.logger)
+        apps_found = snapd_client.query(words)
+
+        res = SearchResult([], [], 0)
+
+        if apps_found:
             installed = self.read_installed(disk_loader).installed
 
-            res = SearchResult([], [], 0)
-
-            for app_json in snap.search(words):
-
+            for app_json in apps_found:
                 already_installed = None
 
                 if installed:
-                    already_installed = [i for i in installed if i.id == app_json.get('name')]
+                    already_installed = [i for i in installed if i.id == app_json.get('id')]
                     already_installed = already_installed[0] if already_installed else None
 
                 if already_installed:
                     res.installed.append(already_installed)
                 else:
-                    res.new.append(self.map_json(app_json, installed=False, disk_loader=disk_loader))
+                    res.new.append(self._map_to_app(app_json, installed=False))
 
-            res.total = len(res.installed) + len(res.new)
-            return res
-        else:
-            return SearchResult([], [], 0)
+        res.total = len(res.installed) + len(res.new)
+        return res
 
     def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
-        info_path = self.get_info_path()
-
-        if snap.is_snapd_running() and info_path:
-            installed = [self.map_json(app_json, installed=True, disk_loader=disk_loader, internet=internet_available) for app_json in snap.read_installed(info_path)]
+        if snap.is_installed() and snapd.is_running():
+            snapd_client = SnapdClient(self.logger)
+            app_names = {a['snap'] for a in snapd_client.list_only_apps()}
+            installed = [self._map_to_app(app_json=appjson,
+                                          installed=True,
+                                          disk_loader=disk_loader,
+                                          is_application=app_names and appjson['name'] in app_names) for appjson in snapd_client.list_all_snaps()]
             return SearchResult(installed, None, len(installed))
         else:
             return SearchResult([], None, 0)
 
     def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not snap.is_installed():
+            watcher.print("'snap' seems not to be installed")
+            return False
+        if not snapd.is_running():
+            watcher.print("'snapd' seems not to be running")
+            return False
+
         return ProcessHandler(watcher).handle_simple(snap.downgrade_and_stream(pkg.name, root_password))[0]
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
         raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
-        uninstalled = ProcessHandler(watcher).handle_simple(snap.uninstall_and_stream(pkg.name, root_password))[0]
+        if snap.is_installed() and snapd.is_running():
+            uninstalled = ProcessHandler(watcher).handle_simple(snap.uninstall_and_stream(pkg.name, root_password))[0]
 
-        if uninstalled:
-            if self.suggestions_cache:
-                self.suggestions_cache.delete(pkg.name)
+            if uninstalled:
+                if self.suggestions_cache:
+                    self.suggestions_cache.delete(pkg.name)
 
-            return TransactionResult(success=True, installed=None, removed=[pkg])
+                return TransactionResult(success=True, installed=None, removed=[pkg])
 
         return TransactionResult.fail()
 
@@ -162,17 +133,29 @@ class SnapManager(SoftwareManager):
         self.api_cache.delete(pkg.id)
 
     def get_info(self, pkg: SnapApplication) -> dict:
-        info = snap.get_info(pkg.name, attrs=('license', 'contact', 'commands', 'snap-id', 'tracking', 'installed'))
-        info['description'] = pkg.description
-        info['publisher'] = pkg.publisher
-        info['revision'] = pkg.rev
-        info['name'] = pkg.name
+        info = {
+            'description': pkg.description,
+            'developer': pkg.developer,
+            'license': pkg.license,
+            'contact': pkg.contact,
+            'snap-id': pkg.id,
+            'name': pkg.name,
+            'publisher': pkg.publisher,
+            'revision': pkg.rev,
+            'tracking': pkg.tracking,
+            'channel': pkg.channel,
+            'type': pkg.type
+        }
 
-        if info.get('commands'):
-            info['commands'] = ' '.join(info['commands'])
+        if pkg.installed:
+            commands = [*{c['name'] for c in SnapdClient(self.logger).list_commands(pkg.name)}]
+            commands.sort()
+            info['commands'] = commands
 
-        if info.get('license') and info['license'] == 'unset':
-            del info['license']
+            if pkg.installed_size:
+                info['installed_size']: get_human_size_str(pkg.installed_size)
+        elif pkg.download_size:
+            info['download_size'] = get_human_size_str(pkg.download_size)
 
         return info
 
@@ -180,13 +163,16 @@ class SnapManager(SoftwareManager):
         raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
 
     def install(self, pkg: SnapApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        info_path = self.get_info_path()
-
-        if not info_path:
-            self.logger.warning('Information directory was not found. It will not be possible to determine if the installed application can be launched')
-
         # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
-        installed_names = snap.list_installed_names()
+        if not snap.is_installed():
+            watcher.print("'snap' seems not to be installed")
+            return TransactionResult.fail()
+
+        if not snapd.is_running():
+            watcher.print("'snapd' seems not to be running")
+            return TransactionResult.fail()
+
+        installed_names = {s['name'] for s in SnapdClient(self.logger).list_all_snaps()}
 
         res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
 
@@ -208,17 +194,10 @@ class SnapManager(SoftwareManager):
                                                     deny_label=self.i18n['cancel']):
                         self.logger.info("Installing '{}' with the custom command '{}'".format(pkg.name, channel_select.value))
                         res = ProcessHandler(watcher).handle(SystemProcess(new_root_subprocess(channel_select.value.value.split(' '), root_password=root_password)))
-
-                        if res and info_path:
-                            pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
-
                         return self._gen_installation_response(success=res, pkg=pkg,
                                                                installed=installed_names, disk_loader=disk_loader)
                 else:
                     self.logger.error("Could not find available channels in the installation output: {}".format(output))
-        else:
-            if info_path:
-                pkg.has_apps_field = snap.has_apps_field(pkg.name, info_path)
 
         return self._gen_installation_response(success=res, pkg=pkg, installed=installed_names, disk_loader=disk_loader)
 
@@ -278,7 +257,7 @@ class SnapManager(SoftwareManager):
 
     def list_warnings(self, internet_available: bool) -> List[str]:
         if snap.is_installed():
-            if not snap.is_snapd_running():
+            if not snapd.is_running():
                 snap_bold = bold('Snap')
                 return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
                         self.i18n['snap.notification.snap.disable'].format(snap_bold, bold('{} > {}'.format(self.i18n['settings'].capitalize(),
@@ -291,24 +270,57 @@ class SnapManager(SoftwareManager):
                     self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
                     return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
-    def _fill_suggestion(self, pkg_name: str, priority: SuggestionPriority, out: List[PackageSuggestion]):
-        res = self.http_client.get_json(SNAP_API_URL + '/search?q=package_name:{}'.format(pkg_name))
+    def _fill_suggestion(self, name: str, priority: SuggestionPriority, snapd_client: SnapdClient, out: List[PackageSuggestion]):
+        res = snapd_client.find_by_name(name)
 
-        if res and res['_embedded']['clickindex:package']:
-            pkg = res['_embedded']['clickindex:package'][0]
-            pkg['rev'] = pkg['revision']
-            pkg['name'] = pkg_name
+        if res:
+            if len(res) == 1:
+                app_json = res[0]
+            else:
+                jsons_found = [p for p in res if p['name'] == name]
+                app_json = jsons_found[0] if jsons_found else None
 
-            sug = PackageSuggestion(self.map_json(pkg, installed=False, disk_loader=None), priority)
-            self.suggestions_cache.add(pkg_name, sug)
-            out.append(sug)
-        else:
-            self.logger.warning("Could not retrieve suggestion '{}'".format(pkg_name))
+            if app_json:
+                sug = PackageSuggestion(self._map_to_app(app_json, False), priority)
+                self.suggestions_cache.add(name, sug)
+                out.append(sug)
+                return
+
+        self.logger.warning("Could not retrieve suggestion '{}'".format(name))
+
+    def _map_to_app(self, app_json: dict, installed: bool, disk_loader: Optional[DiskCacheLoader] = None, is_application: bool = False) -> SnapApplication:
+        app = SnapApplication(id=app_json.get('id'),
+                              name=app_json.get('name'),
+                              license=app_json.get('license'),
+                              version=app_json.get('version'),
+                              latest_version=app_json.get('version'),
+                              description=app_json.get('description', app_json.get('summary')),
+                              installed=installed,
+                              rev=app_json.get('revision'),
+                              publisher=app_json['publisher'].get('display-name', app_json['publisher'].get('username')),
+                              verified_publisher=app_json['publisher'].get('validation') == 'verified',
+                              icon_url=app_json.get('icon'),
+                              screenshots={m['url'] for m in app_json.get('media', []) if m['type'] == 'screenshot'},
+                              download_size=app_json.get('download-size'),
+                              channel=app_json.get('channel'),
+                              confinement=app_json.get('confinement'),
+                              app_type=app_json.get('type'),
+                              app=is_application,
+                              installed_size=app_json.get('installed-size'),
+                              extra_actions=self.custom_actions)
+
+        if disk_loader and app.installed:
+            disk_loader.fill(app)
+
+        self._fill_categories(app)
+
+        app.status = PackageStatus.READY
+        return app
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
-        if snap.is_snapd_running():
+        if snapd.is_running():
             self.logger.info('Downloading suggestions file {}'.format(SUGGESTIONS_FILE))
             file = self.http_client.get(SUGGESTIONS_FILE)
 
@@ -319,7 +331,8 @@ class SnapManager(SoftwareManager):
                 self.logger.info('Mapping suggestions')
 
                 suggestions, threads = [], []
-                installed = {i.name.lower() for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
+                snapd_client = SnapdClient(self.logger)
+                installed = {s['name'].lower() for s in snapd_client.list_all_snaps()}
 
                 for l in file.text.split('\n'):
                     if l:
@@ -333,7 +346,7 @@ class SnapManager(SoftwareManager):
                                 if cached_sug:
                                     res.append(cached_sug)
                                 else:
-                                    t = Thread(target=self._fill_suggestion, args=(name, SuggestionPriority(int(sug[0])), res))
+                                    t = Thread(target=self._fill_suggestion, args=(name, SuggestionPriority(int(sug[0])), snapd_client, res))
                                     t.start()
                                     threads.append(t)
                                     time.sleep(0.001)  # to avoid being blocked
@@ -350,22 +363,21 @@ class SnapManager(SoftwareManager):
         return True
 
     def launch(self, pkg: SnapApplication):
-        snap.run(pkg, self.context.logger)
+        commands = SnapdClient(self.logger).list_commands(pkg.name)
 
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        res = self.http_client.get_json('{}/search?q={}'.format(SNAP_API_URL, pkg.name))
-
-        if res:
-            if res.get('_embedded') and res['_embedded'].get('clickindex:package'):
-                snap_data = res['_embedded']['clickindex:package'][0]
-
-                if snap_data.get('screenshot_urls'):
-                    return snap_data['screenshot_urls']
-                else:
-                    self.logger.warning("No 'screenshots_urls' defined for {}".format(pkg))
+        if commands:
+            if len(commands) == 1:
+                cmd = commands[0]['name']
             else:
-                self.logger.error('It seems the API is returning a different response: {}'.format(res))
-        else:
-            self.logger.warning('Could not retrieve data for {}'.format(pkg))
+                desktop_cmd = [c for c in commands if 'desktop-file' in c]
 
-        return []
+                if desktop_cmd:
+                    cmd = desktop_cmd[0]['name']
+                else:
+                    cmd = commands[0]['name']
+
+            self.logger.info("Running '{}': {}".format(pkg.name, cmd))
+            snap.run(cmd)
+
+    def get_screenshots(self, pkg: SnapApplication) -> List[str]:
+        return pkg.screenshots if pkg.has_screenshots() else []

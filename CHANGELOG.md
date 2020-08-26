@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak
     - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
     - downgrade function refactored
+- Snap
+    - full support refactored to use the Snapd socket instead of the Ubuntu's old Snap API (which was recently disabled). Now the 'read' operations are faster, a only the icon is cached to the disk.
 
 - minor UI improvements
 
@@ -80,6 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
      - minor fixes
 - Snap
+    - not able to install classic Snaps due to Ubuntu's old Snaps API shutdown
     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
 - Web
     - some environment variable are not available during the launch process

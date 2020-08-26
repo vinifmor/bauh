@@ -1,26 +1,46 @@
-from typing import List
+from typing import List, Optional, Set
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.snap import ROOT_DIR
-
-KNOWN_RUNTIME_NAMES = {'snapd', 'snapcraft', 'multipass'}
 
 
 class SnapApplication(SoftwarePackage):
 
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, publisher: str = None, rev: str = None, notes: str = None,
-                 confinement: str = None, has_apps_field: bool = None, verified_publisher: bool = False, extra_actions: List[CustomSoftwareAction] = None):
+                 confinement: str = None, verified_publisher: bool = False,
+                 extra_actions: List[CustomSoftwareAction] = None,
+                 screenshots: Optional[Set[str]] = None,
+                 license: Optional[str] = None,
+                 installed: bool = False,
+                 icon_url: Optional[str] = None,
+                 download_size: Optional[int] = None,
+                 developer: Optional[str] = None,
+                 contact: Optional[str] = None,
+                 tracking: Optional[str] = None,
+                 app_type: Optional[str] = None,
+                 channel: Optional[str] = None,
+                 app: bool = False,
+                 installed_size: Optional[int] = None):
         super(SnapApplication, self).__init__(id=id, name=name, version=version,
-                                              latest_version=latest_version, description=description)
+                                              latest_version=latest_version, description=description,
+                                              license=license, installed=installed, icon_url=icon_url)
         self.publisher = publisher
         self.rev = rev
         self.notes = notes
         self.confinement = confinement
-        self.has_apps_field = has_apps_field
         self.verified_publisher = verified_publisher
         self.extra_actions = extra_actions
+        self.screenshots = screenshots
+        self.download_size = download_size
+        self.developer = developer
+        self.contact = contact
+        self.tracking = tracking
+        self.type = app_type
+        self.channel = channel
+        self.app = app
+        self.installed_size = installed_size
 
     def supports_disk_cache(self):
         return self.installed
@@ -44,7 +64,10 @@ class SnapApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self) -> bool:
-        return not self.installed or ((self.has_apps_field is None or self.has_apps_field) and self.name.lower() not in KNOWN_RUNTIME_NAMES)
+        if self.installed:
+            return self.app
+        else:
+            return self.type == 'app'
 
     def get_disk_cache_path(self):
         return super(SnapApplication, self).get_disk_cache_path() + '/installed/' + self.name
@@ -54,20 +77,17 @@ class SnapApplication(SoftwarePackage):
 
     def get_data_to_cache(self):
         return {
-            "icon_url": self.icon_url,
-            'confinement': self.confinement,
-            'description': self.description,
             'categories': self.categories
         }
 
     def fill_cached_data(self, data: dict):
         if data:
-            for base_attr in ('icon_url', 'description', 'confinement', 'categories'):
+            for base_attr in self.get_data_to_cache().keys():
                 if data.get(base_attr):
                     setattr(self, base_attr, data[base_attr])
 
     def can_be_run(self) -> bool:
-        return self.installed and self.is_application()
+        return bool(self.installed and self.is_application())
 
     def get_publisher(self):
         return self.publisher
@@ -78,6 +98,9 @@ class SnapApplication(SoftwarePackage):
 
     def supports_backup(self) -> bool:
         return True
+
+    def has_screenshots(self) -> bool:
+        return not self.installed and self.screenshots
 
     def __eq__(self, other):
         if isinstance(other, SnapApplication):

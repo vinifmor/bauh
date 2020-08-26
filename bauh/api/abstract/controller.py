@@ -3,7 +3,7 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Optional
 
 import yaml
 
@@ -17,7 +17,7 @@ from bauh.api.abstract.view import ViewComponent
 
 class SearchResult:
 
-    def __init__(self, installed: List[SoftwarePackage], new: List[SoftwarePackage], total: int):
+    def __init__(self, installed: Optional[List[SoftwarePackage]], new: Optional[List[SoftwarePackage]], total: int):
         """
         :param installed: already installed packages
         :param new: new packages found
