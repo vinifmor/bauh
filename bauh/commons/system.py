@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Dict
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -298,3 +298,23 @@ def get_human_size_str(size) -> str:
 def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.returncode == success_code, p.stdout.decode()
+
+
+def check_active_services(*names: str) -> Dict[str, bool]:
+    output = run_cmd('systemctl is-active {}'.format(' '.join(names)), print_error=False)
+
+    if not output:
+        return {n: False for n in names}
+    else:
+        status = output.split('\n')
+        return {s: status[i].strip().lower() == 'active' for i, s in enumerate(names) if s}
+
+
+def check_enabled_services(*names: str) -> Dict[str, bool]:
+    output = run_cmd('systemctl is-enabled {}'.format(' '.join(names)), print_error=False)
+
+    if not output:
+        return {n: False for n in names}
+    else:
+        status = output.split('\n')
+        return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}

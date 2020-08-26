@@ -25,7 +25,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent, TextInputType, \
     FileChooserComponent
 from bauh.api.constants import TEMP_DIR
-from bauh.commons import user, internet
+from bauh.commons import user, internet, system
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -203,7 +203,14 @@ class ArchManager(SoftwareManager):
                                                 icon_path=get_icon_path(),
                                                 requires_root=True,
                                                 refresh=False,
-                                                manager=self)
+                                                manager=self),
+            'setup_snapd': CustomSoftwareAction(i18n_label_key='arch.custom_action.setup_snapd',
+                                                i18n_status_key='arch.custom_action.setup_snapd.status',
+                                                manager_method='setup_snapd',
+                                                icon_path=get_icon_path(),
+                                                requires_root=False,
+                                                refresh=False,
+                                                manager=self),
         }
         self.index_aur = None
         self.re_file_conflict = re.compile(r'[\w\d\-_.]+:')
@@ -2573,6 +2580,9 @@ class ArchManager(SoftwareManager):
         if bool(arch_config['repositories']):
             actions.append(self.custom_actions['sys_up'])
 
+        if pacman.is_snapd_installed():
+            actions.append(self.custom_actions['setup_snapd'])
+
         return actions
 
     def fill_sizes(self, pkgs: List[ArchPackage]):
@@ -2607,7 +2617,7 @@ class ArchManager(SoftwareManager):
                         p.size = new_size - p.size
 
     def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        repo_map = pacman.map_repositories()
+        # repo_map = pacman.map_repositories()
         installed = self.read_installed(limit=-1, only_apps=False, pkg_types=None, internet_available=internet.is_available(), disk_loader=None).installed
 
         if not installed:
@@ -2820,3 +2830,86 @@ class ArchManager(SoftwareManager):
     def disable_pkgbuild_edition(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher):
         if self._remove_from_editable_pkgbuilds(pkg.name):
             pkg.pkgbuild_editable = False
+
+    def setup_snapd(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        # checking services
+        missing_items = []
+        for serv, active in system.check_enabled_services('snapd.service', 'snapd.socket').items():
+            if not active:
+                missing_items.append(InputOption(label=self.i18n['snap.custom_action.setup_snapd.service_disabled'].format("'{}'".format(serv)),
+                                                 value='enable:{}'.format(serv),
+                                                 read_only=True))
+
+        for serv, active in system.check_active_services('snapd.service', 'snapd.socket').items():
+            if not active:
+                missing_items.append(InputOption(label=self.i18n['snap.custom_action.setup_snapd.service_inactive'].format("'{}'".format(serv)),
+                                                 value='start:{}'.format(serv),
+                                                 read_only=True))
+
+        link = '/snap'
+        link_dest = '/var/lib/snapd/snap'
+        if not os.path.exists('/snap'):
+            missing_items.append(InputOption(label=self.i18n['snap.custom_action.setup_snapd.missing_link'].format("'{}'".format(link), "'{}'".format(link_dest)),
+                                             value='link:{}:{}'.format(link, link_dest),
+                                             read_only=True))
+
+        if missing_items:
+            actions = MultipleSelectComponent(label=self.i18n['snap.custom_action.setup_snapd.required_actions'],
+                                              options=missing_items,
+                                              default_options=set(missing_items),
+                                              max_per_line=1,
+                                              spaces=False)
+            if watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
+                                            body='',
+                                            components=[actions],
+                                            confirmation_label=self.i18n['proceed'].capitalize(),
+                                            deny_label=self.i18n['cancel'].capitalize()):
+
+                pwd, valid_pwd = watcher.request_root_password()
+
+                if valid_pwd:
+                    handler = ProcessHandler(watcher)
+                    for a in missing_items:
+                        action = a.value.split(':')
+
+                        if action[0] == 'enable':
+                            msg = 'Enabling service {}'.format(action[1])
+                            watcher.print(msg)
+                            self.logger.info(msg)
+                            proc = SimpleProcess(['systemctl', 'enable', '--now', action[1]], root_password=pwd)
+                        elif action[0] == 'start':
+                            msg = 'Starting service {}'.format(action[1])
+                            watcher.print(msg)
+                            self.logger.info(msg)
+                            proc = SimpleProcess(['systemctl', 'start', action[1]], root_password=pwd)
+                        elif action[0] == 'link':
+                            msg = 'Creating symbolic link {} for {}'.format(action[1], action[2])
+                            watcher.print(msg)
+                            self.logger.info(msg)
+                            proc = SimpleProcess(['ln', '-s', action[2], action[1]], root_password=pwd)
+                        else:
+                            msg = "Wrong action '{}'".format(action)
+                            watcher.print(msg)
+                            self.logger.warning(msg)
+                            proc = None
+
+                        if not proc:
+                            return False
+
+                        success, output = handler.handle_simple(proc)
+
+                        if not success:
+                            watcher.show_message(title=self.i18n['error'].capitalize(),
+                                                 body=output,
+                                                 type_=MessageType.ERROR)
+                            return False
+
+                    watcher.show_message(title=self.i18n['snap.custom_action.setup_snapd.ready'],
+                                         body=self.i18n['snap.custom_action.setup_snapd.ready.body'],
+                                         type_=MessageType.INFO)
+            return True
+        else:
+            watcher.show_message(title=self.i18n['snap.custom_action.setup_snapd.ready'],
+                                 body=self.i18n['snap.custom_action.setup_snapd.ready.body'],
+                                 type_=MessageType.INFO)
+            return True

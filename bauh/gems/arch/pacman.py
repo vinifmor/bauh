@@ -1113,3 +1113,7 @@ def get_packages_to_sync_first() -> Set[str]:
                 return {s.strip() for s in to_sync_first[0].split(' ') if s and s.strip()}
 
     return set()
+
+
+def is_snapd_installed() -> bool:
+    return bool(run_cmd('pacman -Qq snapd', print_error=False))
