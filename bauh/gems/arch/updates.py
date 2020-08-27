@@ -241,7 +241,7 @@ class UpdatesSummarizer:
 
                 for idx, dep in enumerate(deps):
                     data = deps_data[dep[0]]
-                    pkg = ArchPackage(name=dep[0], version=data['v'], latest_version=data['v'], repository=dep[1], i18n=self.i18n)
+                    pkg = ArchPackage(name=dep[0], version=data['v'], latest_version=data['v'], repository=dep[1], i18n=self.i18n, package_base=data.get('b', dep[0]))
                     sorted_pkgs[idx] = pkg
                     context.to_install[dep[0]] = pkg
 

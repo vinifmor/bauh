@@ -210,12 +210,13 @@ class AURClient:
                 provided.update(info.get('provides'))
 
             return {'c': info.get('conflicts'), 's': None, 'p': provided, 'r': 'aur',
-                    'v': info['pkgver'], 'd': self.extract_required_dependencies(info)}
+                    'v': info['pkgver'], 'd': self.extract_required_dependencies(info),
+                    'b': info.get('pkgbase', pkgname)}
         else:
             if latest_version:
                 provided.add('{}={}'.format(pkgname, latest_version))
 
-            return {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': latest_version, 'd': set()}
+            return {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': latest_version, 'd': set(), 'b': pkgname}
 
     def fill_update_data(self, output: Dict[str, dict], pkgname: str, latest_version: str, srcinfo: dict = None):
         data = self.map_update_data(pkgname=pkgname, latest_version=latest_version, srcinfo=srcinfo)
