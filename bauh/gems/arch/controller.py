@@ -22,7 +22,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
-    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextComponent, TextInputType, \
+    ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user, internet, system
@@ -767,7 +767,7 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _map_conflicting_file(self, output: str) -> List[TextComponent]:
+    def _map_conflicting_file(self, output: str) -> List[MultipleSelectComponent]:
         error_idx = None
         lines = output.split('\n')
         for idx, l in enumerate(lines):
@@ -782,9 +782,9 @@ class ArchManager(SoftwareManager):
                 line = lines[idx].strip()
 
                 if line and self.re_file_conflict.match(line):
-                    files.append(TextComponent(' - {}'.format(line)))
+                    files.append(InputOption(label=line, value=idx, read_only=True))
 
-        return files
+        return [MultipleSelectComponent(options=files, default_options={*files}, label='')]
 
     def list_related(self, pkgs: Iterable[str], all_pkgs: Iterable[str], data: Dict[str, dict], related: Set[str], provided_map: Dict[str, Set[str]]) -> Set[str]:
         related.update(pkgs)
@@ -896,12 +896,11 @@ class ArchManager(SoftwareManager):
                 disk.write_several(pkgs=pkg_map, overwrite=True, maintainer=None)
                 return True
             elif 'conflicting files' in upgrade_output:
-                files = self._map_conflicting_file(upgrade_output)
                 if not handler.watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
                                                             body=self.i18n['arch.upgrade.error.conflicting_files'] + ':',
                                                             deny_label=self.i18n['arch.upgrade.conflicting_files.proceed'],
                                                             confirmation_label=self.i18n['arch.upgrade.conflicting_files.stop'],
-                                                            components=files):
+                                                            components=self._map_conflicting_file(upgrade_output)):
 
                     return self._upgrade_repo_pkgs(to_upgrade=to_upgrade_remaining,
                                                    handler=handler,
@@ -2030,11 +2029,8 @@ class ArchManager(SoftwareManager):
 
         installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names={context.name}).installed
         context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
-        installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=to_install,
-                                                                               root_password=context.root_password,
-                                                                               file=context.has_install_file(),
-                                                                               pkgdir=context.project_dir),
-                                                     output_handler=status_handler.handle if status_handler else None)
+        installed = self._handle_install_call(context=context, to_install=to_install, status_handler=status_handler)
+
         if status_handler:
             status_handler.stop_working()
             status_handler.join()
@@ -2089,6 +2085,29 @@ class ArchManager(SoftwareManager):
 
             context.watcher.change_substatus('')
             self._update_progress(context, 100)
+
+        return installed
+
+    def _call_pacman_install(self, context: TransactionContext, to_install: List[str], overwrite_files: bool, status_handler: Optional[object] = None) -> Tuple[bool, str]:
+        return context.handler.handle_simple(pacman.install_as_process(pkgpaths=to_install,
+                                                                       root_password=context.root_password,
+                                                                       file=context.has_install_file(),
+                                                                       pkgdir=context.project_dir,
+                                                                       overwrite_conflicting_files=overwrite_files),
+                                             output_handler=status_handler.handle if status_handler else None)
+
+    def _handle_install_call(self, context: TransactionContext, to_install: List[str], status_handler) -> bool:
+        installed, output = self._call_pacman_install(context=context, to_install=to_install,
+                                                      overwrite_files=False, status_handler=status_handler)
+
+        if not installed and 'conflicting files' in output:
+            if not context.handler.watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
+                                                                body=self.i18n['arch.install.error.conflicting_files'].format(bold(context.name)) + ':',
+                                                                deny_label=self.i18n['arch.install.error.conflicting_files.proceed'],
+                                                                confirmation_label=self.i18n['arch.install.error.conflicting_files.stop'],
+                                                                components=self._map_conflicting_file(output)):
+                installed, output = self._call_pacman_install(context=context, to_install=to_install,
+                                                              overwrite_files=True, status_handler=status_handler)
 
         return installed
 

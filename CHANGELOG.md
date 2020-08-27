@@ -71,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
     - some conflict resolution scenarios when upgrading several packages
+    - not handling conflicting files errors during the installation process
     - AUR
         - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
         - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)
