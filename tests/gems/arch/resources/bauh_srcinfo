@@ -1,0 +1,27 @@
+pkgbase = bauh
+	pkgdesc = Graphical interface for managing your applications ( AppImage, Flatpak, Snap, Arch/AUR, Web )
+	pkgver = 0.9.6
+	pkgrel = 2
+	url = https://github.com/vinifmor/bauh
+	arch = any
+	license = zlib/libpng
+	makedepends = git
+	makedepends = python
+	makedepends = python-pip
+	makedepends = python-setuptools
+	depends = python
+	depends = python-pyqt5
+	depends = python-pyqt5-sip
+	depends = python-requests
+	depends = python-colorama
+	depends = python-pyaml
+	depends = qt5-svg
+	optdepends = flatpak: required for Flatpak support
+	optdepends = snapd: required for Snap support
+	optdepends = python-beautifulsoup4: for Native Web applications support
+	optdepends = python-lxml: for Native Web applications support
+	source = https://github.com/vinifmor/bauh/archive/0.9.6.tar.gz
+	sha512sums = cb1820b8a41dccec746d91d71b7f524c2e3caf6b30b0cd9666598b8ad49302654d9ce9bd1a0a2a9612afebc27ef78a2a94ac10e4e6c183742effe4feeabaa7b2
+
+pkgname = bauh
+

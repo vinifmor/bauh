@@ -611,7 +611,7 @@ class ArchManager(SoftwareManager):
                                     for idx in range(1, len(commit_list)):
                                         commit = commit_list[idx]
                                         with open(srcinfo_path) as f:
-                                            pkgsrc = aur.map_srcinfo(f.read(), srcfields)
+                                            pkgsrc = aur.map_srcinfo(string=f.read(), pkgname=context.name ,fields=srcfields)
 
                                         reset_proc = new_subprocess(['git', 'reset', '--hard', commit], cwd=clone_path)
                                         if not context.handler.handle(SystemProcess(reset_proc, check_error_output=False)):
@@ -1350,7 +1350,7 @@ class ArchManager(SoftwareManager):
 
                 for idx, commit in enumerate(commits):
                     with open(srcinfo_path) as f:
-                        pkgsrc = aur.map_srcinfo(f.read(), srcfields)
+                        pkgsrc = aur.map_srcinfo(string=f.read(), pkgname=pkg.name, fields=srcfields)
 
                     if status_idx < 0 and '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
                         status_idx = idx
@@ -1566,10 +1566,10 @@ class ArchManager(SoftwareManager):
 
         return pkg_repos
 
-    def _pre_download_source(self, project_dir: str, watcher: ProcessWatcher) -> bool:
+    def _pre_download_source(self, pkgname: str, project_dir: str, watcher: ProcessWatcher) -> bool:
         if self.context.file_downloader.is_multithreaded():
             with open('{}/.SRCINFO'.format(project_dir)) as f:
-                srcinfo = aur.map_srcinfo(f.read())
+                srcinfo = aur.map_srcinfo(string=f.read(), pkgname=pkgname)
 
             pre_download_files = []
 
@@ -1639,7 +1639,7 @@ class ArchManager(SoftwareManager):
                                               watcher=context.watcher,
                                               pkgbuild_path='{}/PKGBUILD'.format(context.project_dir)):
                 context.pkgbuild_edited = True
-                srcinfo = aur.map_srcinfo(makepkg.gen_srcinfo(context.project_dir))
+                srcinfo = aur.map_srcinfo(string=makepkg.gen_srcinfo(context.project_dir), pkgname=context.name)
 
                 if srcinfo:
                     context.name = srcinfo['pkgname']
@@ -1656,7 +1656,7 @@ class ArchManager(SoftwareManager):
 
     def _build(self, context: TransactionContext) -> bool:
         self._edit_pkgbuild_and_update_context(context)
-        self._pre_download_source(context.project_dir, context.watcher)
+        self._pre_download_source(context.name, context.project_dir, context.watcher)
         self._update_progress(context, 50)
 
         if not self._handle_aur_package_deps_and_keys(context):
@@ -1691,7 +1691,7 @@ class ArchManager(SoftwareManager):
             file_to_install = gen_file[0]
 
             if len(gen_file) > 1:
-                srcinfo = aur.map_srcinfo(makepkg.gen_srcinfo(context.project_dir))
+                srcinfo = aur.map_srcinfo(string=makepkg.gen_srcinfo(context.project_dir), pkgname=context.name)
                 pkgver = '-{}'.format(srcinfo['pkgver']) if srcinfo.get('pkgver') else ''
                 pkgrel = '-{}'.format(srcinfo['pkgrel']) if srcinfo.get('pkgrel') else ''
                 arch = '-{}'.format(srcinfo['arch']) if srcinfo.get('arch') else ''
@@ -1762,7 +1762,7 @@ class ArchManager(SoftwareManager):
 
         if context.repository == 'aur':
             with open('{}/.SRCINFO'.format(context.project_dir)) as f:
-                srcinfo = aur.map_srcinfo(f.read())
+                srcinfo = aur.map_srcinfo(string=f.read(), pkgname=context.name)
 
             pkgs_data = {context.name: self.aur_client.map_update_data(context.name, context.get_version(), srcinfo)}
         else:

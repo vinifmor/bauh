@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import urllib.parse
-from typing import Set, List, Iterable, Dict
+from typing import Set, List, Iterable, Dict, Optional
 
 import requests
 
@@ -28,6 +28,8 @@ KNOWN_LIST_FIELDS = ('validpgpkeys',
                      'optdepends',
                      'optdepends_x86_64',
                      'optdepends_i686',
+                     'sha256sums',
+                     'sha256sums_x86_64',
                      'sha512sums',
                      'sha512sums_x86_64',
                      'source',
@@ -44,30 +46,61 @@ def map_pkgbuild(pkgbuild: str) -> dict:
     return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
 
 
-def map_srcinfo(string: str, fields: Set[str] = None) -> dict:
+def map_srcinfo(string: str, pkgname: str, fields: Set[str] = None) -> dict:
+    subinfos, subinfo = [], {}
+
+    key_fields = {'pkgname', 'pkgbase'}
+
+    for field in RE_SRCINFO_KEYS.findall(string):
+        key = field[0].strip()
+        val = field[1].strip()
+
+        if subinfo and key in key_fields:
+            subinfos.append(subinfo)
+            subinfo = {key: val}
+        elif not fields or key in fields:
+            if key not in subinfo:
+                subinfo[key] = {val} if key in KNOWN_LIST_FIELDS else val
+            else:
+                if not isinstance(subinfo[key], set):
+                    subinfo[key] = {subinfo[key]}
+
+                subinfo[key].add(val)
+
+    if subinfo:
+        subinfos.append(subinfo)
+
+    pkgnames = {s['pkgname'] for s in subinfos if 'pkgname' in s}
+    return merge_subinfos(subinfos=subinfos,
+                          pkgname=None if (len(pkgnames) == 1 or pkgname not in pkgnames) else pkgname,
+                          fields=fields)
+
+
+def merge_subinfos(subinfos: List[dict], pkgname: Optional[str] = None, fields: Optional[Set[str]] = None) -> dict:
     info = {}
+    for subinfo in subinfos:
+        if not pkgname or subinfo.get('pkgname') in {None, pkgname}:
+            for key, val in subinfo.items():
+                if not fields or key in fields:
+                    current_val = info.get(key)
 
-    if fields:
-        field_re = re.compile(r'({})\s+=\s+(.+)\n'.format('|'.join(fields)))
-    else:
-        field_re = RE_SRCINFO_KEYS
+                    if current_val is None:
+                        info[key] = val
+                    else:
+                        if not isinstance(current_val, set):
+                            current_val = {current_val}
+                            info[key] = current_val
 
-    for tupl in field_re.findall(string):
-        key = tupl[0].strip()
-        val = tupl[1].strip()
+                        if isinstance(val, set):
+                            current_val.update(val)
+                        else:
+                            current_val.add(val)
 
-        if key not in info:
-            info[key] = [val] if key in KNOWN_LIST_FIELDS else val
-        else:
-            if not isinstance(info[key], list):
-                info[key] = [info[key]]
+    for field in info.keys():
+        val = info.get(field)
 
-            info[key].append(val)
-
-    pkgname = info.get('pkgname')
-
-    if isinstance(pkgname, list):
-        info['pkgname'] = pkgname[0]
+        if isinstance(val, set):
+            info[field] = [*val]
 
     return info
 
@@ -90,7 +123,7 @@ class AURClient:
         except:
             return []
 
-    def get_src_info(self, name: str) -> dict:
+    def get_src_info(self, name: str, real_name: Optional[str] = None) -> dict:
         srcinfo = self.srcinfo_cache.get(name)
 
         if srcinfo:
@@ -99,7 +132,7 @@ class AURClient:
         res = self.http_client.get(URL_SRC_INFO + urllib.parse.quote(name))
 
         if res and res.text:
-            srcinfo = map_srcinfo(res.text)
+            srcinfo = map_srcinfo(string=res.text, pkgname=real_name if real_name else name)
 
             if srcinfo:
                 self.srcinfo_cache[name] = srcinfo
@@ -118,7 +151,7 @@ class AURClient:
             info_base = info.get('PackageBase')
             if info_name and info_base and info_name != info_base:
                 self.logger.info('{p} is based on {b}. Retrieving {b} .SRCINFO'.format(p=info_name, b=info_base))
-                srcinfo = self.get_src_info(info_base)
+                srcinfo = self.get_src_info(name=info_base, real_name=info_name)
 
                 if srcinfo:
                     self.srcinfo_cache[name] = srcinfo
