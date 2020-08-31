@@ -46,7 +46,7 @@ def map_pkgbuild(pkgbuild: str) -> dict:
     return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
 
 
-def map_srcinfo(string: str, pkgname: str, fields: Set[str] = None) -> dict:
+def map_srcinfo(string: str, pkgname: Optional[str], fields: Set[str] = None) -> dict:
     subinfos, subinfo = [], {}
 
     key_fields = {'pkgname', 'pkgbase'}
@@ -72,7 +72,7 @@ def map_srcinfo(string: str, pkgname: str, fields: Set[str] = None) -> dict:
 
     pkgnames = {s['pkgname'] for s in subinfos if 'pkgname' in s}
     return merge_subinfos(subinfos=subinfos,
-                          pkgname=None if (len(pkgnames) == 1 or pkgname not in pkgnames) else pkgname,
+                          pkgname=None if (not pkgname or len(pkgnames) == 1 or pkgname not in pkgnames) else pkgname,
                           fields=fields)
 
 

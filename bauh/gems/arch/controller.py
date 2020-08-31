@@ -43,6 +43,7 @@ from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.output import TransactionStatusHandler
+from bauh.gems.arch.pacman import RE_DEP_OPERATORS
 from bauh.gems.arch.updates import UpdatesSummarizer
 from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases, \
     RefreshMirrors
@@ -56,6 +57,8 @@ RE_SPLIT_VERSION = re.compile(r'([=><]+)')
 SOURCE_FIELDS = ('source', 'source_x86_64')
 RE_PRE_DOWNLOAD_WL_PROTOCOLS = re.compile(r'^(.+::)?(https?|ftp)://.+')
 RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
+RE_PKGBUILD_PKGNAME = re.compile(r'pkgname\s*=.+')
+RE_CONFLICT_DETECTED = re.compile(r'\n::\s*(.+)\s+are in conflict\s*.')
 
 
 class TransactionContext:
@@ -63,12 +66,13 @@ class TransactionContext:
     def __init__(self, name: str = None, base: str = None, maintainer: str = None, watcher: ProcessWatcher = None,
                  handler: ProcessHandler = None, dependency: bool = None, skip_opt_deps: bool = False, root_password: str = None,
                  build_dir: str = None, project_dir: str = None, change_progress: bool = False, arch_config: dict = None,
-                 install_file: str = None, repository: str = None, pkg: ArchPackage = None,
+                 install_files: Set[str] = None, repository: str = None, pkg: ArchPackage = None,
                  remote_repo_map: Dict[str, str] = None, provided_map: Dict[str, Set[str]] = None,
                  remote_provided_map: Dict[str, Set[str]] = None, aur_idx: Set[str] = None,
                  missing_deps: List[Tuple[str, str]] = None, installed: Set[str] = None, removed: Dict[str, SoftwarePackage] = None,
                  disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None,
-                 new_pkg: bool = False):
+                 new_pkg: bool = False, custom_pkgbuild_path: str = None,
+                 pkgs_to_build: Set[str] = None):
         self.name = name
         self.base = base
         self.maintainer = maintainer
@@ -82,7 +86,7 @@ class TransactionContext:
         self.change_progress = change_progress
         self.repository = repository
         self.config = arch_config
-        self.install_file = install_file
+        self.install_files = install_files
         self.pkg = pkg
         self.provided_map = provided_map
         self.remote_repo_map = remote_repo_map
@@ -95,6 +99,8 @@ class TransactionContext:
         self.disk_cache_updater = disk_cache_updater
         self.pkgbuild_edited = False
         self.new_pkg = new_pkg
+        self.custom_pkgbuild_path = custom_pkgbuild_path
+        self.pkgs_to_build = pkgs_to_build
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
@@ -123,11 +129,14 @@ class TransactionContext:
         dep_context.removed = {}
         return dep_context
 
-    def has_install_file(self) -> bool:
-        return self.install_file is not None
+    def has_install_files(self) -> bool:
+        return bool(self.install_files)
 
-    def get_package_path(self) -> str:
-        return self.install_file if self.install_file else self.name
+    def get_packages_paths(self) -> Set[str]:
+        return self.install_files if self.install_files else {self.name}
+
+    def get_package_names(self) -> Set[str]:
+        return self.pkgs_to_build if (self.pkgs_to_build and self.install_files) else {self.name}
 
     def get_version(self) -> str:
         return self.pkg.version if self.pkg else None
@@ -693,7 +702,7 @@ class ArchManager(SoftwareManager):
 
         context.watcher.change_progress(50)
 
-        context.install_file = version_files[versions[0]]
+        context.install_files = version_files[versions[0]]  # TODO verify
         if not self._handle_missing_deps(context=context):
             return False
 
@@ -1654,10 +1663,25 @@ class ArchManager(SoftwareManager):
                                                  'description': 'pkgdesc'}.items():
                             setattr(context.pkg, pkgattr, srcinfo.get(srcattr, getattr(context.pkg, pkgattr)))
 
+    def _read_srcinfo(self, context: TransactionContext) -> str:
+        src_path = '{}/.SRCINFO'.format(context.project_dir)
+        if not os.path.exists(src_path):
+            srcinfo = makepkg.gen_srcinfo(context.project_dir, context.custom_pkgbuild_path)
+
+            with open(src_path, 'w+') as f:
+                f.write(srcinfo)
+        else:
+            with open(src_path) as f:
+                srcinfo = f.read()
+
+        return srcinfo
+
     def _build(self, context: TransactionContext) -> bool:
         self._edit_pkgbuild_and_update_context(context)
         self._pre_download_source(context.name, context.project_dir, context.watcher)
         self._update_progress(context, 50)
+
+        context.custom_pkgbuild_path = self._gen_custom_pkgbuild_if_required(context)
 
         if not self._handle_aur_package_deps_and_keys(context):
             return False
@@ -1673,7 +1697,10 @@ class ArchManager(SoftwareManager):
             cpu_optimized = True
 
         try:
-            pkgbuilt, output = makepkg.make(context.project_dir, optimize=optimize, handler=context.handler)
+            pkgbuilt, output = makepkg.make(pkgdir=context.project_dir,
+                                            optimize=optimize,
+                                            handler=context.handler,
+                                            custom_pkgbuild=context.custom_pkgbuild_path)
         finally:
             if cpu_optimized:
                 self.logger.info("Setting cpus to powersave mode")
@@ -1682,7 +1709,32 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 65)
 
         if pkgbuilt:
-            gen_file = [fname for root, dirs, files in os.walk(context.build_dir) for fname in files if re.match(r'^{}-.+\.tar\.(xz|zst)'.format(context.name), fname)]
+            self.__fill_aur_output_files(context)
+
+            if self._install(context=context):
+                self._save_pkgbuild(context)
+
+                if context.dependency or context.skip_opt_deps:
+                    return True
+
+                context.watcher.change_substatus(self.i18n['arch.optdeps.checking'].format(bold(context.name)))
+
+                self._update_progress(context, 100)
+                if self._install_optdeps(context):
+                    return True
+
+        return False
+
+    def __fill_aur_output_files(self, context: TransactionContext):
+        self.logger.info("Determining output files of '{}'".format(context.name))
+        context.watcher.change_substatus(self.i18n['arch.aur.build.list_output'])
+        output_files = {f for f in makepkg.list_output_files(context.project_dir, context.custom_pkgbuild_path) if os.path.isfile(f)}
+
+        if output_files:
+            context.install_files = output_files
+        else:
+            gen_file = [fname for root, dirs, files in os.walk(context.build_dir) for fname in files if
+                        re.match(r'^{}-.+\.tar\.(xz|zst)'.format(context.name), fname)]
 
             if not gen_file:
                 context.watcher.print('Could not find the built package. Aborting...')
@@ -1702,21 +1754,9 @@ class ArchManager(SoftwareManager):
                 if perfect_match:
                     file_to_install = perfect_match[0]
 
-            context.install_file = '{}/{}'.format(context.project_dir, file_to_install)
+            context.install_files = {'{}/{}'.format(context.project_dir, file_to_install)}
 
-            if self._install(context=context):
-                self._save_pkgbuild(context)
-
-                if context.dependency or context.skip_opt_deps:
-                    return True
-
-                context.watcher.change_substatus(self.i18n['arch.optdeps.checking'].format(bold(context.name)))
-
-                self._update_progress(context, 100)
-                if self._install_optdeps(context):
-                    return True
-
-        return False
+        context.watcher.change_substatus('')
 
     def _save_pkgbuild(self, context: TransactionContext):
         cache_path = ArchPackage.disk_cache_path(context.name)
@@ -1761,13 +1801,27 @@ class ArchManager(SoftwareManager):
         ti = time.time()
 
         if context.repository == 'aur':
-            with open('{}/.SRCINFO'.format(context.project_dir)) as f:
-                srcinfo = aur.map_srcinfo(string=f.read(), pkgname=context.name)
+            srcinfo = aur.map_srcinfo(string=self._read_srcinfo(context),
+                                      pkgname=context.name if (not context.pkgs_to_build or len(context.pkgs_to_build) == 1) else None)
+
+            if context.pkgs_to_build and len(context.pkgs_to_build) > 1:  # removing self dependencies from srcinfo
+                for attr in ('depends', 'makedepends', 'optdepends'):
+                    dep_list = srcinfo.get(attr)
+
+                    if dep_list and isinstance(dep_list, list):
+                        to_remove = set()
+                        for dep in dep_list:
+                            dep_name = RE_DEP_OPERATORS.split(dep.split(':')[0])[0].strip()
+
+                            if dep_name and dep_name in context.pkgs_to_build:
+                                to_remove.add(dep)
+
+                        for dep in to_remove:
+                            dep_list.remove(dep)
 
             pkgs_data = {context.name: self.aur_client.map_update_data(context.name, context.get_version(), srcinfo)}
         else:
-            file = bool(context.install_file)
-            pkgs_data = pacman.map_updates_data({context.install_file if file else context.name}, files=file)
+            pkgs_data = pacman.map_updates_data(context.get_packages_paths(), files=bool(context.install_files))
 
         deps_data, alread_checked_deps = {}, set()
 
@@ -1807,7 +1861,8 @@ class ArchManager(SoftwareManager):
         check_res = makepkg.check(context.project_dir,
                                   optimize=bool(context.config['optimize']),
                                   missing_deps=False,
-                                  handler=context.handler)
+                                  handler=context.handler,
+                                  custom_pkgbuild=context.custom_pkgbuild_path)
 
         if check_res:
             if check_res.get('gpg_key'):
@@ -1952,22 +2007,28 @@ class ArchManager(SoftwareManager):
                 raise ArchDownloadException()
 
     def _install(self, context: TransactionContext) -> bool:
-        check_install_output = []
-        pkgpath = context.get_package_path()
+        pkgpaths = context.get_packages_paths()
 
         context.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(context.name)))
         self.logger.info("Checking for possible conflicts with '{}'".format(context.name))
 
-        for check_out in SimpleProcess(cmd=['pacman', '-U' if context.install_file else '-S', pkgpath],
-                                       root_password=context.root_password,
-                                       cwd=context.project_dir or '.').instance.stdout:
-            check_install_output.append(check_out.decode())
+        _, output = context.handler.handle_simple(pacman.install_as_process(pkgpaths=pkgpaths,
+                                                                            root_password=context.root_password,
+                                                                            pkgdir=context.project_dir or '.',
+                                                                            file=bool(context.install_files),
+                                                                            simulate=True),
+                                                  notify_watcher=False)
+        # for check_out in SimpleProcess(cmd=['pacman', '-U' if context.install_files else '-S', pkgpath],
+        #                                root_password=context.root_password,
+        #                                cwd=context.project_dir or '.').instance.stdout:
+        #     check_install_output.append(check_out.decode())
 
         self._update_progress(context, 70)
 
-        if check_install_output and 'conflict' in check_install_output[-1]:
+        if 'unresolvable package conflicts detected' in output:
             self.logger.info("Conflicts detected for '{}'".format(context.name))
-            conflicting_apps = [w[0] for w in re.findall(r'((\w|\-|\.)+)\s(and|are)', check_install_output[-1])]
+            conflict_msgs = RE_CONFLICT_DETECTED.findall(output)
+            conflicting_apps = {n.strip() for m in conflict_msgs for n in m.split(' and ')}
             conflict_msg = ' {} '.format(self.i18n['and']).join([bold(c) for c in conflicting_apps])
             if not context.watcher.request_confirmation(title=self.i18n['arch.install.conflict.popup.title'],
                                                         body=self.i18n['arch.install.conflict.popup.body'].format(conflict_msg)):
@@ -1975,7 +2036,8 @@ class ArchManager(SoftwareManager):
                 return False
             else:  # uninstall conflicts
                 self._update_progress(context, 75)
-                to_uninstall = [conflict for conflict in conflicting_apps if conflict != context.name]
+                names_to_install = context.get_package_names()
+                to_uninstall = [conflict for conflict in conflicting_apps if conflict not in names_to_install]
 
                 self.logger.info("Preparing to uninstall conflicting packages: {}".format(to_uninstall))
 
@@ -2006,7 +2068,7 @@ class ArchManager(SoftwareManager):
         if context.missing_deps:
             to_install.extend((d[0] for d in context.missing_deps))
 
-        to_install.append(pkgpath)
+        to_install.extend(pkgpaths)
 
         downloaded = 0
         if self._multithreaded_download_enabled(context.config):
@@ -2027,7 +2089,7 @@ class ArchManager(SoftwareManager):
         else:
             status_handler = None
 
-        installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names={context.name}).installed
+        installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names=context.get_package_names()).installed
         context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
         installed = self._handle_install_call(context=context, to_install=to_install, status_handler=status_handler)
 
@@ -2038,7 +2100,7 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 95)
 
         if installed:
-            context.installed.add(context.name)
+            context.installed.update(context.get_package_names())
             context.installed.update((p for p in to_install if not p.startswith('/')))
 
             if installed_with_same_name:
@@ -2091,7 +2153,7 @@ class ArchManager(SoftwareManager):
     def _call_pacman_install(self, context: TransactionContext, to_install: List[str], overwrite_files: bool, status_handler: Optional[object] = None) -> Tuple[bool, str]:
         return context.handler.handle_simple(pacman.install_as_process(pkgpaths=to_install,
                                                                        root_password=context.root_password,
-                                                                       file=context.has_install_file(),
+                                                                       file=context.has_install_files(),
                                                                        pkgdir=context.project_dir,
                                                                        overwrite_conflicting_files=overwrite_files),
                                              output_handler=status_handler.handle if status_handler else None)
@@ -2520,6 +2582,17 @@ class ArchManager(SoftwareManager):
                                only_int=True,
                                max_width=max_width,
                                value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else ''),
+            new_select(id_='aur_build_only_chosen',
+                       label=self.i18n['arch.config.aur_build_only_chosen'],
+                       tip=self.i18n['arch.config.aur_build_only_chosen.tip'],
+                       opts=[(self.i18n['yes'].capitalize(), True, None),
+                             (self.i18n['no'].capitalize(), False, None),
+                             (self.i18n['ask'].capitalize(), None, None),
+                             ],
+                       value=local_config['aur_build_only_chosen'],
+                       max_width=max_width,
+                       type_=SelectViewType.RADIO,
+                       capitalize_label=False),
             new_select(label=self.i18n['arch.config.edit_aur_pkgbuild'],
                        tip=self.i18n['arch.config.edit_aur_pkgbuild.tip'],
                        id_='edit_aur_pkgbuild',
@@ -2565,6 +2638,7 @@ class ArchManager(SoftwareManager):
         config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
         config['aur_remove_build_dir'] = form_install.get_component('aur_remove_build_dir').get_selected()
         config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
+        config['aur_build_only_chosen'] = form_install.get_component('aur_build_only_chosen').get_selected()
 
         if not config['aur_build_dir']:
             config['aur_build_dir'] = None
@@ -2932,3 +3006,61 @@ class ArchManager(SoftwareManager):
                                  body=self.i18n['snap.custom_action.setup_snapd.ready.body'],
                                  type_=MessageType.INFO)
             return True
+
+    def _gen_custom_pkgbuild_if_required(self, context: TransactionContext) -> Optional[str]:
+        build_only_chosen = context.config.get('aur_build_only_chosen')
+
+        pkgs_to_build = aur.map_srcinfo(string=self._read_srcinfo(context), pkgname=None, fields={'pkgname'}).get('pkgname')
+
+        if isinstance(pkgs_to_build, str):
+            pkgs_to_build = {pkgs_to_build}
+        else:
+            pkgs_to_build = {*pkgs_to_build}
+
+        if build_only_chosen is False:
+            context.pkgs_to_build = pkgs_to_build
+            return
+
+        # checking if more than one package is mapped for this pkgbuild
+
+        if not pkgs_to_build or not isinstance(pkgs_to_build, set) or len(pkgs_to_build) == 1 or context.name not in pkgs_to_build:
+            context.pkgs_to_build = pkgs_to_build
+            return
+
+        if build_only_chosen is None:
+            if not context.dependency:
+                pkgnames = [InputOption(label=n, value=n, read_only=False) for n in pkgs_to_build if n != context.name]
+                select = MultipleSelectComponent(label='',
+                                                 options=pkgnames,
+                                                 default_options={*pkgnames},
+                                                 max_per_line=1)
+
+                if not context.watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
+                                                            body=self.i18n['arch.aur.sync.several_names.popup.body'].format(bold(context.name)) + ':',
+                                                            components=[select],
+                                                            confirmation_label=self.i18n['arch.aur.sync.several_names.popup.bt_only_chosen'].format(context.name),
+                                                            deny_label=self.i18n['arch.aur.sync.several_names.popup.bt_selected']):
+                    context.pkgs_to_build = {context.name, *select.get_selected_values()}
+
+        pkgbuild_path = '{}/PKGBUILD'.format(context.project_dir)
+        with open(pkgbuild_path) as f:
+            current_pkgbuild = f.read()
+
+        if context.pkgs_to_build:
+            names = '({})'.format(' '.join(("'{}'".format(p) for p in context.pkgs_to_build)))
+        else:
+            names = context.name
+            context.pkgs_to_build = {context.name}
+
+        new_pkgbuild = RE_PKGBUILD_PKGNAME.sub("pkgname={}".format(names), current_pkgbuild)
+        custom_pkgbuild_path = pkgbuild_path + '_CUSTOM'
+
+        with open(custom_pkgbuild_path, 'w+') as f:
+            f.write(new_pkgbuild)
+
+        new_srcinfo = makepkg.gen_srcinfo(context.project_dir, custom_pkgbuild_path)
+
+        with open('{}/.SRCINFO'.format(context.project_dir), 'w+') as f:
+            f.write(new_srcinfo)
+
+        return custom_pkgbuild_path

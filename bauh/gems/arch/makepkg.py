@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Tuple
+from typing import Tuple, Optional, Set
 
 from bauh.commons.system import SimpleProcess, ProcessHandler, run_cmd
 from bauh.gems.arch import CUSTOM_MAKEPKG_FILE
@@ -9,17 +9,22 @@ RE_DEPS_PATTERN = re.compile(r'\n?\s+->\s(.+)\n')
 RE_UNKNOWN_GPG_KEY = re.compile(r'\(unknown public key (\w+)\)')
 
 
-def gen_srcinfo(build_dir: str) -> str:
-    return run_cmd('makepkg --printsrcinfo', cwd=build_dir)
+def gen_srcinfo(build_dir: str, custom_pkgbuild_path: Optional[str] = None) -> str:
+    return run_cmd('makepkg --printsrcinfo{}'.format(' -p {}'.format(custom_pkgbuild_path) if custom_pkgbuild_path else ''),
+                   cwd=build_dir)
 
 
-def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandler) -> dict:
+def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandler, custom_pkgbuild: Optional[str] = None) -> dict:
     res = {}
 
-    cmd = ['makepkg', '-ALcf', '--check', '--noarchive', '--nobuild', '--noprepare']
+    cmd = ['makepkg', '-ALcfm', '--check', '--noarchive', '--nobuild', '--noprepare']
 
     if not missing_deps:
         cmd.append('--nodeps')
+
+    if custom_pkgbuild:
+        cmd.append('-p')
+        cmd.append(custom_pkgbuild)
 
     if optimize:
         if os.path.exists(CUSTOM_MAKEPKG_FILE):
@@ -44,8 +49,12 @@ def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandl
     return res
 
 
-def make(pkgdir: str, optimize: bool, handler: ProcessHandler) -> Tuple[bool, str]:
+def make(pkgdir: str, optimize: bool, handler: ProcessHandler, custom_pkgbuild: Optional[str] = None) -> Tuple[bool, str]:
     cmd = ['makepkg', '-ALcsmf', '--skipchecksums']
+
+    if custom_pkgbuild:
+        cmd.append('-p')
+        cmd.append(custom_pkgbuild)
 
     if optimize:
         if os.path.exists(CUSTOM_MAKEPKG_FILE):
@@ -66,3 +75,14 @@ def update_srcinfo(project_dir: str) -> bool:
         return True
 
     return False
+
+
+def list_output_files(project_dir: str, custom_pkgbuild_path: Optional[str] = None) -> Set[str]:
+    output = run_cmd(cmd='makepkg --packagelist{}'.format(' -p {}'.format(custom_pkgbuild_path) if custom_pkgbuild_path else ''),
+                     print_error=False,
+                     cwd=project_dir)
+
+    if output:
+        return {p.strip() for p in output.split('\n') if p}
+
+    return set()
