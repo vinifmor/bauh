@@ -32,26 +32,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - trying to auto-fill the 'Name' and 'Version' fields
 - Arch
     - initializing task "Organizing data from installed packages" is taking about 80% less time (now is called "Indexing packages data") [#131](https://github.com/vinifmor/bauh/issues/131)
-    - upgrade summary: displaying the reason a given package must be installed
-     <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
-     </p>
-    - upgrade:
+    - upgrade
         - upgrading firstly the keyring packages declared in **SyncFirst** (**/etc/pacman.conf**) to avoid pacman downloading issues
         - only removing packages after downloading the required ones
-    - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
-    - preventing a possible error when the optional deps of a given package cannot be found
-    - AUR:
+        - summary: displaying the reason a given package must be installed 
+        <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
+        </p>
+
+    - AUR
         - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
         - new settings property **aur_build_dir** -> it allows to define a custom build dir.
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_buildir.png">
         </p>
+        
         - new settings property **aur_remove_build_dir** -> it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Default: true
         - new settings property **aur_build_only_chosen**: some AUR packages have a common file definition declaring several packages to be built. When this property is 'true' only the package the user select to install will be built (unless its name is different from those declared in the PKGBUILD base). With a 'null' value a popup asking if the user wants to build all of them will be displayed. 'false' will build and install all packages. Default: true.
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_build_chosen.png">
         </p>
+        
+    - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
+    - preventing a possible error when the optional deps of a given package cannot be found
 
 - Flatpak
     - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
