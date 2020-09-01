@@ -18,7 +18,8 @@ def read_config(update_file: bool = False) -> dict:
                 'edit_aur_pkgbuild': False,
                 'aur_build_dir': None,
                 'aur_remove_build_dir': True,
-                'aur_build_only_chosen': True}
+                'aur_build_only_chosen': True,
+                'check_dependency_breakage': True}
     return read(CONFIG_FILE, template, update_file=update_file)
 
 

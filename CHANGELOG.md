@@ -37,9 +37,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - only removing packages after downloading the required ones
         - summary: displaying the reason a given package must be installed 
         <p align="center">
-        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
         </p>
-
+        
+        - checking specific version requirements and marking packages as "cannot upgrade" when these requirements are not met (e.g: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. This new checking behavior can be disabled through the property (**check_dependency_breakage**):
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_dep_break_settings.png">
+        </p>
+        
     - AUR
         - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
         - new settings property **aur_build_dir** -> it allows to define a custom build dir.
@@ -77,6 +82,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - upgrade summary
         - not displaying all packages that must be uninstalled
         - displaying "required size" for packages that must be uninstalled
+        - not displaying packages that cannot upgrade due to specific version requirements (e.g: package A requires version 1.0 of package B, however package B will be upgrade to version 2.0)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_dep_break.png">
+        </p>
+        
     - some conflict resolution scenarios when upgrading several packages
     - not handling conflicting files errors during the installation process
     - AUR

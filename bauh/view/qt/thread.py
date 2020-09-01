@@ -193,7 +193,7 @@ class UpgradeSelected(AsyncAction):
         self.manager = manager
         self.i18n = i18n
 
-    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True) -> InputOption:
+    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
@@ -205,15 +205,19 @@ class UpgradeSelected(AsyncAction):
         else:
             icon_path = req.pkg.get_type_icon_path()
 
-        size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
-                                   '?' if req.extra_size is None else get_human_size_str(req.extra_size))
-        if required_size and req.extra_size != req.required_size:
-            size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
-                                             '?' if req.required_size is None else get_human_size_str(req.required_size))
+        size_str = None
+        if display_sizes:
+            size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
+                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+            if required_size and req.extra_size != req.required_size:
+                size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                 '?' if req.required_size is None else get_human_size_str(req.required_size))
 
-        label = '{}{} - {}'.format(req.pkg.name,
-                                   ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '',
-                                   size_str)
+        label = '{}{}'.format(req.pkg.name,
+                              ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '')
+
+        if size_str:
+            label += ' - {}'.format(size_str)
 
         return InputOption(label=label,
                            value=None,
@@ -232,11 +236,14 @@ class UpgradeSelected(AsyncAction):
 
         return required, extra
 
-    def _gen_cannot_update_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
+    def _gen_cannot_upgrade_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
+        reqs.sort(key=UpgradeRequirement.sort_by_priority)
+        opts = [self._req_as_option(req=r, tooltip=False, custom_tooltip=r.reason, display_sizes=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
 
-        return FormComponent(label=self.i18n['action.update.cannot_update_label'], components=comps)
+        return FormComponent(label='{} ( {}: {} )'.format(self.i18n['action.update.cannot_update_label'],
+                                                          self.i18n['amount'].capitalize(), len(opts)),
+                             components=comps)
 
     def _gen_to_install_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
         opts = [self._req_as_option(r, custom_tooltip=r.reason) for r in reqs]
@@ -396,7 +403,7 @@ class UpgradeSelected(AsyncAction):
         comps, required_size, extra_size = [], 0, 0
 
         if requirements.cannot_upgrade:
-            comps.append(self._gen_cannot_update_form(requirements.cannot_upgrade))
+            comps.append(self._gen_cannot_upgrade_form(requirements.cannot_upgrade))
 
         if requirements.to_install:
             req_form, reqs_size = self._gen_to_install_form(requirements.to_install)

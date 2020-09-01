@@ -619,6 +619,7 @@ class FormMultipleSelectQt(QWidget):
                 help_icon = QLabel()
                 help_icon.setPixmap(pixmap_help)
                 help_icon.setToolTip(op.tooltip)
+                help_icon.setCursor(QCursor(Qt.PointingHandCursor))
                 widget.layout().addWidget(help_icon)
 
             self._layout.addWidget(widget, line, col)

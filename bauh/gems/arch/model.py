@@ -180,3 +180,8 @@ class ArchPackage(SoftwarePackage):
             else:
                 return ACTIONS_AUR_ENABLE_PKGBUILD_EDITION
 
+    def __hash__(self):
+        if self.view_name is not None:
+            return hash((self.view_name, self.repository))
+        else:
+            return hash((self.name, self.repository))

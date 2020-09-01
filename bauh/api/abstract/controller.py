@@ -30,18 +30,24 @@ class SearchResult:
 
 class UpgradeRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None):
+    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None, sorting_priority: int = 0):
         """
 
         :param pkg:
         :param reason:
         :param required_size: size in BYTES required to upgrade the package
         :param extra_size: the extra size IN BYTES the upgrade will allocate in relation to the already allocated
+        :param sorting_priority: an int representing the sorting priority (higher numbers = higher priority)
         """
         self.pkg = pkg
         self.reason = reason
         self.required_size = required_size
         self.extra_size = extra_size
+        self.sorting_priority = sorting_priority
+
+    @staticmethod
+    def sort_by_priority(req: "UpgradeRequirement") -> Tuple[int, str]:
+        return -req.sorting_priority, req.pkg.name
 
 
 class UpgradeRequirements:

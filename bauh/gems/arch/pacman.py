@@ -914,8 +914,8 @@ def get_cache_dir() -> str:
             return '/var/cache/pacman/pkg'
 
 
-def map_required_by(names: Iterable[str] = None) -> Dict[str, Set[str]]:
-    output = run_cmd('pacman -Qi {}'.format(' '.join(names) if names else ''))
+def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -{} {}'.format('Sii' if remote else 'Qi', ' '.join(names) if names else ''), print_error=False)
 
     if output:
         res = {}

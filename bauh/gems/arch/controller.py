@@ -2554,6 +2554,11 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.automatch_providers.tip',
                                     value=bool(local_config['automatch_providers']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='check_dependency_breakage',
+                                    label_key='arch.config.check_dependency_breakage',
+                                    tooltip_key='arch.config.check_dependency_breakage.tip',
+                                    value=bool(local_config['check_dependency_breakage']),
+                                    max_width=max_width),
             self._gen_bool_selector(id_='mthread_download',
                                     label_key='arch.config.pacman_mthread_download',
                                     tooltip_key='arch.config.pacman_mthread_download.tip',
@@ -2639,6 +2644,7 @@ class ArchManager(SoftwareManager):
         config['aur_remove_build_dir'] = form_install.get_component('aur_remove_build_dir').get_selected()
         config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
         config['aur_build_only_chosen'] = form_install.get_component('aur_build_only_chosen').get_selected()
+        config['check_dependency_breakage'] = form_install.get_component('check_dependency_breakage').get_selected()
 
         if not config['aur_build_dir']:
             config['aur_build_dir'] = None

@@ -197,6 +197,7 @@ edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edi
 aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user)). Default: null.
 aur_remove_build_dir: true  # it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Options: true, false (default: true).
 aur_build_only_chosen : true  # some AUR packages have a common file definition declaring several packages to be built. When this property is 'true' only the package the user select to install will be built (unless its name is different from those declared in the PKGBUILD base). With a 'null' value a popup asking if the user wants to build all of them will be displayed. 'false' will build and install all packages. Default: true.
+check_dependency_breakage: true # If, during the verification of the update requirements, specific versions of dependencies must also be checked. Example: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. Default: true.
 ```
 - Required dependencies:
     - **pacman**
