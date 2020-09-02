@@ -49,7 +49,21 @@ class ArchDataMapper:
     def check_update(version: str, latest_version: str) -> bool:
         if version and latest_version:
             try:
-                return parse_version(version) < parse_version(latest_version)
+                ver_epoch, latest_epoch = version.split(':'), latest_version.split(':')
+
+                if len(ver_epoch) > 1 and len(latest_epoch) > 1:
+                    parsed_ver_epoch, parsed_latest_epoch = parse_version(ver_epoch[0]), parse_version(latest_epoch[0])
+
+                    if parsed_ver_epoch == parsed_latest_epoch:
+                        return parse_version(''.join(ver_epoch[1:])) < parse_version(''.join(latest_epoch[1:]))
+                    else:
+                        return parsed_ver_epoch < parsed_latest_epoch
+                elif len(ver_epoch) > 1 and len(latest_epoch) == 1:
+                    return False
+                elif len(ver_epoch) == 1 and len(latest_epoch) > 1:
+                    return True
+                else:
+                    return parse_version(version) < parse_version(latest_version)
             except:
                 print('{}Version: {}. Latest version: {}{}'.format(Fore.RED, version, latest_version, Fore.RESET))
                 traceback.print_exc()

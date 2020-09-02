@@ -28,3 +28,18 @@ class ArchDataMapperTest(TestCase):
         self.assertTrue(ArchDataMapper.check_update('0.9.7.RC-9', '0.9.7.RC-10'))
         self.assertFalse(ArchDataMapper.check_update('1.1.0.r11.caacf30-1', 'r65.4c7144a-1'))
         self.assertFalse(ArchDataMapper.check_update('1.2.16.r688.8b2c199-1', 'r2105.e91f0e9-3'))
+
+    def test_check_update__versions_with_epics(self):
+        self.assertTrue(ArchDataMapper.check_update('1.2-1', '1:1.1-1'))
+        self.assertFalse(ArchDataMapper.check_update('1:1.1-1', '1.2-1'))
+
+        self.assertTrue(ArchDataMapper.check_update('1:1.2-1', '2:0.1-1'))
+        self.assertFalse(ArchDataMapper.check_update('2:0.1-1', '1:1.2-1'))
+
+        self.assertTrue(ArchDataMapper.check_update('10:1.1-1', '10:1.2-1'))
+        self.assertFalse(ArchDataMapper.check_update('10:1.2-1', '10:1.2-1'))
+
+        self.assertTrue(ArchDataMapper.check_update('9:1.2-1', '10:0.1-1'))
+
+        self.assertTrue(ArchDataMapper.check_update('9:1.1.1.1-2', '10:0.0'))
+        self.assertFalse(ArchDataMapper.check_update('10:0.0', '9:1.1.1.1-2'))
