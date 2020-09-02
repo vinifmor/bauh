@@ -707,11 +707,14 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
         return res
 
 
-def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False) -> SimpleProcess:
+def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
+
+    if skip_dependency_checks:
+        cmd.append('-d')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,

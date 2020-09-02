@@ -23,7 +23,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
-    FileChooserComponent
+    FileChooserComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user, internet, system
 from bauh.commons.category import CategoriesDownloader
@@ -59,6 +59,7 @@ RE_PRE_DOWNLOAD_WL_PROTOCOLS = re.compile(r'^(.+::)?(https?|ftp)://.+')
 RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
 RE_PKGBUILD_PKGNAME = re.compile(r'pkgname\s*=.+')
 RE_CONFLICT_DETECTED = re.compile(r'\n::\s*(.+)\s+are in conflict\s*.')
+RE_DEPENDENCY_BREAKAGE = re.compile(r'\n?::\s+installing\s+(.+\s\(.+\))\sbreaks\sdependency\s\'(.+)\'\srequired\sby\s(.+)\s*', flags=re.IGNORECASE)
 
 
 class TransactionContext:
@@ -795,6 +796,21 @@ class ArchManager(SoftwareManager):
 
         return [MultipleSelectComponent(options=files, default_options={*files}, label='')]
 
+    def _map_dependencies_breakage(self, output: str) -> List[ViewComponent]:
+        errors = RE_DEPENDENCY_BREAKAGE.findall(output)
+
+        if errors:
+            opts = []
+
+            for idx, err in enumerate(errors):
+                opts.append(InputOption(label=self.i18n['arch.upgrade.error.dep_breakage.item'].format(*err), value=idx, read_only=True))
+
+            return [MultipleSelectComponent(label='',
+                                            options=opts,
+                                            default_options={*opts})]
+        else:
+            return [TextComponent(output)]
+
     def list_related(self, pkgs: Iterable[str], all_pkgs: Iterable[str], data: Dict[str, dict], related: Set[str], provided_map: Dict[str, Set[str]]) -> Set[str]:
         related.update(pkgs)
 
@@ -832,7 +848,7 @@ class ArchManager(SoftwareManager):
     def _upgrade_repo_pkgs(self, to_upgrade: List[str], to_remove: Optional[Set[str]], handler: ProcessHandler, root_password: str,
                            multithread_download: bool, pkgs_data: Dict[str, dict], overwrite_files: bool = False,
                            status_handler: TransactionStatusHandler = None, sizes: Dict[str, int] = None, download: bool = True,
-                           check_syncfirst: bool = True) -> bool:
+                           check_syncfirst: bool = True, skip_dependency_checks: bool = False) -> bool:
 
         to_sync_first = None
         if check_syncfirst:
@@ -883,8 +899,9 @@ class ArchManager(SoftwareManager):
             self.logger.info("Upgrading {} repository packages: {}".format(len(to_upgrade), ', '.join(to_upgrade)))
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=to_upgrade_remaining,
                                                                                    root_password=root_password,
-                                                                                   overwrite_conflicting_files=overwrite_files),
-                                                            output_handler=output_handler.handle,)
+                                                                                   overwrite_conflicting_files=overwrite_files,
+                                                                                   skip_dependency_checks=skip_dependency_checks),
+                                                            output_handler=output_handler.handle)
             handler.watcher.change_substatus('')
 
             if success:
@@ -921,7 +938,31 @@ class ArchManager(SoftwareManager):
                                                    check_syncfirst=False,
                                                    pkgs_data=pkgs_data,
                                                    to_remove=None,
-                                                   sizes=sizes)
+                                                   sizes=sizes,
+                                                   skip_dependency_checks=skip_dependency_checks)
+                else:
+                    output_handler.stop_working()
+                    output_handler.join()
+                    handler.watcher.print("Aborted by the user")
+                    return False
+            elif ' breaks dependency ' in upgrade_output:
+                if not handler.watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
+                                                            body=self.i18n['arch.upgrade.error.dep_breakage'] + ':',
+                                                            deny_label=self.i18n['arch.upgrade.error.dep_breakage.proceed'],
+                                                            confirmation_label=self.i18n['arch.upgrade.error.dep_breakage.stop'],
+                                                            components=self._map_dependencies_breakage(upgrade_output)):
+                    return self._upgrade_repo_pkgs(to_upgrade=to_upgrade_remaining,
+                                                   handler=handler,
+                                                   root_password=root_password,
+                                                   overwrite_files=overwrite_files,
+                                                   status_handler=output_handler,
+                                                   multithread_download=multithread_download,
+                                                   download=False,
+                                                   check_syncfirst=False,
+                                                   pkgs_data=pkgs_data,
+                                                   to_remove=None,
+                                                   sizes=sizes,
+                                                   skip_dependency_checks=True)
                 else:
                     output_handler.stop_working()
                     output_handler.join()

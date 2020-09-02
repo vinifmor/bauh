@@ -39,11 +39,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
         </p>
-        
         - checking specific version requirements and marking packages as "cannot upgrade" when these requirements are not met (e.g: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. This new checking behavior can be disabled through the property (**check_dependency_breakage**):
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_dep_break_settings.png">
         </p>
+        
+        - allowing the user to bypass dependency breakage scenarios (a popup will be displayed)
         
     - AUR
         - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
