@@ -7,13 +7,13 @@ import sqlite3
 import subprocess
 import traceback
 from datetime import datetime
-from distutils.version import LooseVersion
 from math import floor
 from pathlib import Path
 from threading import Lock
 from typing import Set, Type, List, Tuple, Optional
 
 from colorama import Fore
+from pkg_resources import parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
@@ -265,7 +265,7 @@ class AppImageManager(SoftwareManager):
                                             app.update = False
                                         else:
                                             try:
-                                                app.update = LooseVersion(tup[2]) > LooseVersion(app.version) if tup[2] else False
+                                                app.update = parse_version(tup[2]) > parse_version(app.version) if tup[2] else False
                                             except:
                                                 app.update = False
                                                 traceback.print_exc()

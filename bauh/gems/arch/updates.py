@@ -1,8 +1,10 @@
 import logging
 import time
-from distutils.version import LooseVersion
+import traceback
 from threading import Thread
 from typing import Dict, Set, List, Tuple, Iterable, Optional
+
+from pkg_resources import parse_version
 
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
@@ -725,11 +727,15 @@ class UpdatesSummarizer:
                             version_match = False
 
                             for v in versions:
-                                provided_version, required_version = LooseVersion(v), LooseVersion(dep_split[1])
+                                try:
+                                    provided_version, required_version = parse_version(v), parse_version(dep_split[1])
 
-                                if eval('provided_version {} required_version'.format(op)):
-                                    version_match = True
-                                    break
+                                    if eval('provided_version {} required_version'.format(op)):
+                                        version_match = True
+                                        break
+                                except:
+                                    self.logger.error("Error when comparing versions {} (provided) and {} (required)".format(v, dep_split[1]))
+                                    traceback.print_exc()
 
                             if not version_match:
                                 for pname in real_providers:
