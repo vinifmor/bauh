@@ -1,6 +1,8 @@
 import os
+import traceback
 from datetime import datetime
 
+from colorama import Fore
 from pkg_resources import parse_version
 
 from bauh.api.abstract.model import PackageStatus
@@ -46,7 +48,12 @@ class ArchDataMapper:
     @staticmethod
     def check_update(version: str, latest_version: str) -> bool:
         if version and latest_version:
-            return parse_version(version) < parse_version(latest_version)
+            try:
+                return parse_version(version) < parse_version(latest_version)
+            except:
+                print('{}Version: {}. Latest version: {}{}'.format(Fore.RED, version, latest_version, Fore.RESET))
+                traceback.print_exc()
+                return False
 
         return False
 
