@@ -918,9 +918,9 @@ def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[s
     output = run_cmd('pacman -{} {}'.format('Sii' if remote else 'Qi', ' '.join(names) if names else ''), print_error=False)
 
     if output:
-        res = {}
         latest_name, required = None, None
-
+        res = {}
+        
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
@@ -943,8 +943,11 @@ def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[s
 
                 elif latest_name and required is not None:
                     required.update(required.update((d for d in l.strip().split(' ') if d)))
-
         return res
+    elif names:
+        return {n: set() for n in names}
+    else:
+        return {}
 
 
 def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]]:
