@@ -302,6 +302,8 @@ class CheckboxQt(QCheckBox):
         if model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.NoFocus)
+        else:
+            self.setCursor(QCursor(Qt.PointingHandCursor))
 
     def _set_checked(self, state):
         checked = state == 2

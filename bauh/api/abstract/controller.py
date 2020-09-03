@@ -72,7 +72,7 @@ class TransactionResult:
     The result of a given operation
     """
 
-    def __init__(self, success: bool, installed: List[SoftwarePackage], removed: List[SoftwarePackage]):
+    def __init__(self, success: bool, installed: Optional[List[SoftwarePackage]], removed: Optional[List[SoftwarePackage]]):
         self.success = success
         self.installed = installed
         self.removed = removed

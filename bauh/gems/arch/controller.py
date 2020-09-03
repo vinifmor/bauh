@@ -102,6 +102,7 @@ class TransactionContext:
         self.new_pkg = new_pkg
         self.custom_pkgbuild_path = custom_pkgbuild_path
         self.pkgs_to_build = pkgs_to_build
+        self.previous_change_progress = change_progress
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
@@ -168,6 +169,17 @@ class TransactionContext:
             self.remote_repo_map = pacman.map_repositories()
 
         return self.remote_repo_map
+
+    def disable_progress_if_changing(self):
+        if self.change_progress:
+            self.previous_change_progress = True
+            self.change_progress = False
+
+    def restabilish_progress(self):
+        if self.previous_change_progress is not None:
+            self.change_progress = self.previous_change_progress
+
+        self.previous_change_progress = self.change_progress
 
 
 class ArchManager(SoftwareManager):
@@ -1093,37 +1105,34 @@ class ArchManager(SoftwareManager):
 
         return all_uninstalled
 
-    def _request_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext) -> bool:
-        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+    def _request_uninstall_confirmation(self, to_uninstall: Iterable[str], required: Iterable[str], watcher: ProcessWatcher) -> bool:
+        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in required]
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1 if len(reqs) < 4 else 3)
 
-        msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(context.name), bold(str(len(reqs)))),
-                                          self.i18n['arch.uninstall.required_by.advice'])
+        msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(str(len(required))), ', '.join(bold(n)for n in to_uninstall)) + '.',
+                                          self.i18n['arch.uninstall.required_by.advice'] + '.')
 
-        if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                    body=msg,
-                                                    components=[reqs_select],
-                                                    confirmation_label=self.i18n['proceed'].capitalize(),
-                                                    deny_label=self.i18n['cancel'].capitalize(),
-                                                    window_cancel=False):
-            context.watcher.print("Aborted")
+        if not watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
+                                            body=msg,
+                                            components=[reqs_select],
+                                            confirmation_label=self.i18n['proceed'].capitalize(),
+                                            deny_label=self.i18n['cancel'].capitalize(),
+                                            window_cancel=False):
+            watcher.print("Aborted")
             return False
 
         return True
 
-    def _request_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext) -> List[str]:
-        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in pkgs]
+    def _request_unncessary_uninstall_confirmation(self, uninstalled: Iterable[str], unnecessary: Iterable[str], watcher: ProcessWatcher) -> Optional[List[str]]:
+        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in unnecessary]
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
 
-        msg = '<p>{}</p><p>{}:</p>'.format(self.i18n['arch.uninstall.unnecessary.l1'].format(bold(context.name)),
-                                           self.i18n['arch.uninstall.unnecessary.l2'])
-
-        if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                    body=msg,
-                                                    components=[reqs_select],
-                                                    confirmation_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
-                                                    deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
-                                                    window_cancel=False):
+        if not watcher.request_confirmation(title=self.i18n['arch.uninstall.unnecessary.l1'].capitalize(),
+                                            body='<p>{}</p>'.format(self.i18n['arch.uninstall.unnecessary.l2']),
+                                            components=[reqs_select],
+                                            confirmation_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
+                                            deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
+                                            window_cancel=False):
             return
 
         return reqs_select.get_selected_values()
@@ -1143,15 +1152,15 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _uninstall(self, context: TransactionContext, remove_unneeded: bool = False, disk_loader: DiskCacheLoader = None):
+    def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False, disk_loader: DiskCacheLoader = None):
         self._update_progress(context, 10)
 
         net_available = internet.is_available() if disk_loader else True
 
-        required_by = self.deps_analyser.map_all_required_by({context.name}, set())
+        required_by = self.deps_analyser.map_all_required_by(names, set())
 
         if required_by:
-            target_provided = pacman.map_provided(pkgs={context.name}).keys()
+            target_provided = pacman.map_provided(pkgs={*names, *required_by}).keys()
 
             if target_provided:
                 required_by_deps = pacman.map_all_deps(required_by, only_installed=True)
@@ -1163,7 +1172,7 @@ class ArchManager(SoftwareManager):
                         target_required_by = 0
                         for dep in deps:
                             dep_split = pacman.RE_DEP_OPERATORS.split(dep)
-                            if dep_split[0] in target_provided:
+                            if dep_split[0] in target_provided or dep_split[0] in required_by:
                                 dep_providers = all_provided.get(dep_split[0])
 
                                 if dep_providers:
@@ -1175,12 +1184,14 @@ class ArchManager(SoftwareManager):
         self._update_progress(context, 50)
 
         to_uninstall = set()
-        to_uninstall.add(context.name)
+        to_uninstall.update(names)
 
         if required_by:
             to_uninstall.update(required_by)
 
-            if not self._request_uninstall_confirmation(required_by, context):
+            if not self._request_uninstall_confirmation(to_uninstall=names,
+                                                        required=required_by,
+                                                        watcher=context.watcher):
                 return False
 
         if remove_unneeded:
@@ -1188,12 +1199,12 @@ class ArchManager(SoftwareManager):
         else:
             all_deps_map = None
 
-        if disk_loader and len(to_uninstall) > 1:  # loading package instances in case the uninstall succeeds
+        if disk_loader and to_uninstall:  # loading package instances in case the uninstall succeeds
             instances = self.read_installed(disk_loader=disk_loader,
-                                            names={n for n in to_uninstall if n != context.name},
+                                            names={n for n in to_uninstall},
                                             internet_available=net_available).installed
 
-            if len(instances) + 1 < len(to_uninstall):
+            if len(instances) != len(to_uninstall):
                 self.logger.warning("Not all packages to be uninstalled could be read")
         else:
             instances = None
@@ -1202,8 +1213,6 @@ class ArchManager(SoftwareManager):
 
         if uninstalled:
             if disk_loader:  # loading package instances in case the uninstall succeeds
-                context.removed[context.pkg.name] = context.pkg
-
                 if instances:
                     for p in instances:
                         context.removed[p.name] = p
@@ -1234,7 +1243,9 @@ class ArchManager(SoftwareManager):
 
                     if no_longer_needed:
                         self.logger.info("{} packages no longer needed found".format(len(no_longer_needed)))
-                        unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(no_longer_needed, context)
+                        unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(uninstalled=to_uninstall,
+                                                                                                   unnecessary=no_longer_needed,
+                                                                                                   watcher=context.watcher)
 
                         if unnecessary_to_uninstall:
                             unnecessary_to_uninstall_deps = pacman.list_unnecessary_deps(unnecessary_to_uninstall, all_provided)
@@ -1289,15 +1300,14 @@ class ArchManager(SoftwareManager):
             return TransactionResult.fail()
 
         removed = {}
-        success = self._uninstall(TransactionContext(name=pkg.name,
-                                                     pkg=pkg,
-                                                     change_progress=True,
+        success = self._uninstall(TransactionContext(change_progress=True,
                                                      arch_config=read_config(),
                                                      watcher=watcher,
                                                      root_password=root_password,
                                                      handler=handler,
                                                      removed=removed),
                                   remove_unneeded=True,
+                                  names={pkg.name},
                                   disk_loader=disk_loader)  # to be able to return all uninstalled packages
         if success:
             return TransactionResult(success=True, installed=None, removed=[*removed.values()] if removed else [])
@@ -1515,17 +1525,14 @@ class ArchManager(SoftwareManager):
             return False
         else:
             context.watcher.change_substatus(self.i18n['arch.uninstalling.conflict'].format(bold(conflicting_pkg)))
-            conflict_context = context.clone_base()
-            conflict_context.change_progress = False
-            conflict_context.name = conflicting_pkg
+            context.disable_progress_if_changing()
 
-            if not self._uninstall(conflict_context):
-                context.watcher.show_message(title=self.i18n['error'],
-                                             body=self.i18n['arch.uninstalling.conflict.fail'].format(bold(conflicting_pkg)),
-                                             type_=MessageType.ERROR)
-                return False
+            if context.removed is None:
+                context.removed = {}
 
-            return True
+            res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader)
+            context.restabilish_progress()
+            return res
 
     def _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
         """
@@ -2059,10 +2066,6 @@ class ArchManager(SoftwareManager):
                                                                             file=bool(context.install_files),
                                                                             simulate=True),
                                                   notify_watcher=False)
-        # for check_out in SimpleProcess(cmd=['pacman', '-U' if context.install_files else '-S', pkgpath],
-        #                                root_password=context.root_password,
-        #                                cwd=context.project_dir or '.').instance.stdout:
-        #     check_install_output.append(check_out.decode())
 
         self._update_progress(context, 70)
 
@@ -2078,27 +2081,24 @@ class ArchManager(SoftwareManager):
             else:  # uninstall conflicts
                 self._update_progress(context, 75)
                 names_to_install = context.get_package_names()
-                to_uninstall = [conflict for conflict in conflicting_apps if conflict not in names_to_install]
+                to_uninstall = {conflict for conflict in conflicting_apps if conflict not in names_to_install}
 
-                self.logger.info("Preparing to uninstall conflicting packages: {}".format(to_uninstall))
+                if to_uninstall:
+                    self.logger.info("Preparing to uninstall conflicting packages: {}".format(to_uninstall))
+                    context.watcher.change_substatus(self.i18n['arch.uninstalling.conflict'])
 
-                pkgs_to_uninstall = self.read_installed(disk_loader=context.disk_loader, names=to_uninstall, internet_available=True).installed
+                    if context.removed is None:
+                        context.removed = {}
 
-                if not pkgs_to_uninstall:
-                    self.logger.warning("Could not load packages to uninstall")
-
-                for conflict in to_uninstall:
-                    context.watcher.change_substatus(self.i18n['arch.uninstalling.conflict'].format(bold(conflict)))
-
-                    if not self._uninstall_pkgs(pkgs={conflict}, root_password=context.root_password, handler=context.handler):
+                    context.disable_progress_if_changing()
+                    if not self._uninstall(names=to_uninstall, context=context, remove_unneeded=False, disk_loader=context.disk_loader):
                         context.watcher.show_message(title=self.i18n['error'],
-                                                     body=self.i18n['arch.uninstalling.conflict.fail'].format(bold(conflict)),
+                                                     body=self.i18n['arch.uninstalling.conflict.fail'].format(', '.join((bold(p) for p in to_uninstall))),
                                                      type_=MessageType.ERROR)
                         return False
                     else:
-                        uninstalled = [p for p in pkgs_to_uninstall if p.name == conflict]
-                        if uninstalled:
-                            context.removed[conflict] = uninstalled[0]
+                        context.restabilish_progress()
+
         else:
             self.logger.info("No conflict detected for '{}'".format(context.name))
 
