@@ -861,10 +861,12 @@ class ArchManager(SoftwareManager):
                            multithread_download: bool, pkgs_data: Dict[str, dict], overwrite_files: bool = False,
                            status_handler: TransactionStatusHandler = None, sizes: Dict[str, int] = None, download: bool = True,
                            check_syncfirst: bool = True, skip_dependency_checks: bool = False) -> bool:
+        self.logger.info("Total packages to upgrade: {}".format(len(to_upgrade)))
 
         to_sync_first = None
         if check_syncfirst:
             to_sync_first = [p for p in pacman.get_packages_to_sync_first() if p.endswith('-keyring') and p in to_upgrade]
+            self.logger.info("Packages detected to upgrade firstly: {}".format(len(to_sync_first)))
 
             if to_sync_first:
                 self.logger.info("Upgrading keyrings marked as 'SyncFirst'")
@@ -880,9 +882,10 @@ class ArchManager(SoftwareManager):
                     return False
 
         to_upgrade_remaining = [p for p in to_upgrade if p not in to_sync_first] if to_sync_first else to_upgrade
+        self.logger.info("Packages remaining to upgrade: {}".format(len(to_upgrade_remaining)))
 
         # pre-downloading all packages before removing any
-        if download:
+        if download and to_upgrade_remaining:
             try:
                 downloaded = self._download_packages(pkgnames=to_upgrade_remaining,
                                                      handler=handler,
@@ -901,14 +904,17 @@ class ArchManager(SoftwareManager):
         if to_remove and not self._remove_transaction_packages(to_remove, handler, root_password):
             return False
 
+        if not to_upgrade_remaining:
+            return True
+
         try:
             if status_handler:
                 output_handler = status_handler
             else:
-                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(to_upgrade), self.logger, downloading=len(to_upgrade_remaining))
+                output_handler = TransactionStatusHandler(handler.watcher, self.i18n, {*to_upgrade_remaining}, self.logger, downloading=len(to_upgrade_remaining))
                 output_handler.start()
 
-            self.logger.info("Upgrading {} repository packages: {}".format(len(to_upgrade), ', '.join(to_upgrade)))
+            self.logger.info("Upgrading {} repository packages: {}".format(len(to_upgrade_remaining), ', '.join(to_upgrade_remaining)))
             success, upgrade_output = handler.handle_simple(pacman.upgrade_several(pkgnames=to_upgrade_remaining,
                                                                                    root_password=root_password,
                                                                                    overwrite_conflicting_files=overwrite_files,
@@ -995,7 +1001,7 @@ class ArchManager(SoftwareManager):
     def _remove_transaction_packages(self, to_remove: Set[str], handler: ProcessHandler, root_password: str) -> bool:
         output_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
-                                                  pkgs_to_sync=0,
+                                                  names=set(),
                                                   logger=self.logger,
                                                   pkgs_to_remove=len(to_remove))
         output_handler.start()
@@ -1090,10 +1096,21 @@ class ArchManager(SoftwareManager):
         return True
 
     def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: str, handler: ProcessHandler) -> bool:
+        status_handler = TransactionStatusHandler(watcher=handler.watcher,
+                                                  i18n=self.i18n,
+                                                  names={*pkgs},
+                                                  logger=self.logger,
+                                                  pkgs_to_remove=len(pkgs))
+
+        status_handler.start()
         all_uninstalled, _ = handler.handle_simple(SimpleProcess(cmd=['pacman', '-R', *pkgs, '--noconfirm'],
                                                                  root_password=root_password,
                                                                  error_phrases={'error: failed to prepare transaction',
-                                                                                'error: failed to commit transaction'}))
+                                                                                'error: failed to commit transaction'},
+                                                                 shell=True),
+                                                   output_handler=status_handler.handle)
+        status_handler.stop_working()
+        status_handler.join()
 
         installed = pacman.list_installed_names()
 
@@ -1584,7 +1601,7 @@ class ArchManager(SoftwareManager):
                 except ArchDownloadException:
                     return False
 
-            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, pkgs_to_sync=len(repo_dep_names),
+            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, names=repo_dep_names,
                                                       logger=self.logger, percentage=len(repo_deps) > 1, downloading=downloaded)
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
@@ -2041,7 +2058,7 @@ class ArchManager(SoftwareManager):
                                                       root_password=root_password)
         else:
             self.logger.info("Downloading {} repository package(s)".format(len(pkgnames)))
-            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, len(pkgnames), self.logger)
+            output_handler = TransactionStatusHandler(handler.watcher, self.i18n, pkgnames, self.logger)
             output_handler.start()
             try:
                 success, _ = handler.handle_simple(pacman.download(root_password, *pkgnames), output_handler=output_handler.handle)
@@ -2123,7 +2140,7 @@ class ArchManager(SoftwareManager):
                     return False
 
         if not context.dependency:
-            status_handler = TransactionStatusHandler(context.watcher, self.i18n, len(to_install), self.logger,
+            status_handler = TransactionStatusHandler(context.watcher, self.i18n, to_install, self.logger,
                                                       percentage=len(to_install) > 1,
                                                       downloading=downloaded) if not context.dependency else None
             status_handler.start()
