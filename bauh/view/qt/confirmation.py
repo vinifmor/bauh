@@ -1,6 +1,7 @@
 from typing import List
 
 from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QMessageBox, QVBoxLayout, QLabel, QWidget, QScrollArea, QFrame
 
 from bauh.api.abstract.view import ViewComponent
@@ -25,11 +26,13 @@ class ConfirmationDialog(QMessageBox):
         self.bt_yes = None
         if confirmation_button:
             self.bt_yes = self.addButton(i18n['popup.button.yes'] if not confirmation_label else confirmation_label.capitalize(), QMessageBox.YesRole)
+            self.bt_yes.setCursor(QCursor(Qt.PointingHandCursor))
             self.bt_yes.setStyleSheet(css.OK_BUTTON)
             self.setDefaultButton(self.bt_yes)
 
         if deny_button:
             self.bt_no = self.addButton(i18n['popup.button.no'] if not deny_label else deny_label.capitalize(), QMessageBox.NoRole)
+            self.bt_no.setCursor(QCursor(Qt.PointingHandCursor))
 
             if not confirmation_button:
                 self.bt_no.setStyleSheet(css.OK_BUTTON)

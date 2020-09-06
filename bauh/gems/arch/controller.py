@@ -1142,17 +1142,15 @@ class ArchManager(SoftwareManager):
 
     def _request_unncessary_uninstall_confirmation(self, uninstalled: Iterable[str], unnecessary: Iterable[str], watcher: ProcessWatcher) -> Optional[List[str]]:
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in unnecessary]
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3)
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3 if len(reqs) > 9 else 1)
 
         if not watcher.request_confirmation(title=self.i18n['arch.uninstall.unnecessary.l1'].capitalize(),
-                                            body='<p>{}</p>'.format(self.i18n['arch.uninstall.unnecessary.l2']),
+                                            body='<p>{}</p>'.format(self.i18n['arch.uninstall.unnecessary.l2'] + ':'),
                                             components=[reqs_select],
-                                            confirmation_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
-                                            deny_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
+                                            deny_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
+                                            confirmation_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
                                             window_cancel=False):
-            return
-
-        return reqs_select.get_selected_values()
+            return reqs_select.get_selected_values()
 
     def _request_all_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext):
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
