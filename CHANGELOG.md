@@ -33,6 +33,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
      <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_channels.png">
      </p>
+     
+     - new custom action **Change channel**: allows to change the current channel of an installed Snap
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_change_channel.png">
+     </p>
 
 ### Improvements
 - AppImage

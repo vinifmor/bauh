@@ -1,4 +1,8 @@
 gem.snap.info=Приложения, опубликованные на https://snapcraft.io/store
+snap.action.channel.confirm=Change channel of {} ?
+snap.action.channel.error.no_channel=No available channel for {}
+snap.action.channel.label=Change channel
+snap.action.channel.status=Changing channel
 snap.action.refresh.confirm=Обновить {} ?
 snap.action.refresh.label=Обновить
 snap.action.refresh.status=Обновляется

@@ -12,6 +12,7 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
     SuggestionPriority, CustomSoftwareAction, PackageStatus
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
     FormComponent
+from bauh.api.exception import NoInternetException
 from bauh.commons import resource, internet
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
@@ -47,7 +48,13 @@ class SnapManager(SoftwareManager):
                                  icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
                                  manager_method='refresh',
                                  requires_root=True,
-                                 i18n_confirm_key='snap.action.refresh.confirm')
+                                 i18n_confirm_key='snap.action.refresh.confirm'),
+            CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
+                                 i18n_label_key='snap.action.channel.label',
+                                 i18n_confirm_key='snap.action.channel.confirm',
+                                 icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
+                                 manager_method='change_channel',
+                                 requires_root=True)
         ]
 
     def _fill_categories(self, app: SnapApplication):
@@ -253,6 +260,28 @@ class SnapManager(SoftwareManager):
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]
 
+    def change_channel(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+        if not internet.is_available():
+            raise NoInternetException()
+
+        try:
+            channel = self._request_channel_installation(pkg=pkg,
+                                                         snap_config=None,
+                                                         snapd_client=SnapdClient(self.logger),
+                                                         watcher=watcher,
+                                                         exclude_current=True)
+
+            if not channel:
+                watcher.show_message(title=self.i18n['snap.action.channel.label'],
+                                     body=self.i18n['snap.action.channel.error.no_channel'])
+                return True
+
+            return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(app_name=pkg.name,
+                                                                                 root_password=root_password,
+                                                                                 channel=channel))[0]
+        except:
+            return True
+
     def _start_category_task(self, task_man: TaskManager):
         if task_man:
             task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
@@ -425,8 +454,8 @@ class SnapManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def _request_channel_installation(self, pkg: SnapApplication, snap_config: dict, snapd_client: SnapdClient, watcher: ProcessWatcher) -> Optional[str]:
-        if snap_config['install_channel']:
+    def _request_channel_installation(self, pkg: SnapApplication, snap_config: Optional[dict], snapd_client: SnapdClient, watcher: ProcessWatcher, exclude_current: bool = False) -> Optional[str]:
+        if snap_config is None or snap_config['install_channel']:
             try:
                 data = [r for r in snapd_client.find_by_name(pkg.name) if r['name'] == pkg.name]
             except:
@@ -439,11 +468,31 @@ class SnapManager(SoftwareManager):
                 if not data[0].get('channels'):
                     self.logger.info("No channel available for '{}'. Skipping selection.".format(pkg.name))
                 else:
-                    opts = [InputOption(label=c, value=c) for c in sorted(data[0]['channels'].keys())]
-                    def_opt = [o for o in opts if o.value == 'latest/{}'.format(data[0].get('channel', 'stable'))]
+                    if pkg.channel:
+                        current_channel = pkg.channel if '/' in pkg.channel else 'latest/{}'.format(pkg.channel)
+                    else:
+                        current_channel = 'latest/{}'.format(data[0].get('channel', 'stable'))
+
+                    opts = []
+                    def_opt = None
+                    for channel in sorted(data[0]['channels'].keys()):
+                        if exclude_current:
+                            if channel != current_channel:
+                                opts.append(InputOption(label=channel, value=channel))
+                        else:
+                            op = InputOption(label=channel, value=channel)
+                            opts.append(op)
+
+                            if not def_opt and channel == current_channel:
+                                def_opt = op
+
+                    if not opts:
+                        self.logger.info("No different channel available for '{}'. Skipping selection.".format(pkg.name))
+                        return
+
                     select = SingleSelectComponent(label='',
                                                    options=opts,
-                                                   default_option=def_opt[0] if def_opt else opts[0],
+                                                   default_option=def_opt if def_opt else opts[0],
                                                    type_=SelectViewType.RADIO)
 
                     if not watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
