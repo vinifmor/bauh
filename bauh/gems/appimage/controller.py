@@ -723,7 +723,7 @@ class AppImageManager(SoftwareManager):
 
         return PanelComponent([FormComponent(updater_opts, self.i18n['appimage.config.db_updates'])])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
         panel = component.components[0]

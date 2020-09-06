@@ -24,6 +24,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/unmark_pkgbuild.png">
     </p>
+- Snap
+    - new settings property **install_channel**: it allows to select an available channel during the application installation. Default: false.
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_config.png">
+     </p>
+     
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_channels.png">
+     </p>
 
 ### Improvements
 - AppImage

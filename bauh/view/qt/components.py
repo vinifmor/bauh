@@ -266,6 +266,7 @@ class RadioButtonQt(QRadioButton):
         self.model = model
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
 
         if model.icon_path:
             if model.icon_path.startswith('/'):

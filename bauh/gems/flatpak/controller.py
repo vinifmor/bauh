@@ -5,7 +5,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Optional
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult
@@ -570,7 +570,7 @@ class FlatpakManager(SoftwareManager):
 
         return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
         config['installation_level'] = component.components[0].components[0].get_selected()
 

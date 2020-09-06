@@ -9,7 +9,7 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple
+from typing import List, Type, Set, Tuple, Optional
 
 import requests
 import yaml
@@ -996,7 +996,7 @@ class WebApplicationManager(SoftwareManager):
 
         return PanelComponent([form_env])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
         form_env = component.components[0]

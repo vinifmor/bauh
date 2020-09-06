@@ -350,7 +350,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def save_settings(self, component: ViewComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
         """
         :return: a tuple with a bool informing if the settings were saved and a list of error messages
         """

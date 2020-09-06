@@ -120,6 +120,10 @@ installation_level: null # defines a default installation level: user or system.
 
 - Supported actions: search, install, uninstall, launch, downgrade
 - Custom actions: refresh
+- The configuration file is located at **~/.config/bauh/snap.yml** and it allows the following customizations:
+```
+install_channel: false  # it allows to select an available channel during the application installation. Default: false
+```
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 

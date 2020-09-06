@@ -2,7 +2,7 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type, Optional
+from typing import List, Set, Type, Optional, Tuple
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     TransactionResult
@@ -10,13 +10,17 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction, PackageStatus
-from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption
+from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
+    FormComponent
 from bauh.commons import resource, internet
 from bauh.commons.category import CategoriesDownloader
+from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
+from bauh.commons.view_utils import new_select
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
-    get_icon_path, snapd
+    get_icon_path, snapd, CONFIG_FILE
+from bauh.gems.snap.config import read_config
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.snapd import SnapdClient
 
@@ -175,7 +179,20 @@ class SnapManager(SoftwareManager):
 
         installed_names = {s['name'] for s in SnapdClient(self.logger).list_all_snaps()}
 
-        res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(pkg.name, pkg.confinement, root_password))
+        client = SnapdClient(self.logger)
+        snap_config = read_config()
+
+        try:
+            channel = self._request_channel_installation(pkg=pkg, snap_config=snap_config, snapd_client=client, watcher=watcher)
+            pkg.channel = channel
+        except:
+            watcher.print('Aborted by user')
+            return TransactionResult.fail()
+
+        res, output = ProcessHandler(watcher).handle_simple(snap.install_and_stream(app_name=pkg.name,
+                                                                                    confinement=pkg.confinement,
+                                                                                    root_password=root_password,
+                                                                                    channel=channel))
 
         if 'error:' in output:
             res = False
@@ -247,6 +264,8 @@ class SnapManager(SoftwareManager):
             task_man.finish_task('snap_cats')
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        Thread(target=read_config, args=(True,), daemon=True).start()
+
         CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,
                              url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=SNAP_CACHE_PATH,
                              categories_path=CATEGORIES_FILE_PATH,
@@ -382,3 +401,56 @@ class SnapManager(SoftwareManager):
 
     def get_screenshots(self, pkg: SnapApplication) -> List[str]:
         return pkg.screenshots if pkg.has_screenshots() else []
+
+    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+        snap_config = read_config()
+
+        install_channel = new_select(label=self.i18n['snap.config.install_channel'],
+                                     opts=[(self.i18n['yes'].capitalize(), True, None),
+                                           (self.i18n['no'].capitalize(), False, None)],
+                                     value=bool(snap_config['install_channel']),
+                                     id_='install_channel',
+                                     max_width=200,
+                                     tip=self.i18n['snap.config.install_channel.tip'])
+
+        return PanelComponent([FormComponent([install_channel], self.i18n['installation'].capitalize())])
+
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
+        config = read_config()
+        config['install_channel'] = component.components[0].components[0].get_selected()
+
+        try:
+            save_config(config, CONFIG_FILE)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
+
+    def _request_channel_installation(self, pkg: SnapApplication, snap_config: dict, snapd_client: SnapdClient, watcher: ProcessWatcher) -> Optional[str]:
+        if snap_config['install_channel']:
+            try:
+                data = [r for r in snapd_client.find_by_name(pkg.name) if r['name'] == pkg.name]
+            except:
+                self.logger.warning("snapd client could not retrieve channels for '{}'".format(pkg.name))
+                return
+
+            if not data:
+                self.logger.warning("snapd client could find a match for name '{}' when retrieving its channels".format(pkg.name))
+            else:
+                if not data[0].get('channels'):
+                    self.logger.info("No channel available for '{}'. Skipping selection.".format(pkg.name))
+                else:
+                    opts = [InputOption(label=c, value=c) for c in sorted(data[0]['channels'].keys())]
+                    def_opt = [o for o in opts if o.value == 'latest/{}'.format(data[0].get('channel', 'stable'))]
+                    select = SingleSelectComponent(label='',
+                                                   options=opts,
+                                                   default_option=def_opt[0] if def_opt else opts[0],
+                                                   type_=SelectViewType.RADIO)
+
+                    if not watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
+                                                        body=self.i18n['snap.install.channel.body'] + ':',
+                                                        components=[select],
+                                                        confirmation_label=self.i18n['proceed'].capitalize(),
+                                                        deny_label=self.i18n['cancel'].capitalize()):
+                        raise Exception('aborted')
+                    else:
+                        return select.get_selected()

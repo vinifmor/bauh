@@ -1,7 +1,7 @@
 import os
 import subprocess
 from io import StringIO
-from typing import Tuple
+from typing import Tuple, Optional
 
 from bauh.commons.system import run_cmd, SimpleProcess
 
@@ -18,12 +18,15 @@ def uninstall_and_stream(app_name: str, root_password: str) -> SimpleProcess:
                          shell=True)
 
 
-def install_and_stream(app_name: str, confinement: str, root_password: str) -> SimpleProcess:
+def install_and_stream(app_name: str, confinement: str, root_password: str, channel: Optional[str] = None) -> SimpleProcess:
 
     install_cmd = [BASE_CMD, 'install', app_name]  # default
 
     if confinement == 'classic':
         install_cmd.append('--classic')
+
+    if channel:
+        install_cmd.append('--channel={}'.format(channel))
 
     return SimpleProcess(install_cmd, root_password=root_password, shell=True)
 

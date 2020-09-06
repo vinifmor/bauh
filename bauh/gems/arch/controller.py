@@ -2682,7 +2682,7 @@ class ArchManager(SoftwareManager):
 
         return PanelComponent([FormComponent(fields, spaces=False)])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
         form_install = component.components[0]
