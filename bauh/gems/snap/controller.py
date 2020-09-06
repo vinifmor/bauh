@@ -221,17 +221,17 @@ class SnapManager(SoftwareManager):
 
     def _gen_installation_response(self, success: bool, pkg: SnapApplication, installed: Set[str], disk_loader: DiskCacheLoader):
         if success:
-            new_installed = [pkg]
-
+            new_installed = []
             try:
                 current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
             except:
+                new_installed = [pkg]
                 traceback.print_exc()
                 current_installed = None
 
             if current_installed:
                 for p in current_installed:
-                    if p.name != pkg.name and (not installed or p.name not in installed):
+                    if p.name == pkg.name or (not installed or p.name not in installed):
                         new_installed.append(p)
 
             return TransactionResult(success=success, installed=new_installed, removed=[])
