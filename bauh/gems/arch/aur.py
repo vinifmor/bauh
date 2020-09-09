@@ -7,7 +7,7 @@ from typing import Set, List, Iterable, Dict, Optional
 import requests
 
 from bauh.api.http import HttpClient
-from bauh.gems.arch import pacman, AUR_INDEX_FILE
+from bauh.gems.arch import AUR_INDEX_FILE
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
@@ -160,14 +160,16 @@ class AURClient:
 
     def extract_required_dependencies(self, srcinfo: dict) -> Set[str]:
         deps = set()
+
         for attr in ('makedepends',
                      'makedepends_{}'.format('x86_64' if self.x86_64 else 'i686'),
                      'depends',
                      'depends_{}'.format('x86_64' if self.x86_64 else 'i686'),
                      'checkdepends',
                      'checkdepends_{}'.format('x86_64' if self.x86_64 else 'i686')):
+
             if srcinfo.get(attr):
-                deps.update([pacman.RE_DEP_OPERATORS.split(dep)[0] for dep in srcinfo[attr]])
+                deps.update(srcinfo[attr])
 
         return deps
 

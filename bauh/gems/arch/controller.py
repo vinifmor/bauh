@@ -1904,7 +1904,13 @@ class ArchManager(SoftwareManager):
         return missing_deps
 
     def _handle_missing_deps(self, context: TransactionContext) -> bool:
-        missing_deps = self._list_missing_deps(context)
+        try:
+            missing_deps = self._list_missing_deps(context)
+        except PackageNotFoundException:
+            return False
+        except:
+            traceback.print_exc()
+            return False
 
         if missing_deps is None:
             return False  # called off by the user

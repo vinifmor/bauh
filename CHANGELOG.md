@@ -116,6 +116,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - some packages dependencies cannot be downloaded due to the wrong download URL (missing the 'pkgbase' field to determine the proper url)
         - not properly extracting srcinfo data when several pkgnames are declared (leads to wrong dependencies requirements)
         - not detecting some package updates
+        - not properly handling AUR package dependencies with specific versions. e.g: abc>=1.20
     
 - Flatpak
     - downgrading crashing with version 1.8.X

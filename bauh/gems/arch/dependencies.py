@@ -250,10 +250,10 @@ class DependenciesAnalyser:
             missing_deps.add((dep_name, 'aur'))
         else:
             if watcher:
-                message.show_dep_not_found(dep_name, self.i18n, watcher)
-                raise PackageNotFoundException(dep_name)
+                message.show_dep_not_found(dep_exp, self.i18n, watcher)
+                raise PackageNotFoundException(dep_exp)
             else:
-                raise PackageNotFoundException(dep_name)
+                raise PackageNotFoundException(dep_exp)
 
     def __fill_aur_update_data(self, pkgname: str, output: dict):
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
@@ -308,17 +308,20 @@ class DependenciesAnalyser:
                                         version_informed = parse_version(version_informed)
 
                                         op = dep_split[1] if dep_split[1] != '=' else '=='
-                                        if not eval('version_found {} version_informed'.format(op)):
-                                            self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
-                                                                   missing_deps=missing_deps,
-                                                                   remote_provided_map=remote_provided_map,
-                                                                   remote_repo_map=remote_repo_map,
-                                                                   repo_deps=repo_missing, aur_deps=aur_missing,
-                                                                   watcher=watcher,
-                                                                   deps_data=deps_data,
-                                                                   automatch_providers=automatch_providers)
+                                        match = eval('version_found {} version_informed'.format(op))
                                     except:
+                                        match = False
                                         traceback.print_exc()
+
+                                    if not match:
+                                        self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
+                                                               missing_deps=missing_deps,
+                                                               remote_provided_map=remote_provided_map,
+                                                               remote_repo_map=remote_repo_map,
+                                                               repo_deps=repo_missing, aur_deps=aur_missing,
+                                                               watcher=watcher,
+                                                               deps_data=deps_data,
+                                                               automatch_providers=automatch_providers)
                                 else:
                                     self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
                                                            missing_deps=missing_deps,
