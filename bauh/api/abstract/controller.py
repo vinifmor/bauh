@@ -223,7 +223,7 @@ class SoftwareManager(ABC):
         :return: if the instance can work based on what is installed in the user's machine.
         """
 
-    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         """
         Saves the package data to the hard disk.
         :param pkg:
