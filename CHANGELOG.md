@@ -59,6 +59,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         </p>
         
         - allowing the user to bypass dependency breakage scenarios (a popup will be displayed)
+        - new settings property **suggest_unneeded_uninstall**: defines if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property **suggest_optdep_uninstall**. Default: false (to prevent new users from making mistakes)
+        - new settings property **suggest_optdep_uninstall**: defines if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_opt_uni.png"">
+        </p>
         
     - AUR
         - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
@@ -104,10 +109,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         
     - some conflict resolution scenarios when upgrading several packages
     - not handling conflicting files errors during the installation process
-    - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, makepkg, launch)
-    - not displaying and uninstalling dependent packages during conflict resolutions
-    - not retrieving all packages that would break if a given package is uninstalled
     - displaying wrong progress during the upgrade process when there are packages to install and upgrade
+    - uninstall: not detecting hard requirements properly
+    - not displaying and uninstalling dependent packages during conflict resolutions
+    - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, makepkg, launch)
     - AUR
         - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
         - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)

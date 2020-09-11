@@ -1,12 +1,15 @@
+import logging
 import os
 import re
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable
+from typing import List, Set, Tuple, Dict, Iterable, Optional
+
+from colorama import Fore
 
 from bauh.commons import system
 from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.commons.util import size_to_byte
-from bauh.gems.arch.exceptions import PackageNotFoundException
+from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
@@ -1128,3 +1131,42 @@ def get_packages_to_sync_first() -> Set[str]:
 
 def is_snapd_installed() -> bool:
     return bool(run_cmd('pacman -Qq snapd', print_error=False))
+
+
+def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None) -> Optional[Set[str]]:
+    code, output = system.execute('pacman -Rc {} --print-format=%n'.format(name), shell=True)
+
+    if code != 0:
+        if 'HoldPkg' in output:
+            raise PackageInHoldException()
+        elif 'target not found' in output:
+            raise PackageNotFoundException(name)
+        elif logger:
+            logger.error("Unexpected error while listing hard requirements of: {}".format(name))
+            print('{}{}{}'.format(Fore.RED, output, Fore.RESET))
+    elif output:
+        reqs = set()
+
+        for line in output.split('\n'):
+            if line:
+                line_strip = line.strip()
+
+                if line_strip and line_strip != name:
+                    reqs.add(line_strip)
+
+        return reqs
+
+
+def list_post_uninstall_unneeded_packages(names: Set[str]) -> Set[str]:
+    output = run_cmd('pacman -Rss {} --print-format=%n'.format(' '.join(names)), print_error=False)
+
+    reqs = set()
+    if output:
+        for line in output.split('\n'):
+            if line:
+                line_strip = line.strip()
+
+                if line_strip and line_strip not in names:
+                    reqs.add(line_strip)
+
+    return reqs

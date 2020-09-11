@@ -39,7 +39,7 @@ from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import read_config, get_build_dir
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.download import MultithreadedDownloadService, ArchDownloadException
-from bauh.gems.arch.exceptions import PackageNotFoundException
+from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
 from bauh.gems.arch.mapper import ArchDataMapper
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.output import TransactionStatusHandler
@@ -1140,7 +1140,7 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _request_unncessary_uninstall_confirmation(self, uninstalled: Iterable[str], unnecessary: Iterable[str], watcher: ProcessWatcher) -> Optional[List[str]]:
+    def _request_unncessary_uninstall_confirmation(self, unnecessary: Iterable[str], watcher: ProcessWatcher) -> Optional[Set[str]]:
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in unnecessary]
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3 if len(reqs) > 9 else 1)
 
@@ -1150,7 +1150,7 @@ class ArchManager(SoftwareManager):
                                             deny_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
                                             confirmation_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
                                             window_cancel=False):
-            return reqs_select.get_selected_values()
+            return {*reqs_select.get_selected_values()}
 
     def _request_all_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext):
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
@@ -1172,47 +1172,45 @@ class ArchManager(SoftwareManager):
 
         net_available = internet.is_available() if disk_loader else True
 
-        required_by = self.deps_analyser.map_all_required_by(names, set())
+        hard_requirements = set()
 
-        if required_by:
-            target_provided = pacman.map_provided(pkgs={*names, *required_by}).keys()
+        for n in names:
+            try:
+                pkg_reqs = pacman.list_hard_requirements(n, self.logger)
 
-            if target_provided:
-                required_by_deps = pacman.map_all_deps(required_by, only_installed=True)
+                if pkg_reqs:
+                    hard_requirements.update(pkg_reqs)
+            except PackageInHoldException:
+                context.watcher.show_message(title=self.i18n['error'].capitalize(),
+                                             body=self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(n)),
+                                             type_=MessageType.ERROR)
+                return False
 
-                if required_by_deps:
-                    all_provided = pacman.map_provided()
-
-                    for pkg, deps in required_by_deps.items():
-                        target_required_by = 0
-                        for dep in deps:
-                            dep_split = pacman.RE_DEP_OPERATORS.split(dep)
-                            if dep_split[0] in target_provided or dep_split[0] in required_by:
-                                dep_providers = all_provided.get(dep_split[0])
-
-                                if dep_providers:
-                                    target_required_by += 1 if not dep_providers.difference(target_provided) else 0
-
-                        if not target_required_by:
-                            required_by.remove(pkg)
-
-        self._update_progress(context, 50)
+        self._update_progress(context, 25)
 
         to_uninstall = set()
         to_uninstall.update(names)
 
-        if required_by:
-            to_uninstall.update(required_by)
+        if hard_requirements:
+            to_uninstall.update(hard_requirements)
 
             if not self._request_uninstall_confirmation(to_uninstall=names,
-                                                        required=required_by,
+                                                        required=hard_requirements,
                                                         watcher=context.watcher):
                 return False
 
         if remove_unneeded:
-            all_deps_map = pacman.map_all_deps(names=to_uninstall, only_installed=True)  # retrieving the deps to check if they are still necessary
+            unnecessary_packages = pacman.list_post_uninstall_unneeded_packages(to_uninstall)
+            self.logger.info("Checking unnecessary optdeps")
+
+            if context.config['suggest_optdep_uninstall']:
+                unnecessary_packages.update(self._list_opt_deps_with_no_hard_requirements(source_pkgs=to_uninstall))
+
+            self.logger.info("Packages no longer needed found: {}".format(len(unnecessary_packages)))
         else:
-            all_deps_map = None
+            unnecessary_packages = None
+
+        self._update_progress(context, 50)
 
         if disk_loader and to_uninstall:  # loading package instances in case the uninstall succeeds
             instances = self.read_installed(disk_loader=disk_loader,
@@ -1234,60 +1232,50 @@ class ArchManager(SoftwareManager):
 
             self._update_progress(context, 70)
 
-            if all_deps_map:
-                context.watcher.change_substatus(self.i18n['arch.checking_unnecessary_deps'])
-                all_deps = set()
+            if unnecessary_packages:
+                unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(unnecessary=unnecessary_packages,
+                                                                                           watcher=context.watcher)
 
-                all_provided = pacman.map_provided(remote=False)
-                for deps in all_deps_map.values():
-                    for dep in deps:
-                        real_deps = all_provided.get(dep)
+                if unnecessary_to_uninstall:
+                    context.watcher.change_substatus(self.i18n['arch.checking_unnecessary_deps'])
+                    unnecessary_requirements = set()
 
-                        if real_deps:
-                            all_deps.update(real_deps)
+                    for pkg in unnecessary_to_uninstall:
+                        try:
+                            pkg_reqs = pacman.list_hard_requirements(pkg)
 
-                if all_deps:
-                    self.logger.info("Mapping dependencies required packages of uninstalled packages")
-                    alldeps_reqs = pacman.map_required_by(all_deps)
+                            if pkg_reqs:
+                                unnecessary_requirements.update(pkg_reqs)
 
-                    no_longer_needed = set()
-                    if alldeps_reqs:
-                        for dep, reqs in alldeps_reqs.items():
-                            if not reqs:
-                                no_longer_needed.add(dep)
+                        except PackageInHoldException:
+                            context.watcher.show_message(title=self.i18n['warning'].capitalize(),
+                                                         body=self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(p)),
+                                                         type_=MessageType.WARNING)
 
-                    if no_longer_needed:
-                        self.logger.info("{} packages no longer needed found".format(len(no_longer_needed)))
-                        unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(uninstalled=to_uninstall,
-                                                                                                   unnecessary=no_longer_needed,
-                                                                                                   watcher=context.watcher)
+                    all_unnecessary_to_uninstall = {*unnecessary_to_uninstall, *unnecessary_requirements}
 
-                        if unnecessary_to_uninstall:
-                            unnecessary_to_uninstall_deps = pacman.list_unnecessary_deps(unnecessary_to_uninstall, all_provided)
-                            all_unnecessary_to_uninstall = {*unnecessary_to_uninstall, *unnecessary_to_uninstall_deps}
+                    if not unnecessary_requirements or self._request_all_unncessary_uninstall_confirmation(all_unnecessary_to_uninstall, context):
+                        if disk_loader:  # loading package instances in case the uninstall succeeds
+                            unnecessary_instances = self.read_installed(disk_loader=disk_loader,
+                                                                        internet_available=net_available,
+                                                                        names=all_unnecessary_to_uninstall).installed
+                        else:
+                            unnecessary_instances = None
 
-                            if not unnecessary_to_uninstall_deps or self._request_all_unncessary_uninstall_confirmation(all_unnecessary_to_uninstall, context):
+                        unneded_uninstalled = self._uninstall_pkgs(all_unnecessary_to_uninstall, context.root_password, context.handler)
 
-                                if disk_loader:  # loading package instances in case the uninstall succeeds
-                                    unnecessary_instances = self.read_installed(disk_loader=disk_loader,
-                                                                                internet_available=net_available,
-                                                                                names=all_unnecessary_to_uninstall).installed
-                                else:
-                                    unnecessary_instances = None
+                        if unneded_uninstalled:
+                            to_uninstall.update(all_unnecessary_to_uninstall)
 
-                                unneded_uninstalled = self._uninstall_pkgs(all_unnecessary_to_uninstall, context.root_password, context.handler)
-
-                                if unneded_uninstalled:
-                                    to_uninstall.update(all_unnecessary_to_uninstall)
-
-                                    if disk_loader and unnecessary_instances:  # loading package instances in case the uninstall succeeds
-                                        for p in unnecessary_instances:
-                                            context.removed[p.name] = p
-                                else:
-                                    self.logger.error("Could not uninstall some unnecessary packages")
-                                    context.watcher.print("Could not uninstall some unnecessary packages")
+                            if disk_loader and unnecessary_instances:  # loading package instances in case the uninstall succeeds
+                                for p in unnecessary_instances:
+                                    context.removed[p.name] = p
+                            else:
+                                self.logger.error("Could not uninstall some unnecessary packages")
+                                context.watcher.print("Could not uninstall some unnecessary packages")
 
             self._update_progress(context, 90)
+
             if bool(context.config['clean_cached']):  # cleaning old versions
                 context.watcher.change_substatus(self.i18n['arch.uninstall.clean_cached.substatus'])
                 if os.path.isdir('/var/cache/pacman/pkg'):
@@ -1315,13 +1303,14 @@ class ArchManager(SoftwareManager):
             return TransactionResult.fail()
 
         removed = {}
+        arch_config = read_config()
         success = self._uninstall(TransactionContext(change_progress=True,
-                                                     arch_config=read_config(),
+                                                     arch_config=arch_config,
                                                      watcher=watcher,
                                                      root_password=root_password,
                                                      handler=handler,
                                                      removed=removed),
-                                  remove_unneeded=True,
+                                  remove_unneeded=arch_config['suggest_unneeded_uninstall'],
                                   names={pkg.name},
                                   disk_loader=disk_loader)  # to be able to return all uninstalled packages
         if success:
@@ -1545,7 +1534,7 @@ class ArchManager(SoftwareManager):
             if context.removed is None:
                 context.removed = {}
 
-            res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader)
+            res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader, remove_unneeded=False)
             context.restabilish_progress()
             return res
 
@@ -2568,16 +2557,27 @@ class ArchManager(SoftwareManager):
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
 
-    def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int, capitalize_label: bool = True) -> SingleSelectComponent:
+    def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int,
+                           capitalize_label: bool = True, label_params: Optional[list] = None, tooltip_params: Optional[list] = None) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
-        return SingleSelectComponent(label=self.i18n[label_key],
+        lb = self.i18n[label_key]
+
+        if label_params:
+            lb = lb.format(*label_params)
+
+        tip = self.i18n[tooltip_key]
+
+        if tooltip_params:
+            tip = tip.format(*tooltip_params)
+
+        return SingleSelectComponent(label=lb,
                                      options=opts,
                                      default_option=[o for o in opts if o.value == value][0],
                                      max_per_line=len(opts),
                                      type_=SelectViewType.RADIO,
-                                     tooltip=self.i18n[tooltip_key],
+                                     tooltip=tip,
                                      max_width=max_width,
                                      id_=id_,
                                      capitalize_label=capitalize_label)
@@ -2637,6 +2637,17 @@ class ArchManager(SoftwareManager):
                                     label_key='arch.config.clean_cache',
                                     tooltip_key='arch.config.clean_cache.tip',
                                     value=bool(local_config['clean_cached']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='suggest_unneeded_uninstall',
+                                    label_key='arch.config.suggest_unneeded_uninstall',
+                                    tooltip_params=['"{}"'.format(self.i18n['arch.config.suggest_optdep_uninstall'])],
+                                    tooltip_key='arch.config.suggest_unneeded_uninstall.tip',
+                                    value=bool(local_config['suggest_unneeded_uninstall']),
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='suggest_optdep_uninstall',
+                                    label_key='arch.config.suggest_optdep_uninstall',
+                                    tooltip_key='arch.config.suggest_optdep_uninstall.tip',
+                                    value=bool(local_config['suggest_optdep_uninstall']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='ref_mirs',
                                     label_key='arch.config.refresh_mirrors',
@@ -2707,6 +2718,8 @@ class ArchManager(SoftwareManager):
         config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
         config['aur_build_only_chosen'] = form_install.get_component('aur_build_only_chosen').get_selected()
         config['check_dependency_breakage'] = form_install.get_component('check_dependency_breakage').get_selected()
+        config['suggest_optdep_uninstall'] = form_install.get_component('suggest_optdep_uninstall').get_selected()
+        config['suggest_unneeded_uninstall'] = form_install.get_component('suggest_unneeded_uninstall').get_selected()
 
         if not config['aur_build_dir']:
             config['aur_build_dir'] = None
@@ -3132,3 +3145,35 @@ class ArchManager(SoftwareManager):
             f.write(new_srcinfo)
 
         return custom_pkgbuild_path
+
+    def _list_opt_deps_with_no_hard_requirements(self, source_pkgs: Set[str], installed_provided: Optional[Dict[str, Set[str]]] = None) -> Set[str]:
+        optdeps = set()
+
+        for deps in pacman.map_optional_deps(names=source_pkgs, remote=False).values():
+            optdeps.update(deps.keys())
+
+        res = set()
+        if optdeps:
+            all_provided = pacman.map_provided() if not installed_provided else installed_provided
+
+            real_optdeps = set()
+            for o in optdeps:
+                dep_providers = all_provided.get(o)
+
+                if dep_providers:
+                    for p in dep_providers:
+                        if p not in source_pkgs:
+                            real_optdeps.add(p)
+
+            if real_optdeps:
+                for p in real_optdeps:
+                    try:
+                        reqs = pacman.list_hard_requirements(p, self.logger)
+
+                        if reqs is not None and (not reqs or reqs.issubset(source_pkgs)):
+                            res.add(p)
+                    except PackageInHoldException:
+                        self.logger.warning("There is a requirement in hold for opt dep '{}'".format(p))
+                        continue
+
+        return res

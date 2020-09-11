@@ -320,3 +320,8 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
     else:
         status = output.split('\n')
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
+
+
+def execute(cmd: str, shell: bool = False) -> Tuple[int, str]:
+    p = subprocess.run(args=cmd.split(' ') if not shell else [cmd], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell)
+    return p.returncode, p.stdout.decode()

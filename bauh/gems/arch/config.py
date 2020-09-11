@@ -19,7 +19,9 @@ def read_config(update_file: bool = False) -> dict:
                 'aur_build_dir': None,
                 'aur_remove_build_dir': True,
                 'aur_build_only_chosen': True,
-                'check_dependency_breakage': True}
+                'check_dependency_breakage': True,
+                'suggest_unneeded_uninstall': False,
+                'suggest_optdep_uninstall': False}
     return read(CONFIG_FILE, template, update_file=update_file)
 
 
