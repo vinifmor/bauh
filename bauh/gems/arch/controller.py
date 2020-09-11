@@ -1564,7 +1564,11 @@ class ArchManager(SoftwareManager):
 
         if repo_deps:
             repo_dep_names = [d[0] for d in repo_deps]
-            context.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(context.name)))
+
+            if context.dependency:
+                context.watcher.change_substatus(self.i18n['arch.substatus.conflicts'])
+            else:
+                context.watcher.change_substatus(self.i18n['arch.checking.conflicts'].format(bold(context.name)))
 
             all_provided = context.get_provided_map()
 
@@ -1772,6 +1776,7 @@ class ArchManager(SoftwareManager):
                 context.watcher.change_substatus(self.i18n['arch.optdeps.checking'].format(bold(context.name)))
 
                 self._update_progress(context, 100)
+
                 if self._install_optdeps(context):
                     return True
 
@@ -2023,6 +2028,7 @@ class ArchManager(SoftwareManager):
 
                 old_progress_behavior = context.change_progress
                 context.change_progress = True
+                context.dependency = True
                 deps_not_installed = self._install_deps(context, sorted_deps)
                 context.change_progress = old_progress_behavior
 
