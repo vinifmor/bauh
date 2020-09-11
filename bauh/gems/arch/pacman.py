@@ -70,7 +70,7 @@ def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
 
 
 def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
-    list_attrs = {'depends on', 'required by'}
+    list_attrs = {'depends on', 'required by', 'conflicts with'}
     info_list = get_info_list(pkg_name, remote)
 
     if info_list:
