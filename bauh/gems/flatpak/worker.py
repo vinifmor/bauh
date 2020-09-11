@@ -47,44 +47,47 @@ class FlatpakAsyncDataLoader(Thread):
                 if res and res.text:
                     data = res.json()
 
-                    if not self.app.version:
-                        self.app.version = data.get('version')
+                    if not data:
+                        self.logger.warning("No data returned for id {} ({})".format(self.app.id, self.app.name))
+                    else:
+                        if not self.app.version:
+                            self.app.version = data.get('version')
 
-                    if not self.app.name:
-                        self.app.name = data.get('name')
+                        if not self.app.name:
+                            self.app.name = data.get('name')
 
-                    self.app.description = data.get('description', data.get('summary', None))
-                    self.app.icon_url = data.get('iconMobileUrl', None)
-                    self.app.latest_version = data.get('currentReleaseVersion', self.app.version)
+                        self.app.description = data.get('description', data.get('summary', None))
+                        self.app.icon_url = data.get('iconMobileUrl', None)
+                        self.app.latest_version = data.get('currentReleaseVersion', self.app.version)
 
-                    if self.app.latest_version and (not self.app.version or not self.app.update):
-                        self.app.version = self.app.latest_version
+                        if self.app.latest_version and (not self.app.version or not self.app.update):
+                            self.app.version = self.app.latest_version
 
-                    if not self.app.installed and self.app.latest_version:
-                        self.app.version = self.app.latest_version
+                        if not self.app.installed and self.app.latest_version:
+                            self.app.version = self.app.latest_version
 
-                    if self.app.icon_url and self.app.icon_url.startswith('/'):
-                        self.app.icon_url = FLATHUB_URL + self.app.icon_url
+                        if self.app.icon_url and self.app.icon_url.startswith('/'):
+                            self.app.icon_url = FLATHUB_URL + self.app.icon_url
 
-                    if data.get('categories'):
-                        cats = []
-                        for c in data['categories']:
-                            cached = self.category_cache.get(c['name'])
+                        if data.get('categories'):
+                            cats = []
+                            for c in data['categories']:
+                                cached = self.category_cache.get(c['name'])
 
-                            if not cached:
-                                cached = self.format_category(c['name'])
-                                self.category_cache.add_non_existing(c['name'], cached)
+                                if not cached:
+                                    cached = self.format_category(c['name'])
+                                    self.category_cache.add_non_existing(c['name'], cached)
 
-                            cats.append(cached)
+                                cats.append(cached)
 
-                        self.app.categories = cats
+                            self.app.categories = cats
 
-                    loaded_data = self.app.get_data_to_cache()
+                        loaded_data = self.app.get_data_to_cache()
 
-                    self.api_cache.add(self.app.id, loaded_data)
-                    self.persist = self.app.supports_disk_cache()
+                        self.api_cache.add(self.app.id, loaded_data)
+                        self.persist = self.app.supports_disk_cache()
                 else:
-                    self.logger.warning("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(self.app.id, res.status_code, res.content.decode()))
+                    self.logger.warning("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(self.app.id, res.status_code if res else '?', res.content.decode() if res else '?'))
             except:
                 self.logger.error("Could not retrieve app data for id '{}'".format(self.app.id))
                 traceback.print_exc()

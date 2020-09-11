@@ -12,6 +12,7 @@ from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
     FileChooserComponent, RangeInputComponent
+from bauh.commons.view_utils import new_select
 from bauh.view.core import config, timeshift
 from bauh.view.core.config import read_config
 from bauh.view.core.downloader import AdaptableFileDownloader
@@ -100,7 +101,7 @@ class GenericSettingsManager:
                                             max_width=default_width,
                                             id_="icon_exp")
 
-        select_trim_up = self._gen_select(label=self.i18n['core.config.trim.after_upgrade'],
+        select_trim_up = new_select(label=self.i18n['core.config.trim.after_upgrade'],
                                           tip=self.i18n['core.config.trim.after_upgrade.tip'],
                                           value=core_config['disk']['trim']['after_upgrade'],
                                           max_width=default_width,
@@ -141,7 +142,7 @@ class GenericSettingsManager:
         if current_mthread_client not in available_mthread_clients:
             current_mthread_client = None
 
-        return self._gen_select(label=self.i18n['core.config.download.multithreaded_client'],
+        return new_select(label=self.i18n['core.config.download.multithreaded_client'],
                                 tip=self.i18n['core.config.download.multithreaded_client.tip'],
                                 id_="mthread_client",
                                 max_width=default_width,
@@ -293,7 +294,7 @@ class GenericSettingsManager:
                                       max_width=default_width,
                                       id_="sugs_by_type")
 
-        inp_reboot = self._gen_select(label=self.i18n['core.config.updates.reboot'],
+        inp_reboot = new_select(label=self.i18n['core.config.updates.reboot'],
                                       tip=self.i18n['core.config.updates.reboot.tip'],
                                       id_='ask_for_reboot',
                                       max_width=default_width,
@@ -479,64 +480,51 @@ class GenericSettingsManager:
                         (self.i18n['no'].capitalize(), False, None),
                         (self.i18n['ask'].capitalize(), None, None)]
 
-            install_mode = self._gen_select(label=self.i18n['core.config.backup.install'],
-                                            tip=None,
-                                            value=core_config['backup']['install'],
-                                            opts=ops_opts,
-                                            max_width=default_width,
-                                            id_='install')
+            install_mode = new_select(label=self.i18n['core.config.backup.install'],
+                                      tip=None,
+                                      value=core_config['backup']['install'],
+                                      opts=ops_opts,
+                                      max_width=default_width,
+                                      id_='install')
 
-            uninstall_mode = self._gen_select(label=self.i18n['core.config.backup.uninstall'],
-                                              tip=None,
-                                              value=core_config['backup']['uninstall'],
-                                              opts=ops_opts,
-                                              max_width=default_width,
-                                              id_='uninstall')
+            uninstall_mode = new_select(label=self.i18n['core.config.backup.uninstall'],
+                                        tip=None,
+                                        value=core_config['backup']['uninstall'],
+                                        opts=ops_opts,
+                                        max_width=default_width,
+                                        id_='uninstall')
 
-            upgrade_mode = self._gen_select(label=self.i18n['core.config.backup.upgrade'],
-                                            tip=None,
-                                            value=core_config['backup']['upgrade'],
-                                            opts=ops_opts,
-                                            max_width=default_width,
-                                            id_='upgrade')
+            upgrade_mode = new_select(label=self.i18n['core.config.backup.upgrade'],
+                                      tip=None,
+                                      value=core_config['backup']['upgrade'],
+                                      opts=ops_opts,
+                                      max_width=default_width,
+                                      id_='upgrade')
 
-            downgrade_mode = self._gen_select(label=self.i18n['core.config.backup.downgrade'],
-                                              tip=None,
-                                              value=core_config['backup']['downgrade'],
-                                              opts=ops_opts,
-                                              max_width=default_width,
-                                              id_='downgrade')
+            downgrade_mode = new_select(label=self.i18n['core.config.backup.downgrade'],
+                                        tip=None,
+                                        value=core_config['backup']['downgrade'],
+                                        opts=ops_opts,
+                                        max_width=default_width,
+                                        id_='downgrade')
 
-            mode = self._gen_select(label=self.i18n['core.config.backup.mode'],
-                                    tip=None,
-                                    value=core_config['backup']['mode'],
-                                    opts=[
-                                        (self.i18n['core.config.backup.mode.incremental'], 'incremental',
-                                         self.i18n['core.config.backup.mode.incremental.tip']),
-                                        (self.i18n['core.config.backup.mode.only_one'], 'only_one',
-                                         self.i18n['core.config.backup.mode.only_one.tip'])
-                                    ],
-                                    max_width=default_width,
-                                    id_='mode')
-            type_ = self._gen_select(label=self.i18n['type'].capitalize(),
-                                     tip=None,
-                                     value=core_config['backup']['type'],
-                                     opts=[('rsync', 'rsync', None), ('btrfs', 'btrfs', None)],
-                                     max_width=default_width,
-                                     id_='type')
+            mode = new_select(label=self.i18n['core.config.backup.mode'],
+                              tip=None,
+                              value=core_config['backup']['mode'],
+                              opts=[
+                                  (self.i18n['core.config.backup.mode.incremental'], 'incremental',
+                                   self.i18n['core.config.backup.mode.incremental.tip']),
+                                  (self.i18n['core.config.backup.mode.only_one'], 'only_one',
+                                   self.i18n['core.config.backup.mode.only_one.tip'])
+                              ],
+                              max_width=default_width,
+                              id_='mode')
+            type_ = new_select(label=self.i18n['type'].capitalize(),
+                               tip=None,
+                               value=core_config['backup']['type'],
+                               opts=[('rsync', 'rsync', None), ('btrfs', 'btrfs', None)],
+                               max_width=default_width,
+                               id_='type')
 
             sub_comps = [FormComponent([enabled_opt, mode, type_, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
             return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')
-
-    def _gen_select(self, label: str, tip: str, id_: str, opts: List[tuple], value: object, max_width: int, type_: SelectViewType = SelectViewType.RADIO):
-        inp_opts = [InputOption(label=o[0].capitalize(), value=o[1], tooltip=o[2]) for o in opts]
-        def_opt = [o for o in inp_opts if o.value == value]
-        return SingleSelectComponent(label=label,
-                                     tooltip=tip,
-                                     options=inp_opts,
-                                     default_option=def_opt[0] if def_opt else inp_opts[0],
-                                     max_per_line=len(inp_opts),
-                                     max_width=max_width,
-                                     type_=type_,
-                                     id_=id_)
-

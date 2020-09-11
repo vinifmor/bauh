@@ -1,14 +1,17 @@
+import os
 import re
 import subprocess
 import traceback
 from datetime import datetime
-from typing import List, Dict, Set, Iterable
+from typing import List, Dict, Set, Iterable, Optional
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, new_root_subprocess, SimpleProcess, ProcessHandler
+from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler
 from bauh.commons.util import size_to_byte
+from bauh.gems.flatpak import EXPORTS_PATH
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
+RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
 
 
 def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
@@ -75,12 +78,13 @@ def get_app_info(app_id: str, branch: str, installation: str):
         return ''
 
 
-def get_commit(app_id: str, branch: str, installation: str) -> str:
-    info = new_subprocess(['flatpak', 'info', app_id, branch, '--{}'.format(installation)])
+def get_commit(app_id: str, branch: str, installation: str) -> Optional[str]:
+    info = run_cmd('flatpak info {} {} --{}'.format(app_id, branch, installation))
 
-    for o in new_subprocess(['grep', 'Commit:', '--color=never'], stdin=info.stdout).stdout:
-        if o:
-            return o.decode().split(':')[1].strip()
+    if info:
+        commits = RE_COMMIT.findall(info)
+        if commits:
+            return commits[0][1].strip()
 
 
 def list_installed(version: str) -> List[dict]:
@@ -150,12 +154,7 @@ def list_installed(version: str) -> List[dict]:
     return apps
 
 
-def update(app_ref: str, installation: str, related: bool = False, deps: bool = False):
-    """
-    Updates the app reference
-    :param app_ref:
-    :return:
-    """
+def update(app_ref: str, installation: str, related: bool = False, deps: bool = False) -> SimpleProcess:
     cmd = ['flatpak', 'update', '-y', app_ref, '--{}'.format(installation)]
 
     if not related:
@@ -164,16 +163,13 @@ def update(app_ref: str, installation: str, related: bool = False, deps: bool = 
     if not deps:
         cmd.append('--no-deps')
 
-    return new_subprocess(cmd)
+    return SimpleProcess(cmd=cmd, extra_paths={EXPORTS_PATH}, shell=True)
 
 
-def uninstall(app_ref: str, installation: str):
-    """
-    Removes the app by its reference
-    :param app_ref:
-    :return:
-    """
-    return new_subprocess(['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)])
+def uninstall(app_ref: str, installation: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)],
+                         extra_paths={EXPORTS_PATH},
+                         shell=True)
 
 
 def list_updates_as_str(version: str) -> Dict[str, set]:
@@ -227,13 +223,14 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
     return res
 
 
-def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> subprocess.Popen:
+def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> SimpleProcess:
     cmd = ['flatpak', 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
-    if installation == 'system':
-        return new_root_subprocess(cmd, root_password)
-    else:
-        return new_subprocess(cmd)
+    return SimpleProcess(cmd=cmd,
+                         root_password=root_password if installation=='system' else None,
+                         extra_paths={EXPORTS_PATH},
+                         success_phrases={'Changes complete.', 'Updates complete.'},
+                         wrong_error_phrases={'Warning'})
 
 
 def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> List[str]:
@@ -353,8 +350,11 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
     return found
 
 
-def install(app_id: str, origin: str, installation: str):
-    return new_subprocess(['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)])
+def install(app_id: str, origin: str, installation: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)],
+                         extra_paths={EXPORTS_PATH},
+                         wrong_error_phrases={'Warning'},
+                         shell=True)
 
 
 def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
@@ -385,7 +385,7 @@ def list_remotes() -> Dict[str, Set[str]]:
 
 
 def run(app_id: str):
-    subprocess.Popen(['flatpak', 'run', app_id])
+    subprocess.Popen(['flatpak run {}'.format(app_id)], shell=True, env={**os.environ})
 
 
 def map_update_download_size(app_ids: Iterable[str], installation: str, version: str) -> Dict[str, int]:
@@ -409,5 +409,10 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
 
                         if related_id:
                             size = p2.findall(line_split[6])[0].split('?')
-                            res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+
+                            if size and len(size) > 1:
+                                try:
+                                    res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+                                except:
+                                    traceback.print_exc()
         return res

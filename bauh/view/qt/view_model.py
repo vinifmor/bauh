@@ -33,7 +33,7 @@ class PackageView:
         self.status = PackageViewStatus.LOADING if model.status == PackageStatus.LOADING_DATA else PackageViewStatus.READY
 
     def __repr__(self):
-        return '{} ( {} )'.format(self.model.name, self.get_type_label())
+        return '{} ({})'.format(self.model.name, self.get_type_label())
 
     def __eq__(self, other):
         if isinstance(other, PackageView):

@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QAction, QTableWidg
     QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
-from bauh.api.abstract.model import PackageStatus
-from bauh.commons.html import strip_html
+from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
+from bauh.commons.html import strip_html, bold
 from bauh.view.qt import dialog
 from bauh.view.qt.colors import GREEN, BROWN
 from bauh.view.qt.components import IconButton
@@ -166,25 +166,33 @@ class AppsTable(QTableWidget):
                 menu_row.addAction(action_ignore_updates)
 
         if bool(pkg.model.get_custom_supported_actions()):
-            for action in pkg.model.get_custom_supported_actions():
-                item = QAction(self.i18n[action.i18_label_key])
-
-                if action.icon_path:
-                    item.setIcon(QIcon(action.icon_path))
-
-                def custom_action():
-                    if dialog.ask_confirmation(
-                            title=self.i18n[action.i18_label_key],
-                            body=self._parag('{} {} ?'.format(self.i18n[action.i18_label_key], self._bold(str(pkg)))),
-                            i18n=self.i18n):
-                        self.window.begin_execute_custom_action(pkg, action)
-
-                item.triggered.connect(custom_action)
-                menu_row.addAction(item)
+            actions = [self._map_custom_action(pkg, a) for a in pkg.model.get_custom_supported_actions()]
+            menu_row.addActions(actions)
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
         menu_row.exec_()
+
+    def _map_custom_action(self, pkg: PackageView, action: CustomSoftwareAction) -> QAction:
+        item = QAction(self.i18n[action.i18n_label_key])
+
+        if action.icon_path:
+            item.setIcon(QIcon(action.icon_path))
+
+        def custom_action():
+            if action.i18n_confirm_key:
+                body = self.i18n[action.i18n_confirm_key].format(bold(pkg.model.name))
+            else:
+                body = '{} ?'.format(self.i18n[action.i18n_label_key])
+
+            if dialog.ask_confirmation(
+                    title=self.i18n[action.i18n_label_key],
+                    body=self._parag(body),
+                    i18n=self.i18n):
+                self.window.begin_execute_custom_action(pkg, action)
+
+        item.triggered.connect(custom_action)
+        return item
 
     def refresh(self, pkg: PackageView):
         self._update_row(pkg, update_check_enabled=False, change_update_col=False)
@@ -421,7 +429,11 @@ class AppsTable(QTableWidget):
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
-                    self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
+
+                    if icon.isNull():
+                        icon = QIcon(pkg.model.get_default_icon_path())
+                    else:
+                        self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
                 except:
                     icon = QIcon(pkg.model.get_default_icon_path())

@@ -1,7 +1,9 @@
 import re
-from distutils.version import LooseVersion
+import traceback
 from threading import Thread
 from typing import Set, List, Tuple, Dict, Iterable
+
+from pkg_resources import parse_version
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation
@@ -203,23 +205,26 @@ class DependenciesAnalyser:
 
                     matched_providers = set()
                     split_informed_dep = self.re_dep_operator.split(dep_exp)
-                    version_informed = LooseVersion(split_informed_dep[2])
-                    exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
+                    try:
+                        version_informed = parse_version(split_informed_dep[2])
+                        exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
 
-                    for p in providers:
-                        provided = deps_data[p]['p']
+                        for p in providers:
+                            provided = deps_data[p]['p']
 
-                        for provided_exp in provided:
-                            split_dep = self.re_dep_operator.split(provided_exp)
+                            for provided_exp in provided:
+                                split_dep = self.re_dep_operator.split(provided_exp)
 
-                            if len(split_dep) == 3 and split_dep[0] == dep_name:
-                                provided_version = LooseVersion(split_dep[2])
+                                if len(split_dep) == 3 and split_dep[0] == dep_name:
+                                    provided_version = parse_version(split_dep[2])
 
-                                if eval('provided_version {} version_informed'.format(exp_op)):
-                                    matched_providers.add(p)
-                                    break
+                                    if eval('provided_version {} version_informed'.format(exp_op)):
+                                        matched_providers.add(p)
+                                        break
 
-                    providers = matched_providers
+                        providers = matched_providers
+                    except:
+                        traceback.print_exc()
 
         if providers:
             if len(providers) > 1:
@@ -245,10 +250,10 @@ class DependenciesAnalyser:
             missing_deps.add((dep_name, 'aur'))
         else:
             if watcher:
-                message.show_dep_not_found(dep_name, self.i18n, watcher)
-                raise PackageNotFoundException(dep_name)
+                message.show_dep_not_found(dep_exp, self.i18n, watcher)
+                raise PackageNotFoundException(dep_exp)
             else:
-                raise PackageNotFoundException(dep_name)
+                raise PackageNotFoundException(dep_exp)
 
     def __fill_aur_update_data(self, pkgname: str, output: dict):
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
@@ -298,11 +303,17 @@ class DependenciesAnalyser:
                                     if '-' not in version_informed:
                                         version_found = version_found.split('-')[0]
 
-                                    version_found = LooseVersion(version_found)
-                                    version_informed = LooseVersion(version_informed)
+                                    try:
+                                        version_found = parse_version(version_found)
+                                        version_informed = parse_version(version_informed)
 
-                                    op = dep_split[1] if dep_split[1] != '=' else '=='
-                                    if not eval('version_found {} version_informed'.format(op)):
+                                        op = dep_split[1] if dep_split[1] != '=' else '=='
+                                        match = eval('version_found {} version_informed'.format(op))
+                                    except:
+                                        match = False
+                                        traceback.print_exc()
+
+                                    if not match:
                                         self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
                                                                missing_deps=missing_deps,
                                                                remote_provided_map=remote_provided_map,
@@ -456,7 +467,9 @@ class DependenciesAnalyser:
         return missing_deps
 
     def map_all_required_by(self, pkgnames: Iterable[str], to_ignore: Set[str]) -> Set[str]:
-        to_ignore.update(pkgnames)
+        if pkgnames:
+            to_ignore.update(pkgnames)
+
         all_requirements = {req for reqs in pacman.map_required_by(pkgnames).values() for req in reqs if req not in to_ignore}
 
         if all_requirements:

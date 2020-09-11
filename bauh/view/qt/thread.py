@@ -9,6 +9,7 @@ from typing import List, Type, Set, Tuple
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtGui import QIcon
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -50,9 +51,14 @@ class AsyncAction(QThread, ProcessWatcher):
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
-                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True, window_cancel: bool = False) -> bool:
+                             confirmation_label: str = None, deny_label: str = None, deny_button: bool = True,
+                             window_cancel: bool = False,
+                             confirmation_button: bool = True) -> bool:
         self.wait_confirmation = True
-        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components, 'confirmation_label': confirmation_label, 'deny_label': deny_label, 'deny_button': deny_button, 'window_cancel': window_cancel})
+        self.signal_confirmation.emit({'title': title, 'body': body, 'components': components,
+                                       'confirmation_label': confirmation_label, 'deny_label': deny_label,
+                                       'deny_button': deny_button, 'window_cancel': window_cancel,
+                                       'confirmation_button': confirmation_button})
         self.wait_user()
         return self.confirmation_res
 
@@ -187,25 +193,31 @@ class UpgradeSelected(AsyncAction):
         self.manager = manager
         self.i18n = i18n
 
-    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None) -> InputOption:
+    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
-            if not icon_path or not os.path.isfile(icon_path):
+            if not icon_path:
+                icon_path = req.pkg.get_type_icon_path()
+            elif not os.path.isfile(icon_path) and QIcon.fromTheme(icon_path).isNull():
                 icon_path = req.pkg.get_type_icon_path()
 
         else:
             icon_path = req.pkg.get_type_icon_path()
 
-        size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
-                                   '?' if req.extra_size is None else get_human_size_str(req.extra_size))
-        if req.extra_size != req.required_size:
-            size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
-                                             '?' if req.required_size is None else get_human_size_str(req.required_size))
+        size_str = None
+        if display_sizes:
+            size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
+                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+            if required_size and req.extra_size != req.required_size:
+                size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                 '?' if req.required_size is None else get_human_size_str(req.required_size))
 
-        label = '{}{} - {}'.format(req.pkg.name,
-                                   ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '',
-                                   size_str)
+        label = '{}{}'.format(req.pkg.name,
+                              ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '')
+
+        if size_str:
+            label += ' - {}'.format(size_str)
 
         return InputOption(label=label,
                            value=None,
@@ -224,14 +236,17 @@ class UpgradeSelected(AsyncAction):
 
         return required, extra
 
-    def _gen_cannot_update_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
+    def _gen_cannot_upgrade_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
+        reqs.sort(key=UpgradeRequirement.sort_by_priority)
+        opts = [self._req_as_option(req=r, tooltip=False, custom_tooltip=r.reason, display_sizes=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
 
-        return FormComponent(label=self.i18n['action.update.cannot_update_label'], components=comps)
+        return FormComponent(label='{} ( {}: {} )'.format(self.i18n['action.update.cannot_update_label'],
+                                                          self.i18n['amount'].capitalize(), len(opts)),
+                             components=comps)
 
     def _gen_to_install_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
-        opts = [self._req_as_option(r) for r in reqs]
+        opts = [self._req_as_option(r, custom_tooltip=r.reason) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
@@ -245,7 +260,7 @@ class UpgradeSelected(AsyncAction):
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
     def _gen_to_remove_form(self, reqs: List[UpgradeRequirement]) -> FormComponent:
-        opts = [self._req_as_option(r, False, r.reason) for r in reqs]
+        opts = [self._req_as_option(r, False, r.reason, required_size=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
@@ -388,7 +403,7 @@ class UpgradeSelected(AsyncAction):
         comps, required_size, extra_size = [], 0, 0
 
         if requirements.cannot_upgrade:
-            comps.append(self._gen_cannot_update_form(requirements.cannot_upgrade))
+            comps.append(self._gen_cannot_upgrade_form(requirements.cannot_upgrade))
 
         if requirements.to_install:
             req_form, reqs_size = self._gen_to_install_form(requirements.to_install)
@@ -399,10 +414,13 @@ class UpgradeSelected(AsyncAction):
         if requirements.to_remove:
             comps.append(self._gen_to_remove_form(requirements.to_remove))
 
-        updates_form, updates_size = self._gen_to_update_form(requirements.to_upgrade)
-        required_size += updates_size[0]
-        extra_size += updates_size[1]
-        comps.append(updates_form)
+        can_upgrade = False
+        if requirements.to_upgrade:
+            can_upgrade = True
+            updates_form, updates_size = self._gen_to_update_form(requirements.to_upgrade)
+            required_size += updates_size[0]
+            extra_size += updates_size[1]
+            comps.append(updates_form)
 
         extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
         req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
@@ -411,7 +429,8 @@ class UpgradeSelected(AsyncAction):
         comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
-                                         confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize()):
+                                         confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize(),
+                                         confirmation_button=can_upgrade):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return

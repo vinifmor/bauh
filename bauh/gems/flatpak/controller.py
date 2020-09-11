@@ -1,10 +1,11 @@
 import os
+import re
 import traceback
 from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Optional
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult
@@ -17,14 +18,15 @@ from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectCompo
 from bauh.commons import user, internet
 from bauh.commons.config import save_config
 from bauh.commons.html import strip_html, bold
-from bauh.commons.system import SystemProcess, ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR
+from bauh.commons.system import ProcessHandler
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH
 from bauh.gems.flatpak.config import read_config
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
+RE_INSTALL_REFS = re.compile(r'\d+\)\s+(.+)')
 
 
 class FlatpakManager(SoftwareManager):
@@ -166,29 +168,28 @@ class FlatpakManager(SoftwareManager):
         return SearchResult(models, None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        handler = ProcessHandler(watcher)
-        pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
+        if not self._make_exports_dir(watcher):
+            return False
 
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
-        commits = flatpak.get_app_commits(pkg.ref, pkg.origin, pkg.installation, handler)
 
-        if commits is None:
-            return False
-
-        commit_idx = commits.index(pkg.commit)
+        history = self.get_history(pkg)
 
         # downgrade is not possible if the app current commit in the first one:
-        if commit_idx == len(commits) - 1:
-            watcher.show_message(self.i18n['flatpak.downgrade.impossible.title'], self.i18n['flatpak.downgrade.impossible.body'], MessageType.WARNING)
+        if history.pkg_status_idx == len(history.history) - 1:
+            watcher.show_message(self.i18n['flatpak.downgrade.impossible.title'],
+                                 self.i18n['flatpak.downgrade.impossible.body'].format(bold(pkg.name)),
+                                 MessageType.ERROR)
             return False
 
-        commit = commits[commit_idx + 1]
+        commit = history.history[history.pkg_status_idx + 1]['commit']
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success = handler.handle(SystemProcess(subproc=flatpak.downgrade(pkg.ref, commit, pkg.installation, root_password),
-                                               success_phrases=['Changes complete.', 'Updates complete.'],
-                                               wrong_error_phrase='Warning'))
+        success, _ = ProcessHandler(watcher).handle_simple(flatpak.downgrade(pkg.ref,
+                                                                             commit,
+                                                                             pkg.installation,
+                                                                             root_password))
         watcher.change_progress(100)
         return success
 
@@ -198,6 +199,10 @@ class FlatpakManager(SoftwareManager):
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
         flatpak_version = flatpak.get_version()
+
+        if not self._make_exports_dir(watcher):
+            return False
+
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
             related, deps = False, False
@@ -208,10 +213,10 @@ class FlatpakManager(SoftwareManager):
                 ref = req.pkg.base_ref
 
             try:
-                res = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.update(app_ref=ref,
-                                                                                          installation=req.pkg.installation,
-                                                                                          related=related,
-                                                                                          deps=deps)))
+                res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
+                                                                              installation=req.pkg.installation,
+                                                                              related=related,
+                                                                              deps=deps))
 
                 watcher.change_substatus('')
                 if not res:
@@ -227,7 +232,11 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
-        uninstalled = ProcessHandler(watcher).handle(SystemProcess(subproc=flatpak.uninstall(pkg.ref, pkg.installation)))
+
+        if not self._make_exports_dir(watcher):
+            return TransactionResult.fail()
+
+        uninstalled, _ = ProcessHandler(watcher).handle_simple(flatpak.uninstall(pkg.ref, pkg.installation))
 
         if uninstalled:
             if self.suggestions_cache:
@@ -289,14 +298,38 @@ class FlatpakManager(SoftwareManager):
     def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
-        status_idx = 0
 
-        for idx, data in enumerate(commits):
-            if data['commit'] == pkg.commit:
-                status_idx = idx
-                break
+        status_idx = 0
+        commit_found = False
+
+        if pkg.commit is None and len(commits) > 1 and commits[0]['commit'] == '(null)':
+            del commits[0]
+            pkg.commit = commits[0]
+            commit_found = True
+
+        if not commit_found:
+            for idx, data in enumerate(commits):
+                if data['commit'] == pkg.commit:
+                    status_idx = idx
+                    commit_found = True
+                    break
+
+        if not commit_found and pkg.commit and commits[0]['commit'] == '(null)':
+            commits[0]['commit'] = pkg.commit
 
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
+
+    def _make_exports_dir(self, watcher: ProcessWatcher) -> bool:
+        if not os.path.exists(EXPORTS_PATH):
+            self.logger.info("Creating dir '{}'".format(EXPORTS_PATH))
+            watcher.print('Creating dir {}'.format(EXPORTS_PATH))
+            try:
+                Path(EXPORTS_PATH).mkdir(parents=True, exist_ok=True)
+            except:
+                watcher.print('Error while creating the directory {}'.format(EXPORTS_PATH))
+                return False
+
+        return True
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         config = read_config()
@@ -336,7 +369,7 @@ class FlatpakManager(SoftwareManager):
                     watcher.print('Operation aborted')
                     return TransactionResult(success=False, installed=[], removed=[])
                 else:
-                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password)):
+                    if not handler.handle_simple(flatpak.set_default_remotes('system', user_password))[0]:
                         watcher.show_message(title=self.i18n['error'].capitalize(),
                                              body=self.i18n['flatpak.remotes.system_flathub.error'],
                                              type_=MessageType.ERROR)
@@ -348,9 +381,33 @@ class FlatpakManager(SoftwareManager):
         installed = flatpak.list_installed(flatpak_version)
         installed_by_level = {'{}:{}:{}'.format(p['id'], p['name'], p['branch']) for p in installed if p['installation'] == pkg.installation} if installed else None
 
-        res = handler.handle(SystemProcess(subproc=flatpak.install(str(pkg.id), pkg.origin, pkg.installation), wrong_error_phrase='Warning'))
+        if not self._make_exports_dir(handler.watcher):
+            return TransactionResult(success=False, installed=[], removed=[])
 
-        if res:
+        installed, output = handler.handle_simple(flatpak.install(str(pkg.id), pkg.origin, pkg.installation))
+
+        if not installed and 'error: No ref chosen to resolve matches' in output:
+            ref_opts = RE_INSTALL_REFS.findall(output)
+
+            if ref_opts and len(ref_opts) > 1:
+                view_opts = [InputOption(label=o, value=o.strip()) for o in ref_opts if o]
+                ref_select = SingleSelectComponent(type_=SelectViewType.RADIO, options=view_opts, default_option=view_opts[0], label='')
+                if watcher.request_confirmation(title=self.i18n['flatpak.install.ref_choose.title'],
+                                                body=self.i18n['flatpak.install.ref_choose.body'].format(bold(pkg.name)),
+                                                components=[ref_select],
+                                                confirmation_label=self.i18n['proceed'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize()):
+                    ref = ref_select.get_selected()
+                    installed, output = handler.handle_simple(flatpak.install(ref, pkg.origin, pkg.installation))
+                    pkg.ref = ref
+                    pkg.runtime = 'runtime' in ref
+                else:
+                    watcher.print('Aborted by the user')
+                    return TransactionResult.fail()
+            else:
+                return TransactionResult.fail()
+
+        if installed:
             try:
                 fields = flatpak.get_fields(str(pkg.id), pkg.branch, ['Ref', 'Branch'])
 
@@ -360,7 +417,7 @@ class FlatpakManager(SoftwareManager):
             except:
                 traceback.print_exc()
 
-        if res:
+        if installed:
             new_installed = [pkg]
             current_installed = flatpak.list_installed(flatpak_version)
             current_installed_by_level = [p for p in current_installed if p['installation'] == pkg.installation] if current_installed else None
@@ -374,7 +431,7 @@ class FlatpakManager(SoftwareManager):
                         new_installed.append(self._map_to_model(app_json=p, installed=True,
                                                                 disk_loader=disk_loader, internet=net_available))
 
-            return TransactionResult(success=res, installed=new_installed, removed=[])
+            return TransactionResult(success=installed, installed=new_installed, removed=[])
         else:
             return TransactionResult.fail()
 
@@ -513,7 +570,7 @@ class FlatpakManager(SoftwareManager):
 
         return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
         config['installation_level'] = component.components[0].components[0].get_selected()
 

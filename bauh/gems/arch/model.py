@@ -1,12 +1,26 @@
 import datetime
 from typing import List, Set
 
-from bauh.api.abstract.model import SoftwarePackage
+from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories'}
+
+ACTIONS_AUR_ENABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
+                                                            i18n_status_key='arch.action.enable_pkgbuild_edition.status',
+                                                            i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
+                                                            requires_root=False,
+                                                            manager_method='enable_pkgbuild_edition',
+                                                            icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))]
+
+ACTIONS_AUR_DISABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
+                                                             i18n_status_key='arch.action.disable_pkgbuild_edition',
+                                                             i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
+                                                             requires_root=False,
+                                                             manager_method='disable_pkgbuild_edition',
+                                                             icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))]
 
 
 class ArchPackage(SoftwarePackage):
@@ -16,7 +30,8 @@ class ArchPackage(SoftwarePackage):
                  first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
-                 categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None):
+                 categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
+                 pkgbuild_editable: bool = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -38,6 +53,8 @@ class ArchPackage(SoftwarePackage):
         self.arch = arch
         self.i18n = i18n
         self.update_ignored = update_ignored
+        self.view_name = name  # name displayed on the view
+        self.pkgbuild_editable = pkgbuild_editable  # if the PKGBUILD can be edited by the user (only for AUR)
 
     @staticmethod
     def disk_cache_path(pkgname: str):
@@ -48,7 +65,7 @@ class ArchPackage(SoftwarePackage):
             return 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=' + self.package_base
 
     def has_history(self):
-        return self.installed and self.repository == 'aur'
+        return self.can_be_downgraded()
 
     def has_info(self):
         return True
@@ -148,4 +165,23 @@ class ArchPackage(SoftwarePackage):
 
     def __eq__(self, other):
         if isinstance(other, ArchPackage):
+            if self.view_name is not None and other.view_name is not None:
+                return self.view_name == other.view_name and self.repository == other.repository
+            
             return self.name == other.name and self.repository == other.repository
+
+    def get_cached_pkgbuild_path(self) -> str:
+        return '{}/PKGBUILD'.format(self.get_disk_cache_path())
+
+    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+        if self.installed and self.pkgbuild_editable is not None and self.repository == 'aur':
+            if self.pkgbuild_editable:
+                return ACTIONS_AUR_DISABLE_PKGBUILD_EDITION
+            else:
+                return ACTIONS_AUR_ENABLE_PKGBUILD_EDITION
+
+    def __hash__(self):
+        if self.view_name is not None:
+            return hash((self.view_name, self.repository))
+        else:
+            return hash((self.name, self.repository))

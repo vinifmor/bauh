@@ -7,13 +7,13 @@ import sqlite3
 import subprocess
 import traceback
 from datetime import datetime
-from distutils.version import LooseVersion
 from math import floor
 from pathlib import Path
 from threading import Lock
-from typing import Set, Type, List, Tuple
+from typing import Set, Type, List, Tuple, Optional
 
 from colorama import Fore
+from pkg_resources import parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
@@ -23,13 +23,13 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent
+    SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE, util
+    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
@@ -42,6 +42,32 @@ DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
+RE_APPIMAGE_NAME = re.compile(r'(.+)\.appimage', flags=re.IGNORECASE)
+
+
+class ManualInstallationFileObserver(ViewObserver):
+
+    def __init__(self, name: Optional[TextInputComponent], version: TextInputComponent):
+        self.name = name
+        self.version = version
+
+    def on_change(self, file_path: str):
+        if file_path:
+            name_found = RE_APPIMAGE_NAME.findall(file_path.split('/')[-1])
+
+            if name_found:
+                name_split = name_found[0].split('-')
+
+                if self.name:
+                    self.name.set_value(name_split[0].strip())
+
+                if len(name_split) > 1:
+                    self.version.set_value(name_split[1].strip())
+        else:
+            if self.name:
+                self.name.set_value(None)
+
+            self.version.set_value(None)
 
 
 class AppImageManager(SoftwareManager):
@@ -56,26 +82,30 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
-        self.custom_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.install_file',
+        self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                     i18n_status_key='appimage.custom_action.install_file.status',
                                                     manager=self,
                                                     manager_method='install_file',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
                                                     requires_root=False)]
-        self.custom_app_actions = [CustomSoftwareAction(i18_label_key='appimage.custom_action.manual_update',
+        self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
                                                         requires_root=False,
                                                         icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
+                                            allowed_extensions={'AppImage'},
+                                            search_path=get_default_manual_installation_file_dir())
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+        file_chooser.observers.append(ManualInstallationFileObserver(input_name, input_version))
+
         input_description = TextInputComponent(label=self.i18n['description'].capitalize())
 
         cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
-        cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
+        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c.lower()).capitalize(), value=c) for c in self.context.default_categories])
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
                                         default_option=cat_ops[0])
 
@@ -119,8 +149,11 @@ class AppImageManager(SoftwareManager):
         return res
 
     def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
-        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(), allowed_extensions={'AppImage'})
+        file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
+                                            allowed_extensions={'AppImage'},
+                                            search_path=get_default_manual_installation_file_dir())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+        file_chooser.observers.append(ManualInstallationFileObserver(None, input_version))
 
         while True:
             if watcher.request_confirmation(title=self.i18n['appimage.custom_action.manual_update.details'], body=None,
@@ -232,7 +265,7 @@ class AppImageManager(SoftwareManager):
                                             app.update = False
                                         else:
                                             try:
-                                                app.update = LooseVersion(tup[2]) > LooseVersion(app.version) if tup[2] else False
+                                                app.update = parse_version(tup[2]) > parse_version(app.version) if tup[2] else False
                                             except:
                                                 app.update = False
                                                 traceback.print_exc()
@@ -414,10 +447,9 @@ class AppImageManager(SoftwareManager):
                     return f
 
     def _find_icon_file(self, folder: str) -> str:
-        for r, d, files in os.walk(folder):
-            for f in files:
-                if RE_ICON_ENDS_WITH.match(f):
-                    return f
+        for f in glob.glob(folder + ('/**' if not folder.endswith('/') else '**'), recursive=True):
+            if RE_ICON_ENDS_WITH.match(f):
+                return f
 
     def install(self, pkg: AppImage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         handler = ProcessHandler(watcher)
@@ -503,8 +535,8 @@ class AppImageManager(SoftwareManager):
                     extracted_icon = self._find_icon_file(extracted_folder)
 
                     if extracted_icon:
-                        icon_path = out_dir + '/logo.' + extracted_icon.split('.')[-1]
-                        shutil.copy('{}/{}'.format(extracted_folder, extracted_icon), icon_path)
+                        icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
+                        shutil.copy(extracted_icon, icon_path)
                         de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
                         pkg.icon_path = icon_path
 
@@ -638,7 +670,7 @@ class AppImageManager(SoftwareManager):
             appimag_path = util.find_appimage_file(installation_dir)
 
             if appimag_path:
-                subprocess.Popen([appimag_path])
+                subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ})
             else:
                 self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
 
@@ -691,7 +723,7 @@ class AppImageManager(SoftwareManager):
 
         return PanelComponent([FormComponent(updater_opts, self.i18n['appimage.config.db_updates'])])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
         panel = component.components[0]

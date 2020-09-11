@@ -3,7 +3,7 @@ import os
 import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Set, Type, Tuple
+from typing import List, Set, Type, Tuple, Optional
 
 import yaml
 
@@ -17,7 +17,7 @@ from bauh.api.abstract.view import ViewComponent
 
 class SearchResult:
 
-    def __init__(self, installed: List[SoftwarePackage], new: List[SoftwarePackage], total: int):
+    def __init__(self, installed: Optional[List[SoftwarePackage]], new: Optional[List[SoftwarePackage]], total: int):
         """
         :param installed: already installed packages
         :param new: new packages found
@@ -30,18 +30,24 @@ class SearchResult:
 
 class UpgradeRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None):
+    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None, sorting_priority: int = 0):
         """
 
         :param pkg:
         :param reason:
         :param required_size: size in BYTES required to upgrade the package
         :param extra_size: the extra size IN BYTES the upgrade will allocate in relation to the already allocated
+        :param sorting_priority: an int representing the sorting priority (higher numbers = higher priority)
         """
         self.pkg = pkg
         self.reason = reason
         self.required_size = required_size
         self.extra_size = extra_size
+        self.sorting_priority = sorting_priority
+
+    @staticmethod
+    def sort_by_priority(req: "UpgradeRequirement") -> Tuple[int, str]:
+        return -req.sorting_priority, req.pkg.name
 
 
 class UpgradeRequirements:
@@ -58,6 +64,7 @@ class UpgradeRequirements:
         self.to_remove = to_remove  # when an upgrading package conflicts with a not upgrading package ( check all the non-upgrading packages deps an add here [including those selected to upgrade as well]
         self.to_upgrade = to_upgrade
         self.cannot_upgrade = cannot_upgrade
+        self.context = {}  # caches relevant data to actually perform the upgrade
 
 
 class TransactionResult:
@@ -65,7 +72,7 @@ class TransactionResult:
     The result of a given operation
     """
 
-    def __init__(self, success: bool, installed: List[SoftwarePackage], removed: List[SoftwarePackage]):
+    def __init__(self, success: bool, installed: Optional[List[SoftwarePackage]], removed: Optional[List[SoftwarePackage]]):
         self.success = success
         self.installed = installed
         self.removed = removed
@@ -216,7 +223,7 @@ class SoftwareManager(ABC):
         :return: if the instance can work based on what is installed in the user's machine.
         """
 
-    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         """
         Saves the package data to the hard disk.
         :param pkg:
@@ -343,7 +350,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def save_settings(self, component: ViewComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
         """
         :return: a tuple with a bool informing if the settings were saved and a list of error messages
         """

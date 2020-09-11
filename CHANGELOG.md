@@ -4,6 +4,152 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.7] 2020-09-11
+### Features
+- Arch
+    - AUR
+        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during these actions allowing the PKGBUILD to be edited.
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_pkgbuild.png">
+        </p>
+        - mark a given PKGBUILD of a package as editable (if the property above is enabled, the same behavior will be applied)
+         <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/mark_pkgbuild.png">
+         </p>
+        - unmark a given PKGBUILD of a package as editable (it prevents the behavior described above to happen)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/unmark_pkgbuild.png">
+         </p>
+    - new "Check Snaps support" action: it checks all system requirements for Snaps to work properly (only available if the 'snapd' package is installed)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/unmark_pkgbuild.png">
+    </p>
+- Snap
+    - new settings property **install_channel**: it allows to select an available channel during the application installation. Default: false. [#90](https://github.com/vinifmor/bauh/issues/90)
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_config.png">
+     </p>
+     
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_channels.png">
+     </p>
+     
+     - new custom action **Change channel**: allows to change the current channel of an installed Snap
+     <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_change_channel.png">
+     </p>
+
+### Improvements
+- AppImage
+    - Manual file installation/upgrade:
+        - default search path set to '~/Downloads'
+        - trying to auto-fill the 'Name' and 'Version' fields
+- Arch
+    - initializing task "Organizing data from installed packages" is taking about 80% less time (now is called "Indexing packages data") [#131](https://github.com/vinifmor/bauh/issues/131)
+    - upgrade
+        - upgrading firstly the keyring packages declared in **SyncFirst** (**/etc/pacman.conf**) to avoid pacman downloading issues
+        - only removing packages after downloading the required ones
+        - summary: displaying the reason a given package must be installed 
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_install_reason.png">
+        </p>
+        - checking specific version requirements and marking packages as "cannot upgrade" when these requirements are not met (e.g: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. This new checking behavior can be disabled through the property (**check_dependency_breakage**):
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_dep_break_settings.png">
+        </p>
+        
+        - allowing the user to bypass dependency breakage scenarios (a popup will be displayed)
+        - new settings property **suggest_unneeded_uninstall**: defines if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property **suggest_optdep_uninstall**. Default: false (to prevent new users from making mistakes)
+        - new settings property **suggest_optdep_uninstall**: defines if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_opt_uni.png"">
+        </p>
+        
+    - AUR
+        - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**). Directory: **~/.cache/bauh/arch/installed/my_package/PKGBUILD
+        - new settings property **aur_build_dir** -> it allows to define a custom build dir.
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_buildir.png">
+        </p>
+        
+        - new settings property **aur_remove_build_dir** -> it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Default: true
+        - new settings property **aur_build_only_chosen**: some AUR packages have a common file definition declaring several packages to be built. When this property is 'true' only the package the user select to install will be built (unless its name is different from those declared in the PKGBUILD base). With a 'null' value a popup asking if the user wants to build all of them will be displayed. 'false' will build and install all packages. Default: true.
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_build_chosen.png">
+        </p>
+        
+    - "Multi-threaded download (repositories)" is not the default behavior anymore (current pacman download approach is faster). If your settings has this property set as 'Yes', just change it to 'No'.
+    - preventing a possible error when the optional deps of a given package cannot be found
+
+- Flatpak
+    - creating the exports path **~/.local/share/flatpak/exports/share** (if it does not exist) and adding it to install/upgrade/downgrade/remove commands path to prevent warning messages. [#128](https://github.com/vinifmor/bauh/issues/128)
+    - downgrade function refactored
+- Snap
+    - full support refactored to use the Snapd socket instead of the Ubuntu's old Snap API (which was recently disabled). Now the 'read' operations are faster, a only the icon is cached to the disk.
+
+- UI
+    - faster initialization dialog: improved the way it checks for finished tasks
+    - 'name' filter now holds for 3 seconds instead of 2 before being applied
+    - minor improvements
+
+### Fixes
+- AppImage
+    - manual file installation
+        - crashing if the AppImage icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
+        - not properly retrieving the 'Category' field options translated
+    - some environment variable are not available during the launch process
+- Arch
+    - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
+    - downloading some AUR packages sources twice when multi-threaded download is enabled
+    - upgrade summary
+        - not displaying all packages that must be uninstalled
+        - displaying "required size" for packages that must be uninstalled
+        - not displaying packages that cannot upgrade due to specific version requirements (e.g: package A requires version 1.0 of package B, however package B will be upgrade to version 2.0)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_dep_break.png">
+        </p>
+        
+    - some conflict resolution scenarios when upgrading several packages
+    - not handling conflicting files errors during the installation process
+    - displaying wrong progress during the upgrade process when there are packages to install and upgrade
+    - uninstall: not detecting hard requirements properly
+    - not displaying and uninstalling dependent packages during conflict resolutions
+    - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, makepkg, launch)
+    - AUR
+        - info dialog of installed packages displays the latest PKGBUILD file instead of the one used for installation/upgrade/downgrade (the fix will only work for new installed packages)
+        - multi-threaded download: not retrieving correctly some source files URLs (e.g: linux-xanmod-lts)
+        - importing PGP keys (Generic error). Now the key server is specified: `gpg --keyserver SERVER --recv-key KEYID` (the server address is retrieved from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/arch/gpgservers.txt))
+        - not installing the correct package built when several are generated (e.g: linux-xanmod-lts)
+        - some packages dependencies cannot be downloaded due to the wrong download URL (missing the 'pkgbase' field to determine the proper url)
+        - not properly extracting srcinfo data when several pkgnames are declared (leads to wrong dependencies requirements)
+        - not detecting some package updates
+        - not properly handling AUR package dependencies with specific versions. e.g: abc>=1.20
+    
+- Flatpak
+    - downgrading crashing with version 1.8.X
+    - history: the top commit is returned as "(null)" in version 1.8.X
+    - crashing when an update size cannot be read -> [#130](https://github.com/vinifmor/bauh/issues/130) [#133](https://github.com/vinifmor/bauh/issues/130)
+    - installation fails when there are multiple references for a given package (e.g: openh264)
+     <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/flatpak_refs.png">
+     </p>
+     - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
+     - minor fixes
+- Snap
+    - not able to install classic Snaps due to Ubuntu's old Snaps API shutdown
+    - some environment variables are not available during the common operations (install, upgrade, downgrade, uninstall, launch)
+    - refresh app action: not returning an error when there is no update available
+    - not updating the table with the installed runtimes after a first Snap installation
+- Web
+    - some environment variable are not available during the launch process
+- UI
+    - crashing when nothing can be upgraded
+    - random C++ wrapper errors with some forms due to missing references
+    - application icons that cannot be rendered are being displayed as empty spaces (now the type icon is displayed instead)
+    - some application icons without a full path are not being rendered on the 'Upgrade summary'
+    - tray mode: always displaying the "About" dialog in english
+
+
 ## [0.9.6] 2020-06-26
 ### Improvements
 - AppImage

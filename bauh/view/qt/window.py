@@ -548,6 +548,7 @@ class ManageWindow(QWidget):
                                   deny_label=msg['deny_label'],
                                   deny_button=msg['deny_button'],
                                   window_cancel=msg['window_cancel'],
+                                  confirmation_button=msg.get('confirmation_button', True),
                                   screen_size=self.screen_size)
         res = diag.is_confirmed()
         self.thread_animate_progress.animate()
@@ -1262,6 +1263,7 @@ class ManageWindow(QWidget):
     def search(self):
         word = self.inp_search.text().strip()
         if word:
+            self._handle_console(False)
             self._begin_search(word, action_id=ACTION_SEARCH)
             self.comp_manager.set_components_visible(False)
             self.thread_search.word = word
@@ -1393,7 +1395,7 @@ class ManageWindow(QWidget):
 
     def begin_execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
         if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18_label_key])),
+                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18n_label_key])),
                                                        icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
                                                        i18n=self.i18n):
             return False
@@ -1449,7 +1451,7 @@ class ManageWindow(QWidget):
             self.settings_window.show()
 
     def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
-        custom_action = QAction(self.i18n[action.i18_label_key])
+        custom_action = QAction(self.i18n[action.i18n_label_key])
 
         if action.icon_path:
             try:

@@ -9,7 +9,7 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple
+from typing import List, Type, Set, Tuple, Optional
 
 import requests
 import yaml
@@ -26,7 +26,7 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
-from bauh.commons import resource, user
+from bauh.commons import resource
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
@@ -69,7 +69,7 @@ class WebApplicationManager(SoftwareManager):
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
         self.suggestions = {}
-        self.custom_actions = [CustomSoftwareAction(i18_label_key='web.custom_action.clean_env',
+        self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
                                                     i18n_status_key='web.custom_action.clean_env.status',
                                                     manager=self,
                                                     manager_method='clean_environment',
@@ -949,7 +949,7 @@ class WebApplicationManager(SoftwareManager):
         return True
 
     def launch(self, pkg: WebApplication):
-        subprocess.Popen(pkg.get_command(), shell=user.is_root())
+        subprocess.Popen(args=[pkg.get_command()], shell=True, env={**os.environ})
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
@@ -996,7 +996,7 @@ class WebApplicationManager(SoftwareManager):
 
         return PanelComponent([form_env])
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
         form_env = component.components[0]

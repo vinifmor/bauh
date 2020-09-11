@@ -1,6 +1,7 @@
 import logging
 import time
 import traceback
+from typing import Optional
 
 import requests
 import yaml
@@ -17,7 +18,7 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False, session: bool = True) -> requests.Response:
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False, session: bool = True) -> Optional[requests.Response]:
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
@@ -44,7 +45,7 @@ class HttpClient:
                     return res
 
                 if single_call:
-                    return
+                    return res
 
                 if self.sleep > 0:
                     time.sleep(self.sleep)

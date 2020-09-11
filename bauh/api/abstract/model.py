@@ -7,9 +7,12 @@ from bauh.api.constants import CACHE_PATH
 
 class CustomSoftwareAction:
 
-    def __init__(self, i18_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str, requires_root: bool, manager: "SoftwareManager" = None, backup: bool = False, refresh: bool = True):
+    def __init__(self, i18n_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str,
+                 requires_root: bool, manager: "SoftwareManager" = None,
+                 backup: bool = False, refresh: bool = True,
+                 i18n_confirm_key: str = None):
         """
-        :param i18_label_key: the i18n key that will be used to display the action name
+        :param i18n_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
         :param icon_path: the action icon path. Use None for no icon
         :param manager_method: the SoftwareManager method name that should be called. The method must has the following parameters: (pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher)
@@ -17,8 +20,9 @@ class CustomSoftwareAction:
         :param backup: if a system backup should be performed before executing the action
         :param requires_root:
         :param refresh: if the a full app refresh should be done if the action succeeds
+        :param i18n_confirm_key: action confirmation message
         """
-        self.i18_label_key = i18_label_key
+        self.i18n_label_key = i18n_label_key
         self.i18n_status_key = i18n_status_key
         self.icon_path = icon_path
         self.manager_method = manager_method
@@ -26,12 +30,13 @@ class CustomSoftwareAction:
         self.manager = manager
         self.backup = backup
         self.refresh = refresh
+        self.i18n_confirm_key = i18n_confirm_key
 
     def __hash__(self):
-        return self.i18_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()
+        return self.i18n_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()
 
     def __repr__(self):
-        return "CustomAction (label={}, method={})".format(self.i18_label_key, self.manager_method)
+        return "CustomAction (label={}, method={})".format(self.i18n_label_key, self.manager_method)
 
 
 class PackageStatus(Enum):
@@ -251,6 +256,10 @@ class PackageHistory:
         self.pkg = pkg
         self.history = history
         self.pkg_status_idx = pkg_status_idx
+
+    @classmethod
+    def empyt(cls, pkg: SoftwarePackage):
+        return cls(pkg=pkg, history=[], pkg_status_idx=-1)
 
 
 class SuggestionPriority(Enum):

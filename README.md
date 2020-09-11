@@ -119,7 +119,13 @@ installation_level: null # defines a default installation level: user or system.
 #### Snap (snap)
 
 - Supported actions: search, install, uninstall, launch, downgrade
-- Custom actions: refresh
+- Custom actions: 
+    - refresh: tries to update the current Snap application revision
+    - change channel: allows to change the Snap application channel
+- The configuration file is located at **~/.config/bauh/snap.yml** and it allows the following customizations:
+```
+install_channel: false  # it allows to select an available channel during the application installation. Default: false
+```
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
 
@@ -177,6 +183,9 @@ db_updater:
     - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest (`sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy`)
     - **quick system upgrade**: it executes a default pacman upgrade (`pacman -Syyu --noconfirm`)
     - **clean cache**: it cleans the pacman cache diretory (default: `/var/cache/pacman/pkg`)
+    - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+    - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+- Installed AUR packages have their **PKGBUILD** files cached at **~/.cache/bauh/arch/installed/$pkgname**
 - Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
 ```
@@ -186,11 +195,18 @@ sync_databases_startup: true  # package databases synchronization once a day dur
 clean_cached: true  # defines if old cached versions should be removed from the disk cache during a package uninstallation
 refresh_mirrors_startup: false # if the package mirrors should be refreshed during startup
 mirrors_sort_limit: 5  # defines the maximum number of mirrors that will be used for speed sorting. Use 0 for no limit or leave it blank to disable sorting. 
-aur:  true  # allows to manage AUR packages
-repositories: true  # allows to manage packages from the configured repositories
-repositories_mthread_download: true  # enable multi-threaded download for repository packages if aria2 is installed
-automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false).
-``` 
+aur:  true. Default: true  # allows to manage AUR packages
+repositories: true  # allows to manage packages from the configured repositories. Default: true
+repositories_mthread_download: false  # enable multi-threaded download for repository packages if aria2/axel is installed (otherwise pacman will download the packages). Default: false
+automatch_providers: true  # if a possible provider for a given package dependency exactly matches its name, it will be chosen instead of asking for the user to decide (false). Default: true.
+edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edition before the make process. true (PKGBUILD will always be displayed for edition), false (PKGBUILD never will be displayed), null (a popup will ask if the user want to edit the PKGBUILD). Default: false.
+aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user)). Default: null.
+aur_remove_build_dir: true  # it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Options: true, false (default: true).
+aur_build_only_chosen : true  # some AUR packages have a common file definition declaring several packages to be built. When this property is 'true' only the package the user select to install will be built (unless its name is different from those declared in the PKGBUILD base). With a 'null' value a popup asking if the user wants to build all of them will be displayed. 'false' will build and install all packages. Default: true.
+check_dependency_breakage: true # if, during the verification of the update requirements, specific versions of dependencies must also be checked. Example: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. Default: true.
+suggest_unneeded_uninstall: false  # if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property 'suggest_optdep_uninstall'. Default: false (to prevent new users from making mistakes)
+suggest_optdep_uninstall: false  # if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
+```
 - Required dependencies:
     - **pacman**
     - **wget**

@@ -1,0 +1,36 @@
+pkgbase = mangohud
+	pkgver = 0.5.1
+	pkgrel = 3
+	url = https://github.com/flightlessmango/MangoHud
+	arch = x86_64
+	license = MIT
+	makedepends = meson
+	makedepends = python-mako
+	makedepends = glslang
+	makedepends = libglvnd
+	makedepends = lib32-libglvnd
+	makedepends = vulkan-headers
+	makedepends = vulkan-icd-loader
+	makedepends = lib32-vulkan-icd-loader
+	makedepends = libxnvctrl
+	source = mangohud-0.5.1.tar.gz::https://github.com/flightlessmango/MangoHud/archive/v0.5.1.tar.gz
+	sha256sums = 3e91d4fc7369d46763894c13f3315133871dd02705072981770c3cf58e8081c6
+
+pkgname = mangohud
+	pkgdesc = A Vulkan overlay layer for monitoring FPS, temperatures, CPU/GPU load and more
+	depends = gcc-libs
+	depends = mangohud-common
+	optdepends = bash: mangohud helper script
+	optdepends = libxnvctrl: support for older NVIDIA GPUs
+
+pkgname = lib32-mangohud
+	pkgdesc = A Vulkan overlay layer for monitoring FPS, temperatures, CPU/GPU load and more (32-bit)
+	depends = lib32-gcc-libs
+	depends = mangohud
+	depends = mangohud-common
+	optdepends = lib32-libxnvctrl: support for older NVIDIA GPUs
+
+pkgname = mangohud-common
+	pkgdesc = Common files for mangohud and lib32-mangohud
+	optdepends = bash: mangohud helper script
+

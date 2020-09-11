@@ -1,7 +1,7 @@
 from typing import List
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
 
 from bauh.api.abstract.view import MessageType
@@ -47,9 +47,11 @@ def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(reso
 
     bt_yes = diag.addButton(i18n['popup.button.yes'], QMessageBox.YesRole)
     bt_yes.setStyleSheet(css.OK_BUTTON)
+    bt_yes.setCursor(QCursor(Qt.PointingHandCursor))
     diag.setDefaultButton(bt_yes)
 
-    diag.addButton(i18n['popup.button.no'], QMessageBox.NoRole)
+    bt_no = diag.addButton(i18n['popup.button.no'], QMessageBox.NoRole)
+    bt_no.setCursor(QCursor(Qt.PointingHandCursor))
 
     if icon:
         diag.setWindowIcon(icon)

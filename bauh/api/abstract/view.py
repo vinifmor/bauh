@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import List, Set
+from typing import List, Set, Optional
 
 
 class MessageType:
@@ -9,12 +9,22 @@ class MessageType:
     ERROR = 2
 
 
+class ViewObserver:
+
+    def on_change(self, change):
+        pass
+
+
 class ViewComponent(ABC):
     """
     Represents a GUI component
     """
-    def __init__(self, id_: str):
+    def __init__(self, id_: str, observers: List[ViewObserver] = None):
         self.id = id_
+        self.observers = observers if observers else []
+
+    def add_observer(self, obs):
+        self.observers.append(obs)
 
 
 class SpacerComponent(ViewComponent):
@@ -138,10 +148,16 @@ class TwoStateButtonComponent(ViewComponent):
         self.state = state
 
 
+class TextInputType(Enum):
+    SINGLE_LINE = 0
+    MULTIPLE_LINES = 1
+
+
 class TextInputComponent(ViewComponent):
 
     def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
-                 id_: str = None, only_int: bool = False, max_width: int = -1):
+                 id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE,
+                 capitalize_label: bool = True, min_width: int = -1, min_height: int = -1):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -150,12 +166,25 @@ class TextInputComponent(ViewComponent):
         self.read_only = read_only
         self.only_int = only_int
         self.max_width = max_width
+        self.type = type_
+        self.capitalize_label = capitalize_label
+        self.min_width = min_width
+        self.min_height = min_height
 
     def get_value(self) -> str:
         if self.value is not None:
-            return self.value.strip()
+            return self.value
         else:
             return ''
+
+    def set_value(self, val: Optional[str], caller: object = None):
+        if val != self.value:
+            self.value = val
+
+            if self.observers:
+                for o in self.observers:
+                    if caller != o:
+                        o.on_change(val)
 
     def get_int_value(self) -> int:
         if self.value is not None:
@@ -163,6 +192,12 @@ class TextInputComponent(ViewComponent):
 
             if val:
                 return int(self.value)
+
+    def get_label(self) -> str:
+        if not self.label:
+            return ''
+        else:
+            return self.label.capitalize() if self.capitalize_label else self.label
 
 
 class FormComponent(ViewComponent):
@@ -182,13 +217,30 @@ class FormComponent(ViewComponent):
 class FileChooserComponent(ViewComponent):
 
     def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None,
-                 file_path: str = None, max_width: int = -1, id_: str = None):
+                 file_path: str = None, max_width: int = -1, id_: str = None, search_path: str = None, capitalize_label: bool = True,
+                 directory: bool = False):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
         self.file_path = file_path
         self.tooltip = tooltip
         self.max_width = max_width
+        self.search_path = search_path
+        self.capitalize_label = capitalize_label
+        self.directory = directory
+
+    def set_file_path(self, fpath: str):
+        self.file_path = fpath
+
+        if self.observers:
+            for o in self.observers:
+                o.on_change(self.file_path)
+
+    def get_label(self) -> str:
+        if not self.label:
+            return ''
+        else:
+            return self.label.capitalize() if self.capitalize_label else self.label
 
 
 class TabComponent(ViewComponent):

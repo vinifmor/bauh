@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Dict
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -26,20 +26,20 @@ SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000
 
 
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set[str] = None) -> dict:
-    res = {}
+    custom_env = dict(os.environ)
 
     if lang:
-        res['LANG'] = lang
+        custom_env['LANG'] = lang
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
-        res['PATH'] = GLOBAL_INTERPRETER_PATH
+        custom_env['PATH'] = GLOBAL_INTERPRETER_PATH
     else:
-        res['PATH'] = PATH
+        custom_env['PATH'] = PATH
 
     if extra_paths:
-        res['PATH'] = ':'.join(extra_paths) + ':' + res['PATH']
+        custom_env['PATH'] = ':'.join(extra_paths) + ':' + custom_env['PATH']
 
-    return res
+    return custom_env
 
 
 class SystemProcess:
@@ -65,9 +65,12 @@ class SimpleProcess:
 
     def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
-                 extra_paths: Set[str] = None, error_phrases: Set[str] = None):
+                 extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
+                 shell: bool = False,
+                 success_phrases: Set[str] = None):
         pwdin, final_cmd = None, []
 
+        self.shell = shell
         if root_password is not None:
             final_cmd.extend(['sudo', '-S'])
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
@@ -77,6 +80,8 @@ class SimpleProcess:
         self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths)
         self.expected_code = expected_code
         self.error_phrases = error_phrases
+        self.wrong_error_phrases = wrong_error_phrases
+        self.success_phrases = success_phrases
 
     def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None, extra_paths: Set[str] = None) -> subprocess.Popen:
 
@@ -85,13 +90,14 @@ class SimpleProcess:
             "stderr": subprocess.STDOUT,
             "bufsize": -1,
             "cwd": cwd,
-            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths)
+            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths),
+            "shell": self.shell
         }
 
         if stdin:
             args['stdin'] = stdin
 
-        return subprocess.Popen(cmd, **args)
+        return subprocess.Popen(args=[' '.join(cmd)] if self.shell else cmd, **args)
 
 
 class ProcessHandler:
@@ -158,8 +164,9 @@ class ProcessHandler:
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
-    def handle_simple(self, proc: SimpleProcess, output_handler=None) -> Tuple[bool, str]:
-        self._notify_watcher(' '.join(proc.instance.args) + '\n')
+    def handle_simple(self, proc: SimpleProcess, output_handler=None, notify_watcher: bool = True) -> Tuple[bool, str]:
+        if notify_watcher:
+            self._notify_watcher((proc.instance.args if isinstance(proc.instance.args, str) else ' '.join(proc.instance.args)) + '\n')
 
         output = StringIO()
         for o in proc.instance.stdout:
@@ -173,8 +180,9 @@ class ProcessHandler:
                 if line:
                     if output_handler:
                         output_handler(line)
-                        
-                    self._notify_watcher(line)
+
+                    if notify_watcher:
+                        self._notify_watcher(line)
 
         proc.instance.wait()
         output.seek(0)
@@ -182,11 +190,24 @@ class ProcessHandler:
         success = proc.instance.returncode == proc.expected_code
         string_output = output.read()
 
-        if proc.error_phrases:
+        if proc.success_phrases:
+            for phrase in proc.success_phrases:
+                if phrase in string_output:
+                    success = True
+                    break
+
+        if not success and proc.wrong_error_phrases:
+            for phrase in proc.wrong_error_phrases:
+                if phrase in string_output:
+                    success = True
+                    break
+
+        if success and proc.error_phrases:
             for phrase in proc.error_phrases:
                 if phrase in string_output:
                     success = False
                     break
+
         return success, string_output
 
 
@@ -216,13 +237,14 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
-                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
+                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+                   extra_paths: Set[str] = None) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
         "stderr": PIPE,
         "cwd": cwd,
         "shell": shell,
-        "env": gen_env(global_interpreter, lang)
+        "env": gen_env(global_interpreter, lang, extra_paths)
     }
 
     if input:
@@ -232,7 +254,8 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
 
 
 def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
-                        global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG) -> subprocess.Popen:
+                        global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+                        extra_paths: Set[str] = None) -> subprocess.Popen:
     pwdin, final_cmd = None, []
 
     if root_password is not None:
@@ -241,7 +264,7 @@ def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
 
     final_cmd.extend(cmd)
 
-    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang))
+    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang, extra_paths))
 
 
 def notify_user(msg: str, app_name: str, icon_path: str):
@@ -277,3 +300,28 @@ def get_human_size_str(size) -> str:
 def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
     p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.returncode == success_code, p.stdout.decode()
+
+
+def check_active_services(*names: str) -> Dict[str, bool]:
+    output = run_cmd('systemctl is-active {}'.format(' '.join(names)), print_error=False)
+
+    if not output:
+        return {n: False for n in names}
+    else:
+        status = output.split('\n')
+        return {s: status[i].strip().lower() == 'active' for i, s in enumerate(names) if s}
+
+
+def check_enabled_services(*names: str) -> Dict[str, bool]:
+    output = run_cmd('systemctl is-enabled {}'.format(' '.join(names)), print_error=False)
+
+    if not output:
+        return {n: False for n in names}
+    else:
+        status = output.split('\n')
+        return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
+
+
+def execute(cmd: str, shell: bool = False) -> Tuple[int, str]:
+    p = subprocess.run(args=cmd.split(' ') if not shell else [cmd], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell)
+    return p.returncode, p.stdout.decode()

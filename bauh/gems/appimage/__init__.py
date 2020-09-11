@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from bauh.api.constants import CONFIG_PATH
 from bauh.commons import resource
@@ -16,3 +17,8 @@ SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 
 def get_icon_path() -> str:
     return resource.get_path('img/appimage.svg', ROOT_DIR)
+
+
+def get_default_manual_installation_file_dir() -> Optional[str]:
+    default_path = '{}/Downloads'.format(str(Path.home()))
+    return default_path if os.path.isdir(default_path) else None

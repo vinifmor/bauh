@@ -7,11 +7,11 @@ from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame, QAction, QSpinBox
+    QSlider, QScrollArea, QFrame, QAction, QSpinBox, QPlainTextEdit
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent
+    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver, TextInputType
 from bauh.view.qt import css
 from bauh.view.qt.colors import RED
 from bauh.view.util import resource
@@ -266,9 +266,13 @@ class RadioButtonQt(QRadioButton):
         self.model = model
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
 
         if model.icon_path:
-            self.setIcon(QIcon(model.icon_path))
+            if model.icon_path.startswith('/'):
+                self.setIcon(QIcon(model.icon_path))
+            else:
+                self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if self.model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -291,11 +295,16 @@ class CheckboxQt(QCheckBox):
         self.setToolTip(model.tooltip)
 
         if model.icon_path:
-            self.setIcon(QIcon(model.icon_path))
+            if model.icon_path.startswith('/'):
+                self.setIcon(QIcon(model.icon_path))
+            else:
+                self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.NoFocus)
+        else:
+            self.setCursor(QCursor(Qt.PointingHandCursor))
 
     def _set_checked(self, state):
         checked = state == 2
@@ -428,6 +437,32 @@ class ComboSelectQt(QGroupBox):
         self.layout().addWidget(FormComboBoxQt(model), 0, 1)
 
 
+class QLineEditObserver(QLineEdit, ViewObserver):
+
+    def __init__(self, **kwargs):
+        super(QLineEditObserver, self).__init__(**kwargs)
+
+    def on_change(self, change: str):
+        if self.text() != change:
+            self.setText(change if change is not None else '')
+
+
+class QPlainTextEditObserver(QPlainTextEdit, ViewObserver):
+
+    def __init__(self, **kwargs):
+        super(QPlainTextEditObserver, self).__init__(**kwargs)
+
+    def on_change(self, change: str):
+        self.setText(change)
+
+    def setText(self, text: str):
+        if text != self.toPlainText():
+            self.setPlainText(text if text is not None else '')
+
+    def setCursorPosition(self, idx: int):
+        self.textCursor().setPosition(idx)
+
+
 class TextInputQt(QGroupBox):
 
     def __init__(self, model: TextInputComponent):
@@ -435,18 +470,25 @@ class TextInputQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
         self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
+
+        self.layout().addWidget(QLabel(model.get_label()), 0, 0)
 
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
 
-        self.text_input = QLineEdit()
+        self.text_input = QLineEditObserver() if model.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
 
         if model.only_int:
             self.text_input.setValidator(QIntValidator())
 
         if model.placeholder:
             self.text_input.setPlaceholderText(model.placeholder)
+
+        if model.min_width >= 0:
+            self.text_input.setMinimumWidth(model.min_width)
+
+        if model.min_height >= 0:
+            self.text_input.setMinimumHeight(model.min_height)
 
         if model.tooltip:
             self.text_input.setToolTip(model.tooltip)
@@ -457,10 +499,12 @@ class TextInputQt(QGroupBox):
 
         self.text_input.textChanged.connect(self._update_model)
 
+        self.model.observers.append(self.text_input)
         self.layout().addWidget(self.text_input, 0, 1)
 
-    def _update_model(self, text: str):
-        self.model.value = text
+    def _update_model(self, *args):
+        change = args[0] if args else self.text_input.toPlainText()
+        self.model.set_value(val=change, caller=self)
 
 
 class MultipleSelectQt(QGroupBox):
@@ -578,6 +622,7 @@ class FormMultipleSelectQt(QWidget):
                 help_icon = QLabel()
                 help_icon.setPixmap(pixmap_help)
                 help_icon.setToolTip(op.tooltip)
+                help_icon.setCursor(QCursor(Qt.PointingHandCursor))
                 widget.layout().addWidget(help_icon)
 
             self._layout.addWidget(widget, line, col)
@@ -614,7 +659,7 @@ class InputFilter(QLineEdit):
         if self.typing.isActive():
             return
 
-        self.typing.start(2000)
+        self.typing.start(3000)
 
     def get_text(self):
         return self.last_text
@@ -686,34 +731,45 @@ class FormQt(QGroupBox):
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
 
-        for c in model.components:
+        for idx, c in enumerate(model.components):
             if isinstance(c, TextInputComponent):
                 label, field = self._new_text_input(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, SingleSelectComponent):
                 label = self._new_label(c)
-                field = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
-                self.layout().addRow(label, self._wrap(field, c))
+                form = FormComboBoxQt(c) if c.type == SelectViewType.COMBO else FormRadioSelectQt(c)
+                field = self._wrap(form, c)
+                self.layout().addRow(label, field)
             elif isinstance(c, RangeInputComponent):
                 label = self._new_label(c)
-                self.layout().addRow(label, self._wrap(self._new_range_input(c), c))
+                field = self._wrap(self._new_range_input(c), c)
+                self.layout().addRow(label, field)
             elif isinstance(c, FileChooserComponent):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FormComponent):
-                self.layout().addRow(FormQt(c, self.i18n))
+                label, field = None,  FormQt(c, self.i18n)
+                self.layout().addRow(field)
             elif isinstance(c, TwoStateButtonComponent):
-                label = self._new_label(c)
-                self.layout().addRow(label, TwoStateButtonQt(c))
+                label, field = self._new_label(c), TwoStateButtonQt(c)
+                self.layout().addRow(label, field)
             elif isinstance(c, MultipleSelectComponent):
-                label = self._new_label(c)
-                self.layout().addRow(label, FormMultipleSelectQt(c))
+                label, field = self._new_label(c), FormMultipleSelectQt(c)
+                self.layout().addRow(label, field)
             elif isinstance(c, TextComponent):
-                self.layout().addRow(self._new_label(c), QWidget())
+                label, field = self._new_label(c), QWidget()
+                self.layout().addRow(label, field)
             elif isinstance(c, RangeInputComponent):
-                self.layout()
+                label, field = self._new_label(c), self._new_range_input(c)
+                self.layout().addRow(label, field)
             else:
                 raise Exception('Unsupported component type {}'.format(c.__class__.__name__))
+
+            if label:  # to prevent C++ wrap errors
+                setattr(self, 'label_{}'.format(idx), label)
+
+            if field:  # to prevent C++ wrap errors
+                setattr(self, 'field_{}'.format(idx), field)
 
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
@@ -728,8 +784,11 @@ class FormQt(QGroupBox):
         if hasattr(comp, 'size') and comp.size is not None:
             label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
 
-        attr = 'label' if hasattr(comp,'label') else 'value'
-        text = getattr(comp, attr)
+        if hasattr(comp, 'get_label'):
+            text = comp.get_label()
+        else:
+            attr = 'label' if hasattr(comp,'label') else 'value'
+            text = getattr(comp, attr)
 
         if text:
             if hasattr(comp, 'capitalize_label') and getattr(comp, 'capitalize_label'):
@@ -754,28 +813,35 @@ class FormQt(QGroupBox):
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
-        line_edit = QLineEdit()
+        view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
+
+        if c.min_width >= 0:
+            view.setMinimumWidth(c.min_width)
+
+        if c.min_height >= 0:
+            view.setMinimumHeight(c.min_height)
 
         if c.only_int:
-            line_edit.setValidator(QIntValidator())
+            view.setValidator(QIntValidator())
 
         if c.tooltip:
-            line_edit.setToolTip(c.tooltip)
+            view.setToolTip(c.tooltip)
 
         if c.placeholder:
-            line_edit.setPlaceholderText(c.placeholder)
+            view.setPlaceholderText(c.placeholder)
 
         if c.value:
-            line_edit.setText(str(c.value) if c.value else '')
-            line_edit.setCursorPosition(0)
+            view.setText(str(c.value) if c.value else '')
+            view.setCursorPosition(0)
 
         if c.read_only:
-            line_edit.setEnabled(False)
+            view.setEnabled(False)
 
         def update_model(text: str):
-            c.value = text
+            c.set_value(val=text, caller=view)
 
-        line_edit.textChanged.connect(update_model)
+        view.textChanged.connect(update_model)
+        c.observers.append(view)
 
         label = QWidget()
         label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -785,12 +851,12 @@ class FormQt(QGroupBox):
         label.layout().addWidget(label_component)
 
         if label:
-            label_component.setText(c.label.capitalize())
+            label_component.setText(c.get_label())
 
             if c.tooltip:
                 label.layout().addWidget(self.gen_tip_icon(c.tooltip))
 
-        return label, self._wrap(line_edit, c)
+        return label, self._wrap(view, c)
 
     def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
         spinner = QSpinBox()
@@ -819,7 +885,7 @@ class FormQt(QGroupBox):
         return field_container
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
-        chooser = QLineEdit()
+        chooser = QLineEditObserver()
         chooser.setReadOnly(True)
 
         if c.max_width > 0:
@@ -827,33 +893,36 @@ class FormQt(QGroupBox):
 
         if c.file_path:
             chooser.setText(c.file_path)
+            chooser.setCursorPosition(0)
 
+        c.observers.append(chooser)
         chooser.setPlaceholderText(self.i18n['view.components.file_chooser.placeholder'])
 
         def open_chooser(e):
-            options = QFileDialog.Options()
-
             if c.allowed_extensions:
                 exts = ';;'.join({'*.{}'.format(e) for e in c.allowed_extensions})
             else:
-                exts = '{}} (*);;'.format(self.i18n['all_files'].capitalize())
+                exts = '{} (*);;'.format(self.i18n['all_files'].capitalize())
 
             if c.file_path and os.path.isfile(c.file_path):
                 cur_path = c.file_path
+            elif c.search_path and os.path.exists(c.search_path):
+                cur_path = c.search_path
             else:
                 cur_path = str(Path.home())
 
-            file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=options)
+            if c.directory:
+                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=QFileDialog.Options())
+            else:
+                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.Options())
 
             if file_path:
-                c.file_path = file_path
-                chooser.setText(file_path)
+                c.set_file_path(file_path)
 
             chooser.setCursorPosition(0)
 
         def clean_path():
-            c.file_path = None
-            chooser.setText('')
+            c.set_file_path(None)
 
         chooser.mousePressEvent = open_chooser
 

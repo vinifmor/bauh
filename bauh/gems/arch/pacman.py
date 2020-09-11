@@ -1,13 +1,15 @@
+import logging
 import os
 import re
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable
+from typing import List, Set, Tuple, Dict, Iterable, Optional
+
+from colorama import Fore
 
 from bauh.commons import system
-from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess, \
-    ProcessHandler
+from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, SystemProcess, SimpleProcess
 from bauh.commons.util import size_to_byte
-from bauh.gems.arch.exceptions import PackageNotFoundException
+from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
 
 RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
@@ -19,6 +21,8 @@ RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.I
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
+RE_PACMAN_SYNC_FIRST = re.compile(r'SyncFirst\s*=\s*(.+)')
+RE_DESKTOP_FILES = re.compile(r'\n?([\w\-_]+)\s+(/usr/share/.+\.desktop)')
 
 
 def is_available() -> bool:
@@ -66,7 +70,7 @@ def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
 
 
 def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
-    list_attrs = {'depends on', 'required by'}
+    list_attrs = {'depends on', 'required by', 'conflicts with'}
     info_list = get_info_list(pkg_name, remote)
 
     if info_list:
@@ -140,54 +144,37 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
     return pkgs
 
 
-def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.') -> SimpleProcess:
-    if file:
-        cmd = ['pacman', '-U', *pkgpaths, '--noconfirm']  # pkgpath = install file path
-    else:
-        cmd = ['pacman', '-S', *pkgpaths, '--noconfirm']  # pkgpath = pkgname
+def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.',
+                       overwrite_conflicting_files: bool = False, simulate: bool = False) -> SimpleProcess:
+    cmd = ['pacman', '-U'] if file else ['pacman', '-S']
+    cmd.extend(pkgpaths)
+
+    if not simulate:
+        cmd.append('--noconfirm')
+
+    if overwrite_conflicting_files:
+        cmd.append('--overwrite=*')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
                          cwd=pkgdir,
-                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'})
+                         error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
 
 
-def list_desktop_entries(pkgnames: Set[str]) -> List[str]:
+def map_desktop_files(*pkgnames) -> Dict[str, List[str]]:
+    res = {}
+
     if pkgnames:
-        installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
+        output = run_cmd('pacman -Ql {}'.format(' '.join(pkgnames)), print_error=False)
 
-        desktop_files = []
-        for out in new_subprocess(['grep', '-E', ".desktop$"], stdin=installed_files.stdout).stdout:
-            if out:
-                desktop_files.append(out.decode().strip())
+        if output:
+            for match in RE_DESKTOP_FILES.findall(output):
+                pkgfiles = res.get(match[0], [])
+                res[match[0]] = pkgfiles
+                pkgfiles.append(match[1])
 
-        return desktop_files
-
-
-def list_icon_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
-
-    icon_files = []
-    for out in new_subprocess(['grep', '-E', '.(png|svg|xpm)$'], stdin=installed_files.stdout).stdout:
-        if out:
-            line = out.decode().strip()
-            if line:
-                icon_files.append(line)
-
-    return icon_files
-
-
-def list_bin_paths(pkgnames: Set[str]) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', *pkgnames])
-
-    bin_paths = []
-    for out in new_subprocess(['grep', '-E', '^/usr/bin/.+'], stdin=installed_files.stdout).stdout:
-        if out:
-            line = out.decode().strip()
-            if line:
-                bin_paths.append(line)
-
-    return bin_paths
+    return res
 
 
 def list_installed_files(pkgname: str) -> List[str]:
@@ -539,16 +526,6 @@ def upgrade_system(root_password: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
 
-def get_dependencies_to_remove(pkgs: Iterable[str], root_password: str) -> Dict[str, str]:
-    proc = SimpleProcess(cmd=['pacman', '-R', *pkgs, '--confirm'], root_password=root_password)
-    success, output = ProcessHandler().handle_simple(proc)
-
-    if not output:
-        return {}
-
-    return {t[1]: t[0] for t in RE_REMOVE_TRANSITIVE_DEPS.findall(output)}
-
-
 def fill_provided_map(key: str, val: str, output: dict):
     current_val = output.get(key)
 
@@ -733,30 +710,41 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
         return res
 
 
-def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False) -> SimpleProcess:
+def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
 
+    if skip_dependency_checks:
+        cmd.append('-d')
+
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
-                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'})
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
 
 
-def remove_several(pkgnames: Iterable[str], root_password: str) -> SystemProcess:
+def download(root_password: str, *pkgnames: str) -> SimpleProcess:
+    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm'],
+                         root_password=root_password,
+                         error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
+                         shell=True)
+
+
+def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
-    if root_password:
-        return SystemProcess(new_root_subprocess(cmd, root_password), wrong_error_phrase='warning:')
-    else:
-        return SystemProcess(new_subprocess(cmd), wrong_error_phrase='warning:')
+
+    if skip_checks:
+        cmd.append('-dd')
+
+    return SimpleProcess(cmd=cmd, root_password=root_password, wrong_error_phrases={'warning:'}, shell=True)
 
 
 def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = False) -> Dict[str, Dict[str, str]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
-
+    res = {}
     if output:
-        res = {}
         latest_name, deps = None, None
 
         for l in output.split('\n'):
@@ -801,7 +789,7 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
                         sev_deps = {dep.strip(): '' for dep in l.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
                         deps.update(sev_deps)
 
-        return res
+    return res
 
 
 def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str, Set[str]]:
@@ -865,6 +853,51 @@ def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str
         return res
 
 
+def map_required_dependencies(*names: str) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -Qi {}'.format(' '.join(names) if names else ''))
+
+    if output:
+        res = {}
+        latest_name, deps, latest_field = None, None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                        deps = None
+                    elif field == 'Depends On':
+                        val = line[field_sep_idx + 1:].strip()
+
+                        if deps is None:
+                            deps = set()
+
+                        if val != 'None':
+                            if ':' in val:
+                                dep_info = val.split(':')
+                                deps.add(dep_info[0].strip())
+                            else:
+                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+
+                    elif latest_name and deps is not None:
+                        res[latest_name] = deps
+                        latest_name, deps, latest_field = None, None, None
+
+                elif latest_name and deps is not None:
+                    if ':' in l:
+                        dep_info = l.split(':')
+                        deps.add(dep_info[0].strip())
+                    else:
+                        deps.update({dep.strip() for dep in l.split(' ') if dep})
+
+        return res
+
+
 def get_cache_dir() -> str:
     dir_pattern = re.compile(r'.*CacheDir\s*=\s*.+')
 
@@ -887,13 +920,13 @@ def get_cache_dir() -> str:
             return '/var/cache/pacman/pkg'
 
 
-def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:
-    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
+def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -{} {}'.format('Sii' if remote else 'Qi', ' '.join(names) if names else ''), print_error=False)
 
     if output:
-        res = {}
         latest_name, required = None, None
-
+        res = {}
+        
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
@@ -916,8 +949,11 @@ def map_required_by(names: Iterable[str]) -> Dict[str, Set[str]]:
 
                 elif latest_name and required is not None:
                     required.update(required.update((d for d in l.strip().split(' ') if d)))
-
         return res
+    elif names:
+        return {n: set() for n in names}
+    else:
+        return {}
 
 
 def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]]:
@@ -1081,3 +1117,56 @@ def get_mirrors_branch() -> str:
     _, output = system.run(['pacman-mirrors', '-G'])
     return output.strip()
 
+
+def get_packages_to_sync_first() -> Set[str]:
+    if os.path.exists('/etc/pacman.conf'):
+        with open('/etc/pacman.conf') as f:
+            to_sync_first = RE_PACMAN_SYNC_FIRST.findall(f.read())
+
+            if to_sync_first:
+                return {s.strip() for s in to_sync_first[0].split(' ') if s and s.strip()}
+
+    return set()
+
+
+def is_snapd_installed() -> bool:
+    return bool(run_cmd('pacman -Qq snapd', print_error=False))
+
+
+def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None) -> Optional[Set[str]]:
+    code, output = system.execute('pacman -Rc {} --print-format=%n'.format(name), shell=True)
+
+    if code != 0:
+        if 'HoldPkg' in output:
+            raise PackageInHoldException()
+        elif 'target not found' in output:
+            raise PackageNotFoundException(name)
+        elif logger:
+            logger.error("Unexpected error while listing hard requirements of: {}".format(name))
+            print('{}{}{}'.format(Fore.RED, output, Fore.RESET))
+    elif output:
+        reqs = set()
+
+        for line in output.split('\n'):
+            if line:
+                line_strip = line.strip()
+
+                if line_strip and line_strip != name:
+                    reqs.add(line_strip)
+
+        return reqs
+
+
+def list_post_uninstall_unneeded_packages(names: Set[str]) -> Set[str]:
+    output = run_cmd('pacman -Rss {} --print-format=%n'.format(' '.join(names)), print_error=False)
+
+    reqs = set()
+    if output:
+        for line in output.split('\n'):
+            if line:
+                line_strip = line.strip()
+
+                if line_strip and line_strip not in names:
+                    reqs.add(line_strip)
+
+    return reqs
