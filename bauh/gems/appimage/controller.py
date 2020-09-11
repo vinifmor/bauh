@@ -105,7 +105,7 @@ class AppImageManager(SoftwareManager):
         input_description = TextInputComponent(label=self.i18n['description'].capitalize())
 
         cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
-        cat_ops.extend([InputOption(label=self.i18n[c.lower()].capitalize(), value=c) for c in self.context.default_categories])
+        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c.lower()).capitalize(), value=c) for c in self.context.default_categories])
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
                                         default_option=cat_ops[0])
 

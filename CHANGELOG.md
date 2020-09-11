@@ -96,6 +96,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
     - manual file installation
         - crashing if the AppImage icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
+        - not properly retrieving the 'Category' field options translated
     - some environment variable are not available during the launch process
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
