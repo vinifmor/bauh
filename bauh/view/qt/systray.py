@@ -123,6 +123,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def __init__(self, config: dict, screen_size: QSize, logger: logging.Logger, manage_process: Popen = None, settings_process: Popen = None):
         super(TrayIcon, self).__init__()
+        self.app_config = config
         self.i18n = generate_i18n(config, resource.get_path('locale/tray'))
         self.screen_size = screen_size
         self.manage_process = manage_process
@@ -262,7 +263,7 @@ class TrayIcon(QSystemTrayIcon):
 
     def show_about(self):
         if self.dialog_about is None:
-            self.dialog_about = AboutDialog(self.i18n)
+            self.dialog_about = AboutDialog(self.app_config)
 
         if self.dialog_about.isHidden():
             self.dialog_about.show()

@@ -147,6 +147,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - random C++ wrapper errors with some forms due to missing references
     - application icons that cannot be rendered are being displayed as empty spaces (now the type icon is displayed instead)
     - some application icons without a full path are not being rendered on the 'Upgrade summary'
+    - tray mode: always displaying the "About" dialog in english
 
 
 ## [0.9.6] 2020-06-26
