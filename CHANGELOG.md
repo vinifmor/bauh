@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - Arch
     - AUR
-        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during this actions allowing the PKGBUILD to be edited.
+        - allowing to edit the PKGBUILD file of a package to be installed/upgraded/downgraded. If enabled, a popup will be displayed during these actions allowing the PKGBUILD to be edited.
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_pkgbuild.png">
         </p>
@@ -20,12 +20,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/unmark_pkgbuild.png">
          </p>
-    - new "Check Snaps support" action: checks all system requirements for Snaps to work properly (only available if the 'snapd' package is installed)
+    - new "Check Snaps support" action: it checks all system requirements for Snaps to work properly (only available if the 'snapd' package is installed)
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/unmark_pkgbuild.png">
     </p>
 - Snap
-    - new settings property **install_channel**: it allows to select an available channel during the application installation. Default: false.
+    - new settings property **install_channel**: it allows to select an available channel during the application installation. Default: false. [#90](https://github.com/vinifmor/bauh/issues/90)
      <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/snap_config.png">
      </p>
@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         </p>
         
     - AUR
-        - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**)
+        - caching the PKGBUILD file used for the package installation/upgrade/downgrade (**~/.cache/bauh/arch/installed/$pkgname/PKGBUILD**). Directory: **~/.cache/bauh/arch/installed/my_package/PKGBUILD
         - new settings property **aur_build_dir** -> it allows to define a custom build dir.
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/aur_buildir.png">
@@ -95,7 +95,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AppImage
     - manual file installation
-        - crashing the application icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
+        - crashing if the AppImage icon is not on the extracted folder root path [#132](https://github.com/vinifmor/bauh/issues/132)
     - some environment variable are not available during the launch process
 - Arch
     - not able to upgrade a package that explicitly defines a conflict with itself (e.g: grub)
@@ -127,7 +127,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak
     - downgrading crashing with version 1.8.X
     - history: the top commit is returned as "(null)" in version 1.8.X
-    - crashing when an update size cannot be read [#130](https://github.com/vinifmor/bauh/issues/130)
+    - crashing when an update size cannot be read -> [#130](https://github.com/vinifmor/bauh/issues/130) [#133](https://github.com/vinifmor/bauh/issues/130)
     - installation fails when there are multiple references for a given package (e.g: openh264)
      <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/flatpak_refs.png">
@@ -144,7 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - crashing when nothing can be upgraded
     - random C++ wrapper errors with some forms due to missing references
-    - application icons that cannot be rendered are being displayed as an empty space (now the type icon is displayed instead)
+    - application icons that cannot be rendered are being displayed as empty spaces (now the type icon is displayed instead)
     - some application icons without a full path are not being rendered on the 'Upgrade summary'
 
 
