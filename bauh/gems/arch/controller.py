@@ -2348,6 +2348,7 @@ class ArchManager(SoftwareManager):
         if res:
             pkg.name = install_context.name  # changes the package name in case the PKGBUILD was edited
 
+
             if os.path.exists(pkg.get_disk_data_path()):
                 with open(pkg.get_disk_data_path()) as f:
                     data = f.read()
@@ -2376,13 +2377,19 @@ class ArchManager(SoftwareManager):
                                                        names=installed_to_load,
                                                        internet_available=True).installed
 
-                installed.extend(installed_loaded)
+                if installed_loaded:
+                    installed.extend(installed_loaded)
 
-                if len(installed_loaded) + 1 != len(install_context.installed):
-                    missing = ','.join({p for p in installed_loaded if p.name not in install_context.installed})
-                    self.logger.warning("Could not load all installed packages. Missing: {}".format(missing))
+                    if len(installed_loaded) + 1 != len(install_context.installed):
+                        missing = ','.join({p for p in installed_loaded if p.name not in install_context.installed})
+                        self.logger.warning("Could not load all installed packages. Missing: {}".format(missing))
 
         removed = [*install_context.removed.values()] if install_context.removed else []
+
+        if installed:
+            downgrade_enabled = self.is_downgrade_enabled()
+            for p in installed:
+                p.downgrade_enabled = downgrade_enabled
 
         return TransactionResult(success=res, installed=installed, removed=removed)
 
