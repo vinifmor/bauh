@@ -1263,6 +1263,7 @@ class ManageWindow(QWidget):
     def search(self):
         word = self.inp_search.text().strip()
         if word:
+            self._handle_console(False)
             self._begin_search(word, action_id=ACTION_SEARCH)
             self.comp_manager.set_components_visible(False)
             self.thread_search.word = word
