@@ -274,13 +274,13 @@ class SnapManager(SoftwareManager):
             if not channel:
                 watcher.show_message(title=self.i18n['snap.action.channel.label'],
                                      body=self.i18n['snap.action.channel.error.no_channel'])
-                return True
+                return False
 
             return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(app_name=pkg.name,
                                                                                  root_password=root_password,
                                                                                  channel=channel))[0]
         except:
-            return True
+            return False
 
     def _start_category_task(self, task_man: TaskManager):
         if task_man:
