@@ -659,7 +659,7 @@ class InputFilter(QLineEdit):
         if self.typing.isActive():
             return
 
-        self.typing.start(2000)
+        self.typing.start(3000)
 
     def get_text(self):
         return self.last_text

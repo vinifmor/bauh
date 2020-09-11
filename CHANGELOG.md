@@ -89,6 +89,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - UI
     - faster initialization dialog: improved the way it checks for finished tasks
+    - 'name' filter now holds for 3 seconds instead of 2 before being applied
     - minor improvements
 
 ### Fixes
