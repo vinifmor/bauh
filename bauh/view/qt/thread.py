@@ -5,11 +5,13 @@ import traceback
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
+from selectors import DefaultSelector, EVENT_READ
 from typing import List, Type, Set, Tuple
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QIcon
+from evdev import InputDevice
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -1006,3 +1008,49 @@ class IgnorePackageUpdates(AsyncAction):
 
             finally:
                 self.pkg = None
+
+
+class GamepadInput(QThread):
+
+    signal_click = pyqtSignal()
+    signal_move_down = pyqtSignal()
+    signal_move_up = pyqtSignal()
+    signal_move_left = pyqtSignal()
+    signal_move_right = pyqtSignal()
+    signal_close_window = pyqtSignal()
+    signal_cancel = pyqtSignal()
+
+    def __init__(self, gamepad: InputDevice, parent=None):
+        super(GamepadInput, self).__init__(parent=parent)
+        self.gamepad = gamepad
+        self.work = True
+
+    def run(self):
+        selector = DefaultSelector()
+        selector.register(self.gamepad, EVENT_READ)
+
+        while True:
+            for key, mask in selector.select(timeout=3):
+                for event in key.fileobj.read():
+                    if event.type == 1 and event.value != 0:
+                        if event.code == 304:
+                            self.signal_close_window.emit()
+                        elif event.code == 305:
+                            self.signal_cancel.emit()
+                        elif event.code == 306:
+                            self.signal_click.emit()
+                    elif event.type == 3:
+                        if event.code == 17:
+                            if event.value == -1:
+                                self.signal_move_left.emit()
+                            elif event.value == 1:
+                                self.signal_move_right.emit()
+                        elif event.code == 17:
+                            if event.value == -1:
+                                self.signal_move_up.emit()
+                            elif event.value == 1:
+                                self.signal_move_down.emit()
+
+            if not self.work:
+                break
+

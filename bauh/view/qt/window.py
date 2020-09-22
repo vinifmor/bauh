@@ -1,5 +1,4 @@
 import logging
-import logging
 import operator
 import time
 import traceback
@@ -8,6 +7,7 @@ from typing import List, Type, Set, Tuple
 
 from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
+from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QAction
@@ -21,6 +21,7 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
+from bauh.view.core.gamepad import list_gamepads
 from bauh.view.core.tray_client import notify_tray
 from bauh.view.qt import dialog, commons, qt_utils, root, styles
 from bauh.view.qt.about import AboutDialog
@@ -38,7 +39,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     ListWarnings, \
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
-    IgnorePackageUpdates
+    IgnorePackageUpdates, GamepadInput
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -107,6 +108,10 @@ class ManageWindow(QWidget):
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.comp_manager = QtComponentsManager()
+        gamepads = list_gamepads()
+        self.thread_gamepad = GamepadInput(gamepads[0]) if gamepads else None
+        self._bind_gamepad_input()
+
         self.i18n = i18n
         self.logger = logger
         self.manager = manager
@@ -447,6 +452,30 @@ class ManageWindow(QWidget):
         self.setMinimumHeight(int(screen_size.height() * 0.5))
         self.setMinimumWidth(int(screen_size.width() * 0.6))
         self._register_groups()
+
+    def _bind_gamepad_input(self):
+        if self.thread_gamepad:
+            self.thread_gamepad.signal_move_down.connect(self.focusNextChild)
+            self.thread_gamepad.signal_move_up.connect(self.focusPreviousChild)
+            self.thread_gamepad.signal_move_right.connect(self.focusNextChild)
+            self.thread_gamepad.signal_move_left.connect(self.focusPreviousChild)
+            self.thread_gamepad.signal_click.connect(self._click_current_focused)
+            self.thread_gamepad.signal_close_window.connect(self._close_active_window)
+            self.thread_gamepad.start()
+
+    def _close_active_window(self):
+        QApplication.activeWindow().close()
+
+    def _click_current_focused(self):
+        QApplication.setOverrideCursor(QCursor(Qt.BlankCursor))
+        widget = QApplication.focusWidget()
+        QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
+
+    def event(self, ev: QEvent) -> bool:
+        if self.thread_gamepad and ev.type() == QEvent.CursorChange:
+            QApplication.restoreOverrideCursor()
+
+        return super(ManageWindow, self).event(ev)
 
     def _register_groups(self):
         filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
