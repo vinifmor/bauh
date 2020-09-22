@@ -13,7 +13,6 @@ from bauh.view.util import logs
 
 def main(tray: bool = False):
     os.environ['PYTHONUNBUFFERED'] = '1'
-    os.environ["QT_IM_MODULE"] = "qtvirtualkeyboard"
 
     faulthandler.enable()
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

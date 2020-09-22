@@ -3,7 +3,7 @@ import traceback
 from pathlib import Path
 from typing import Tuple, Dict, Optional, Set
 
-from PyQt5.QtCore import Qt, QSize, QTimer
+from PyQt5.QtCore import Qt, QSize, QTimer, QEvent
 from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
@@ -653,13 +653,20 @@ class InputFilter(QLineEdit):
             self.last_text = text
             self.on_key_press()
 
-    def keyPressEvent(self, event):
+        self.typing.stop()
+
+    def keyPressEvent(self, event: QEvent):
         super(InputFilter, self).keyPressEvent(event)
 
         if self.typing.isActive():
             return
 
-        self.typing.start(3000)
+        if event.key() == Qt.Key_Enter:
+            print('enter')
+            self.on_key_press()
+        else:
+            self.typing.start(3000)
+
 
     def get_text(self):
         return self.last_text

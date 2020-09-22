@@ -1040,7 +1040,7 @@ class GamepadInput(QThread):
                         elif event.code == 306:
                             self.signal_click.emit()
                     elif event.type == 3:
-                        if event.code == 17:
+                        if event.code == 16:
                             if event.value == -1:
                                 self.signal_move_left.emit()
                             elif event.value == 1:

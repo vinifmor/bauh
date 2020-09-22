@@ -41,6 +41,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     NotifyInstalledLoaded, \
     IgnorePackageUpdates, GamepadInput
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.qt.virtual_keyboard import VirtualKeyboard
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -108,6 +109,7 @@ class ManageWindow(QWidget):
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.comp_manager = QtComponentsManager()
+        self.keyboard = None
         gamepads = list_gamepads()
         self.thread_gamepad = GamepadInput(gamepads[0]) if gamepads else None
         self._bind_gamepad_input()
@@ -451,29 +453,75 @@ class ManageWindow(QWidget):
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self.setMinimumHeight(int(screen_size.height() * 0.5))
         self.setMinimumWidth(int(screen_size.width() * 0.6))
+
         self._register_groups()
 
     def _bind_gamepad_input(self):
         if self.thread_gamepad:
-            self.thread_gamepad.signal_move_down.connect(self.focusNextChild)
-            self.thread_gamepad.signal_move_up.connect(self.focusPreviousChild)
-            self.thread_gamepad.signal_move_right.connect(self.focusNextChild)
-            self.thread_gamepad.signal_move_left.connect(self.focusPreviousChild)
-            self.thread_gamepad.signal_click.connect(self._click_current_focused)
-            self.thread_gamepad.signal_close_window.connect(self._close_active_window)
+            self.thread_gamepad.signal_move_down.connect(lambda: self._handle_gamepad_next_element(True))
+            self.thread_gamepad.signal_move_up.connect(lambda: self._handle_gamepad_next_element(False))
+            self.thread_gamepad.signal_move_right.connect(lambda: self._handle_gamepad_next_element(True))
+            self.thread_gamepad.signal_move_left.connect(lambda: self._handle_gamepad_next_element(False))
+            self.thread_gamepad.signal_cancel.connect(self._handle_gamepad_cancel_action)
+            self.thread_gamepad.signal_click.connect(self._handle_gamepad_click)
+            self.thread_gamepad.signal_close_window.connect(self._handle_gamepad_close_active_window)
             self.thread_gamepad.start()
 
-    def _close_active_window(self):
+    def _handle_gamepad_close_active_window(self):
         QApplication.activeWindow().close()
 
-    def _click_current_focused(self):
-        QApplication.setOverrideCursor(QCursor(Qt.BlankCursor))
+    def _handle_gamepad_cancel_action(self):
+        widget = QApplication.focusWidget()
+
+        if isinstance(widget, QListView):
+            widget.parent().hide()
+        elif isinstance(widget, QLineEdit):
+            if widget.text():
+                widget.setText(widget.text()[0:-1])
+                QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
+
+    def _handle_gamepad_next_element(self, next_el: bool):
+        root_widget = self.keyboard if self.keyboard and self.keyboard.isVisible() else self
+        widget = QApplication.focusWidget()
+
+        if next_el:
+            if widget and isinstance(widget, QListView):
+                QTest.keyPress(widget, Qt.Key_Down, Qt.NoModifier)
+            else:
+                root_widget.focusNextChild()
+        else:
+            if widget and isinstance(widget, QListView):
+                QTest.keyPress(widget, Qt.Key_Up, Qt.NoModifier)
+            else:
+                root_widget.focusPreviousChild()
+
+    def _handle_gamepad_next_container_element(self, next_container: bool):
+        widget = self.keyboard if self.keyboard and self.keyboard.isVisible() else self
+        if next_container:
+            widget.focusNextChild()
+        else:
+            widget.focusPreviousChild()
+
+    def _handle_gamepad_click(self):
+        # TODO uncomment later
+        # QApplication.setOverrideCursor(QCursor(Qt.BlankCursor))
         widget = QApplication.focusWidget()
         QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
 
+        if isinstance(widget, QLineEdit):
+            self.keyboard = VirtualKeyboard(widget)
+            self.keyboard.show()
+            self.keyboard.focusNextChild()
+        elif isinstance(widget, QComboBox):
+            widget.showPopup()
+            widget.view().setFocus()
+        elif isinstance(widget, QListView):
+            QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
+
     def event(self, ev: QEvent) -> bool:
-        if self.thread_gamepad and ev.type() == QEvent.CursorChange:
-            QApplication.restoreOverrideCursor()
+        # TODO uncomment later
+        # if self.thread_gamepad and ev.type() == QEvent.CursorChange:
+        #     QApplication.restoreOverrideCursor()
 
         return super(ManageWindow, self).event(ev)
 
