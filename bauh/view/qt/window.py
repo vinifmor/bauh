@@ -109,10 +109,11 @@ class ManageWindow(QWidget):
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.comp_manager = QtComponentsManager()
-        self.keyboard = None
+        self.keyboard = VirtualKeyboard(i18n=i18n)
         gamepads = list_gamepads()
         self.thread_gamepad = GamepadInput(gamepads[0]) if gamepads else None
         self._bind_gamepad_input()
+
 
         self.i18n = i18n
         self.logger = logger
@@ -481,7 +482,7 @@ class ManageWindow(QWidget):
                 QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
 
     def _handle_gamepad_next_element(self, next_el: bool):
-        root_widget = self.keyboard if self.keyboard and self.keyboard.isVisible() else self
+        root_widget = self.keyboard if self.keyboard.isVisible() else QApplication.activeWindow()
         widget = QApplication.focusWidget()
 
         if next_el:
@@ -495,13 +496,6 @@ class ManageWindow(QWidget):
             else:
                 root_widget.focusPreviousChild()
 
-    def _handle_gamepad_next_container_element(self, next_container: bool):
-        widget = self.keyboard if self.keyboard and self.keyboard.isVisible() else self
-        if next_container:
-            widget.focusNextChild()
-        else:
-            widget.focusPreviousChild()
-
     def _handle_gamepad_click(self):
         # TODO uncomment later
         # QApplication.setOverrideCursor(QCursor(Qt.BlankCursor))
@@ -509,7 +503,7 @@ class ManageWindow(QWidget):
         QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
 
         if isinstance(widget, QLineEdit):
-            self.keyboard = VirtualKeyboard(widget, self.i18n)
+            self.keyboard.input_text = widget
             self.keyboard.show()
             self.keyboard.focusNextChild()
         elif isinstance(widget, QComboBox):

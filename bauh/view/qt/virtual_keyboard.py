@@ -1,5 +1,5 @@
 from string import ascii_lowercase, ascii_uppercase
-from typing import Iterable
+from typing import Iterable, Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
@@ -13,7 +13,7 @@ SYMBOLS = ('@', '-', '_', '=', '#', '$', '%', '&', '*', '(', ')', '+', '-', ':',
 
 class VirtualKeyboard(QDialog):
 
-    def __init__(self, input_text: QLineEdit, i18n: I18n):
+    def __init__(self, i18n: I18n, input_text: Optional[QLineEdit] = None):
         super(VirtualKeyboard, self).__init__(flags=Qt.CustomizeWindowHint | Qt.FramelessWindowHint)
         screen_size = QApplication.primaryScreen().size()
 
@@ -50,13 +50,13 @@ class VirtualKeyboard(QDialog):
         self.lower_bar.addWidget(new_spacer())
 
         self.bt_space = QPushButton(self.i18n['vkeyboard.bt_space'])
-        self.bt_space.clicked.connect(lambda: self.input_text.setText(self.input_text.text() + ' '))
+        self.bt_space.clicked.connect(self._add_space)
         self.bt_space.setMinimumWidth(int(screen_size.width() / 2.5))
         self.lower_bar.addWidget(self.bt_space)
         self.lower_bar.addWidget(new_spacer())
 
         self.bt_erase = QPushButton(self.i18n['vkeyboard.bt_erase'])
-        self.bt_erase.clicked.connect(lambda: self.input_text.setText(self.input_text.text()[0:-1]))
+        self.bt_erase.clicked.connect(self._return_and_remove_character)
         self.lower_bar.addWidget(self.bt_erase)
 
         self.bt_done = QPushButton(self.i18n['vkeyboard.bt_done'])
@@ -69,6 +69,14 @@ class VirtualKeyboard(QDialog):
         self.move(0, screen_size.height() / 1.95)
 
         self._change_case()
+
+    def _add_space(self):
+        if self.input_text:
+            self.input_text.setText(self.input_text.text() + ' ')
+
+    def _return_and_remove_character(self):
+        if self.input_text:
+            self.input_text.setText(self.input_text.text()[0:-1])
 
     def _gen_range_buttons(self, symbols: Iterable) -> QWidget:
         container = QWidget()
@@ -104,7 +112,9 @@ class VirtualKeyboard(QDialog):
             self.container_numbers.show()
 
     def _enter_and_close(self):
-        QTest.keyPress(self.input_text, Qt.Key_Enter, Qt.NoModifier)
+        if self.input_text:
+            QTest.keyPress(self.input_text, Qt.Key_Enter, Qt.NoModifier)
+
         self.close()
 
     def _map_button(self, symbol: object) -> QPushButton:
@@ -112,7 +122,8 @@ class VirtualKeyboard(QDialog):
         bt.setFixedSize(50, 50)
 
         def hit_symbol():
-            self.input_text.setText(self.input_text.text() + str(symbol))
+            if self.input_text:
+                self.input_text.setText(self.input_text.text() + str(symbol))
 
         bt.clicked.connect(hit_symbol)
         return bt
