@@ -509,7 +509,7 @@ class ManageWindow(QWidget):
         QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
 
         if isinstance(widget, QLineEdit):
-            self.keyboard = VirtualKeyboard(widget)
+            self.keyboard = VirtualKeyboard(widget, self.i18n)
             self.keyboard.show()
             self.keyboard.focusNextChild()
         elif isinstance(widget, QComboBox):
