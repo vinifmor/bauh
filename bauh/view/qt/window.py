@@ -5,12 +5,12 @@ import traceback
 from pathlib import Path
 from typing import List, Type, Set, Tuple
 
-from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal, QPoint
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
-    QMenu, QAction
+    QMenu, QAction, QScrollArea, QTreeView, QTabBar, QToolButton
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -27,7 +27,8 @@ from bauh.view.qt import dialog, commons, qt_utils, root, styles
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
 from bauh.view.qt.colors import GREEN
-from bauh.view.qt.components import new_spacer, InputFilter, IconButton, QtComponentsManager
+from bauh.view.qt.components import new_spacer, InputFilter, IconButton, QtComponentsManager, RadioSelectQt, \
+    FormRadioSelectQt
 from bauh.view.qt.confirmation import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
@@ -408,12 +409,12 @@ class ManageWindow(QWidget):
         self.toolbar_bottom.addWidget(new_spacer())
 
         self.custom_actions = manager.get_custom_actions()
-        bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
-                                       action=self.show_custom_actions,
-                                       i18n=self.i18n,
-                                       tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
-        bt_custom_actions.setVisible(bool(self.custom_actions))
-        self.comp_manager.register_component(BT_CUSTOM_ACTIONS, bt_custom_actions, self.toolbar_bottom.addWidget(bt_custom_actions))
+        self.bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
+                                            action=self.show_custom_actions,
+                                            i18n=self.i18n,
+                                            tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
+        self.bt_custom_actions.setVisible(bool(self.custom_actions))
+        self.comp_manager.register_component(BT_CUSTOM_ACTIONS, self.bt_custom_actions, self.toolbar_bottom.addWidget(self.bt_custom_actions))
 
         bt_settings = IconButton(QIcon(resource.get_path('img/settings.svg')),
                                  action=self.show_settings,
@@ -459,10 +460,10 @@ class ManageWindow(QWidget):
 
     def _bind_gamepad_input(self):
         if self.thread_gamepad:
-            self.thread_gamepad.signal_move_down.connect(lambda: self._handle_gamepad_next_element(True))
-            self.thread_gamepad.signal_move_up.connect(lambda: self._handle_gamepad_next_element(False))
-            self.thread_gamepad.signal_move_right.connect(lambda: self._handle_gamepad_next_element(True))
-            self.thread_gamepad.signal_move_left.connect(lambda: self._handle_gamepad_next_element(False))
+            self.thread_gamepad.signal_move_down.connect(lambda: self._handle_gamepad_next_vertical(True))
+            self.thread_gamepad.signal_move_up.connect(lambda: self._handle_gamepad_next_vertical(False))
+            self.thread_gamepad.signal_move_right.connect(lambda: self._handle_gamepad_next_horizontal(True))
+            self.thread_gamepad.signal_move_left.connect(lambda: self._handle_gamepad_next_horizontal(False))
             self.thread_gamepad.signal_cancel.connect(self._handle_gamepad_cancel_action)
             self.thread_gamepad.signal_click.connect(self._handle_gamepad_click)
             self.thread_gamepad.signal_close_window.connect(self._handle_gamepad_close_active_window)
@@ -476,41 +477,132 @@ class ManageWindow(QWidget):
 
         if isinstance(widget, QListView):
             widget.parent().hide()
+        elif isinstance(widget, QMenu):
+            widget.close()
         elif isinstance(widget, QLineEdit):
             if widget.text():
                 widget.setText(widget.text()[0:-1])
                 QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
 
-    def _handle_gamepad_next_element(self, next_el: bool):
+    def _is_instance_of_any(self, obj, *types: Type) -> bool:
+        return bool({1 for t in types if isinstance(obj, t)})
+
+    def _handle_gamepad_next_horizontal(self, next_el: bool):
         root_widget = self.keyboard if self.keyboard.isVisible() else QApplication.activeWindow()
         widget = QApplication.focusWidget()
 
+        print('Root: {}'.format(root_widget.__class__.__name__))
+
+        if widget:
+            print('Focus: {}'.format(widget.__class__.__name__))
+
         if next_el:
-            if widget and isinstance(widget, QListView):
+            if widget and isinstance(widget, QTreeView):
+                if widget.indexBelow(widget.currentIndex()).row() >= 0:
+                    QTest.keyPress(widget, Qt.Key_Down, Qt.NoModifier)
+                else:
+                    widget.clearSelection()
+                    self._focus_meaninful_widget(root_widget, True)
+            elif widget and isinstance(widget, QTabBar) and widget.parent().currentIndex() < (widget.parent().count() - 1):
+                widget.parent().setCurrentIndex(widget.parent().currentIndex() + 1)
+            else:
+                self._focus_meaninful_widget(root_widget, True)
+        else:
+            if widget and isinstance(widget, QTabBar) and widget.parent().currentIndex() > 0:
+                widget.parent().setCurrentIndex(widget.parent().currentIndex() - 1)
+            elif widget and isinstance(widget, QTreeView):
+                if widget.currentIndex().row() > 0:
+                    QTest.keyPress(widget, Qt.Key_Up, Qt.NoModifier)
+                else:
+                    widget.clearSelection()
+                    self._focus_meaninful_widget(root_widget, False)
+            else:
+                self._focus_meaninful_widget(root_widget, False)
+
+        print('Focused: {}'.format(QApplication.focusWidget().__class__.__name__))
+
+    def _handle_gamepad_next_vertical(self, next_el: bool):
+        root_widget = self.keyboard if self.keyboard.isVisible() else QApplication.activeWindow()
+        widget = QApplication.focusWidget()
+
+        print('Root: {}'.format(root_widget.__class__.__name__))
+
+        if widget:
+            print('Focus: {}'.format(widget.__class__.__name__))
+
+        if next_el:
+            if widget and isinstance(widget, QTabBar):
+                to_focus = widget.nextInFocusChain()
+
+                while isinstance(to_focus, QToolButton):
+                    self._focus_meaninful_widget(to_focus, True)
+                    to_focus = to_focus.nextInFocusChain()
+            elif widget and self._is_instance_of_any(widget, QListView, QMenu):
                 QTest.keyPress(widget, Qt.Key_Down, Qt.NoModifier)
             else:
-                root_widget.focusNextChild()
+                self._focus_meaninful_widget(root_widget, True)
+
         else:
-            if widget and isinstance(widget, QListView):
+            if widget and isinstance(widget, QTabBar):
+                to_focus = widget.previousInFocusChain()
+
+                while isinstance(to_focus, QToolButton):
+                    self._focus_meaninful_widget(to_focus, False)
+                    to_focus = to_focus.previousInFocusChain()
+            elif widget and self._is_instance_of_any(widget, QListView, QMenu):
                 QTest.keyPress(widget, Qt.Key_Up, Qt.NoModifier)
             else:
-                root_widget.focusPreviousChild()
+                self._focus_meaninful_widget(root_widget, False)
+
+        print('Focused: {}'.format(QApplication.focusWidget().__class__.__name__))
+
+    def _focus_meaninful_widget(self, widget: QWidget, next_child: bool):
+        QTest.keyPress(widget, Qt.Key_Tab, Qt.NoModifier if next_child else Qt.ShiftModifier)
+
+        focused = QApplication.focusWidget()
+
+        if self._is_instance_of_any(focused, QScrollArea):
+            self._focus_meaninful_widget(focused, next_child)
+
+        # current_widget = QApplication.focusWidget()
+        # QTest.mouseMove(current_widget, current_widget.pos())
 
     def _handle_gamepad_click(self):
         # TODO uncomment later
         # QApplication.setOverrideCursor(QCursor(Qt.BlankCursor))
         widget = QApplication.focusWidget()
-        QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
+        print('Click focused: {}'.format(widget.__class__.__name__))
 
-        if isinstance(widget, QLineEdit):
-            self.keyboard.input_text = widget
-            self.keyboard.show()
-            self.keyboard.focusNextChild()
-        elif isinstance(widget, QComboBox):
-            widget.showPopup()
-            widget.view().setFocus()
-        elif isinstance(widget, QListView):
+        if isinstance(widget, QTreeView):
             QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
+        elif self._is_instance_of_any(widget.parent(), RadioSelectQt, FormRadioSelectQt):
+            widget.parent().select_next()
+        else:
+            QTest.mouseClick(widget, Qt.LeftButton, Qt.NoModifier)
+
+            if isinstance(widget, QLineEdit):
+                self.keyboard.input_text = widget
+                self.keyboard.show()
+                self.keyboard.focusNextChild()
+            elif isinstance(widget, QComboBox):
+                widget.showPopup()
+                widget.view().setFocus()
+            elif isinstance(widget, QListView):
+                QTest.keyPress(widget, Qt.Key_Enter, Qt.NoModifier)
+            elif isinstance(widget, QToolButton):
+                previous_focused = widget.previousInFocusChain()
+                if isinstance(previous_focused, QTabBar):
+                    tab_group = previous_focused.parent()
+                    idx = tab_group.currentIndex()
+
+                    if idx > 0:
+                        tab_group.setCurrentIndex(idx - 1)
+                elif isinstance(previous_focused, QToolButton) and isinstance(previous_focused.parent(), QTabBar):
+                    tab_group = previous_focused.parent()
+                    idx = tab_group.currentIndex()
+
+                    if idx < (tab_group.count() - 1):
+                        tab_group.setCurrentIndex(idx + 1)
 
     def event(self, ev: QEvent) -> bool:
         # TODO uncomment later
@@ -1546,7 +1638,8 @@ class ManageWindow(QWidget):
             actions = [self._map_custom_action(a) for a in self.custom_actions]
             menu_row.addActions(actions)
             menu_row.adjustSize()
-            menu_row.popup(QCursor.pos())
+            menu_row.popup(QPoint(self.bt_custom_actions.x(), self.toolbar_bottom.y()))
+            menu_row.setFocus()
             menu_row.exec_()
 
     def begin_ignore_updates(self, pkg: PackageView):

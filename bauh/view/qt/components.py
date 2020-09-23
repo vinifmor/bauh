@@ -367,6 +367,7 @@ class FormRadioSelectQt(QWidget):
         super(FormRadioSelectQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.radios = []
 
         if model.max_width > 0:
             self.setMaximumWidth(model.max_width)
@@ -386,6 +387,7 @@ class FormRadioSelectQt(QWidget):
                 comp.setChecked(True)
 
             grid.addWidget(comp, line, col)
+            self.radios.append(comp)
 
             if col + 1 == self.model.max_per_line:
                 line += 1
@@ -396,6 +398,21 @@ class FormRadioSelectQt(QWidget):
         if model.max_width <= 0:
             self.setMaximumWidth(self.sizeHint().width())
 
+    def currentIndex(self) -> int:
+        for idx, o in enumerate(self.model.options):
+            if o == self.model.value:
+                return idx
+
+        return -1
+
+    def select_next(self):
+        idx = self.currentIndex()
+
+        if idx == -1 or idx == len(self.radios) - 1:
+            self.radios[0].setChecked(True)
+        else:
+            self.radios[idx + 1].setChecked(True)
+
 
 class RadioSelectQt(QGroupBox):
 
@@ -403,6 +420,7 @@ class RadioSelectQt(QGroupBox):
         super(RadioSelectQt, self).__init__(model.label + ' :' if model.label else None)
         self.model = model
         self.setStyleSheet("QGroupBox { font-weight: bold }")
+        self.radios = []
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -418,12 +436,28 @@ class RadioSelectQt(QGroupBox):
                 comp.setChecked(True)
 
             grid.addWidget(comp, line, col)
+            self.radios.append(comp)
 
             if col + 1 == self.model.max_per_line:
                 line += 1
                 col = 0
             else:
                 col += 1
+
+    def currentIndex(self) -> int:
+        for idx, o in enumerate(self.model.options):
+            if o == self.model.value:
+                return idx
+
+        return -1
+
+    def select_next(self):
+        idx = self.currentIndex()
+
+        if idx == -1 or idx == len(self.radios) - 1:
+            self.radios[0].setChecked(True)
+        else:
+            self.radios[idx + 1].setChecked(True)
 
 
 class ComboSelectQt(QGroupBox):
@@ -919,9 +953,19 @@ class FormQt(QGroupBox):
                 cur_path = str(Path.home())
 
             if c.directory:
-                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=QFileDialog.Options())
+                # TODO
+                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=QFileDialog.options())
             else:
-                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.Options())
+                # TODO WIP !
+                diag = QFileDialog(parent=self, caption=self.i18n['file_chooser.title'], directory=cur_path, filter=exts)
+                diag.setOptions(QFileDialog.DontUseNativeDialog)
+                diag.exec()
+                file_path = diag.selectedFiles()[0]
+
+                if file_path == cur_path:
+                    file_path = None
+
+                # file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.options())
 
             if file_path:
                 c.set_file_path(file_path)
