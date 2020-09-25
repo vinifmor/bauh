@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.8]
 ### Fixes
 - Arch
-    - info window: not displaying all installed files 
+    - info window: not displaying all installed files
+- AppImage
+    - "Checking symlinks" initial task hanging if an installed AppImage data does not contain the installed directory field ('install_dir')   
 
 ## [0.9.7] 2020-09-11
 ### Features

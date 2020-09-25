@@ -190,7 +190,11 @@ class SymlinksVerifier(Thread):
                             data = None
 
                     if data and not data.get('symlink'):
+                        if not data.get('install_dir'):
+                            data['install_dir'] = '/'.join(json_file.split('/')[0:-1])
+
                         app = AppImage(**data, i18n=self.i18n)
+
                         file_path = util.find_appimage_file(app.install_dir)
 
                         if file_path:
