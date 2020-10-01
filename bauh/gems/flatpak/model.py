@@ -120,3 +120,7 @@ class FlatpakApplication(SoftwarePackage):
     def __eq__(self, other):
         if isinstance(other, FlatpakApplication):
             return self.id == other.id and self.installation == other.installation and self.branch == other.branch
+
+    def get_disk_icon_path(self) -> str:
+        if not self.runtime:
+            return super(FlatpakApplication, self).get_disk_icon_path()

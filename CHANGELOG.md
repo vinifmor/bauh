@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - sometimes crashing when there are packages to be removed 
 - AppImage
     - "Checking symlinks" initial task hanging if an installed AppImage data does not contain the installed directory field ('install_dir')   
+- Flatpak
+    - not displaying the runtimes icons on the summary window
 
 ## [0.9.7] 2020-09-11
 ### Features
