@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Arch
     - info window: not displaying all installed files
+    - upgrade: 
+        - sometimes crashing when there are packages to be removed 
 - AppImage
     - "Checking symlinks" initial task hanging if an installed AppImage data does not contain the installed directory field ('install_dir')   
 
