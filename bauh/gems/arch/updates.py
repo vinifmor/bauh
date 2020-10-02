@@ -501,7 +501,7 @@ class UpdatesSummarizer:
                 deps_no_data = {dep for dep in required_by_installed if dep in context.pkgs_data}
                 deps_nodata_deps = pacman.map_required_dependencies(*deps_no_data) if deps_no_data else {}
 
-                reverse_to_remove_provided = {p: name for name, provided in to_remove_provided for p in provided}
+                reverse_to_remove_provided = {p: name for name, provided in to_remove_provided.items() for p in provided}
 
                 for pkg in required_by_installed:
                     if pkg not in context.to_remove:

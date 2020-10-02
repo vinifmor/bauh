@@ -178,17 +178,19 @@ def map_desktop_files(*pkgnames) -> Dict[str, List[str]]:
 
 
 def list_installed_files(pkgname: str) -> List[str]:
-    installed_files = new_subprocess(['pacman', '-Qlq', pkgname])
+    installed_files = run_cmd('pacman -Qlq {}'.format(pkgname), print_error=False)
 
-    f_paths = []
+    paths = []
 
-    for out in new_subprocess(['grep', '-E', '/.+\..+[^/]$'], stdin=installed_files.stdout).stdout:
-        if out:
-            line = out.decode().strip()
-            if line:
-                f_paths.append(line)
+    if installed_files:
+        for f in installed_files.split('\n'):
+            if f:
+                f_strip = f.strip()
 
-    return f_paths
+                if f_strip and not f_strip.endswith('/'):
+                    paths.append(f_strip)
+
+    return paths
 
 
 def verify_pgp_key(key: str) -> bool:
