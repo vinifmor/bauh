@@ -151,6 +151,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
 
     if not simulate:
         cmd.append('--noconfirm')
+        cmd.append('-dd')
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
@@ -1172,3 +1173,13 @@ def list_post_uninstall_unneeded_packages(names: Set[str]) -> Set[str]:
                     reqs.add(line_strip)
 
     return reqs
+
+
+def find_one_match(name: str) -> Optional[str]:
+    output = run_cmd('pacman -Ssq {}'.format(name), print_error=False)
+
+    if output:
+        matches = [l.strip() for l in output.split('\n') if l.strip()]
+
+        if matches and len(matches) == 1:
+            return matches[0]

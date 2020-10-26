@@ -50,7 +50,7 @@ def check(pkgdir: str, optimize: bool, missing_deps: bool, handler: ProcessHandl
 
 
 def make(pkgdir: str, optimize: bool, handler: ProcessHandler, custom_pkgbuild: Optional[str] = None) -> Tuple[bool, str]:
-    cmd = ['makepkg', '-ALcsmf', '--skipchecksums']
+    cmd = ['makepkg', '-ALcsmf', '--skipchecksums', '--nodeps']
 
     if custom_pkgbuild:
         cmd.append('-p')

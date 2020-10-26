@@ -185,11 +185,24 @@ class DependenciesAnalyser:
 
         if dep_name == dep_exp:
             providers = remote_provided_map.get(dep_name)
+
+            if not providers:  # try to find the package through the pacman's search mechanism
+                match = pacman.find_one_match(dep_name)
+
+                if match:
+                    providers = {match}
+
         else:  # handling cases when the dep has an expression ( e.g: xpto>=0.12 )
             providers = remote_provided_map.get(dep_exp)
 
             if providers is None:
                 providers = remote_provided_map.get(dep_name)
+
+                if not providers:  # try to find the package through the pacman's search mechanism
+                    match = pacman.find_one_match(dep_name)
+
+                    if match:
+                        providers = {match}
 
                 if providers and len(providers) > 1:
                     no_mapped_data = {p for p in providers if
