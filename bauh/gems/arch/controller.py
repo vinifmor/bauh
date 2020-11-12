@@ -346,15 +346,15 @@ class ArchManager(SoftwareManager):
 
     def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
         repo_search = pacman.search(words)
+        pkgname = words.split(' ')[0].strip()
 
-        if not repo_search:  # the package may not be mapped on the databases anymore
-            pkgname = words.split(' ')[0].strip()
+        if not repo_search or pkgname not in repo_search:
             pkg_found = pacman.get_info_dict(pkgname, remote=False)
 
-            if pkg_found and pkg_found['validated by']:
-                repo_search = {pkgname: {'version': pkg_found.get('version'),
-                                         'repository': 'unknown',
-                                         'description': pkg_found.get('description')}}
+            if pkg_found and pkg_found['validated by'] and pkg_found['name'] not in repo_search:
+                repo_search[pkgname] = {'version': pkg_found.get('version'),
+                                        'repository': 'unknown',
+                                        'description': pkg_found.get('description')}
 
         if repo_search:
             repo_pkgs = []

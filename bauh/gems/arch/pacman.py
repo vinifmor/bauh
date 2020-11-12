@@ -429,8 +429,9 @@ def get_build_date(pkgname: str) -> str:
 def search(words: str) -> Dict[str, dict]:
     output = run_cmd('pacman -Ss ' + words, print_error=False)
 
+    found = {}
     if output:
-        found, current = {}, {}
+        current = {}
         for l in output.split('\n'):
             if l:
                 if l.startswith(' '):
@@ -450,7 +451,7 @@ def search(words: str) -> Dict[str, dict]:
 
                     version = data_split[1].split(':')
                     current['version'] = version[0] if len(version) == 1 else version[1]
-        return found
+    return found
 
 
 def get_databases() -> Set[str]:

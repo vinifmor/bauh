@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.9]
 ### Fixes
 - Arch:
+    - search: not able to find installed packages that were renamed on the repositories (e.g: xapps -> xapp)
     - AUR: not able to find some repository dependencies when their names are not an exact match (e.g: sc-controller [0.4.7-1] relies on "pylibacl". This dependency now is called "python-pylibacl")
 
 ## [0.9.8] 2020-10-02
