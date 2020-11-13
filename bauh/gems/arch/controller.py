@@ -1095,15 +1095,20 @@ class ArchManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: str, handler: ProcessHandler) -> bool:
+    def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: str, handler: ProcessHandler, ignore_dependencies: bool = False) -> bool:
         status_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
                                                   names={*pkgs},
                                                   logger=self.logger,
                                                   pkgs_to_remove=len(pkgs))
 
+        cmd = ['pacman', '-R', *pkgs, '--noconfirm']
+
+        if ignore_dependencies:
+            cmd.append('-dd')
+
         status_handler.start()
-        all_uninstalled, _ = handler.handle_simple(SimpleProcess(cmd=['pacman', '-R', *pkgs, '--noconfirm'],
+        all_uninstalled, _ = handler.handle_simple(SimpleProcess(cmd=cmd,
                                                                  root_password=root_password,
                                                                  error_phrases={'error: failed to prepare transaction',
                                                                                 'error: failed to commit transaction'},
@@ -1167,24 +1172,25 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False, disk_loader: DiskCacheLoader = None):
+    def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False, disk_loader: Optional[DiskCacheLoader] = None, skip_requirements: bool = False):
         self._update_progress(context, 10)
 
         net_available = internet.is_available() if disk_loader else True
 
         hard_requirements = set()
 
-        for n in names:
-            try:
-                pkg_reqs = pacman.list_hard_requirements(n, self.logger)
+        if not skip_requirements:
+            for n in names:
+                try:
+                    pkg_reqs = pacman.list_hard_requirements(n, self.logger)
 
-                if pkg_reqs:
-                    hard_requirements.update(pkg_reqs)
-            except PackageInHoldException:
-                context.watcher.show_message(title=self.i18n['error'].capitalize(),
-                                             body=self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(n)),
-                                             type_=MessageType.ERROR)
-                return False
+                    if pkg_reqs:
+                        hard_requirements.update(pkg_reqs)
+                except PackageInHoldException:
+                    context.watcher.show_message(title=self.i18n['error'].capitalize(),
+                                                 body=self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(n)),
+                                                 type_=MessageType.ERROR)
+                    return False
 
         self._update_progress(context, 25)
 
@@ -1199,7 +1205,7 @@ class ArchManager(SoftwareManager):
                                                         watcher=context.watcher):
                 return False
 
-        if remove_unneeded:
+        if not skip_requirements and remove_unneeded:
             unnecessary_packages = pacman.list_post_uninstall_unneeded_packages(to_uninstall)
             self.logger.info("Checking unnecessary optdeps")
 
@@ -1222,7 +1228,7 @@ class ArchManager(SoftwareManager):
         else:
             instances = None
 
-        uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler)
+        uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler, ignore_dependencies=skip_requirements)
 
         if uninstalled:
             if disk_loader:  # loading package instances in case the uninstall succeeds
@@ -1521,7 +1527,7 @@ class ArchManager(SoftwareManager):
         else:
             return self._get_history_repo_pkg(pkg)
 
-    def _request_conflict_resolution(self, pkg: str, conflicting_pkg: str, context: TransactionContext) -> bool:
+    def _request_conflict_resolution(self, pkg: str, conflicting_pkg: str, context: TransactionContext, skip_requirements: bool = False) -> bool:
         conflict_msg = '{} {} {}'.format(bold(pkg), self.i18n['and'], bold(conflicting_pkg))
         if not context.watcher.request_confirmation(title=self.i18n['arch.install.conflict.popup.title'],
                                                     body=self.i18n['arch.install.conflict.popup.body'].format(conflict_msg)):
@@ -1534,7 +1540,8 @@ class ArchManager(SoftwareManager):
             if context.removed is None:
                 context.removed = {}
 
-            res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader, remove_unneeded=False)
+            res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader,
+                                  remove_unneeded=False, skip_requirements=skip_requirements)
             context.restabilish_progress()
             return res
 
@@ -1572,16 +1579,17 @@ class ArchManager(SoftwareManager):
 
             all_provided = context.get_provided_map()
 
-            for dep, conflicts in pacman.map_conflicts_with(repo_dep_names, remote=True).items():
-                if conflicts:
-                    for c in conflicts:
+            for dep, data in pacman.map_conflicts_with(repo_dep_names, remote=True).items():
+                if data and data['c']:
+                    for c in data['c']:
                         source_conflict = all_provided.get(c)
 
                         if source_conflict:
                             conflict_pkg = [*source_conflict][0]
 
                             if dep != conflict_pkg:
-                                if not self._request_conflict_resolution(dep, conflict_pkg , context):
+                                if not self._request_conflict_resolution(dep, conflict_pkg, context,
+                                                                         skip_requirements=data['r'] and conflict_pkg in data['r']):
                                     return {dep}
 
             downloaded = 0
@@ -1592,7 +1600,7 @@ class ArchManager(SoftwareManager):
                 except ArchDownloadException:
                     return False
 
-            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, names=repo_dep_names,
+            status_handler = TransactionStatusHandler(watcher=context.watcher, i18n=self.i18n, names={*repo_dep_names},
                                                       logger=self.logger, percentage=len(repo_deps) > 1, downloading=downloaded)
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
@@ -2106,8 +2114,25 @@ class ArchManager(SoftwareManager):
                     if context.removed is None:
                         context.removed = {}
 
+                    to_install_replacements = pacman.map_replaces(names_to_install)
+
+                    skip_requirement_checking = False
+                    if to_install_replacements:  # checking if the packages to be installed replace the installed packages
+                        all_replacements = set()
+
+                        for replacements in to_install_replacements:
+                            all_replacements.update(replacements)
+
+                        if all_replacements:
+                            for pkg in to_uninstall:
+                                if pkg not in all_replacements:
+                                    break
+
+                            skip_requirement_checking = True
+
                     context.disable_progress_if_changing()
-                    if not self._uninstall(names=to_uninstall, context=context, remove_unneeded=False, disk_loader=context.disk_loader):
+                    if not self._uninstall(names=to_uninstall, context=context, remove_unneeded=False,
+                                           disk_loader=context.disk_loader, skip_requirements=skip_requirement_checking):
                         context.watcher.show_message(title=self.i18n['error'],
                                                      body=self.i18n['arch.uninstalling.conflict.fail'].format(', '.join((bold(p) for p in to_uninstall))),
                                                      type_=MessageType.ERROR)
