@@ -1,0 +1,8 @@
+tray.action.manage=Applications
+tray.action.exit=Quitter
+tray.action.about=À propos
+tray.action.refreshing=Actualisation
+tray.settings=Paramètres
+notification.update={} mise à jour disponible
+notification.updates={} mises à jour disponibles
+tray.warning.update_available=Nouvelle {} version disponible ({})
