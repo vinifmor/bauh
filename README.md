@@ -275,6 +275,7 @@ You can change some application settings via environment variables or arguments 
 - `--settings`: it displays only the settings window.
 - `--reset`: it cleans all configurations and cached data stored in the HOME directory.
 - `--logs`: it enables logs (for debugging purposes).
+- `--offline`: it assumes the internet connection is off.
 
 #### General configuration file (**~/.config/bauh/config.yml**)
 ```
@@ -295,15 +296,17 @@ system:
   notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
   single_dependency_checking: false  # if bauh should check only once if for the available technologies on the system.
 ui:
-  style: null  # the current QT style set. A null value will map to 'Fusion', 'Breeze' or 'Oxygen' (depending on what is installed)
+  qt_style: fusion  # defines the Qt style. A null value will map to 'fusion' as well.
   table:
-    max_displayed: 50  # defines the maximum number of displayed applications on the table.
+    max_displayed: 50  # defines the maximum number of displayed applications on the table. Use 0 for no limit.
   tray:  # system tray settings
     default_icon: null  # defines a path to a custom icon
     updates_icon: null  # defines a path to a custom icon indicating updates
   hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments (like Gnome)
   scale_factor: 1.0  # defines the interface display scaling factor (Qt). Raise the value to raise the interface size. The settings window display this value as a percentage (e.g: 1.0 -> 100%).
+  theme: defines the path to the theme/stylesheet file with a .qss extension (e.g: /path/to/my/theme.qss). For themes provided by bauh, only a string key is needed (e.g: light). Default: light
+  system_theme: merges the system's theme/stylesheet with bauh's. Default: false.
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
   ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade

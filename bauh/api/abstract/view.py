@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Set, Optional
 
 
-class MessageType:
+class MessageType(Enum):
     INFO = 0
     WARNING = 1
     ERROR = 2
@@ -19,7 +19,7 @@ class ViewComponent(ABC):
     """
     Represents a GUI component
     """
-    def __init__(self, id_: str, observers: List[ViewObserver] = None):
+    def __init__(self, id_: Optional[str], observers: Optional[List[ViewObserver]] = None):
         self.id = id_
         self.observers = observers if observers else []
 
@@ -56,12 +56,15 @@ class InputOption:
     Represents a select component option.
     """
 
-    def __init__(self, label: str, value: object, tooltip: str = None, icon_path: str = None, read_only: bool = False, id_: str = None):
+    def __init__(self, label: str, value: object, tooltip: Optional[str] = None,
+                 icon_path: Optional[str] = None, read_only: bool = False, id_: Optional[str] = None,
+                 invalid: bool = False):
         """
         :param label: the string that will be shown to the user
         :param value: the option value (not shown)
         :param tooltip: an optional tooltip
         :param icon_path: an optional icon path
+        :param invalid: if this option is considered invalid
         """
         if not label:
             raise Exception("'label' must be a not blank string")
@@ -72,6 +75,7 @@ class InputOption:
         self.tooltip = tooltip
         self.icon_path = icon_path
         self.read_only = read_only
+        self.invalid = invalid
 
     def __hash__(self):
         return hash(self.label) + hash(self.value)
@@ -155,9 +159,10 @@ class TextInputType(Enum):
 
 class TextInputComponent(ViewComponent):
 
-    def __init__(self, label: str, value: str = '', placeholder: str = None, tooltip: str = None, read_only: bool =False,
-                 id_: str = None, only_int: bool = False, max_width: int = -1, type_: TextInputType = TextInputType.SINGLE_LINE,
-                 capitalize_label: bool = True, min_width: int = -1, min_height: int = -1):
+    def __init__(self, label: str, value: str = '', placeholder: Optional[str] = None, tooltip: Optional[str] = None,
+                 read_only: bool = False, id_: Optional[str] = None, only_int: bool = False, max_width: int = -1,
+                 type_: TextInputType = TextInputType.SINGLE_LINE, capitalize_label: bool = True, min_width: int = -1,
+                 min_height: int = -1):
         super(TextInputComponent, self).__init__(id_=id_)
         self.label = label
         self.value = value
@@ -216,9 +221,9 @@ class FormComponent(ViewComponent):
 
 class FileChooserComponent(ViewComponent):
 
-    def __init__(self, allowed_extensions: Set[str] = None, label: str = None, tooltip: str = None,
-                 file_path: str = None, max_width: int = -1, id_: str = None, search_path: str = None, capitalize_label: bool = True,
-                 directory: bool = False):
+    def __init__(self, allowed_extensions: Optional[Set[str]] = None, label: Optional[str] = None, tooltip: Optional[str] = None,
+                 file_path: Optional[str] = None, max_width: int = -1, id_: Optional[str] = None,
+                 search_path: Optional[str] = None, capitalize_label: bool = True, directory: bool = False):
         super(FileChooserComponent, self).__init__(id_=id_)
         self.label = label
         self.allowed_extensions = allowed_extensions
@@ -229,7 +234,7 @@ class FileChooserComponent(ViewComponent):
         self.capitalize_label = capitalize_label
         self.directory = directory
 
-    def set_file_path(self, fpath: str):
+    def set_file_path(self, fpath: Optional[str]):
         self.file_path = fpath
 
         if self.observers:

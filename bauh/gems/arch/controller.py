@@ -25,7 +25,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
-from bauh.commons import user, internet, system
+from bauh.commons import user, system
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
@@ -1175,7 +1175,7 @@ class ArchManager(SoftwareManager):
     def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False, disk_loader: Optional[DiskCacheLoader] = None, skip_requirements: bool = False):
         self._update_progress(context, 10)
 
-        net_available = internet.is_available() if disk_loader else True
+        net_available = self.context.internet_checker.is_available() if disk_loader else True
 
         hard_requirements = set()
 
@@ -2830,7 +2830,8 @@ class ArchManager(SoftwareManager):
 
     def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
         # repo_map = pacman.map_repositories()
-        installed = self.read_installed(limit=-1, only_apps=False, pkg_types=None, internet_available=internet.is_available(), disk_loader=None).installed
+        net_available = self.context.internet_checker.is_available()
+        installed = self.read_installed(limit=-1, only_apps=False, pkg_types=None, internet_available=net_available, disk_loader=None).installed
 
         if not installed:
             watcher.show_message(title=self.i18n['arch.custom_action.upgrade_system'],
@@ -3077,7 +3078,7 @@ class ArchManager(SoftwareManager):
                                             confirmation_label=self.i18n['proceed'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize()):
 
-                pwd, valid_pwd = watcher.request_root_password()
+                valid_pwd, pwd = watcher.request_root_password()
 
                 if valid_pwd:
                     handler = ProcessHandler(watcher)

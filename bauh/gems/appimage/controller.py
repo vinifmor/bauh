@@ -590,7 +590,8 @@ class AppImageManager(SoftwareManager):
         updater = DatabaseUpdater(task_man=task_manager,
                                   i18n=self.context.i18n,
                                   http_client=self.context.http_client, logger=self.context.logger,
-                                  db_locks=self.db_locks, interval=interval)
+                                  db_locks=self.db_locks, interval=interval,
+                                  internet_checker=self.context.internet_checker)
         if local_config['db_updater']['enabled']:
             updater.start()
         elif internet_available:

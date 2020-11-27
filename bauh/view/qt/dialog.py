@@ -1,11 +1,12 @@
-from typing import List
+from typing import List, Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize, QMargins
 from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout
+from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout, QDialog, QVBoxLayout, QSizePolicy, QApplication, \
+    QStyle, QPushButton, QScrollArea, QFrame
 
 from bauh.api.abstract.view import MessageType
-from bauh.view.qt import css
+from bauh.view.qt.components import new_spacer
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -28,34 +29,96 @@ def show_message(title: str, body: str, type_: MessageType, icon: QIcon = QIcon(
     popup.exec_()
 
 
-def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')), widgets: List[QWidget] = None):
-    diag = QMessageBox()
-    diag.setIcon(QMessageBox.Question)
-    diag.setWindowTitle(title)
-    diag.setStyleSheet('QLabel { margin-right: 25px; }')
-    diag.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+class ConfirmationDialog(QDialog):
 
-    wbody = QWidget()
-    wbody.setLayout(QHBoxLayout())
-    wbody.layout().addWidget(QLabel(body))
+    def __init__(self, title: str, body: Optional[str], i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')),
+                 widgets: Optional[List[QWidget]] = None, confirmation_button: bool = True, deny_button: bool = True,
+                 window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None):
+        super(ConfirmationDialog, self).__init__()
 
-    if widgets:
-        for w in widgets:
-            wbody.layout().addWidget(w)
+        if not window_cancel:
+            self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
 
-    diag.layout().addWidget(wbody, 0, 1)
+        self.setLayout(QVBoxLayout())
+        self.setWindowTitle(title)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        self.setMinimumWidth(250)
+        self.confirmed = False
 
-    bt_yes = diag.addButton(i18n['popup.button.yes'], QMessageBox.YesRole)
-    bt_yes.setStyleSheet(css.OK_BUTTON)
-    bt_yes.setCursor(QCursor(Qt.PointingHandCursor))
-    diag.setDefaultButton(bt_yes)
+        if icon:
+            self.setWindowIcon(icon)
 
-    bt_no = diag.addButton(i18n['popup.button.no'], QMessageBox.NoRole)
-    bt_no.setCursor(QCursor(Qt.PointingHandCursor))
+        container_body = QWidget()
+        container_body.setObjectName('confirm_container_body')
+        container_body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
 
-    if icon:
-        diag.setWindowIcon(icon)
+        if widgets:
+            container_body.setLayout(QVBoxLayout())
+            scroll = QScrollArea(self)
+            scroll.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(container_body)
+            self.layout().addWidget(scroll)
+        else:
+            container_body.setLayout(QHBoxLayout())
+            self.layout().addWidget(container_body)
 
-    diag.exec_()
+            lb_icon = QLabel()
+            lb_icon.setObjectName('confirm_icon')
+            lb_icon.setPixmap(QApplication.style().standardIcon(QStyle.SP_MessageBoxQuestion).pixmap(QSize(48, 48)))
+            container_body.layout().addWidget(lb_icon)
 
-    return diag.clickedButton() == bt_yes
+        if body:
+            lb_msg = QLabel(body)
+            lb_msg.setObjectName('confirm_msg')
+            container_body.layout().addWidget(lb_msg)
+
+        if widgets:
+            for w in widgets:
+                container_body.layout().addWidget(w)
+        else:
+            container_body.layout().addWidget(new_spacer())
+
+        container_bottom = QWidget()
+        container_bottom.setObjectName('confirm_container_bottom')
+        container_bottom.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        container_bottom.setLayout(QHBoxLayout())
+        self.layout().addWidget(container_bottom)
+
+        container_bottom.layout().addWidget(new_spacer())
+
+        if confirmation_button:
+            bt_confirm = QPushButton(confirmation_label.capitalize() if confirmation_label else i18n['popup.button.yes'])
+            bt_confirm.setObjectName('ok')
+            bt_confirm.setCursor(QCursor(Qt.PointingHandCursor))
+            bt_confirm.setDefault(True)
+            bt_confirm.setAutoDefault(True)
+            bt_confirm.clicked.connect(self.confirm)
+            container_bottom.layout().addWidget(bt_confirm)
+
+        if deny_button:
+            bt_cancel = QPushButton(deny_label.capitalize() if deny_label else i18n['popup.button.no'])
+            bt_cancel.setObjectName('bt_cancel')
+            bt_cancel.setCursor(QCursor(Qt.PointingHandCursor))
+            bt_cancel.clicked.connect(self.close)
+            container_bottom.layout().addWidget(bt_cancel)
+
+            if not confirmation_button:
+                bt_cancel.setDefault(True)
+                bt_cancel.setAutoDefault(True)
+
+    def confirm(self):
+        self.confirmed = True
+        self.close()
+
+    def ask(self) -> bool:
+        self.exec_()
+        return self.confirmed
+
+
+def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')),
+                     widgets: List[QWidget] = None) -> bool:
+    popup = ConfirmationDialog(title=title, body=body, i18n=i18n, icon=icon, widgets=widgets)
+    popup.exec_()
+    return popup.confirmed

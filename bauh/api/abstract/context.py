@@ -5,6 +5,7 @@ from bauh.api.abstract.cache import MemoryCacheFactory
 from bauh.api.abstract.disk import DiskCacheLoaderFactory
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.http import HttpClient
+from bauh.commons.internet import InternetChecker
 from bauh.view.util.translation import I18n
 
 
@@ -12,7 +13,8 @@ class ApplicationContext:
 
     def __init__(self, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: I18n,
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
-                 logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str):
+                 logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str,
+                 internet_checker: InternetChecker):
         """
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
@@ -24,7 +26,7 @@ class ApplicationContext:
         :param file_downloader
         :param distro
         :param app_name
-        :param root_password
+        :param internet_checker
         """
         self.download_icons = download_icons
         self.http_client = http_client
@@ -40,9 +42,13 @@ class ApplicationContext:
                                    'Graphics', 'Network', 'Office', 'Science', 'Settings', 'System', 'Utility')
         self.app_name = app_name
         self.root_password = None
+        self.internet_checker = internet_checker
 
     def is_system_x86_64(self):
         return self.arch_x86_64
 
     def get_view_path(self):
         return self.app_root_dir + '/view'
+
+    def is_internet_available(self) -> bool:
+        return self.internet_checker.is_available()

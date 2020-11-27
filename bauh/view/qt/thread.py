@@ -5,11 +5,12 @@ import traceback
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import List, Type, Set, Tuple
+from typing import List, Type, Set, Tuple, Optional
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QWidget
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -22,7 +23,7 @@ from bauh.api.exception import NoInternetException
 from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
-from bauh.view.core import timeshift
+from bauh.view.core import timeshift, config
 from bauh.view.core.config import read_config
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
@@ -43,7 +44,7 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_root_password = pyqtSignal()
     signal_progress_control = pyqtSignal(bool)
 
-    def __init__(self):
+    def __init__(self, root_password: Optional[Tuple[bool, str]] = None):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
@@ -62,7 +63,7 @@ class AsyncAction(QThread, ProcessWatcher):
         self.wait_user()
         return self.confirmation_res
 
-    def request_root_password(self) -> Tuple[str, bool]:
+    def request_root_password(self) -> Tuple[bool, Optional[str]]:
         self.wait_confirmation = True
         self.signal_root_password.emit()
         self.wait_user()
@@ -74,8 +75,8 @@ class AsyncAction(QThread, ProcessWatcher):
         self.confirmation_res = res
         self.wait_confirmation = False
 
-    def set_root_password(self, password: str, valid: bool):
-        self.root_password = (password, valid)
+    def set_root_password(self, valid: bool, password: str):
+        self.root_password = (valid, password)
         self.wait_confirmation = False
 
     def wait_user(self):
@@ -286,9 +287,9 @@ class UpgradeSelected(AsyncAction):
 
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
-    def _request_password(self) -> Tuple[bool, str]:
+    def _request_password(self) -> Tuple[bool, Optional[str]]:
         if not user.is_root():
-            pwd, success = self.request_root_password()
+            success, pwd = self.request_root_password()
 
             if not success:
                 return False, None
@@ -1006,3 +1007,20 @@ class IgnorePackageUpdates(AsyncAction):
 
             finally:
                 self.pkg = None
+
+
+class SaveTheme(QThread):
+
+    def __init__(self, theme_key: Optional[str], parent: Optional[QWidget] = None):
+        super(SaveTheme, self).__init__(parent=parent)
+        self.theme_key = theme_key
+
+    def run(self):
+        if self.theme_key:
+            core_config = read_config()
+            core_config['ui']['theme'] = self.theme_key
+
+            try:
+                config.save(core_config)
+            except:
+                traceback.print_exc()

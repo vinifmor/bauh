@@ -12,7 +12,7 @@ import requests
 
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
-from bauh.commons import internet
+from bauh.commons.internet import InternetChecker
 from bauh.gems.appimage import LOCAL_PATH, get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util
 from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
@@ -22,7 +22,9 @@ class DatabaseUpdater(Thread):
     URL_DB = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
     COMPRESS_FILE_PATH = LOCAL_PATH + '/db.tar.gz'
 
-    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient, logger: logging.Logger, db_locks: dict, interval: int):
+    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient,
+                 logger: logging.Logger, db_locks: dict, interval: int,
+                 internet_checker: InternetChecker):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
@@ -31,6 +33,7 @@ class DatabaseUpdater(Thread):
         self.i18n = i18n
         self.task_man = task_man
         self.task_id = 'appim_db'
+        self.internet_checker = internet_checker
 
     def _finish_task(self):
         if self.task_man:
@@ -44,7 +47,7 @@ class DatabaseUpdater(Thread):
             self.task_man.update_progress(self.task_id, 10, None)
 
         try:
-            if not internet.is_available():
+            if not self.internet_checker.is_available():
                 self._finish_task()
                 return
         except requests.exceptions.ConnectionError:

@@ -8,6 +8,7 @@ def read() -> Namespace:
     parser = argparse.ArgumentParser(prog=__app_name__, description="GUI for Linux software management")
     parser.add_argument('-v', '--version', action='version', version='%(prog)s {}'.format(__version__))
     parser.add_argument('--logs', action="store_true", help='It activates {} logs.'.format(__app_name__))
+    parser.add_argument('--offline', action="store_true", help='It assumes the internet connection is off')
 
     exclusive_args = parser.add_mutually_exclusive_group()
     exclusive_args.add_argument('--tray', action="store_true", help='If {} should be attached to the system tray.'.format(__app_name__))

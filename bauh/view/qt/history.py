@@ -2,8 +2,8 @@ import operator
 from functools import reduce
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView
+from PyQt5.QtGui import QColor, QIcon, QCursor
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
@@ -40,16 +40,19 @@ class HistoryDialog(QDialog):
             current_status = history.pkg_status_idx == row
 
             for col, key in enumerate(sorted(data.keys())):
-                item = QTableWidgetItem()
+                item = QLabel()
+                item.setProperty('even', row % 2 == 0)
                 item.setText(str(data[key]))
 
                 if current_status:
-                    item.setBackground(QColor(ORANGE if row != 0 else GREEN))
+                    item.setCursor(QCursor(Qt.WhatsThisCursor))
+                    item.setProperty('outdated',  str(row != 0).lower())
+
                     tip = '{}. {}.'.format(i18n['popup.history.selected.tooltip'], i18n['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 
                     item.setToolTip(tip)
 
-                table_history.setItem(row, col, item)
+                table_history.setCellWidget(row, col, item)
 
         layout.addWidget(table_history)
 
