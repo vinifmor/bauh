@@ -173,6 +173,10 @@ QMenu QPushButton:hover {
     color: @menu.item.selected.font.color;
 }
 
+QComboBox:disabled {
+    color: @disabled.color;
+}
+
 QComboBox::down-arrow, QSpinBox::down-arrow {
     image: url("@style_dir/img/arrow_down.svg");
 }

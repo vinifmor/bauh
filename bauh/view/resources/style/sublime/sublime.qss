@@ -31,6 +31,10 @@ QLineEdit, QComboBox, QSpinBox {
     border-color: @border.color;
 }
 
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled {
+    color: @disabled.color;
+}
+
 QCheckBox::indicator:unchecked {
   image: url("@style_dir/img/checkbox_unchecked.svg");
 }
