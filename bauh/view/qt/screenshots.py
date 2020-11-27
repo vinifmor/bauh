@@ -61,6 +61,7 @@ class ScreenshotsDialog(QDialog):
 
         self.bt_back = QPushButton(' < ' + self.i18n['screenshots.bt_back.label'].capitalize())
         self.bt_back.setObjectName('back')
+        self.bt_back.setProperty('control', 'true')
         self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_back.clicked.connect(self.back)
         self.container_buttons.layout().addWidget(self.bt_back)
@@ -71,6 +72,7 @@ class ScreenshotsDialog(QDialog):
 
         self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize() + ' > ')
         self.bt_next.setObjectName('next')
+        self.bt_next.setProperty('control', 'true')
         self.bt_next.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_next.clicked.connect(self.next)
         self.container_buttons.layout().addWidget(self.bt_next)

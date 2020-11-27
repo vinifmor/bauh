@@ -359,6 +359,10 @@ ScreenshotsDialog QLabel#image {
     qproperty-alignment: AlignCenter;
 }
 
+ScreenshotsDialog QAbstractButton[control = "true"] {
+    min-width: 100px;
+}
+
 SettingsWindow TabGroupQt#settings {
     min-width: 400px;
 }
@@ -366,3 +370,4 @@ SettingsWindow TabGroupQt#settings {
 QMenu QPushButton[current = "true"] {
     font-weight: bold;
 }
+
