@@ -1,17 +1,14 @@
 import glob
 import os
 import re
-import traceback
 from typing import Optional, Dict, Tuple, Set
-
-from PyQt5.QtWidgets import QApplication
 
 from bauh.api.constants import USER_THEMES_PATH
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
-RE_WIDTH_PERCENT = re.compile(r'[\d\\.]+%w')
-RE_HEIGHT_PERCENT = re.compile(r'[\d\\.]+%h')
+# RE_WIDTH_PERCENT = re.compile(r'[\d\\.]+%w') TODO percentage measures disabled for the moment (requires more testing)
+# RE_HEIGHT_PERCENT = re.compile(r'[\d\\.]+%h') TODO percentage measures disabled for the moment (requires more testing)
 RE_META_I18N_FIELDS = re.compile(r'((name|description)(\[\w+])?)')
 RE_VAR_PATTERN = re.compile(r'^@[\w.\-_]+')
 RE_QSS_EXT = re.compile(r'\.qss$')
@@ -161,45 +158,16 @@ def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
             for var in var_list:
                 theme_str = theme_str.replace('@' + var, var_map[var])
 
-        screen_size = QApplication.primaryScreen().size()
-        theme_str = process_width_percent_measures(theme_str, screen_size.width())
-        theme_str = process_height_percent_measures(theme_str, screen_size.height())
+        # TODO percentage measures disabled for the moment (requires more testing)
+        # screen_size = QApplication.primaryScreen().size()
+        # theme_str = process_width_percent_measures(theme_str, screen_size.width())
+        # theme_str = process_height_percent_measures(theme_str, screen_size.height())
 
         return theme_str if not root_theme else '{}\n{}'.format(root_theme[0], theme_str), metadata
 
 
 def _by_str_len(string: str) -> int:
     return len(string)
-
-
-def process_width_percent_measures(theme: str, screen_width: int) -> str:
-    width_measures = RE_WIDTH_PERCENT.findall(theme)
-
-    final_theme = theme
-    if width_measures:
-        for m in width_measures:
-            try:
-                percent = float(m.split('%')[0])
-                final_theme = final_theme.replace(m, '{}px'.format(round(screen_width * percent)))
-            except ValueError:
-                traceback.print_exc()
-
-    return final_theme
-
-
-def process_height_percent_measures(theme: str, screen_height: int) -> str:
-    width_measures = RE_HEIGHT_PERCENT.findall(theme)
-
-    final_sheet = theme
-    if width_measures:
-        for m in width_measures:
-            try:
-                percent = float(m.split('%')[0])
-                final_sheet = final_sheet.replace(m, '{}px'.format(round(screen_height * percent)))
-            except ValueError:
-                traceback.print_exc()
-
-    return final_sheet
 
 
 def _read_var_file(theme_file: str) -> dict:
@@ -257,3 +225,34 @@ def process_var_of_vars(var_map: dict):
 
         if resolved == len(pending_vars):
             break
+
+
+# TODO percentage measures disabled for the moment (requires more testing)
+# def process_width_percent_measures(theme: str, screen_width: int) -> str:
+#     width_measures = RE_WIDTH_PERCENT.findall(theme)
+#
+#     final_theme = theme
+#     if width_measures:
+#         for m in width_measures:
+#             try:
+#                 percent = float(m.split('%')[0])
+#                 final_theme = final_theme.replace(m, '{}px'.format(round(screen_width * percent)))
+#             except ValueError:
+#                 traceback.print_exc()
+#
+#     return final_theme
+
+
+# def process_height_percent_measures(theme: str, screen_height: int) -> str:
+#     width_measures = RE_HEIGHT_PERCENT.findall(theme)
+#
+#     final_sheet = theme
+#     if width_measures:
+#         for m in width_measures:
+#             try:
+#                 percent = float(m.split('%')[0])
+#                 final_sheet = final_sheet.replace(m, '{}px'.format(round(screen_height * percent)))
+#             except ValueError:
+#                 traceback.print_exc()
+#
+#     return final_sheet
