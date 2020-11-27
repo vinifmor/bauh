@@ -2,12 +2,11 @@ import operator
 from functools import reduce
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QIcon, QCursor
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QLabel
+from PyQt5.QtGui import QIcon, QCursor
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QHeaderView, QLabel
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory
-from bauh.view.qt.colors import GREEN, ORANGE
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
@@ -16,7 +15,7 @@ class HistoryDialog(QDialog):
 
     def __init__(self, history: PackageHistory, icon_cache: MemoryCache, i18n: I18n):
         super(HistoryDialog, self).__init__()
-        self.setWindowFlags(self.windowFlags() | Qt.WindowSystemMenuHint | Qt.WindowMinMaxButtonsHint)
+        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint)
 
         view = PackageView(model=history.pkg, i18n=i18n)
 

@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not able to replace an installed package for a new one that replaces it during conflict resolutions (e.g: xapp replaces xapps)
     - AUR: not able to find some repository dependencies when their names are not an exact match (e.g: sc-controller [0.4.7-1] relies on "pylibacl". This dependency now is called "python-pylibacl")
 - UI
+    - history dialog: not able to maximize/minimize it on some systems
     - wrong tooltips
 
 ### i18n
