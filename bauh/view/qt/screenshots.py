@@ -78,15 +78,14 @@ class ScreenshotsDialog(QDialog):
         self.layout().addWidget(self.container_buttons)
 
         self.img_idx = 0
-        screen_size = QApplication.primaryScreen().size()
-        self.max_img_width = int(screen_size.width() * 0.585651537)
-        self.max_img_height = int(screen_size.height() * 0.78125)
+        self.max_img_width = 800
+        self.max_img_height = 600
 
         for idx, s in enumerate(self.screenshots):
             t = Thread(target=self._download_img, args=(idx, s), daemon=True)
             t.start()
 
-        self.resize(self.max_img_width, self.max_img_height)
+        self.resize(self.max_img_width + 5, self.max_img_height + 5)
         self._load_img()
         qt_utils.centralize(self)
 
@@ -154,5 +153,3 @@ class ScreenshotsDialog(QDialog):
     def next(self):
         self.img_idx += 1
         self._load_img()
-
-
