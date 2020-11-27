@@ -300,13 +300,17 @@ class PackagesTable(QTableWidget):
 
             self.setCellWidget(pkg.table_index, 8, col_update)
 
-    def _gen_row_button(self, text: str, name: str, callback) -> QToolButton:
+    def _gen_row_button(self, text: str, name: str, callback, tip: Optional[str] = None) -> QToolButton:
         col_bt = QToolButton()
         col_bt.setProperty('text_only', 'true')
         col_bt.setObjectName(name)
         col_bt.setCursor(QCursor(Qt.PointingHandCursor))
         col_bt.setText(text)
         col_bt.clicked.connect(callback)
+
+        if tip:
+            col_bt.setToolTip(tip)
+
         return col_bt
 
     def _set_col_installed(self, col: int, pkg: PackageView):
@@ -318,7 +322,10 @@ class PackagesTable(QTableWidget):
                 def uninstall():
                     self._uninstall(pkg)
 
-                item = self._gen_row_button(self.i18n['uninstall'].capitalize(), 'bt_uninstall', uninstall)
+                item = self._gen_row_button(text=self.i18n['uninstall'].capitalize(),
+                                            name='bt_uninstall',
+                                            callback=uninstall,
+                                            tip=self.i18n['manage_window.bt_uninstall.tip'])
             else:
                 item = None
 
@@ -326,7 +333,10 @@ class PackagesTable(QTableWidget):
             def install():
                 self._install_app(pkg)
 
-            item = self._gen_row_button(self.i18n['install'].capitalize(), 'bt_install', install)
+            item = self._gen_row_button(text=self.i18n['install'].capitalize(),
+                                        name='bt_install',
+                                        callback=install,
+                                        tip=self.i18n['manage_window.bt_install.tip'])
         else:
             item = None
 
