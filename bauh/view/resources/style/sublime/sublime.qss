@@ -324,6 +324,10 @@ PackagesTable QLabel#app_version[ignored = "true"] {
     color: @table.app_version.update_ignored.color;
 }
 
+PackagesTable QLabel#app_version:disabled[ignored = "true"] {
+    color: @disabled.color;
+}
+
 HistoryDialog QTableWidget QLabel[even = "false"] {
     background-color: @outer_widget.background.color;
 }
