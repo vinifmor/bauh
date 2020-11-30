@@ -261,6 +261,9 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[d
         attr = data[0].strip().lower()
         commit[attr] = data[1].strip()
 
+        if attr == 'commit':
+            commit[attr] = commit[attr][0:8]
+
         if attr == 'date':
             commit[attr] = datetime.strptime(commit[attr], '%Y-%m-%d %H:%M:%S +0000')
 

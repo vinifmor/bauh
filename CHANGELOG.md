@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - **images**: path to bauh's icons (gem icons are not available through this variable). Example: @images/logo.svg    
         
 ### Improvements
+- Flatpak
+    - history: only displaying the commit's 8 first characters
+
 - UI
     - root dialog design and behavior
     - tooltip for the label displaying the number of applications on the table/available [#138](https://github.com/vinifmor/bauh/issues/138)
@@ -42,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new property **system_theme** (UI -> System theme): merges the system's theme/stylesheet with bauh's (default: false)
     - property **style** renamed to **qt_style** and its default value now is **fusion**. If this property is set to **null**, **fusion** will be considered as well. Fusion is the default style that all default themes (stylesheets) are based on, so if you change this property the final style may not look like as expected.
     - **Applications displayed** property (Interface) tooltip now informs that 0 (zero) can be used for no limit [#138](https://github.com/vinifmor/bauh/issues/138)
+
 - Parameters
     - new parameter **--offline**: it assumes the internet connection is off. Useful if the connection is bad/unstable and you just want to check your installed packages.
 
