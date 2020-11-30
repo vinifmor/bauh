@@ -41,7 +41,7 @@ class HistoryDialog(QDialog):
             for col, key in enumerate(sorted(data.keys())):
                 item = QLabel()
                 item.setProperty('even', row % 2 == 0)
-                item.setText(str(data[key]))
+                item.setText(' {}'.format(data[key]))
 
                 if current_status:
                     item.setCursor(QCursor(Qt.WhatsThisCursor))
