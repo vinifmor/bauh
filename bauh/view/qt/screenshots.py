@@ -111,7 +111,7 @@ class ScreenshotsDialog(QDialog):
         else:
             self.img.setPixmap(QPixmap())
             self.img.setCursor(QCursor(Qt.WaitCursor))
-            self.img.setText('{}...'.format(self.i18n['screenshots.image.loading']))
+            self.img.setText('{} {}/{}...'.format(self.i18n['screenshots.image.loading'], self.img_idx + 1, len(self.screenshots)))
             self.progress_bar.setVisible(True)
             self.thread_progress.start()
 
