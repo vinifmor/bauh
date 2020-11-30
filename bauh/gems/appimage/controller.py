@@ -454,7 +454,7 @@ class AppImageManager(SoftwareManager):
     def install(self, pkg: AppImage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         handler = ProcessHandler(watcher)
 
-        out_dir = INSTALLATION_PATH + pkg.name.lower()
+        out_dir = INSTALLATION_PATH + pkg.get_clean_name()
         counter = 0
         while True:
             if os.path.exists(out_dir):
@@ -530,7 +530,7 @@ class AppImageManager(SoftwareManager):
                     with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
                         de_content = f.read()
 
-                    de_content = RE_DESKTOP_EXEC.sub('Exec={}\n'.format(file_path), de_content)
+                    de_content = RE_DESKTOP_EXEC.sub('Exec="{}"\n'.format(file_path), de_content)
 
                     extracted_icon = self._find_icon_file(extracted_folder)
 
@@ -565,7 +565,7 @@ class AppImageManager(SoftwareManager):
         return TransactionResult.fail()
 
     def _gen_desktop_entry_path(self, app: AppImage) -> str:
-        return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.name.lower())
+        return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.get_clean_name())
 
     def is_enabled(self) -> bool:
         return self.enabled

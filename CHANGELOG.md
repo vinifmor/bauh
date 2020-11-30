@@ -50,10 +50,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - new parameter **--offline**: it assumes the internet connection is off. Useful if the connection is bad/unstable and you just want to check your installed packages.
 
 ### Fixes
-- Arch:
+- AppImage
+    - not able to launch AppImage files installed inside folders named with spaces (e.g: "/path/my folder/abc.appimage")
+    
+- Arch
     - search: not able to find installed packages that were renamed on the repositories (e.g: xapps -> xapp)
     - not able to replace an installed package for a new one that replaces it during conflict resolutions (e.g: xapp replaces xapps)
     - AUR: not able to find some repository dependencies when their names are not an exact match (e.g: sc-controller [0.4.7-1] relies on "pylibacl". This dependency now is called "python-pylibacl")
+    
 - UI
     - history dialog: not able to maximize/minimize it on some systems
     - wrong tooltips

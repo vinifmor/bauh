@@ -121,7 +121,7 @@ class SymlinksVerifier(Thread):
     @staticmethod
     def create_symlink(app: AppImage, file_path: str, logger: logging.Logger, watcher: ProcessWatcher = None):
         logger.info("Creating a symlink for '{}'".format(app.name))
-        possible_names = (app.name.lower(), '{}-appimage'.format(app.name.lower()))
+        possible_names = (app.get_clean_name(), '{}-appimage'.format(app.get_clean_name()), app.name.lower(), '{}-appimage'.format(app.name.lower()))
 
         if os.path.exists(SYMLINKS_DIR) and not os.path.isdir(SYMLINKS_DIR):
             logger.warning("'{}' is not a directory. It will not be possible to create a symlink for '{}'".format(SYMLINKS_DIR, app.name))
