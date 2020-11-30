@@ -5,8 +5,8 @@ from typing import Tuple, Optional
 
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QIcon, QCursor, QCloseEvent
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, QToolBar, \
-    QProgressBar, QApplication, QPlainTextEdit, QToolButton, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, \
+    QProgressBar, QPlainTextEdit, QToolButton, QHBoxLayout
 
 from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
@@ -209,7 +209,6 @@ class PreparePanel(QWidget, TaskManager):
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName('prepare_progress')
-        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
         self.progress_bar.setCursor(QCursor(Qt.WaitCursor))

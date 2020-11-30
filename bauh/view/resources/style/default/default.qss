@@ -28,6 +28,10 @@ QCheckBox::indicator {
     height: 18px;
 }
 
+QProgressBar {
+    max-height: 4px;
+}
+
 QTableWidget QToolButton {
     padding: 5px;
     margin-top: 3px;

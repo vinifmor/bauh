@@ -1129,10 +1129,12 @@ class QCustomMenuAction(QWidgetAction):
 
 class QCustomToolbar(QWidget):
 
-    def __init__(self, spacing: int = 2, parent: Optional[QWidget] = None, alignment: int = Qt.AlignRight):
+    def __init__(self, spacing: int = 2, parent: Optional[QWidget] = None, alignment: Qt.Alignment = Qt.AlignRight,
+                 policy_width: QSizePolicy.Policy = QSizePolicy.Minimum,
+                 policy_height: QSizePolicy.Policy = QSizePolicy.Preferred):
         super(QCustomToolbar, self).__init__(parent=parent)
         self.setProperty('container', 'true')
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(policy_width, policy_height)
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().setSpacing(spacing)

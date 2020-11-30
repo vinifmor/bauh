@@ -29,7 +29,7 @@ from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import PackagesTable, UpgradeToggleButton
 from bauh.view.qt.commons import sum_updates_displayed
 from bauh.view.qt.components import new_spacer, IconButton, QtComponentsManager, to_widget, QSearchBar, \
-    QCustomMenuAction
+    QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
@@ -350,18 +350,7 @@ class ManageWindow(QWidget):
         self.container_bottom.setObjectName('container_bottom')
         self.container_bottom.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.container_bottom.setLayout(QHBoxLayout())
-        self.setContentsMargins(0, 0, 0, 0)
         self.container_bottom.layout().setContentsMargins(0, 0, 0, 0)
-
-        self.container_bottom.layout().addWidget(new_spacer())
-
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName('progress_manage')
-        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
-        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
-
-        self.progress_bar.setTextVisible(False)
-        self.container_bottom.layout().addWidget(self.progress_bar)
 
         self.container_bottom.layout().addWidget(new_spacer())
 
@@ -405,6 +394,19 @@ class ManageWindow(QWidget):
         self.comp_manager.register_component(BT_ABOUT, bt_about)
 
         self.layout.addWidget(self.container_bottom)
+
+        self.container_progress = QCustomToolbar(spacing=0, policy_height=QSizePolicy.Fixed)
+        self.container_progress.setObjectName('container_progress')
+        self.container_progress.add_space()
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName('progress_manage')
+        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
+
+        self.progress_bar.setTextVisible(False)
+        self.container_progress.add_widget(self.progress_bar)
+        self.container_progress.add_space()
+        self.layout.addWidget(self.container_progress)
 
         qt_utils.centralize(self)
 
