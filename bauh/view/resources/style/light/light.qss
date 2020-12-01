@@ -145,10 +145,6 @@ PreparePanel QTableWidget#tasks {
     background-color: @task.background.color;
 }
 
-PreparePanel QLabel#task_status[status = "running"], QLabel#task_progress[status = "running"], QLabel#task_substatus {
-    font-weight: bold;
-}
-
 PreparePanel QLabel#task_status[status = "done"], QLabel#task_progress[status = "done"] {
     color: @task.done.color;
 }
