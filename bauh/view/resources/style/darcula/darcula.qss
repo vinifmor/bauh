@@ -383,6 +383,7 @@ PackagesTable QLabel#icon_publisher_verified {
 PackagesTable QToolButton#bt_install {
     background-color: transparent;
     color: @table.bt_install.font.color;
+    font-size: 11px;
 }
 
 PackagesTable QToolButton#bt_install:hover, PackagesTable QToolButton#bt_uninstall:hover {
@@ -396,6 +397,7 @@ PackagesTable QToolButton#bt_install:disabled {
 PackagesTable QToolButton#bt_uninstall {
     background-color: transparent;
     color: @table.bt_uninstall.font.color;
+    font-size: 11px;
 }
 
 PackagesTable QToolButton#bt_uninstall:disabled {
