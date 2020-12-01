@@ -268,16 +268,16 @@ environment:
     - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
 ### Custom themes
-- Custom themes can be provided by adding their files at **~/.local/share/bauh/themes** (sub-folder are allowed). 
-- Themes are composed by 2 required files and 1 optional sharing the same name:
+- Custom themes can be provided by adding their files at **~/.local/share/bauh/themes** (sub-folders are allowed). 
+- Themes are composed by 2 required and 1 optional files sharing the same name:
     - **my_theme.qss**: file with the qss rules. Full example: [light.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.qss)
     - **my_theme.meta**: file defining the data about the theme. Full example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
         - available attributes:
-            - name: name that will be displayed on the interface. It supports translations by adding additional `name` keys with brackets and the language code (e.g: `name[es]=Mi tema`)
-            - description: theme's description that will be displayed on the interface. It supports translations like `name` (e.g: description[es] = Mi tema).
-            - version: theme's version. It just works as information at the moment. (e.g: 1.0)
-            - root_theme: optional attribute that points to a theme that must be loaded before the theme. It supports the bauh's default theme keys (e.g: default, light, ...) or a file path (e.g: `/path/to/root/file.qss`).
-            - abstract: optional boolean attribute (true/false) that should only be used by themes that are not complete on their own and just work as a base (root) for other themes. Abstract themes are not displayed on the interface. Full example: [default.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/default/default.qss) 
+            - `name`: name that will be displayed on the interface. It supports translations by adding additional `name` keys with brackets and the language code (e.g: `name[es]=Mi tema`)
+            - `description`: theme's description that will be displayed on the interface. It supports translations like `name` (e.g: description[es] = Mi tema).
+            - `version`: theme's version. It just works as information at the moment. (e.g: 1.0)
+            - `root_theme`: optional attribute that points to a theme that must be loaded before the theme. It supports the bauh's default theme keys (e.g: default, light, ...) or a file path (e.g: `/path/to/root/file.qss`).
+            - `abstract`: optional boolean attribute (true/false) that should only be used by themes that are not complete on their own and just work as a base (root) for other themes. Abstract themes are not displayed on the interface. Full example: [default.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/default/default.qss) 
     - **my_theme.vars**: optional file defining `key=value` pairs of variables that will be available for the .qss file (can be referenced through the symbol **@**. e.g `@my_var`). Full example: [light.vars](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.vars)
         - common theme variables available: 
             - **style_dir**: path to the .qss file directory. Example: @style_dir/my_icon.svg

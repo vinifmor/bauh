@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/bt_themes.png">
     </p>
     
-    - you can provide custom themes as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh#custom-themes)
+    - you can provide custom themes as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh/tree/master#custom-themes)
         
 ### Improvements
 - Flatpak
