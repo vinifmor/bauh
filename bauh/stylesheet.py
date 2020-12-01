@@ -18,12 +18,12 @@ class ThemeMetadata:
 
     def __init__(self, file_path: str, default: bool, default_name: Optional[str] = None,
                  default_description: Optional[str] = None, version: Optional[str] = None,
-                 root_sheet: Optional[str] = None, abstract: bool = False):
+                 root_theme: Optional[str] = None, abstract: bool = False):
         self.names = {}
         self.default_name = default_name
         self.descriptions = {}
         self.default_description = default_description
-        self.root_sheet = root_sheet
+        self.root_theme = root_theme
         self.version = version
         self.file_path = file_path
         self.file_dir = '/'.join(file_path.split('/')[0:-1])
@@ -83,8 +83,8 @@ def read_theme_metada(key: str, file_path: str) -> ThemeMetadata:
                 for field, val in meta_dict.items():
                     if field == 'version':
                         meta_obj.version = val
-                    elif field == 'root_sheet':
-                        meta_obj.root_sheet = val
+                    elif field == 'root_theme':
+                        meta_obj.root_theme = val
                     elif field == 'name':
                         meta_obj.default_name = val
                     elif field == 'description':
@@ -133,15 +133,15 @@ def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
                   available_themes: Optional[Dict[str, str]]) -> Optional[Tuple[str, ThemeMetadata]]:
     if theme_str and metadata:
         root_theme = None
-        if metadata.root_sheet and metadata.root_sheet in available_themes:
-            root_file = available_themes[metadata.root_sheet]
+        if metadata.root_theme and metadata.root_theme in available_themes:
+            root_file = available_themes[metadata.root_theme]
 
             if os.path.isfile(root_file):
                 with open(root_file) as f:
                     root_theme_str = f.read()
 
                 if root_theme_str:
-                    root_metadata = read_theme_metada(key=metadata.root_sheet, file_path=root_file)
+                    root_metadata = read_theme_metada(key=metadata.root_theme, file_path=root_file)
                     root_theme = process_theme(file_path=root_file,
                                                theme_str=root_theme_str,
                                                metadata=root_metadata,

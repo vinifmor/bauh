@@ -5,4 +5,4 @@ description=Default light theme
 description[pt]=Tema padrão claro
 description[es]=Tema predeterminado claro
 version=1.0
-root_sheet=default
+root_theme=default
