@@ -267,6 +267,22 @@ environment:
     - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
     - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
+### Custom themes
+- Custom themes can be provided by adding their files at **~/.local/share/bauh/themes** (sub-folder are allowed). 
+- Themes are composed by 2 required files and 1 optional sharing the same name:
+    - **my_theme.qss**: file with the qss rules. Full example: [light.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.qss)
+    - **my_theme.meta**: file defining the data about the theme. Full example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
+        - available attributes:
+            - name: name that will be displayed on the interface. It supports translations by adding additional `name` keys with brackets and the language code (e.g: `name[es]=Mi tema`)
+            - description: theme's description that will be displayed on the interface. It supports translations like `name` (e.g: description[es] = Mi tema).
+            - version: theme's version. It just works as information at the moment. (e.g: 1.0)
+            - root_sheet: optional attribute that points to a theme that must be preloaded before the theme. It supports the default theme keys (e.g: default, light, ...) or a file path (e.g: `/path/to/root/file.qss`).
+    - **my_theme.vars**: optional file defining `key=value` pairs of variables that will be available for the .qss file (can be referenced through the symbol **@**. e.g `@my_var`). Full example: [light.vars](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.vars)
+        - common theme variables available: 
+            - **style_dir**: path to the .qss file directory. Example: @style_dir/my_icon.svg
+            - **images**: path to bauh's icons directory (gem icons are not available through this variable). Example: @images/logo.svg
+
+
 ### General settings
 
 #### Environment variables / parameters

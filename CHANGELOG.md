@@ -16,13 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/bt_themes.png">
     </p>
     
-    - you can provide custom themes by putting the required files at **~/.local/share/bauh/themes**. There are 2 required and 1 optional file for each theme (all files related to a theme must share the same name):
-        - **my_theme.qss**: file with the qss rules. Example: [light.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.qss)
-        - **my_theme.meta**: file defining the data about the theme (display name, description, version, ...). Example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
-        - **my_theme.vars**: optional file defining `key=value` variables that will be available for the .qss file through the symbol '@' (e.g: @my_var). Example: [light.vars](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.vars)
-    - common theme variables available: 
-        - **style_dir**: path to the .qss file directory. Example: @style_dir/my_icon.svg
-        - **images**: path to bauh's icons (gem icons are not available through this variable). Example: @images/logo.svg    
+    - you can provide custom themes as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh#custom-themes)
         
 ### Improvements
 - Flatpak
