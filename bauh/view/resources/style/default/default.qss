@@ -191,7 +191,7 @@ ManageWindow QWidget#table_filters QPushButton[root = "true"] {
 
 ManageWindow QLabel#label_status {
     font-weight: bold;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
 }
 
 ManageWindow QWidget#table_filters QCheckBox::indicator {
@@ -209,7 +209,7 @@ ConfirmationDialog UpgradeToggleButton {
 
 PreparePanel QLabel#prepare_status {
     font-weight: bold;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
 }
 
 PreparePanel QPushButton#bt_hide_details {
