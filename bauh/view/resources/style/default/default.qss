@@ -190,7 +190,8 @@ ManageWindow QWidget#table_filters QPushButton[root = "true"] {
 }
 
 ManageWindow QLabel#label_status {
-    font-weight: bold
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 ManageWindow QWidget#table_filters QCheckBox::indicator {
@@ -207,8 +208,8 @@ ConfirmationDialog UpgradeToggleButton {
 }
 
 PreparePanel QLabel#prepare_status {
-    font-size: 14px;
     font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 PreparePanel QPushButton#bt_hide_details {
@@ -272,11 +273,13 @@ PackagesTable QLabel[icon = "true"]  {
 PackagesTable QToolButton#bt_install {
     font-size: 10px;
     font-weight: bold;
+    letter-spacing: 0.6px;
 }
 
 PackagesTable QToolButton#bt_uninstall {
     font-size: 10px;
     font-weight: bold;
+    letter-spacing: 0.6px;
 }
 
 PackagesTable QLabel#app_version[ignored = "true"] {
