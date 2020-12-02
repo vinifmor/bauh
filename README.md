@@ -19,7 +19,7 @@ This project has an official Twitter account (**@bauh4linux**) so people can sta
 To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/panel.png">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/panel-themes.gif">
 </p>
 
 
