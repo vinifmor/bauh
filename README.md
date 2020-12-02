@@ -10,6 +10,7 @@ Key features:
 - A management panel where you can: search, install, uninstall, upgrade, downgrade, launch, ignore updates and retrieve releases history from software packages.
 - Tray mode: it launches attached to the system tray and publishes notifications when there are software updates available
 - System backup: it integrates with **Timeshift** to provide a simple and safe backup process before applying changes to your system.
+- Custom themes: it's possible to customize the tool's style/appearance. More at [Custom themes](https://github.com/vinifmor/bauh/tree/master#custom-themes). 
 
 
 This project has an official Twitter account (**@bauh4linux**) so people can stay on top of its news.
@@ -271,9 +272,9 @@ environment:
 - Custom themes can be provided by adding their files at **~/.local/share/bauh/themes** (sub-folders are allowed). 
 - Themes are composed by 2 required and 1 optional files sharing the same name:
     - **my_theme.qss**: file with the qss rules. Full example: [light.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.qss)
-    - **my_theme.meta**: file defining the data about the theme. Full example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
-        - available attributes:
-            - `name`: name that will be displayed on the interface. It supports translations by adding additional `name` keys with brackets and the language code (e.g: `name[es]=Mi tema`)
+    - **my_theme.meta**: file defining the theme's data. Full example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
+        - available fields:
+            - `name`: name that will be displayed on the interface. It supports translations by adding additional `name` fields with brackets and the language code (e.g: `name[es]=Mi tema`)
             - `description`: theme's description that will be displayed on the interface. It supports translations like `name` (e.g: description[es] = Mi tema).
             - `version`: theme's version. It just works as information at the moment. (e.g: 1.0)
             - `root_theme`: optional attribute that points to a theme that must be loaded before the theme. It supports the bauh's default theme keys (e.g: default, light, ...) or a file path (e.g: `/path/to/root/file.qss`).
