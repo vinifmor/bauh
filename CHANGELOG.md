@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.9]
+## [0.9.9] 2020-12-02
 ### Features
 - Themes (stylesheets)
     - new settings property "theme": it points to a file defining a set of customizations over the current style (QT). In other words, a stylesheet file. At the moment 3 will come bundled with bauh:
