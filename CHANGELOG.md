@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.9] 2020-12-02
 ### Features
 - Themes (stylesheets)
-    - new settings property "theme": it points to a file defining a set of customizations over the current style (QT). In other words, a stylesheet file. At the moment 3 will come bundled with bauh:
+    - new settings property **theme**: it points to a file defining a set of customizations over the current style (QT). In other words, a stylesheet file. At the moment 3 will come bundled with bauh:
         - [Light](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/light.png): default light theme
         - [Darcula](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/darcula.png): dark based on JetBrain's Darcula theme
         - [Sublime](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/sublime.png): dark based on Sublime Text's editor theme
@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/bt_themes.png">
     </p>
     
-    - you can provide custom themes as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh/tree/master#custom-themes)
+    - custom themes can be provided as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh/tree/master#custom-themes)
         
 ### Improvements
 - Flatpak
@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - tooltip for the label displaying the number of applications on the table/available [#138](https://github.com/vinifmor/bauh/issues/138)
     - screenshots: 
         - dialog resizing behavior
-        - "loading" message displays the amount of images being loaded
+        - "loading" message displays the number of images being loaded
     - "name filter" now requires ENTER or click to be triggered
     - some app actions icons are now displayed with a different picture when disabled to prevent confusion (e.g: launch, screenshots) [#138](https://github.com/vinifmor/bauh/issues/138)
     - suggestions button moved to the lower bar (label removed)
@@ -58,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### i18n
 - French translations by [KINFOO](https://github.com/KINFOO): [#143](https://github.com/vinifmor/bauh/pull/143)
+
 
 ## [0.9.8] 2020-10-02
 ### Fixes
