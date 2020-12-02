@@ -114,7 +114,7 @@ def read_default_themes() -> Dict[str, str]:
 
 
 def read_user_themes() -> Dict[str, str]:
-    return {f: f for f in glob.glob('{}/**/*.qss'.format(USER_THEMES_PATH))}
+    return {f: f for f in glob.glob('{}/**/*.qss'.format(USER_THEMES_PATH), recursive=True)}
 
 
 def read_all_themes_metadata() -> Set[ThemeMetadata]:
