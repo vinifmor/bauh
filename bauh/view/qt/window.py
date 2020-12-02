@@ -1,16 +1,15 @@
 import logging
-import logging
 import operator
 import time
 import traceback
 from pathlib import Path
-from typing import List, Type, Set, Tuple
+from typing import List, Type, Set, Tuple, Optional
 
-from PyQt5.QtCore import QEvent, Qt, QSize, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
-    QLabel, QPlainTextEdit, QLineEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
-    QMenu, QAction
+    QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
+    QMenu, QHBoxLayout
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
@@ -21,16 +20,20 @@ from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
 from bauh.commons import user
 from bauh.commons.html import bold
+from bauh.context import set_theme
+from bauh.stylesheet import read_all_themes_metadata, ThemeMetadata
+from bauh.view.core.config import read_config
 from bauh.view.core.tray_client import notify_tray
-from bauh.view.qt import dialog, commons, qt_utils, root, styles
+from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
-from bauh.view.qt.apps_table import AppsTable, UpdateToggleButton
-from bauh.view.qt.colors import GREEN
-from bauh.view.qt.components import new_spacer, InputFilter, IconButton, QtComponentsManager
-from bauh.view.qt.confirmation import ConfirmationDialog
+from bauh.view.qt.apps_table import PackagesTable, UpgradeToggleButton
+from bauh.view.qt.commons import sum_updates_displayed
+from bauh.view.qt.components import new_spacer, IconButton, QtComponentsManager, to_widget, QSearchBar, \
+    QCustomMenuAction, QCustomToolbar
+from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
-from bauh.view.qt.root import ask_root_password
+from bauh.view.qt.root import RootDialog
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, DowngradePackage, ShowPackageInfo, \
@@ -38,25 +41,12 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     ListWarnings, \
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
-    IgnorePackageUpdates
+    IgnorePackageUpdates, SaveTheme
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
 DARK_ORANGE = '#FF4500'
-
-
-def toolbar_button_style(bg: str = None, color: str = None):
-    style = 'QPushButton { font-weight: 500;'
-
-    if bg:
-        style += 'background: {};'.format(bg)
-
-    if color:
-        style += 'color: {};'.format(color)
-
-    style += ' }'
-    return style
 
 
 # action ids
@@ -84,10 +74,11 @@ CHECK_APPS = 7
 COMBO_TYPES = 8
 COMBO_CATEGORIES = 9
 INP_NAME = 10
-CHECK_CONSOLE = 11
+CHECK_DETAILS = 11
 BT_SETTINGS = 12
 BT_CUSTOM_ACTIONS = 13
 BT_ABOUT = 14
+BT_THEMES = 15
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -99,13 +90,14 @@ GROUP_LOWER_BTS = 5
 
 class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
-    signal_root_password = pyqtSignal(str, bool)
+    signal_root_password = pyqtSignal(bool, str)
     signal_table_update = pyqtSignal()
     signal_stop_notifying = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
+        self.setObjectName('manage_window')
         self.comp_manager = QtComponentsManager()
         self.i18n = i18n
         self.logger = logger
@@ -127,95 +119,56 @@ class ManageWindow(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.toolbar_top = QToolBar()
-        self.toolbar_top.addWidget(new_spacer())
+        self.toolbar_status = QToolBar()
+        self.toolbar_status.setObjectName('toolbar_status')
+        self.toolbar_status.addWidget(new_spacer())
 
         self.label_status = QLabel()
+        self.label_status.setObjectName('label_status')
         self.label_status.setText('')
-        self.label_status.setStyleSheet("font-weight: bold")
-        self.toolbar_top.addWidget(self.label_status)
+        self.toolbar_status.addWidget(self.label_status)
 
-        self.search_bar = QToolBar()
-        self.search_bar.setStyleSheet("spacing: 0px;")
-        self.search_bar.setContentsMargins(0, 0, 0, 0)
+        self.search_bar = QSearchBar(search_callback=self.search)
+        self.search_bar.set_placeholder(i18n['window_manage.search_bar.placeholder'] + "...")
+        self.search_bar.set_tooltip(i18n['window_manage.search_bar.tooltip'])
+        self.search_bar.set_button_tooltip(i18n['window_manage.search_bar.button_tooltip'])
+        self.comp_manager.register_component(SEARCH_BAR, self.search_bar, self.toolbar_status.addWidget(self.search_bar))
 
-        self.inp_search = QLineEdit()
-        self.inp_search.setFrame(False)
-        self.inp_search.setPlaceholderText(self.i18n['window_manage.input_search.placeholder'] + "...")
-        self.inp_search.setToolTip(self.i18n['window_manage.input_search.tooltip'])
-        self.inp_search.setStyleSheet("""QLineEdit { 
-                color: grey;
-                spacing: 0; 
-                height: 30px; 
-                font-size: 12px; 
-                width: 300px; 
-                border-bottom: 1px solid lightgrey; 
-                border-top: 1px solid lightgrey; 
-        } 
-        """)
-        self.inp_search.returnPressed.connect(self.search)
-        search_background_color = self.inp_search.palette().color(self.inp_search.backgroundRole()).name()
+        self.toolbar_status.addWidget(new_spacer())
+        self.layout.addWidget(self.toolbar_status)
 
-        label_pre_search = QLabel()
-        label_pre_search.setStyleSheet("""
-            border-top-left-radius: 5px; 
-            border-bottom-left-radius: 5px;
-            border-left: 1px solid lightgrey; 
-            border-top: 1px solid lightgrey; 
-            border-bottom: 1px solid lightgrey;
-            background: %s;
-        """ % search_background_color)
-
-        self.search_bar.addWidget(label_pre_search)
-
-        self.search_bar.addWidget(self.inp_search)
-
-        label_pos_search = QLabel()
-        label_pos_search.setPixmap(QIcon(resource.get_path('img/search.svg')).pixmap(QSize(10, 10)))
-        label_pos_search.setStyleSheet("""
-            padding-right: 10px; 
-            border-top-right-radius: 5px; 
-            border-bottom-right-radius: 5px; 
-            border-right: 1px solid lightgrey; 
-            border-top: 1px solid lightgrey; 
-            border-bottom: 1px solid lightgrey;
-            background: %s;
-        """ % search_background_color)
-
-        self.search_bar.addWidget(label_pos_search)
-
-        self.comp_manager.register_component(SEARCH_BAR, self.search_bar, self.toolbar_top.addWidget(self.search_bar))
-
-        self.toolbar_top.addWidget(new_spacer())
-        self.layout.addWidget(self.toolbar_top)
-
-        self.toolbar = QToolBar()
-        self.toolbar.setStyleSheet('QToolBar {spacing: 4px; margin-top: 15px;}')
-        self.toolbar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.toolbar.setContentsMargins(0, 0, 0, 0)
+        self.toolbar_filters = QWidget()
+        self.toolbar_filters.setObjectName('table_filters')
+        self.toolbar_filters.setLayout(QHBoxLayout())
+        self.toolbar_filters.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar_filters.setContentsMargins(0, 0, 0, 0)
 
         self.check_updates = QCheckBox()
+        self.check_updates.setObjectName('check_updates')
         self.check_updates.setCursor(QCursor(Qt.PointingHandCursor))
         self.check_updates.setText(self.i18n['updates'].capitalize())
         self.check_updates.stateChanged.connect(self._handle_updates_filter)
         self.check_updates.sizePolicy().setRetainSizeWhenHidden(True)
-        self.comp_manager.register_component(CHECK_UPDATES, self.check_updates, self.toolbar.addWidget(self.check_updates))
+        self.toolbar_filters.layout().addWidget(self.check_updates)
+        self.comp_manager.register_component(CHECK_UPDATES, self.check_updates)
 
         self.check_apps = QCheckBox()
+        self.check_apps.setObjectName('check_apps')
         self.check_apps.setCursor(QCursor(Qt.PointingHandCursor))
         self.check_apps.setText(self.i18n['manage_window.checkbox.only_apps'])
         self.check_apps.setChecked(True)
         self.check_apps.stateChanged.connect(self._handle_filter_only_apps)
         self.check_apps.sizePolicy().setRetainSizeWhenHidden(True)
-        self.comp_manager.register_component(CHECK_APPS, self.check_apps, self.toolbar.addWidget(self.check_apps))
+        self.toolbar_filters.layout().addWidget(self.check_apps)
+        self.comp_manager.register_component(CHECK_APPS, self.check_apps)
 
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
+        self.combo_filter_type.setObjectName('combo_types')
         self.combo_filter_type.setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_filter_type.setView(QListView())
-        self.combo_filter_type.setStyleSheet('QLineEdit { height: 2px; }')
-        self.combo_filter_type.setIconSize(QSize(14, 14))
+        self.combo_filter_type.view().setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
@@ -223,78 +176,73 @@ class ManageWindow(QWidget):
         self.combo_filter_type.activated.connect(self._handle_type_filter)
         self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.combo_filter_type.sizePolicy().setRetainSizeWhenHidden(True)
-        self.comp_manager.register_component(COMBO_TYPES, self.combo_filter_type, self.toolbar.addWidget(self.combo_filter_type))
+        self.toolbar_filters.layout().addWidget(self.combo_filter_type)
+        self.comp_manager.register_component(COMBO_TYPES, self.combo_filter_type)
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
+        self.combo_categories.setObjectName('combo_categories')
         self.combo_categories.setCursor(QCursor(Qt.PointingHandCursor))
-        self.combo_categories.setStyleSheet('QLineEdit { height: 2px; }')
         self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.combo_categories.view().setCursor(QCursor(Qt.PointingHandCursor))
         self.combo_categories.setEditable(True)
         self.combo_categories.lineEdit().setReadOnly(True)
         self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
         self.combo_categories.activated.connect(self._handle_category_filter)
         self.combo_categories.sizePolicy().setRetainSizeWhenHidden(True)
         self.combo_categories.addItem('--- {} ---'.format(self.i18n['category'].capitalize()), self.any_category_filter)
-        self.comp_manager.register_component(COMBO_CATEGORIES, self.combo_categories, self.toolbar.addWidget(self.combo_categories))
+        self.toolbar_filters.layout().addWidget(self.combo_categories)
+        self.comp_manager.register_component(COMBO_CATEGORIES, self.combo_categories)
 
-        self.input_name = InputFilter(self.begin_apply_filters)
-        self.input_name.setPlaceholderText(self.i18n['manage_window.name_filter.placeholder'] + '...')
-        self.input_name.setToolTip(self.i18n['manage_window.name_filter.tooltip'])
-        self.input_name.setStyleSheet("QLineEdit { color: grey; }")
-        self.input_name.setFixedWidth(130)
+        self.input_name = QSearchBar(search_callback=self.begin_apply_filters)
+        self.input_name.palette().swap(self.combo_categories.palette())
+        self.input_name.setObjectName('name_filter')
+        self.input_name.set_placeholder(self.i18n['manage_window.name_filter.placeholder'] + '...')
+        self.input_name.set_tooltip(self.i18n['manage_window.name_filter.tooltip'])
+        self.input_name.set_button_tooltip(self.i18n['manage_window.name_filter.button_tooltip'])
         self.input_name.sizePolicy().setRetainSizeWhenHidden(True)
-        self.comp_manager.register_component(INP_NAME, self.input_name, self.toolbar.addWidget(self.input_name))
+        self.toolbar_filters.layout().addWidget(self.input_name)
+        self.comp_manager.register_component(INP_NAME, self.input_name)
 
-        self.toolbar.addWidget(new_spacer())
+        self.toolbar_filters.layout().addWidget(new_spacer())
 
         toolbar_bts = []
 
-        if config['suggestions']['enabled']:
-            bt_sugs = QPushButton()
-            bt_sugs.setCursor(QCursor(Qt.PointingHandCursor))
-            bt_sugs.setToolTip(self.i18n['manage_window.bt.suggestions.tooltip'])
-            bt_sugs.setText(self.i18n['manage_window.bt.suggestions.text'].capitalize())
-            bt_sugs.setIcon(QIcon(resource.get_path('img/suggestions.svg')))
-            bt_sugs.setStyleSheet(toolbar_button_style())
-            bt_sugs.clicked.connect(lambda: self._begin_load_suggestions(filter_installed=True))
-            bt_sugs.sizePolicy().setRetainSizeWhenHidden(True)
-            ref_bt_sugs = self.toolbar.addWidget(bt_sugs)
-            toolbar_bts.append(bt_sugs)
-            self.comp_manager.register_component(BT_SUGGESTIONS, bt_sugs, ref_bt_sugs)
-
         bt_inst = QPushButton()
+        bt_inst.setObjectName('bt_installed')
+        bt_inst.setProperty('root', 'true')
         bt_inst.setCursor(QCursor(Qt.PointingHandCursor))
         bt_inst.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
-        bt_inst.setIcon(QIcon(resource.get_path('img/disk.svg')))
         bt_inst.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         bt_inst.clicked.connect(self._begin_loading_installed)
-        bt_inst.setStyleSheet(toolbar_button_style())
         bt_inst.sizePolicy().setRetainSizeWhenHidden(True)
         toolbar_bts.append(bt_inst)
-        self.comp_manager.register_component(BT_INSTALLED, bt_inst, self.toolbar.addWidget(bt_inst))
+        self.toolbar_filters.layout().addWidget(bt_inst)
+        self.comp_manager.register_component(BT_INSTALLED, bt_inst)
 
         bt_ref = QPushButton()
+        bt_ref.setObjectName('bt_refresh')
+        bt_ref.setProperty('root', 'true')
         bt_ref.setCursor(QCursor(Qt.PointingHandCursor))
         bt_ref.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
-        bt_ref.setIcon(QIcon(resource.get_path('img/refresh.svg')))
         bt_ref.setText(self.i18n['manage_window.bt.refresh.text'])
-        bt_ref.setStyleSheet(toolbar_button_style())
         bt_ref.clicked.connect(self.begin_refresh_packages)
         bt_ref.sizePolicy().setRetainSizeWhenHidden(True)
         toolbar_bts.append(bt_ref)
-        self.comp_manager.register_component(BT_REFRESH, bt_ref, self.toolbar.addWidget(bt_ref))
+        self.toolbar_filters.layout().addWidget(bt_ref)
+        self.comp_manager.register_component(BT_REFRESH, bt_ref)
 
         self.bt_upgrade = QPushButton()
+        self.bt_upgrade.setProperty('root', 'true')
+        self.bt_upgrade.setObjectName('bt_upgrade')
         self.bt_upgrade.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
-        self.bt_upgrade.setIcon(QIcon(resource.get_path('img/app_update.svg')))
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.setStyleSheet(toolbar_button_style(GREEN, 'white'))
         self.bt_upgrade.clicked.connect(self.upgrade_selected)
         self.bt_upgrade.sizePolicy().setRetainSizeWhenHidden(True)
         toolbar_bts.append(self.bt_upgrade)
-        self.comp_manager.register_component(BT_UPGRADE, self.bt_upgrade, self.toolbar.addWidget(self.bt_upgrade))
+        self.toolbar_filters.layout().addWidget(self.bt_upgrade)
+        self.comp_manager.register_component(BT_UPGRADE, self.bt_upgrade)
 
         # setting all buttons to the same size:
         bt_biggest_size = 0
@@ -308,44 +256,59 @@ class ManageWindow(QWidget):
             if bt_biggest_size > bt_width:
                 bt.setFixedWidth(bt_biggest_size)
 
-        self.layout.addWidget(self.toolbar)
+        self.layout.addWidget(self.toolbar_filters)
 
         self.table_container = QWidget()
+        self.table_container.setObjectName('table_container')
         self.table_container.setContentsMargins(0, 0, 0, 0)
         self.table_container.setLayout(QVBoxLayout())
         self.table_container.layout().setContentsMargins(0, 0, 0, 0)
 
-        self.table_apps = AppsTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
+        self.table_apps = PackagesTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
 
         self.layout.addWidget(self.table_container)
 
-        toolbar_console = QToolBar()
+        self.toolbar_console = QWidget()
+        self.toolbar_console.setObjectName('console_toolbar')
+        self.toolbar_console.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar_console.setLayout(QHBoxLayout())
+        self.toolbar_console.setContentsMargins(0, 0, 0, 0)
 
-        self.check_console = QCheckBox()
-        self.check_console.setCursor(QCursor(Qt.PointingHandCursor))
-        self.check_console.setText(self.i18n['manage_window.checkbox.show_details'])
-        self.check_console.stateChanged.connect(self._handle_console)
-        self.comp_manager.register_component(CHECK_CONSOLE, self.check_console, toolbar_console.addWidget(self.check_console))
+        self.check_details = QCheckBox()
+        self.check_details.setObjectName('check_details')
+        self.check_details.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_details.setText(self.i18n['manage_window.checkbox.show_details'])
+        self.check_details.stateChanged.connect(self._handle_console)
+        self.toolbar_console.layout().addWidget(self.check_details)
+        self.comp_manager.register_component(CHECK_DETAILS, self.check_details)
 
-        toolbar_console.addWidget(new_spacer())
+        self.toolbar_console.layout().addWidget(new_spacer())
 
         self.label_displayed = QLabel()
-        toolbar_console.addWidget(self.label_displayed)
+        self.label_displayed.setObjectName('apps_displayed')
+        self.label_displayed.setCursor(QCursor(Qt.WhatsThisCursor))
+        self.label_displayed.setToolTip(self.i18n['manage_window.label.apps_displayed.tip'])
+        self.toolbar_console.layout().addWidget(self.label_displayed)
+        self.label_displayed.hide()
 
-        self.layout.addWidget(toolbar_console)
+        self.layout.addWidget(self.toolbar_console)
 
-        self.textarea_output = QPlainTextEdit(self)
-        self.textarea_output.resize(self.table_apps.size())
-        self.textarea_output.setStyleSheet("background: black; color: white;")
-        self.layout.addWidget(self.textarea_output)
-        self.textarea_output.setVisible(False)
-        self.textarea_output.setReadOnly(True)
+        self.textarea_details = QPlainTextEdit(self)
+        self.textarea_details.setObjectName('textarea_details')
+        self.textarea_details.setProperty('console', 'true')
+        self.textarea_details.resize(self.table_apps.size())
+        self.layout.addWidget(self.textarea_details)
+        self.textarea_details.setVisible(False)
+        self.textarea_details.setReadOnly(True)
 
         self.toolbar_substatus = QToolBar()
+        self.toolbar_substatus.setObjectName('toolbar_substatus')
         self.toolbar_substatus.addWidget(new_spacer())
+
         self.label_substatus = QLabel()
+        self.label_substatus.setObjectName('label_substatus')
         self.label_substatus.setCursor(QCursor(Qt.WaitCursor))
         self.toolbar_substatus.addWidget(self.label_substatus)
         self.toolbar_substatus.addWidget(new_spacer())
@@ -383,43 +346,67 @@ class ManageWindow(QWidget):
         self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
 
-        self.toolbar_bottom = QToolBar()
-        self.toolbar_bottom.setIconSize(QSize(16, 16))
-        self.toolbar_bottom.setStyleSheet('QToolBar { spacing: 3px }')
+        self.container_bottom = QWidget()
+        self.container_bottom.setObjectName('container_bottom')
+        self.container_bottom.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.container_bottom.setLayout(QHBoxLayout())
+        self.container_bottom.layout().setContentsMargins(0, 0, 0, 0)
 
-        self.toolbar_bottom.addWidget(new_spacer())
+        self.container_bottom.layout().addWidget(new_spacer())
 
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
-        self.progress_bar.setStyleSheet(styles.PROGRESS_BAR)
-        self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 4)
+        if config['suggestions']['enabled']:
+            bt_sugs = IconButton(action=lambda: self._begin_load_suggestions(filter_installed=True),
+                                 i18n=i18n,
+                                 tooltip=self.i18n['manage_window.bt.suggestions.tooltip'])
+            bt_sugs.setObjectName('suggestions')
+            self.container_bottom.layout().addWidget(bt_sugs)
+            self.comp_manager.register_component(BT_SUGGESTIONS, bt_sugs)
 
-        self.progress_bar.setTextVisible(False)
-        self.ref_progress_bar = self.toolbar_bottom.addWidget(self.progress_bar)
-
-        self.toolbar_bottom.addWidget(new_spacer())
+        bt_themes = IconButton(self.show_themes,
+                               i18n=self.i18n,
+                               tooltip=self.i18n['manage_window.bt_themes.tip'])
+        bt_themes.setObjectName('themes')
+        self.container_bottom.layout().addWidget(bt_themes)
+        self.comp_manager.register_component(BT_THEMES, bt_themes)
 
         self.custom_actions = manager.get_custom_actions()
-        bt_custom_actions = IconButton(QIcon(resource.get_path('img/custom_actions.svg')),
-                                       action=self.show_custom_actions,
+        bt_custom_actions = IconButton(action=self.show_custom_actions,
                                        i18n=self.i18n,
                                        tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
-        bt_custom_actions.setVisible(bool(self.custom_actions))
-        self.comp_manager.register_component(BT_CUSTOM_ACTIONS, bt_custom_actions, self.toolbar_bottom.addWidget(bt_custom_actions))
+        bt_custom_actions.setObjectName('custom_actions')
 
-        bt_settings = IconButton(QIcon(resource.get_path('img/settings.svg')),
-                                 action=self.show_settings,
+        bt_custom_actions.setVisible(bool(self.custom_actions))
+        self.container_bottom.layout().addWidget(bt_custom_actions)
+        self.comp_manager.register_component(BT_CUSTOM_ACTIONS, bt_custom_actions)
+
+        bt_settings = IconButton(action=self.show_settings,
                                  i18n=self.i18n,
                                  tooltip=self.i18n['manage_window.bt_settings.tooltip'])
-        self.comp_manager.register_component(BT_SETTINGS, bt_settings, self.toolbar_bottom.addWidget(bt_settings))
+        bt_settings.setObjectName('settings')
+        self.container_bottom.layout().addWidget(bt_settings)
+        self.comp_manager.register_component(BT_SETTINGS, bt_settings)
 
-        bt_about = IconButton(QIcon(resource.get_path('img/info.svg')),
-                              action=self._show_about,
+        bt_about = IconButton(action=self._show_about,
                               i18n=self.i18n,
                               tooltip=self.i18n['manage_window.settings.about'])
-        self.comp_manager.register_component(BT_ABOUT, bt_about, self.toolbar_bottom.addWidget(bt_about))
+        bt_about.setObjectName('about')
+        self.container_bottom.layout().addWidget(bt_about)
+        self.comp_manager.register_component(BT_ABOUT, bt_about)
 
-        self.layout.addWidget(self.toolbar_bottom)
+        self.layout.addWidget(self.container_bottom)
+
+        self.container_progress = QCustomToolbar(spacing=0, policy_height=QSizePolicy.Fixed)
+        self.container_progress.setObjectName('container_progress')
+        self.container_progress.add_space()
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setObjectName('progress_manage')
+        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
+
+        self.progress_bar.setTextVisible(False)
+        self.container_progress.add_widget(self.progress_bar)
+        self.container_progress.add_space()
+        self.layout.addWidget(self.container_progress)
 
         qt_utils.centralize(self)
 
@@ -442,6 +429,8 @@ class ManageWindow(QWidget):
         self.settings_window = None
         self.search_performed = False
 
+        self.thread_save_theme = SaveTheme(theme_key='')
+
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self.setMinimumHeight(int(screen_size.height() * 0.5))
@@ -457,14 +446,14 @@ class ManageWindow(QWidget):
                                          BT_INSTALLED, BT_SUGGESTIONS)  # buttons
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
-                                         BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE,  # buttons
+                                         BT_REFRESH, BT_UPGRADE,  # buttons
                                          *filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
                                          CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
                                          BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
 
-        self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_ABOUT, BT_SETTINGS, BT_CUSTOM_ACTIONS)
+        self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
 
     def update_custom_actions(self):
         self.custom_actions = self.manager.get_custom_actions()
@@ -540,26 +529,27 @@ class ManageWindow(QWidget):
 
     def _ask_confirmation(self, msg: dict):
         self.thread_animate_progress.pause()
+        extra_widgets = [to_widget(comp=c, i18n=self.i18n) for c in msg['components']] if msg.get('components') else None
         diag = ConfirmationDialog(title=msg['title'],
                                   body=msg['body'],
                                   i18n=self.i18n,
-                                  components=msg['components'],
+                                  widgets=extra_widgets,
                                   confirmation_label=msg['confirmation_label'],
                                   deny_label=msg['deny_label'],
                                   deny_button=msg['deny_button'],
                                   window_cancel=msg['window_cancel'],
-                                  confirmation_button=msg.get('confirmation_button', True),
-                                  screen_size=self.screen_size)
-        res = diag.is_confirmed()
+                                  confirmation_button=msg.get('confirmation_button', True))
+        diag.ask()
+        res = diag.confirmed
         self.thread_animate_progress.animate()
         self.signal_user_res.emit(res)
 
     def _pause_and_ask_root_password(self):
         self.thread_animate_progress.pause()
-        password, valid = root.ask_root_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
+        valid, password = RootDialog.ask_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
 
         self.thread_animate_progress.animate()
-        self.signal_root_password.emit(password, valid)
+        self.signal_root_password.emit(valid, password)
 
     def _show_message(self, msg: dict):
         self.thread_animate_progress.pause()
@@ -582,8 +572,8 @@ class ManageWindow(QWidget):
         self.thread_warnings.start()
 
     def _begin_loading_installed(self):
-        self.inp_search.setText('')
-        self.input_name.setText('')
+        self.search_bar.clear()
+        self.input_name.set_text('')
         self._begin_action(self.i18n['manage_window.status.installed'])
         self._handle_console_option(False)
         self.comp_manager.set_components_visible(False)
@@ -666,20 +656,20 @@ class ManageWindow(QWidget):
 
     def _handle_console(self, checked: bool):
         if checked:
-            self.textarea_output.show()
+            self.textarea_details.show()
         else:
-            self.textarea_output.hide()
+            self.textarea_details.hide()
 
     def _handle_console_option(self, enable: bool):
         if enable:
-            self.textarea_output.clear()
+            self.textarea_details.clear()
 
-        self.comp_manager.set_component_visible(CHECK_CONSOLE, enable)
-        self.check_console.setChecked(False)
-        self.textarea_output.hide()
+        self.comp_manager.set_component_visible(CHECK_DETAILS, enable)
+        self.check_details.setChecked(False)
+        self.textarea_details.hide()
 
     def begin_refresh_packages(self, pkg_types: Set[Type[SoftwarePackage]] = None):
-        self.inp_search.clear()
+        self.search_bar.clear()
 
         self._begin_action(self.i18n['manage_window.status.refreshing'])
         self.comp_manager.set_components_visible(False)
@@ -710,7 +700,7 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
     def _begin_load_suggestions(self, filter_installed: bool):
-        self.inp_search.clear()
+        self.search_bar.clear()
         self._begin_action(self.i18n['manage_window.status.suggestions'])
         self._handle_console_option(False)
         self.comp_manager.set_components_visible(False)
@@ -825,15 +815,21 @@ class ManageWindow(QWidget):
     def _update_table(self, pkgs_info: dict, signal: bool = False):
         self.pkgs = pkgs_info['pkgs_displayed']
 
-        self.table_apps.update_packages(self.pkgs, update_check_enabled=pkgs_info['not_installed'] == 0)
+        if pkgs_info['not_installed'] == 0:
+            update_check = sum_updates_displayed(pkgs_info) > 0
+        else:
+            update_check = False
+
+        self.table_apps.update_packages(self.pkgs, update_check_enabled=update_check)
 
         if not self._maximized:
+            self.label_displayed.show()
             self.table_apps.change_headers_policy(QHeaderView.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
             self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
         else:
-            self.label_displayed.setText('')
+            self.label_displayed.hide()
 
         if signal:
             self.signal_table_update.emit()
@@ -887,12 +883,12 @@ class ManageWindow(QWidget):
             'type': self.type_filter,
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
-            'name': self.input_name.get_text().lower() if self.input_name.get_text() else None,
+            'name': self.input_name.text().lower() if self.input_name.text() else None,
             'display_limit': None if self.filter_updates else self.display_limit
         }
 
     def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
-        self.input_name.setText('')
+        self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
 
@@ -1053,8 +1049,8 @@ class ManageWindow(QWidget):
 
     def _resize(self, accept_lower_width: bool = True):
         table_width = self.table_apps.get_width()
-        toolbar_width = self.toolbar.sizeHint().width()
-        topbar_width = self.toolbar_top.sizeHint().width()
+        toolbar_width = self.toolbar_filters.sizeHint().width()
+        topbar_width = self.toolbar_status.sizeHint().width()
 
         new_width = max(table_width, toolbar_width, topbar_width)
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
@@ -1066,13 +1062,14 @@ class ManageWindow(QWidget):
         self.progress_controll_enabled = enabled
 
     def upgrade_selected(self):
-        if dialog.ask_confirmation(title=self.i18n['manage_window.upgrade_all.popup.title'],
-                                   body=self.i18n['manage_window.upgrade_all.popup.body'],
-                                   i18n=self.i18n,
-                                   widgets=[UpdateToggleButton(pkg=None,
-                                                               root=self,
-                                                               i18n=self.i18n,
-                                                               clickable=False)]):
+        body = QWidget()
+        body.setLayout(QHBoxLayout())
+        body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        body.layout().addWidget(QLabel(self.i18n['manage_window.upgrade_all.popup.body']))
+        body.layout().addWidget(UpgradeToggleButton(pkg=None, root=self, i18n=self.i18n, clickable=False))
+        if ConfirmationDialog(title=self.i18n['manage_window.upgrade_all.popup.title'],
+                              i18n=self.i18n, body=None,
+                              widgets=[body]).ask():
 
             self._begin_action(action_label=self.i18n['manage_window.status.upgrading'],
                                action_id=ACTION_UPGRADE)
@@ -1085,7 +1082,7 @@ class ManageWindow(QWidget):
         self._finish_action()
 
         if res.get('id'):
-            output = self.textarea_output.toPlainText()
+            output = self.textarea_details.toPlainText()
 
             if output:
                 try:
@@ -1094,8 +1091,8 @@ class ManageWindow(QWidget):
                     with open(logs_path, 'w+') as f:
                         f.write(output)
 
-                    self.textarea_output.appendPlainText('\n*Upgrade summary generated at: {}'.format(UpgradeSelected.SUMMARY_FILE.format(res['id'])))
-                    self.textarea_output.appendPlainText('*Upgrade logs generated at: {}'.format(logs_path))
+                    self.textarea_details.appendPlainText('\n*Upgrade summary generated at: {}'.format(UpgradeSelected.SUMMARY_FILE.format(res['id'])))
+                    self.textarea_details.appendPlainText('*Upgrade logs generated at: {}'.format(logs_path))
                 except:
                     traceback.print_exc()
 
@@ -1118,19 +1115,19 @@ class ManageWindow(QWidget):
         self.update_custom_actions()
 
     def _show_console_errors(self):
-        if self.textarea_output.toPlainText():
-            self.check_console.setChecked(True)
+        if self.textarea_details.toPlainText():
+            self.check_details.setChecked(True)
         else:
             self._handle_console_option(False)
-            self.comp_manager.set_component_visible(CHECK_CONSOLE, False)
+            self.comp_manager.set_component_visible(CHECK_DETAILS, False)
 
     def _update_action_output(self, output: str):
-        self.textarea_output.appendPlainText(output)
+        self.textarea_details.appendPlainText(output)
 
     def _begin_action(self, action_label: str, action_id: int = None):
         self.thread_animate_progress.stop = False
         self.thread_animate_progress.start()
-        self.ref_progress_bar.setVisible(True)
+        self.progress_bar.setVisible(True)
 
         if action_id is not None:
             self.comp_manager.save_states(action_id, only_visible=True)
@@ -1149,7 +1146,7 @@ class ManageWindow(QWidget):
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
 
-        self.ref_progress_bar.setVisible(False)
+        self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
 
@@ -1246,8 +1243,8 @@ class ManageWindow(QWidget):
 
         if res.get('error'):
             self._handle_console_option(True)
-            self.textarea_output.appendPlainText(res['error'])
-            self.check_console.setChecked(True)
+            self.textarea_details.appendPlainText(res['error'])
+            self.check_details.setChecked(True)
         elif not res['history'].history:
             dialog.show_message(title=self.i18n['action.history.no_history.title'],
                                 body=self.i18n['action.history.no_history.body'].format(bold(res['history'].pkg.name)),
@@ -1261,7 +1258,7 @@ class ManageWindow(QWidget):
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.searching'], word if word else ''), action_id=action_id)
 
     def search(self):
-        word = self.inp_search.text().strip()
+        word = self.search_bar.text().strip()
         if word:
             self._handle_console(False)
             self._begin_search(word, action_id=ACTION_SEARCH)
@@ -1284,13 +1281,13 @@ class ManageWindow(QWidget):
             self.comp_manager.restore_state(ACTION_SEARCH)
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=self.i18n[res['error']], type_=MessageType.WARNING)
 
-    def _ask_root_password(self, action: str, pkg: PackageView) -> Tuple[str, bool]:
+    def _ask_root_password(self, action: str, pkg: PackageView) -> Tuple[Optional[str], bool]:
         pwd = None
         requires_root = self.manager.requires_root(action, pkg.model)
 
         if not user.is_root() and requires_root:
-            pwd, ok = ask_root_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
-            if not ok:
+            valid, pwd = RootDialog.ask_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
+            if not valid:
                 return pwd, False
 
         return pwd, True
@@ -1312,7 +1309,7 @@ class ManageWindow(QWidget):
     def _finish_install(self, res: dict):
         self._finish_action(action_id=ACTION_INSTALL)
 
-        console_output = self.textarea_output.toPlainText()
+        console_output = self.textarea_details.toPlainText()
 
         if console_output:
             log_path = '{}/install/{}/{}'.format(LOGS_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
@@ -1323,9 +1320,9 @@ class ManageWindow(QWidget):
                 with open(log_file, 'w+') as f:
                     f.write(console_output)
 
-                self.textarea_output.appendPlainText(self.i18n['console.install_logs.path'].format('"{}"'.format(log_file)))
+                self.textarea_details.appendPlainText(self.i18n['console.install_logs.path'].format('"{}"'.format(log_file)))
             except:
-                self.textarea_output.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
+                self.textarea_details.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
 
         if res['success']:
             if self._can_notify_user():
@@ -1385,6 +1382,9 @@ class ManageWindow(QWidget):
                     self.pkgs_installed.insert(idx, PackageView(model, self.i18n))
 
             self.update_custom_actions()
+            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self._resize(accept_lower_width=False)
         else:
             self._show_console_errors()
             if self._can_notify_user():
@@ -1393,19 +1393,19 @@ class ManageWindow(QWidget):
     def _update_progress(self, value: int):
         self.progress_bar.setValue(value)
 
-    def begin_execute_custom_action(self, pkg: PackageView, action: CustomSoftwareAction):
-        if pkg is None and not dialog.ask_confirmation(title=self.i18n['confirmation'].capitalize(),
-                                                       body=self.i18n['custom_action.proceed_with'].capitalize().format('"{}"'.format(self.i18n[action.i18n_label_key])),
-                                                       icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
-                                                       i18n=self.i18n):
+    def begin_execute_custom_action(self, pkg: Optional[PackageView], action: CustomSoftwareAction):
+        if pkg is None and not ConfirmationDialog(title=self.i18n['confirmation'].capitalize(),
+                                                  body='<p>{}</p>'.format(self.i18n['custom_action.proceed_with'].capitalize().format(bold(self.i18n[action.i18n_label_key]))),
+                                                  icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
+                                                  i18n=self.i18n).ask():
             return False
 
         pwd = None
 
         if not user.is_root() and action.requires_root:
-            pwd, ok = ask_root_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
+            valid, pwd = RootDialog.ask_password(self.context, i18n=self.i18n, comp_manager=self.comp_manager)
 
-            if not ok:
+            if not valid:
                 return
 
         self._begin_action(action_label='{}{}'.format(self.i18n[action.i18n_status_key], ' {}'.format(pkg.model.name) if pkg else ''),
@@ -1434,10 +1434,10 @@ class ManageWindow(QWidget):
             self._show_console_errors()
 
     def _show_console_checkbox_if_output(self):
-        if self.textarea_output.toPlainText():
-            self.comp_manager.set_component_visible(CHECK_CONSOLE, True)
+        if self.textarea_details.toPlainText():
+            self.comp_manager.set_component_visible(CHECK_DETAILS, True)
         else:
-            self.comp_manager.set_component_visible(CHECK_CONSOLE, False)
+            self.comp_manager.set_component_visible(CHECK_DETAILS, False)
 
     def show_settings(self):
         if self.settings_window:
@@ -1450,8 +1450,7 @@ class ManageWindow(QWidget):
             qt_utils.centralize(self.settings_window)
             self.settings_window.show()
 
-    def _map_custom_action(self, action: CustomSoftwareAction) -> QAction:
-        custom_action = QAction(self.i18n[action.i18n_label_key])
+    def _map_custom_action(self, action: CustomSoftwareAction, parent: QWidget) -> QCustomMenuAction:
 
         if action.icon_path:
             try:
@@ -1459,20 +1458,21 @@ class ManageWindow(QWidget):
                     icon = QIcon(action.icon_path)
                 else:
                     icon = QIcon.fromTheme(action.icon_path)
-
-                custom_action.setIcon(icon)
-
             except:
-                pass
+                icon = None
+        else:
+            icon = None
 
-        custom_action.triggered.connect(lambda: self.begin_execute_custom_action(None, action))
-        return custom_action
+        return QCustomMenuAction(parent=parent,
+                                 label=self.i18n[action.i18n_label_key],
+                                 action=lambda: self.begin_execute_custom_action(None, action),
+                                 icon=icon)
 
     def show_custom_actions(self):
         if self.custom_actions:
             menu_row = QMenu()
             menu_row.setCursor(QCursor(Qt.PointingHandCursor))
-            actions = [self._map_custom_action(a) for a in self.custom_actions]
+            actions = [self._map_custom_action(a, menu_row) for a in self.custom_actions]
             menu_row.addActions(actions)
             menu_row.adjustSize()
             menu_row.popup(QCursor.pos())
@@ -1547,3 +1547,48 @@ class ManageWindow(QWidget):
                                 self.__add_category(cat)
                 else:
                     self._update_categories(pkg_categories)
+
+    def _map_theme_action(self, theme: ThemeMetadata, menu: QMenu) -> QCustomMenuAction:
+        def _change_theme():
+            set_theme(theme_key=theme.key, app=QApplication.instance(), logger=self.context.logger)
+            self.thread_save_theme.theme_key = theme.key
+            self.thread_save_theme.start()
+
+        return QCustomMenuAction(label=theme.get_i18n_name(self.i18n),
+                                 action=_change_theme,
+                                 parent=menu,
+                                 tooltip=theme.get_i18n_description(self.i18n))
+
+    def show_themes(self):
+        menu_row = QMenu()
+        menu_row.setCursor(QCursor(Qt.PointingHandCursor))
+        menu_row.addActions(self._map_theme_actions(menu_row))
+        menu_row.adjustSize()
+        menu_row.popup(QCursor.pos())
+        menu_row.exec_()
+
+    def _map_theme_actions(self, menu: QMenu) -> List[QCustomMenuAction]:
+        core_config = read_config()
+
+        current_theme_key, current_action = core_config['ui']['theme'], None
+
+        actions = []
+
+        for t in read_all_themes_metadata():
+            if not t.abstract:
+                action = self._map_theme_action(t, menu)
+
+                if current_action is None and current_theme_key is not None and current_theme_key == t.key:
+                    action.button.setProperty('current', 'true')
+                    current_action = action
+                else:
+                    actions.append(action)
+
+        if not current_action:
+            invalid_action = QCustomMenuAction(label=self.i18n['manage_window.bt_themes.option.invalid'], parent=menu)
+            invalid_action.button.setProperty('current', 'true')
+            current_action = invalid_action
+
+        actions.sort(key=lambda a: a.get_label())
+        actions.insert(0, current_action)
+        return actions

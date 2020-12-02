@@ -1,0 +1,6 @@
+name=Darcula
+description=Dark based on Darcula theme (JetBrains)
+description[pt]=Escuro baseada no tema Darcula (JetBrains)
+description[es]=Oscuro basado en el tema Darcula (JetBrains)
+version=1.0
+root_theme=default

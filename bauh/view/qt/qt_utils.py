@@ -19,3 +19,11 @@ def load_icon(path: str, width: int, height: int = None) -> QIcon:
 
 def load_resource_icon(path: str, width: int, height: int = None) -> QIcon:
     return load_icon(resource.get_path(path), width, height)
+
+
+def measure_based_on_width(percent: float) -> int:
+    return round(percent * QApplication.primaryScreen().size().width())
+
+
+def measure_based_on_height(percent: float) -> int:
+    return round(percent * QApplication.primaryScreen().size().height())

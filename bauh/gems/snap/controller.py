@@ -13,14 +13,14 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
     FormComponent
 from bauh.api.exception import NoInternetException
-from bauh.commons import resource, internet
+from bauh.commons import resource
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
 from bauh.commons.view_utils import new_select
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
-    get_icon_path, snapd, CONFIG_FILE
+    get_icon_path, snapd, CONFIG_FILE, ROOT_DIR
 from bauh.gems.snap.config import read_config
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.snapd import SnapdClient
@@ -45,14 +45,14 @@ class SnapManager(SoftwareManager):
         self.custom_actions = [
             CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
                                  i18n_label_key='snap.action.refresh.label',
-                                 icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
+                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                  manager_method='refresh',
                                  requires_root=True,
                                  i18n_confirm_key='snap.action.refresh.confirm'),
             CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
                                  i18n_label_key='snap.action.channel.label',
                                  i18n_confirm_key='snap.action.channel.confirm',
-                                 icon_path=resource.get_path('img/refresh.svg', context.get_view_path()),
+                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                  manager_method='change_channel',
                                  requires_root=True)
         ]
@@ -230,7 +230,8 @@ class SnapManager(SoftwareManager):
         if success:
             new_installed = []
             try:
-                current_installed = self.read_installed(disk_loader=disk_loader, internet_available=internet.is_available()).installed
+                net_available = self.context.internet_checker.is_available()
+                current_installed = self.read_installed(disk_loader=disk_loader, internet_available=net_available).installed
             except:
                 new_installed = [pkg]
                 traceback.print_exc()
@@ -261,7 +262,7 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]
 
     def change_channel(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
-        if not internet.is_available():
+        if not self.context.internet_checker.is_available():
             raise NoInternetException()
 
         try:

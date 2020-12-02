@@ -1,0 +1,6 @@
+name=Sublime
+description=Dark based on Sublime Text's editor theme
+description[pt]=Escuro baseado no tema do editor Sublime Text
+description[es]=Oscuro basado en el tema del editor Sublime Text
+version=1.0
+root_theme=default

@@ -1,4 +1,4 @@
-import operator
+import re
 import re
 import time
 import traceback
@@ -14,7 +14,6 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
     CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
-from bauh.commons import internet
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd
 from bauh.view.core.config import read_config
@@ -158,7 +157,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         res = SearchResult([], [], 0)
 
-        if internet.is_available():
+        if self.context.is_internet_available():
             norm_word = word.strip().lower()
 
             url_words = RE_IS_URL.match(norm_word)
@@ -211,7 +210,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         disk_loader = None
 
-        net_available = internet.is_available()
+        net_available = self.context.is_internet_available()
         if not pkg_types:  # any type
             for man in self.managers:
                 if self._can_work(man):
@@ -402,7 +401,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if self.managers:
-            internet_on = internet.is_available()
+            internet_on = self.context.is_internet_available()
             taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
@@ -420,7 +419,7 @@ class GenericSoftwareManager(SoftwareManager):
         updates = []
 
         if self.managers:
-            net_available = internet.is_available()
+            net_available = self.context.is_internet_available()
 
             for man in self.managers:
                 if self._can_work(man):
@@ -433,7 +432,7 @@ class GenericSoftwareManager(SoftwareManager):
     def list_warnings(self, internet_available: bool = None) -> List[str]:
         warnings = []
 
-        int_available = internet.is_available()
+        int_available = self.context.is_internet_available()
 
         if int_available:
             updates_msg = check_for_update(self.logger, self.http_client, self.i18n)
@@ -469,7 +468,7 @@ class GenericSoftwareManager(SoftwareManager):
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         if bool(self.config['suggestions']['enabled']):
-            if self.managers and internet.is_available():
+            if self.managers and self.context.is_internet_available():
                 suggestions, threads = [], []
                 for man in self.managers:
                     t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))

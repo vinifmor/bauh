@@ -1,0 +1,343 @@
+QWidget, QWidget QToolTip {
+    background-color: @outer_widget.background.color;
+    color: @font.color;
+}
+
+QTableWidget {
+    background-color: @inner_widget.background.color;
+    selection-background-color: @menu.item.selected.background.color;
+}
+
+QTableWidget * {
+    background-color: none;
+    color: @font.color;
+}
+
+QTableWidget QAbstractButton {
+    background-color: @outer_widget.background.color;
+}
+
+QTableWidget QHeaderView {
+    background-color: @outer_widget.background.color;
+    font-weight: bold;
+}
+
+QLineEdit, QSpinBox {
+    selection-color: @menu.item.selected.font.color;
+    selection-background-color: @menu.item.selected.background.color;
+}
+
+QLineEdit, QComboBox, QSpinBox {
+    border-color: @border.color;
+}
+
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled {
+    color: @disabled.color;
+}
+
+QCheckBox::indicator:unchecked {
+  image: url("@style_dir/img/checkbox_unchecked.svg");
+}
+
+QCheckBox::indicator:checked {
+  image: url("@style_dir/img/checkbox_checked.svg");
+}
+
+QCheckBox::indicator:checked:disabled {
+  image: url("@style_dir/img/checkbox_checked_disabled.svg");
+}
+
+QComboBox, QComboBox QAbstractItemView, QMenu QAbstractItemView {
+    selection-background-color: @menu.item.selected.background.color;
+    selection-color: @menu.item.selected.font.color;
+    color: @font.color;
+}
+
+QComboBox:focus, QLineEdit:focus, QSpinBox:focus {
+    border-color: @focus.border.color;
+    color: @focus.font.color;
+}
+
+QProgressBar::chunk {
+    background-color: @progressbar.fill.color;
+}
+
+QScrollBar, QTableWidget QScrollBar {
+    background-color: @inner_widget.background.color;
+}
+
+QScrollBar::vertical{
+    max-width: 10px;
+}
+
+QScrollBar::handle {
+    background-color: @scrollbar.handle.background.color;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line, QScrollBar::add-page, QScrollBar::sub-page {
+    height: 0px;
+}
+
+QPushButton:disabled {
+    color: @outer_widget.background.color;
+}
+
+QMenu QPushButton[current = "true"] {
+    color: @theme.selected.color;
+}
+
+QMenu QPushButton:hover {
+    background-color: @menu.item.selected.background.color;
+    color: @menu.item.selected.font.color;
+}
+
+QMenu#app_actions QPushButton#app_history {
+    qproperty-icon: url("@style_dir/img/history.svg");
+}
+
+QMenu#app_actions QPushButton#app_downgrade {
+    qproperty-icon: url("@style_dir/img/downgrade.svg");
+}
+
+QMenu#app_actions QPushButton#ignore_updates {
+    qproperty-icon: url("@style_dir/img/ignore_update.svg");
+}
+
+QMenu#app_actions QPushButton#revert_ignore_updates {
+    qproperty-icon: url("@style_dir/img/revert_update_ignored.svg");
+}
+
+QLabel[error = "true"] {
+    color: @error.color;
+}
+
+QLabel[help_icon = "true"] {
+    qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
+QLabel[tip_icon = "true"] {
+    qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
+QPlainTextEdit {
+    background: @texteditor.background.color;
+    color: @texteditor.font.color;
+    selection-background-color: @texteditor.selection.background.color;
+    selection-color: @texteditor.selection.font.color;
+}
+
+QPushButton#ok {
+    color: @button_ok.font.color;
+}
+
+QPushButton#ok:disabled {
+    background-color: @disabled.color;
+}
+
+MultipleSelectQt {
+    border-color: @border.color;
+}
+
+QSearchBar QLabel#lb_left_corner {
+     border-left-color: @border.color;
+     border-top-color: @border.color;
+     border-bottom-color: @border.color;
+}
+
+QSearchBar QLabel#lb_left_corner[focused = "true"] {
+     border-left-color: @focus.border.color;
+     border-top-color: @focus.border.color;
+     border-bottom-color: @focus.border.color;
+}
+
+QSearchBar QPushButton#search_button {
+    qproperty-icon: url("@style_dir/img/search.svg");
+    border-right-color: @border.color;
+    border-top-color: @border.color;
+    border-bottom-color: @border.color;
+}
+
+
+QSearchBar QPushButton#search_button[focused = "true"] {
+    qproperty-icon: url("@style_dir/img/search_focused.svg");
+    border-right-color: @focus.border.color;
+    border-top-color: @focus.border.color;
+    border-bottom-color: @focus.border.color;
+}
+
+QSearchBar QLineEdit#inp_search {
+     border-bottom-color: @border.color;
+     border-top-color: @border.color;
+}
+
+QSearchBar QLineEdit#inp_search:focus {
+     border-bottom-color: @focus.border.color;
+     border-top-color: @focus.border.color;
+}
+
+QSearchBar#name_filter QPushButton#search_button {
+    qproperty-icon: url("@style_dir/img/filter.svg");
+}
+
+QSearchBar#name_filter QPushButton#search_button[focused = "true"] {
+    qproperty-icon: url("@style_dir/img/filter_focused.svg");
+}
+
+FormQt IconButton#clean_field {
+    qproperty-icon: url("@style_dir/img/clean.svg");
+}
+
+PreparePanel QTableWidget#tasks {
+    background-color: @task.background.color;
+}
+
+PreparePanel QLabel#task_status[status = "running"], QLabel#task_progress[status = "running"], QLabel#task_substatus {
+    color: @task.running.color;
+}
+
+PreparePanel QLabel#task_status[status = "done"], QLabel#task_progress[status = "done"] {
+    color: @task.done.color;
+}
+
+UpgradeToggleButton {
+    qproperty-icon: url("@style_dir/img/upgrade.svg");
+    qproperty-iconSize: 14px 14px;
+}
+
+UpgradeToggleButton[toggled = "false"]  {
+    qproperty-icon: url("@style_dir/img/upgrade_unchecked.svg");
+    qproperty-iconSize: 14px 14px;
+}
+
+UpgradeToggleButton[enabled = "false"] {
+    qproperty-icon: url("@style_dir/img/exclamation.svg");
+    background: @button_upgrade.disabled.background.color;
+}
+
+QComboBox::down-arrow, QSpinBox::down-arrow {
+    image: url("@style_dir/img/arrow_down.svg");
+}
+
+QSpinBox::up-arrow {
+    image: url("@style_dir/img/arrow_up.svg");
+}
+
+ManageWindow QPushButton#bt_refresh {
+    qproperty-icon: url("@style_dir/img/refresh.svg");
+    qproperty-iconSize: 16px 16px;
+}
+
+ManageWindow QPushButton#bt_installed {
+    qproperty-icon: url("@style_dir/img/installed.svg");
+}
+
+ManageWindow QPushButton#bt_upgrade {
+    qproperty-icon: url("@style_dir/img/upgrade.svg");
+}
+
+ManageWindow IconButton#suggestions {
+    qproperty-icon: url("@style_dir/img/suggestions.svg");
+}
+
+ManageWindow IconButton#themes {
+    qproperty-icon: url("@style_dir/img/themes.svg");
+}
+
+ManageWindow IconButton#custom_actions {
+    qproperty-icon: url("@style_dir/img/menu.svg");
+}
+
+ManageWindow IconButton#settings {
+    qproperty-icon: url("@style_dir/img/settings.svg");
+    qproperty-iconSize: 16px 16px;
+}
+
+ManageWindow IconButton#about {
+    qproperty-icon: url("@style_dir/img/about.svg");
+    qproperty-iconSize: 14px 14px;
+}
+
+PackagesTable QLabel#icon_publisher_verified {
+    qproperty-pixmap: url("@style_dir/img/verified.svg");
+}
+
+PackagesTable QLabel[publisher_known = "false"]{
+    color: @table.app_publisher.unknown.font.color;
+}
+
+PackagesTable QLabel:disabled[publisher_known = "false"]{
+    color: @disabled.color;
+}
+
+PackagesTable IconButton#app_run {
+    qproperty-icon: url("@style_dir/img/app_play.svg");
+    qproperty-iconSize: 12px 12px;
+}
+
+PackagesTable IconButton#app_run[_enabled = "false"] {
+    qproperty-icon: url("@style_dir/img/app_play_disabled.svg");
+}
+
+PackagesTable IconButton#app_actions {
+    qproperty-icon: url("@style_dir/img/menu.svg");
+    qproperty-iconSize: 14px 14px;
+}
+
+PackagesTable IconButton#app_screenshots {
+    qproperty-icon: url("@style_dir/img/camera.svg");
+}
+
+PackagesTable IconButton#app_screenshots[_enabled = "false"] {
+    qproperty-icon: url("@style_dir/img/camera_disabled.svg");
+}
+
+PackagesTable IconButton#app_info {
+    qproperty-icon: url("@style_dir/img/about.svg");
+    qproperty-iconSize: 12px 12px;
+}
+
+PackagesTable QToolButton#bt_install {
+    color: @table.bt_install.font.color;
+}
+
+PackagesTable QToolButton#bt_install:disabled {
+    color: @disabled.color;
+}
+
+PackagesTable QToolButton#bt_uninstall {
+    color: @table.bt_uninstall.background.color;
+}
+
+PackagesTable QToolButton#bt_uninstall:disabled {
+    color: @disabled.color;
+}
+
+PackagesTable QLabel#app_version[update = "true"] {
+    color: @table.app_version.update.color;
+}
+
+PackagesTable QLabel#app_version:disabled[update = "true"] {
+    color: @disabled.color;
+}
+
+PackagesTable QLabel#app_version[ignored = "true"] {
+    color: @table.app_version.update_ignored.color;
+}
+
+PackagesTable QLabel#app_version:disabled[ignored = "true"] {
+    color: @disabled.color;
+}
+
+HistoryDialog QTableWidget QLabel[even = "false"] {
+    background-color: @outer_widget.background.color;
+}
+
+HistoryDialog QTableWidget QLabel[outdated = "true"] {
+    color: @history.version.focus.color;
+    background: @history.version.outdated;
+}
+
+HistoryDialog QTableWidget QLabel[outdated = "false"] {
+    color: @history.version.focus.color;
+    background: @history.version.updated;
+}

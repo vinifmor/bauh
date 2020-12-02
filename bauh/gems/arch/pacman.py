@@ -151,6 +151,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
 
     if not simulate:
         cmd.append('--noconfirm')
+        cmd.append('-dd')
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
@@ -428,8 +429,9 @@ def get_build_date(pkgname: str) -> str:
 def search(words: str) -> Dict[str, dict]:
     output = run_cmd('pacman -Ss ' + words, print_error=False)
 
+    found = {}
     if output:
-        found, current = {}, {}
+        current = {}
         for l in output.split('\n'):
             if l:
                 if l.startswith(' '):
@@ -449,7 +451,7 @@ def search(words: str) -> Dict[str, dict]:
 
                     version = data_split[1].split(':')
                     current['version'] = version[0] if len(version) == 1 else version[1]
-        return found
+    return found
 
 
 def get_databases() -> Set[str]:
@@ -958,12 +960,57 @@ def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[s
         return {}
 
 
-def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]]:
+def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Dict[str, Set[str]]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
 
     if output:
         res = {}
-        latest_name, conflicts = None, None
+        latest_name, conflicts, replaces, field = None, None, None, None
+
+        for l in output.split('\n'):
+            if l:
+                if l[0] != ' ':
+                    line = l.strip()
+                    field_sep_idx = line.index(':')
+                    field = line[0:field_sep_idx].strip()
+
+                    if field == 'Name':
+                        field = 'n'
+                        val = line[field_sep_idx + 1:].strip()
+                        latest_name = val
+                    elif field == 'Conflicts With':
+                        field = 'c'
+                        val = line[field_sep_idx + 1:].strip()
+                        conflicts = set()
+                        if val != 'None':
+                            conflicts.update((d for d in val.split(' ') if d))
+                    elif field == 'Replaces':
+                        field = 'r'
+                        val = line[field_sep_idx + 1:].strip()
+                        replaces = set()
+                        if val != 'None':
+                            replaces.update((d for d in val.split(' ') if d))
+
+                    elif latest_name and conflicts is not None and replaces is not None:
+                        field = None
+                        res[latest_name] = {'c': conflicts, 'r': replaces}
+                        latest_name, conflicts, replaces = None, None, None
+
+                elif latest_name and field:
+                    if field == 'c':
+                        conflicts.update((d for d in l.strip().split(' ') if d))
+                    elif field == 'r':
+                        replaces.update((d for d in l.strip().split(' ') if d))
+
+        return res
+
+
+def map_replaces(names: Iterable[str], remote: bool = False) -> Dict[str, Set[str]]:
+    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
+
+    if output:
+        res = {}
+        latest_name, replaces  = None, None
 
         for l in output.split('\n'):
             if l:
@@ -975,18 +1022,18 @@ def map_conflicts_with(names: Iterable[str], remote: bool) -> Dict[str, Set[str]
                     if field == 'Name':
                         val = line[field_sep_idx + 1:].strip()
                         latest_name = val
-                    elif field == 'Conflicts With':
+                    elif field == 'Replaces':
                         val = line[field_sep_idx + 1:].strip()
-                        conflicts = set()
+                        replaces = set()
                         if val != 'None':
-                            conflicts.update((d for d in val.split(' ') if d))
+                            replaces.update((d for d in val.split(' ') if d))
 
-                    elif latest_name and conflicts is not None:
-                        res[latest_name] = conflicts
-                        latest_name, conflicts = None, None
+                    elif latest_name and replaces is not None:
+                        res[latest_name] = replaces
+                        latest_name, replaces = None, None, None
 
-                elif latest_name and conflicts is not None:
-                    conflicts.update(conflicts.update((d for d in l.strip().split(' ') if d)))
+                elif latest_name and replaces is not None:
+                    replaces.update((d for d in l.strip().split(' ') if d))
 
         return res
 
@@ -1172,3 +1219,13 @@ def list_post_uninstall_unneeded_packages(names: Set[str]) -> Set[str]:
                     reqs.add(line_strip)
 
     return reqs
+
+
+def find_one_match(name: str) -> Optional[str]:
+    output = run_cmd('pacman -Ssq {}'.format(name), print_error=False)
+
+    if output:
+        matches = [l.strip() for l in output.split('\n') if l.strip()]
+
+        if matches and len(matches) == 1:
+            return matches[0]

@@ -1,0 +1,8 @@
+name=Light
+name[pt]=Claro
+name[es]=Claro
+description=Default light theme
+description[pt]=Tema padrão claro
+description[es]=Tema predeterminado claro
+version=1.0
+root_theme=default

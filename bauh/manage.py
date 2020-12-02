@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 from bauh import ROOT_DIR, __app_name__
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
+from bauh.commons.internet import InternetChecker
 from bauh.context import generate_i18n, DEFAULT_I18N_KEY, new_qt_application
 from bauh.view.core import gems
 from bauh.view.core.controller import GenericSoftwareManager
@@ -39,7 +40,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
-                                 app_name=__app_name__)
+                                 app_name=__app_name__,
+                                 internet_checker=InternetChecker(offline=app_args.offline))
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
 
@@ -49,7 +51,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
 
     manager = GenericSoftwareManager(managers, context=context, config=app_config)
 
-    app = new_qt_application(app_config, quit_on_last_closed=True)
+    app = new_qt_application(app_config=app_config, logger=logger, quit_on_last_closed=True)
 
     if app_args.settings:  # only settings window
         manager.cache_available_managers()

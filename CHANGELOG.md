@@ -4,6 +4,62 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.9] 2020-12-02
+### Features
+- Themes (stylesheets)
+    - new settings property **theme**: it points to a file defining a set of customizations over the current style (QT). In other words, a stylesheet file. At the moment 3 will come bundled with bauh:
+        - [Light](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/light.png): default light theme
+        - [Darcula](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/darcula.png): dark based on JetBrain's Darcula theme
+        - [Sublime](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/sublime.png): dark based on Sublime Text's editor theme
+    - the theme can be changed through the new lower bar button:
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/bt_themes.png">
+    </p>
+    
+    - custom themes can be provided as well. More information at [README#custom-themes](https://github.com/vinifmor/bauh/tree/master#custom-themes)
+        
+### Improvements
+- Flatpak
+    - history: only displaying the commit's 8 first characters
+
+- UI
+    - root dialog design and behavior
+    - tooltip for the label displaying the number of applications on the table/available [#138](https://github.com/vinifmor/bauh/issues/138)
+    - screenshots: 
+        - dialog resizing behavior
+        - "loading" message displays the number of images being loaded
+    - "name filter" now requires ENTER or click to be triggered
+    - some app actions icons are now displayed with a different picture when disabled to prevent confusion (e.g: launch, screenshots) [#138](https://github.com/vinifmor/bauh/issues/138)
+    - suggestions button moved to the lower bar (label removed)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.9/suggestions.png">
+    </p>
+    
+- Settings
+    - new property **system_theme** (UI -> System theme): merges the system's theme/stylesheet with bauh's (default: false)
+    - property **style** renamed to **qt_style** and its default value now is **fusion**. If this property is set to **null**, **fusion** will be considered as well. Fusion is the default style that all default themes (stylesheets) are based on, so if you change this property the final style may not look like as expected.
+    - **Applications displayed** property (Interface) tooltip now informs that 0 (zero) can be used for no limit [#138](https://github.com/vinifmor/bauh/issues/138)
+
+- Parameters
+    - new parameter **--offline**: it assumes the internet connection is off. Useful if the connection is bad/unstable and you just want to check your installed packages.
+
+### Fixes
+- AppImage
+    - not able to launch AppImage files installed inside folders named with spaces (e.g: "/path/my folder/abc.appimage")
+    
+- Arch
+    - search: not able to find installed packages that were renamed on the repositories (e.g: xapps -> xapp)
+    - not able to replace an installed package for a new one that replaces it during conflict resolutions (e.g: xapp replaces xapps)
+    - AUR: not able to find some repository dependencies when their names are not an exact match (e.g: sc-controller [0.4.7-1] relies on "pylibacl". This dependency now is called "python-pylibacl")
+    
+- UI
+    - history dialog: not able to maximize/minimize it on some systems
+    - wrong tooltips
+
+### i18n
+- French translations by [KINFOO](https://github.com/KINFOO): [#143](https://github.com/vinifmor/bauh/pull/143)
+
+
 ## [0.9.8] 2020-10-02
 ### Fixes
 - Arch

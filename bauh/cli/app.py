@@ -7,6 +7,7 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
 from bauh.cli import __app_name__, cli_args
 from bauh.cli.controller import CLIManager
+from bauh.commons.internet import InternetChecker
 from bauh.context import generate_i18n, DEFAULT_I18N_KEY
 from bauh.view.core import config, gems
 from bauh.view.core.controller import GenericSoftwareManager
@@ -42,7 +43,8 @@ def main():
                                  distro=util.get_distro(),
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
-                                 app_name=__app_name__)
+                                 app_name=__app_name__,
+                                 internet_checker=InternetChecker(offline=False))
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
 

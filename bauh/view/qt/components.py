@@ -3,18 +3,15 @@ import traceback
 from pathlib import Path
 from typing import Tuple, Dict, Optional, Set
 
-from PyQt5.QtCore import Qt, QSize, QTimer
-from PyQt5.QtGui import QIcon, QPixmap, QIntValidator, QCursor
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIcon, QIntValidator, QCursor, QFocusEvent
 from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame, QAction, QSpinBox, QPlainTextEdit
+    QSlider, QScrollArea, QFrame, QAction, QSpinBox, QPlainTextEdit, QWidgetAction, QPushButton, QMenu
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
     TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver, TextInputType
-from bauh.view.qt import css
-from bauh.view.qt.colors import RED
-from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
 
@@ -26,7 +23,7 @@ class QtComponentsManager:
         self.group_of_groups = {}
         self._saved_states = {}
 
-    def register_component(self, component_id: int, instance: QWidget, action: QAction = None):
+    def register_component(self, component_id: int, instance: QWidget, action: Optional[QAction] = None):
         comp = (instance, action, {'v': True, 'e': True, 'r': False})
         self.components[component_id] = comp
         self._save_state(comp)
@@ -339,6 +336,8 @@ class FormComboBoxQt(QComboBox):
     def __init__(self, model: SingleSelectComponent):
         super(FormComboBoxQt, self).__init__()
         self.model = model
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.view().setCursor(QCursor(Qt.PointingHandCursor))
 
         if model.max_width > 0:
             self.setMaximumWidth(model.max_width)
@@ -401,8 +400,10 @@ class RadioSelectQt(QGroupBox):
 
     def __init__(self, model: SingleSelectComponent):
         super(RadioSelectQt, self).__init__(model.label + ' :' if model.label else None)
+        if not model.label:
+            self.setObjectName('radio_select_notitle')
+
         self.model = model
-        self.setStyleSheet("QGroupBox { font-weight: bold }")
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -431,10 +432,10 @@ class ComboSelectQt(QGroupBox):
     def __init__(self, model: SingleSelectComponent):
         super(ComboSelectQt, self).__init__()
         self.model = model
-        self.setLayout(QGridLayout())
-        self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-        self.layout().addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
-        self.layout().addWidget(FormComboBoxQt(model), 0, 1)
+        self._layout = QGridLayout()
+        self.setLayout(self._layout)
+        self._layout.addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
+        self._layout.addWidget(FormComboBoxQt(model), 0, 1)
 
 
 class QLineEditObserver(QLineEdit, ViewObserver):
@@ -469,9 +470,6 @@ class TextInputQt(QGroupBox):
         super(TextInputQt, self).__init__()
         self.model = model
         self.setLayout(QGridLayout())
-        self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
-
-        self.layout().addWidget(QLabel(model.get_label()), 0, 0)
 
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
@@ -511,7 +509,6 @@ class MultipleSelectQt(QGroupBox):
 
     def __init__(self, model: MultipleSelectComponent, callback):
         super(MultipleSelectQt, self).__init__(model.label if model.label else None)
-        self.setStyleSheet(css.GROUP_BOX)
         self.model = model
         self._layout = QGridLayout()
         self.setLayout(self._layout)
@@ -531,17 +528,6 @@ class MultipleSelectQt(QGroupBox):
 
         col = 0
 
-        pixmap_help = QPixmap()
-
-        for op in model.options:  # loads the help icon if at least one option has a tooltip
-            if op.tooltip:
-                try:
-                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
-                except:
-                    traceback.print_exc()
-
-                break
-
         for op in model.options:
             comp = CheckboxQt(op, model, callback)
 
@@ -555,7 +541,8 @@ class MultipleSelectQt(QGroupBox):
 
             if op.tooltip:
                 help_icon = QLabel()
-                help_icon.setPixmap(pixmap_help)
+                help_icon.setProperty('help_icon', 'true')
+                help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
                 help_icon.setToolTip(op.tooltip)
                 widget.layout().addWidget(help_icon)
 
@@ -590,22 +577,11 @@ class FormMultipleSelectQt(QWidget):
 
         if model.label:
             line = 1
-            self.layout().addWidget(QLabel(), 0, 1)
+            self._layout.addWidget(QLabel(), 0, 1)
         else:
             line = 0
 
         col = 0
-
-        pixmap_help = QPixmap()
-
-        for op in model.options:  # loads the help icon if at least one option has a tooltip
-            if op.tooltip:
-                try:
-                    pixmap_help = QIcon(resource.get_path('img/about.svg')).pixmap(QSize(16, 16))
-                except:
-                    traceback.print_exc()
-
-                break
 
         for op in model.options:
             comp = CheckboxQt(op, model, None)
@@ -620,9 +596,9 @@ class FormMultipleSelectQt(QWidget):
 
             if op.tooltip:
                 help_icon = QLabel()
-                help_icon.setPixmap(pixmap_help)
+                help_icon.setProperty('help_icon', 'true')
                 help_icon.setToolTip(op.tooltip)
-                help_icon.setCursor(QCursor(Qt.PointingHandCursor))
+                help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
                 widget.layout().addWidget(help_icon)
 
             self._layout.addWidget(widget, line, col)
@@ -669,40 +645,26 @@ class InputFilter(QLineEdit):
         self.last_text = p_str
 
 
-class IconButton(QWidget):
+class IconButton(QToolButton):
 
-    def __init__(self, icon: QIcon, action, i18n: I18n, background: str = None, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
+    def __init__(self, action, i18n: I18n, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
         super(IconButton, self).__init__()
-        self.bt = QToolButton()
-        self.bt.setCursor(QCursor(Qt.PointingHandCursor))
-        self.bt.setIcon(icon)
-        self.bt.clicked.connect(action)
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.clicked.connect(action)
         self.i18n = i18n
         self.default_tootip = tooltip
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.bt.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Minimum, QSizePolicy.Minimum)
-
-        if background:
-            style = 'QToolButton { color: white; background: ' + background + '} '
-            style += 'QToolButton:disabled { color: white; background: blue }'
-            self.bt.setStyleSheet(style)
+        self.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         if tooltip:
-            self.bt.setToolTip(tooltip)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setAlignment(align)
-        layout.addWidget(self.bt)
-        self.setLayout(layout)
+            self.setToolTip(tooltip)
 
     def setEnabled(self, enabled):
         super(IconButton, self).setEnabled(enabled)
 
         if not enabled:
-            self.bt.setToolTip(self.i18n['icon_button.tooltip.disabled'])
+            self.setToolTip(self.i18n['icon_button.tooltip.disabled'])
         else:
-            self.bt.setToolTip(self.default_tootip)
+            self.setToolTip(self.default_tootip)
 
 
 class PanelQt(QWidget):
@@ -726,7 +688,6 @@ class FormQt(QGroupBox):
         self.model = model
         self.i18n = i18n
         self.setLayout(QFormLayout())
-        self.setStyleSheet(css.GROUP_BOX)
 
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
@@ -787,7 +748,7 @@ class FormQt(QGroupBox):
         if hasattr(comp, 'get_label'):
             text = comp.get_label()
         else:
-            attr = 'label' if hasattr(comp,'label') else 'value'
+            attr = 'label' if hasattr(comp, 'label') else 'value'
             text = getattr(comp, attr)
 
         if text:
@@ -803,13 +764,8 @@ class FormQt(QGroupBox):
 
     def gen_tip_icon(self, tip: str) -> QLabel:
         tip_icon = QLabel()
+        tip_icon.setProperty('tip_icon', 'true')
         tip_icon.setToolTip(tip.strip())
-
-        try:
-            tip_icon.setPixmap(QIcon(resource.get_path('img/about.svg')).pixmap(QSize(12, 12)))
-        except:
-            traceback.print_exc()
-
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
@@ -860,6 +816,7 @@ class FormQt(QGroupBox):
 
     def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
         spinner = QSpinBox()
+        spinner.setCursor(QCursor(Qt.PointingHandCursor))
         spinner.setMinimum(model.min)
         spinner.setMaximum(model.max)
         spinner.setSingleStep(model.step)
@@ -929,13 +886,8 @@ class FormQt(QGroupBox):
         label = self._new_label(c)
         wrapped = self._wrap(chooser, c)
 
-        try:
-            icon = QIcon(resource.get_path('img/clean.svg'))
-        except:
-            traceback.print_exc()
-            icon = QIcon()
-
-        bt = IconButton(icon, i18n=self.i18n['clean'].capitalize(), action=clean_path, background=RED, tooltip=self.i18n['action.run.tooltip'])
+        bt = IconButton(i18n=self.i18n['clean'].capitalize(), action=clean_path, tooltip=self.i18n['clean'].capitalize())
+        bt.setObjectName('clean_field')
 
         wrapped.layout().addWidget(bt)
         return label, wrapped
@@ -962,6 +914,8 @@ class TabGroupQt(QTabWidget):
             scroll.setWidget(to_widget(c.content, i18n))
             self.addTab(scroll, icon, c.label)
 
+        self.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
+
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:
     if model.type == SelectViewType.RADIO:
@@ -974,6 +928,7 @@ def new_single_select(model: SingleSelectComponent) -> QWidget:
 
 def new_spacer(min_width: int = None) -> QWidget:
     spacer = QWidget()
+    spacer.setProperty('spacer', 'true')
 
     if min_width:
         spacer.setMinimumWidth(min_width)
@@ -1019,13 +974,13 @@ class RangeInputQt(QGroupBox):
         super(RangeInputQt, self).__init__()
         self.model = model
         self.setLayout(QGridLayout())
-        self.setStyleSheet('QGridLayout {margin-left: 0} QLabel { font-weight: bold}')
         self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
 
         if self.model.max_width > 0:
             self.setMaximumWidth(self.model.max_width)
 
         self.spinner = QSpinBox()
+        self.spinner.setCursor(QCursor(Qt.PointingHandCursor))
         self.spinner.setMinimum(model.min)
         self.spinner.setMaximum(model.max)
         self.spinner.setSingleStep(model.step)
@@ -1040,3 +995,157 @@ class RangeInputQt(QGroupBox):
 
     def _update_value(self):
         self.model.value = self.spinner.value()
+
+
+class QCustomLineEdit(QLineEdit):
+
+    def __init__(self, focus_in_callback, focus_out_callback, **kwargs):
+        super(QCustomLineEdit, self).__init__(**kwargs)
+        self.focus_in_callback = focus_in_callback
+        self.focus_out_callback = focus_out_callback
+
+    def focusInEvent(self, ev: QFocusEvent):
+        super(QCustomLineEdit, self).focusInEvent(ev)
+        if self.focus_in_callback:
+            self.focus_in_callback()
+
+    def focusOutEvent(self, ev: QFocusEvent):
+        super(QCustomLineEdit, self).focusOutEvent(ev)
+        if self.focus_out_callback:
+            self.focus_out_callback()
+
+        self.clearFocus()
+
+
+class QSearchBar(QWidget):
+
+    def __init__(self, search_callback, parent: Optional[QWidget] = None):
+        super(QSearchBar, self).__init__(parent=parent)
+        self.setLayout(QHBoxLayout())
+        self.setContentsMargins(0, 0, 0, 0)
+        self.layout().setSpacing(0)
+        self.callback = search_callback
+
+        self.inp_search = QCustomLineEdit(focus_in_callback=self._set_focus_in,
+                                          focus_out_callback=self._set_focus_out)
+        self.inp_search.setObjectName('inp_search')
+        self.inp_search.setFrame(False)
+        self.inp_search.returnPressed.connect(search_callback)
+        search_background_color = self.inp_search.palette().color(self.inp_search.backgroundRole()).name()
+
+        self.search_left_corner = QLabel()
+        self.search_left_corner.setObjectName('lb_left_corner')
+
+        self.layout().addWidget(self.search_left_corner)
+
+        self.layout().addWidget(self.inp_search)
+
+        self.search_button = QPushButton()
+        self.search_button.setObjectName('search_button')
+        self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.search_button.clicked.connect(search_callback)
+
+        self.layout().addWidget(self.search_button)
+
+    def clear(self):
+        self.inp_search.clear()
+
+    def text(self) -> str:
+        return self.inp_search.text()
+
+    def set_text(self, text: str):
+        self.inp_search.setText(text)
+
+    def setFocus(self):
+        self.inp_search.setFocus()
+
+    def set_tooltip(self, tip: str):
+        self.inp_search.setToolTip(tip)
+
+    def set_button_tooltip(self, tip: str):
+        self.search_button.setToolTip(tip)
+
+    def set_placeholder(self, placeholder: str):
+        self.inp_search.setPlaceholderText(placeholder)
+
+    def _set_focus_in(self):
+        self.search_button.setProperty('focused', 'true')
+        self.search_left_corner.setProperty('focused', 'true')
+
+        for c in (self.search_button, self.search_left_corner):
+            c.style().unpolish(c)
+            c.style().polish(c)
+
+    def _set_focus_out(self):
+        self.search_button.setProperty('focused', 'false')
+        self.search_left_corner.setProperty('focused', 'false')
+
+        for c in (self.search_button, self.search_left_corner):
+            c.style().unpolish(c)
+            c.style().polish(c)
+
+
+class QCustomMenuAction(QWidgetAction):
+
+    def __init__(self, parent: QWidget, label: Optional[str] = None, action=None, button_name: Optional[str] = None,
+                 icon: Optional[QIcon] = None, tooltip: Optional[str] = None):
+        super(QCustomMenuAction, self).__init__(parent)
+        self.button = QPushButton()
+        self.set_label(label)
+        self._action = None
+        self.set_action(action)
+        self.set_button_name(button_name)
+        self.set_icon(icon)
+        self.setDefaultWidget(self.button)
+
+        if tooltip:
+            self.button.setToolTip(tooltip)
+
+    def set_label(self, label: str):
+        self.button.setText(label)
+
+    def set_action(self, action):
+        self._action = action
+        self.button.clicked.connect(self._handle_action)
+
+    def _handle_action(self):
+        if self._action:
+            self._action()
+
+            if self.parent() and isinstance(self.parent(), QMenu):
+                self.parent().close()
+
+    def set_button_name(self, name: str):
+        if name:
+            self.button.setObjectName(name)
+
+    def set_icon(self, icon: QIcon):
+        if icon:
+            self.button.setIcon(icon)
+
+    def get_label(self) -> str:
+        return self.button.text()
+
+
+class QCustomToolbar(QWidget):
+
+    def __init__(self, spacing: int = 2, parent: Optional[QWidget] = None, alignment: Qt.Alignment = Qt.AlignRight,
+                 policy_width: QSizePolicy.Policy = QSizePolicy.Minimum,
+                 policy_height: QSizePolicy.Policy = QSizePolicy.Preferred):
+        super(QCustomToolbar, self).__init__(parent=parent)
+        self.setProperty('container', 'true')
+        self.setSizePolicy(policy_width, policy_height)
+        self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setSpacing(spacing)
+        self.layout().setAlignment(alignment)
+
+    def add_widget(self, widget: QWidget):
+        if widget:
+            self.layout().addWidget(widget)
+
+    def add_stretch(self, value: int = 0):
+        self.layout().addStretch(value)
+
+    def add_space(self, min_width: int = 0):
+        self.layout().addWidget(new_spacer(min_width))

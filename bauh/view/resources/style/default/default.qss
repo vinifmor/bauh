@@ -1,0 +1,380 @@
+QPushButton, QToolButton {
+    padding: 5px;
+}
+
+QComboBox, QLineEdit, QSpinBox {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    padding: 3px;
+}
+
+QComboxBox:!editable, QComboBox::drop-down  {
+    border-left: 0;
+}
+
+QComboBox::down-arrow {
+    height: 8px;
+    width: 8px;
+    padding-right: 10px;
+}
+
+QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off, QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {
+   image: none;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+}
+
+QProgressBar {
+    max-height: 4px;
+}
+
+QTableWidget QToolButton {
+    padding: 5px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+QTableWidget QToolButton#bt_task {
+    margin-top: 1px;
+    margin-bottom: 1px;
+}
+
+QTableWidget QToolButton[text_only = "true"] {
+    min-width: 80px;
+}
+
+QMenu QPushButton {
+    border: 0px;
+    background: none;
+    padding: 5px;
+    text-align: left;
+}
+
+QLabel[help_icon = "true"] {
+    qproperty-scaledContents: True;
+    min-height: 16;
+    max-height: 16;
+    min-width: 16;
+    max-width: 16;
+}
+
+QLabel[tip_icon = "true"] {
+    qproperty-scaledContents: True;
+    min-height: 12;
+    max-height: 12;
+    min-width: 12;
+    max-width: 12;
+}
+
+QCustomToolbar QWidget[spacer = "true"] {
+    min-width: 5px;
+}
+
+FormQt {
+    font-weight: bold;
+    font-size: 12px;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+FormQt::title {
+    subcontrol-origin: margin;
+    left: 7px;
+    padding: 0px 5px 0px 5px;
+}
+
+FormQt IconButton#clean_field {
+    min-width: 14px;
+    max-width: 14px;
+    min-height: 14px;
+    max-height: 14px;
+}
+
+QSearchBar QPushButton {
+    padding: inherit;
+}
+
+QSearchBar QLabel#lb_left_corner {
+     border-top-left-radius: 5px;
+     border-bottom-left-radius: 5px;
+     border-left-width: 1px;
+     border-left-style: solid;
+     border-top-width: 1px;
+     border-top-style: solid;
+     border-bottom-width: 1px;
+     border-bottom-style: solid;
+     border-right: 0px;
+}
+
+QSearchBar QPushButton#search_button {
+    qproperty-iconSize: 10px 10px;
+    padding-right: 10px;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    height: 30px;
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+QSearchBar QLineEdit#inp_search {
+     spacing: 0;
+     height: 30px;
+     font-size: 12px;
+     width: 300px;
+     border-top-width: 1px;
+     border-top-style: solid;
+     border-bottom-width: 1px;
+     border-bottom-style: solid;
+     border-left: none;
+     border-right: none;
+     border-radius: 0;
+     padding: 0;
+}
+
+RadioSelectQt {
+    font-weight: bold;
+}
+
+RadioSelectQt#radio_select_notitle {
+    padding-top: 5px;
+}
+
+ComboSelectQt QGridLayout, RangeInputQt QGridLayout, TextInputQt QGridLayout {
+    margin-left: 0;
+}
+
+ComboSelectQt QLabel, RangeInputQt QLabel, TextInputQt QLabel {
+    font-weight: bold;
+}
+
+MultipleSelectQt {
+    font-weight: bold;
+    font-size: 12px;
+    border: 1px solid none;
+    border-radius: 6px;
+    margin-top: 6px;
+}
+
+MultipleSelectQt::title {
+    subcontrol-origin: margin;
+    left: 7px;
+    padding: 0px 5px 0px 5px;
+}
+
+ManageWindow QSearchBar#name_filter QLabel#lb_left_corner, ManageWindow QSearchBar#name_filter QLineEdit#inp_search, ManageWindow  QSearchBar#name_filter QPushButton#search_button  {
+    min-height: 27px;
+    max-height: 27px;
+    height: 27px;
+}
+
+ManageWindow QSearchBar#name_filter QPushButton#search_button {
+    qproperty-iconSize: 9px 9px;
+}
+
+ManageWindow QWidget#table_filters QPushButton[root = "true"] {
+    min-width: 100px;
+    max-width: 100px;
+    min-height: 18px;
+    max-height: 18px;
+}
+
+ManageWindow QLabel#label_status {
+    font-weight: bold;
+    letter-spacing: 0.7px;
+}
+
+ManageWindow QWidget#table_filters QCheckBox::indicator {
+    width: 22px;
+    height: 22px;
+}
+
+ConfirmationDialog QPushButton, QWidget[container = "true"] QPushButton, InfoDialog QPushButton {
+    min-width: 80px;
+}
+
+ConfirmationDialog UpgradeToggleButton {
+    height: 10px;
+}
+
+PreparePanel QLabel#prepare_status {
+    font-weight: bold;
+    letter-spacing: 0.7px;
+}
+
+PreparePanel QPushButton#bt_hide_details {
+    text-decoration: underline;
+    border: 0px;
+    background: none;
+}
+
+PreparePanel QLabel#task_status[status = "done"], QLabel#task_progress[status = "done"] {
+    text-decoration: line-through;
+}
+
+PreparePanel QTableWidget QToolButton {
+    min-width: 14px;
+    max-width: 14px;
+    min-height: 14px;
+    max-height: 14px;
+}
+
+ManageWindow QComboBox#combo_categories, ManageWindow QComboBox#combo_types {
+    height: 20px;
+    min-width: 130px;
+}
+
+ManageWindow QComboBox#combo_types {
+    qproperty-iconSize: 14px 14px;
+}
+
+ManageWindow QComboBox#combo_types > QLineEdit, ManageWindow QComboBox#combo_categories > QLineEdit {
+    height: 2px;
+}
+
+ManageWindow QSearchBar#name_filter {
+    min-width: 170;
+    max-width: 170;
+}
+
+ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, ManageWindow QPushButton#suggestions, ManageWindow QPushButton#bt_upgrade {
+    font-weight: 500;
+}
+
+PackagesTable QToolButton, PackagesTable UpgradeToggleButton {
+    min-width: 16px;
+    max-width: 16px;
+    min-height: 14px;
+    max-height: 14px;
+}
+
+PackagesTable QLabel#icon_publisher_verified {
+    qproperty-scaledContents: True;
+    min-height: 10;
+    max-height: 10;
+    min-width: 10;
+    max-width: 10;
+}
+
+PackagesTable QLabel[icon = "true"]  {
+    qproperty-alignment: AlignCenter;
+}
+
+PackagesTable QToolButton#bt_install {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+}
+
+PackagesTable QToolButton#bt_uninstall {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.6px;
+}
+
+PackagesTable QLabel#app_version[ignored = "true"] {
+    font-weight: bold;
+}
+
+AboutDialog QLabel {
+    qproperty-alignment: AlignCenter;
+}
+
+AboutDialog QLabel#logo {
+    qproperty-pixmap: url("@images/logo.svg");
+    qproperty-scaledContents: true;
+    min-height: 55px;
+    max-height: 55px;
+    min-width: 64px;
+    max-width: 64px;
+}
+
+AboutDialog QLabel#app_name {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+AboutDialog QLabel#app_version {
+    font-size: 11px;
+    font-weight: bold;
+}
+
+AboutDialog QLabel#app_description {
+    min-width: 400px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+AboutDialog QLabel#app_more_information, AboutDialog QLabel#app_license {
+    font-size: 11px;
+}
+
+AboutDialog > QLabel#app_trouble_question, AboutDialog > QLabel#app_rate_question {
+    font-size: 10px;
+    font-weight: bold;
+}
+
+AboutDialog > QLabel#app_trouble_answer, AboutDialog > QLabel#app_rate_answer {
+    font-size: 10px;
+}
+
+RootDialog QLineEdit#password {
+    qproperty-alignment: AlignCenter;
+    qproperty-echoMode: Password;
+}
+
+RootDialog QLabel#message {
+    qproperty-alignment: AlignCenter;
+}
+
+RootDialog QLabel[error = "true"] {
+    qproperty-alignment: AlignCenter;
+}
+
+HistoryDialog QTableWidget QLabel[outdated = "true"] {
+    font-weight: bold;
+}
+
+HistoryDialog QTableWidget QLabel[outdated = "false"] {
+    font-weight: bold;
+}
+
+InfoDialog QLabel#field_name {
+    font-weight: bold;
+}
+
+InfoDialog QLineEdit#field_value {
+    width: 400px;
+}
+
+InfoDialog QPushButton#show {
+    min-height: 16px;
+    max-height: 16px;
+}
+
+ScreenshotsDialog QLabel#image {
+    qproperty-alignment: AlignCenter;
+}
+
+ScreenshotsDialog QAbstractButton[control = "true"] {
+    min-width: 100px;
+}
+
+SettingsWindow TabGroupQt#settings {
+    min-width: 400px;
+}
+
+QMenu QPushButton[current = "true"] {
+    font-weight: bold;
+}
+

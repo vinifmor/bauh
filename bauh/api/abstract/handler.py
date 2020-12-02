@@ -77,10 +77,10 @@ class ProcessWatcher:
         :return: if the use requested to stop the process.
         """
 
-    def request_root_password(self) -> Tuple[str, bool]:
+    def request_root_password(self) -> Tuple[bool, str]:
         """
         asks the root password for the user
-        :return: a tuple with the typed password and if it is valid
+        :return: a tuple informing if the password is valid and its text
         """
 
 

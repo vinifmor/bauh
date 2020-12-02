@@ -2,11 +2,11 @@ import logging
 import os
 import traceback
 from math import floor
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
-from bauh import ROOT_DIR
+from bauh import ROOT_DIR, __app_name__
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
@@ -102,13 +102,13 @@ class GenericSettingsManager:
                                             id_="icon_exp")
 
         select_trim_up = new_select(label=self.i18n['core.config.trim.after_upgrade'],
-                                          tip=self.i18n['core.config.trim.after_upgrade.tip'],
-                                          value=core_config['disk']['trim']['after_upgrade'],
-                                          max_width=default_width,
-                                          opts=[(self.i18n['yes'].capitalize(), True, None),
-                                                (self.i18n['no'].capitalize(), False, None),
-                                                (self.i18n['ask'].capitalize(), None, None)],
-                                          id_='trim_after_upgrade')
+                                    tip=self.i18n['core.config.trim.after_upgrade.tip'],
+                                    value=core_config['disk']['trim']['after_upgrade'],
+                                    max_width=default_width,
+                                    opts=[(self.i18n['yes'].capitalize(), True, None),
+                                          (self.i18n['no'].capitalize(), False, None),
+                                          (self.i18n['ask'].capitalize(), None, None)],
+                                    id_='trim_after_upgrade')
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
                                                     tooltip=self.i18n['core.config.system.dep_checking.tip'],
@@ -178,7 +178,7 @@ class GenericSettingsManager:
         return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
 
     def _gen_ui_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.11 * screen_width)
+        default_width = floor(0.15 * screen_width)
 
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
                                                tooltip=self.i18n['core.config.ui.hdpi.tip'],
@@ -205,9 +205,9 @@ class GenericSettingsManager:
                                            min_value=100, max_value=400, step_value=5, value=scale * 100,
                                            max_width=default_width)
 
-        cur_style = QApplication.instance().style().objectName().lower() if not core_config['ui']['style'] else core_config['ui']['style']
-        style_opts = [InputOption(label=self.i18n['core.config.ui.style.default'].capitalize(), value=None)]
-        style_opts.extend([InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()])
+        cur_style = QApplication.instance().property('qt_style') if not core_config['ui']['qt_style'] else core_config['ui']['qt_style']
+
+        style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
 
         default_style = [o for o in style_opts if o.value == cur_style]
 
@@ -221,14 +221,21 @@ class GenericSettingsManager:
             default_style = default_style[0]
 
         select_style = SingleSelectComponent(label=self.i18n['style'].capitalize(),
+                                             tooltip=self.i18n['core.config.ui.qt_style.tooltip'],
                                              options=style_opts,
                                              default_option=default_style,
                                              type_=SelectViewType.COMBO,
                                              max_width=default_width,
                                              id_="style")
 
-        input_maxd = TextInputComponent(label=self.i18n['core.config.ui.max_displayed'].capitalize(),
-                                        tooltip=self.i18n['core.config.ui.max_displayed.tip'].capitalize(),
+        select_system_theme = self._gen_bool_component(label=self.i18n['core.config.ui.system_theme'],
+                                                       tooltip=self.i18n['core.config.ui.system_theme.tip'].format(app=__app_name__),
+                                                       value=bool(core_config['ui']['system_theme']),
+                                                       max_width=default_width,
+                                                       id_='system_theme')
+
+        input_maxd = TextInputComponent(label=self.i18n['core.config.ui.max_displayed'],
+                                        tooltip=self.i18n['core.config.ui.max_displayed.tip'],
                                         only_int=True,
                                         id_="table_max",
                                         max_width=default_width,
@@ -240,11 +247,14 @@ class GenericSettingsManager:
                                                  max_width=default_width,
                                                  value=core_config['download']['icons'])
 
-        sub_comps = [FormComponent([select_hdpi, select_ascale, select_scale, select_dicons, select_style, input_maxd], spaces=False)]
+        sub_comps = [FormComponent([select_hdpi, select_ascale, select_scale,
+                                    select_dicons, select_system_theme,
+                                    select_style, input_maxd], spaces=False)]
+
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
     def _gen_general_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.11 * screen_width)
+        default_width = floor(0.15 * screen_width)
 
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
 
@@ -295,11 +305,12 @@ class GenericSettingsManager:
                                       id_="sugs_by_type")
 
         inp_reboot = new_select(label=self.i18n['core.config.updates.reboot'],
-                                      tip=self.i18n['core.config.updates.reboot.tip'],
-                                      id_='ask_for_reboot',
-                                      max_width=default_width,
-                                      value=bool(core_config['updates']['ask_for_reboot']),
-                                      opts=[(self.i18n['ask'].capitalize(), True, None), (self.i18n['no'].capitalize(), False, None)])
+                                tip=self.i18n['core.config.updates.reboot.tip'],
+                                id_='ask_for_reboot',
+                                max_width=default_width,
+                                value=bool(core_config['updates']['ask_for_reboot']),
+                                opts=[(self.i18n['ask'].capitalize(), True, None),
+                                      (self.i18n['no'].capitalize(), False, None)])
 
         sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
@@ -322,7 +333,7 @@ class GenericSettingsManager:
                        backup: PanelComponent,
                        ui: PanelComponent,
                        tray: PanelComponent,
-                       gems_panel: PanelComponent) -> Tuple[bool, List[str]]:
+                       gems_panel: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         core_config = config.read_config()
 
         # general
@@ -407,9 +418,12 @@ class GenericSettingsManager:
 
         style = ui_form.get_component('style').get_selected()
 
-        cur_style = core_config['ui']['style'] if core_config['ui']['style'] else QApplication.instance().style().objectName().lower()
+        cur_style = core_config['ui']['qt_style'] if core_config['ui']['qt_style'] else QApplication.instance().property('qt_style')
         if style != cur_style:
-            core_config['ui']['style'] = style
+            core_config['ui']['qt_style'] = style
+            QApplication.instance().setProperty('qt_style', style)
+
+        core_config['ui']['system_theme'] = ui_form.get_component('system_theme').get_selected()
 
         # gems
         checked_gems = gems_panel.components[1].get_component('gems').get_selected_values()

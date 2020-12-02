@@ -22,6 +22,9 @@ def main(tray: bool = False):
 
     logger = logs.new_logger(__app_name__, bool(args.logs))
 
+    if args.offline:
+        logger.warning("offline mode activated")
+
     app_config = config.read_config(update_file=True)
 
     if bool(app_config['ui']['auto_scale']):

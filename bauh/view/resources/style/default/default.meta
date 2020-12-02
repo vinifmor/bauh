@@ -1,0 +1,8 @@
+name=Default
+name[pt]=Padrão
+name[es]=Predeterminada
+description=Base theme without icons and colors
+description[pt]=Tema base sem ícones e cores
+description[es]=Tema base sin iconos y colores
+version=1.0
+abstract=true

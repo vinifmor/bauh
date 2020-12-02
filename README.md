@@ -10,6 +10,7 @@ Key features:
 - A management panel where you can: search, install, uninstall, upgrade, downgrade, launch, ignore updates and retrieve releases history from software packages.
 - Tray mode: it launches attached to the system tray and publishes notifications when there are software updates available
 - System backup: it integrates with **Timeshift** to provide a simple and safe backup process before applying changes to your system.
+- Custom themes: it's possible to customize the tool's style/appearance. More at [Custom themes](https://github.com/vinifmor/bauh/tree/master#custom-themes). 
 
 
 This project has an official Twitter account (**@bauh4linux**) so people can stay on top of its news.
@@ -267,6 +268,23 @@ environment:
     - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
     - Debian-based systems ( using pip ): **beautifulsoup4**, **lxml** 
 
+### Custom themes
+- Custom themes can be provided by adding their files at **~/.local/share/bauh/themes** (sub-folders are allowed). 
+- Themes are composed by 2 required and 1 optional files sharing the same name:
+    - **my_theme.qss**: file with the qss rules. Full example: [light.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.qss)
+    - **my_theme.meta**: file defining the theme's data. Full example: [light.meta](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.meta) 
+        - available fields:
+            - `name`: name that will be displayed on the interface. It supports translations by adding additional `name` fields with brackets and the language code (e.g: `name[es]=Mi tema`)
+            - `description`: theme's description that will be displayed on the interface. It supports translations like `name` (e.g: description[es] = Mi tema).
+            - `version`: theme's version. It just works as information at the moment. (e.g: 1.0)
+            - `root_theme`: optional attribute that points to a theme that must be loaded before the theme. It supports the bauh's default theme keys (e.g: default, light, ...) or a file path (e.g: `/path/to/root/file.qss`).
+            - `abstract`: optional boolean attribute (true/false) that should only be used by themes that are not complete on their own and just work as a base (root) for other themes. Abstract themes are not displayed on the interface. Full example: [default.qss](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/default/default.qss) 
+    - **my_theme.vars**: optional file defining `key=value` pairs of variables that will be available for the .qss file (can be referenced through the symbol **@**. e.g `@my_var`). Full example: [light.vars](https://raw.githubusercontent.com/vinifmor/bauh/qss/bauh/view/resources/style/light/light.vars)
+        - common theme variables available: 
+            - **style_dir**: path to the .qss file directory. Example: @style_dir/my_icon.svg
+            - **images**: path to bauh's icons directory (gem icons are not available through this variable). Example: @images/logo.svg
+
+
 ### General settings
 
 #### Environment variables / parameters
@@ -275,6 +293,7 @@ You can change some application settings via environment variables or arguments 
 - `--settings`: it displays only the settings window.
 - `--reset`: it cleans all configurations and cached data stored in the HOME directory.
 - `--logs`: it enables logs (for debugging purposes).
+- `--offline`: it assumes the internet connection is off.
 
 #### General configuration file (**~/.config/bauh/config.yml**)
 ```
@@ -295,15 +314,17 @@ system:
   notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
   single_dependency_checking: false  # if bauh should check only once if for the available technologies on the system.
 ui:
-  style: null  # the current QT style set. A null value will map to 'Fusion', 'Breeze' or 'Oxygen' (depending on what is installed)
+  qt_style: fusion  # defines the Qt style. A null value will map to 'fusion' as well.
   table:
-    max_displayed: 50  # defines the maximum number of displayed applications on the table.
+    max_displayed: 50  # defines the maximum number of displayed applications on the table. Use 0 for no limit.
   tray:  # system tray settings
     default_icon: null  # defines a path to a custom icon
     updates_icon: null  # defines a path to a custom icon indicating updates
   hdpi: true  # enables HDPI rendering improvements. Use 'false' to disable them if you think the interface looks strange
   auto_scale: false # activates Qt auto screen scale factor (QT_AUTO_SCREEN_SCALE_FACTOR). It fixes scaling issues for some desktop environments (like Gnome)
   scale_factor: 1.0  # defines the interface display scaling factor (Qt). Raise the value to raise the interface size. The settings window display this value as a percentage (e.g: 1.0 -> 100%).
+  theme: defines the path to the theme/stylesheet file with a .qss extension (e.g: /path/to/my/theme.qss). For themes provided by bauh, only a string key is needed (e.g: light). Default: light
+  system_theme: merges the system's theme/stylesheet with bauh's. Default: false.
 updates:
   check_interval: 30  # the updates checking interval in SECONDS
   ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade

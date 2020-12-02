@@ -258,4 +258,4 @@ gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Repository
 gem.arch.type.aur.label=Arch - AUR
-gem.aur.install.warning=AUR packages are maintained by an independent user community. There is no warranty that they will work or not harm your system.
+gem.aur.install.warning=AUR packages are maintained by an independent user community. There is no warranty they will work or not harm your system.

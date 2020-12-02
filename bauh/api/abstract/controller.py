@@ -52,7 +52,7 @@ class UpgradeRequirement:
 
 class UpgradeRequirements:
 
-    def __init__(self, to_install: List[UpgradeRequirement], to_remove: List[UpgradeRequirement],
+    def __init__(self, to_install: Optional[List[UpgradeRequirement]], to_remove: Optional[List[UpgradeRequirement]],
                  to_upgrade: List[UpgradeRequirement], cannot_upgrade: List[UpgradeRequirement]):
         """
         :param to_install: additional packages that must be installed with the upgrade
@@ -264,7 +264,7 @@ class SoftwareManager(ABC):
                 f.write(icon_bytes)
 
     @abstractmethod
-    def requires_root(self, action: str, pkg: SoftwarePackage):
+    def requires_root(self, action: str, pkg: Optional[SoftwarePackage]):
         """
         if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh', 'prepare'
         :param action:
@@ -274,11 +274,12 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: Optional[TaskManager], root_password: Optional[str], internet_available: Optional[bool]):
         """
         It prepares the manager to start working. It will be called by GUI. Do not call it within.
         :param task_manager: a task manager instance used to register ongoing tasks during prepare
         :param root_password
+        :param internet_available: if there is internet connection available
         :return:
         """
         pass

@@ -47,6 +47,16 @@ def apply_filters(pkg: PackageView, filters: dict, info: dict, limit: bool = Tru
             info['pkgs_displayed'].append(pkg)
 
 
+def sum_updates_displayed(info: dict) -> int:
+    updates = 0
+    if info['pkgs_displayed']:
+        for p in info['pkgs_displayed']:
+            if p.model.update and not p.model.is_update_ignored():
+                updates += 1
+
+    return updates
+
+
 def is_package_hidden(pkg: PackageView, filters: dict) -> bool:
     hidden = filters['only_apps'] and pkg.model.installed and not pkg.model.is_application()
 

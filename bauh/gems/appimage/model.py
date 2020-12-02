@@ -1,9 +1,12 @@
-from typing import List
+import re
+from typing import List, Optional
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
 from bauh.view.util.translation import I18n
+
+RE_MANY_SPACES = re.compile(r'\s+')
 
 CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
                 'icon_path', 'github', 'categories', 'imported', 'install_dir', 'symlink'}
@@ -120,3 +123,7 @@ class AppImage(SoftwarePackage):
     def __eq__(self, other):
         if isinstance(other, AppImage):
             return self.name == other.name and self.local_file_path == other.local_file_path
+
+    def get_clean_name(self) -> Optional[str]:
+        if self.name:
+            return RE_MANY_SPACES.sub('-', self.name.lower().strip())
