@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     ```
 
 ### Fixes
+- Core
+    - bauh release notification not working properly
 - Web:
     - installation options window size
 
