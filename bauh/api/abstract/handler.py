@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from bauh.api.abstract.view import MessageType, ViewComponent
 
@@ -17,7 +17,7 @@ class ProcessWatcher:
         """
         pass
 
-    def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None, confirmation_label: str = None,
+    def request_confirmation(self, title: str, body: Optional[str], components: List[ViewComponent] = None, confirmation_label: str = None,
                              deny_label: str = None, deny_button: bool = True, window_cancel: bool = False,
                              confirmation_button: bool = True) -> bool:
         """
@@ -95,11 +95,11 @@ class TaskManager:
         """
         pass
 
-    def update_progress(self, task_id: str, progress: float, substatus: str):
+    def update_progress(self, task_id: str, progress: float, substatus: Optional[str]):
         """
         :param task_id:
         :param progress: a float between 0 and 100.
-        :param substatus: a substatus string representing the current state
+        :param substatus: optional substatus string representing the current state
         :return:
         """
         pass

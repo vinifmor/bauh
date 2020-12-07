@@ -108,7 +108,7 @@ class SingleSelectComponent(InputViewComponent):
 
 class MultipleSelectComponent(InputViewComponent):
 
-    def __init__(self, label: str, options: List[InputOption], default_options: Set[InputOption] = None,
+    def __init__(self, label: Optional[str], options: List[InputOption], default_options: Set[InputOption] = None,
                  max_per_line: int = 1, tooltip: str = None, spaces: bool = True, max_width: int = -1,
                  max_height: int = -1, id_: str = None):
         super(MultipleSelectComponent, self).__init__(id_=id_)

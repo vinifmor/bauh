@@ -215,7 +215,7 @@ suggest_optdep_uninstall: false  # if the optional dependencies associated with 
     - **git**: allows to retrieve packages release history and downgrading
     - **aria2** or **axel**: provides faster, multi-threaded downloads for required source files
 
-#### Native Web Applications ( web )
+#### Native Web Applications (web)
 - It allows the installation of native Web applications by typing their addresses/URLs on the search bar
 
 <p align="center">
@@ -231,7 +231,7 @@ suggest_optdep_uninstall: false  # if the optional dependencies associated with 
 
 
 - It provides some suggestions coming with predefined settings, and they also can be retrieved by their names. They are
-defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/web/suggestions.yml), and downloaded during the application usage.
+defined at [suggestions.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/suggestions.yml), and downloaded during the application usage.
 
 <p align="center">
     <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/suggestions.gif">
@@ -240,7 +240,8 @@ defined at [suggestions.yml](https://github.com/vinifmor/bauh-files/blob/master/
 
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
 will be generated at **~/.local/share/bauh/web/env**.
-- The isolated environment is created based on the settings defined in [environment.yml](https://github.com/vinifmor/bauh-files/blob/master/web/environment.yml)
+- It supports DRM protected content through a custom Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). nativefier handles the switch between the official Electron and the custom.
+- The isolated environment is created based on the settings defined in [environment.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/environment.yml)
  (downloaded during runtime).
 - Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
 attach it to the generated app.

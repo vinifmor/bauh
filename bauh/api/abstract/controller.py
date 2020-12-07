@@ -106,7 +106,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int, only_apps: bool, pkg_types: Set[Type[SoftwarePackage]], internet_available: bool) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int, only_apps: bool, pkg_types: Set[Type[SoftwarePackage]], internet_available: bool) -> SearchResult:
         """
         :param disk_loader:  a running disk loader thread that loads application data from the disk asynchronously
         :param limit: the max number of packages to be retrieved. <= 1 should retrieve everything
@@ -234,7 +234,7 @@ class SoftwareManager(ABC):
         if pkg.supports_disk_cache():
             self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
-    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         """
         Sames as above, but does not check if disk cache is enabled or supported by the package instance
         :param pkg:

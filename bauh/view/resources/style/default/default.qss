@@ -75,6 +75,7 @@ QCustomToolbar QWidget[spacer = "true"] {
 }
 
 FormQt {
+    min-width: 600px;
     font-weight: bold;
     font-size: 12px;
     border-radius: 6px;
@@ -377,4 +378,3 @@ SettingsWindow TabGroupQt#settings {
 QMenu QPushButton[current = "true"] {
     font-weight: bold;
 }
-

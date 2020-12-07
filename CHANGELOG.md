@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.10]
+### Features
+- Web
+    - allowing generated apps to interact with protected/encrypted content (DRM) through a new installation option:
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.10/widevine.png">
+    </p>
+    
+    - this new installation option uses an alternative Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). 
+    - **nativefier** handles the switch between the official Electron and the custom provided by castLabs.
+
+### Improvements
+- Web
+    - upgraded the default environment tools (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)):
+    ```
+        - nodejs: 12.18.0 -> 14.15.1
+        - nativefier: 7.7.1 -> 42.0.1
+        - electron: 5.0.13 -> 11.0.3
+    ```
+
+### Fixes
+- Web:
+    - installation options window size
+
+
 ## [0.9.9] 2020-12-02
 ### Features
 - Themes (stylesheets)

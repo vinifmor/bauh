@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 import shutil
@@ -5,7 +6,7 @@ import tarfile
 import traceback
 from pathlib import Path
 from threading import Thread
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import requests
 import yaml
@@ -19,20 +20,21 @@ from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, URL_NATIVEFIER, get_icon_path
+    nativefier, URL_NATIVEFIER, get_icon_path, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
 
 class EnvironmentComponent:
 
-    def __init__(self, id: str, name: str, size: str, version: str, url: str, update: bool = False):
+    def __init__(self, id: str, name: str, size: str, version: str, url: str, update: bool = False, properties: Optional[dict] = None):
         self.id = id
         self.name = name
         self.size = size
         self.version = version
         self.url = url
         self.update = update
+        self.properties = properties
 
 
 class EnvironmentUpdater:
@@ -186,10 +188,11 @@ class EnvironmentUpdater:
     def _is_nativefier_installed(self) -> bool:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
-    def download_electron(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
+    def download_electron(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
         Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
         self.logger.info("Downloading Electron {}".format(version))
-        electron_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1])
+
+        electron_path = self._get_electron_file_path(url=url, relative=False)
 
         if not self.http_client.exists(url):
             self.logger.warning("The file {} seems not to exist".format(url))
@@ -200,9 +203,10 @@ class EnvironmentUpdater:
 
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_PATH)
 
-    def download_electron_sha256(self, version: str, url: str, watcher: ProcessWatcher) -> bool:
+    def download_electron_sha256(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading Electron {} sha526".format(version))
-        sha256_path = '{}/{}'.format(ELECTRON_PATH, url.split('/')[-1]) + '-{}'.format(version)
+
+        sha256_path = self._get_electron_file_path(url=url, relative=False)
 
         if not self.http_client.exists(url):
             self.logger.warning("The file {} seems not to exist".format(url))
@@ -213,27 +217,44 @@ class EnvironmentUpdater:
 
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_PATH)
 
-    def _get_electron_url(self, version: str, is_x86_x64_arch: bool) -> str:
-        return ELECTRON_DOWNLOAD_URL.format(version=version, arch='x64' if is_x86_x64_arch else 'ia32')
+    def _get_electron_url(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> str:
+        arch = 'x64' if is_x86_x64_arch else 'ia32'
+        if widevine:
+            return ELECTRON_WIDEVINE_URL.format(version=version, arch=arch)
+        else:
+            return ELECTRON_DOWNLOAD_URL.format(version=version, arch=arch)
 
-    def check_electron_installed(self, version: str, is_x86_x64_arch: bool) -> Dict[str, bool]:
-        self.logger.info("Checking if Electron {} is installed".format(version))
+    def _get_electron_sha256_url(self, version: str, widevine: bool) -> str:
+        if widevine:
+            return ELECTRON_WIDEVINE_SHA256_URL.format(version=version)
+        else:
+            return ELECTRON_SHA256_URL.format(version=version)
+
+    def _get_electron_file_path(self, url: str, relative: bool) -> str:
+        file_path = url.replace(':', '').replace('/', '') + '/' + url.split('/')[-1]
+        return '{}/{}'.format(ELECTRON_PATH, file_path) if not relative else file_path
+
+    def check_electron_installed(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
+        self.logger.info("Checking if Electron {} (widevine={}) is installed".format(version, widevine))
         res = {'electron': False, 'sha256': False}
 
         if not os.path.exists(ELECTRON_PATH):
             self.logger.info("The Electron folder {} was not found".format(ELECTRON_PATH))
         else:
-            files = os.listdir(ELECTRON_PATH)
+            files = {f.split(ELECTRON_PATH + '/')[1] for f in glob.glob(ELECTRON_PATH + '/**', recursive=True) if os.path.isfile(f)}
 
             if files:
-                file_name = self._get_electron_url(version, is_x86_x64_arch).split('/')[-1]
-                res['electron'] = bool([f for f in files if f == file_name])
+                electron_url = self._get_electron_url(version, is_x86_x64_arch, widevine)
+                file_path = self._get_electron_file_path(url=electron_url, relative=True)
+
+                res['electron'] = file_path in files
 
                 if not res['electron']:
                     res['sha256'] = True
                 else:
-                    file_name = ELECTRON_SHA256_URL.split('/')[-1] + '-{}'.format(version)
-                    res['sha256'] = bool([f for f in files if f == file_name])
+                    sha_url = self._get_electron_sha256_url(version=version, widevine=widevine)
+                    sha_path = self._get_electron_file_path(url=sha_url, relative=True)
+                    res['sha256'] = sha_path in files
             else:
                 self.logger.info('No Electron file found in {}'.format(ELECTRON_PATH))
 
@@ -248,7 +269,7 @@ class EnvironmentUpdater:
             task_man.update_progress('web_down_sets', 100, None)
             task_man.finish_task('web_down_sets')
 
-    def read_settings(self, task_man: TaskManager = None) -> dict:
+    def read_settings(self, task_man: TaskManager = None) -> Optional[dict]:
         try:
             if task_man:
                 task_man.register_task('web_down_sets', self.i18n['web.task.download_settings'], get_icon_path())
@@ -272,34 +293,37 @@ class EnvironmentUpdater:
             self._finish_task_download_settings(task_man)
             return
 
-    def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, output: List[EnvironmentComponent]):
-        electron_version = env['electron']['version']
+    def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, widevine: bool, output: List[EnvironmentComponent]):
+        electron_version = env['electron-wvvmp' if widevine else 'electron']['version']
 
-        if pkg.version and pkg.version != electron_version:
+        if not widevine and pkg.version and pkg.version != electron_version:  # this feature does not support custom widevine electron at the moment
             self.logger.info('A preset Electron version is defined for {}: {}'.format(pkg.url, pkg.version))
             electron_version = pkg.version
 
-        if local_config['environment']['electron']['version']:
+        if not widevine and local_config['environment']['electron']['version']:
             self.logger.warning("A custom Electron version will be used {} to install {}".format(electron_version, pkg.url))
             electron_version = local_config['environment']['electron']['version']
 
-        electron_status = self.check_electron_installed(version=electron_version, is_x86_x64_arch=x86_x64)
+        electron_status = self.check_electron_installed(version=electron_version, is_x86_x64_arch=x86_x64, widevine=widevine)
 
-        electron_url = self._get_electron_url(version=electron_version, is_x86_x64_arch=x86_x64)
+        electron_url = self._get_electron_url(version=electron_version, is_x86_x64_arch=x86_x64, widevine=widevine)
         output.append(EnvironmentComponent(name=electron_url.split('/')[-1],
                                            version=electron_version,
                                            url=electron_url,
                                            size=self.http_client.get_content_length(electron_url),
                                            id='electron',
-                                           update=not electron_status['electron']))
+                                           update=not electron_status['electron'],
+                                           properties={'widevine': widevine}))
 
-        sha_url = ELECTRON_SHA256_URL.format(version=electron_version)
+        sha_url = self._get_electron_sha256_url(version=electron_version, widevine=widevine)
+
         output.append(EnvironmentComponent(name=sha_url.split('/')[-1],
                                            version=electron_version,
                                            url=sha_url,
                                            size=self.http_client.get_content_length(sha_url),
                                            id='electron_sha256',
-                                           update=not electron_status['electron'] or not electron_status['sha256']))
+                                           update=not electron_status['electron'] or not electron_status['sha256'],
+                                           properties={'widevine': widevine}))
 
     def _check_and_fill_node(self, env: dict, output: List[EnvironmentComponent]):
         node = EnvironmentComponent(name=env['nodejs']['url'].split('/')[-1],
@@ -348,7 +372,8 @@ class EnvironmentUpdater:
                                     version=nativefier_settings['version'],
                                     id='nativefier')
 
-    def check_environment(self, env: dict, local_config: dict, app: WebApplication, is_x86_x64_arch: bool) -> List[EnvironmentComponent]:
+    def check_environment(self, env: dict, local_config: dict, app: WebApplication,
+                          is_x86_x64_arch: bool, widevine: bool) -> List[EnvironmentComponent]:
         """
         :param app:
         :param is_x86_x64_arch:
@@ -365,7 +390,7 @@ class EnvironmentUpdater:
             node_check.start()
             check_threads.append(node_check)
 
-        elec_check = Thread(target=self._check_and_fill_electron, args=(app, env, local_config, is_x86_x64_arch, components))
+        elec_check = Thread(target=self._check_and_fill_electron, args=(app, env, local_config, is_x86_x64_arch, widevine, components))
         elec_check.start()
         check_threads.append(elec_check)
 
@@ -396,13 +421,13 @@ class EnvironmentUpdater:
         electron_data = comp_map.get('electron')
 
         if electron_data:
-            if not self.download_electron(version=electron_data.version, url=electron_data.url, watcher=handler.watcher):
+            if not self.download_electron(version=electron_data.version, url=electron_data.url, watcher=handler.watcher, widevine=electron_data.properties['widevine']):
                 return False
 
         sha256_data = comp_map.get('electron_sha256')
 
         if sha256_data:
-            if not self.download_electron_sha256(version=sha256_data.version, url=sha256_data.url, watcher=handler.watcher):
+            if not self.download_electron_sha256(version=sha256_data.version, url=sha256_data.url, watcher=handler.watcher, widevine=sha256_data.properties['widevine']):
                 return False
 
         self.logger.info('Environment successfully updated')

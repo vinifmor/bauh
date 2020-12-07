@@ -461,7 +461,7 @@ class WebApplicationManager(SoftwareManager):
                     break
 
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=def_cat)
-
+        op_wv = InputOption(id_='widevine', label=self.i18n['web.install.option.widevine.label'] + ' (DRM)', value="--widevine", tooltip=self.i18n['web.install.option.widevine.tip'])
         tray_op_off = InputOption(id_='tray_off', label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
         tray_op_default = InputOption(id_='tray_def', label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
         tray_op_min = InputOption(id_='tray_min', label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
@@ -503,7 +503,7 @@ class WebApplicationManager(SoftwareManager):
         op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
         op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
-        adv_opts = [op_single, op_allow_urls, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert]
+        adv_opts = [op_single, op_allow_urls, op_wv, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert]
         def_adv_opts = {op_single, op_allow_urls}
 
         if app.preset_options:
@@ -621,6 +621,7 @@ class WebApplicationManager(SoftwareManager):
     def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
 
         continue_install, install_options = self._ask_install_options(pkg, watcher)
+        widevine_support = '--widevine' in install_options
 
         if not continue_install:
             return TransactionResult(success=False, installed=[], removed=[])
@@ -637,7 +638,9 @@ class WebApplicationManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
-        env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings, is_x86_x64_arch=self.context.is_system_x86_64())
+        env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings,
+                                                            is_x86_x64_arch=self.context.is_system_x86_64(),
+                                                            widevine=widevine_support)
 
         comps_to_update = [c for c in env_components if c.update]
 
@@ -690,7 +693,7 @@ class WebApplicationManager(SoftwareManager):
 
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
-                                                             electron_version=electron_version,
+                                                             electron_version=electron_version if not widevine_support else None,
                                                              system=bool(local_config['environment']['system']),
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
