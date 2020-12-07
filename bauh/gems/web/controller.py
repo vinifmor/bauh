@@ -772,7 +772,7 @@ class WebApplicationManager(SoftwareManager):
         return """
         [Desktop Entry]
         Type=Application
-        Name={name} ( web )
+        Name={name} (web)
         Comment={desc}
         Icon={icon}
         Exec={exec_path}
