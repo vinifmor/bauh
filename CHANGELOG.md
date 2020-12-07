@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - Web
-    - upgraded the default environment tools (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)):
+    - environment tools upgraded (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)):
     ```
         - nodejs: 12.18.0 -> 14.15.1
         - nativefier: 7.7.1 -> 42.0.1
