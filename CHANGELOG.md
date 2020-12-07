@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.10]
 ### Features
 - Web
-    - allowing generated apps to interact with protected/encrypted content (DRM) through a new installation option:
+    - allowing generated apps to interact with protected/encrypted content (DRM) through a new installation option [#49](https://github.com/vinifmor/bauh/issues/49):
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.10/widevine.png">
     </p>
