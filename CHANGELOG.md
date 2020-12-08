@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     ```
 
 ### Fixes
+- AppImage
+    - missing **Exec** parameters on generated desktop entries [#152](https://github.com/vinifmor/bauh/issues/152)
 - Core
     - bauh release notification not working properly
 - Web:
