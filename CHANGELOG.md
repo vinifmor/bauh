@@ -27,10 +27,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AppImage
     - missing **Exec** parameters on generated desktop entries [#152](https://github.com/vinifmor/bauh/issues/152)
-- Core
+    - crashing when trying to retrieve an AppImage history not available on the database anymore (downgrade is affected as well)
+- Flatpak
+    - crashing when trying to downgrade (regression introduced in **0.9.9**)
+- UI
+    - upgrading: only requesting the root password if required [#151](https://github.com/vinifmor/bauh/issues/151)
+    - install/uninstall/downgrade + specific backup settings could lead to crashing
     - bauh release notification not working properly
-- Web:
+- Web
     - installation options window size
+    
+### Changes
+- UI
+    - "backup" dialog is displayed before the "trim" dialog during the upgrade process (if both are enabled)
 
 
 ## [0.9.9] 2020-12-02

@@ -7,7 +7,7 @@ from threading import Thread
 from typing import List, Set, Type, Tuple, Dict
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement, TransactionResult
+    UpgradeRequirement, TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
@@ -151,14 +151,14 @@ class GenericSoftwareManager(SoftwareManager):
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
 
-    def search(self, word: str, disk_loader: DiskCacheLoader = None, limit: int = -1, is_url: bool = False) -> SearchResult:
+    def search(self, words: str, disk_loader: DiskCacheLoader = None, limit: int = -1, is_url: bool = False) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
 
         res = SearchResult([], [], 0)
 
         if self.context.is_internet_available():
-            norm_word = word.strip().lower()
+            norm_word = words.strip().lower()
 
             url_words = RE_IS_URL.match(norm_word)
             disk_loader = self.disk_loader_factory.new()
@@ -385,7 +385,7 @@ class GenericSoftwareManager(SoftwareManager):
             if man:
                 return man.cache_to_disk(pkg, icon_bytes=icon_bytes, only_icon=only_icon)
 
-    def requires_root(self, action: str, app: SoftwarePackage) -> bool:
+    def requires_root(self, action: SoftwareAction, app: SoftwarePackage) -> bool:
         if app is None:
             if self.managers:
                 for man in self.managers:

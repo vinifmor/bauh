@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QWidget
 
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
-from bauh.api.abstract.controller import SoftwareManager, UpgradeRequirement, UpgradeRequirements
+from bauh.api.abstract.controller import SoftwareManager, UpgradeRequirement, UpgradeRequirements, SoftwareAction
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
@@ -29,7 +29,7 @@ from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
-RE_VERSION_IN_NAME = re.compile(r'\s+version\s+[\w\.]+\s*$')
+RE_VERSION_IN_NAME = re.compile(r'\s+version\s+[\w.]+\s*$')
 
 
 class AsyncAction(QThread, ProcessWatcher):
@@ -48,7 +48,7 @@ class AsyncAction(QThread, ProcessWatcher):
         super(AsyncAction, self).__init__()
         self.wait_confirmation = False
         self.confirmation_res = None
-        self.root_password = None
+        self.root_password = root_password
         self.stop = False
 
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
@@ -123,64 +123,78 @@ class AsyncAction(QThread, ProcessWatcher):
 
         return False
 
-    def _generate_backup(self, app_config: dict, i18n: I18n, root_password: str) -> bool:
-        if timeshift.is_available():
-            if app_config['backup']['mode'] not in ('only_one', 'incremental'):
-                self.show_message(title=self.i18n['error'].capitalize(),
-                                  body='{}: {}'.format(self.i18n['action.backup.invalid_mode'], bold(app_config['backup']['mode'])),
-                                  type_=MessageType.ERROR)
-                return False
+    def _generate_backup(self, app_config: dict, i18n: I18n, root_password: Optional[str]) -> bool:
+        if app_config['backup']['mode'] not in ('only_one', 'incremental'):
+            self.show_message(title=self.i18n['error'].capitalize(),
+                              body='{}: {}'.format(self.i18n['action.backup.invalid_mode'],bold(app_config['backup']['mode'])),
+                              type_=MessageType.ERROR)
+            self.change_substatus('')
+            return False
 
-            if not user.is_root() and not root_password:
-                root_pwd, valid = self.request_root_password()
-            else:
-                root_pwd, valid = root_password, True
+        handler = ProcessHandler(self)
+        if app_config['backup']['mode'] == 'only_one':
+            self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.delete']))
+            deleted, _ = handler.handle_simple(timeshift.delete_all_snapshots(root_password))
 
-            if not valid:
-                return False
-
-            handler = ProcessHandler(self)
-            if app_config['backup']['mode'] == 'only_one':
-                self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.delete']))
-                deleted, _ = handler.handle_simple(timeshift.delete_all_snapshots(root_pwd))
-
-                if not deleted and not self.request_confirmation(title=i18n['core.config.tab.backup'],
-                                                                 body='{}. {}'.format(i18n['action.backup.error.delete'], i18n['action.backup.error.proceed']),
-                                                                 confirmation_label=i18n['yes'].capitalize(),
-                                                                 deny_label=i18n['no'].capitalize()):
-                    return False
-
-            self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.create']))
-            created, _ = handler.handle_simple(timeshift.create_snapshot(root_pwd, app_config['backup']['type']))
-
-            if not created and not self.request_confirmation(title=i18n['core.config.tab.backup'],
-                                                             body='{}. {}'.format(i18n['action.backup.error.create'],
+            if not deleted and not self.request_confirmation(title=i18n['core.config.tab.backup'],
+                                                             body='{}. {}'.format(i18n['action.backup.error.delete'],
                                                                                   i18n['action.backup.error.proceed']),
                                                              confirmation_label=i18n['yes'].capitalize(),
                                                              deny_label=i18n['no'].capitalize()):
+                self.change_substatus('')
                 return False
 
+        self.change_substatus('[{}] {}'.format(i18n['core.config.tab.backup'].lower(), i18n['action.backup.substatus.create']))
+        created, _ = handler.handle_simple(timeshift.create_snapshot(root_password, app_config['backup']['type']))
+
+        if not created and not self.request_confirmation(title=i18n['core.config.tab.backup'],
+                                                         body='{}. {}'.format(i18n['action.backup.error.create'],
+                                                                              i18n['action.backup.error.proceed']),
+                                                         confirmation_label=i18n['yes'].capitalize(),
+                                                         deny_label=i18n['no'].capitalize()):
+            self.change_substatus('')
+            return False
+
+        self.change_substatus('')
         return True
 
-    def request_backup(self, app_config: dict, key: str, i18n: I18n, root_password: str = None) -> bool:
-        if bool(app_config['backup']['enabled']) and timeshift.is_available():
-            val = app_config['backup'][key] if key else None
+    def _check_backup_requirements(self, app_config: dict, pkg: Optional[PackageView], action_key: Optional[str]) -> bool:
+        if pkg and not pkg.model.supports_backup():
+            return False
 
-            if val is None:  # ask mode
-                if self.request_confirmation(title=i18n['core.config.tab.backup'],
+        if action_key and app_config['backup'][action_key] is False:
+            return False
+
+        return bool(app_config['backup']['enabled']) and timeshift.is_available()
+
+    def _should_backup(self, action_key: str, app_config: dict, i18n: I18n) -> bool:
+        # backup -> true: do not ask, only execute | false: do not ask or execute | None: ask
+        backup = app_config['backup'][action_key] if action_key else None
+
+        if backup is None:
+            return self.request_confirmation(title=i18n['core.config.tab.backup'],
                                              body=i18n['action.backup.msg'],
                                              confirmation_label=i18n['yes'].capitalize(),
-                                             deny_label=i18n['no'].capitalize()):
-                    res = self._generate_backup(app_config, i18n, root_password)
-                    self.change_substatus('')
-                    return res
+                                             deny_label=i18n['no'].capitalize())
+        else:
+            return backup
 
-            elif val is True:  # direct mode
-                res = self._generate_backup(app_config, i18n, root_password)
-                self.change_substatus('')
-                return res
+    def request_backup(self, action_key: Optional[str], pkg: Optional[PackageView], i18n: I18n, app_config: dict, root_password: Optional[str], backup_only: bool = False) -> Tuple[bool, Optional[str]]:
+        if not backup_only:
+            if not self._check_backup_requirements(app_config=app_config, pkg=pkg, action_key=action_key):
+                return True, root_password
 
-        return True
+            if not self._should_backup(action_key=action_key, app_config=app_config, i18n=i18n):
+                return True, root_password
+
+        pwd = root_password
+        if not user.is_root() and pwd is None:
+            valid_password, pwd = self.request_root_password()
+
+            if not valid_password:
+                return False, None
+
+        return self._generate_backup(app_config=app_config, i18n=i18n, root_password=pwd), pwd
 
 
 class UpgradeSelected(AsyncAction):
@@ -373,14 +387,28 @@ class UpgradeSelected(AsyncAction):
             traceback.print_exc()
 
     def run(self):
-        valid_password, root_password = self._request_password()
+        root_user = user.is_root()
+        to_update, upgrade_requires_root, bkp_supported = [], False, False
+
+        for pkg in self.pkgs:
+            if pkg.model.update and not pkg.model.is_update_ignored() and pkg.update_checked:
+                to_update.append(pkg)
+
+                if not bkp_supported and pkg.model.supports_backup():
+                    bkp_supported = True
+
+                if not root_user and not upgrade_requires_root and self.manager.requires_root(SoftwareAction.UPGRADE, pkg.model):
+                    upgrade_requires_root = True
+
+        if upgrade_requires_root:
+            valid_password, root_password = self._request_password()
+        else:
+            valid_password, root_password = True, None
 
         if not valid_password:
             self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
             self.pkgs = None
             return
-
-        to_update = [pkg for pkg in self.pkgs if pkg.model.update and not pkg.model.is_update_ignored() and pkg.update_checked]
 
         if len(to_update) > 1:
             self.disable_progress_controll()
@@ -440,26 +468,37 @@ class UpgradeSelected(AsyncAction):
 
         app_config = read_config()
 
-        # trim dialog
+        # backup dialog ( if enabled, supported and accepted )
+        should_backup = bkp_supported
+        should_backup = should_backup and self._check_backup_requirements(app_config=app_config, pkg=None, action_key='upgrade')
+        should_backup = should_backup and self._should_backup(action_key='upgrade', app_config=app_config, i18n=self.i18n)
+
+        # trim dialog ( if enabled and accepted )
         if app_config['disk']['trim']['after_upgrade'] is not False:
             should_trim = app_config['disk']['trim']['after_upgrade'] or self._ask_for_trim()
         else:
             should_trim = False
 
-        # backup process ( if enabled, supported and accepted )
-        if bool(app_config['backup']['enabled']) and app_config['backup']['upgrade'] in (True, None) and timeshift.is_available():
-            any_requires_bkp = False
+        if should_trim and not root_user and root_password is None:  # trim requires root and the password might have not being asked yet
+            valid_password, root_password = self._request_password()
 
-            for dep in requirements.to_upgrade:
-                if dep.pkg.supports_backup():
-                    any_requires_bkp = True
-                    break
+            if not valid_password:
+                self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
+                self.pkgs = None
+                return
 
-            if any_requires_bkp:
-                if not self.request_backup(app_config, 'upgrade', self.i18n, root_password):
-                    self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
-                    self.pkgs = None
-                    return
+        # performing backup
+        if should_backup:
+            proceed, root_password = self.request_backup(action_key='upgrade',
+                                                         app_config=app_config,
+                                                         i18n=self.i18n,
+                                                         root_password=root_password,
+                                                         pkg=None,
+                                                         backup_only=True)
+            if not proceed:
+                self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
+                self.pkgs = None
+                return
 
         self.change_substatus('')
 
@@ -497,7 +536,8 @@ class RefreshApps(AsyncAction):
 
     def run(self):
         try:
-            res = self.manager.read_installed(pkg_types=self.pkg_types)
+            res = self.manager.read_installed(pkg_types=self.pkg_types, disk_loader=None, only_apps=False,
+                                              internet_available=True, limit=-1)
             refreshed_types = set()
 
             if res:
@@ -528,12 +568,16 @@ class UninstallPackage(AsyncAction):
 
     def run(self):
         if self.pkg:
-            if self.pkg.model.supports_backup():
-                if not self.request_backup(read_config(), 'uninstall', self.i18n, self.root_pwd):
-                    self.notify_finished(False)
-                    self.pkg = None
-                    self.root_pwd = None
-                    return
+            proceed, _ = self.request_backup(action_key='uninstall',
+                                             pkg=self.pkg,
+                                             i18n=self.i18n,
+                                             root_password=self.root_pwd,
+                                             app_config=read_config())
+            if not proceed:
+                self.notify_finished({'success': False, 'removed': None, 'pkg': self.pkg})
+                self.pkg = None
+                self.root_pwd = None
+                return
 
             try:
                 res = self.manager.uninstall(self.pkg.model, self.root_pwd, self, None)
@@ -567,12 +611,17 @@ class DowngradePackage(AsyncAction):
         if self.pkg:
             success = False
 
-            if self.pkg.model.supports_backup():
-                if not self.request_backup(read_config(), 'downgrade', self.i18n, self.root_pwd):
-                    self.notify_finished({'app': self.pkg, 'success': success})
-                    self.pkg = None
-                    self.root_pwd = None
-                    return
+            proceed, _ = self.request_backup(action_key='downgrade',
+                                             pkg=self.pkg,
+                                             i18n=self.i18n,
+                                             root_password=self.root_pwd,
+                                             app_config=read_config())
+
+            if not proceed:
+                self.notify_finished({'app': self.pkg, 'success': success})
+                self.pkg = None
+                self.root_pwd = None
+                return
 
             try:
                 success = self.manager.downgrade(self.pkg.model, self.root_pwd, self)
@@ -630,7 +679,7 @@ class SearchPackages(AsyncAction):
 
         if self.word:
             try:
-                res = self.manager.search(self.word)
+                res = self.manager.search(words=self.word, disk_loader=None, limit=-1, is_url=False)
                 search_res['pkgs_found'].extend(res.installed)
                 search_res['pkgs_found'].extend(res.new)
             except NoInternetException:
@@ -654,10 +703,17 @@ class InstallPackage(AsyncAction):
         if self.pkg:
             res = {'success': False, 'installed': None, 'removed': None, 'pkg': self.pkg}
 
-            if self.pkg.model.supports_backup():
-                if not self.request_backup(read_config(), 'install', self.i18n, self.root_pwd):
-                    self.signal_finished.emit(res)
-                    return
+            proceed, _ = self.request_backup(action_key='install',
+                                             pkg=self.pkg,
+                                             i18n=self.i18n,
+                                             root_password=self.root_pwd,
+                                             app_config=read_config())
+
+            if not proceed:
+                self.signal_finished.emit(res)
+                self.pkg = None
+                self.root_pwd = None
+                return
 
             try:
                 transaction_res = self.manager.install(self.pkg.model, self.root_pwd, None, self)
@@ -834,7 +890,7 @@ class ListWarnings(QThread):
         self.man = man
 
     def run(self):
-        warnings = self.man.list_warnings()
+        warnings = self.man.list_warnings(internet_available=True)
         if warnings:
             self.signal_warnings.emit(warnings)
 
@@ -949,8 +1005,12 @@ class CustomAction(AsyncAction):
 
     def run(self):
         if self.custom_action.backup:
-            app_config = read_config()
-            if not self.request_backup(app_config, None, self.i18n, self.root_pwd):
+            proceed, _ = self.request_backup(app_config=read_config(),
+                                             action_key=None,
+                                             i18n=self.i18n,
+                                             root_password=self.root_pwd,
+                                             pkg=self.pkg)
+            if not proceed:
                 self.notify_finished({'success': False, 'pkg': self.pkg, 'action': self.custom_action})
                 self.pkg = None
                 self.custom_action = None

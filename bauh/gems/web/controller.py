@@ -17,7 +17,8 @@ from colorama import Fore
 from requests import exceptions, Response
 
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult
+from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult, \
+    SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
@@ -801,7 +802,7 @@ class WebApplicationManager(SoftwareManager):
 
         return False
 
-    def requires_root(self, action: str, pkg: SoftwarePackage):
+    def requires_root(self, action: SoftwareAction, pkg: SoftwarePackage) -> bool:
         return False
 
     def _update_env_settings(self, task_manager: TaskManager = None):

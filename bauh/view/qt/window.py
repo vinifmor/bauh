@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolB
 from bauh import LOGS_PATH
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
@@ -712,7 +712,7 @@ class ManageWindow(QWidget):
         self._finish_search(res)
 
     def begin_uninstall(self, pkg: PackageView):
-        pwd, proceed = self._ask_root_password('uninstall', pkg)
+        pwd, proceed = self._ask_root_password(SoftwareAction.UNINSTALL, pkg)
 
         if not proceed:
             return
@@ -1160,7 +1160,7 @@ class ManageWindow(QWidget):
         self.progress_controll_enabled = True
 
     def begin_downgrade(self, pkg: PackageView):
-        pwd, proceed = self._ask_root_password('downgrade', pkg)
+        pwd, proceed = self._ask_root_password(SoftwareAction.DOWNGRADE, pkg)
 
         if not proceed:
             return
@@ -1281,7 +1281,7 @@ class ManageWindow(QWidget):
             self.comp_manager.restore_state(ACTION_SEARCH)
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=self.i18n[res['error']], type_=MessageType.WARNING)
 
-    def _ask_root_password(self, action: str, pkg: PackageView) -> Tuple[Optional[str], bool]:
+    def _ask_root_password(self, action: SoftwareAction, pkg: PackageView) -> Tuple[Optional[str], bool]:
         pwd = None
         requires_root = self.manager.requires_root(action, pkg.model)
 
@@ -1293,7 +1293,7 @@ class ManageWindow(QWidget):
         return pwd, True
 
     def install(self, pkg: PackageView):
-        pwd, proceed = self._ask_root_password('install', pkg)
+        pwd, proceed = self._ask_root_password(SoftwareAction.INSTALL, pkg)
 
         if not proceed:
             return

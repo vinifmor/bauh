@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
 from typing import List, Set, Type, Tuple, Optional
 
@@ -53,7 +54,7 @@ class UpgradeRequirement:
 class UpgradeRequirements:
 
     def __init__(self, to_install: Optional[List[UpgradeRequirement]], to_remove: Optional[List[UpgradeRequirement]],
-                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: List[UpgradeRequirement]):
+                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: Optional[List[UpgradeRequirement]]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
@@ -82,6 +83,15 @@ class TransactionResult:
         return TransactionResult(success=False, installed=None, removed=None)
 
 
+class SoftwareAction(Enum):
+    PREPARE = 0
+    SEARCH = 1
+    INSTALL = 2
+    UNINSTALL = 3
+    UPGRADE = 4
+    DOWNGRADE = 5
+
+
 class SoftwareManager(ABC):
 
     """
@@ -95,7 +105,7 @@ class SoftwareManager(ABC):
         self.context = context
 
     @abstractmethod
-    def search(self, words: str, disk_loader: DiskCacheLoader, limit: int, is_url: bool) -> SearchResult:
+    def search(self, words: str, disk_loader: Optional[DiskCacheLoader], limit: int, is_url: bool) -> SearchResult:
         """
         :param words: the words typed by the user
         :param disk_loader: a running disk loader thread that loads package data from the disk asynchronously
@@ -157,7 +167,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: Optional[DiskCacheLoader]) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -192,7 +202,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def install(self, pkg: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: SoftwarePackage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -264,9 +274,9 @@ class SoftwareManager(ABC):
                 f.write(icon_bytes)
 
     @abstractmethod
-    def requires_root(self, action: str, pkg: Optional[SoftwarePackage]):
+    def requires_root(self, action: SoftwareAction, pkg: Optional[SoftwarePackage]) -> bool:
         """
-        if a given action requires root privileges to be executed. Current actions are: 'install', 'uninstall', 'downgrade', 'search', 'refresh', 'prepare'
+        if a given action requires root privileges to be executed. 'install', 'uninstall', 'downgrade', 'search', 'prepare'
         :param action:
         :param pkg:
         :return:

@@ -16,7 +16,7 @@ from typing import List, Set, Type, Tuple, Dict, Iterable, Optional
 import requests
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    TransactionResult
+    TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
@@ -2476,8 +2476,8 @@ class ArchManager(SoftwareManager):
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
         pass
 
-    def requires_root(self, action: str, pkg: ArchPackage):
-        if action == 'prepare':
+    def requires_root(self, action: SoftwareAction, pkg: ArchPackage) -> bool:
+        if action == SoftwareAction.PREPARE:
             arch_config = read_config()
 
             if arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
@@ -2485,7 +2485,7 @@ class ArchManager(SoftwareManager):
 
             return arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger)
 
-        return action != 'search'
+        return action != SoftwareAction.SEARCH
 
     def _start_category_task(self, task_man: TaskManager):
         task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'].format('Arch'), get_icon_path())
