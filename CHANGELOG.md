@@ -17,10 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - Web
-    - environment tools upgraded (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)):
+    - environment tools upgraded (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml):
     ```
         - nodejs: 12.18.0 -> 14.15.1
-        - nativefier: 7.7.1 -> 42.0.1
+        - nativefier: 7.7.1 -> 42.0.2
         - electron: 5.0.13 -> 11.0.3
     ```
 
@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - crashing when trying to retrieve an AppImage history not available on the database anymore (downgrade is affected as well)
 - Flatpak
     - crashing when trying to downgrade (regression introduced in **0.9.9**)
+- Snap
+    - Channel changing status (UI)
 - UI
     - upgrading: only requesting the root password if required [#151](https://github.com/vinifmor/bauh/issues/151)
     - install/uninstall/downgrade + specific backup settings could lead to crashing
