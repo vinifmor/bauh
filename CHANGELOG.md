@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.10]
+## [0.9.10] 2020-12-11
 ### Features
 - Web
     - allowing generated apps to interact with protected/encrypted content (DRM) through a new installation option [#49](https://github.com/vinifmor/bauh/issues/49):
@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changes
 - UI
     - "backup" dialog is displayed before the "trim" dialog during the upgrade process (if both are enabled)
+
 
 
 ## [0.9.9] 2020-12-02
