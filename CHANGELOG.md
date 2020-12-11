@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.10] 2020-12-11
+### Features
+- Web
+    - allowing generated apps to interact with protected/encrypted content (DRM) through a new installation option [#49](https://github.com/vinifmor/bauh/issues/49):
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.10/widevine.png">
+    </p>
+    
+    - this new installation option uses an alternative Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). 
+    - **nativefier** handles the switch between the official Electron and the custom provided by castLabs.
+
+### Improvements
+- Web
+    - environment tools upgraded (settings are now retrieved from this new [URL](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml):
+    ```
+        - nodejs: 12.18.0 -> 14.15.1
+        - nativefier: 7.7.1 -> 42.0.2
+        - electron: 5.0.13 -> 11.0.3
+    ```
+
+### Fixes
+- AppImage
+    - missing **Exec** parameters on generated desktop entries [#152](https://github.com/vinifmor/bauh/issues/152)
+    - crashing when trying to retrieve an AppImage history not available on the database anymore (downgrade is affected as well)
+- Flatpak
+    - crashing when trying to downgrade (regression introduced in **0.9.9**)
+- Snap
+    - Channel changing status (UI)
+- UI
+    - upgrading: only requesting the root password if required [#151](https://github.com/vinifmor/bauh/issues/151)
+    - install/uninstall/downgrade + specific backup settings could lead to crashing
+    - bauh release notification not working properly
+- Web
+    - installation options window size
+    
+### Changes
+- UI
+    - "backup" dialog is displayed before the "trim" dialog during the upgrade process (if both are enabled)
+
+
+
 ## [0.9.9] 2020-12-02
 ### Features
 - Themes (stylesheets)

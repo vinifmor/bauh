@@ -233,7 +233,7 @@ def downgrade(app_ref: str, commit: str, installation: str, root_password: str) 
                          wrong_error_phrases={'Warning'})
 
 
-def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> List[str]:
+def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> Optional[List[str]]:
     try:
         p = SimpleProcess(['flatpak', 'remote-info', '--log', origin, app_ref, '--{}'.format(installation)])
         success, output = handler.handle_simple(p)
@@ -245,7 +245,7 @@ def get_app_commits(app_ref: str, origin: str, installation: str, handler: Proce
         raise NoInternetException()
 
 
-def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[dict]:
+def get_app_commits_data(app_ref: str, origin: str, installation: str, full_str: bool = True) -> List[dict]:
     log = run_cmd('{} remote-info --log {} {} --{}'.format('flatpak', origin, app_ref, installation))
 
     if not log:
@@ -262,7 +262,7 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str) -> List[d
         commit[attr] = data[1].strip()
 
         if attr == 'commit':
-            commit[attr] = commit[attr][0:8]
+            commit[attr] = commit[attr] if full_str else commit[attr][0:8]
 
         if attr == 'date':
             commit[attr] = datetime.strptime(commit[attr], '%Y-%m-%d %H:%M:%S +0000')

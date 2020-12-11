@@ -1,4 +1,4 @@
-__version__ = '0.9.9'
+__version__ = '0.9.10'
 __app_name__ = 'bauh'
 
 import os

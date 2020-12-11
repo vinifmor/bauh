@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWid
 
 from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager
+from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.handler import TaskManager
 from bauh.view.qt.components import new_spacer, QCustomToolbar
 from bauh.view.qt.qt_utils import centralize
@@ -51,7 +51,7 @@ class Prepare(QThread, TaskManager):
 
     def run(self):
         root_pwd = None
-        if self.manager.requires_root('prepare', None):
+        if self.manager.requires_root(SoftwareAction.PREPARE, None):
             ok, root_pwd = self.ask_password()
 
             if not ok:

@@ -8,7 +8,7 @@ from threading import Thread
 from typing import List, Set, Type, Tuple, Optional
 
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement, TransactionResult
+    UpgradeRequirement, TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
@@ -112,7 +112,7 @@ class FlatpakManager(SoftwareManager):
     def _add_updates(self, version: str, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         version = flatpak.get_version()
 
         updates = []
@@ -174,7 +174,7 @@ class FlatpakManager(SoftwareManager):
         watcher.change_progress(10)
         watcher.change_substatus(self.i18n['flatpak.downgrade.commits'])
 
-        history = self.get_history(pkg)
+        history = self.get_history(pkg, full_commit_str=True)
 
         # downgrade is not possible if the app current commit in the first one:
         if history.pkg_status_idx == len(history.history) - 1:
@@ -295,9 +295,9 @@ class FlatpakManager(SoftwareManager):
             else:
                 return {}
 
-    def get_history(self, pkg: FlatpakApplication) -> PackageHistory:
+    def get_history(self, pkg: FlatpakApplication, full_commit_str: bool = False) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
-        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation)
+        commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation, full_str=full_commit_str)
 
         status_idx = 0
         commit_found = False
@@ -444,8 +444,8 @@ class FlatpakManager(SoftwareManager):
     def can_work(self) -> bool:
         return flatpak.is_installed()
 
-    def requires_root(self, action: str, pkg: FlatpakApplication):
-        return action == 'downgrade' and pkg.installation == 'system'
+    def requires_root(self, action: SoftwareAction, pkg: FlatpakApplication) -> bool:
+        return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         Thread(target=read_config, args=(True,), daemon=True).start()

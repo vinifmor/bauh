@@ -5,7 +5,7 @@ from threading import Thread
 from typing import List, Set, Type, Optional, Tuple
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
-    TransactionResult
+    TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
@@ -255,8 +255,8 @@ class SnapManager(SoftwareManager):
     def can_work(self) -> bool:
         return snap.is_installed()
 
-    def requires_root(self, action: str, pkg: SnapApplication):
-        return action not in ('search', 'prepare')
+    def requires_root(self, action: SoftwareAction, pkg: SnapApplication) -> bool:
+        return action not in (SoftwareAction.PREPARE, SoftwareAction.SEARCH)
 
     def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]

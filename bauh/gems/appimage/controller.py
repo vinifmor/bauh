@@ -17,7 +17,7 @@ from pkg_resources import parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
-    TransactionResult
+    TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
@@ -32,6 +32,7 @@ from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS
     CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir
 from bauh.gems.appimage.config import read_config
 from bauh.gems.appimage.model import AppImage
+from bauh.gems.appimage.util import replace_desktop_entry_exec_command
 from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
 
 DB_APPS_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/apps.db')
@@ -39,7 +40,6 @@ DB_RELEASES_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/
 
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 
-RE_DESKTOP_EXEC = re.compile(r'Exec\s*=\s*.+\n')
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
 RE_APPIMAGE_NAME = re.compile(r'(.+)\.appimage', flags=re.IGNORECASE)
@@ -416,7 +416,8 @@ class AppImageManager(SoftwareManager):
                 app_tuple = cursor.fetchone()
 
                 if not app_tuple:
-                    raise Exception("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
+                    self.logger.warning("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
+                    return res
             finally:
                 self._close_connection(DB_APPS_PATH, connection)
 
@@ -530,7 +531,9 @@ class AppImageManager(SoftwareManager):
                     with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
                         de_content = f.read()
 
-                    de_content = RE_DESKTOP_EXEC.sub('Exec="{}"\n'.format(file_path), de_content)
+                    de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
+                                                                    appname=pkg.name,
+                                                                    file_path=file_path)
 
                     extracted_icon = self._find_icon_file(extracted_folder)
 
@@ -580,7 +583,7 @@ class AppImageManager(SoftwareManager):
     def can_work(self) -> bool:
         return self._is_sqlite3_available() and self.file_downloader.can_work()
 
-    def requires_root(self, action: str, pkg: AppImage):
+    def requires_root(self, action: SoftwareAction, pkg: AppImage) -> bool:
         return False
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
@@ -675,7 +678,7 @@ class AppImageManager(SoftwareManager):
             else:
                 self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
 
-    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
     def get_screenshots(self, pkg: AppImage) -> List[str]:

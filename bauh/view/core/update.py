@@ -2,6 +2,8 @@ import logging
 import os
 from pathlib import Path
 
+from pkg_resources import parse_version
+
 from bauh import __app_name__, __version__
 from bauh.api.constants import CACHE_PATH
 from bauh.api.http import HttpClient
@@ -35,7 +37,7 @@ def check_for_update(logger: logging.Logger, http_client: HttpClient, i18n: I18n
                 release_file = '{}/{}{}'.format(notifications_dir, '' if not tray else 'tray_', latest['tag_name'])
                 if os.path.exists(release_file):
                     logger.info("Release {} already notified".format(latest['tag_name']))
-                elif latest['tag_name'] > __version__:
+                elif parse_version(latest['tag_name']) > parse_version(__version__):
                     try:
                         Path(notifications_dir).mkdir(parents=True, exist_ok=True)
                         with open(release_file, 'w+') as f:
