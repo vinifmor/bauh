@@ -226,7 +226,7 @@ suggest_optdep_uninstall: false  # if the optional dependencies associated with 
 - It offers the possibility to customize the generated app the way you want:
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/options.gif">
+    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/web/options.png">
 </p>
 
 
