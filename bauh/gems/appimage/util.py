@@ -26,10 +26,16 @@ def replace_desktop_entry_exec_command(desktop_entry: str, appname: str, file_pa
         cmd = RE_MANY_SPACES.sub(' ', exec_groups[1].strip())
         if cmd:
             words = cmd.split(' ')
+            changed = False
 
             for idx in range(len(words)):
                 if words[idx].lower() == treated_name:
                     words[idx] = '"{}"'.format(file_path)
+                    changed = True
+                    break
+
+            if not changed:
+                words = ['"{}"'.format(file_path)]
 
             final_entry = final_entry.replace(full_match, full_match.replace(exec_groups[1], ' '.join(words)))
 

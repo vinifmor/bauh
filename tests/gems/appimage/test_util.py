@@ -237,3 +237,40 @@ Keywords=PS3;Playstation;
         """
 
         self.assertEqual(expected, res)
+
+    def test_replace_desktop_entry_exec_command__it_should_replace_the_command_by_the_file_path_if_the_appname_is_not_present(self):
+        desktop_entry = """
+        [Desktop Entry]
+Name=GameHub
+GenericName=GameHub
+Comment=All your games in one place
+Categories=Game;Amusement;
+Keywords=Game;Hub;Steam;GOG;Humble;HumbleBundle;
+Exec=com.github.tkashkin.gamehub
+X-GNOME-Gettext-Domain=com.github.tkashkin.gamehub
+Icon=/gamehub-0/logo.svg
+Terminal=false
+Type=Application
+X-AppImage-Version=bionic-0.16.0-83-dev-0ca783e
+        """
+
+        res = replace_desktop_entry_exec_command(desktop_entry=desktop_entry,
+                                                 appname='gamehub',
+                                                 file_path='/path/to/gamehub.appimage')
+
+        expected =  """
+        [Desktop Entry]
+Name=GameHub
+GenericName=GameHub
+Comment=All your games in one place
+Categories=Game;Amusement;
+Keywords=Game;Hub;Steam;GOG;Humble;HumbleBundle;
+Exec="/path/to/gamehub.appimage"
+X-GNOME-Gettext-Domain=com.github.tkashkin.gamehub
+Icon=/gamehub-0/logo.svg
+Terminal=false
+Type=Application
+X-AppImage-Version=bionic-0.16.0-83-dev-0ca783e
+        """
+
+        self.assertEqual(expected, res)
