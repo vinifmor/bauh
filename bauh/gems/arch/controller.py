@@ -2339,10 +2339,10 @@ class ArchManager(SoftwareManager):
                 self.logger.warning("It was not possible to synchronized the package databases")
                 handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus.error'])
 
-    def _optimize_makepkg(self, arch_config: dict, watcher: ProcessWatcher):
-        if arch_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
+    def _optimize_makepkg(self, arch_config: dict, watcher: Optional[ProcessWatcher]):
+        if arch_config['aur'] and arch_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
-            ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger).optimize()
+            ArchCompilationOptimizer(arch_config=arch_config, i18n=self.i18n, logger=self.context.logger).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher, context: TransactionContext = None) -> TransactionResult:
         self.aur_client.clean_caches()
@@ -2372,7 +2372,6 @@ class ArchManager(SoftwareManager):
 
         if res:
             pkg.name = install_context.name  # changes the package name in case the PKGBUILD was edited
-
 
             if os.path.exists(pkg.get_disk_data_path()):
                 with open(pkg.get_disk_data_path()) as f:
@@ -2498,27 +2497,28 @@ class ArchManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         arch_config = read_config(update_file=True)
 
+        if arch_config['aur']:
+            ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
+
+            if internet_available:
+                self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager)
+                self.index_aur.start()
+
         if arch_config['aur'] or arch_config['repositories']:
             self.disk_cache_updater = ArchDiskCacheUpdater(task_man=task_manager,
                                                            arch_config=arch_config,
                                                            i18n=self.i18n,
                                                            logger=self.context.logger,
                                                            controller=self,
-                                                           internet_available=internet_available)
+                                                           internet_available=internet_available,
+                                                           aur_indexer=self.index_aur)
             self.disk_cache_updater.start()
-
-        if arch_config['aur']:
-            ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
 
         CategoriesDownloader(id_='Arch', http_client=self.context.http_client, logger=self.context.logger,
                              manager=self, url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=ARCH_CACHE_PATH,
                              categories_path=CATEGORIES_FILE_PATH,
                              before=lambda: self._start_category_task(task_manager),
                              after=lambda: self._finish_category_task(task_manager)).start()
-
-        if arch_config['aur'] and internet_available:
-            self.index_aur = AURIndexUpdater(self.context)
-            self.index_aur.start()
 
         refresh_mirrors = None
         if internet_available and arch_config['repositories'] and arch_config['refresh_mirrors_startup'] \

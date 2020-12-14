@@ -6,6 +6,7 @@ import time
 import traceback
 from pathlib import Path
 from threading import Thread
+from typing import Optional
 
 import requests
 
@@ -28,39 +29,66 @@ RE_CLEAR_REPLACE = re.compile(r'[\-_.]')
 
 class AURIndexUpdater(Thread):
 
-    def __init__(self, context: ApplicationContext):
+    def __init__(self, context: ApplicationContext, taskman: TaskManager):
         super(AURIndexUpdater, self).__init__(daemon=True)
         self.http_client = context.http_client
         self.i18n = context.i18n
         self.logger = context.logger
+        self.taskman = taskman
+        self.task_id = 'index_aur'
 
     def run(self):
-        self.logger.info('Pre-indexing AUR packages')
+        ti = time.time()
+        self.logger.info('Indexing AUR packages')
+        self.taskman.register_task(self.task_id, self.i18n['arch.task.aur.index.status'], get_icon_path())
+        self.taskman.update_progress(self.task_id, 1, self.i18n['arch.task.aur.index.substatus.download'])
         try:
             res = self.http_client.get(URL_INDEX)
 
             if res and res.text:
+                index_progress = 50
+                self.taskman.update_progress(self.task_id, index_progress,
+                                             self.i18n['arch.task.aur.index.substatus.gen_index'])
                 indexed = 0
                 Path(BUILD_DIR).mkdir(parents=True, exist_ok=True)
 
                 with open(AUR_INDEX_FILE, 'w+') as f:
-                    for n in res.text.split('\n'):
+                    lines = res.text.split('\n')
+                    progress_inc = round(len(lines) / 50)  # 1%
+
+                    perc_count = 0
+                    for n in lines:
+                        if index_progress < 100 and perc_count == progress_inc:
+                            index_progress += 1
+                            perc_count = 0
+                            self.taskman.update_progress(self.task_id, index_progress,
+                                                         self.i18n['arch.task.aur.index.substatus.gen_index'])
+
                         if n and not n.startswith('#'):
                             f.write('{}={}\n'.format(RE_CLEAR_REPLACE.sub('', n), n))
                             indexed += 1
 
+                        perc_count += 1
+
                 self.logger.info('Pre-indexed {} AUR package names at {}'.format(indexed, AUR_INDEX_FILE))
+                self.taskman.update_progress(self.task_id, 100, None)
+
             else:
                 self.logger.warning('No data returned from: {}'.format(URL_INDEX))
+                self.taskman.update_progress(self.task_id, 100, self.i18n['arch.task.aur.index.substatus.error.no_data'])
+
         except requests.exceptions.ConnectionError:
             self.logger.warning('No internet connection: could not pre-index packages')
+            self.taskman.update_progress(self.task_id, 100, self.i18n['arch.task.aur.index.substatus.error.download'])
 
-        self.logger.info("Finished")
+        tf = time.time()
+        self.taskman.finish_task(self.task_id)
+        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
 
 
 class ArchDiskCacheUpdater(Thread):
 
-    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger, controller: "ArchManager", internet_available: bool):
+    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger, controller: "ArchManager", internet_available: bool, aur_indexer: Thread):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
         self.task_man = task_man
@@ -76,6 +104,7 @@ class ArchDiskCacheUpdater(Thread):
         self.internet_available = internet_available
         self.installed_hash_path = '{}/installed.sha1'.format(ARCH_CACHE_PATH)
         self.installed_cache_dir = '{}/installed'.format(ARCH_CACHE_PATH)
+        self.aur_indexer = aur_indexer
 
     def update_indexed(self, pkgname: str):
         self.indexed += 1
@@ -122,7 +151,11 @@ class ArchDiskCacheUpdater(Thread):
 
         self.logger.info('Pre-caching installed Arch packages data to disk')
 
-        self._update_progress(20, self.i18n['arch.task.disk_cache.checking'])
+        if self.aur and self.aur_indexer:
+            self.task_man.update_progress(self.task_id, 20, self.i18n['arch.task.disk_cache.waiting_aur_index'].format(bold(self.i18n['arch.task.aur.index.status'])))
+            self.aur_indexer.join()
+
+        self._update_progress(21, self.i18n['arch.task.disk_cache.checking'])
         installed = self.controller.read_installed(disk_loader=None, internet_available=self.internet_available,
                                                    only_apps=False, pkg_types=None, limit=-1, names=not_cached_names,
                                                    wait_disk_cache=False).installed
@@ -149,7 +182,7 @@ class ArchDiskCacheUpdater(Thread):
 
 class ArchCompilationOptimizer(Thread):
 
-    def __init__(self, arch_config: dict, i18n: I18n, logger: logging.Logger, task_man: TaskManager = None):
+    def __init__(self, arch_config: dict, i18n: I18n, logger: logging.Logger, taskman: Optional[TaskManager] = None):
         super(ArchCompilationOptimizer, self).__init__(daemon=True)
         self.logger = logger
         self.i18n = i18n
@@ -157,7 +190,7 @@ class ArchCompilationOptimizer(Thread):
         self.re_compress_zst = re.compile(r'#?\s*COMPRESSZST\s*=\s*.+')
         self.re_build_env = re.compile(r'\s+BUILDENV\s*=.+')
         self.re_ccache = re.compile(r'!?ccache')
-        self.task_man = task_man
+        self.taskman = taskman
         self.task_id = 'arch_make_optm'
         self.optimizations = bool(arch_config['optimize'])
 
@@ -165,11 +198,11 @@ class ArchCompilationOptimizer(Thread):
         return bool(run_cmd('which ccache', print_error=False))
 
     def _update_progress(self, progress: float, substatus: str = None):
-        if self.task_man:
-            self.task_man.update_progress(self.task_id, progress, substatus)
+        if self.taskman:
+            self.taskman.update_progress(self.task_id, progress, substatus)
 
             if progress == 100:
-                self.task_man.finish_task(self.task_id)
+                self.taskman.finish_task(self.task_id)
 
     def optimize(self):
         ti = time.time()
@@ -295,8 +328,8 @@ class ArchCompilationOptimizer(Thread):
 
             self.logger.info('Finished')
         else:
-            if self.task_man:
-                self.task_man.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
+            if self.taskman:
+                self.taskman.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
 
             self.optimize()
 
