@@ -1370,6 +1370,7 @@ class ArchManager(SoftwareManager):
             t.start()
 
             info = pacman.get_info_dict(pkg.name)
+            self._parse_dates_string_from_info(pkg.name, info)
 
             if pkg.last_modified:
                 info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
@@ -1430,16 +1431,27 @@ class ArchManager(SoftwareManager):
 
             return info
 
+    def _parse_dates_string_from_info(self, pkgname: str, info: dict):
+        for date_attr in ('install date', 'build date'):
+            en_date_str = info.get(date_attr)
+
+            if en_date_str:
+                try:
+                    info[date_attr] = parse_date(en_date_str)
+                except ValueError:
+                    self.logger.error("Could not parse date attribute '{}' ({}) from package '{}'".format(date_attr, en_date_str, pkgname))
+
     def _parse_timestamp(self, ts: int, error_msg: str) -> datetime:
         if ts:
             try:
                 return datetime.fromtimestamp(ts)
             except ValueError:
                 if error_msg:
-                    self.logger.warning(error_msg)
+                    self.logger.error(error_msg)
 
     def _get_info_repo_pkg(self, pkg: ArchPackage) -> dict:
         info = pacman.get_info_dict(pkg.name, remote=not pkg.installed)
+        self._parse_dates_string_from_info(pkg.name, info)
         if pkg.installed:
             info['installed files'] = pacman.list_installed_files(pkg.name)
 

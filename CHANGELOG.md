@@ -12,7 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - AUR: upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
     - the task responsible for generating a local AUR index is displayed on the initialization dialog 
-    
+    - info window:
+        - date fields format changed to numbers (e.g: Thu Dec 17 17:19:55 2020 -> 2020-12-17 17:19:55)
+
 ### Fixes
 - AppImage
     - some installed applications cannot be launched by their desktop entries (regression from **0.9.10**) [#155](https://github.com/vinifmor/bauh/issues/155). If any of your installed AppImages are affected by this issue, just reinstall them.
