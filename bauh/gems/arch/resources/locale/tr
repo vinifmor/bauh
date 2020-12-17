@@ -144,6 +144,7 @@ arch.info.install script=kurulum betiği
 arch.info.install script.no=hayır
 arch.info.installed files=yüklü dosyalar
 arch.info.installed size=kurulum boyutu
+arch.info.last_modified=son değişiklik
 arch.info.license=lisans
 arch.info.licenses=lisanslar
 arch.info.licenses.custom=özel

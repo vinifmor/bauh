@@ -144,6 +144,7 @@ arch.info.install script=script d'installation
 arch.info.install script.no=non
 arch.info.installed files=fichiers installés
 arch.info.installed size=taille installée
+arch.info.last_modified=dernière modification
 arch.info.license=licence
 arch.info.licenses=licences
 arch.info.licenses.custom=personnalisé

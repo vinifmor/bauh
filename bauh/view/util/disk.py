@@ -23,14 +23,18 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         self.logger = logger
         self.processed = 0
 
-    def fill(self, pkg: SoftwarePackage):
+    def fill(self, pkg: SoftwarePackage, sync: bool = False):
         """
-        Adds a package which data must be read from the disk to a queue.
+        Adds a package which data must be read from the disk to a queue (if not sync)
         :param pkg:
+        :param sync:
         :return:
         """
         if pkg and pkg.supports_disk_cache():
-            self.pkgs.append(pkg)
+            if sync:
+                self._fill_cached_data(pkg)
+            else:
+                self.pkgs.append(pkg)
 
     def stop_working(self):
         self._work = False

@@ -31,9 +31,10 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 #### Debian-based distros
 - **python3.5** or above
 - **pip3**
-- **python3-requests**
 - **python-yaml**
+- **python3-dateutil**
 - **python3-pyqt5.qtsvg**
+- **python3-requests**
 - **libqt5svg5**
 - **qt5dxcb-plugin**
 - **libappindicator3** (for the **tray mode** in GTK3 desktop environments)
@@ -42,6 +43,7 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 
 #### Arch-based distros
 - **python**
+- **python-dateutil**
 - **python-requests**
 - **python-pip**
 - **python-pyqt5**

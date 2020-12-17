@@ -390,6 +390,7 @@ style=Görünüm biçimi
 success=başarılı
 summary=özet
 task.download_categories=Kategoriler indiriliyor [ {} ]
+task.waiting_task=Waiting for {}
 type=tür
 uninstall=kaldır
 uninstalled=kaldırıldı

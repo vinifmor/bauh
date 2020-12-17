@@ -1,4 +1,4 @@
-import collections
+from datetime import datetime
 
 
 def deep_update(source: dict, overrides: dict):
@@ -26,3 +26,7 @@ def size_to_byte(size: float, unit: str) -> int:
         final_size = size * 1000000000000000
 
     return int(final_size)
+
+
+def datetime_as_milis(date: datetime) -> int:
+    return int(round(date.timestamp() * 1000))

@@ -144,6 +144,7 @@ arch.info.install script=Скрипт установки
 arch.info.install script.no=Нет
 arch.info.installed files=установленные файлы
 arch.info.installed size=Размер установки
+arch.info.last_modified=Последнее изменение
 arch.info.license=Лицензия
 arch.info.licenses=Лицензии
 arch.info.licenses.custom=таможенная

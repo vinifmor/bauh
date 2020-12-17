@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import List
+from typing import List, Tuple, Optional
 
+from bauh.commons import system
 from bauh.commons.system import new_subprocess
 
 
-def is_enabled() -> bool:
+def is_installed() -> bool:
     try:
         new_subprocess(['git', '--version'])
         return True
@@ -12,7 +13,7 @@ def is_enabled() -> bool:
         return False
 
 
-def list_commits(proj_dir:str) -> List[dict]:
+def list_commits(proj_dir: str) -> List[dict]:
     logs = new_subprocess(['git', 'log', '--date=iso'], cwd=proj_dir).stdout
 
     commits, commit = [], {}
@@ -27,3 +28,18 @@ def list_commits(proj_dir:str) -> List[dict]:
                 commit = {}
 
     return commits
+
+
+def log_shas_and_timestamps(repo_path: str) -> Optional[List[Tuple[str, int]]]:
+    code, output = system.execute(cmd='git log --format="%H %at"', shell=True, cwd=repo_path)
+
+    if code == 0:
+        logs = []
+        for line in output.strip().split('\n'):
+            line_strip = line.strip()
+
+            if line_strip:
+                line_split = line_strip.split(' ')
+                logs.append((line_split[0].strip(), int(line_split[1].strip())))
+
+        return logs

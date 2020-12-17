@@ -1,12 +1,11 @@
-import datetime
-from typing import List, Set
+from typing import List, Set, Optional
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 from bauh.view.util.translation import I18n
 
-CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories'}
+CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified'}
 
 ACTIONS_AUR_ENABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
                                                             i18n_status_key='arch.action.enable_pkgbuild_edition.status',
@@ -27,11 +26,11 @@ class ArchPackage(SoftwarePackage):
 
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
-                 first_submitted: datetime.datetime = None, last_modified: datetime.datetime = None,
+                 first_submitted: Optional[int] = None, last_modified: Optional[int] = None,
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
-                 pkgbuild_editable: bool = None):
+                 pkgbuild_editable: bool = None, install_date: Optional[int] = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -55,6 +54,7 @@ class ArchPackage(SoftwarePackage):
         self.update_ignored = update_ignored
         self.view_name = name  # name displayed on the view
         self.pkgbuild_editable = pkgbuild_editable  # if the PKGBUILD can be edited by the user (only for AUR)
+        self.install_date = install_date
 
     @staticmethod
     def disk_cache_path(pkgname: str):

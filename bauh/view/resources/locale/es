@@ -393,6 +393,7 @@ style=estilo
 success=éxito
 summary=resumen
 task.download_categories=Descargando categorías [ {} ]
+task.waiting_task=Esperando por {}
 type=tipo
 uninstall=desinstalar
 uninstalled=desinstalada

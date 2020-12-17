@@ -19,11 +19,12 @@ class DiskCacheLoader:
         """
         pass
 
-    def fill(self, pkg: SoftwarePackage):
+    def fill(self, pkg: SoftwarePackage, sync: bool = False):
         """
         fill cached data from the disk of a given package instance
         If a cache mapping was previously done, then data retrieved will be cached to memory as well.
         :param pkg:
+        :param sync: if the package data must be filled synchronously
         :return:
         """
         pass

@@ -390,6 +390,7 @@ style=estil
 success=success
 summary=resum
 task.download_categories=Download de categories [ {} ]
+task.waiting_task=Waiting for {}
 type=tipus
 uninstall=desinstal·la
 uninstalled=desinstal·lada

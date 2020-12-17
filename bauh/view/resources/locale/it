@@ -393,6 +393,7 @@ style=stile
 success=success
 summary=riepilogo
 task.download_categories=Download delle categorie [ {} ]
+task.waiting_task=Waiting for {}
 type=tipe
 uninstall=Disinstalla
 uninstalled=disinstallato

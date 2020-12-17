@@ -5,13 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.11]
+### New system requirements
+- **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)
+
 ### Improvements
 - Arch
+    - AUR: upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
     - the task responsible for generating a local AUR index is displayed on the initialization dialog 
     
 ### Fixes
 - AppImage
     - some installed applications cannot be launched by their desktop entries (regression from **0.9.10**) [#155](https://github.com/vinifmor/bauh/issues/155). If any of your installed AppImages are affected by this issue, just reinstall them.
+
 
 ## [0.9.10] 2020-12-11
 ### Features

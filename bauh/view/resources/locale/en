@@ -391,6 +391,7 @@ style=style
 success=success
 summary=summary
 task.download_categories=Downloading categories [ {} ]
+task.waiting_task=Waiting for {}
 type=type
 uninstall=uninstall
 uninstalled=uninstalled

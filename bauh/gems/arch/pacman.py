@@ -15,7 +15,7 @@ RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
 RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
-RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Validated By)\s*:\s*(.+)')
+RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Install Date|Validated By)\s*:\s*(.+)')
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
@@ -114,9 +114,11 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
             if field_tuple[0].startswith('N'):
                 current_pkg['name'] = field_tuple[1].strip()
             elif field_tuple[0].startswith('Ve'):
-                current_pkg['version'] = field_tuple[1].split(':')[-1].strip()
+                current_pkg['version'] = field_tuple[1].strip()
             elif field_tuple[0].startswith('D'):
                 current_pkg['description'] = field_tuple[1].strip()
+            elif field_tuple[0].startswith('I'):
+                current_pkg['install_date'] = field_tuple[1].strip()
             elif field_tuple[0].startswith('Va'):
                 if field_tuple[1].strip().lower() == 'none':
                     pkgs['not_signed'][current_pkg['name']] = current_pkg
@@ -449,8 +451,7 @@ def search(words: str) -> Dict[str, dict]:
                     data_split = repo_split[1].split(' ')
                     current['name'] = data_split[0]
 
-                    version = data_split[1].split(':')
-                    current['version'] = version[0] if len(version) == 1 else version[1]
+                    current['version'] = data_split[1]
     return found
 
 
@@ -1010,7 +1011,7 @@ def map_replaces(names: Iterable[str], remote: bool = False) -> Dict[str, Set[st
 
     if output:
         res = {}
-        latest_name, replaces  = None, None
+        latest_name, replaces = None, None
 
         for l in output.split('\n'):
             if l:
