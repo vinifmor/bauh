@@ -204,19 +204,20 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
                 if o:
                     line_split = o.decode().strip().split('\t')
 
-                    if version >= '1.5.0':
-                        update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
-                    else:
-                        update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
+                    if len(line_split) > 2:
+                        if version >= '1.5.0':
+                            update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
+                        else:
+                            update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
 
-                    if len(line_split) >= 6:
-                        if line_split[4] != 'i':
-                            if '(partial)' in line_split[-1]:
-                                res['partial'].add(update_id)
-                            else:
-                                res['full'].add(update_id)
-                    else:
-                        res['full'].add(update_id)
+                        if len(line_split) >= 6:
+                            if line_split[4] != 'i':
+                                if '(partial)' in line_split[-1]:
+                                    res['partial'].add(update_id)
+                                else:
+                                    res['full'].add(update_id)
+                        else:
+                            res['full'].add(update_id)
         except:
             traceback.print_exc()
 
