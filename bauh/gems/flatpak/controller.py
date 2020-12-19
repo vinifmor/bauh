@@ -297,25 +297,30 @@ class FlatpakManager(SoftwareManager):
 
     def get_history(self, pkg: FlatpakApplication, full_commit_str: bool = False) -> PackageHistory:
         pkg.commit = flatpak.get_commit(pkg.id, pkg.branch, pkg.installation)
+        pkg_commit = pkg.commit if pkg.commit else None
+
+        if pkg_commit and not full_commit_str:
+            pkg_commit = pkg_commit[0:8]
+
         commits = flatpak.get_app_commits_data(pkg.ref, pkg.origin, pkg.installation, full_str=full_commit_str)
 
         status_idx = 0
         commit_found = False
 
-        if pkg.commit is None and len(commits) > 1 and commits[0]['commit'] == '(null)':
+        if pkg_commit is None and len(commits) > 1 and commits[0]['commit'] == '(null)':
             del commits[0]
-            pkg.commit = commits[0]
+            pkg_commit = commits[0]
             commit_found = True
 
         if not commit_found:
             for idx, data in enumerate(commits):
-                if data['commit'] == pkg.commit:
+                if data['commit'] == pkg_commit:
                     status_idx = idx
                     commit_found = True
                     break
 
-        if not commit_found and pkg.commit and commits[0]['commit'] == '(null)':
-            commits[0]['commit'] = pkg.commit
+        if not commit_found and pkg_commit and commits[0]['commit'] == '(null)':
+            commits[0]['commit'] = pkg_commit
 
         return PackageHistory(pkg=pkg, history=commits, pkg_status_idx=status_idx)
 

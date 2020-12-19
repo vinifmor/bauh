@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - some operations are keeping the wrong substatus during specific scenarios
 - Flatpak
     - crashing for Flatpak 1.6.5 when there are updates [#145](https://github.com/vinifmor/bauh/issues/145)
+    - history: not highlighting the correct version (regression introduced **0.9.9**)
 
 ## [0.9.10] 2020-12-11
 ### Features
