@@ -101,11 +101,11 @@ class TransactionStatusHandler(Thread):
                     else:
                         performed = self.get_performed()
 
-                        if performed == 0 and self.downloading > 0:
-                            self.watcher.change_substatus('')
-                        elif performed == self.pkgs_to_sync:
+                        if performed == self.pkgs_to_sync:
                             self.watcher.change_substatus(self.i18n['finishing'].capitalize())
                             return False
+                        else:
+                            self.watcher.change_substatus('')
 
         return True
 
