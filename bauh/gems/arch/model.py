@@ -5,7 +5,7 @@ from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
 from bauh.view.util.translation import I18n
 
-CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified'}
+CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified', 'commit'}
 
 ACTIONS_AUR_ENABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
                                                             i18n_status_key='arch.action.enable_pkgbuild_edition.status',
@@ -30,7 +30,7 @@ class ArchPackage(SoftwarePackage):
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
-                 pkgbuild_editable: bool = None, install_date: Optional[int] = None):
+                 pkgbuild_editable: bool = None, install_date: Optional[int] = None, commit: Optional[str] = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -45,7 +45,6 @@ class ArchPackage(SoftwarePackage):
         self.repository = repository
         self.command = None
         self.icon_path = None
-        self.downgrade_enabled = False
         self.desktop_entry = desktop_entry
         self.src_info = srcinfo
         self.dependencies = dependencies
@@ -55,6 +54,7 @@ class ArchPackage(SoftwarePackage):
         self.view_name = name  # name displayed on the view
         self.pkgbuild_editable = pkgbuild_editable  # if the PKGBUILD can be edited by the user (only for AUR)
         self.install_date = install_date
+        self.commit = commit  # only for AUR for downgrading purposes
 
     @staticmethod
     def disk_cache_path(pkgname: str):
@@ -75,7 +75,7 @@ class ArchPackage(SoftwarePackage):
             return bool(self.url_download) if self.repository == 'aur' else True
 
     def can_be_downgraded(self):
-        return self.installed and self.downgrade_enabled and self.repository == 'aur'
+        return self.installed and self.repository == 'aur'
 
     def get_type(self):
         return 'aur' if self.repository == 'aur' else 'arch_repo'

@@ -7,10 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.11]
 ### New system requirements
 - **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)
+- **git**: for AUR support.
 
 ### Improvements
 - Arch
-    - AUR: upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
+    - AUR: 
+        - upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
+        - downgrade: using the cached package commit (if available) to determine the correct version to downgrade to (otherwise only the version will be used -> old behavior)
+        - history: using the cached package commit (if available) to properly determine the current version (otherwise only the version will be used -> old behavior)
     - the task responsible for generating a local AUR index is displayed on the initialization dialog 
     - info window:
         - date fields format changed to numbers (e.g: Thu Dec 17 17:19:55 2020 -> 2020-12-17 17:19:55)
@@ -20,9 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - some installed applications cannot be launched by their desktop entries (regression from **0.9.10**) [#155](https://github.com/vinifmor/bauh/issues/155). If any of your installed AppImages are affected by this issue, just reinstall them.
 - Arch
     - some operations are keeping the wrong substatus during specific scenarios
+    - not able to install a package that replaces another (regression introduced in **0.9.9**)
+    - displaying installed packages that have been removed from AUR when AUR supported is disabled
 - Flatpak
     - crashing for Flatpak 1.6.5 when there are updates [#145](https://github.com/vinifmor/bauh/issues/145)
     - history: not highlighting the correct version (regression introduced **0.9.9**)
+
 
 ## [0.9.10] 2020-12-11
 ### Features

@@ -5,6 +5,7 @@ import traceback
 from datetime import datetime
 from logging import Logger
 from pathlib import Path
+from typing import Optional
 
 from bauh.api.constants import CACHE_PATH
 from bauh.commons.system import ProcessHandler
@@ -12,8 +13,8 @@ from bauh.commons.system import ProcessHandler
 SYNC_FILE = '{}/arch/db_sync'.format(CACHE_PATH)
 
 
-def should_sync(arch_config: dict, handler: ProcessHandler, logger: logging.Logger):
-    if arch_config['aur'] or arch_config['repositories']:
+def should_sync(arch_config: dict, aur_supported: bool, handler: Optional[ProcessHandler], logger: logging.Logger):
+    if aur_supported or arch_config['repositories']:
         if os.path.exists(SYNC_FILE):
             with open(SYNC_FILE) as f:
                 sync_file = f.read()

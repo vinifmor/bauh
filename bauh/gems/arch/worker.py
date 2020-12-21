@@ -88,7 +88,8 @@ class AURIndexUpdater(Thread):
 
 class ArchDiskCacheUpdater(Thread):
 
-    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger, controller: "ArchManager", internet_available: bool, aur_indexer: Thread):
+    def __init__(self, task_man: TaskManager, arch_config: dict, i18n: I18n, logger: logging.Logger, controller: "ArchManager", internet_available: bool,
+                 aur_supported: bool, aur_indexer: Thread):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
         self.task_man = task_man
@@ -99,7 +100,7 @@ class ArchDiskCacheUpdater(Thread):
         self.to_index = 0
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
         self.repositories = arch_config['repositories']
-        self.aur = bool(arch_config['aur'])
+        self.aur = aur_supported
         self.controller = controller
         self.internet_available = internet_available
         self.installed_hash_path = '{}/installed.sha1'.format(ARCH_CACHE_PATH)

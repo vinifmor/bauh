@@ -8,7 +8,7 @@ from pkg_resources import parse_version
 
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.gems.arch import pacman, sorting
+from bauh.gems.arch import pacman, sorting, aur
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -25,7 +25,7 @@ class UpdateRequirementsContext:
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
                  to_remove: Dict[str, UpgradeRequirement], installed_names: Set[str], provided_map: Dict[str, Set[str]],
                  aur_index: Set[str], arch_config: dict, remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
-                 root_password: str):
+                 root_password: str, aur_supported: bool):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
         self.aur_to_update = aur_to_update
@@ -42,16 +42,18 @@ class UpdateRequirementsContext:
         self.arch_config = arch_config
         self.remote_provided_map = remote_provided_map
         self.remote_repo_map = remote_repo_map
+        self.aur_supported = aur_supported
 
 
 class UpdatesSummarizer:
 
-    def __init__(self, aur_client: AURClient, i18n: I18n, logger: logging.Logger, deps_analyser: DependenciesAnalyser, watcher: ProcessWatcher):
+    def __init__(self, aur_client: AURClient, i18n: I18n, logger: logging.Logger, deps_analyser: DependenciesAnalyser, aur_supported: bool, watcher: ProcessWatcher):
         self.aur_client = aur_client
         self.i18n = i18n
         self.logger = logger
         self.watcher = watcher
         self.deps_analyser = deps_analyser
+        self.aur_supported = aur_supported
 
     def _fill_aur_pkg_update_data(self, pkg: ArchPackage, output: dict):
         output[pkg.name] = self.aur_client.map_update_data(pkg.get_base_name(), pkg.latest_version)
@@ -313,7 +315,7 @@ class UpdatesSummarizer:
             self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))
 
     def __fill_aur_index(self, context: UpdateRequirementsContext):
-        if context.arch_config['aur']:
+        if context.aur_supported:
             self.logger.info("Loading AUR index")
             names = self.aur_client.read_index()
 
@@ -372,7 +374,8 @@ class UpdatesSummarizer:
                                             aur_to_install={}, to_install={}, pkgs_data={}, cannot_upgrade={},
                                             to_remove={}, installed_names=set(), provided_map={}, aur_index=set(),
                                             arch_config=arch_config, root_password=root_password,
-                                            remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map)
+                                            remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
+                                            aur_supported=self.aur_supported)
         self.__fill_aur_index(context)
 
         aur_data = {}

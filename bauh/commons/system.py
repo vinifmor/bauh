@@ -322,11 +322,11 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
 
 
-def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None) -> Tuple[int, str]:
+def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True) -> Tuple[int, Optional[str]]:
     p = subprocess.run(args=cmd.split(' ') if not shell else [cmd],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.STDOUT,
+                       stdout=subprocess.PIPE if output else subprocess.DEVNULL,
+                       stderr=subprocess.STDOUT if output else subprocess.DEVNULL,
                        shell=shell,
                        cwd=cwd)
 
-    return p.returncode, p.stdout.decode()
+    return p.returncode, p.stdout.decode() if p.stdout else None

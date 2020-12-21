@@ -51,7 +51,6 @@ from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCom
     RefreshMirrors
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
-URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/cgit/aur.git/snapshot/{}.tar.gz'
 URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
 
 RE_SPLIT_VERSION = re.compile(r'([=><]+)')
@@ -66,7 +65,7 @@ RE_DEPENDENCY_BREAKAGE = re.compile(r'\n?::\s+installing\s+(.+\s\(.+\))\sbreaks\
 
 class TransactionContext:
 
-    def __init__(self, name: str = None, base: str = None, maintainer: str = None, watcher: ProcessWatcher = None,
+    def __init__(self, aur_supported: bool, name: str = None, base: str = None, maintainer: str = None, watcher: ProcessWatcher = None,
                  handler: ProcessHandler = None, dependency: bool = None, skip_opt_deps: bool = False, root_password: str = None,
                  build_dir: str = None, project_dir: str = None, change_progress: bool = False, arch_config: dict = None,
                  install_files: Set[str] = None, repository: str = None, pkg: ArchPackage = None,
@@ -75,7 +74,9 @@ class TransactionContext:
                  missing_deps: List[Tuple[str, str]] = None, installed: Set[str] = None, removed: Dict[str, SoftwarePackage] = None,
                  disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None,
                  new_pkg: bool = False, custom_pkgbuild_path: str = None,
-                 pkgs_to_build: Set[str] = None, last_modified: Optional[int] = None):
+                 pkgs_to_build: Set[str] = None, last_modified: Optional[int] = None,
+                 commit: Optional[str] = None):
+        self.aur_supported = aur_supported
         self.name = name
         self.base = base
         self.maintainer = maintainer
@@ -106,13 +107,15 @@ class TransactionContext:
         self.pkgs_to_build = pkgs_to_build
         self.previous_change_progress = change_progress
         self.last_modified = last_modified
+        self.commit = commit
 
     @classmethod
-    def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler) -> "TransactionContext":
+    def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler, aur_supported: Optional[bool] = None) -> "TransactionContext":
         return cls(name=pkg.name, base=pkg.get_base_name(), maintainer=pkg.maintainer, repository=pkg.repository,
                    arch_config=arch_config, watcher=handler.watcher, handler=handler, skip_opt_deps=True,
                    change_progress=True, root_password=root_password, dependency=False,
-                   installed=set(), removed={}, new_pkg=not pkg.installed, last_modified=pkg.last_modified)
+                   installed=set(), removed={}, new_pkg=not pkg.installed, last_modified=pkg.last_modified,
+                   aur_supported=aur_supported if aur_supported is not None else (pkg.repository == 'aur' or aur.is_supported(arch_config)))
 
     def get_base_name(self):
         return self.base if self.base else self.name
@@ -122,7 +125,7 @@ class TransactionContext:
 
     def clone_base(self):
         return TransactionContext(watcher=self.watcher, handler=self.handler, root_password=self.root_password,
-                                  arch_config=self.config, installed=set(), removed={})
+                                  arch_config=self.config, installed=set(), removed={}, aur_supported=self.aur_supported)
 
     def gen_dep_context(self, name: str, repository: str):
         dep_context = self.clone_base()
@@ -148,7 +151,7 @@ class TransactionContext:
 
     def get_aur_idx(self, aur_client: AURClient) -> Set[str]:
         if self.aur_idx is None:
-            if self.config['aur']:
+            if self.aur_supported:
                 self.aur_idx = aur_client.read_index()
             else:
                 self.aur_idx = set()
@@ -333,12 +336,11 @@ class ArchManager(SoftwareManager):
         database.register_sync(self.logger)
         return True
 
-    def _upgrade_search_result(self, apidata: dict, installed_pkgs: Dict[str, ArchPackage], downgrade_enabled: bool, res: SearchResult, disk_loader: DiskCacheLoader):
+    def _upgrade_search_result(self, apidata: dict, installed_pkgs: Dict[str, ArchPackage], res: SearchResult):
         pkg = installed_pkgs.get(apidata['Name'])
 
         if not pkg:
             pkg = self.aur_mapper.map_api_data(apidata, None, self.categories)
-            pkg.downgrade_enabled = downgrade_enabled
 
         if pkg.installed:
             res.installed.append(pkg)
@@ -363,7 +365,6 @@ class ArchManager(SoftwareManager):
             repo_pkgs = []
             for name, data in repo_search.items():
                 pkg = ArchPackage(name=name, i18n=self.i18n, **data)
-                pkg.downgrade_enabled = True
                 repo_pkgs.append(pkg)
 
             if repo_pkgs:
@@ -386,9 +387,8 @@ class ArchManager(SoftwareManager):
             read_installed.join()
             aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
 
-            downgrade_enabled = git.is_installed()
             for pkgdata in api_res['results']:
-                self._upgrade_search_result(pkgdata, aur_installed, downgrade_enabled, res, disk_loader)
+                self._upgrade_search_result(pkgdata, aur_installed, res)
 
         else:  # if there are no results from the API (it could be because there were too many), tries the names index:
             if self.index_aur:
@@ -410,18 +410,18 @@ class ArchManager(SoftwareManager):
                 if pkgsinfo:
                     read_installed.join()
                     aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
-                    downgrade_enabled = git.is_installed()
 
                     for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, aur_installed, downgrade_enabled, res, disk_loader)
+                        self._upgrade_search_result(pkgdata, aur_installed, res)
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
             return SearchResult([], [], 0)
 
         arch_config = read_config()
+        aur_supported = aur.is_supported(arch_config)
 
-        if not any([arch_config['repositories'], arch_config['aur']]):
+        if not any([arch_config['repositories'], aur_supported]):
             return SearchResult([], [], 0)
 
         installed = []
@@ -433,14 +433,14 @@ class ArchManager(SoftwareManager):
 
         res = SearchResult([], [], 0)
 
-        if not any((arch_config['aur'], arch_config['repositories'])):
+        if not any([aur_supported, arch_config['repositories']]):
             return res
 
         mapped_words = self.get_semantic_search_map().get(words)
         final_words = mapped_words or words
 
         aur_search = None
-        if arch_config['aur']:
+        if aur_supported:
             aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
             aur_search.start()
 
@@ -455,7 +455,6 @@ class ArchManager(SoftwareManager):
 
     def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
                        arch_config: dict):
-        downgrade_enabled = git.is_installed()
 
         if internet_available:
             try:
@@ -465,7 +464,6 @@ class ArchManager(SoftwareManager):
                     editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
                     for pkgdata in pkgsinfo:
                         pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
-                        pkg.downgrade_enabled = downgrade_enabled
                         pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
                         if pkg.installed:
@@ -491,7 +489,6 @@ class ArchManager(SoftwareManager):
                               installed=True, repository='aur', i18n=self.i18n)
 
             pkg.categories = self.categories.get(pkg.name)
-            pkg.downgrade_enabled = downgrade_enabled
             pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
             if disk_loader:
@@ -517,7 +514,7 @@ class ArchManager(SoftwareManager):
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, disk_loader: DiskCacheLoader):
+    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, aur_supported: bool, disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
@@ -543,7 +540,6 @@ class ArchManager(SoftwareManager):
                               installed=True,
                               repository=pkgrepo,
                               categories=self.categories.get(name))
-            pkg.downgrade_enabled = False
 
             if updates:
                 update_version = updates.get(pkg.name)
@@ -553,9 +549,10 @@ class ArchManager(SoftwareManager):
                     pkg.update = True
 
             if disk_loader:
-                disk_loader.fill(pkg)
+                disk_loader.fill(pkg, sync=True)
 
-            pkgs.append(pkg)
+            if aur_supported or pkg.repository != 'aur':  # this case happens when a package was removed from AUR
+                pkgs.append(pkg)
 
     def _wait_for_disk_cache(self):
         if self.disk_cache_updater and self.disk_cache_updater.is_alive():
@@ -563,9 +560,11 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = read_config()
+
+        aur_supported = aur.is_supported(arch_config)
 
         installed = pacman.map_installed(names=names)
 
@@ -585,11 +584,10 @@ class ArchManager(SoftwareManager):
                     if repo_pkgs is not None:
                         repo_pkgs[pkg] = installed['not_signed'][pkg]
 
-                    if arch_config['aur']:
+                    if aur_supported and installed['not_signed']:
                         del installed['not_signed'][pkg]
 
-            if arch_config['aur']:
-                aur_pkgs = installed['not_signed']
+            aur_pkgs = installed['not_signed'] if aur_supported else None
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
@@ -604,7 +602,7 @@ class ArchManager(SoftwareManager):
                 map_threads.append(t)
 
             if repo_pkgs:
-                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, disk_loader), daemon=True)
+                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, aur_supported, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -622,6 +620,11 @@ class ArchManager(SoftwareManager):
         return SearchResult(pkgs, None, len(pkgs))
 
     def _downgrade_aur_pkg(self, context: TransactionContext):
+        if context.commit:
+            self.logger.info("Package '{}' current commit {}".format(context.name, context.commit))
+        else:
+            self.logger.warning("Package '{}' has no commit associated with it. Downgrading will only compare versions.".format(context.name))
+
         context.build_dir = '{}/build_{}'.format(get_build_dir(context.config), int(time.time()))
 
         try:
@@ -632,10 +635,10 @@ class ArchManager(SoftwareManager):
                     context.handler.watcher.change_progress(10)
                     base_name = context.get_base_name()
                     context.watcher.change_substatus(self.i18n['arch.clone'].format(bold(context.name)))
-                    clone = context.handler.handle(SystemProcess(subproc=new_subprocess(['git', 'clone', URL_GIT.format(base_name)],
-                                                                 cwd=context.build_dir), check_error_output=False))
+                    cloned, _ = context.handler.handle_simple(git.clone_as_process(url=URL_GIT.format(base_name), cwd=context.build_dir))
                     context.watcher.change_progress(30)
-                    if clone:
+
+                    if cloned:
                         context.watcher.change_substatus(self.i18n['arch.downgrade.reading_commits'])
                         clone_path = '{}/{}'.format(context.build_dir, base_name)
                         context.project_dir = clone_path
@@ -644,16 +647,38 @@ class ArchManager(SoftwareManager):
                         logs = git.log_shas_and_timestamps(clone_path)
                         context.watcher.change_progress(40)
 
-                        if not logs:
+                        if not logs or len(logs) == 1:
                             context.watcher.show_message(title=self.i18n['arch.downgrade.error'],
-                                                         body=self.i18n['arch.downgrade.impossible'].format(
-                                                             context.name),
+                                                         body=self.i18n['arch.downgrade.impossible'].format(context.name),
                                                          type_=MessageType.ERROR)
                             return False
 
+                        if context.commit:
+                            target_commit, target_commit_timestamp = None, None
+                            for idx, log in enumerate(logs):
+                                if context.commit == log[0] and idx + 1 < len(logs):
+                                    target_commit = logs[idx + 1][0]
+                                    target_commit_timestamp = logs[idx + 1][1]
+                                    break
+
+                            if not target_commit:
+                                self.logger.warning("Could not find '{}' target commit to revert to".format(context.name))
+                            else:
+                                context.watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
+                                checkout_proc = new_subprocess(['git', 'checkout', target_commit], cwd=clone_path)
+                                if not context.handler.handle(SystemProcess(checkout_proc, check_error_output=False)):
+                                    context.watcher.print("Could not rollback to current version's commit")
+                                    return False
+
+                                context.watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
+                                context.last_modified = target_commit_timestamp
+                                context.commit = target_commit
+                                return self._build(context)
+
+                        # trying to downgrade by version comparison
+                        commit_found, commit_date = None, None
                         srcfields = {'pkgver', 'pkgrel', 'epoch'}
 
-                        commit_found, commit_date = None, None
                         for idx in range(1, len(logs)):
                             commit, date = logs[idx][0], logs[idx][1]
                             with open(srcinfo_path) as f:
@@ -671,10 +696,7 @@ class ArchManager(SoftwareManager):
                             else:
                                 current_version = '{}-{}'.format(version, release)
 
-                            if current_version == context.get_version():
-                                # current version found
-                                commit_found, commit_date = commit, date
-                            elif commit_found:
+                            if commit_found:
                                 context.watcher.change_substatus(self.i18n['arch.downgrade.version_found'])
                                 checkout_proc = new_subprocess(['git', 'checkout', commit_found], cwd=clone_path)
                                 if not context.handler.handle(SystemProcess(checkout_proc, check_error_output=False)):
@@ -687,9 +709,12 @@ class ArchManager(SoftwareManager):
                                     return False
 
                                 break
+                            elif current_version == context.get_version(): # current version found:
+                                commit_found, commit_date = commit, date
 
                         context.watcher.change_substatus(self.i18n['arch.downgrade.install_older'])
                         context.last_modified = commit_date
+                        context.commit = commit_found
                         return self._build(context)
         finally:
             if os.path.exists(context.build_dir) and context.config['aur_remove_build_dir']:
@@ -755,12 +780,17 @@ class ArchManager(SoftwareManager):
         if self._is_database_locked(handler, root_password):
             return False
 
+        arch_config = read_config()
+        aur_supported = pkg.repository == 'aur' or aur.is_supported(arch_config)
         context = TransactionContext(name=pkg.name, base=pkg.get_base_name(), skip_opt_deps=True,
                                      change_progress=True, dependency=False, repository=pkg.repository, pkg=pkg,
-                                     arch_config=read_config(), watcher=watcher, handler=handler, root_password=root_password,
-                                     installed=set(), removed={})
+                                     arch_config=arch_config, watcher=watcher, handler=handler, root_password=root_password,
+                                     installed=set(), removed={},
+                                     aur_supported=aur_supported,
+                                     commit=pkg.commit)
 
-        self._sync_databases(context.config, root_password, handler)
+        self._sync_databases(arch_config=context.config, aur_supported=aur_supported,
+                             root_password=root_password, handler=handler)
 
         watcher.change_progress(5)
 
@@ -1075,7 +1105,10 @@ class ArchManager(SoftwareManager):
             return False
 
         arch_config = read_config()
-        self._sync_databases(arch_config=arch_config, root_password=root_password, handler=handler)
+        aur_supported = bool(aur_pkgs) or aur.is_supported(arch_config)
+
+        self._sync_databases(arch_config=arch_config, aur_supported=aur_supported,
+                             root_password=root_password, handler=handler)
 
         if repo_pkgs:
             if not self._upgrade_repo_pkgs(to_upgrade=[p.name for p in repo_pkgs],
@@ -1111,7 +1144,7 @@ class ArchManager(SoftwareManager):
                         self.aur_mapper.fill_last_modified(pkg=pkg, api_data=apidata[0])
 
                 context = TransactionContext.gen_context_from(pkg=pkg, arch_config=arch_config,
-                                                              root_password=root_password, handler=handler)
+                                                              root_password=root_password, handler=handler, aur_supported=True)
                 context.change_progress = False
 
                 try:
@@ -1340,6 +1373,7 @@ class ArchManager(SoftwareManager):
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.aur_client.clean_caches()
+
         handler = ProcessHandler(watcher)
 
         if self._is_database_locked(handler, root_password):
@@ -1352,7 +1386,8 @@ class ArchManager(SoftwareManager):
                                                      watcher=watcher,
                                                      root_password=root_password,
                                                      handler=handler,
-                                                     removed=removed),
+                                                     removed=removed,
+                                                     aur_supported=pkg.repository == 'aur' or aur.is_supported(arch_config)),
                                   remove_unneeded=arch_config['suggest_unneeded_uninstall'],
                                   names={pkg.name},
                                   disk_loader=disk_loader)  # to be able to return all uninstalled packages
@@ -1371,6 +1406,9 @@ class ArchManager(SoftwareManager):
 
             info = pacman.get_info_dict(pkg.name)
             self._parse_dates_string_from_info(pkg.name, info)
+
+            if pkg.commit:
+                info['commit'] = pkg.commit
 
             if pkg.last_modified:
                 info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
@@ -1464,6 +1502,12 @@ class ArchManager(SoftwareManager):
             return self._get_info_repo_pkg(pkg)
 
     def _get_history_aur_pkg(self, pkg: ArchPackage) -> PackageHistory:
+
+        if pkg.commit:
+            self.logger.info("Package '{}' current commit {}".format(pkg.name, pkg.commit))
+        else:
+            self.logger.warning("Package '{}' has no commit associated with it. Current history status may not be correct.".format(pkg.name))
+
         arch_config = read_config()
         temp_dir = '{}/build_{}'.format(get_build_dir(arch_config), int(time.time()))
 
@@ -1479,24 +1523,34 @@ class ArchManager(SoftwareManager):
             if not os.path.exists(srcinfo_path):
                 return PackageHistory.empyt(pkg)
 
-            commits = git.list_commits(clone_path)
+            logs = git.log_shas_and_timestamps(clone_path)
 
-            if commits:
-                srcfields = {'pkgver', 'pkgrel'}
+            if logs:
+                srcfields = {'epoch', 'pkgver', 'pkgrel'}
                 history, status_idx = [], -1
 
-                for idx, commit in enumerate(commits):
+                for idx, log in enumerate(logs):
+                    commit, timestamp = log[0], log[1]
+
                     with open(srcinfo_path) as f:
                         pkgsrc = aur.map_srcinfo(string=f.read(), pkgname=pkg.name, fields=srcfields)
 
-                    if status_idx < 0 and '{}-{}'.format(pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')) == pkg.version:
-                        status_idx = idx
+                    epoch, version, release = pkgsrc.get('epoch'), pkgsrc.get('pkgver'), pkgsrc.get('pkgrel')
 
-                    history.append({'1_version': pkgsrc['pkgver'], '2_release': pkgsrc['pkgrel'],
-                                    '3_date': commit['date']})  # the number prefix is to ensure the rendering order
+                    pkgver = '{}:{}'.format(epoch, version) if epoch is not None else version
+                    current_version = '{}-{}'.format(pkgver, release)
 
-                    if idx + 1 < len(commits):
-                        if not run_cmd('git reset --hard ' + commits[idx + 1]['commit'], cwd=clone_path):
+                    if status_idx < 0:
+                        if pkg.commit:
+                            status_idx = idx if pkg.commit == commit else -1
+                        else:
+                            status_idx = idx if current_version == pkg.version else -1
+
+                    history.append({'1_version': pkgver, '2_release': release,
+                                    '3_date': datetime.fromtimestamp(timestamp)})  # the number prefix is to ensure the rendering order
+
+                    if idx + 1 < len(logs):
+                        if not run_cmd('git reset --hard ' + logs[idx + 1][0], cwd=clone_path):
                             break
 
                 return PackageHistory(pkg=pkg, history=history, pkg_status_idx=status_idx)
@@ -1841,6 +1895,12 @@ class ArchManager(SoftwareManager):
 
         if pkgbuilt:
             self.__fill_aur_output_files(context)
+
+            self.logger.info("Reading '{}' cloned repository current commit".format(context.name))
+            context.commit = git.get_current_commit(context.project_dir)
+
+            if not context.commit:
+                self.logger.error("Could not read '{}' cloned repository current commit".format(context.name))
 
             if self._install(context=context):
                 self._save_pkgbuild(context)
@@ -2273,6 +2333,7 @@ class ArchManager(SoftwareManager):
                                                    repository=context.repository,
                                                    maintainer=pkg_maintainer,
                                                    last_modified=context.last_modified,
+                                                   commit=context.commit,
                                                    categories=self.categories.get(context.name))}
             if context.missing_deps:
                 aur_deps = {dep[0] for dep in context.missing_deps if dep[1] == 'aur'}
@@ -2374,29 +2435,21 @@ class ArchManager(SoftwareManager):
 
                 if build_dir:
                     base_name = context.get_base_name()
-                    file_url = URL_PKG_DOWNLOAD.format(base_name)
-                    file_name = file_url.split('/')[-1]
-                    context.watcher.change_substatus('{} {}'.format(self.i18n['arch.downloading.package'], bold(file_name)))
-                    download = context.handler.handle(SystemProcess(new_subprocess(['wget', file_url], cwd=context.build_dir), check_error_output=False))
+                    context.watcher.change_substatus(self.i18n['arch.clone'].format(bold(base_name)))
+                    cloned = context.handler.handle_simple(git.clone_as_process(url=URL_GIT.format(base_name), cwd=context.build_dir, depth=1))
 
-                    if download:
-                        self._update_progress(context, 30)
-                        context.watcher.change_substatus('{} {}'.format(self.i18n['arch.uncompressing.package'], bold(base_name)))
-                        uncompress = context.handler.handle(SystemProcess(new_subprocess(['tar', 'xvzf', '{}.tar.gz'.format(base_name)], cwd=context.build_dir)))
+                    if cloned:
                         self._update_progress(context, 40)
-
-                        if uncompress:
-                            context.project_dir = '{}/{}'.format(context.build_dir, base_name)
-
-                            return self._build(context)
+                        context.project_dir = '{}/{}'.format(context.build_dir, base_name)
+                        return self._build(context)
         finally:
             if os.path.exists(context.build_dir) and context.config['aur_remove_build_dir']:
                 context.handler.handle(SystemProcess(new_subprocess(['rm', '-rf', context.build_dir])))
 
         return False
 
-    def _sync_databases(self, arch_config: dict, root_password: str, handler: ProcessHandler, change_substatus: bool = True):
-        if bool(arch_config['sync_databases']) and database.should_sync(arch_config, handler, self.logger):
+    def _sync_databases(self, arch_config: dict, aur_supported: bool, root_password: str, handler: ProcessHandler, change_substatus: bool = True):
+        if bool(arch_config['sync_databases']) and database.should_sync(arch_config, aur_supported, handler, self.logger):
             if change_substatus:
                 handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
 
@@ -2408,7 +2461,7 @@ class ArchManager(SoftwareManager):
                 handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus.error'])
 
     def _optimize_makepkg(self, arch_config: dict, watcher: Optional[ProcessWatcher]):
-        if arch_config['aur'] and arch_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
+        if arch_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
             ArchCompilationOptimizer(arch_config=arch_config, i18n=self.i18n, logger=self.context.logger).optimize()
 
@@ -2431,7 +2484,8 @@ class ArchManager(SoftwareManager):
             install_context.skip_opt_deps = False
             install_context.disk_loader = disk_loader
 
-        self._sync_databases(arch_config=install_context.config, root_password=root_password, handler=handler)
+        self._sync_databases(arch_config=install_context.config, aur_supported=install_context.aur_supported,
+                             root_password=root_password, handler=handler)
 
         if pkg.repository == 'aur':
             res = self._install_from_aur(install_context)
@@ -2477,12 +2531,6 @@ class ArchManager(SoftwareManager):
                         self.logger.warning("Could not load all installed packages. Missing: {}".format(missing))
 
         removed = [*install_context.removed.values()] if install_context.removed else []
-
-        if installed:
-            downgrade_enabled = self.is_downgrade_enabled()
-            for p in installed:
-                p.downgrade_enabled = downgrade_enabled
-
         return TransactionResult(success=res, installed=installed, removed=removed)
 
     def _install_from_repository(self, context: TransactionContext) -> bool:
@@ -2533,13 +2581,6 @@ class ArchManager(SoftwareManager):
         except FileNotFoundError:
             return False
 
-    def is_downgrade_enabled(self) -> bool:
-        try:
-            new_subprocess(['git', '--version'])
-            return True
-        except FileNotFoundError:
-            return False
-
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
         pass
 
@@ -2550,7 +2591,8 @@ class ArchManager(SoftwareManager):
             if arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
                 return True
 
-            return arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger)
+            aur_supported = (pkg and pkg.repository == 'aur') or aur.is_supported(arch_config)
+            return arch_config['sync_databases_startup'] and database.should_sync(arch_config, aur_supported, None, self.logger)
 
         return action != SoftwareAction.SEARCH
 
@@ -2565,21 +2607,24 @@ class ArchManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         arch_config = read_config(update_file=True)
 
-        if arch_config['aur']:
+        if internet_available:
+            self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager)  # must all execute to properly determine the installed packages (even that AUR is disabled)
+            self.index_aur.start()
+
+        aur_supported = aur.is_supported(arch_config)
+
+        if aur_supported:
             ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
 
-            if internet_available:
-                self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager)
-                self.index_aur.start()
-
-        if arch_config['aur'] or arch_config['repositories']:
+        if aur_supported or arch_config['repositories']:
             self.disk_cache_updater = ArchDiskCacheUpdater(task_man=task_manager,
                                                            arch_config=arch_config,
                                                            i18n=self.i18n,
                                                            logger=self.context.logger,
                                                            controller=self,
                                                            internet_available=internet_available,
-                                                           aur_indexer=self.index_aur)
+                                                           aur_indexer=self.index_aur,
+                                                           aur_supported=aur_supported)
             self.disk_cache_updater.start()
 
         CategoriesDownloader(id_='Arch', http_client=self.context.http_client, logger=self.context.logger,
@@ -2597,7 +2642,7 @@ class ArchManager(SoftwareManager):
                                              sort_limit=arch_config['mirrors_sort_limit'])
             refresh_mirrors.start()
 
-        if internet_available and (refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, None, self.logger))):
+        if internet_available and (refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, aur_supported, None, self.logger))):
             SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
                           logger=self.logger, refresh_mirrors=refresh_mirrors).start()
 
@@ -2839,10 +2884,20 @@ class ArchManager(SoftwareManager):
     def get_upgrade_requirements(self, pkgs: List[ArchPackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         self.aur_client.clean_caches()
         arch_config = read_config()
-        self._sync_databases(arch_config=arch_config, root_password=root_password, handler=ProcessHandler(watcher), change_substatus=False)
-        self.aur_client.clean_caches()
+
+        aur_supported = aur.is_supported(arch_config)
+
+        self._sync_databases(arch_config=arch_config, aur_supported=aur_supported,
+                             root_password=root_password, handler=ProcessHandler(watcher), change_substatus=False)
+
+        summarizer = UpdatesSummarizer(aur_client=self.aur_client,
+                                       aur_supported=aur_supported,
+                                       i18n=self.i18n,
+                                       logger=self.logger,
+                                       deps_analyser=self.deps_analyser,
+                                       watcher=watcher)
         try:
-            return UpdatesSummarizer(self.aur_client, self.i18n, self.logger, self.deps_analyser, watcher).summarize(pkgs, root_password, arch_config)
+            return summarizer.summarize(pkgs, root_password, arch_config)
         except PackageNotFoundException:
             pass  # when nothing is returned, the upgrade is called off by the UI
 

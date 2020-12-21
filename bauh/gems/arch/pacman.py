@@ -1031,7 +1031,7 @@ def map_replaces(names: Iterable[str], remote: bool = False) -> Dict[str, Set[st
 
                     elif latest_name and replaces is not None:
                         res[latest_name] = replaces
-                        latest_name, replaces = None, None, None
+                        latest_name, replaces = None, None
 
                 elif latest_name and replaces is not None:
                     replaces.update((d for d in l.strip().split(' ') if d))
