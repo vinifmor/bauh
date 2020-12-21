@@ -28,5 +28,5 @@ def size_to_byte(size: float, unit: str) -> int:
     return int(final_size)
 
 
-def datetime_as_milis(date: datetime) -> int:
+def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:
     return int(round(date.timestamp() * 1000))

@@ -4,6 +4,7 @@ import os
 import re
 import time
 import traceback
+from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
 from typing import Optional
@@ -14,8 +15,9 @@ from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd, new_root_subprocess, ProcessHandler
+from bauh.commons.util import datetime_as_milis
 from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
-    mirrors, ARCH_CACHE_PATH, BUILD_DIR
+    mirrors, ARCH_CACHE_PATH, BUILD_DIR, AUR_INDEX_TS_FILE
 from bauh.gems.arch.aur import URL_INDEX
 from bauh.view.util.translation import I18n
 
@@ -37,12 +39,40 @@ class AURIndexUpdater(Thread):
         self.taskman = taskman
         self.task_id = 'index_aur'
 
+    @staticmethod
+    def should_update(arch_config: dict) -> bool:
+        try:
+            exp_minutes = int(arch_config['aur_idx_exp'])
+        except:
+            traceback.print_exc()
+            return True
+
+        if exp_minutes <= 0:
+            return True
+
+        if not os.path.exists(AUR_INDEX_FILE):
+            return True
+
+        if not os.path.exists(AUR_INDEX_TS_FILE):
+            return True
+
+        with open(AUR_INDEX_TS_FILE) as f:
+            timestamp_str = f.read()
+
+        try:
+            index_timestamp = datetime.fromtimestamp(float(timestamp_str))
+            return (index_timestamp + timedelta(minutes=exp_minutes)) <= datetime.utcnow()
+        except:
+            traceback.print_exc()
+            return True
+
     def run(self):
         ti = time.time()
         self.logger.info('Indexing AUR packages')
         self.taskman.register_task(self.task_id, self.i18n['arch.task.aur.index.status'], get_icon_path())
         self.taskman.update_progress(self.task_id, 1, self.i18n['arch.task.aur.index.substatus.download'])
         try:
+            index_ts = datetime.utcnow().timestamp()
             res = self.http_client.get(URL_INDEX)
 
             if res and res.text:
@@ -50,7 +80,8 @@ class AURIndexUpdater(Thread):
                 self.taskman.update_progress(self.task_id, index_progress,
                                              self.i18n['arch.task.aur.index.substatus.gen_index'])
                 indexed = 0
-                Path(BUILD_DIR).mkdir(parents=True, exist_ok=True)
+
+                Path(os.path.dirname(AUR_INDEX_FILE)).mkdir(parents=True, exist_ok=True)
 
                 with open(AUR_INDEX_FILE, 'w+') as f:
                     lines = res.text.split('\n')
@@ -69,6 +100,9 @@ class AURIndexUpdater(Thread):
                             indexed += 1
 
                         perc_count += 1
+
+                with open(AUR_INDEX_TS_FILE, 'w+') as f:
+                    f.write(str(index_ts))
 
                 self.logger.info('Pre-indexed {} AUR package names at {}'.format(indexed, AUR_INDEX_FILE))
                 self.taskman.update_progress(self.task_id, 100, None)

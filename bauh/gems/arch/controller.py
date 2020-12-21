@@ -75,7 +75,7 @@ class TransactionContext:
                  disk_loader: DiskCacheLoader = None, disk_cache_updater: Thread = None,
                  new_pkg: bool = False, custom_pkgbuild_path: str = None,
                  pkgs_to_build: Set[str] = None, last_modified: Optional[int] = None,
-                 commit: Optional[str] = None):
+                 commit: Optional[str] = None, update_aur_index: bool = False):
         self.aur_supported = aur_supported
         self.name = name
         self.base = base
@@ -108,6 +108,7 @@ class TransactionContext:
         self.previous_change_progress = change_progress
         self.last_modified = last_modified
         self.commit = commit
+        self.update_aur_index = update_aur_index
 
     @classmethod
     def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler, aur_supported: Optional[bool] = None) -> "TransactionContext":
@@ -1132,6 +1133,7 @@ class ArchManager(SoftwareManager):
             if not pkgs_api_data:
                 self.logger.warning("Could not retrieve the 'last_modified' fields from the AUR API during the upgrade process")
 
+            any_upgraded = False
             for pkg in aur_pkgs:
                 watcher.change_substatus("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], pkg.name, pkg.version))
 
@@ -1149,18 +1151,28 @@ class ArchManager(SoftwareManager):
 
                 try:
                     if not self.install(pkg=pkg, root_password=root_password, watcher=watcher, disk_loader=None, context=context).success:
+                        if any_upgraded:
+                            self._update_aur_index(watcher)
+
                         watcher.print(self.i18n['arch.upgrade.fail'].format('"{}"'.format(pkg.name)))
                         self.logger.error("Could not upgrade AUR package '{}'".format(pkg.name))
                         watcher.change_substatus('')
                         return False
                     else:
+                        any_upgraded = True
                         watcher.print(self.i18n['arch.upgrade.success'].format('"{}"'.format(pkg.name)))
                 except:
+                    if any_upgraded:
+                        self._update_aur_index(watcher)
+
                     watcher.print(self.i18n['arch.upgrade.fail'].format('"{}"'.format(pkg.name)))
                     watcher.change_substatus('')
                     self.logger.error("An error occurred when upgrading AUR package '{}'".format(pkg.name))
                     traceback.print_exc()
                     return False
+
+            if any_upgraded:
+                self._update_aur_index(watcher)
 
         watcher.change_substatus('')
         return True
@@ -1905,6 +1917,9 @@ class ArchManager(SoftwareManager):
             if self._install(context=context):
                 self._save_pkgbuild(context)
 
+                if context.update_aur_index:
+                    self._update_aur_index(context.watcher)
+
                 if context.dependency or context.skip_opt_deps:
                     return True
 
@@ -1916,6 +1931,16 @@ class ArchManager(SoftwareManager):
                     return True
 
         return False
+
+    def _update_aur_index(self, watcher: ProcessWatcher):
+        if self.context.internet_checker.is_available():
+            if watcher:
+                watcher.change_substatus(self.i18n['arch.task.aur.index.status'])
+
+            idx_updater = AURIndexUpdater(context=self.context, taskman=TaskManager())  # null task manager
+            idx_updater.run()
+        else:
+            self.logger.warning("Could not update the AUR index: no internet connection detected")
 
     def __fill_aur_output_files(self, context: TransactionContext):
         self.logger.info("Determining output files of '{}'".format(context.name))
@@ -2483,6 +2508,7 @@ class ArchManager(SoftwareManager):
                                                                   root_password=root_password)
             install_context.skip_opt_deps = False
             install_context.disk_loader = disk_loader
+            install_context.update_aur_index = pkg.repository == 'aur'
 
         self._sync_databases(arch_config=install_context.config, aur_supported=install_context.aur_supported,
                              root_password=root_password, handler=handler)
@@ -2607,7 +2633,7 @@ class ArchManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         arch_config = read_config(update_file=True)
 
-        if internet_available:
+        if internet_available and AURIndexUpdater.should_update(arch_config):
             self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager)  # must all execute to properly determine the installed packages (even that AUR is disabled)
             self.index_aur.start()
 
@@ -2811,6 +2837,13 @@ class ArchManager(SoftwareManager):
                                only_int=True,
                                max_width=max_width,
                                value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else ''),
+            TextInputComponent(id_='aur_idx_exp',
+                               label=self.i18n['arch.config.aur_idx_exp'] + ' (AUR)',
+                               tooltip=self.i18n['arch.config.aur_idx_exp.tip'],
+                               max_width=max_width,
+                               only_int=True,
+                               capitalize_label=False,
+                               value=local_config['aur_idx_exp'] if isinstance(local_config['aur_idx_exp'], int) else ''),
             new_select(id_='aur_build_only_chosen',
                        label=self.i18n['arch.config.aur_build_only_chosen'],
                        tip=self.i18n['arch.config.aur_build_only_chosen.tip'],
@@ -2868,6 +2901,7 @@ class ArchManager(SoftwareManager):
         config['aur_remove_build_dir'] = form_install.get_component('aur_remove_build_dir').get_selected()
         config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
         config['aur_build_only_chosen'] = form_install.get_component('aur_build_only_chosen').get_selected()
+        config['aur_idx_exp'] = form_install.get_component('aur_idx_exp').get_int_value()
         config['check_dependency_breakage'] = form_install.get_component('check_dependency_breakage').get_selected()
         config['suggest_optdep_uninstall'] = form_install.get_component('suggest_optdep_uninstall').get_selected()
         config['suggest_unneeded_uninstall'] = form_install.get_component('suggest_unneeded_uninstall').get_selected()

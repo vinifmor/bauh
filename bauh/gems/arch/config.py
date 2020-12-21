@@ -21,7 +21,8 @@ def read_config(update_file: bool = False) -> dict:
                 'aur_build_only_chosen': True,
                 'check_dependency_breakage': True,
                 'suggest_unneeded_uninstall': False,
-                'suggest_optdep_uninstall': False}
+                'suggest_optdep_uninstall': False,
+                'aur_idx_exp': 720}
     return read(CONFIG_FILE, template, update_file=update_file)
 
 

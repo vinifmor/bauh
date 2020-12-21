@@ -491,7 +491,7 @@ class TextInputQt(QGroupBox):
         if model.tooltip:
             self.text_input.setToolTip(model.tooltip)
 
-        if model.value:
+        if model.value is not None:
             self.text_input.setText(model.value)
             self.text_input.setCursorPosition(0)
 
@@ -786,8 +786,8 @@ class FormQt(QGroupBox):
         if c.placeholder:
             view.setPlaceholderText(c.placeholder)
 
-        if c.value:
-            view.setText(str(c.value) if c.value else '')
+        if c.value is not None:
+            view.setText(str(c.value))
             view.setCursorPosition(0)
 
         if c.read_only:

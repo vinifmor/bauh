@@ -191,11 +191,11 @@ class TextInputComponent(ViewComponent):
                     if caller != o:
                         o.on_change(val)
 
-    def get_int_value(self) -> int:
+    def get_int_value(self) -> Optional[int]:
         if self.value is not None:
             val = self.value.strip() if isinstance(self.value, str) else self.value
 
-            if val:
+            if val is not None:
                 return int(self.value)
 
     def get_label(self) -> str:
