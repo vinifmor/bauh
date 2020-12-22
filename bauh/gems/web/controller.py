@@ -65,7 +65,6 @@ class WebApplicationManager(SoftwareManager):
                                               file_downloader=context.file_downloader, i18n=context.i18n)
         self.enabled = True
         self.i18n = context.i18n
-        self.env_settings = {}
         self.logger = context.logger
         self.env_thread = None
         self.suggestions_downloader = suggestions_downloader
@@ -207,8 +206,8 @@ class WebApplicationManager(SoftwareManager):
             return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
-        local_config = {}
-        thread_config = Thread(target=self._fill_config_async, args=(local_config,))
+        web_config = {}
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
         thread_config.start()
 
         res = SearchResult([], [], 0)
@@ -241,8 +240,11 @@ class WebApplicationManager(SoftwareManager):
 
                     app = WebApplication(url=final_url, source_url=url, name=name, description=desc, icon_url=icon_url)
 
-                    if self.env_settings.get('electron') and self.env_settings['electron'].get('version'):
-                        app.version = self.env_settings['electron']['version']
+                    thread_config.join()
+                    env_settings = self.env_updater.read_settings(web_config=web_config, cache=True)
+
+                    if env_settings.get('electron') and env_settings['electron'].get('version'):
+                        app.version = env_settings['electron']['version']
                         app.latest_version = app.version
 
                     res.new = [app]
@@ -295,6 +297,9 @@ class WebApplicationManager(SoftwareManager):
                             else:
                                 matched_suggestions.sort(key=lambda s: s.get('priority', 0), reverse=True)
 
+                                thread_config.join()
+                                env_settings = self.env_updater.read_settings(web_config=web_config, cache=True)
+
                                 if installed_matches:
                                     # checking if any of the installed matches is one of the matched suggestions
 
@@ -306,11 +311,11 @@ class WebApplicationManager(SoftwareManager):
                                         if found:
                                             res.installed.extend(found)
                                         else:
-                                            res.new.append(self._map_suggestion(sug).package)
+                                            res.new.append(self._map_suggestion(sug, env_settings).package)
 
                                 else:
                                     for sug in matched_suggestions:
-                                        res.new.append(self._map_suggestion(sug).package)
+                                        res.new.append(self._map_suggestion(sug, env_settings).package)
 
         res.total += len(res.installed)
         res.total += len(res.new)
@@ -318,9 +323,9 @@ class WebApplicationManager(SoftwareManager):
         if res.new:
             thread_config.join()
 
-            if local_config['environment']['electron']['version']:
+            if web_config['environment']['electron']['version']:
                 for app in res.new:
-                    app.version = str(local_config['environment']['electron']['version'])
+                    app.version = str(web_config['environment']['electron']['version'])
                     app.latest_version = app.version
 
         return res
@@ -332,7 +337,7 @@ class WebApplicationManager(SoftwareManager):
         else:
             self.logger.warning("No search index found at {}".format(SEARCH_INDEX_FILE))
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
         res = SearchResult([], [], 0)
 
         if os.path.exists(INSTALLED_PATH):
@@ -620,7 +625,6 @@ class WebApplicationManager(SoftwareManager):
             traceback.print_exc()
 
     def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-
         continue_install, install_options = self._ask_install_options(pkg, watcher)
         widevine_support = '--widevine' in install_options
 
@@ -630,16 +634,16 @@ class WebApplicationManager(SoftwareManager):
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
 
-        env_settings = self.env_updater.read_settings()
-        local_config = read_config()
+        web_config = read_config()
+        env_settings = self.env_updater.read_settings(web_config=web_config)
 
-        if local_config['environment']['system'] and not nativefier.is_available():
+        if web_config['environment']['system'] and not nativefier.is_available():
             watcher.show_message(title=self.i18n['error'].capitalize(),
                                  body=self.i18n['web.install.global_nativefier.unavailable'].format(n=bold('Nativefier'), app=bold(pkg.name)) + '.',
                                  type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
-        env_components = self.env_updater.check_environment(app=pkg, local_config=local_config, env=env_settings,
+        env_components = self.env_updater.check_environment(app=pkg, local_config=web_config, env=env_settings,
                                                             is_x86_x64_arch=self.context.is_system_x86_64(),
                                                             widevine=widevine_support)
 
@@ -695,7 +699,7 @@ class WebApplicationManager(SoftwareManager):
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version if not widevine_support else None,
-                                                             system=bool(local_config['environment']['system']),
+                                                             system=bool(web_config['environment']['system']),
                                                              cwd=INSTALLED_PATH,
                                                              extra_options=install_options))
 
@@ -805,11 +809,7 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: SoftwarePackage) -> bool:
         return False
 
-    def _update_env_settings(self, task_manager: TaskManager = None):
-        self.env_settings = self.env_updater.read_settings(task_manager)
-
-    def _download_suggestions(self, taskman: TaskManager = None):
-        downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n, taskman=taskman)
+    def _download_suggestions(self, downloader: SuggestionsDownloader):
         self.suggestions = downloader.download()
 
         if self.suggestions:
@@ -818,11 +818,19 @@ class WebApplicationManager(SoftwareManager):
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         if internet_available:
-            self.env_thread = Thread(target=self._update_env_settings, args=(task_manager,), daemon=True)
-            self.env_thread.start()
+            downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client,
+                                               i18n=self.i18n, taskman=task_manager)
+            downloader.register_task()
 
-            self.suggestions_downloader = Thread(target=self._download_suggestions, args=(task_manager,), daemon=True)
+            self.suggestions_downloader = Thread(target=self._download_suggestions, args=(downloader,), daemon=True)
             self.suggestions_downloader.start()
+
+            web_config = read_config()
+
+            if self.env_updater.should_download_settings(web_config):
+                self.env_updater.register_task_read_settings(taskman=task_manager)
+                self.env_thread = Thread(target=self.env_updater.read_settings, args=(web_config, False, task_manager), daemon=True)
+                self.env_thread.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -857,7 +865,7 @@ class WebApplicationManager(SoftwareManager):
 
         app.status = PackageStatus.READY
 
-    def _map_suggestion(self, suggestion: dict) -> PackageSuggestion:
+    def _map_suggestion(self, suggestion: dict, env_settings: Optional[dict]) -> PackageSuggestion:
         app = WebApplication(name=suggestion.get('name'),
                              url=suggestion.get('url'),
                              icon_url=suggestion.get('icon_url'),
@@ -874,8 +882,8 @@ class WebApplicationManager(SoftwareManager):
         elif isinstance(description, str):
             app.description = description
 
-        if not app.version and self.env_settings and self.env_settings.get('electron'):
-            app.version = self.env_settings['electron']['version']
+        if not app.version and env_settings and env_settings.get('electron'):
+            app.version = env_settings['electron']['version']
             app.latest_version = app.version
 
         app.status = PackageStatus.LOADING_DATA
@@ -888,9 +896,9 @@ class WebApplicationManager(SoftwareManager):
         output.update(read_config())
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
-        local_config = {}
+        web_config = {}
 
-        thread_config = Thread(target=self._fill_config_async, args=(local_config,))
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
         thread_config.start()
 
         if self.suggestions:
@@ -914,7 +922,7 @@ class WebApplicationManager(SoftwareManager):
             else:
                 installed = None
 
-            res = []
+            env_settings, res = None, []
 
             for s in suggestion_list:
                 if limit <= 0 or len(res) < limit:
@@ -924,24 +932,24 @@ class WebApplicationManager(SoftwareManager):
                         if surl in installed:
                             continue
 
-                    res.append(self._map_suggestion(s))
+                    if env_settings is None:  # reading settings if not already loaded
+                        thread_config.join()
+                        env_settings = self.env_updater.read_settings(web_config=web_config)
+
+                    res.append(self._map_suggestion(s, env_settings))
                 else:
                     break
 
             if res:
-                if not self.env_settings and self.env_thread:
-                    self.env_thread.join()
-                    self.env_thread = None  # cleaning memory
-
-                if self.env_settings:
+                if env_settings:
                     for s in res:
-                        s.package.version = self.env_settings['electron']['version']
+                        s.package.version = env_settings['electron']['version']
                         s.package.latest_version = s.package.version
 
                 thread_config.join()
-                if local_config and local_config['environment']['electron']['version']:
+                if web_config and web_config['environment']['electron']['version']:
                     for s in res:
-                        s.package.version = str(local_config['environment']['electron']['version'])
+                        s.package.version = str(web_config['environment']['electron']['version'])
                         s.package.latest_version = s.package.version
 
             return res
@@ -973,11 +981,11 @@ class WebApplicationManager(SoftwareManager):
                     traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        config = read_config()
+        web_config = read_config()
         max_width = floor(screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
-                                            value=config['environment']['electron']['version'],
+                                            value=web_config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
                                             max_width=max_width,
@@ -990,35 +998,45 @@ class WebApplicationManager(SoftwareManager):
 
         select_nativefier = SingleSelectComponent(label="Nativefier",
                                                   options=native_opts,
-                                                  default_option=[o for o in native_opts if o.value == config['environment']['system']][0],
+                                                  default_option=[o for o in native_opts if o.value == web_config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
                                                   max_width=max_width,
                                                   id_='nativefier')
 
-        form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(), components=[input_electron, select_nativefier])
+        env_settings_exp = TextInputComponent(label=self.i18n['web.settings.cache_exp'],
+                                              tooltip=self.i18n['web.settings.cache_exp.tip'],
+                                              capitalize_label=False,
+                                              value=int(web_config['environment']['cache_exp']) if isinstance(web_config['environment']['cache_exp'], int) else '',
+                                              only_int=True,
+                                              max_width=max_width,
+                                              id_='web_cache_exp')
+
+        form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
+                                 components=[input_electron, select_nativefier, env_settings_exp])
 
         return PanelComponent([form_env])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        config = read_config()
+        web_config = read_config()
 
         form_env = component.components[0]
 
-        config['environment']['electron']['version'] = str(form_env.get_component('electron_version').get_value()).strip()
+        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_version').get_value()).strip()
 
-        if len(config['environment']['electron']['version']) == 0:
-            config['environment']['electron']['version'] = None
+        if len(web_config['environment']['electron']['version']) == 0:
+            web_config['environment']['electron']['version'] = None
 
         system_nativefier = form_env.get_component('nativefier').get_selected()
 
         if system_nativefier and not nativefier.is_available():
             return False, [self.i18n['web.settings.env.nativefier.system.not_installed'].format('Nativefier')]
 
-        config['environment']['system'] = system_nativefier
+        web_config['environment']['system'] = system_nativefier
+        web_config['environment']['cache_exp'] = form_env.get_component('web_cache_exp').get_int_value()
 
         try:
-            save_config(config, CONFIG_FILE)
+            save_config(web_config, CONFIG_FILE)
             return True, None
         except:
             return False, [traceback.format_exc()]

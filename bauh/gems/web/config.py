@@ -6,7 +6,8 @@ def read_config(update_file: bool = False) -> dict:
     default_config = {
         'environment': {
             'system': False,
-            'electron': {'version': None}
+            'electron': {'version': None},
+            'cache_exp': 1440
         }
     }
 

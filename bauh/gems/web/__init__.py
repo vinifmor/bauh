@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR
-from bauh.commons import user, resource
+from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR, CACHE_PATH
+from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
@@ -30,6 +30,8 @@ SEARCH_INDEX_FILE = '{}/index.yml'.format(TEMP_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
 URL_NATIVEFIER = 'https://github.com/jiahaog/nativefier/archive/v{version}.tar.gz'
+ENVIRONMENT_SETTINGS_CACHED_FILE = '{}/web/environment.yml'.format(CACHE_PATH)
+ENVIRONMENT_SETTINGS_TS_FILE = '{}/web/environment.ts'.format(CACHE_PATH)
 
 
 def get_icon_path() -> str:

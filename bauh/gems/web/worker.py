@@ -19,16 +19,25 @@ class SuggestionsDownloader:
         self.logger = logger
         self.taskman = taskman
         self.i18n = i18n
+        self.task_id = 'web_sugs'
+        self._task_registered = False
+        self._task_finished = False
 
     def _finish_task(self):
         if self.taskman:
-            self.taskman.update_progress('web_sugs', 100, None)
-            self.taskman.finish_task('web_sugs')
+            self.taskman.update_progress(self.task_id, 100, None)
+            self.taskman.finish_task(self.task_id)
+            self._task_finished = True
+            self.logger.info("Finished")
+
+    def register_task(self):
+        if self.taskman and not self._task_registered and not self._task_finished:
+            self.taskman.register_task(self.task_id, self.i18n['web.task.suggestions'], get_icon_path())
+            self._task_registered = True
 
     def download(self) -> dict:
         if self.taskman:
-            self.taskman.register_task('web_sugs', self.i18n['web.task.suggestions'], get_icon_path())
-            self.taskman.update_progress('web_sugs', 10, None)
+            self.taskman.update_progress(self.task_id, 10, None)
 
         self.logger.info("Reading suggestions from {}".format(URL_SUGGESTIONS))
         try:
