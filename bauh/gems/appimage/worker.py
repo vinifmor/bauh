@@ -21,12 +21,13 @@ from bauh.view.util.translation import I18n
 class DatabaseUpdater(Thread):
     COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(DATABASES_DIR)
 
-    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient, logger: logging.Logger):
+    def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, watcher: Optional[ProcessWatcher] = None, taskman: Optional[TaskManager] = None):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
         self.i18n = i18n
-        self.task_man = task_man
+        self.taskman = taskman
+        self.watcher = watcher
         self.task_id = 'appim_db'
 
     def should_update(self, appimage_config: dict) -> bool:
@@ -75,22 +76,25 @@ class DatabaseUpdater(Thread):
         return update
 
     def register_task(self):
-        if self.task_man:
-            self.task_man.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
+        if self.taskman:
+            self.taskman.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
 
     def _finish_task(self):
-        if self.task_man:
-            self.task_man.update_progress(self.task_id, 100, None)
-            self.task_man.finish_task(self.task_id)
-            self.task_man = None
+        if self.taskman:
+            self.taskman.update_progress(self.task_id, 100, None)
+            self.taskman.finish_task(self.task_id)
+            self.taskman = None
             self.logger.info("Finished")
 
     def _update_task_progress(self, progress: float, substatus: Optional[str] = None):
-        if self.task_man:
-            self.task_man.update_progress(self.task_id, progress, substatus)
+        if self.taskman:
+            self.taskman.update_progress(self.task_id, progress, substatus)
 
-    def download_databases(self):
-        self._update_task_progress(1)  # TODO add substatus
+        if self.watcher:
+            self.watcher.change_substatus(substatus)
+
+    def download_databases(self) -> bool:
+        self._update_task_progress(1, self.i18n['appimage.update_database.downloading'])
         self.logger.info('Retrieving AppImage databases')
 
         database_timestamp = datetime.utcnow().timestamp()
@@ -103,9 +107,8 @@ class DatabaseUpdater(Thread):
         if not res:
             self.logger.warning('Could not download the database file {}'.format(URL_COMPRESSED_DATABASES))
             self._finish_task()
-            return
+            return False
 
-        self._update_task_progress(25)  # TODO add substatus
         Path(DATABASES_DIR).mkdir(parents=True, exist_ok=True)
 
         with open(self.COMPRESS_FILE_PATH, 'wb+') as f:
@@ -113,7 +116,7 @@ class DatabaseUpdater(Thread):
 
         self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
 
-        self._update_task_progress(50)  # TODO add substatus
+        self._update_task_progress(50, self.i18n['appimage.update_database.deleting_old'])
         old_db_files = glob.glob(DATABASES_DIR + '/*.db')
 
         if old_db_files:
@@ -123,7 +126,7 @@ class DatabaseUpdater(Thread):
 
             self.logger.info('Old database files deleted')
 
-        self._update_task_progress(75)  # TODO add substatus
+        self._update_task_progress(75, self.i18n['appimage.update_database.uncompressing'])
         self.logger.info('Uncompressing {}'.format(self.COMPRESS_FILE_PATH))
 
         try:
@@ -133,6 +136,7 @@ class DatabaseUpdater(Thread):
         except:
             self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
             traceback.print_exc()
+            return False
         finally:
             self.logger.info('Deleting {}'.format(self.COMPRESS_FILE_PATH))
             os.remove(self.COMPRESS_FILE_PATH)
@@ -147,6 +151,7 @@ class DatabaseUpdater(Thread):
         self.logger.info("Database timestamp saved")
 
         self._finish_task()
+        return True
 
     def run(self):
         self.download_databases()

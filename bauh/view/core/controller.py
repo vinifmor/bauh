@@ -485,6 +485,9 @@ class GenericSoftwareManager(SoftwareManager):
         return []
 
     def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+        if action.requires_internet and not self.context.is_internet_available():
+            raise NoInternetException()
+
         man = action.manager if action.manager else self._get_manager_for(pkg)
 
         if man:

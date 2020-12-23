@@ -1004,6 +1004,8 @@ class CustomAction(AsyncAction):
         self.i18n = i18n
 
     def run(self):
+        res = {'success': False, 'pkg': self.pkg, 'action': self.custom_action, 'error': None, 'error_type': MessageType.ERROR}
+
         if self.custom_action.backup:
             proceed, _ = self.request_backup(app_config=read_config(),
                                              action_key=None,
@@ -1011,22 +1013,24 @@ class CustomAction(AsyncAction):
                                              root_password=self.root_pwd,
                                              pkg=self.pkg)
             if not proceed:
-                self.notify_finished({'success': False, 'pkg': self.pkg, 'action': self.custom_action})
+                self.notify_finished(res)
                 self.pkg = None
                 self.custom_action = None
                 self.root_pwd = None
                 return
 
         try:
-            success = self.manager.execute_custom_action(action=self.custom_action,
-                                                         pkg=self.pkg.model if self.pkg else None,
-                                                         root_password=self.root_pwd,
-                                                         watcher=self)
+            res['success'] = self.manager.execute_custom_action(action=self.custom_action,
+                                                                pkg=self.pkg.model if self.pkg else None,
+                                                                root_password=self.root_pwd,
+                                                                watcher=self)
         except (requests.exceptions.ConnectionError, NoInternetException):
-            success = False
+            res['success'] = False
+            res['error'] = 'internet.required'
+            res['error_type'] = MessageType.WARNING
             self.signal_output.emit(self.i18n['internet.required'])
 
-        self.notify_finished({'success': success, 'pkg': self.pkg, 'action': self.custom_action})
+        self.notify_finished(res)
         self.pkg = None
         self.custom_action = None
         self.root_pwd = None

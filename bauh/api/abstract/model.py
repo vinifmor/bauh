@@ -10,7 +10,8 @@ class CustomSoftwareAction:
     def __init__(self, i18n_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str,
                  requires_root: bool, manager: "SoftwareManager" = None,
                  backup: bool = False, refresh: bool = True,
-                 i18n_confirm_key: str = None):
+                 i18n_confirm_key: str = None,
+                 requires_internet: bool = False):
         """
         :param i18n_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
@@ -21,6 +22,7 @@ class CustomSoftwareAction:
         :param requires_root:
         :param refresh: if the a full app refresh should be done if the action succeeds
         :param i18n_confirm_key: action confirmation message
+        :param requires_internet: if the action requires internet connection to be executed
         """
         self.i18n_label_key = i18n_label_key
         self.i18n_status_key = i18n_status_key
@@ -31,6 +33,7 @@ class CustomSoftwareAction:
         self.backup = backup
         self.refresh = refresh
         self.i18n_confirm_key = i18n_confirm_key
+        self.requires_internet = requires_internet
 
     def __hash__(self):
         return self.i18n_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()

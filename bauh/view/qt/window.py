@@ -1433,6 +1433,11 @@ class ManageWindow(QWidget):
             self.comp_manager.restore_state(ACTION_CUSTOM_ACTION)
             self._show_console_errors()
 
+            if res['error']:
+                dialog.show_message(title=self.i18n['warning' if res['error_type'] == MessageType.WARNING else 'error'].capitalize(),
+                                    body=self.i18n[res['error']],
+                                    type_=res['error_type'])
+
     def _show_console_checkbox_if_output(self):
         if self.textarea_details.toPlainText():
             self.comp_manager.set_component_visible(CHECK_DETAILS, True)

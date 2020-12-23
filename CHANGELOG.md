@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - old settings properties were dropped (**db_updater.interval**, **db_updated.enabled**)
     - database files (**apps.db** and **releases.db**) are now stored at **~/.cache/bauh/appimage**
     - displaying a warning when the cached database files could not be found
+    - new custom action **Update database** to perform a database update anytime:
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/appim_up_db.png">
+    </p>
 
 - Arch
     - AUR

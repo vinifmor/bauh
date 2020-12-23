@@ -81,7 +81,14 @@ class AppImageManager(SoftwareManager):
                                                     manager=self,
                                                     manager_method='install_file',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False)]
+                                                    requires_root=False),
+                               CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
+                                                    i18n_status_key='appimage.custom_action.update_db.status',
+                                                    manager=self,
+                                                    manager_method='update_database',
+                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                    requires_root=False,
+                                                    requires_internet=True)]
         self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
@@ -613,7 +620,7 @@ class AppImageManager(SoftwareManager):
         symlink_check.start()
 
         if internet_available:
-            updater = DatabaseUpdater(task_man=task_manager, i18n=self.context.i18n,
+            updater = DatabaseUpdater(taskman=task_manager, i18n=self.context.i18n,
                                       http_client=self.context.http_client, logger=self.context.logger)
 
             if updater.should_update(read_config()):
@@ -812,3 +819,10 @@ class AppImageManager(SoftwareManager):
             self._write_ignored_updates(current_ignored)
 
         pkg.updates_ignored = False
+
+    def update_database(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        db_updater = DatabaseUpdater(i18n=self.i18n, http_client=self.context.http_client,
+                                     logger=self.context.logger, watcher=watcher)
+
+        res = db_updater.download_databases()
+        return res
