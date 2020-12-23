@@ -1,6 +1,7 @@
 import datetime
 import time
 from threading import Lock, Thread
+from typing import Optional
 
 from bauh.api.abstract.cache import MemoryCache, MemoryCacheFactory
 
@@ -106,7 +107,7 @@ class DefaultMemoryCacheFactory(MemoryCacheFactory):
         self.expiration_time = expiration_time
         self.cleaner = cleaner
 
-    def new(self, expiration: int = None) -> MemoryCache:
+    def new(self, expiration: Optional[int] = None) -> MemoryCache:
         instance = DefaultMemoryCache(expiration if expiration is not None else self.expiration_time)
 
         if self.cleaner:

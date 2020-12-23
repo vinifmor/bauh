@@ -28,6 +28,10 @@ class SearchResult:
         self.new = new
         self.total = total
 
+    @classmethod
+    def empty(cls):
+        return cls(installed=[], new=[], total=0)
+
 
 class UpgradeRequirement:
 
@@ -116,7 +120,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int, only_apps: bool, pkg_types: Set[Type[SoftwarePackage]], internet_available: bool) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int, only_apps: bool, pkg_types: Optional[Set[Type[SoftwarePackage]]], internet_available: bool) -> SearchResult:
         """
         :param disk_loader:  a running disk loader thread that loads application data from the disk asynchronously
         :param limit: the max number of packages to be retrieved. <= 1 should retrieve everything

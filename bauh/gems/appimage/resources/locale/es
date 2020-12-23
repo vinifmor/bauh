@@ -1,7 +1,6 @@
-appimage.config.db_updates=Actualización de la base de datos
-appimage.config.db_updates.activated=activada
-appimage.config.db_updates.activated.tip=Será posible buscar actualizaciones relacionadas con las aplicaciones instaladas
-appimage.config.db_updates.interval.tip=Intervalo de actualización en SEGUNDOS
+appimage.config.database=Base de datos
+appimage.config.database.expiration=Expiración
+appimage.config.database.expiration.tip=Define el período (en minutos) en el que la base de datos será considerada actualizada durante el proceso de inicialización. Use 0 si siempre desea actualizarla.
 appimage.custom_action.install_file=Instalar archivo AppImage
 appimage.custom_action.install_file.details=Detalles de instalación
 appimage.custom_action.install_file.invalid_file=Debe definir un archivo AppImage válido
@@ -34,5 +33,6 @@ appimage.install.permission=Concediendo permiso de ejecución a {}
 appimage.task.db_update=Actualizando base de datos
 appimage.task.symlink_check=Verificando links simbólicos
 appimage.uninstall.error.remove_folder=No se pudo eliminar el directorio de instalación de la aplicación {}
+appimage.warning.missing_db_files=No se encontraron archivos de la base de datos {appimage}. Algunas acciones no funcionarán correctamente.
 gem.appimage.info=Aplicativos publicados en https://appimage.github.io/
 gem.appimage.label=AppImage

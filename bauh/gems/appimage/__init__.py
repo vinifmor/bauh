@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.constants import CONFIG_PATH
+from bauh.api.constants import CONFIG_PATH, CACHE_PATH
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,6 +13,12 @@ CONFIG_FILE = '{}/appimage.yml'.format(CONFIG_PATH)
 CONFIG_DIR = '{}/appimage'.format(CONFIG_PATH)
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
+URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
+DATABASES_DIR = '{}/appimage'.format(CACHE_PATH)
+DATABASE_APPS_FILE = '{}/apps.db'.format(DATABASES_DIR)
+DATABASE_RELEASES_FILE = '{}/releases.db'.format(DATABASES_DIR)
+DATABASES_TS_FILE = '{}/dbs.ts'.format(DATABASES_DIR)
+DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 
 
 def get_icon_path() -> str:

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Set
+from typing import Set, Optional
 
 
 class MemoryCache(ABC):
@@ -42,7 +42,7 @@ class MemoryCacheFactory(ABC):
     """
 
     @abstractmethod
-    def new(self, expiration: int) -> MemoryCache:
+    def new(self, expiration: Optional[int]) -> MemoryCache:
         """
         :param expiration: expiration time for the cache keys in seconds. Use -1 to disable this feature.
         :return:

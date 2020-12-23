@@ -10,6 +10,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **git**: for AUR support.
 
 ### Improvements
+- AppImage
+    - database updater daemon dropped. Now the database is only downloaded/updated during the initialization process (if it is considered expired). Its expiration are controlled through the new settings property **database.expiration** (in minutes. default: 60 minutes. Use 0 so it is always updated).
+    <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/appim_db_exp.png">
+    </p>
+    
+    - old settings properties were dropped (**db_updater.interval**, **db_updated.enabled**)
+    - database files (**apps.db** and **releases.db**) are now stored at **~/.cache/bauh/appimage**
+    - displaying a warning when the cached database files could not be found
+
 - Arch
     - AUR
         - upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)

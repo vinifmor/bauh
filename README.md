@@ -142,18 +142,16 @@ install_channel: false  # it allows to select an available channel during the ap
     - **Upgrade file**: allows to upgrade a manually installed AppImage file
 - Supported sources: [AppImageHub](https://appimage.github.io) (**applications with no releases published to GitHub are currently not available**)
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
-- Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
+- Desktop entries (menu shortcuts) of the installed applications are stored at **~/.local/share/applications**
 - Symlinks are created at **~/.local/bin**. They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: 'rpcs3-appimage')
-- Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases are always updated when bauh starts
-- Databases updater daemon running every 20 minutes (it can be customized via the configuration file described below)
+- Downloaded database files are stored at **~/.cache/bauh/appimage** as **apps.db** and **releases.db**
+- Databases are updated during the initialization process if they are considered outdated (after 60 minutes by default, but this behavior can be changed via the AppImage settings)
 - All supported application names can be found at [apps.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt)
 - Applications with ignored updates are defined at **~/.config/bauh/appimage/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
-db_updater:
-  enabled: true  # if 'false': disables the daemon database updater (bauh will not be able to see if there are updates for your already installed AppImages)
-  interval: 1200  # the databases update interval in SECONDS (1200 == 20 minutes)
+database:
+  expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
 ```
 - Required dependencies
     - Arch-based systems: **sqlite**, **wget** (or **aria2**/**axel** for faster multi-threaded downloads)

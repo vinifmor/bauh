@@ -1,7 +1,6 @@
-appimage.config.db_updates=Mise à jour de la base de données
-appimage.config.db_updates.activated=activé
-appimage.config.db_updates.activated.tip=La recherche de mises à jour liées aux applications installées sera possible
-appimage.config.db_updates.interval.tip=Intervalle de mises à jour en SECONDES
+appimage.config.database=Database
+appimage.config.database.expiration=Expiration
+appimage.config.database.expiration.tip=It defines the period (in minutes) in which the database will be considered up to date. Use 0 if you always want to update it.
 appimage.custom_action.install_file=Installer fichier AppImage
 appimage.custom_action.install_file.details=Détails d'installation
 appimage.custom_action.install_file.invalid_file=Vous devez définir un fichier AppImage valide
@@ -34,5 +33,6 @@ appimage.install.permission={} est maintenant exécutable
 appimage.task.db_update=Mise à jour des bases de données
 appimage.task.symlink_check=Verification des symlinks
 appimage.uninstall.error.remove_folder=Impossible de supprimer le répertoire d'installation {}
+appimage.warning.missing_db_files={appimage} database files were not found. Some actions will not work properly.
 gem.appimage.info=Applications publiées à https://appimage.github.io/
 gem.appimage.label=AppImage

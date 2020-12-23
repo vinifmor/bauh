@@ -4,9 +4,8 @@ from bauh.gems.appimage import CONFIG_FILE
 
 def read_config(update_file: bool = False) -> dict:
     default = {
-        'db_updater': {
-            'interval': 60 * 20,
-            'enabled': True
+        'database': {
+            'expiration': 60
         }
     }
     return read(CONFIG_FILE, default, update_file=update_file)

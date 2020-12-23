@@ -5,108 +5,151 @@ import os
 import tarfile
 import time
 import traceback
+from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
-
-import requests
+from typing import Optional
 
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
-from bauh.commons.internet import InternetChecker
-from bauh.gems.appimage import LOCAL_PATH, get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util
+from bauh.gems.appimage import get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
+    DATABASES_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES
 from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
 
 
 class DatabaseUpdater(Thread):
-    URL_DB = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-    COMPRESS_FILE_PATH = LOCAL_PATH + '/db.tar.gz'
+    COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(DATABASES_DIR)
 
-    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient,
-                 logger: logging.Logger, db_locks: dict, interval: int,
-                 internet_checker: InternetChecker):
+    def __init__(self, task_man: TaskManager, i18n: I18n, http_client: HttpClient, logger: logging.Logger):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
-        self.db_locks = db_locks
-        self.sleep_time = interval
         self.i18n = i18n
         self.task_man = task_man
         self.task_id = 'appim_db'
-        self.internet_checker = internet_checker
+
+    def should_update(self, appimage_config: dict) -> bool:
+        ti = time.time()
+
+        try:
+            db_exp = int(appimage_config['database']['expiration'])
+        except ValueError:
+            self.logger.error("Could not parse settings property 'database.expiration': {}".format(appimage_config['database']['expiration']))
+            return True
+
+        if db_exp <= 0:
+            self.logger.info("No expiration time configured for the AppImage database")
+            return True
+
+        files = {*glob.glob('{}/*'.format(DATABASES_DIR))}
+
+        if not files:
+            self.logger.warning('No database files on {}'.format(DATABASES_DIR))
+            return True
+
+        if DATABASES_TS_FILE not in files:
+            self.logger.warning("No database timestamp file found ({})".format(DATABASES_TS_FILE))
+            return True
+
+        if DATABASE_APPS_FILE not in files:
+            self.logger.warning("Database file '{}' not found".format(DATABASE_APPS_FILE))
+            return True
+
+        if DATABASE_RELEASES_FILE not in files:
+            self.logger.warning("Database file '{}' not found".format(DATABASE_RELEASES_FILE))
+            return True
+
+        with open(DATABASES_TS_FILE) as f:
+            dbs_ts_str = f.read()
+
+        try:
+            dbs_timestamp = datetime.fromtimestamp(float(dbs_ts_str))
+        except:
+            self.logger.error('Could not parse the databases timestamp: {}'.format(dbs_ts_str))
+            traceback.print_exc()
+            return True
+
+        update = dbs_timestamp + timedelta(minutes=db_exp) <= datetime.utcnow()
+        self.logger.info('Finished. Took {0:.2f} seconds'.format(time.time() - ti))
+        return update
+
+    def register_task(self):
+        if self.task_man:
+            self.task_man.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
 
     def _finish_task(self):
         if self.task_man:
             self.task_man.update_progress(self.task_id, 100, None)
             self.task_man.finish_task(self.task_id)
             self.task_man = None
+            self.logger.info("Finished")
+
+    def _update_task_progress(self, progress: float, substatus: Optional[str] = None):
+        if self.task_man:
+            self.task_man.update_progress(self.task_id, progress, substatus)
 
     def download_databases(self):
-        if self.task_man:
-            self.task_man.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
-            self.task_man.update_progress(self.task_id, 10, None)
-
-        try:
-            if not self.internet_checker.is_available():
-                self._finish_task()
-                return
-        except requests.exceptions.ConnectionError:
-            self.logger.warning('The internet connection seems to be off.')
-            self._finish_task()
-            return
-
+        self._update_task_progress(1)  # TODO add substatus
         self.logger.info('Retrieving AppImage databases')
 
+        database_timestamp = datetime.utcnow().timestamp()
         try:
-            res = self.http_client.get(self.URL_DB, session=False)
+            res = self.http_client.get(URL_COMPRESSED_DATABASES, session=False)
         except Exception as e:
             self.logger.error("An error ocurred while downloading the AppImage database: {}".format(e.__class__.__name__))
             res = None
 
-        if res:
-            Path(LOCAL_PATH).mkdir(parents=True, exist_ok=True)
-
-            with open(self.COMPRESS_FILE_PATH, 'wb+') as f:
-                f.write(res.content)
-
-            self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
-
-            old_db_files = glob.glob(LOCAL_PATH + '/*.db')
-
-            if old_db_files:
-                self.logger.info('Deleting old database files')
-                for f in old_db_files:
-                    self.db_locks[f].acquire()
-                    try:
-                        os.remove(f)
-                    finally:
-                        self.db_locks[f].release()
-
-                self.logger.info('Old database files deleted')
-
-            self.logger.info('Uncompressing {}'.format(self.COMPRESS_FILE_PATH))
-
-            try:
-                tf = tarfile.open(self.COMPRESS_FILE_PATH)
-                tf.extractall(LOCAL_PATH)
-                self.logger.info('Successfully uncompressed file {}'.format(self.COMPRESS_FILE_PATH))
-            except:
-                self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
-                traceback.print_exc()
-            finally:
-                self.logger.info('Deleting {}'.format(self.COMPRESS_FILE_PATH))
-                os.remove(self.COMPRESS_FILE_PATH)
-                self.logger.info('Successfully removed {}'.format(self.COMPRESS_FILE_PATH))
+        if not res:
+            self.logger.warning('Could not download the database file {}'.format(URL_COMPRESSED_DATABASES))
             self._finish_task()
-        else:
-            self.logger.warning('Could not download the database file {}'.format(self.URL_DB))
-            self._finish_task()
+            return
+
+        self._update_task_progress(25)  # TODO add substatus
+        Path(DATABASES_DIR).mkdir(parents=True, exist_ok=True)
+
+        with open(self.COMPRESS_FILE_PATH, 'wb+') as f:
+            f.write(res.content)
+
+        self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
+
+        self._update_task_progress(50)  # TODO add substatus
+        old_db_files = glob.glob(DATABASES_DIR + '/*.db')
+
+        if old_db_files:
+            self.logger.info('Deleting old database files')
+            for f in old_db_files:
+                os.remove(f)
+
+            self.logger.info('Old database files deleted')
+
+        self._update_task_progress(75)  # TODO add substatus
+        self.logger.info('Uncompressing {}'.format(self.COMPRESS_FILE_PATH))
+
+        try:
+            tf = tarfile.open(self.COMPRESS_FILE_PATH)
+            tf.extractall(DATABASES_DIR)
+            self.logger.info('Successfully uncompressed file {}'.format(self.COMPRESS_FILE_PATH))
+        except:
+            self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
+            traceback.print_exc()
+        finally:
+            self.logger.info('Deleting {}'.format(self.COMPRESS_FILE_PATH))
+            os.remove(self.COMPRESS_FILE_PATH)
+            self.logger.info('File {} deleted'.format(self.COMPRESS_FILE_PATH))
+
+        self._update_task_progress(95)
+        self.logger.info("Saving database timestamp {}".format(database_timestamp))
+
+        with open(DATABASES_TS_FILE, 'w+') as f:
+            f.write(str(database_timestamp))
+
+        self.logger.info("Database timestamp saved")
+
+        self._finish_task()
 
     def run(self):
-        while True:
-            self.download_databases()
-            self.logger.info('Sleeping')
-            time.sleep(self.sleep_time)
+        self.download_databases()
 
 
 class SymlinksVerifier(Thread):
