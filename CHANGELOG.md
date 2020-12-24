@@ -38,6 +38,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - the index is now stored at **~/.cache/bauh/arch/aur/index.txt**.
     - info window
         - date fields format changed to numbers (e.g: Thu Dec 17 17:19:55 2020 -> 2020-12-17 17:19:55)
+- Core
+    - new settings property **boot.load_apps** (General -> Load apps after startup) that allows the user to choose if the installed packages/suggestions should be loaded on the management panel after the initialization process. Default: true.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/load_apps.png">
+    </p>
+
 - Web
     - now the environment settings are cached for 24 hours. This period can be controlled through the new settings property **environment.update_interval** (in minutes -> default: 1440 = 24 hours. Use **0** so that they are always updated).
     <p align="center">

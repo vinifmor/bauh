@@ -64,6 +64,9 @@ def read_config(update_file: bool = False) -> dict:
             'upgrade': None,
             'mode': 'incremental',
             'type': 'rsync'
+        },
+        'boot': {
+            'load_apps': True
         }
 
     }

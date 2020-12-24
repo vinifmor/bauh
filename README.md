@@ -342,6 +342,8 @@ backup:
     upgrade: null  # defines if the backup should be performed before upgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     downgrade: null  # defines if the backup should be performed before downgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     type: rsync  # defines the Timeshift backup mode -> 'rsync' (default) or 'btrfs'
+boot:
+    load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
 ```
 #### Tray icons
 Priority: 

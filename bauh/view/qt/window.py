@@ -103,6 +103,7 @@ class ManageWindow(QWidget):
         self.logger = logger
         self.manager = manager
         self.working = False  # restrict the number of threaded actions
+        self.installed_loaded = False  # used to control the state when the interface is set to not load the apps on startup
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
@@ -572,14 +573,18 @@ class ManageWindow(QWidget):
         self.thread_warnings.start()
 
     def _begin_loading_installed(self):
-        self.search_bar.clear()
-        self.input_name.set_text('')
-        self._begin_action(self.i18n['manage_window.status.installed'])
-        self._handle_console_option(False)
-        self.comp_manager.set_components_visible(False)
-        self.suggestions_requested = False
-        self.search_performed = False
-        self.thread_load_installed.start()
+        if self.installed_loaded:
+            self.search_bar.clear()
+            self.input_name.set_text('')
+            self._begin_action(self.i18n['manage_window.status.installed'])
+            self._handle_console_option(False)
+            self.comp_manager.set_components_visible(False)
+            self.suggestions_requested = False
+            self.search_performed = False
+            self.thread_load_installed.start()
+        else:
+            self.load_suggestions = False
+            self.begin_refresh_packages()
 
     def _finish_loading_installed(self):
         self._finish_action()
@@ -668,7 +673,7 @@ class ManageWindow(QWidget):
         self.check_details.setChecked(False)
         self.textarea_details.hide()
 
-    def begin_refresh_packages(self, pkg_types: Set[Type[SoftwarePackage]] = None):
+    def begin_refresh_packages(self, pkg_types: Optional[Set[Type[SoftwarePackage]]] = None):
         self.search_bar.clear()
 
         self._begin_action(self.i18n['manage_window.status.refreshing'])
@@ -698,6 +703,11 @@ class ManageWindow(QWidget):
 
         self.load_suggestions = False
         self.types_changed = False
+
+    def load_without_packages(self):
+        self.load_suggestions = False
+        self._handle_console_option(False)
+        self._finish_refresh_packages({'installed': None, 'types': None}, as_installed=False)
 
     def _begin_load_suggestions(self, filter_installed: bool):
         self.search_bar.clear()
@@ -887,7 +897,7 @@ class ManageWindow(QWidget):
             'display_limit': None if self.filter_updates else self.display_limit
         }
 
-    def update_pkgs(self, new_pkgs: List[SoftwarePackage], as_installed: bool, types: Set[type] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
+    def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
@@ -957,6 +967,9 @@ class ManageWindow(QWidget):
         if self.first_refresh:
             qt_utils.centralize(self)
             self.first_refresh = False
+
+        if not self.installed_loaded and as_installed:
+            self.installed_loaded = True
 
         return True
 

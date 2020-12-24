@@ -71,7 +71,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                context=context,
                                manager=manager,
                                i18n=i18n,
-                               manage_window=manage_window)
+                               manage_window=manage_window,
+                               app_config=app_config)
         cache_cleaner.start()
 
         return app, prepare

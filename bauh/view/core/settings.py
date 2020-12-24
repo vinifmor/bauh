@@ -291,6 +291,12 @@ class GenericSettingsManager:
                                                     max_width=default_width,
                                                     id_="sys_notify")
 
+        select_load_apps = self._gen_bool_component(label=self.i18n['core.config.boot.load_apps'],
+                                                    tooltip=self.i18n['core.config.boot.load_apps.tip'],
+                                                    value=bool(core_config['boot']['load_apps']),
+                                                    id_='boot.load_apps',
+                                                    max_width=default_width)
+
         select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
                                                tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
                                                id_="sugs_enabled",
@@ -312,7 +318,7 @@ class GenericSettingsManager:
                                 opts=[(self.i18n['ask'].capitalize(), True, None),
                                       (self.i18n['no'].capitalize(), False, None)])
 
-        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs, inp_reboot], spaces=False)]
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_load_apps, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -352,6 +358,7 @@ class GenericSettingsManager:
         core_config['suggestions']['by_type'] = sugs_by_type
 
         core_config['updates']['ask_for_reboot'] = general_form.get_component('ask_for_reboot').get_selected()
+        core_config['boot']['load_apps'] = general_form.get_component('boot.load_apps').get_selected()
 
         # advanced
         adv_form = advanced.components[0]

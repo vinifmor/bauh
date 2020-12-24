@@ -116,10 +116,12 @@ class PreparePanel(QWidget, TaskManager):
     signal_status = pyqtSignal(int)
     signal_password_response = pyqtSignal(bool, str)
 
-    def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,  i18n: I18n, manage_window: QWidget):
+    def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,
+                 i18n: I18n, manage_window: QWidget, app_config: dict):
         super(PreparePanel, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.i18n = i18n
         self.context = context
+        self.app_config = app_config
         self.manage_window = manage_window
         self.setWindowTitle('{} ({})'.format(__app_name__, self.i18n['prepare_panel.title.start'].lower()))
         self.setMinimumWidth(screen_size.width() * 0.5)
@@ -406,6 +408,11 @@ class PreparePanel(QWidget, TaskManager):
     def finish(self):
         if self.isVisible():
             self.manage_window.show()
-            self.manage_window.begin_refresh_packages()
+
+            if self.app_config['boot']['load_apps']:
+                self.manage_window.begin_refresh_packages()
+            else:
+                self.manage_window.load_without_packages()
+
             self.self_close = True
             self.close()
