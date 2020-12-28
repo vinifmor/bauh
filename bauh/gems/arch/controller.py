@@ -2623,7 +2623,7 @@ class ArchManager(SoftwareManager):
         return action != SoftwareAction.SEARCH
 
     def _start_category_task(self, task_man: TaskManager):
-        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'].format('Arch'), get_icon_path())
+        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'], get_icon_path())
         task_man.update_progress('arch_aur_cats', 50, None)
 
     def _finish_category_task(self, task_man: TaskManager):
@@ -2654,8 +2654,11 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.start()
 
         CategoriesDownloader(id_='Arch', http_client=self.context.http_client, logger=self.context.logger,
-                             manager=self, url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=ARCH_CACHE_PATH,
+                             manager=self, url_categories_file=URL_CATEGORIES_FILE,
                              categories_path=CATEGORIES_FILE_PATH,
+                             expiration=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else '',
+                             internet_connection=internet_available,
+                             internet_checker=self.context.internet_checker,
                              before=lambda: self._start_category_task(task_manager),
                              after=lambda: self._finish_category_task(task_manager)).start()
 
@@ -2878,7 +2881,14 @@ class ArchManager(SoftwareManager):
                                  max_width=max_width,
                                  file_path=local_config['aur_build_dir'],
                                  capitalize_label=False,
-                                 directory=True)
+                                 directory=True),
+            TextInputComponent(id_='arch_cats_exp',
+                               label=self.i18n['arch.config.categories_exp'],
+                               tooltip=self.i18n['arch.config.categories_exp.tip'],
+                               max_width=max_width,
+                               only_int=True,
+                               capitalize_label=False,
+                               value=local_config['categories_exp'] if isinstance(local_config['categories_exp'], int) else ''),
         ]
 
         return PanelComponent([FormComponent(fields, spaces=False)])
@@ -2886,25 +2896,26 @@ class ArchManager(SoftwareManager):
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
 
-        form_install = component.components[0]
-        config['repositories'] = form_install.get_component('repos').get_selected()
-        config['aur'] = form_install.get_component('aur').get_selected()
-        config['optimize'] = form_install.get_component('opts').get_selected()
-        config['sync_databases'] = form_install.get_component('sync_dbs').get_selected()
-        config['sync_databases_startup'] = form_install.get_component('sync_dbs_start').get_selected()
-        config['clean_cached'] = form_install.get_component('clean_cached').get_selected()
-        config['refresh_mirrors_startup'] = form_install.get_component('ref_mirs').get_selected()
-        config['mirrors_sort_limit'] = form_install.get_component('mirrors_sort_limit').get_int_value()
-        config['repositories_mthread_download'] = form_install.get_component('mthread_download').get_selected()
-        config['automatch_providers'] = form_install.get_component('autoprovs').get_selected()
-        config['edit_aur_pkgbuild'] = form_install.get_component('edit_aur_pkgbuild').get_selected()
-        config['aur_remove_build_dir'] = form_install.get_component('aur_remove_build_dir').get_selected()
-        config['aur_build_dir'] = form_install.get_component('aur_build_dir').file_path
-        config['aur_build_only_chosen'] = form_install.get_component('aur_build_only_chosen').get_selected()
-        config['aur_idx_exp'] = form_install.get_component('aur_idx_exp').get_int_value()
-        config['check_dependency_breakage'] = form_install.get_component('check_dependency_breakage').get_selected()
-        config['suggest_optdep_uninstall'] = form_install.get_component('suggest_optdep_uninstall').get_selected()
-        config['suggest_unneeded_uninstall'] = form_install.get_component('suggest_unneeded_uninstall').get_selected()
+        panel = component.components[0]
+        config['repositories'] = panel.get_component('repos').get_selected()
+        config['aur'] = panel.get_component('aur').get_selected()
+        config['optimize'] = panel.get_component('opts').get_selected()
+        config['sync_databases'] = panel.get_component('sync_dbs').get_selected()
+        config['sync_databases_startup'] = panel.get_component('sync_dbs_start').get_selected()
+        config['clean_cached'] = panel.get_component('clean_cached').get_selected()
+        config['refresh_mirrors_startup'] = panel.get_component('ref_mirs').get_selected()
+        config['mirrors_sort_limit'] = panel.get_component('mirrors_sort_limit').get_int_value()
+        config['repositories_mthread_download'] = panel.get_component('mthread_download').get_selected()
+        config['automatch_providers'] = panel.get_component('autoprovs').get_selected()
+        config['edit_aur_pkgbuild'] = panel.get_component('edit_aur_pkgbuild').get_selected()
+        config['aur_remove_build_dir'] = panel.get_component('aur_remove_build_dir').get_selected()
+        config['aur_build_dir'] = panel.get_component('aur_build_dir').file_path
+        config['aur_build_only_chosen'] = panel.get_component('aur_build_only_chosen').get_selected()
+        config['aur_idx_exp'] = panel.get_component('aur_idx_exp').get_int_value()
+        config['check_dependency_breakage'] = panel.get_component('check_dependency_breakage').get_selected()
+        config['suggest_optdep_uninstall'] = panel.get_component('suggest_optdep_uninstall').get_selected()
+        config['suggest_unneeded_uninstall'] = panel.get_component('suggest_unneeded_uninstall').get_selected()
+        config['categories_exp'] = panel.get_component('arch_cats_exp').get_int_value()
 
         if not config['aur_build_dir']:
             config['aur_build_dir'] = None

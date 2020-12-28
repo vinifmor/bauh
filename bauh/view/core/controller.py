@@ -400,6 +400,8 @@ class GenericSoftwareManager(SoftwareManager):
                 return man.requires_root(action, app)
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        ti = time.time()
+        self.logger.info("Initializing")
         if self.managers:
             internet_on = self.context.is_internet_available()
             taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
@@ -407,6 +409,9 @@ class GenericSoftwareManager(SoftwareManager):
                 if man not in self._already_prepared and self._can_work(man):
                     man.prepare(taskman, root_password, internet_on)
                     self._already_prepared.append(man)
+
+        tf = time.time()
+        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
 
     def cache_available_managers(self):
         if self.managers:

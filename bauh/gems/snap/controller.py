@@ -11,7 +11,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction, PackageStatus
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
-    FormComponent
+    FormComponent, TextInputComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons import resource
 from bauh.commons.category import CategoriesDownloader
@@ -19,7 +19,7 @@ from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
 from bauh.commons.view_utils import new_select
-from bauh.gems.snap import snap, URL_CATEGORIES_FILE, SNAP_CACHE_PATH, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
     get_icon_path, snapd, CONFIG_FILE, ROOT_DIR
 from bauh.gems.snap.config import read_config
 from bauh.gems.snap.model import SnapApplication
@@ -285,7 +285,7 @@ class SnapManager(SoftwareManager):
 
     def _start_category_task(self, task_man: TaskManager):
         if task_man:
-            task_man.register_task('snap_cats', self.i18n['task.download_categories'].format('Snap'), get_icon_path())
+            task_man.register_task('snap_cats', self.i18n['task.download_categories'], get_icon_path())
             task_man.update_progress('snap_cats', 50, None)
 
     def _finish_category_task(self, task_man: TaskManager):
@@ -294,11 +294,14 @@ class SnapManager(SoftwareManager):
             task_man.finish_task('snap_cats')
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
-        Thread(target=read_config, args=(True,), daemon=True).start()
+        snap_config = read_config()
 
         CategoriesDownloader(id_='snap', manager=self, http_client=self.http_client, logger=self.logger,
-                             url_categories_file=URL_CATEGORIES_FILE, disk_cache_dir=SNAP_CACHE_PATH,
+                             url_categories_file=URL_CATEGORIES_FILE,
                              categories_path=CATEGORIES_FILE_PATH,
+                             expiration=snap_config['categories_exp'] if isinstance(snap_config['categories_exp'], int) else 0,
+                             internet_connection=internet_available,
+                             internet_checker=self.context.internet_checker,
                              before=lambda: self._start_category_task(task_manager),
                              after=lambda: self._finish_category_task(task_manager)).start()
 
@@ -434,20 +437,31 @@ class SnapManager(SoftwareManager):
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         snap_config = read_config()
+        max_width = 200
 
         install_channel = new_select(label=self.i18n['snap.config.install_channel'],
                                      opts=[(self.i18n['yes'].capitalize(), True, None),
                                            (self.i18n['no'].capitalize(), False, None)],
                                      value=bool(snap_config['install_channel']),
-                                     id_='install_channel',
-                                     max_width=200,
+                                     id_='snap_install_channel',
+                                     max_width=max_width,
                                      tip=self.i18n['snap.config.install_channel.tip'])
 
-        return PanelComponent([FormComponent([install_channel], self.i18n['installation'].capitalize())])
+        categories_exp = TextInputComponent(id_='snap_cat_exp',
+                                            value=snap_config['categories_exp'] if isinstance(snap_config['categories_exp'], int) else '',
+                                            max_width=max_width,
+                                            only_int=True,
+                                            label=self.i18n['snap.config.categories_exp'],
+                                            tooltip=self.i18n['snap.config.categories_exp.tip'])
+
+        return PanelComponent([FormComponent([install_channel, categories_exp], self.i18n['installation'].capitalize())])
 
     def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
         config = read_config()
-        config['install_channel'] = component.components[0].components[0].get_selected()
+
+        panel = component.components[0]
+        config['install_channel'] = panel.get_component('snap_install_channel').get_selected()
+        config['categories_exp'] = panel.get_component('snap_cat_exp').get_int_value()
 
         try:
             save_config(config, CONFIG_FILE)

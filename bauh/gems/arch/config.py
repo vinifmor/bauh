@@ -22,7 +22,8 @@ def read_config(update_file: bool = False) -> dict:
                 'check_dependency_breakage': True,
                 'suggest_unneeded_uninstall': False,
                 'suggest_optdep_uninstall': False,
-                'aur_idx_exp': 720}
+                'aur_idx_exp': 720,
+                'categories_exp': 24}
     return read(CONFIG_FILE, template, update_file=update_file)
 
 
