@@ -303,7 +303,7 @@ class EnvironmentUpdater:
             self.logger.error("Could not parse environment settings file timestamp: {}".format(env_ts_str))
             return True
 
-        expired = env_timestamp + timedelta(minutes=settings_exp) <= datetime.utcnow()
+        expired = env_timestamp + timedelta(hours=settings_exp) <= datetime.utcnow()
 
         if expired:
             self.logger.info("Environment settings file has expired. It should be re-downloaded")

@@ -268,7 +268,7 @@ environment:
   electron:
     version: null  # set a custom Electron version here (e.g: '6.1.4')
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
-  cache_exp: 1440 # defines the period (in minutes) in which the stored environment settings are considered valid. Use 0 so that they are always updated. Default: 1440 (24 hours)
+  cache_exp: 24 # defines the period (in HOURS) in which the stored environment settings are considered valid. Use 0 so that they are always updated. Default: 24.
 
 suggestions:
     cache_exp: 24  # defines the period (in HOURS) in which suggestions stored on the disk are considered up to date during the initialization process. Use 0 so that they are always updated. Default: 24.
