@@ -3,9 +3,11 @@ from pathlib import Path
 
 from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
+from bauh.commons.util import map_timestamp_file
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
+WEB_CACHE_PATH = '{}/web'.format(CACHE_PATH)
 INSTALLED_PATH = '{}/installed'.format(WEB_PATH)
 ENV_PATH = '{}/env'.format(WEB_PATH)
 FIXES_PATH = '{}/fixes'.format(WEB_PATH)
@@ -26,12 +28,13 @@ URL_FIX_PATTERN = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/
 URL_SUGGESTIONS = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/suggestions.yml"
 UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'
 TEMP_PATH = '{}/web'.format(TEMP_DIR)
-SEARCH_INDEX_FILE = '{}/index.yml'.format(TEMP_PATH)
-SUGGESTIONS_CACHE_FILE = '{}/suggestions.txt'.format(TEMP_PATH)
+SEARCH_INDEX_FILE = '{}/index.yml'.format(WEB_CACHE_PATH)
+SUGGESTIONS_CACHE_FILE = '{}/suggestions.yml'.format(WEB_CACHE_PATH)
+SUGGESTIONS_CACHE_TS_FILE = map_timestamp_file(SUGGESTIONS_CACHE_FILE)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
 URL_NATIVEFIER = 'https://github.com/jiahaog/nativefier/archive/v{version}.tar.gz'
-ENVIRONMENT_SETTINGS_CACHED_FILE = '{}/web/environment.yml'.format(CACHE_PATH)
-ENVIRONMENT_SETTINGS_TS_FILE = '{}/web/environment.ts'.format(CACHE_PATH)
+ENVIRONMENT_SETTINGS_CACHED_FILE = '{}/environment.yml'.format(WEB_CACHE_PATH)
+ENVIRONMENT_SETTINGS_TS_FILE = '{}/environment.ts'.format(WEB_CACHE_PATH)
 
 
 def get_icon_path() -> str:

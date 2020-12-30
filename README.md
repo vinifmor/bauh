@@ -269,6 +269,9 @@ environment:
     version: null  # set a custom Electron version here (e.g: '6.1.4')
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
   cache_exp: 1440 # defines the period (in minutes) in which the stored environment settings are considered valid. Use 0 so that they are always updated. Default: 1440 (24 hours)
+
+suggestions:
+    cache_exp: 24  # defines the period (in HOURS) in which suggestions stored on the disk are considered up to date during the initialization process. Use 0 so that they are always updated. Default: 24.
 ```
 - Required dependencies: 
     - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
@@ -363,6 +366,7 @@ Priority:
 - Disable the application types you do not want to deal with
 - If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
 - If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
+- For a faster initialization process, consider raising the values of settings properties associated with disk caching.
 
 ### Files and Logs
 - Installation logs and temporary files are saved at **/tmp/bauh** (or **/tmp/bauh_root** if you launch it as root)

@@ -13,5 +13,8 @@ class WebConfigManager(YAMLConfigManager):
                 'system': False,
                 'electron': {'version': None},
                 'cache_exp': 1440
+            },
+            'suggestions': {
+                'cache_exp': 24
             }
         }

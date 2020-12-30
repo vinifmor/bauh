@@ -1,6 +1,7 @@
 import logging
 import time
 import traceback
+from datetime import datetime
 from threading import Thread
 from typing import Optional
 
@@ -18,7 +19,8 @@ from bauh.view.util.translation import I18n
 class SuggestionsLoader(Thread):
 
     def __init__(self, taskman: TaskManager, manager: SuggestionsManager,
-                 i18n: I18n, logger: logging.Logger, suggestions_callback, suggestions: Optional[dict] = None):
+                 i18n: I18n, logger: logging.Logger, suggestions_callback, create_config: CreateConfigFile,
+                 internet_connection: bool, suggestions: Optional[dict] = None):
         super(SuggestionsLoader, self).__init__(daemon=True)
         self.taskman = taskman
         self.task_id = 'web_sugs'
@@ -27,30 +29,47 @@ class SuggestionsLoader(Thread):
         self.i18n = i18n
         self.logger = logger
         self.suggestions = suggestions
+        self.create_config = create_config
+        self.internet_connection = internet_connection
         self.task_name = self.i18n['web.task.suggestions']
         self.taskman.register_task(self.task_id, self.task_name, get_icon_path())
 
     def run(self):
         ti = time.time()
+        self.taskman.update_progress(self.task_id, 0, self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
+        self.create_config.join()
+
         self.taskman.update_progress(self.task_id, 10, None)
-        try:
-            self.suggestions = self.manager.download()
 
-            if self.suggestions_callback:
+        if not self.internet_connection:
+            self.logger.warning("No internet connection. Only cached suggestions can be loaded")
+            self.suggestions = self.manager.read_cached(check_file=True)
+        elif not self.manager.should_download(self.create_config.config):
+            self.suggestions = self.manager.read_cached(check_file=False)
+        else:
+            try:
+                timestamp = datetime.utcnow().timestamp()
+                self.suggestions = self.manager.download()
+
+                if self.suggestions:
+                    self.taskman.update_progress(self.task_id, 50, self.i18n['web.task.suggestions.saving'])
+                    self.manager.save_to_disk(self.suggestions, timestamp)
+            except:
+                self.logger.error("Unexpected exception")
+                traceback.print_exc()
+
+        if self.suggestions_callback:
+            self.taskman.update_progress(self.task_id, 75, None)
+            try:
                 self.suggestions_callback(self.suggestions)
+            except:
+                self.logger.error("Unexpected exception")
+                traceback.print_exc()
 
-            if self.suggestions:
-                self.taskman.update_progress(self.task_id, 50, self.i18n['web.task.suggestions.saving'])
-                self.manager.save_to_disk(self.suggestions)
-
-        except:
-            self.logger.error("Unexpected exception")
-            traceback.print_exc()
-        finally:
-            self.taskman.update_progress(self.task_id, 100, None)
-            self.taskman.finish_task(self.task_id)
-            tf = time.time()
-            self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        tf = time.time()
+        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
 
 
 class SearchIndexGenerator(Thread):

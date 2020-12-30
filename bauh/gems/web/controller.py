@@ -830,19 +830,21 @@ class WebApplicationManager(SoftwareManager):
                                       create_config=create_config,
                                       i18n=self.i18n).start()
 
-            self.suggestions_loader = SuggestionsLoader(manager=SuggestionsManager(logger=self.logger,
-                                                                                   http_client=self.http_client,
-                                                                                   i18n=self.i18n),
-                                                        logger=self.logger,
-                                                        i18n=self.i18n,
-                                                        taskman=task_manager,
-                                                        suggestions_callback=self._assign_suggestions)
-            self.suggestions_loader.start()
+        self.suggestions_loader = SuggestionsLoader(manager=SuggestionsManager(logger=self.logger,
+                                                                               http_client=self.http_client,
+                                                                               i18n=self.i18n),
+                                                    logger=self.logger,
+                                                    i18n=self.i18n,
+                                                    taskman=task_manager,
+                                                    suggestions_callback=self._assign_suggestions,
+                                                    create_config=create_config,
+                                                    internet_connection=internet_available)
+        self.suggestions_loader.start()
 
-            SearchIndexGenerator(taskman=task_manager,
-                                 suggestions_loader=self.suggestions_loader,
-                                 i18n=self.i18n,
-                                 logger=self.logger).start()
+        SearchIndexGenerator(taskman=task_manager,
+                             suggestions_loader=self.suggestions_loader,
+                             i18n=self.i18n,
+                             logger=self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -1024,8 +1026,17 @@ class WebApplicationManager(SoftwareManager):
                                               max_width=max_width,
                                               id_='web_cache_exp')
 
+        sugs_exp = TextInputComponent(label=self.i18n['web.settings.suggestions.cache_exp'],
+                                      tooltip=self.i18n['web.settings.suggestions.cache_exp.tip'],
+                                      capitalize_label=False,
+                                      value=int(web_config['suggestions']['cache_exp']) if isinstance(
+                                          web_config['suggestions']['cache_exp'], int) else '',
+                                      only_int=True,
+                                      max_width=max_width,
+                                      id_='web_sugs_exp')
+
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
-                                 components=[input_electron, select_nativefier, env_settings_exp])
+                                 components=[input_electron, select_nativefier, env_settings_exp, sugs_exp])
 
         return PanelComponent([form_env])
 
@@ -1046,6 +1057,7 @@ class WebApplicationManager(SoftwareManager):
 
         web_config['environment']['system'] = system_nativefier
         web_config['environment']['cache_exp'] = form_env.get_component('web_cache_exp').get_int_value()
+        web_config['suggestions']['cache_exp'] = form_env.get_component('web_sugs_exp').get_int_value()
 
         try:
             self.configman.save_config(web_config)

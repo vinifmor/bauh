@@ -55,10 +55,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     </p>
 
 - Web
-    - now the environment settings are cached for 24 hours. This period can be controlled through the new settings property **environment.update_interval** (in minutes -> default: 1440 = 24 hours. Use **0** so that they are always updated).
+    - now the environment settings are cached in disk for 24 hours. This period can be controlled through the new settings property **environment.cache_exp** (in minutes -> default: 1440 = 24 hours. Use **0** so that they are always updated).
     <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/web_env_exp.png">
     </p>
+    
+    - now the suggestions are cached in disk for 24 hours. This period can be controlled through the new settings property **suggestions.cache_exp** (in hours -> default: 24 hours. Use **0** so that they are always updated).
     - displaying the "Indexing suggestions" task during the initialization process
 
 - all types now display an initialization task "Checking configuration file" responsible to create/update the respective configuration file
