@@ -7,7 +7,7 @@ import urllib3
 from PyQt5.QtCore import QCoreApplication, Qt
 
 from bauh import __app_name__, app_args
-from bauh.view.core import config
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.util import logs
 
 
@@ -25,7 +25,7 @@ def main(tray: bool = False):
     if args.offline:
         logger.warning("offline mode activated")
 
-    app_config = config.read_config(update_file=True)
+    app_config = CoreConfigManager().get_config()
 
     if bool(app_config['ui']['auto_scale']):
         os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'

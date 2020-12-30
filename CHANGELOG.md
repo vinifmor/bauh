@@ -4,6 +4,84 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.11] 2020-12-30
+### New system requirements
+- **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)
+- **git**: for AUR support.
+
+### Improvements
+- AppImage
+    - database updater daemon dropped. Now the database is only downloaded/updated during the initialization process (if it is considered expired). Its expiration are controlled through the new settings property **database.expiration** (in minutes. default: 60 minutes. Use 0 so it is always updated).
+    <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/appim_db_exp.png">
+    </p>
+    
+    - old settings properties were dropped (**db_updater.interval**, **db_updated.enabled**)
+    - database files (**apps.db** and **releases.db**) are now stored at **~/.cache/bauh/appimage**
+    - displaying a warning when the cached database files could not be found
+    - new custom action **Update database** to perform a database update anytime:
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/appim_up_db.png">
+    </p>
+
+- Arch
+    - AUR
+        - upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
+        - downgrade: using the cached package commit (if available) to determine the correct version to downgrade (otherwise only the version will be used -> old behavior)
+        - history: using the cached package commit (if available) to properly determine the current version (otherwise only the version will be used -> old behavior)
+        - the task responsible for generating the local index is displayed on the initialization dialog
+        - the index is not always being updated during the initialization process. It its kept for a period of time controlled by the settings property **aur_idx_exp** (in HOURS -> default: 1). (P.S: this index is always updated when a package is installed/upgraded)
+        <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/aur_idx_exp.png">
+        </p>
+    
+        - the index is now stored at **~/.cache/bauh/arch/aur/index.txt**.
+    - info window
+        - date fields format changed to numbers (e.g: Thu Dec 17 17:19:55 2020 -> 2020-12-17 17:19:55)
+    - new settings property "categories_exp": it defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Default: 24 hours.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/cats_exp.png">
+    </p>
+- Core
+    - new settings property **boot.load_apps** (General -> Load apps after startup) that allows the user to choose if the installed packages/suggestions should be loaded on the management panel after the initialization process. Default: true.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/load_apps.png">
+    </p>
+
+- Snap
+    - new settings property "categories_exp": it defines the expiration time (in HOURS) of the Snaps categories mapping file stored in disc. Default: 24 hours.
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/cats_exp.png">
+    </p>
+
+- Web
+    - now the environment settings are cached in disk for 24 hours. This period can be controlled through the new settings property **environment.cache_exp** (in HOURS -> default: 24). Use **0** so that they are always updated).
+    - now the suggestions are cached in disk for 24 hours. This period can be controlled through the new settings property **suggestions.cache_exp** (in hours -> default: 24 hours. Use **0** so that they are always updated).
+    <p align="center">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/web_exp.png">
+    </p>
+    
+    - displaying the "Indexing suggestions" task during the initialization process
+    - code refactoring
+
+- all types now display an initialization task **Checking configuration file** responsible to create/update the respective configuration file
+- minor translation improvements
+        
+
+### Fixes
+- AppImage
+    - some installed applications cannot be launched by their desktop entries (regression from **0.9.10**) [#155](https://github.com/vinifmor/bauh/issues/155). If any of your installed AppImages are affected by this issue, just reinstall them.
+- Arch
+    - some operations are keeping the wrong substatus during specific scenarios
+    - not able to install a package that replaces another (regression introduced in **0.9.9**)
+    - displaying installed packages that have been removed from AUR when AUR supported is disabled
+- Flatpak
+    - crashing for Flatpak 1.6.5 when there are updates [#145](https://github.com/vinifmor/bauh/issues/145)
+    - history: not highlighting the correct version (regression introduced **0.9.9**)
+- UI
+    - number input fields are not displaying **0**
+
+
 ## [0.9.10] 2020-12-11
 ### Features
 - Web
@@ -170,7 +248,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - new settings property **suggest_unneeded_uninstall**: defines if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property **suggest_optdep_uninstall**. Default: false (to prevent new users from making mistakes)
         - new settings property **suggest_optdep_uninstall**: defines if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
         <p align="center">
-            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_opt_uni.png"">
+            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.7/arch_opt_uni.png">
         </p>
         
     - AUR

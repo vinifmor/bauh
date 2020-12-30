@@ -1,12 +1,15 @@
-from bauh.commons.config import read_config as read
+from bauh.commons.config import YAMLConfigManager
 from bauh.gems.appimage import CONFIG_FILE
 
 
-def read_config(update_file: bool = False) -> dict:
-    default = {
-        'db_updater': {
-            'interval': 60 * 20,
-            'enabled': True
+class AppImageConfigManager(YAMLConfigManager):
+
+    def __init__(self):
+        super(AppImageConfigManager, self).__init__(config_file_path=CONFIG_FILE)
+
+    def get_default_config(self) -> dict:
+        return {
+            'database': {
+                'expiration': 60
+            }
         }
-    }
-    return read(CONFIG_FILE, default, update_file=update_file)

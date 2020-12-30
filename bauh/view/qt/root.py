@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QLineEdit, QApplication, QDialog, QPushButton, QVBox
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.commons.system import new_subprocess
-from bauh.view.core.config import read_config
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.qt.components import QtComponentsManager, new_spacer
 from bauh.view.util import util
 from bauh.view.util.translation import I18n
@@ -131,7 +131,7 @@ class RootDialog(QDialog):
     def ask_password(context: ApplicationContext, i18n: I18n, app_config: Optional[dict] = None,
                      comp_manager: Optional[QtComponentsManager] = None, tries: int = 3) -> Tuple[bool, Optional[str]]:
 
-        current_config = read_config() if not app_config else app_config
+        current_config = CoreConfigManager().get_config() if not app_config else app_config
 
         store_password = bool(current_config['store_root_password'])
 

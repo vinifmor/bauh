@@ -2,3 +2,4 @@ pyqt5>=5.12
 requests>=2.18
 colorama>=0.3.8
 pyyaml>=3.13
+python-dateutil>=2.7

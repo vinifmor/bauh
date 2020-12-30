@@ -1,7 +1,11 @@
-from bauh.commons.config import read_config as read
+from bauh.commons.config import YAMLConfigManager
 from bauh.gems.flatpak import CONFIG_FILE
 
 
-def read_config(update_file: bool = False) -> dict:
-    template = {'installation_level': None}
-    return read(CONFIG_FILE, template, update_file=update_file)
+class FlatpakConfigManager(YAMLConfigManager):
+
+    def __init__(self):
+        super(FlatpakConfigManager, self).__init__(config_file_path=CONFIG_FILE)
+
+    def get_default_config(self) -> dict:
+        return {'installation_level': None}

@@ -219,7 +219,7 @@ PreparePanel QPushButton#bt_hide_details {
     background: none;
 }
 
-PreparePanel QLabel#task_status[status = "done"], QLabel#task_progress[status = "done"] {
+PreparePanel QLabel#task_status[status = "done"], PreparePanel QLabel#task_progress[status = "done"], PreparePanel QLabel#task_substatus[status = "done"] {
     text-decoration: line-through;
 }
 

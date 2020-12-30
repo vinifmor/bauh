@@ -13,8 +13,8 @@ from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, Tex
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
     FileChooserComponent, RangeInputComponent
 from bauh.commons.view_utils import new_select
-from bauh.view.core import config, timeshift
-from bauh.view.core.config import read_config
+from bauh.view.core import timeshift
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import translation
 from bauh.view.util.translation import I18n
@@ -23,12 +23,13 @@ from bauh.view.util.translation import I18n
 class GenericSettingsManager:
 
     def __init__(self, managers: List[SoftwareManager], working_managers: List[SoftwareManager],
-                 logger: logging.Logger, i18n: I18n, file_downloader: FileDownloader):
+                 logger: logging.Logger, i18n: I18n, file_downloader: FileDownloader, configman: CoreConfigManager):
         self.i18n = i18n
         self.managers = managers
         self.working_managers = working_managers
         self.logger = logger
         self.file_downloader = file_downloader
+        self.configman = configman
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         tabs = list()
@@ -54,7 +55,7 @@ class GenericSettingsManager:
                 if man.is_enabled() and man in self.working_managers:
                     def_gem_opts.add(opt)
 
-        core_config = read_config()
+        core_config = self.configman.get_config()
 
         if gem_opts:
             type_help = TextComponent(html=self.i18n['core.config.types.tip'])
@@ -291,6 +292,12 @@ class GenericSettingsManager:
                                                     max_width=default_width,
                                                     id_="sys_notify")
 
+        select_load_apps = self._gen_bool_component(label=self.i18n['core.config.boot.load_apps'],
+                                                    tooltip=self.i18n['core.config.boot.load_apps.tip'],
+                                                    value=bool(core_config['boot']['load_apps']),
+                                                    id_='boot.load_apps',
+                                                    max_width=default_width)
+
         select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
                                                tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
                                                id_="sugs_enabled",
@@ -312,7 +319,7 @@ class GenericSettingsManager:
                                 opts=[(self.i18n['ask'].capitalize(), True, None),
                                       (self.i18n['no'].capitalize(), False, None)])
 
-        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_sugs, inp_sugs, inp_reboot], spaces=False)]
+        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_load_apps, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
     def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
@@ -334,7 +341,7 @@ class GenericSettingsManager:
                        ui: PanelComponent,
                        tray: PanelComponent,
                        gems_panel: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        core_config = config.read_config()
+        core_config = self.configman.get_config()
 
         # general
         general_form = general.components[0]
@@ -352,6 +359,7 @@ class GenericSettingsManager:
         core_config['suggestions']['by_type'] = sugs_by_type
 
         core_config['updates']['ask_for_reboot'] = general_form.get_component('ask_for_reboot').get_selected()
+        core_config['boot']['load_apps'] = general_form.get_component('boot.load_apps').get_selected()
 
         # advanced
         adv_form = advanced.components[0]
@@ -436,7 +444,7 @@ class GenericSettingsManager:
         core_config['gems'] = None if core_config['gems'] is None and len(checked_gems) == len(self.managers) else checked_gems
 
         try:
-            config.save(core_config)
+            self.configman.save_config(core_config)
             return True, None
         except:
             return False, [traceback.format_exc()]

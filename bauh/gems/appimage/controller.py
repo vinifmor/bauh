@@ -9,7 +9,6 @@ import traceback
 from datetime import datetime
 from math import floor
 from pathlib import Path
-from threading import Lock
 from typing import Set, Type, List, Tuple, Optional
 
 from colorama import Fore
@@ -25,20 +24,16 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.commons import resource
-from bauh.commons.config import save_config
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir
-from bauh.gems.appimage.config import read_config
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, ROOT_DIR, \
+    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
+    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, DATABASES_DIR, get_icon_path
+from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.util import replace_desktop_entry_exec_command
 from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
-
-DB_APPS_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/apps.db')
-DB_RELEASES_PATH = '{}/{}'.format(str(Path.home()), '.local/share/bauh/appimage/releases.db')
-
-DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
@@ -81,13 +76,20 @@ class AppImageManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
         self.file_downloader = context.file_downloader
-        self.db_locks = {DB_APPS_PATH: Lock(), DB_RELEASES_PATH: Lock()}
+        self.configman = AppImageConfigManager()
         self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                     i18n_status_key='appimage.custom_action.install_file.status',
                                                     manager=self,
                                                     manager_method='install_file',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False)]
+                                                    requires_root=False),
+                               CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
+                                                    i18n_status_key='appimage.custom_action.update_db.status',
+                                                    manager=self,
+                                                    manager_method='update_database',
+                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                    requires_root=False,
+                                                    requires_internet=True)]
         self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
@@ -177,60 +179,74 @@ class AppImageManager(SoftwareManager):
 
     def _get_db_connection(self, db_path: str) -> sqlite3.Connection:
         if os.path.exists(db_path):
-            self.db_locks[db_path].acquire()
-            return sqlite3.connect(db_path)
+            try:
+                return sqlite3.connect(db_path)
+            except:
+                self.logger.error("Could not connect to database file '{}'".format(db_path))
+                traceback.print_exc()
         else:
-            self.logger.warning("Could not get a database connection. File '{}' not found".format(db_path))
-
-    def _close_connection(self, db_path: str, con: sqlite3.Connection):
-        con.close()
-        self.db_locks[db_path].release()
+            self.logger.warning("Could not get a connection for database '{}'".format(db_path))
 
     def _gen_app_key(self, app: AppImage):
         return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
-            return SearchResult([], [], 0)
+            return SearchResult.empty()
 
-        res = SearchResult([], [], 0)
-        connection = self._get_db_connection(DB_APPS_PATH)
+        apps_conn = self._get_db_connection(DATABASE_APPS_FILE)
 
-        if connection:
-            try:
-                cursor = connection.cursor()
-                cursor.execute(query.SEARCH_APPS_BY_NAME_OR_DESCRIPTION.format(words, words))
+        if not apps_conn:
+            return SearchResult.empty()
 
-                found_map = {}
-                idx = 0
-                for r in cursor.fetchall():
-                    app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
-                    res.new.append(app)
-                    found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
-                    idx += 1
+        not_installed, found_map = [], {}
 
-            finally:
-                self._close_connection(DB_APPS_PATH, connection)
+        try:
+            cursor = apps_conn.cursor()
+            cursor.execute(query.SEARCH_APPS_BY_NAME_OR_DESCRIPTION.format(words, words))
 
-            if res.new:
-                installed = self.read_installed(disk_loader, limit, only_apps=False, pkg_types=None, internet_available=True).installed
+            idx = 0
+            for r in cursor.fetchall():
+                app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                not_installed.append(app)
+                found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
+                idx += 1
+        except:
+            self.logger.error("An exception happened while querying the 'apps' database")
+            traceback.print_exc()
+            apps_conn.close()
+            return SearchResult.empty()
 
-                if installed:
-                    for iapp in installed:
-                        key = self._gen_app_key(iapp)
+        installed_found = []
 
-                        new_found = found_map.get(key)
+        if not_installed:
+            installed = self.read_installed(disk_loader=disk_loader, limit=limit,
+                                            only_apps=False,
+                                            pkg_types=None,
+                                            connection=apps_conn,
+                                            internet_available=True).installed
+            if installed:
+                for appim in installed:
+                    key = self._gen_app_key(appim)
 
-                        if new_found:
-                            del res.new[new_found['idx']]
-                            res.installed.append(iapp)
+                    new_found = found_map.get(key)
 
-        res.total = len(res.installed) + len(res.new)
-        return res
+                    if new_found:
+                        del not_installed[new_found['idx']]
+                        installed_found.append(appim)
 
-    def read_installed(self, disk_loader: DiskCacheLoader, limit: int = -1, only_apps: bool = False,
-                       pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, connection: sqlite3.Connection = None) -> SearchResult:
-        res = SearchResult([], [], 0)
+        try:
+            apps_conn.close()
+        except:
+            self.logger.error("An exception happened when trying to close the connection to database file '{}'".format(DATABASE_APPS_FILE))
+            traceback.print_exc()
+
+        return SearchResult(new=not_installed, installed=installed_found, total=len(not_installed) + len(installed_found))
+
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False,
+                       pkg_types: Optional[Set[Type[SoftwarePackage]]] = None, internet_available: bool = None, connection: sqlite3.Connection = None) -> SearchResult:
+        installed_apps = []
+        res = SearchResult(installed_apps, [], 0)
 
         if os.path.exists(INSTALLATION_PATH):
             installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
@@ -243,19 +259,19 @@ class AppImageManager(SoftwareManager):
                             app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
-                        res.installed.append(app)
+                        installed_apps.append(app)
                         names.add("'{}'".format(app.name.lower()))
 
-                if res.installed:
-                    con = self._get_db_connection(DB_APPS_PATH) if not connection else connection
+                if installed_apps:
+                    apps_con = self._get_db_connection(DATABASE_APPS_FILE) if not connection else connection
 
-                    if con:
+                    if apps_con:
                         try:
-                            cursor = con.cursor()
+                            cursor = apps_con.cursor()
                             cursor.execute(query.FIND_APPS_BY_NAME.format(','.join(names)))
 
                             for tup in cursor.fetchall():
-                                for app in res.installed:
+                                for app in installed_apps:
                                     if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
                                         continuous_version = app.version == 'continuous'
                                         continuous_update = tup[2] == 'continuous'
@@ -276,15 +292,16 @@ class AppImageManager(SoftwareManager):
 
                                         break
                         except:
+                            self.logger.error("An exception happened while querying the database file {}".format(apps_con))
                             traceback.print_exc()
                         finally:
-                            if not connection:
-                                self._close_connection(DB_APPS_PATH, con)
+                            if not connection:  # the connection can only be closed if it was opened within this method
+                                apps_con.close()
 
                     ignored_updates = self._read_ignored_updates()
 
                     if ignored_updates:
-                        for app in res.installed:
+                        for app in installed_apps:
                             if app.supports_ignored_updates() and app.name in ignored_updates:
                                 app.updates_ignored = True
 
@@ -406,40 +423,53 @@ class AppImageManager(SoftwareManager):
         history = []
         res = PackageHistory(pkg, history, -1)
 
-        connection = self._get_db_connection(DB_APPS_PATH)
+        app_con = self._get_db_connection(DATABASE_APPS_FILE)
 
-        if connection:
-            try:
-                cursor = connection.cursor()
+        if not app_con:
+            return res
 
-                cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
-                app_tuple = cursor.fetchone()
+        try:
+            cursor = app_con.cursor()
 
-                if not app_tuple:
-                    self.logger.warning("Could not retrieve {} from the database {}".format(pkg, DB_APPS_PATH))
-                    return res
-            finally:
-                self._close_connection(DB_APPS_PATH, connection)
+            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
+            app_tuple = cursor.fetchone()
 
-            connection = self._get_db_connection(DB_RELEASES_PATH)
+            if not app_tuple:
+                self.logger.warning("Could not retrieve {} from the database {}".format(pkg, DATABASE_APPS_FILE))
+                return res
+        except:
+            self.logger.error("An exception happened while querying the database file '{}'".format(DATABASE_APPS_FILE))
+            traceback.print_exc()
+            app_con.close()
+            return res
 
-            if connection:
-                try:
-                    cursor = connection.cursor()
+        app_con.close()
 
-                    releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
+        releases_con = self._get_db_connection(DATABASE_RELEASES_FILE)
 
-                    if releases:
-                        for idx, tup in enumerate(releases):
-                            history.append({'0_version': tup[0], '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[2] else '', '2_url_download': tup[1]})
+        if not releases_con:
+            return res
 
-                            if res.pkg_status_idx == -1 and pkg.version == tup[0]:
-                                res.pkg_status_idx = idx
+        try:
+            cursor = releases_con.cursor()
 
-                finally:
-                    self._close_connection(DB_RELEASES_PATH, connection)
+            releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
 
-        return res
+            if releases:
+                for idx, tup in enumerate(releases):
+                    history.append({'0_version': tup[0],
+                                    '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[
+                                        2] else '', '2_url_download': tup[1]})
+
+                    if res.pkg_status_idx == -1 and pkg.version == tup[0]:
+                        res.pkg_status_idx = idx
+
+                return res
+        except:
+            self.logger.error("An exception happened while querying the database file '{}'".format(DATABASE_RELEASES_FILE))
+            traceback.print_exc()
+        finally:
+            releases_con.close()
 
     def _find_desktop_file(self, folder: str) -> str:
         for r, d, files in os.walk(folder):
@@ -452,7 +482,7 @@ class AppImageManager(SoftwareManager):
             if RE_ICON_ENDS_WITH.match(f):
                 return f
 
-    def install(self, pkg: AppImage, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: AppImage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         handler = ProcessHandler(watcher)
 
         out_dir = INSTALLATION_PATH + pkg.get_clean_name()
@@ -587,21 +617,17 @@ class AppImageManager(SoftwareManager):
         return False
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
-        local_config = read_config(update_file=True)
-        interval = local_config['db_updater']['interval'] or 20 * 60
-
-        updater = DatabaseUpdater(task_man=task_manager,
-                                  i18n=self.context.i18n,
-                                  http_client=self.context.http_client, logger=self.context.logger,
-                                  db_locks=self.db_locks, interval=interval,
-                                  internet_checker=self.context.internet_checker)
-        if local_config['db_updater']['enabled']:
-            updater.start()
-        elif internet_available:
-            updater.download_databases()  # only once
+        create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
+                                         task_icon_path=get_icon_path(), logger=self.logger)
+        create_config.start()
 
         symlink_check = SymlinksVerifier(taskman=task_manager, i18n=self.i18n, logger=self.logger)
         symlink_check.start()
+
+        if internet_available:
+            DatabaseUpdater(taskman=task_manager, i18n=self.context.i18n,
+                            create_config=create_config, http_client=self.context.http_client,
+                            logger=self.context.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
@@ -615,12 +641,15 @@ class AppImageManager(SoftwareManager):
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        pass
+        dbfiles = glob.glob('{}/*.db'.format(DATABASES_DIR))
+
+        if not dbfiles or len({f for f in (DATABASE_APPS_FILE, DATABASE_RELEASES_FILE) if f in dbfiles}) != 2:
+            return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         res = []
 
-        connection = self._get_db_connection(DB_APPS_PATH)
+        connection = self._get_db_connection(DATABASE_APPS_FILE)
 
         if connection:
             file = self.http_client.get(SUGGESTIONS_FILE)
@@ -661,7 +690,7 @@ class AppImageManager(SoftwareManager):
                 except:
                     traceback.print_exc()
                 finally:
-                    self._close_connection(DB_APPS_PATH, connection)
+                    connection.close()
 
         return res
 
@@ -702,40 +731,28 @@ class AppImageManager(SoftwareManager):
                     traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        config = read_config()
+        appimage_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 
-        enabled_opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
-                        InputOption(label=self.i18n['no'].capitalize(), value=False)]
-
-        updater_opts = [
-            SingleSelectComponent(label=self.i18n['appimage.config.db_updates.activated'],
-                                  options=enabled_opts,
-                                  default_option=[o for o in enabled_opts if o.value == config['db_updater']['enabled']][0],
-                                  max_per_line=len(enabled_opts),
-                                  type_=SelectViewType.RADIO,
-                                  tooltip=self.i18n['appimage.config.db_updates.activated.tip'],
-                                  max_width=max_width,
-                                  id_='up_enabled'),
-            TextInputComponent(label=self.i18n['interval'],
-                               value=str(config['db_updater']['interval']),
-                               tooltip=self.i18n['appimage.config.db_updates.interval.tip'],
+        opts = [
+            TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
+                               value=int(appimage_config['database']['expiration']) if isinstance(appimage_config['database']['expiration'], int) else '',
+                               tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
-                               id_='up_int')
+                               id_='appim_db_exp')
         ]
 
-        return PanelComponent([FormComponent(updater_opts, self.i18n['appimage.config.db_updates'])])
+        return PanelComponent([FormComponent(opts, self.i18n['appimage.config.database'])])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        config = read_config()
+        appimage_config = self.configman.get_config()
 
         panel = component.components[0]
-        config['db_updater']['enabled'] = panel.get_component('up_enabled').get_selected()
-        config['db_updater']['interval'] = panel.get_component('up_int').get_int_value()
+        appimage_config['database']['expiration'] = panel.get_component('appim_db_exp').get_int_value()
 
         try:
-            save_config(config, CONFIG_FILE)
+            self.configman.save_config(appimage_config)
             return True, None
         except:
             return False, [traceback.format_exc()]
@@ -804,3 +821,10 @@ class AppImageManager(SoftwareManager):
             self._write_ignored_updates(current_ignored)
 
         pkg.updates_ignored = False
+
+    def update_database(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        db_updater = DatabaseUpdater(i18n=self.i18n, http_client=self.context.http_client,
+                                     logger=self.context.logger, watcher=watcher, taskman=TaskManager())
+
+        res = db_updater.download_databases()
+        return res

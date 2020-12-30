@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set, Dict
+from typing import List, Tuple, Set, Dict, Optional
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -322,6 +322,11 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
 
 
-def execute(cmd: str, shell: bool = False) -> Tuple[int, str]:
-    p = subprocess.run(args=cmd.split(' ') if not shell else [cmd], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=shell)
-    return p.returncode, p.stdout.decode()
+def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True) -> Tuple[int, Optional[str]]:
+    p = subprocess.run(args=cmd.split(' ') if not shell else [cmd],
+                       stdout=subprocess.PIPE if output else subprocess.DEVNULL,
+                       stderr=subprocess.STDOUT if output else subprocess.DEVNULL,
+                       shell=shell,
+                       cwd=cwd)
+
+    return p.returncode, p.stdout.decode() if p.stdout else None

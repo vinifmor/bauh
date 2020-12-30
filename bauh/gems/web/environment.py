@@ -4,6 +4,7 @@ import os
 import shutil
 import tarfile
 import traceback
+from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
 from typing import Dict, List, Optional
@@ -20,7 +21,8 @@ from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, URL_NATIVEFIER, get_icon_path, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL
+    nativefier, URL_NATIVEFIER, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
+    ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
@@ -39,11 +41,13 @@ class EnvironmentComponent:
 
 class EnvironmentUpdater:
 
-    def __init__(self, logger: logging.Logger, http_client: HttpClient, file_downloader: FileDownloader, i18n: I18n):
+    def __init__(self, logger: logging.Logger, http_client: HttpClient, file_downloader: FileDownloader, i18n: I18n, taskman: Optional[TaskManager] = None):
         self.logger = logger
         self.file_downloader = file_downloader
         self.i18n = i18n
         self.http_client = http_client
+        self.task_read_settings_id = 'web_read_settings'
+        self.taskman = taskman
 
     def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading NodeJS {}: {}".format(version, version_url))
@@ -264,33 +268,113 @@ class EnvironmentUpdater:
 
         return res
 
-    def _finish_task_download_settings(self, task_man: TaskManager):
-        if task_man:
-            task_man.update_progress('web_down_sets', 100, None)
-            task_man.finish_task('web_down_sets')
+    def _finish_task_download_settings(self):
+        if self.taskman:
+            self.taskman.update_progress(self.task_read_settings_id, 100, None)
+            self.taskman.finish_task(self.task_read_settings_id)
 
-    def read_settings(self, task_man: TaskManager = None) -> Optional[dict]:
+    def should_download_settings(self, web_config: dict) -> bool:
         try:
-            if task_man:
-                task_man.register_task('web_down_sets', self.i18n['web.task.download_settings'], get_icon_path())
-                task_man.update_progress('web_down_sets', 10, None)
+            settings_exp = int(web_config['environment']['cache_exp'])
+        except ValueError:
+            self.logger.error("Could not parse settings property 'environment.cache_exp': {}".format(web_config['environment']['cache_exp']))
+            return True
 
+        if settings_exp <= 0:
+            self.logger.info("No expiration time configured for the environment settings cache file.")
+            return True
+
+        self.logger.info("Checking cached environment settings file")
+
+        if not os.path.exists(ENVIRONMENT_SETTINGS_CACHED_FILE):
+            self.logger.warning("Environment settings file not cached.")
+            return True
+
+        if not os.path.exists(ENVIRONMENT_SETTINGS_TS_FILE):
+            self.logger.warning("Environment settings file has no timestamp associated with it.")
+            return True
+
+        with open(ENVIRONMENT_SETTINGS_TS_FILE) as f:
+            env_ts_str = f.read()
+
+        try:
+            env_timestamp = datetime.fromtimestamp(float(env_ts_str))
+        except:
+            self.logger.error("Could not parse environment settings file timestamp: {}".format(env_ts_str))
+            return True
+
+        expired = env_timestamp + timedelta(hours=settings_exp) <= datetime.utcnow()
+
+        if expired:
+            self.logger.info("Environment settings file has expired. It should be re-downloaded")
+            return True
+        else:
+            self.logger.info("Cached environment settings file is up to date")
+            return False
+
+    def read_cached_settings(self, web_config: dict) -> Optional[dict]:
+        if not self.should_download_settings(web_config):
+            with open(ENVIRONMENT_SETTINGS_CACHED_FILE) as f:
+                cached_settings_str = f.read()
+
+            try:
+                return yaml.safe_load(cached_settings_str)
+            except yaml.YAMLError:
+                self.logger.error('Could not parse the cache environment settings file: {}'.format(cached_settings_str))
+
+    def read_settings(self, web_config: dict, cache: bool = True) -> Optional[dict]:
+        if self.taskman:
+            self.taskman.register_task(self.task_read_settings_id, self.i18n['web.task.download_settings'], get_icon_path())
+            self.taskman.update_progress(self.task_read_settings_id, 1, None)
+
+        cached_settings = self.read_cached_settings(web_config) if cache else None
+
+        if cached_settings:
+            return cached_settings
+
+        try:
+            if self.taskman:
+                self.taskman.update_progress(self.task_read_settings_id, 10, None)
+
+            self.logger.info("Downloading environment settings")
             res = self.http_client.get(URL_ENVIRONMENT_SETTINGS)
 
             if not res:
                 self.logger.warning('Could not retrieve the environments settings from the cloud')
-                self._finish_task_download_settings(task_man)
+                self._finish_task_download_settings()
                 return
 
             try:
-                self._finish_task_download_settings(task_man)
-                return yaml.safe_load(res.content)
+                settings = yaml.safe_load(res.content)
             except yaml.YAMLError:
                 self.logger.error('Could not parse environment settings: {}'.format(res.text))
-                self._finish_task_download_settings(task_man)
+                self._finish_task_download_settings()
                 return
+
+            self.logger.info("Caching environment settings to disk")
+            cache_dir = os.path.dirname(ENVIRONMENT_SETTINGS_CACHED_FILE)
+
+            try:
+                Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.logger.error("Could not create Web cache directory: {}".format(cache_dir))
+                self.logger.info('Finished')
+                self._finish_task_download_settings()
+                return
+
+            cache_timestamp = datetime.utcnow().timestamp()
+            with open(ENVIRONMENT_SETTINGS_CACHED_FILE, 'w+') as f:
+                f.write(yaml.safe_dump(settings))
+
+            with open(ENVIRONMENT_SETTINGS_TS_FILE, 'w+') as f:
+                f.write(str(cache_timestamp))
+
+            self._finish_task_download_settings()
+            self.logger.info("Finished")
+            return settings
+
         except requests.exceptions.ConnectionError:
-            self._finish_task_download_settings(task_man)
+            self._finish_task_download_settings()
             return
 
     def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, widevine: bool, output: List[EnvironmentComponent]):

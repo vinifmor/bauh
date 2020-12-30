@@ -31,9 +31,10 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 #### Debian-based distros
 - **python3.5** or above
 - **pip3**
-- **python3-requests**
 - **python-yaml**
+- **python3-dateutil**
 - **python3-pyqt5.qtsvg**
+- **python3-requests**
 - **libqt5svg5**
 - **qt5dxcb-plugin**
 - **libappindicator3** (for the **tray mode** in GTK3 desktop environments)
@@ -42,6 +43,7 @@ To contribute have a look at [CONTRIBUTING.md](https://github.com/vinifmor/bauh/
 
 #### Arch-based distros
 - **python**
+- **python-dateutil**
 - **python-requests**
 - **python-pip**
 - **python-pyqt5**
@@ -126,6 +128,7 @@ installation_level: null # defines a default installation level: user or system.
 - The configuration file is located at **~/.config/bauh/snap.yml** and it allows the following customizations:
 ```
 install_channel: false  # it allows to select an available channel during the application installation. Default: false
+categories_exp: 24  # It defines the expiration time (in HOURS) of the Snaps categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 ```
 - Required dependencies:
     - Any distro: **snapd** ( it must be enabled after its installation. Details at https://snapcraft.io/docs/installing-snapd )
@@ -140,18 +143,16 @@ install_channel: false  # it allows to select an available channel during the ap
     - **Upgrade file**: allows to upgrade a manually installed AppImage file
 - Supported sources: [AppImageHub](https://appimage.github.io) (**applications with no releases published to GitHub are currently not available**)
 - Installed applications are store at **~/.local/share/bauh/appimage/installed**
-- Desktop entries ( menu shortcuts ) of the installed applications are stored at **~/.local/share/applications**
+- Desktop entries (menu shortcuts) of the installed applications are stored at **~/.local/share/applications**
 - Symlinks are created at **~/.local/bin**. They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: 'rpcs3-appimage')
-- Downloaded database files are stored at **~/.local/share/bauh/appimage** as **apps.db** and **releases.db**
-- Databases are always updated when bauh starts
-- Databases updater daemon running every 20 minutes (it can be customized via the configuration file described below)
+- Downloaded database files are stored at **~/.cache/bauh/appimage** as **apps.db** and **releases.db**
+- Databases are updated during the initialization process if they are considered outdated (after 60 minutes by default, but this behavior can be changed via the AppImage settings)
 - All supported application names can be found at [apps.txt](https://github.com/vinifmor/bauh-files/blob/master/appimage/apps.txt)
 - Applications with ignored updates are defined at **~/.config/bauh/appimage/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
-db_updater:
-  enabled: true  # if 'false': disables the daemon database updater (bauh will not be able to see if there are updates for your already installed AppImages)
-  interval: 1200  # the databases update interval in SECONDS (1200 == 20 minutes)
+database:
+  expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
 ```
 - Required dependencies
     - Arch-based systems: **sqlite**, **wget** (or **aria2**/**axel** for faster multi-threaded downloads)
@@ -186,6 +187,7 @@ db_updater:
     - **clean cache**: it cleans the pacman cache diretory (default: `/var/cache/pacman/pkg`)
     - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
     - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+    - **check Snaps support**: checks if the Snapd services are properly enabled.
 - Installed AUR packages have their **PKGBUILD** files cached at **~/.cache/bauh/arch/installed/$pkgname**
 - Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
 - The configuration file is located at **~/.config/bauh/arch.yml** and it allows the following customizations:
@@ -204,9 +206,11 @@ edit_aur_pkgbuild: false  # if the AUR PKGBUILD file should be displayed for edi
 aur_build_dir: null  # defines a custom build directory for AUR packages (a null value will point to /tmp/bauh/arch (non-root user) or /tmp/bauh_root/arch (root user)). Default: null.
 aur_remove_build_dir: true  # it defines if a package's generated build directory should be removed after the operation is finished (installation, upgrading, ...). Options: true, false (default: true).
 aur_build_only_chosen : true  # some AUR packages have a common file definition declaring several packages to be built. When this property is 'true' only the package the user select to install will be built (unless its name is different from those declared in the PKGBUILD base). With a 'null' value a popup asking if the user wants to build all of them will be displayed. 'false' will build and install all packages. Default: true.
+aur_idx_exp: 1  # It defines the period (in HOURS) for the AUR index stored in disc to be considered up to date during the initialization process. Use 0 so that it is always updated. Default: 1. (P.S: this index is always updated when a package is installed/upgraded)
 check_dependency_breakage: true # if, during the verification of the update requirements, specific versions of dependencies must also be checked. Example: package A depends on version 1.0 of B. If A and B were selected to upgrade, and B would be upgrade to 2.0, then B would be excluded from the transaction. Default: true.
 suggest_unneeded_uninstall: false  # if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property 'suggest_optdep_uninstall'. Default: false (to prevent new users from making mistakes)
 suggest_optdep_uninstall: false  # if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
+categories_exp: 24  # It defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 ```
 - Required dependencies:
     - **pacman**
@@ -264,6 +268,10 @@ environment:
   electron:
     version: null  # set a custom Electron version here (e.g: '6.1.4')
   system: false  # set it to 'true' if you want to use the nativefier version globally installed on your system 
+  cache_exp: 24 # defines the period (in HOURS) in which the stored environment settings are considered valid. Use 0 so that they are always updated. Default: 24.
+
+suggestions:
+    cache_exp: 24  # defines the period (in HOURS) in which suggestions stored on the disk are considered up to date during the initialization process. Use 0 so that they are always updated. Default: 24.
 ```
 - Required dependencies: 
     - Arch-based systems: **python-lxml**, **python-beautifulsoup4**
@@ -340,6 +348,8 @@ backup:
     upgrade: null  # defines if the backup should be performed before upgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     downgrade: null  # defines if the backup should be performed before downgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     type: rsync  # defines the Timeshift backup mode -> 'rsync' (default) or 'btrfs'
+boot:
+    load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
 ```
 #### Tray icons
 Priority: 
@@ -356,6 +366,7 @@ Priority:
 - Disable the application types you do not want to deal with
 - If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
 - If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
+- For a faster initialization process, consider raising the values of settings properties associated with disk caching.
 
 ### Files and Logs
 - Installation logs and temporary files are saved at **/tmp/bauh** (or **/tmp/bauh_root** if you launch it as root)

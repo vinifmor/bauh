@@ -7,7 +7,7 @@ from typing import Set, List, Iterable, Dict, Optional
 import requests
 
 from bauh.api.http import HttpClient
-from bauh.gems.arch import AUR_INDEX_FILE
+from bauh.gems.arch import AUR_INDEX_FILE, git
 from bauh.gems.arch.exceptions import PackageNotFoundException
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&'
@@ -256,3 +256,7 @@ class AURClient:
     def fill_update_data(self, output: Dict[str, dict], pkgname: str, latest_version: str, srcinfo: dict = None):
         data = self.map_update_data(pkgname=pkgname, latest_version=latest_version, srcinfo=srcinfo)
         output[pkgname] = data
+
+
+def is_supported(arch_config: dict) -> bool:
+    return arch_config['aur'] and git.is_installed()
