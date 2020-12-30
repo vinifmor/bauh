@@ -28,15 +28,17 @@ from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOp
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
 from bauh.api.constants import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
-from bauh.commons.config import save_config
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, CONFIG_FILE, TEMP_PATH, FIXES_PATH, ELECTRON_PATH
-from bauh.gems.web.config import read_config
+    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_PATH, \
+    get_icon_path
+from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
-from bauh.gems.web.worker import SuggestionsDownloader, SearchIndexGenerator
+from bauh.gems.web.worker import SuggestionsManager, UpdateEnvironmentSettings, \
+    SuggestionsLoader, SearchIndexGenerator
 
 try:
     from bs4 import BeautifulSoup, SoupStrainer
@@ -58,7 +60,7 @@ RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
 class WebApplicationManager(SoftwareManager):
 
-    def __init__(self, context: ApplicationContext, suggestions_downloader: Thread = None):
+    def __init__(self, context: ApplicationContext, suggestions_loader: Optional[SuggestionsLoader] = None):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
         self.env_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
@@ -67,8 +69,9 @@ class WebApplicationManager(SoftwareManager):
         self.i18n = context.i18n
         self.logger = context.logger
         self.env_thread = None
-        self.suggestions_downloader = suggestions_downloader
+        self.suggestions_loader = suggestions_loader
         self.suggestions = {}
+        self.configman = WebConfigManager()
         self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
                                                     i18n_status_key='web.custom_action.clean_env.status',
                                                     manager=self,
@@ -254,8 +257,8 @@ class WebApplicationManager(SoftwareManager):
 
             index = self._read_search_index()
 
-            if not index and self.suggestions_downloader and self.suggestions_downloader.is_alive():
-                self.suggestions_downloader.join()
+            if not index and self.suggestions_loader and self.suggestions_loader.is_alive():
+                self.suggestions_loader.join()
                 index = self._read_search_index()
 
             if index:
@@ -634,7 +637,7 @@ class WebApplicationManager(SoftwareManager):
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
 
-        web_config = read_config()
+        web_config = self.configman.get_config()
         env_settings = self.env_updater.read_settings(web_config=web_config)
 
         if web_config['environment']['system'] and not nativefier.is_available():
@@ -796,7 +799,7 @@ class WebApplicationManager(SoftwareManager):
 
     def can_work(self) -> bool:
         if BS4_AVAILABLE and LXML_AVAILABLE:
-            config = read_config(update_file=True)
+            config = self.configman.get_config()
             use_system_env = config['environment']['system']
 
             if not use_system_env:
@@ -809,28 +812,37 @@ class WebApplicationManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: SoftwarePackage) -> bool:
         return False
 
-    def _download_suggestions(self, downloader: SuggestionsDownloader):
-        self.suggestions = downloader.download()
-
-        if self.suggestions:
-            index_gen = SearchIndexGenerator(logger=self.logger)
-            Thread(target=index_gen.generate_index, args=(self.suggestions,), daemon=True).start()
+    def _assign_suggestions(self, suggestions: dict):
+        self.suggestions = suggestions
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
+                                         task_icon_path=get_icon_path(), logger=self.logger)
+        create_config.start()
+
         if internet_available:
-            downloader = SuggestionsDownloader(logger=self.logger, http_client=self.http_client,
-                                               i18n=self.i18n, taskman=task_manager)
-            downloader.register_task()
+            UpdateEnvironmentSettings(env_updater=EnvironmentUpdater(logger=self.context.logger,
+                                                                     i18n=self.i18n,
+                                                                     http_client=self.http_client,
+                                                                     file_downloader=self.context.file_downloader,
+                                                                     taskman=task_manager),
+                                      taskman=task_manager,
+                                      create_config=create_config,
+                                      i18n=self.i18n).start()
 
-            self.suggestions_downloader = Thread(target=self._download_suggestions, args=(downloader,), daemon=True)
-            self.suggestions_downloader.start()
+            self.suggestions_loader = SuggestionsLoader(manager=SuggestionsManager(logger=self.logger,
+                                                                                   http_client=self.http_client,
+                                                                                   i18n=self.i18n),
+                                                        logger=self.logger,
+                                                        i18n=self.i18n,
+                                                        taskman=task_manager,
+                                                        suggestions_callback=self._assign_suggestions)
+            self.suggestions_loader.start()
 
-            web_config = read_config()
-
-            if self.env_updater.should_download_settings(web_config):
-                self.env_updater.register_task_read_settings(taskman=task_manager)
-                self.env_thread = Thread(target=self.env_updater.read_settings, args=(web_config, False, task_manager), daemon=True)
-                self.env_thread.start()
+            SearchIndexGenerator(taskman=task_manager,
+                                 suggestions_loader=self.suggestions_loader,
+                                 i18n=self.i18n,
+                                 logger=self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
@@ -893,7 +905,7 @@ class WebApplicationManager(SoftwareManager):
         return PackageSuggestion(priority=SuggestionPriority(suggestion['priority']), package=app)
 
     def _fill_config_async(self, output: dict):
-        output.update(read_config())
+        output.update(self.configman.get_config())
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         web_config = {}
@@ -903,14 +915,14 @@ class WebApplicationManager(SoftwareManager):
 
         if self.suggestions:
             suggestions = self.suggestions
-        elif self.suggestions_downloader:
-            self.suggestions_downloader.join(5)
+        elif self.suggestions_loader:
+            self.suggestions_loader.join(5)
             suggestions = self.suggestions
         else:
-            suggestions = SuggestionsDownloader(logger=self.logger, http_client=self.http_client, i18n=self.i18n).download()
+            suggestions = SuggestionsManager(logger=self.logger, http_client=self.http_client, i18n=self.i18n).download()
 
         # cleaning memory
-        self.suggestions_downloader = None
+        self.suggestions_loader = None
         self.suggestions = None
 
         if suggestions:
@@ -981,7 +993,7 @@ class WebApplicationManager(SoftwareManager):
                     traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        web_config = read_config()
+        web_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
@@ -1018,7 +1030,7 @@ class WebApplicationManager(SoftwareManager):
         return PanelComponent([form_env])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        web_config = read_config()
+        web_config = self.configman.get_config()
 
         form_env = component.components[0]
 
@@ -1036,7 +1048,7 @@ class WebApplicationManager(SoftwareManager):
         web_config['environment']['cache_exp'] = form_env.get_component('web_cache_exp').get_int_value()
 
         try:
-            save_config(web_config, CONFIG_FILE)
+            self.configman.save_config(web_config)
             return True, None
         except:
             return False, [traceback.format_exc()]

@@ -27,18 +27,18 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     FileChooserComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
 from bauh.commons import user, system
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
-from bauh.commons.config import save_config
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
 from bauh.commons.util import datetime_as_milis
 from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
-    CONFIG_FILE, get_icon_path, database, mirrors, sorting, cpu_manager, ARCH_CACHE_PATH, UPDATES_IGNORED_FILE, \
+    get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
     CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR
 from bauh.gems.arch.aur import AURClient
-from bauh.gems.arch.config import read_config, get_build_dir
+from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.download import MultithreadedDownloadService, ArchDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
@@ -47,8 +47,8 @@ from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.output import TransactionStatusHandler
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
 from bauh.gems.arch.updates import UpdatesSummarizer
-from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, SyncDatabases, \
-    RefreshMirrors
+from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, RefreshMirrors, \
+    SyncDatabases
 
 URL_GIT = 'https://aur.archlinux.org/{}.git'
 URL_SRC_INFO = 'https://aur.archlinux.org/cgit/aur.git/plain/.SRCINFO?h='
@@ -191,11 +191,11 @@ class TransactionContext:
 
 class ArchManager(SoftwareManager):
 
-    def __init__(self, context: ApplicationContext, disk_cache_updater: ArchDiskCacheUpdater = None):
+    def __init__(self, context: ApplicationContext, disk_cache_updater: Optional[ArchDiskCacheUpdater] = None):
         super(ArchManager, self).__init__(context=context)
         self.aur_cache = context.cache_factory.new()
         # context.disk_loader_factory.map(ArchPackage, self.aur_cache) TODO
-
+        self.configman = ArchConfigManager()
         self.aur_mapper = AURDataMapper(http_client=context.http_client, i18n=context.i18n, logger=context.logger)
         self.i18n = context.i18n
         self.aur_client = AURClient(http_client=context.http_client, logger=context.logger, x86_64=context.is_system_x86_64())
@@ -309,7 +309,7 @@ class ArchManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
 
-        sort_limit = read_config()['mirrors_sort_limit']
+        sort_limit = self.configman.get_config()['mirrors_sort_limit']
 
         if sort_limit is not None and isinstance(sort_limit, int) and sort_limit >= 0:
             watcher.change_substatus(self.i18n['arch.custom_action.refresh_mirrors.status.sorting'])
@@ -419,7 +419,7 @@ class ArchManager(SoftwareManager):
         if is_url:
             return SearchResult([], [], 0)
 
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
         aur_supported = aur.is_supported(arch_config)
 
         if not any([arch_config['repositories'], aur_supported]):
@@ -563,7 +563,7 @@ class ArchManager(SoftwareManager):
 
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
 
         aur_supported = aur.is_supported(arch_config)
 
@@ -781,7 +781,7 @@ class ArchManager(SoftwareManager):
         if self._is_database_locked(handler, root_password):
             return False
 
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
         aur_supported = pkg.repository == 'aur' or aur.is_supported(arch_config)
         context = TransactionContext(name=pkg.name, base=pkg.get_base_name(), skip_opt_deps=True,
                                      change_progress=True, dependency=False, repository=pkg.repository, pkg=pkg,
@@ -1105,7 +1105,7 @@ class ArchManager(SoftwareManager):
         if aur_pkgs and not self._check_action_allowed(aur_pkgs[0], watcher):
             return False
 
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
         aur_supported = bool(aur_pkgs) or aur.is_supported(arch_config)
 
         self._sync_databases(arch_config=arch_config, aur_supported=aur_supported,
@@ -1392,7 +1392,7 @@ class ArchManager(SoftwareManager):
             return TransactionResult.fail()
 
         removed = {}
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
         success = self._uninstall(TransactionContext(change_progress=True,
                                                      arch_config=arch_config,
                                                      watcher=watcher,
@@ -1520,7 +1520,7 @@ class ArchManager(SoftwareManager):
         else:
             self.logger.warning("Package '{}' has no commit associated with it. Current history status may not be correct.".format(pkg.name))
 
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
         temp_dir = '{}/build_{}'.format(get_build_dir(arch_config), int(time.time()))
 
         try:
@@ -1938,7 +1938,7 @@ class ArchManager(SoftwareManager):
                 watcher.change_substatus(self.i18n['arch.task.aur.index.status'])
 
             idx_updater = AURIndexUpdater(context=self.context, taskman=TaskManager())  # null task manager
-            idx_updater.run()
+            idx_updater.update_index()
         else:
             self.logger.warning("Could not update the AUR index: no internet connection detected")
 
@@ -2488,7 +2488,7 @@ class ArchManager(SoftwareManager):
     def _optimize_makepkg(self, arch_config: dict, watcher: Optional[ProcessWatcher]):
         if arch_config['optimize'] and not os.path.exists(CUSTOM_MAKEPKG_FILE):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
-            ArchCompilationOptimizer(arch_config=arch_config, i18n=self.i18n, logger=self.context.logger).optimize()
+            ArchCompilationOptimizer(i18n=self.i18n, logger=self.context.logger, taskman=TaskManager()).optimize()
 
     def install(self, pkg: ArchPackage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher, context: TransactionContext = None) -> TransactionResult:
         self.aur_client.clean_caches()
@@ -2504,7 +2504,7 @@ class ArchManager(SoftwareManager):
         if context:
             install_context = context
         else:
-            install_context = TransactionContext.gen_context_from(pkg=pkg, handler=handler, arch_config=read_config(),
+            install_context = TransactionContext.gen_context_from(pkg=pkg, handler=handler, arch_config=self.configman.get_config(),
                                                                   root_password=root_password)
             install_context.skip_opt_deps = False
             install_context.disk_loader = disk_loader
@@ -2612,68 +2612,68 @@ class ArchManager(SoftwareManager):
 
     def requires_root(self, action: SoftwareAction, pkg: ArchPackage) -> bool:
         if action == SoftwareAction.PREPARE:
-            arch_config = read_config()
+            arch_config = self.configman.get_config()
+            aur_supported = (pkg and pkg.repository == 'aur') or aur.is_supported(arch_config)
 
-            if arch_config['refresh_mirrors_startup'] and mirrors.should_sync(self.logger):
+            if RefreshMirrors.should_synchronize(arch_config, aur_supported, self.logger):
                 return True
 
-            aur_supported = (pkg and pkg.repository == 'aur') or aur.is_supported(arch_config)
-            return arch_config['sync_databases_startup'] and database.should_sync(arch_config, aur_supported, None, self.logger)
+            return SyncDatabases.should_sync(mirrors_refreshed=False, arch_config=arch_config,
+                                             aur_supported=aur_supported, logger=self.logger)
 
         return action != SoftwareAction.SEARCH
 
-    def _start_category_task(self, task_man: TaskManager):
-        task_man.register_task('arch_aur_cats', self.i18n['task.download_categories'], get_icon_path())
-        task_man.update_progress('arch_aur_cats', 50, None)
+    def _start_category_task(self, taskman: TaskManager, create_config: CreateConfigFile, downloader: CategoriesDownloader):
+        taskman.update_progress('arch_aur_cats', 0, self.i18n['task.waiting_task'].format(bold(create_config.task_name)))
+        create_config.join()
+        arch_config = create_config.config
 
-    def _finish_category_task(self, task_man: TaskManager):
-        task_man.update_progress('arch_aur_cats', 100, None)
-        task_man.finish_task('arch_aur_cats')
+        downloader.expiration = arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else None
+        taskman.update_progress('arch_aur_cats', 50, None)
+
+    def _finish_category_task(self, taskman: TaskManager):
+        taskman.update_progress('arch_aur_cats', 100, None)
+        taskman.finish_task('arch_aur_cats')
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
-        arch_config = read_config(update_file=True)
+        create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
+                                         task_icon_path=get_icon_path(), logger=self.logger)
+        create_config.start()
 
-        if internet_available and AURIndexUpdater.should_update(arch_config):
-            self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager)  # must all execute to properly determine the installed packages (even that AUR is disabled)
+        if internet_available:
+            self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager, create_config=create_config)  # must always execute to properly determine the installed packages (even that AUR is disabled)
             self.index_aur.start()
 
-        aur_supported = aur.is_supported(arch_config)
-
-        if aur_supported:
-            ArchCompilationOptimizer(arch_config, self.i18n, self.context.logger, task_manager).start()
-
-        if aur_supported or arch_config['repositories']:
-            self.disk_cache_updater = ArchDiskCacheUpdater(task_man=task_manager,
-                                                           arch_config=arch_config,
-                                                           i18n=self.i18n,
-                                                           logger=self.context.logger,
-                                                           controller=self,
-                                                           internet_available=internet_available,
-                                                           aur_indexer=self.index_aur,
-                                                           aur_supported=aur_supported)
-            self.disk_cache_updater.start()
-
-        CategoriesDownloader(id_='Arch', http_client=self.context.http_client, logger=self.context.logger,
-                             manager=self, url_categories_file=URL_CATEGORIES_FILE,
-                             categories_path=CATEGORIES_FILE_PATH,
-                             expiration=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else '',
-                             internet_connection=internet_available,
-                             internet_checker=self.context.internet_checker,
-                             before=lambda: self._start_category_task(task_manager),
-                             after=lambda: self._finish_category_task(task_manager)).start()
-
-        refresh_mirrors = None
-        if internet_available and arch_config['repositories'] and arch_config['refresh_mirrors_startup'] \
-                and pacman.is_mirrors_available() and mirrors.should_sync(self.logger):
-
-            refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n,
-                                             root_password=root_password, logger=self.logger,
-                                             sort_limit=arch_config['mirrors_sort_limit'])
+            refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n, root_password=root_password,
+                                             logger=self.logger, create_config=create_config)
             refresh_mirrors.start()
 
-        if internet_available and (refresh_mirrors or (arch_config['sync_databases_startup'] and database.should_sync(arch_config, aur_supported, None, self.logger))):
             SyncDatabases(taskman=task_manager, root_password=root_password, i18n=self.i18n,
-                          logger=self.logger, refresh_mirrors=refresh_mirrors).start()
+                          logger=self.logger, refresh_mirrors=refresh_mirrors, create_config=create_config).start()
+
+        ArchCompilationOptimizer(i18n=self.i18n, logger=self.context.logger,
+                                 taskman=task_manager, create_config=create_config).start()
+
+        self.disk_cache_updater = ArchDiskCacheUpdater(taskman=task_manager,
+                                                       i18n=self.i18n,
+                                                       logger=self.context.logger,
+                                                       controller=self,
+                                                       internet_available=internet_available,
+                                                       aur_indexer=self.index_aur,
+                                                       create_config=create_config)
+        self.disk_cache_updater.start()
+
+        task_manager.register_task('arch_aur_cats', self.i18n['task.download_categories'], get_icon_path())
+        cat_download = CategoriesDownloader(id_='Arch', http_client=self.context.http_client,
+                                            logger=self.context.logger,
+                                            manager=self, url_categories_file=URL_CATEGORIES_FILE,
+                                            categories_path=CATEGORIES_FILE_PATH,
+                                            internet_connection=internet_available,
+                                            internet_checker=self.context.internet_checker,
+                                            after=lambda: self._finish_category_task(task_manager))
+        cat_download.before = lambda: self._start_category_task(taskman=task_manager, create_config=create_config,
+                                                                downloader=cat_download)
+        cat_download.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         installed = self.read_installed(disk_loader=None, internet_available=internet_available).installed
@@ -2763,90 +2763,92 @@ class ArchManager(SoftwareManager):
                                      capitalize_label=capitalize_label)
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        local_config = read_config()
+        arch_config = self.configman.get_config()
         max_width = floor(screen_width * 0.25)
 
         db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
                                                 label_key='arch.config.sync_dbs',
                                                 tooltip_key='arch.config.sync_dbs_start.tip',
-                                                value=bool(local_config['sync_databases_startup']),
+                                                value=bool(arch_config['sync_databases_startup']),
                                                 max_width=max_width)
 
-        db_sync_start.label += ' ( {} )'.format(self.i18n['initialization'].capitalize())
+        db_sync_start.label += ' ({})'.format(self.i18n['initialization'].capitalize())
 
         fields = [
             self._gen_bool_selector(id_='repos',
                                     label_key='arch.config.repos',
                                     tooltip_key='arch.config.repos.tip',
-                                    value=bool(local_config['repositories']),
+                                    value=bool(arch_config['repositories']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='aur',
                                     label_key='arch.config.aur',
                                     tooltip_key='arch.config.aur.tip',
-                                    value=local_config['aur'],
+                                    value=arch_config['aur'],
                                     max_width=max_width,
                                     capitalize_label=False),
             self._gen_bool_selector(id_='opts',
                                     label_key='arch.config.optimize',
                                     tooltip_key='arch.config.optimize.tip',
-                                    value=bool(local_config['optimize']),
+                                    value=bool(arch_config['optimize']),
+                                    label_params=['(AUR)'],
+                                    capitalize_label=False,
                                     max_width=max_width),
             self._gen_bool_selector(id_='autoprovs',
                                     label_key='arch.config.automatch_providers',
                                     tooltip_key='arch.config.automatch_providers.tip',
-                                    value=bool(local_config['automatch_providers']),
+                                    value=bool(arch_config['automatch_providers']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='check_dependency_breakage',
                                     label_key='arch.config.check_dependency_breakage',
                                     tooltip_key='arch.config.check_dependency_breakage.tip',
-                                    value=bool(local_config['check_dependency_breakage']),
+                                    value=bool(arch_config['check_dependency_breakage']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='mthread_download',
                                     label_key='arch.config.pacman_mthread_download',
                                     tooltip_key='arch.config.pacman_mthread_download.tip',
-                                    value=local_config['repositories_mthread_download'],
+                                    value=arch_config['repositories_mthread_download'],
                                     max_width=max_width,
                                     capitalize_label=True),
             self._gen_bool_selector(id_='sync_dbs',
                                     label_key='arch.config.sync_dbs',
                                     tooltip_key='arch.config.sync_dbs.tip',
-                                    value=bool(local_config['sync_databases']),
+                                    value=bool(arch_config['sync_databases']),
                                     max_width=max_width),
             db_sync_start,
             self._gen_bool_selector(id_='clean_cached',
                                     label_key='arch.config.clean_cache',
                                     tooltip_key='arch.config.clean_cache.tip',
-                                    value=bool(local_config['clean_cached']),
+                                    value=bool(arch_config['clean_cached']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='suggest_unneeded_uninstall',
                                     label_key='arch.config.suggest_unneeded_uninstall',
                                     tooltip_params=['"{}"'.format(self.i18n['arch.config.suggest_optdep_uninstall'])],
                                     tooltip_key='arch.config.suggest_unneeded_uninstall.tip',
-                                    value=bool(local_config['suggest_unneeded_uninstall']),
+                                    value=bool(arch_config['suggest_unneeded_uninstall']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='suggest_optdep_uninstall',
                                     label_key='arch.config.suggest_optdep_uninstall',
                                     tooltip_key='arch.config.suggest_optdep_uninstall.tip',
-                                    value=bool(local_config['suggest_optdep_uninstall']),
+                                    value=bool(arch_config['suggest_optdep_uninstall']),
                                     max_width=max_width),
             self._gen_bool_selector(id_='ref_mirs',
                                     label_key='arch.config.refresh_mirrors',
                                     tooltip_key='arch.config.refresh_mirrors.tip',
-                                    value=bool(local_config['refresh_mirrors_startup']),
+                                    value=bool(arch_config['refresh_mirrors_startup']),
                                     max_width=max_width),
             TextInputComponent(id_='mirrors_sort_limit',
                                label=self.i18n['arch.config.mirrors_sort_limit'],
                                tooltip=self.i18n['arch.config.mirrors_sort_limit.tip'],
                                only_int=True,
                                max_width=max_width,
-                               value=local_config['mirrors_sort_limit'] if isinstance(local_config['mirrors_sort_limit'], int) else ''),
+                               value=arch_config['mirrors_sort_limit'] if isinstance(arch_config['mirrors_sort_limit'], int) else ''),
             TextInputComponent(id_='aur_idx_exp',
                                label=self.i18n['arch.config.aur_idx_exp'] + ' (AUR)',
                                tooltip=self.i18n['arch.config.aur_idx_exp.tip'],
                                max_width=max_width,
                                only_int=True,
                                capitalize_label=False,
-                               value=local_config['aur_idx_exp'] if isinstance(local_config['aur_idx_exp'], int) else ''),
+                               value=arch_config['aur_idx_exp'] if isinstance(arch_config['aur_idx_exp'], int) else ''),
             new_select(id_='aur_build_only_chosen',
                        label=self.i18n['arch.config.aur_build_only_chosen'],
                        tip=self.i18n['arch.config.aur_build_only_chosen.tip'],
@@ -2854,7 +2856,7 @@ class ArchManager(SoftwareManager):
                              (self.i18n['no'].capitalize(), False, None),
                              (self.i18n['ask'].capitalize(), None, None),
                              ],
-                       value=local_config['aur_build_only_chosen'],
+                       value=arch_config['aur_build_only_chosen'],
                        max_width=max_width,
                        type_=SelectViewType.RADIO,
                        capitalize_label=False),
@@ -2865,21 +2867,21 @@ class ArchManager(SoftwareManager):
                              (self.i18n['no'].capitalize(), False, None),
                              (self.i18n['ask'].capitalize(), None, None),
                              ],
-                       value=local_config['edit_aur_pkgbuild'],
+                       value=arch_config['edit_aur_pkgbuild'],
                        max_width=max_width,
                        type_=SelectViewType.RADIO,
                        capitalize_label=False),
             self._gen_bool_selector(id_='aur_remove_build_dir',
                                     label_key='arch.config.aur_remove_build_dir',
                                     tooltip_key='arch.config.aur_remove_build_dir.tip',
-                                    value=bool(local_config['aur_remove_build_dir']),
+                                    value=bool(arch_config['aur_remove_build_dir']),
                                     max_width=max_width,
                                     capitalize_label=False),
             FileChooserComponent(id_='aur_build_dir',
                                  label=self.i18n['arch.config.aur_build_dir'],
                                  tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(BUILD_DIR),
                                  max_width=max_width,
-                                 file_path=local_config['aur_build_dir'],
+                                 file_path=arch_config['aur_build_dir'],
                                  capitalize_label=False,
                                  directory=True),
             TextInputComponent(id_='arch_cats_exp',
@@ -2888,47 +2890,47 @@ class ArchManager(SoftwareManager):
                                max_width=max_width,
                                only_int=True,
                                capitalize_label=False,
-                               value=local_config['categories_exp'] if isinstance(local_config['categories_exp'], int) else ''),
+                               value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
         ]
 
         return PanelComponent([FormComponent(fields, spaces=False)])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        config = read_config()
+        arch_config = self.configman.get_config()
 
         panel = component.components[0]
-        config['repositories'] = panel.get_component('repos').get_selected()
-        config['aur'] = panel.get_component('aur').get_selected()
-        config['optimize'] = panel.get_component('opts').get_selected()
-        config['sync_databases'] = panel.get_component('sync_dbs').get_selected()
-        config['sync_databases_startup'] = panel.get_component('sync_dbs_start').get_selected()
-        config['clean_cached'] = panel.get_component('clean_cached').get_selected()
-        config['refresh_mirrors_startup'] = panel.get_component('ref_mirs').get_selected()
-        config['mirrors_sort_limit'] = panel.get_component('mirrors_sort_limit').get_int_value()
-        config['repositories_mthread_download'] = panel.get_component('mthread_download').get_selected()
-        config['automatch_providers'] = panel.get_component('autoprovs').get_selected()
-        config['edit_aur_pkgbuild'] = panel.get_component('edit_aur_pkgbuild').get_selected()
-        config['aur_remove_build_dir'] = panel.get_component('aur_remove_build_dir').get_selected()
-        config['aur_build_dir'] = panel.get_component('aur_build_dir').file_path
-        config['aur_build_only_chosen'] = panel.get_component('aur_build_only_chosen').get_selected()
-        config['aur_idx_exp'] = panel.get_component('aur_idx_exp').get_int_value()
-        config['check_dependency_breakage'] = panel.get_component('check_dependency_breakage').get_selected()
-        config['suggest_optdep_uninstall'] = panel.get_component('suggest_optdep_uninstall').get_selected()
-        config['suggest_unneeded_uninstall'] = panel.get_component('suggest_unneeded_uninstall').get_selected()
-        config['categories_exp'] = panel.get_component('arch_cats_exp').get_int_value()
+        arch_config['repositories'] = panel.get_component('repos').get_selected()
+        arch_config['aur'] = panel.get_component('aur').get_selected()
+        arch_config['optimize'] = panel.get_component('opts').get_selected()
+        arch_config['sync_databases'] = panel.get_component('sync_dbs').get_selected()
+        arch_config['sync_databases_startup'] = panel.get_component('sync_dbs_start').get_selected()
+        arch_config['clean_cached'] = panel.get_component('clean_cached').get_selected()
+        arch_config['refresh_mirrors_startup'] = panel.get_component('ref_mirs').get_selected()
+        arch_config['mirrors_sort_limit'] = panel.get_component('mirrors_sort_limit').get_int_value()
+        arch_config['repositories_mthread_download'] = panel.get_component('mthread_download').get_selected()
+        arch_config['automatch_providers'] = panel.get_component('autoprovs').get_selected()
+        arch_config['edit_aur_pkgbuild'] = panel.get_component('edit_aur_pkgbuild').get_selected()
+        arch_config['aur_remove_build_dir'] = panel.get_component('aur_remove_build_dir').get_selected()
+        arch_config['aur_build_dir'] = panel.get_component('aur_build_dir').file_path
+        arch_config['aur_build_only_chosen'] = panel.get_component('aur_build_only_chosen').get_selected()
+        arch_config['aur_idx_exp'] = panel.get_component('aur_idx_exp').get_int_value()
+        arch_config['check_dependency_breakage'] = panel.get_component('check_dependency_breakage').get_selected()
+        arch_config['suggest_optdep_uninstall'] = panel.get_component('suggest_optdep_uninstall').get_selected()
+        arch_config['suggest_unneeded_uninstall'] = panel.get_component('suggest_unneeded_uninstall').get_selected()
+        arch_config['categories_exp'] = panel.get_component('arch_cats_exp').get_int_value()
 
-        if not config['aur_build_dir']:
-            config['aur_build_dir'] = None
+        if not arch_config['aur_build_dir']:
+            arch_config['aur_build_dir'] = None
 
         try:
-            save_config(config, CONFIG_FILE)
+            self.configman.save_config(arch_config)
             return True, None
         except:
             return False, [traceback.format_exc()]
 
     def get_upgrade_requirements(self, pkgs: List[ArchPackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         self.aur_client.clean_caches()
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
 
         aur_supported = aur.is_supported(arch_config)
 
@@ -2949,7 +2951,7 @@ class ArchManager(SoftwareManager):
     def get_custom_actions(self) -> List[CustomSoftwareAction]:
         actions = []
 
-        arch_config = read_config()
+        arch_config = self.configman.get_config()
 
         if pacman.is_mirrors_available():
             actions.append(self.custom_actions['ref_mirrors'])

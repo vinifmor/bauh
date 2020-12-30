@@ -12,6 +12,8 @@ from typing import Optional
 
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
+from bauh.commons.boot import CreateConfigFile
+from bauh.commons.html import bold
 from bauh.gems.appimage import get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
     DATABASES_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES
 from bauh.gems.appimage.model import AppImage
@@ -21,7 +23,8 @@ from bauh.view.util.translation import I18n
 class DatabaseUpdater(Thread):
     COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(DATABASES_DIR)
 
-    def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, watcher: Optional[ProcessWatcher] = None, taskman: Optional[TaskManager] = None):
+    def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, taskman: TaskManager,
+                 watcher: Optional[ProcessWatcher] = None, appimage_config: Optional[dict] = None, create_config: Optional[CreateConfigFile] = None):
         super(DatabaseUpdater, self).__init__(daemon=True)
         self.http_client = http_client
         self.logger = logger
@@ -29,6 +32,9 @@ class DatabaseUpdater(Thread):
         self.taskman = taskman
         self.watcher = watcher
         self.task_id = 'appim_db'
+        self.config = appimage_config
+        self.create_config = create_config
+        self.taskman.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
 
     def should_update(self, appimage_config: dict) -> bool:
         ti = time.time()
@@ -75,26 +81,14 @@ class DatabaseUpdater(Thread):
         self.logger.info('Finished. Took {0:.2f} seconds'.format(time.time() - ti))
         return update
 
-    def register_task(self):
-        if self.taskman:
-            self.taskman.register_task(self.task_id, self.i18n['appimage.task.db_update'], get_icon_path())
-
-    def _finish_task(self):
-        if self.taskman:
-            self.taskman.update_progress(self.task_id, 100, None)
-            self.taskman.finish_task(self.task_id)
-            self.taskman = None
-            self.logger.info("Finished")
-
     def _update_task_progress(self, progress: float, substatus: Optional[str] = None):
-        if self.taskman:
-            self.taskman.update_progress(self.task_id, progress, substatus)
+        self.taskman.update_progress(self.task_id, progress, substatus)
 
         if self.watcher:
             self.watcher.change_substatus(substatus)
 
     def download_databases(self) -> bool:
-        self._update_task_progress(1, self.i18n['appimage.update_database.downloading'])
+        self._update_task_progress(10, self.i18n['appimage.update_database.downloading'])
         self.logger.info('Retrieving AppImage databases')
 
         database_timestamp = datetime.utcnow().timestamp()
@@ -106,7 +100,6 @@ class DatabaseUpdater(Thread):
 
         if not res:
             self.logger.warning('Could not download the database file {}'.format(URL_COMPRESSED_DATABASES))
-            self._finish_task()
             return False
 
         Path(DATABASES_DIR).mkdir(parents=True, exist_ok=True)
@@ -150,11 +143,25 @@ class DatabaseUpdater(Thread):
 
         self.logger.info("Database timestamp saved")
 
-        self._finish_task()
         return True
 
     def run(self):
-        self.download_databases()
+        ti = time.time()
+
+        if self.create_config:
+            self.taskman.update_progress(self.task_id, 0, self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
+            self.create_config.join()
+            self.config = self.create_config.config
+
+        self.taskman.update_progress(self.task_id, 1, self.i18n['appimage.task.db_update.checking'])
+
+        if self.should_update(self.config):
+            self.download_databases()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        tf = time.time()
+        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
 
 
 class SymlinksVerifier(Thread):
@@ -165,6 +172,7 @@ class SymlinksVerifier(Thread):
         self.i18n = i18n
         self.logger = logger
         self.task_id = 'appim_symlink_check'
+        self.taskman.register_task(self.task_id, self.i18n['appimage.task.symlink_check'], get_icon_path())
 
     @staticmethod
     def create_symlink(app: AppImage, file_path: str, logger: logging.Logger, watcher: ProcessWatcher = None):
@@ -222,8 +230,6 @@ class SymlinksVerifier(Thread):
                     watcher.print('[error] {}'.format(msg))
 
     def run(self):
-        self.taskman.register_task(self.task_id, self.i18n['appimage.task.symlink_check'], get_icon_path())
-
         if os.path.exists(INSTALLATION_PATH):
             installed_files = glob.glob('{}/*/*.json'.format(INSTALLATION_PATH))
 

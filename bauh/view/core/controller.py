@@ -14,12 +14,14 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
     CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import run_cmd
-from bauh.view.core.config import read_config
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
 from bauh.view.util import resource
+from bauh.view.util.resource import get_path
 from bauh.view.util.util import clean_app_files, restart_app
 
 RE_IS_URL = re.compile(r'^https?://.+')
@@ -52,6 +54,7 @@ class GenericSoftwareManager(SoftwareManager):
         self.config = config
         self.settings_manager = settings_manager
         self.http_client = context.http_client
+        self.configman = CoreConfigManager()
         self.extra_actions = [CustomSoftwareAction(i18n_label_key='action.reset',
                                                    i18n_status_key='action.reset.status',
                                                    manager_method='reset',
@@ -402,13 +405,24 @@ class GenericSoftwareManager(SoftwareManager):
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
         ti = time.time()
         self.logger.info("Initializing")
+        taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
+
+        create_config = CreateConfigFile(taskman=taskman, configman=self.configman, i18n=self.i18n,
+                                         task_icon_path=get_path('img/logo.svg'), logger=self.logger)
+        create_config.start()
+
         if self.managers:
             internet_on = self.context.is_internet_available()
-            taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
+            prepare_tasks = []
             for man in self.managers:
                 if man not in self._already_prepared and self._can_work(man):
-                    man.prepare(taskman, root_password, internet_on)
+                    t = Thread(target=man.prepare, args=(taskman, root_password, internet_on), daemon=True)
+                    t.start()
+                    prepare_tasks.append(t)
                     self._already_prepared.append(man)
+
+            for t in prepare_tasks:
+                t.join()
 
         tf = time.time()
         self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
@@ -525,7 +539,8 @@ class GenericSoftwareManager(SoftwareManager):
                                                            working_managers=self.working_managers,
                                                            logger=self.logger,
                                                            i18n=self.i18n,
-                                                           file_downloader=self.context.file_downloader)
+                                                           file_downloader=self.context.file_downloader,
+                                                           configman=self.configman)
         else:
             self.settings_manager.managers = self.managers
             self.settings_manager.working_managers = self.working_managers
@@ -618,7 +633,7 @@ class GenericSoftwareManager(SoftwareManager):
                     if man_actions:
                         actions.extend(man_actions)
 
-        app_config = read_config()
+        app_config = self.configman.get_config()
 
         for action, available in self.dynamic_extra_actions.items():
             if available(app_config):

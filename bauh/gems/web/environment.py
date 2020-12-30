@@ -41,12 +41,13 @@ class EnvironmentComponent:
 
 class EnvironmentUpdater:
 
-    def __init__(self, logger: logging.Logger, http_client: HttpClient, file_downloader: FileDownloader, i18n: I18n):
+    def __init__(self, logger: logging.Logger, http_client: HttpClient, file_downloader: FileDownloader, i18n: I18n, taskman: Optional[TaskManager] = None):
         self.logger = logger
         self.file_downloader = file_downloader
         self.i18n = i18n
         self.http_client = http_client
         self.task_read_settings_id = 'web_read_settings'
+        self.taskman = taskman
 
     def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading NodeJS {}: {}".format(version, version_url))
@@ -267,10 +268,10 @@ class EnvironmentUpdater:
 
         return res
 
-    def _finish_task_download_settings(self, task_man: TaskManager):
-        if task_man:
-            task_man.update_progress(self.task_read_settings_id, 100, None)
-            task_man.finish_task(self.task_read_settings_id)
+    def _finish_task_download_settings(self):
+        if self.taskman:
+            self.taskman.update_progress(self.task_read_settings_id, 100, None)
+            self.taskman.finish_task(self.task_read_settings_id)
 
     def should_download_settings(self, web_config: dict) -> bool:
         try:
@@ -302,7 +303,14 @@ class EnvironmentUpdater:
             self.logger.error("Could not parse environment settings file timestamp: {}".format(env_ts_str))
             return True
 
-        return env_timestamp + timedelta(minutes=settings_exp) <= datetime.utcnow()
+        expired = env_timestamp + timedelta(minutes=settings_exp) <= datetime.utcnow()
+
+        if expired:
+            self.logger.info("Environment settings file has expired. It should be re-downloaded")
+            return True
+        else:
+            self.logger.info("Cached environment settings file is up to date")
+            return False
 
     def read_cached_settings(self, web_config: dict) -> Optional[dict]:
         if not self.should_download_settings(web_config):
@@ -314,32 +322,33 @@ class EnvironmentUpdater:
             except yaml.YAMLError:
                 self.logger.error('Could not parse the cache environment settings file: {}'.format(cached_settings_str))
 
-    def register_task_read_settings(self, taskman: TaskManager):
-        taskman.register_task(self.task_read_settings_id, self.i18n['web.task.download_settings'], get_icon_path())
+    def read_settings(self, web_config: dict, cache: bool = True) -> Optional[dict]:
+        if self.taskman:
+            self.taskman.register_task(self.task_read_settings_id, self.i18n['web.task.download_settings'], get_icon_path())
+            self.taskman.update_progress(self.task_read_settings_id, 1, None)
 
-    def read_settings(self, web_config: dict, cache: bool = True, taskman: Optional[TaskManager] = None) -> Optional[dict]:
         cached_settings = self.read_cached_settings(web_config) if cache else None
 
         if cached_settings:
             return cached_settings
 
         try:
-            if taskman:
-                taskman.update_progress(self.task_read_settings_id, 10, None)
+            if self.taskman:
+                self.taskman.update_progress(self.task_read_settings_id, 10, None)
 
             self.logger.info("Downloading environment settings")
             res = self.http_client.get(URL_ENVIRONMENT_SETTINGS)
 
             if not res:
                 self.logger.warning('Could not retrieve the environments settings from the cloud')
-                self._finish_task_download_settings(taskman)
+                self._finish_task_download_settings()
                 return
 
             try:
                 settings = yaml.safe_load(res.content)
             except yaml.YAMLError:
                 self.logger.error('Could not parse environment settings: {}'.format(res.text))
-                self._finish_task_download_settings(taskman)
+                self._finish_task_download_settings()
                 return
 
             self.logger.info("Caching environment settings to disk")
@@ -350,7 +359,7 @@ class EnvironmentUpdater:
             except OSError:
                 self.logger.error("Could not create Web cache directory: {}".format(cache_dir))
                 self.logger.info('Finished')
-                self._finish_task_download_settings(taskman)
+                self._finish_task_download_settings()
                 return
 
             cache_timestamp = datetime.utcnow().timestamp()
@@ -360,12 +369,12 @@ class EnvironmentUpdater:
             with open(ENVIRONMENT_SETTINGS_TS_FILE, 'w+') as f:
                 f.write(str(cache_timestamp))
 
-            self._finish_task_download_settings(taskman)
+            self._finish_task_download_settings()
             self.logger.info("Finished")
             return settings
 
         except requests.exceptions.ConnectionError:
-            self._finish_task_download_settings(taskman)
+            self._finish_task_download_settings()
             return
 
     def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, widevine: bool, output: List[EnvironmentComponent]):

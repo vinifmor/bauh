@@ -59,7 +59,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/web_env_exp.png">
     </p>
-    
+    - displaying the "Indexing suggestions" task during the initialization process
+
+- all types now display an initialization task "Checking configuration file" responsible to create/update the respective configuration file
 - minor translation improvements
         
 

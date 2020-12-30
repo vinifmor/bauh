@@ -1,6 +1,8 @@
 import datetime
 import operator
+import time
 from functools import reduce
+from threading import Lock
 from typing import Tuple, Optional
 
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
@@ -34,7 +36,10 @@ class Prepare(QThread, TaskManager):
         self.context = context
         self.waiting_password = False
         self.password_response = None
-        self._registered = 0
+        self._tasks_added = set()
+        self._tasks_finished = set()
+        self._add_lock = Lock()
+        self._finish_lock = Lock()
 
     def ask_password(self) -> Tuple[bool, Optional[str]]:
         self.waiting_password = True
@@ -58,20 +63,42 @@ class Prepare(QThread, TaskManager):
                 QCoreApplication.exit(1)
 
         self.manager.prepare(self, root_pwd, None)
-        self.signal_started.emit(self._registered)
+        self._add_lock.acquire()
+        self.signal_started.emit(len(self._tasks_added))
+        self._add_lock.release()
 
     def update_progress(self, task_id: str, progress: float, substatus: str):
-        self.signal_update.emit(task_id, progress, substatus)
+        if task_id in self._tasks_added:
+            self.signal_update.emit(task_id, progress, substatus)
 
     def update_output(self, task_id: str, output: str):
-        self.signal_output.emit(task_id, output)
+        if task_id in self._tasks_added:
+            self.signal_output.emit(task_id, output)
 
     def register_task(self, id_: str, label: str, icon_path: str):
-        self._registered += 1
-        self.signal_register.emit(id_, label, icon_path)
+        self._add_lock.acquire()
+
+        if id_ not in self._tasks_added:
+            self._tasks_added.add(id_)
+            self.signal_register.emit(id_, label, icon_path)
+
+        self._add_lock.release()
 
     def finish_task(self, task_id: str):
-        self.signal_finished.emit(task_id)
+        self._add_lock.acquire()
+        task_registered = task_id in self._tasks_added
+        self._add_lock.release()
+
+        if not task_registered:
+            return
+
+        self._finish_lock.acquire()
+
+        if task_id not in self._tasks_finished:
+            self._tasks_finished.add(task_id)
+            self.signal_finished.emit(task_id)
+
+        self._finish_lock.release()
 
 
 class CheckFinished(QThread):
@@ -84,7 +111,7 @@ class CheckFinished(QThread):
 
     def run(self):
         while True:
-            if self.total == self.finished:
+            if self.finished == self.total:
                 break
 
             self.msleep(5)
@@ -134,6 +161,7 @@ class PreparePanel(QWidget, TaskManager):
         self.output = {}
         self.added_tasks = 0
         self.ftasks = 0
+        self.started_at = None
         self.self_close = False
 
         self.prepare_thread = Prepare(self.context, manager, self.i18n)
@@ -263,6 +291,7 @@ class PreparePanel(QWidget, TaskManager):
         centralize(self)
 
     def start(self, tasks: int):
+        self.started_at = time.time()
         self.check_thread.total = tasks
         self.check_thread.start()
         self.skip_thread.start()
@@ -387,9 +416,8 @@ class PreparePanel(QWidget, TaskManager):
 
     def finish_task(self, task_id: str):
         task = self.tasks[task_id]
-        task['lb_sub'].setText('')
 
-        for key in ('lb_prog', 'lb_status'):
+        for key in ('lb_prog', 'lb_status', 'lb_sub'):
             label = task[key]
             label.setProperty('status', 'done')
             label.style().unpolish(label)
@@ -402,10 +430,9 @@ class PreparePanel(QWidget, TaskManager):
         self.ftasks += 1
         self.signal_status.emit(self.ftasks)
 
-        if self.table.rowCount() == self.ftasks:
-            self.label_top.setText(self.i18n['ready'].capitalize())
-
     def finish(self):
+        now = time.time()
+        self.context.logger.info("{0} tasks finished in {1:.9f} seconds".format(self.ftasks, (now - self.started_at)))
         if self.isVisible():
             self.manage_window.show()
 

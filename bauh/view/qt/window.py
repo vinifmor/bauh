@@ -22,7 +22,7 @@ from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.context import set_theme
 from bauh.stylesheet import read_all_themes_metadata, ThemeMetadata
-from bauh.view.core.config import read_config
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.tray_client import notify_tray
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
@@ -1586,7 +1586,7 @@ class ManageWindow(QWidget):
         menu_row.exec_()
 
     def _map_theme_actions(self, menu: QMenu) -> List[QCustomMenuAction]:
-        core_config = read_config()
+        core_config = CoreConfigManager().get_config()
 
         current_theme_key, current_action = core_config['ui']['theme'], None
 

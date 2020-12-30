@@ -16,11 +16,12 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons import user
-from bauh.commons.config import save_config
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH
-from bauh.gems.flatpak.config import read_config
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH, \
+    get_icon_path
+from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
@@ -41,6 +42,7 @@ class FlatpakManager(SoftwareManager):
         self.http_client = context.http_client
         self.suggestions_cache = context.cache_factory.new()
         self.logger = context.logger
+        self.configman = FlatpakConfigManager()
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -337,9 +339,9 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        config = read_config()
+        flatpak_config = self.configman.get_config()
 
-        install_level = config['installation_level']
+        install_level = flatpak_config['installation_level']
 
         if install_level is not None:
             self.logger.info("Default Flaptak installation level defined: {}".format(install_level))
@@ -453,7 +455,8 @@ class FlatpakManager(SoftwareManager):
         return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
-        Thread(target=read_config, args=(True,), daemon=True).start()
+        CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
+                         task_icon_path=get_icon_path(), logger=self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
@@ -555,7 +558,7 @@ class FlatpakManager(SoftwareManager):
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
         fields = []
 
-        config = read_config()
+        flatpak_config = self.configman.get_config()
 
         install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
                                     value='system',
@@ -568,7 +571,7 @@ class FlatpakManager(SoftwareManager):
                                     tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
         fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
                                             options=install_opts,
-                                            default_option=[o for o in install_opts if o.value == config['installation_level']][0],
+                                            default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                             max_per_line=len(install_opts),
                                             max_width=floor(screen_width * 0.22),
                                             type_=SelectViewType.RADIO))
@@ -576,11 +579,11 @@ class FlatpakManager(SoftwareManager):
         return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        config = read_config()
-        config['installation_level'] = component.components[0].components[0].get_selected()
+        flatpak_config = self.configman.get_config()
+        flatpak_config['installation_level'] = component.components[0].components[0].get_selected()
 
         try:
-            save_config(config, CONFIG_FILE)
+            self.configman.save_config(flatpak_config)
             return True, None
         except:
             return False, [traceback.format_exc()]

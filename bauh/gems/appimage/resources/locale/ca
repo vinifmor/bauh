@@ -36,6 +36,7 @@ appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files
 appimage.task.db_update=Actualització de bases de dades
+appimage.task.db_update.checking=Checking for updates
 appimage.task.symlink_check=Checking symlinks
 appimage.uninstall.error.remove_folder=No s’ha pogut suprimir el directori d’instal·lació de l’aplicació {}
 appimage.warning.missing_db_files={appimage} database files were not found. Some actions will not work properly.

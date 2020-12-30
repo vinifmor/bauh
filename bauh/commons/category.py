@@ -18,8 +18,8 @@ from bauh.commons.util import map_timestamp_file
 class CategoriesDownloader(Thread):
 
     def __init__(self, id_: str, http_client: HttpClient, logger: logging.Logger, manager: SoftwareManager,
-                 url_categories_file: str, categories_path: str, expiration: int, internet_checker: InternetChecker,
-                 internet_connection: Optional[bool] = True, before=None, after=None):
+                 url_categories_file: str, categories_path: str, internet_checker: InternetChecker,
+                 expiration: Optional[int] = None, internet_connection: Optional[bool] = True, before=None, after=None):
         """
         :param id_:
         :param http_client:
@@ -121,7 +121,7 @@ class CategoriesDownloader(Thread):
             self.logger.warning(self._msg("No internet connection. The categories file '{}' cannot be updated.".format(self.categories_path)))
             return False
 
-        if self.expiration <= 0:
+        if self.expiration is None or self.expiration <= 0:
             self.logger.warning(self._msg("No expiration set for the categories file '{}'. It should be downloaded".format(self.categories_path)))
             return True
 

@@ -23,8 +23,8 @@ from bauh.api.exception import NoInternetException
 from bauh.commons import user
 from bauh.commons.html import bold
 from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
-from bauh.view.core import timeshift, config
-from bauh.view.core.config import read_config
+from bauh.view.core import timeshift
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.qt import commons
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
@@ -466,7 +466,7 @@ class UpgradeSelected(AsyncAction):
 
         self.change_substatus('')
 
-        app_config = read_config()
+        app_config = CoreConfigManager().get_config()
 
         # backup dialog ( if enabled, supported and accepted )
         should_backup = bkp_supported
@@ -572,7 +572,7 @@ class UninstallPackage(AsyncAction):
                                              pkg=self.pkg,
                                              i18n=self.i18n,
                                              root_password=self.root_pwd,
-                                             app_config=read_config())
+                                             app_config=CoreConfigManager().get_config())
             if not proceed:
                 self.notify_finished({'success': False, 'removed': None, 'pkg': self.pkg})
                 self.pkg = None
@@ -615,7 +615,7 @@ class DowngradePackage(AsyncAction):
                                              pkg=self.pkg,
                                              i18n=self.i18n,
                                              root_password=self.root_pwd,
-                                             app_config=read_config())
+                                             app_config=CoreConfigManager().get_config())
 
             if not proceed:
                 self.notify_finished({'app': self.pkg, 'success': success})
@@ -707,7 +707,7 @@ class InstallPackage(AsyncAction):
                                              pkg=self.pkg,
                                              i18n=self.i18n,
                                              root_password=self.root_pwd,
-                                             app_config=read_config())
+                                             app_config=CoreConfigManager().get_config())
 
             if not proceed:
                 self.signal_finished.emit(res)
@@ -1007,7 +1007,7 @@ class CustomAction(AsyncAction):
         res = {'success': False, 'pkg': self.pkg, 'action': self.custom_action, 'error': None, 'error_type': MessageType.ERROR}
 
         if self.custom_action.backup:
-            proceed, _ = self.request_backup(app_config=read_config(),
+            proceed, _ = self.request_backup(app_config=CoreConfigManager.get_config(),
                                              action_key=None,
                                              i18n=self.i18n,
                                              root_password=self.root_pwd,
@@ -1081,10 +1081,11 @@ class SaveTheme(QThread):
 
     def run(self):
         if self.theme_key:
-            core_config = read_config()
+            configman = CoreConfigManager()
+            core_config = configman.get_config()
             core_config['ui']['theme'] = self.theme_key
 
             try:
-                config.save(core_config)
+                configman.save_config(core_config)
             except:
                 traceback.print_exc()

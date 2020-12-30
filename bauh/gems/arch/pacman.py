@@ -497,7 +497,8 @@ def get_current_mirror_countries() -> List[str]:
 
 
 def is_mirrors_available() -> bool:
-    return bool(run_cmd('which pacman-mirrors', print_error=False))
+    code, _ = system.execute(cmd='which pacman-mirrors', output=False)
+    return code == 0
 
 
 def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:

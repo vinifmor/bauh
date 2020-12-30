@@ -24,13 +24,13 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.commons import resource
-from bauh.commons.config import save_config
+from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, CONFIG_FILE, ROOT_DIR, \
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, ROOT_DIR, \
     CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
-    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, DATABASES_DIR
-from bauh.gems.appimage.config import read_config
+    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, DATABASES_DIR, get_icon_path
+from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.util import replace_desktop_entry_exec_command
 from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
@@ -76,6 +76,7 @@ class AppImageManager(SoftwareManager):
         self.http_client = context.http_client
         self.logger = context.logger
         self.file_downloader = context.file_downloader
+        self.configman = AppImageConfigManager()
         self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                     i18n_status_key='appimage.custom_action.install_file.status',
                                                     manager=self,
@@ -616,16 +617,17 @@ class AppImageManager(SoftwareManager):
         return False
 
     def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+        create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
+                                         task_icon_path=get_icon_path(), logger=self.logger)
+        create_config.start()
+
         symlink_check = SymlinksVerifier(taskman=task_manager, i18n=self.i18n, logger=self.logger)
         symlink_check.start()
 
         if internet_available:
-            updater = DatabaseUpdater(taskman=task_manager, i18n=self.context.i18n,
-                                      http_client=self.context.http_client, logger=self.context.logger)
-
-            if updater.should_update(read_config()):
-                updater.register_task()
-                updater.start()
+            DatabaseUpdater(taskman=task_manager, i18n=self.context.i18n,
+                            create_config=create_config, http_client=self.context.http_client,
+                            logger=self.context.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
@@ -729,12 +731,12 @@ class AppImageManager(SoftwareManager):
                     traceback.print_exc()
 
     def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        config = read_config()
+        appimage_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 
         opts = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
-                               value=int(config['database']['expiration']) if isinstance(config['database']['expiration'], int) else '',
+                               value=int(appimage_config['database']['expiration']) if isinstance(appimage_config['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
@@ -744,13 +746,13 @@ class AppImageManager(SoftwareManager):
         return PanelComponent([FormComponent(opts, self.i18n['appimage.config.database'])])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        config = read_config()
+        appimage_config = self.configman.get_config()
 
         panel = component.components[0]
-        config['database']['expiration'] = panel.get_component('appim_db_exp').get_int_value()
+        appimage_config['database']['expiration'] = panel.get_component('appim_db_exp').get_int_value()
 
         try:
-            save_config(config, CONFIG_FILE)
+            self.configman.save_config(appimage_config)
             return True, None
         except:
             return False, [traceback.format_exc()]
@@ -822,7 +824,7 @@ class AppImageManager(SoftwareManager):
 
     def update_database(self, root_password: str, watcher: ProcessWatcher) -> bool:
         db_updater = DatabaseUpdater(i18n=self.i18n, http_client=self.context.http_client,
-                                     logger=self.context.logger, watcher=watcher)
+                                     logger=self.context.logger, watcher=watcher, taskman=TaskManager())
 
         res = db_updater.download_databases()
         return res

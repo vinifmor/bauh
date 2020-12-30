@@ -9,7 +9,8 @@ from bauh.cli import __app_name__, cli_args
 from bauh.cli.controller import CLIManager
 from bauh.commons.internet import InternetChecker
 from bauh.context import generate_i18n, DEFAULT_I18N_KEY
-from bauh.view.core import config, gems
+from bauh.view.core import gems
+from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import logs, util, resource
@@ -26,7 +27,7 @@ def main():
     args = cli_args.read()
     logger = logs.new_logger(__app_name__, False)
 
-    app_config = config.read_config(update_file=True)
+    app_config = CoreConfigManager().get_config()
     http_client = HttpClient(logger)
 
     i18n = generate_i18n(app_config, resource.get_path('locale'))
