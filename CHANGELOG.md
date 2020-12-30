@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - downgrade: using the cached package commit (if available) to determine the correct version to downgrade to (otherwise only the version will be used -> old behavior)
         - history: using the cached package commit (if available) to properly determine the current version (otherwise only the version will be used -> old behavior)
         - the task responsible for generating the local index is displayed on the initialization dialog
-        - the index is not always being updated during the initialization process. It its kept for a period of time controlled by the settings property **aur_idx_exp** (in minutes -> default: 720 = 8 hours.). (P.S: this index is always updated when a package is installed/upgraded)
+        - the index is not always being updated during the initialization process. It its kept for a period of time controlled by the settings property **aur_idx_exp** (in HOURS -> default: 1). (P.S: this index is always updated when a package is installed/upgraded)
         <p align="center">
             <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.11/aur_idx_exp.png">
         </p>

@@ -37,5 +37,5 @@ class ArchConfigManager(YAMLConfigManager):
                 'check_dependency_breakage': True,
                 'suggest_unneeded_uninstall': False,
                 'suggest_optdep_uninstall': False,
-                'aur_idx_exp': 720,
+                'aur_idx_exp': 1,
                 'categories_exp': 24}

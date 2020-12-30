@@ -45,12 +45,12 @@ class AURIndexUpdater(Thread):
 
     def should_update(self) -> bool:
         try:
-            exp_minutes = int(self.config['aur_idx_exp'])
+            exp_hours = int(self.config['aur_idx_exp'])
         except:
             traceback.print_exc()
             return True
 
-        if exp_minutes <= 0:
+        if exp_hours <= 0:
             return True
 
         if not os.path.exists(AUR_INDEX_FILE):
@@ -64,7 +64,7 @@ class AURIndexUpdater(Thread):
 
         try:
             index_timestamp = datetime.fromtimestamp(float(timestamp_str))
-            return (index_timestamp + timedelta(minutes=exp_minutes)) <= datetime.utcnow()
+            return (index_timestamp + timedelta(hours=exp_hours)) <= datetime.utcnow()
         except:
             traceback.print_exc()
             return True
