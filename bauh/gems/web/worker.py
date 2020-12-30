@@ -5,13 +5,12 @@ from datetime import datetime
 from threading import Thread
 from typing import Optional
 
-import yaml
-
 from bauh.api.abstract.handler import TaskManager
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.gems.web import SEARCH_INDEX_FILE, get_icon_path
+from bauh.gems.web import get_icon_path
 from bauh.gems.web.environment import EnvironmentUpdater
+from bauh.gems.web.search import SearchIndexManager
 from bauh.gems.web.suggestions import SuggestionsManager
 from bauh.view.util.translation import I18n
 
@@ -69,14 +68,15 @@ class SuggestionsLoader(Thread):
         self.taskman.update_progress(self.task_id, 100, None)
         self.taskman.finish_task(self.task_id)
         tf = time.time()
-        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
+        self.logger.info("Finished. Took {0:.4f} seconds".format(tf - ti))
 
 
 class SearchIndexGenerator(Thread):
 
-    def __init__(self, taskman: TaskManager, suggestions_loader: SuggestionsLoader, i18n: I18n, logger: logging.Logger):
+    def __init__(self, taskman: TaskManager, idxman: SearchIndexManager, suggestions_loader: SuggestionsLoader, i18n: I18n, logger: logging.Logger):
         super(SearchIndexGenerator, self).__init__(daemon=True)
         self.taskman = taskman
+        self.idxman = idxman
         self.i18n = i18n
         self.logger = logger
         self.suggestions_loader = suggestions_loader
@@ -89,53 +89,18 @@ class SearchIndexGenerator(Thread):
         self.suggestions_loader.join()
 
         if self.suggestions_loader.suggestions:
-            self.generate_index(self.suggestions_loader.suggestions)
-        else:
-            self.taskman.update_progress(self.task_id, 100, None)
-            self.taskman.finish_task(self.task_id)
+            self.taskman.update_progress(self.task_id, 1, None)
+            self.logger.info('Indexing suggestions')
+            index = self.idxman.generate(self.suggestions_loader.suggestions)
 
-        tf = time.time()
-        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
-
-    def generate_index(self, suggestions: dict):
-        self.taskman.update_progress(self.task_id, 1, None)
-        self.logger.info('Indexing suggestions')
-        index = {}
-
-        for key, sug in suggestions.items():
-            name = sug.get('name')
-
-            if name:
-                split_name = name.lower().strip().split(' ')
-                single_name = ''.join(split_name)
-
-                for word in (*split_name, single_name):
-                    mapped = index.get(word)
-
-                    if not mapped:
-                        mapped = set()
-                        index[word] = mapped
-
-                    mapped.add(key)
-
-        if index:
-            self.taskman.update_progress(self.task_id, 50, self.i18n['web.task.suggestions.saving'])
-            self.logger.info('Preparing search index for writing')
-
-            for key in index.keys():
-                index[key] = list(index[key])
-
-            try:
-                self.logger.info('Writing {} indexed keys as {}'.format(len(index), SEARCH_INDEX_FILE))
-                with open(SEARCH_INDEX_FILE, 'w+') as f:
-                    f.write(yaml.safe_dump(index))
-                self.logger.info("Search index successfully written at {}".format(SEARCH_INDEX_FILE))
-            except:
-                self.logger.error("Could not write the seach index to {}".format(SEARCH_INDEX_FILE))
-                traceback.print_exc()
+            if index:
+                self.taskman.update_progress(self.task_id, 50, self.i18n['web.task.suggestions.saving'])
+                self.idxman.write(index)
 
         self.taskman.update_progress(self.task_id, 100, None)
         self.taskman.finish_task(self.task_id)
+        tf = time.time()
+        self.logger.info("Finished. Took {0:.4f} seconds".format(tf - ti))
 
 
 class UpdateEnvironmentSettings(Thread):

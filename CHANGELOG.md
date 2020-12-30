@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     </p>
     
     - displaying the "Indexing suggestions" task during the initialization process
+    - code refactoring
 
 - all types now display an initialization task "Checking configuration file" responsible to create/update the respective configuration file
 - minor translation improvements

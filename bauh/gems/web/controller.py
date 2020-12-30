@@ -32,11 +32,12 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SEARCH_INDEX_FILE, SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_PATH, \
+    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_PATH, \
     get_icon_path
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
+from bauh.gems.web.search import SearchIndexManager
 from bauh.gems.web.worker import SuggestionsManager, UpdateEnvironmentSettings, \
     SuggestionsLoader, SearchIndexGenerator
 
@@ -72,6 +73,7 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions_loader = suggestions_loader
         self.suggestions = {}
         self.configman = WebConfigManager()
+        self.idxman = SearchIndexManager(logger=context.logger)
         self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
                                                     i18n_status_key='web.custom_action.clean_env.status',
                                                     manager=self,
@@ -255,11 +257,11 @@ class WebApplicationManager(SoftwareManager):
             lower_words = words.lower().strip()
             installed_matches = [app for app in installed if lower_words in app.name.lower()]
 
-            index = self._read_search_index()
+            index = self.idxman.read()
 
             if not index and self.suggestions_loader and self.suggestions_loader.is_alive():
                 self.suggestions_loader.join()
-                index = self._read_search_index()
+                index = self.idxman.read()
 
             if index:
                 split_words = lower_words.split(' ')
@@ -332,13 +334,6 @@ class WebApplicationManager(SoftwareManager):
                     app.latest_version = app.version
 
         return res
-
-    def _read_search_index(self) -> dict:
-        if os.path.exists(SEARCH_INDEX_FILE):
-            with open(SEARCH_INDEX_FILE) as f:
-                return yaml.safe_load(f.read())
-        else:
-            self.logger.warning("No search index found at {}".format(SEARCH_INDEX_FILE))
 
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
         res = SearchResult([], [], 0)
@@ -842,6 +837,7 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions_loader.start()
 
         SearchIndexGenerator(taskman=task_manager,
+                             idxman=self.idxman,
                              suggestions_loader=self.suggestions_loader,
                              i18n=self.i18n,
                              logger=self.logger).start()
