@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.11]
+## [0.9.11] 2020-12-30
 ### New system requirements
 - **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)
 - **git**: for AUR support.
@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - AUR
         - upgrade checking now considers modification dates as well (needed because not all AUR packages follow versioning standards)
-        - downgrade: using the cached package commit (if available) to determine the correct version to downgrade to (otherwise only the version will be used -> old behavior)
+        - downgrade: using the cached package commit (if available) to determine the correct version to downgrade (otherwise only the version will be used -> old behavior)
         - history: using the cached package commit (if available) to properly determine the current version (otherwise only the version will be used -> old behavior)
         - the task responsible for generating the local index is displayed on the initialization dialog
         - the index is not always being updated during the initialization process. It its kept for a period of time controlled by the settings property **aur_idx_exp** (in HOURS -> default: 1). (P.S: this index is always updated when a package is installed/upgraded)
@@ -64,7 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying the "Indexing suggestions" task during the initialization process
     - code refactoring
 
-- all types now display an initialization task "Checking configuration file" responsible to create/update the respective configuration file
+- all types now display an initialization task **Checking configuration file** responsible to create/update the respective configuration file
 - minor translation improvements
         
 
