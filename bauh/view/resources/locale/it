@@ -317,6 +317,7 @@ manage_window.checkbox.show_details=Mostra dettagli
 manage_window.columns.installed=Installed
 manage_window.columns.latest_version=Ultima Versione
 manage_window.columns.update=Upgrade ?
+manage_window.info.no_info=There is no information available for {}
 manage_window.label.apps_displayed.tip=Applications displayed / available
 manage_window.label.updates=Aggiornamenti
 manage_window.name_filter.button_tooltip=Click here to filter apps by name

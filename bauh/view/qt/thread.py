@@ -644,7 +644,12 @@ class ShowPackageInfo(AsyncAction):
     def run(self):
         if self.pkg:
             info = {'__app__': self.pkg}
-            info.update(self.manager.get_info(self.pkg.model))
+
+            pkg_info = self.manager.get_info(self.pkg.model)
+
+            if pkg_info:
+                info.update(pkg_info)
+
             self.notify_finished(info)
             self.pkg = None
 

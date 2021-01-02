@@ -1216,9 +1216,16 @@ class ManageWindow(QWidget):
 
     def _finish_show_info(self, pkg_info: dict):
         self._finish_action(action_id=ACTION_INFO)
-        dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache,
-                                 i18n=self.i18n, screen_size=self.screen_size)
-        dialog_info.exec_()
+
+        if pkg_info:
+            if len(pkg_info) > 1:
+                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache,
+                                         i18n=self.i18n, screen_size=self.screen_size)
+                dialog_info.exec_()
+            else:
+                dialog.show_message(title=self.i18n['warning'].capitalize(),
+                                    body=self.i18n['manage_window.info.no_info'].format(bold(pkg_info['__app__'].model.name)),
+                                    type_=MessageType.WARNING)
 
     def begin_show_screenshots(self, pkg: PackageView):
         self._begin_action(action_label=self.i18n['manage_window.status.screenshots'].format(bold(pkg.model.name)),

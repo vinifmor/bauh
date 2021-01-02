@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.12] 2021
+### Fixes
+- Arch
+    - crashing when information of a given package is not available
+
+- UI
+    - displaying a popup when information of a given package is not available
+
 ## [0.9.11] 2020-12-30
 ### New system requirements
 - **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)

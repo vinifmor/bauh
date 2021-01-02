@@ -69,7 +69,7 @@ def get_info_list(pkg_name: str, remote: bool = False) -> List[tuple]:
         return re.findall(r'(\w+\s?\w+)\s*:\s*(.+(\n\s+.+)*)', info)
 
 
-def get_info_dict(pkg_name: str, remote: bool = False) -> dict:
+def get_info_dict(pkg_name: str, remote: bool = False) -> Optional[dict]:
     list_attrs = {'depends on', 'required by', 'conflicts with'}
     info_list = get_info_list(pkg_name, remote)
 

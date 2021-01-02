@@ -1417,21 +1417,23 @@ class ArchManager(SoftwareManager):
             t.start()
 
             info = pacman.get_info_dict(pkg.name)
-            self._parse_dates_string_from_info(pkg.name, info)
 
-            if pkg.commit:
-                info['commit'] = pkg.commit
+            if info is not None:
+                self._parse_dates_string_from_info(pkg.name, info)
 
-            if pkg.last_modified:
-                info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
-                                                              error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
+                if pkg.commit:
+                    info['commit'] = pkg.commit
 
-            t.join()
+                if pkg.last_modified:
+                    info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
+                                                                  error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
 
-            if pkg.pkgbuild:
-                info['13_pkg_build'] = pkg.pkgbuild
+                t.join()
 
-            info['14_installed_files'] = pacman.list_installed_files(pkg.name)
+                if pkg.pkgbuild:
+                    info['13_pkg_build'] = pkg.pkgbuild
+
+                info['14_installed_files'] = pacman.list_installed_files(pkg.name)
 
             return info
         else:
@@ -1501,9 +1503,12 @@ class ArchManager(SoftwareManager):
 
     def _get_info_repo_pkg(self, pkg: ArchPackage) -> dict:
         info = pacman.get_info_dict(pkg.name, remote=not pkg.installed)
-        self._parse_dates_string_from_info(pkg.name, info)
-        if pkg.installed:
-            info['installed files'] = pacman.list_installed_files(pkg.name)
+
+        if info is not None:
+            self._parse_dates_string_from_info(pkg.name, info)
+
+            if pkg.installed:
+                info['installed files'] = pacman.list_installed_files(pkg.name)
 
         return info
 
