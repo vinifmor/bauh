@@ -350,36 +350,24 @@ class ArchManager(SoftwareManager):
 
         Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True).start()
 
-    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
-        repo_search = pacman.search(words)
-        pkgname = words.split(' ')[0].strip()
+    def _search_in_repos_and_fill(self, words: str, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
+        ti = time.time()
+        pkgs_found = pacman.search(words)
+        read_installed.join()
 
-        if not repo_search or pkgname not in repo_search:
-            pkg_found = pacman.get_info_dict(pkgname, remote=False)
+        added = set()
+        if installed:
+            query = words.strip()
+            for p in installed:
+                if p.repository != 'aur' and (p.name in pkgs_found or query in p.name):
+                    added.add(p.name)
+                    res.installed.append(p)
 
-            if pkg_found and pkg_found['validated by'] and pkg_found['name'] not in repo_search:
-                repo_search[pkgname] = {'version': pkg_found.get('version'),
-                                        'repository': 'unknown',
-                                        'description': pkg_found.get('description')}
-
-        if repo_search:
-            repo_pkgs = []
-            for name, data in repo_search.items():
-                pkg = ArchPackage(name=name, i18n=self.i18n, **data)
-                repo_pkgs.append(pkg)
-
-            if repo_pkgs:
-                read_installed.join()
-
-                repo_installed = {p.name: p for p in installed if p.repository != 'aur'} if installed else {}
-
-                for pkg in repo_pkgs:
-                    pkg_installed = repo_installed.get(pkg.name)
-                    if pkg_installed:
-                        res.installed.append(pkg_installed)
-                    else:
-                        pkg.installed = False
-                        res.new.append(pkg)
+        for pkgname, pkgdata in pkgs_found.items():
+            if pkgname not in added:
+                res.new.append(ArchPackage(name=pkgname, i18n=self.i18n, **pkgdata))
+        tf = time.time()
+        self.logger.info("Searching repository packages took {0:.2f} seconds".format(tf - ti))
 
     def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
         api_res = self.aur_client.search(words)
@@ -446,7 +434,7 @@ class ArchManager(SoftwareManager):
             aur_search.start()
 
         if arch_config['repositories']:
-            self._search_in_repos_and_fill(final_words, disk_loader, read_installed, installed, res)
+            self._search_in_repos_and_fill(final_words, read_installed, installed, res)
 
         if aur_search:
             aur_search.join()

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Arch
     - crashing when information of a given package is not available
+    - displaying "provided" repository packages on the search results (e.g: **nvidia** would appear as a package)
 
 - UI
     - displaying a popup when information of a given package is not available
