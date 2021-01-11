@@ -89,7 +89,7 @@ class AURDataMapper:
 
     def fill_package_build(self, pkg: ArchPackage):
         cached_pkgbuild = pkg.get_cached_pkgbuild_path()
-        if os.path.exists(cached_pkgbuild):
+        if pkg.installed and os.path.exists(cached_pkgbuild):
             with open(cached_pkgbuild) as f:
                 pkg.pkgbuild = f.read()
         else:

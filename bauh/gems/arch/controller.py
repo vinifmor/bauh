@@ -246,7 +246,7 @@ class ArchManager(SoftwareManager):
         self.disk_cache_updater = disk_cache_updater
 
     @staticmethod
-    def get_semantic_search_map() -> Dict[str, str]:
+    def get_aur_semantic_search_map() -> Dict[str, str]:
         return {'google chrome': 'google-chrome',
                 'chrome google': 'google-chrome',
                 'googlechrome': 'google-chrome'}
@@ -337,49 +337,21 @@ class ArchManager(SoftwareManager):
         database.register_sync(self.logger)
         return True
 
-    def _upgrade_search_result(self, apidata: dict, installed_pkgs: Dict[str, ArchPackage], res: SearchResult):
-        pkg = installed_pkgs.get(apidata['Name'])
-
-        if not pkg:
-            pkg = self.aur_mapper.map_api_data(apidata, None, self.categories)
-
-        if pkg.installed:
-            res.installed.append(pkg)
-        else:
-            res.new.append(pkg)
-
-        Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True).start()
-
-    def _search_in_repos_and_fill(self, words: str, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
+    def _fill_repos_search_results(self, query: str, output: dict):
         ti = time.time()
-        pkgs_found = pacman.search(words)
-        read_installed.join()
-
-        added = set()
-        if installed:
-            query = words.strip()
-            for p in installed:
-                if p.repository != 'aur' and (p.name in pkgs_found or query in p.name):
-                    added.add(p.name)
-                    res.installed.append(p)
-
-        for pkgname, pkgdata in pkgs_found.items():
-            if pkgname not in added:
-                res.new.append(ArchPackage(name=pkgname, i18n=self.i18n, **pkgdata))
+        output['repositories'] = pacman.search(query)
         tf = time.time()
-        self.logger.info("Searching repository packages took {0:.2f} seconds".format(tf - ti))
+        self.logger.info("Repositories search took {0:.2f} seconds".format(tf - ti))
 
-    def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
-        api_res = self.aur_client.search(words)
+    def _fill_aur_search_results(self, query: str, output: dict):
+        ti = time.time()
+        api_res = self.aur_client.search(query)
 
+        pkgs_found = None
         if api_res and api_res.get('results'):
-            read_installed.join()
-            aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
-
-            for pkgdata in api_res['results']:
-                self._upgrade_search_result(pkgdata, aur_installed, res)
-
-        else:  # if there are no results from the API (it could be because there were too many), tries the names index:
+            pkgs_found = api_res['results']
+        else:
+            tii = time.time()
             if self.index_aur:
                 self.index_aur.join()
 
@@ -388,58 +360,91 @@ class ArchManager(SoftwareManager):
                 self.logger.info("Querying through the local AUR index")
                 to_query = set()
                 for norm_name, real_name in aur_index.items():
-                    if words in norm_name:
+                    if query in norm_name:
                         to_query.add(real_name)
 
                     if len(to_query) == 25:
                         break
 
-                pkgsinfo = self.aur_client.get_info(to_query)
+                pkgs_found = self.aur_client.get_info(to_query)
 
-                if pkgsinfo:
-                    read_installed.join()
-                    aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
+            tif = time.time()
+            self.logger.info("Query through local AUR index took {0:.2f} seconds".format(tif - tii))
 
-                    for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, aur_installed, res)
+        if pkgs_found:
+            for pkg in pkgs_found:
+                output['aur'][pkg['Name']] = pkg
+
+        tf = time.time()
+        self.logger.info("AUR search took {0:.2f} seconds".format(tf - ti))
+
+    def __fill_search_installed_and_matched(self, query: str, res: dict):
+        matches = set()
+        installed = pacman.list_installed_names()
+        res['installed'] = installed
+        res['installed_matches'] = matches
+
+        if installed and ' ' not in query:  # already filling some matches only based on the query
+            matches.update((name for name in installed if query in name))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
-            return SearchResult([], [], 0)
+            return SearchResult.empty()
 
         arch_config = self.configman.get_config()
-        aur_supported = aur.is_supported(arch_config)
+        repos_supported, aur_supported = arch_config['repositories'], aur.is_supported(arch_config)
 
-        if not any([arch_config['repositories'], aur_supported]):
-            return SearchResult([], [], 0)
+        if not any([repos_supported, aur_supported]):
+            return SearchResult.empty()
 
-        installed = []
-        read_installed = Thread(target=lambda: installed.extend(self.read_installed(disk_loader=disk_loader,
-                                                                                    only_apps=False,
-                                                                                    limit=-1,
-                                                                                    internet_available=True).installed), daemon=True)
-        read_installed.start()
+        res = SearchResult.empty()
 
-        res = SearchResult([], [], 0)
+        search_output, search_threads = {'aur': {}, 'repositories': {}}, []
+        t = Thread(target=self.__fill_search_installed_and_matched, args=(words, search_output), daemon=True)
+        t.start()
+        search_threads.append(t)
 
-        if not any([aur_supported, arch_config['repositories']]):
-            return res
-
-        mapped_words = self.get_semantic_search_map().get(words)
-        final_words = mapped_words or words
-
-        aur_search = None
         if aur_supported:
-            aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
-            aur_search.start()
+            aur_query = self.get_aur_semantic_search_map().get(words, words)
+            taur = Thread(target=self._fill_aur_search_results, args=(aur_query, search_output), daemon=True)
+            taur.start()
+            search_threads.append(taur)
 
-        if arch_config['repositories']:
-            self._search_in_repos_and_fill(final_words, read_installed, installed, res)
+        if repos_supported:
+            trepo = Thread(target=self._fill_repos_search_results, args=(words, search_output), daemon=True)
+            trepo.start()
+            search_threads.append(trepo)
 
-        if aur_search:
-            aur_search.join()
+        for t in search_threads:
+            t.join()
 
-        res.total = len(res.installed) + len(res.new)
+        for name in {*search_output['repositories'].keys(), *search_output['aur'].keys()}:
+            if name in search_output['installed']:
+                search_output['installed_matches'].add(name)
+
+        if search_output['installed_matches']:
+            installed = self.read_installed(disk_loader=disk_loader, names=search_output['installed_matches']).installed
+
+            for pkg in installed:
+                if pkg.repository != 'aur':
+                    if repos_supported:
+                        res.installed.append(pkg)
+                        if pkg.name in search_output['repositories']:
+                            del search_output['repositories'][pkg.name]
+                elif aur_supported:
+                    res.installed.append(pkg)
+                    if pkg.name in search_output['aur']:
+                        del search_output['aur'][pkg.name]
+
+        if search_output['repositories']:
+            for pkgname, data in search_output['repositories'].items():
+                res.new.append(ArchPackage(name=pkgname, i18n=self.i18n, **data))
+
+        if search_output['aur']:
+            for pkgname, apidata in search_output['aur'].items():
+                res.new.append(self.aur_mapper.map_api_data(apidata, None, self.categories))
+
+        res.update_total()
         return res
 
     def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
@@ -1400,10 +1405,10 @@ class ArchManager(SoftwareManager):
         return {ArchPackage}
 
     def _get_info_aur_pkg(self, pkg: ArchPackage) -> dict:
-        if pkg.installed:
-            t = Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True)
-            t.start()
+        fill_pkgbuild = Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True)
+        fill_pkgbuild.start()
 
+        if pkg.installed:
             info = pacman.get_info_dict(pkg.name)
 
             if info is not None:
@@ -1416,12 +1421,12 @@ class ArchManager(SoftwareManager):
                     info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
                                                                   error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
 
-                t.join()
+                info['14_installed_files'] = pacman.list_installed_files(pkg.name)
+
+                fill_pkgbuild.join()
 
                 if pkg.pkgbuild:
                     info['13_pkg_build'] = pkg.pkgbuild
-
-                info['14_installed_files'] = pacman.list_installed_files(pkg.name)
 
             return info
         else:
@@ -1463,6 +1468,8 @@ class ArchManager(SoftwareManager):
                             info[info_attr] = [*srcinfo[arch_attr]]
                         else:
                             info[info_attr].extend(srcinfo[arch_attr])
+
+            fill_pkgbuild.join()
 
             if pkg.pkgbuild:
                 info['00_pkg_build'] = pkg.pkgbuild
