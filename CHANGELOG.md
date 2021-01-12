@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - crashing when information of a given package is not available
     - displaying "provided" repository packages on the search results (e.g: **nvidia** would appear as a package)
     - calling pacman to read installed packages when "Repositories" and "AUR" properties are set to "false" (it would not display the packages, but the call was unnecessary being done)
+    - not displaying installed AUR packages when AUR support is disabled
+    - downloading AUR index during the initialization process when AUR support is disabled
 - UI
     - displaying a popup when information of a given package is not available
 

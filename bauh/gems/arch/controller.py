@@ -515,11 +515,8 @@ class ArchManager(SoftwareManager):
         thread_updates.start()
 
         repo_map = pacman.map_repositories(repo_pkgs)
-        if len(repo_map) != len(repo_pkgs):
-            self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(repo_pkgs)))
 
         thread_updates.join()
-
         self.logger.info("Repository updates found" if updates else "No repository updates found")
 
         for name, data in repo_pkgs.items():
@@ -545,6 +542,9 @@ class ArchManager(SoftwareManager):
             if disk_loader:
                 disk_loader.fill(pkg, sync=True)
 
+            if not aur_supported and pkg.repository == 'aur':
+                pkg.repository = None  # if AUR support is disabled, the repository should be reported as "unknown"
+
             if aur_supported or pkg.repository != 'aur':  # this case happens when a package was removed from AUR
                 pkgs.append(pkg)
 
@@ -567,24 +567,27 @@ class ArchManager(SoftwareManager):
 
         aur_pkgs, repo_pkgs = None, None
 
-        if repos_supported and installed['signed']:
+        if repos_supported:
             repo_pkgs = installed['signed']
 
         if installed['not_signed']:
-            if self.index_aur:
-                self.index_aur.join()
+            if aur_supported:
+                if self.index_aur:
+                    self.index_aur.join()
 
-            aur_index = self.aur_client.read_index()
+                aur_index = self.aur_client.read_index()
 
-            for pkg in {*installed['not_signed']}:
-                if pkg not in aur_index:
-                    if repo_pkgs is not None:
-                        repo_pkgs[pkg] = installed['not_signed'][pkg]
+                for pkg in {*installed['not_signed']}:
+                    if pkg not in aur_index:
+                        if repos_supported:
+                            repo_pkgs[pkg] = installed['not_signed'][pkg]
 
-                    if aur_supported and installed['not_signed']:
-                        del installed['not_signed'][pkg]
+                        if aur_supported and installed['not_signed']:
+                            del installed['not_signed'][pkg]
 
-            aur_pkgs = installed['not_signed'] if aur_supported else None
+                aur_pkgs = installed['not_signed']
+            elif repos_supported:
+                repo_pkgs.update(installed['not_signed'])
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
@@ -2896,34 +2899,40 @@ class ArchManager(SoftwareManager):
                                value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
         ]
 
-        return PanelComponent([FormComponent(fields, spaces=False)])
+        return PanelComponent([FormComponent(fields, spaces=False, id_='root')])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         arch_config = self.configman.get_config()
 
-        panel = component.components[0]
-        arch_config['repositories'] = panel.get_component('repos').get_selected()
-        arch_config['aur'] = panel.get_component('aur').get_selected()
-        arch_config['optimize'] = panel.get_component('opts').get_selected()
-        arch_config['sync_databases'] = panel.get_component('sync_dbs').get_selected()
-        arch_config['sync_databases_startup'] = panel.get_component('sync_dbs_start').get_selected()
-        arch_config['clean_cached'] = panel.get_component('clean_cached').get_selected()
-        arch_config['refresh_mirrors_startup'] = panel.get_component('ref_mirs').get_selected()
-        arch_config['mirrors_sort_limit'] = panel.get_component('mirrors_sort_limit').get_int_value()
-        arch_config['repositories_mthread_download'] = panel.get_component('mthread_download').get_selected()
-        arch_config['automatch_providers'] = panel.get_component('autoprovs').get_selected()
-        arch_config['edit_aur_pkgbuild'] = panel.get_component('edit_aur_pkgbuild').get_selected()
-        arch_config['aur_remove_build_dir'] = panel.get_component('aur_remove_build_dir').get_selected()
-        arch_config['aur_build_dir'] = panel.get_component('aur_build_dir').file_path
-        arch_config['aur_build_only_chosen'] = panel.get_component('aur_build_only_chosen').get_selected()
-        arch_config['aur_idx_exp'] = panel.get_component('aur_idx_exp').get_int_value()
-        arch_config['check_dependency_breakage'] = panel.get_component('check_dependency_breakage').get_selected()
-        arch_config['suggest_optdep_uninstall'] = panel.get_component('suggest_optdep_uninstall').get_selected()
-        arch_config['suggest_unneeded_uninstall'] = panel.get_component('suggest_unneeded_uninstall').get_selected()
-        arch_config['categories_exp'] = panel.get_component('arch_cats_exp').get_int_value()
+        form = component.get_form_component('root')
+        arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
+        arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
+        arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
+        arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
+        arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
+        arch_config['refresh_mirrors_startup'] = form.get_single_select_component('ref_mirs').get_selected()
+        arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit').get_int_value()
+        arch_config['repositories_mthread_download'] = form.get_component('mthread_download').get_selected()
+        arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
+        arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
+        arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
+        arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
+        arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
+        arch_config['aur_idx_exp'] = form.get_component('aur_idx_exp').get_int_value()
+        arch_config['check_dependency_breakage'] = form.get_single_select_component('check_dependency_breakage').get_selected()
+        arch_config['suggest_optdep_uninstall'] = form.get_single_select_component('suggest_optdep_uninstall').get_selected()
+        arch_config['suggest_unneeded_uninstall'] = form.get_single_select_component('suggest_unneeded_uninstall').get_selected()
+        arch_config['categories_exp'] = form.get_component('arch_cats_exp').get_int_value()
 
         if not arch_config['aur_build_dir']:
             arch_config['aur_build_dir'] = None
+
+        aur_enabled_select = form.get_single_select_component('aur')
+        arch_config['aur'] = aur_enabled_select.get_selected()
+
+        if aur_enabled_select.changed() and arch_config['aur']:
+            self.index_aur = AURIndexUpdater(context=self.context, taskman=TaskManager(), arch_config=arch_config)
+            self.index_aur.start()
 
         try:
             self.configman.save_config(arch_config)

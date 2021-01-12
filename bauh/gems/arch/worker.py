@@ -44,6 +44,9 @@ class AURIndexUpdater(Thread):
         self.taskman.register_task(self.task_id, self.i18n['arch.task.aur.index.status'], get_icon_path())
 
     def should_update(self) -> bool:
+        if not aur.is_supported(self.config):
+            return False
+
         try:
             exp_hours = int(self.config['aur_idx_exp'])
         except:
@@ -134,7 +137,7 @@ class AURIndexUpdater(Thread):
 
         tf = time.time()
         self.taskman.finish_task(self.task_id)
-        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
+        self.logger.info("Finished. Took {0:.5f} seconds".format(tf - ti))
 
 
 class ArchDiskCacheUpdater(Thread):
