@@ -1,8 +1,10 @@
 import logging
 import os
+import time
 import traceback
 from math import floor
-from typing import List, Tuple, Optional
+from threading import Thread
+from typing import List, Tuple, Optional, Dict
 
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
@@ -449,23 +451,50 @@ class GenericSettingsManager:
         except:
             return False, [traceback.format_exc()]
 
+    def _save_manager_settings(self, man: SoftwareManager, panel: ViewComponent, success_map: Dict[str, bool], warnings: List[str]):
+        success = False
+
+        try:
+            res = man.save_settings(panel)
+
+            if res:
+                success, errors = res[0], res[1]
+
+                if errors:
+                    warnings.extend(errors)
+        except:
+            self.logger.error("An exception happened while {} was trying to save its settings".format(man.__class__.__name__))
+            traceback.print_exc()
+        finally:
+            success_map[man.__class__.__name__] = success
+
+    def _save_core_settings(self, root_component: TabGroupComponent, success_map: Dict[str, bool], warnings: List[str]):
+        success = False
+
+        try:
+            bkp = root_component.get_tab('core.bkp')
+            success, errors = self._save_settings(general=root_component.get_tab('core.gen').content,
+                                                  advanced=root_component.get_tab('core.adv').content,
+                                                  tray=root_component.get_tab('core.tray').content,
+                                                  backup=bkp.content if bkp else None,
+                                                  ui=root_component.get_tab('core.ui').content,
+                                                  gems_panel=root_component.get_tab('core.types').content)
+            if errors:
+                warnings.extend(errors)
+
+        except:
+            self.logger.error("An exception happened while saving the core settings")
+            traceback.print_exc()
+        finally:
+            success_map[self.__class__.__name__] = success
+
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
+        ti = time.time()
+        save_threads, warnings, success_map = [], [], {}
 
-        saved, warnings = True, []
-
-        bkp = component.get_tab('core.bkp')
-        success, errors = self._save_settings(general=component.get_tab('core.gen').content,
-                                              advanced=component.get_tab('core.adv').content,
-                                              tray=component.get_tab('core.tray').content,
-                                              backup=bkp.content if bkp else None,
-                                              ui=component.get_tab('core.ui').content,
-                                              gems_panel=component.get_tab('core.types').content)
-
-        if not success:
-            saved = False
-
-        if errors:
-            warnings.extend(errors)
+        save_core = Thread(target=self._save_core_settings, args=(component, success_map, warnings), daemon=True)
+        save_core.start()
+        save_threads.append(save_core)
 
         for man in self.managers:
             if man:
@@ -475,18 +504,18 @@ class GenericSettingsManager:
                 if not tab:
                     self.logger.warning("Tab for {} was not found".format(man.__class__.__name__))
                 else:
-                    res = man.save_settings(tab.content)
+                    save_man = Thread(target=self._save_manager_settings(man, tab.content, success_map, warnings), daemon=True)
+                    save_man.start()
+                    save_threads.append(save_man)
 
-                    if res:
-                        success, errors = res[0], res[1]
+        for t in save_threads:
+            t.join()
 
-                        if not success:
-                            saved = False
+        success = all(success_map.values())
 
-                        if errors:
-                            warnings.extend(errors)
-
-        return saved, warnings
+        tf = time.time()
+        self.logger.info("Saving all settings took {0:.8f} seconds".format(tf - ti))
+        return success, warnings
 
     def _gen_backup_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
         if timeshift.is_available():
