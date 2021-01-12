@@ -558,13 +558,16 @@ class ArchManager(SoftwareManager):
         self.aur_client.clean_caches()
         arch_config = self.configman.get_config()
 
-        aur_supported = aur.is_supported(arch_config)
+        aur_supported, repos_supported = aur.is_supported(arch_config), arch_config['repositories']
+
+        if not aur_supported and not repos_supported:
+            return SearchResult.empty()
 
         installed = pacman.map_installed(names=names)
 
         aur_pkgs, repo_pkgs = None, None
 
-        if arch_config['repositories'] and installed['signed']:
+        if repos_supported and installed['signed']:
             repo_pkgs = installed['signed']
 
         if installed['not_signed']:
