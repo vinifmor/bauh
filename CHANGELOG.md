@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - repositories/AUR search time (=~ -70%)
 - Core
     - saving settings time (=~ -11%)
+- UI
+    - minor improvements
     
 ### Fixes
 - Arch

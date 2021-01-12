@@ -766,6 +766,7 @@ class FormQt(QGroupBox):
         tip_icon = QLabel()
         tip_icon.setProperty('tip_icon', 'true')
         tip_icon.setToolTip(tip.strip())
+        tip_icon.setCursor(QCursor(Qt.WhatsThisCursor))
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
