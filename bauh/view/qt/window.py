@@ -347,7 +347,7 @@ class ManageWindow(QWidget):
         self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
 
-        self.thread_reload = StartAsyncAction()
+        self.thread_reload = StartAsyncAction(delay_in_milis=5)
         self.thread_reload.signal_start.connect(self._reload)
 
         self.container_bottom = QWidget()

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
 import requests
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QObject
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
@@ -1100,5 +1100,12 @@ class StartAsyncAction(QThread):
 
     signal_start = pyqtSignal()
 
+    def __init__(self, delay_in_milis: int = -1, parent: Optional[QObject] = None):
+        super(StartAsyncAction, self).__init__(parent=parent)
+        self.delay = delay_in_milis
+
     def run(self):
+        if self.delay > 0:
+            self.msleep(self.delay)
+
         self.signal_start.emit()
