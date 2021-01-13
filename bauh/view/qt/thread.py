@@ -1094,3 +1094,11 @@ class SaveTheme(QThread):
                 configman.save_config(core_config)
             except:
                 traceback.print_exc()
+
+
+class StartAsyncAction(QThread):
+
+    signal_start = pyqtSignal()
+
+    def run(self):
+        self.signal_start.emit()

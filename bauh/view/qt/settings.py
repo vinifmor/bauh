@@ -104,10 +104,8 @@ class SettingsWindow(QWidget):
                 self.manager.prepare(task_manager=None, root_password=None, internet_available=None)
 
                 if self.window and self.window.isVisible():
-                    self.window.update_custom_actions()
-                    self.window.verify_warnings()
-                    self.window.types_changed = True
-                    self.window.begin_refresh_packages()
+                    self.window.reload()
+                    
                 self.close()
         else:
             msg = StringIO()

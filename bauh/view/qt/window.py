@@ -41,7 +41,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     ListWarnings, \
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
-    IgnorePackageUpdates, SaveTheme
+    IgnorePackageUpdates, SaveTheme, StartAsyncAction
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -346,6 +346,9 @@ class ManageWindow(QWidget):
 
         self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
+
+        self.thread_reload = StartAsyncAction()
+        self.thread_reload.signal_start.connect(self._reload)
 
         self.container_bottom = QWidget()
         self.container_bottom.setObjectName('container_bottom')
@@ -1617,3 +1620,12 @@ class ManageWindow(QWidget):
         actions.sort(key=lambda a: a.get_label())
         actions.insert(0, current_action)
         return actions
+
+    def reload(self):
+        self.thread_reload.start()
+
+    def _reload(self):
+        self.update_custom_actions()
+        self.verify_warnings()
+        self.types_changed = True
+        self.begin_refresh_packages()
