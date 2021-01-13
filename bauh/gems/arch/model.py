@@ -7,19 +7,26 @@ from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified', 'commit'}
 
-ACTIONS_AUR_ENABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
-                                                            i18n_status_key='arch.action.enable_pkgbuild_edition.status',
-                                                            i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
-                                                            requires_root=False,
-                                                            manager_method='enable_pkgbuild_edition',
-                                                            icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))]
+ACTION_AUR_ENABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
+                                                          i18n_status_key='arch.action.enable_pkgbuild_edition.status',
+                                                          i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
+                                                          requires_root=False,
+                                                          manager_method='enable_pkgbuild_edition',
+                                                          icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))
 
-ACTIONS_AUR_DISABLE_PKGBUILD_EDITION = [CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
-                                                             i18n_status_key='arch.action.disable_pkgbuild_edition',
-                                                             i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
-                                                             requires_root=False,
-                                                             manager_method='disable_pkgbuild_edition',
-                                                             icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))]
+ACTION_AUR_DISABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
+                                                           i18n_status_key='arch.action.disable_pkgbuild_edition',
+                                                           i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
+                                                           requires_root=False,
+                                                           manager_method='disable_pkgbuild_edition',
+                                                           icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))
+
+ACTION_AUR_REINSTALL = CustomSoftwareAction(i18n_label_key='arch.action.reinstall',
+                                            i18n_status_key='arch.action.reinstall.status',
+                                            i18n_confirm_key='arch.action.reinstall.confirm',
+                                            requires_root=True,
+                                            manager_method='reinstall',
+                                            icon_path=resource.get_path('img/build.svg', ROOT_DIR))
 
 
 class ArchPackage(SoftwarePackage):
@@ -174,11 +181,13 @@ class ArchPackage(SoftwarePackage):
         return '{}/PKGBUILD'.format(self.get_disk_cache_path())
 
     def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
-        if self.installed and self.pkgbuild_editable is not None and self.repository == 'aur':
-            if self.pkgbuild_editable:
-                return ACTIONS_AUR_DISABLE_PKGBUILD_EDITION
-            else:
-                return ACTIONS_AUR_ENABLE_PKGBUILD_EDITION
+        if self.installed and self.repository == 'aur':
+            actions = [ACTION_AUR_REINSTALL]
+
+            if self.pkgbuild_editable is not None:
+                actions.append(ACTION_AUR_DISABLE_PKGBUILD_EDITION if self.pkgbuild_editable else ACTION_AUR_ENABLE_PKGBUILD_EDITION)
+
+            return actions
 
     def __hash__(self):
         if self.view_name is not None:

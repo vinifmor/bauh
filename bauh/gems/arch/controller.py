@@ -26,6 +26,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
+from bauh.api.exception import NoInternetException
 from bauh.commons import user, system
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
@@ -3398,3 +3399,32 @@ class ArchManager(SoftwareManager):
                         continue
 
         return res
+
+    def reinstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:  # only available for AUR packages
+        if not self.context.internet_checker.is_available():
+            raise NoInternetException()
+
+        self.aur_client.clean_caches()
+
+        apidatas = self.aur_client.get_info({pkg.name})
+
+        if not apidatas:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['arch.action.reinstall.error.no_apidata'],
+                                 type_=MessageType.ERROR)
+            return False
+
+        self.aur_mapper.fill_last_modified(pkg, apidatas[0])
+        context = TransactionContext.gen_context_from(pkg=pkg,
+                                                      arch_config=self.configman.get_config(),
+                                                      root_password=root_password,
+                                                      handler=ProcessHandler(watcher),
+                                                      aur_supported=True)
+        context.skip_opt_deps = False
+        context.update_aur_index = True
+
+        return self.install(pkg=pkg,
+                            root_password=root_password,
+                            watcher=watcher,
+                            context=context,
+                            disk_loader=self.context.disk_loader_factory.new()).success

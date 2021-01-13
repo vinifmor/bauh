@@ -41,3 +41,7 @@ class DiskCacheLoaderFactory(ABC):
         :return:
         """
         pass
+
+    @abstractmethod
+    def new(self) -> DiskCacheLoader:
+        pass
