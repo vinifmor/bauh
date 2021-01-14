@@ -28,6 +28,20 @@ ACTION_AUR_REINSTALL = CustomSoftwareAction(i18n_label_key='arch.action.reinstal
                                             manager_method='reinstall',
                                             icon_path=resource.get_path('img/build.svg', ROOT_DIR))
 
+ACTION_IGNORE_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.ignore',
+                                                   i18n_status_key='arch.action.rebuild_check.ignore.status',
+                                                   i18n_confirm_key='arch.action.rebuild_check.ignore.confirm',
+                                                   requires_root=False,
+                                                   manager_method='set_rebuild_check',
+                                                   icon_path=resource.get_path('img/check_disabled.svg', ROOT_DIR))
+
+ACTION_ALLOW_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.allow',
+                                                  i18n_status_key='arch.action.rebuild_check.allow.status',
+                                                  i18n_confirm_key='arch.action.rebuild_check.allow.confirm',
+                                                  requires_root=False,
+                                                  manager_method='set_rebuild_check',
+                                                  icon_path=resource.get_path('img/check.svg', ROOT_DIR))
+
 
 class ArchPackage(SoftwarePackage):
 
@@ -38,7 +52,9 @@ class ArchPackage(SoftwarePackage):
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
                  pkgbuild_editable: bool = None, install_date: Optional[int] = None, commit: Optional[str] = None,
-                 require_rebuild: bool = False):
+                 require_rebuild: bool = False,
+                 allow_rebuild: Optional[bool] = None,
+                 aur_update: bool = False):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -64,6 +80,8 @@ class ArchPackage(SoftwarePackage):
         self.install_date = install_date
         self.commit = commit  # only for AUR for downgrading purposes
         self.require_rebuild = require_rebuild
+        self.allow_rebuild = allow_rebuild
+        self.aur_update = aur_update
 
     @staticmethod
     def disk_cache_path(pkgname: str):
@@ -189,11 +207,21 @@ class ArchPackage(SoftwarePackage):
             if self.pkgbuild_editable is not None:
                 actions.append(ACTION_AUR_DISABLE_PKGBUILD_EDITION if self.pkgbuild_editable else ACTION_AUR_ENABLE_PKGBUILD_EDITION)
 
+            if self.allow_rebuild is not None:
+                actions.append(ACTION_IGNORE_REBUILD_CHECK if self.allow_rebuild else ACTION_ALLOW_REBUILD_CHECK)
+
             return actions
 
     def get_update_tip(self) -> Optional[str]:
-        if self.repository == 'aur' and self.require_rebuild:
+        if self.repository == 'aur' and self.allow_rebuild and self.require_rebuild:
             return self.i18n['arch.package.requires_rebuild'] + ' (rebuild)'
+
+    def update_state(self):
+        if self.repository == 'aur':
+            if self.allow_rebuild and self.require_rebuild:
+                self.update = True
+            else:
+                self.update = self.aur_update
 
     def __hash__(self):
         if self.view_name is not None:

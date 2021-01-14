@@ -188,6 +188,8 @@ database:
     - **clean cache**: it cleans the pacman cache directory (default: `/var/cache/pacman/pkg`)
     - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
     - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+    - **allow reinstallation check**: it allows to check if a given AUR packages requires to be rebuilt
+    - **ignore reinstallation check**: it does not to check if a given AUR packages requires to be rebuilt
     - **check Snaps support**: checks if the Snapd services are properly enabled.
 - Installed AUR packages have their **PKGBUILD** files cached at **~/.cache/bauh/arch/installed/$pkgname**
 - Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**

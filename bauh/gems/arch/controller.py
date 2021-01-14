@@ -449,7 +449,7 @@ class ArchManager(SoftwareManager):
         return res
 
     def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
-                       arch_config: dict, rebuild_check: Optional[Thread], to_rebuild: Set[str]):
+                       arch_config: dict, rebuild_check: Optional[Thread], rebuild_ignored: Optional[Thread], rebuild_output: Optional[Dict[str, Set[str]]]):
 
         if internet_available:
             try:
@@ -462,9 +462,16 @@ class ArchManager(SoftwareManager):
             if pkgsinfo:
                 editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
 
-                if rebuild_check:
+                ignore_rebuild_check = None
+                if rebuild_ignored and rebuild_output is not None:
+                    rebuild_ignored.join()
+                    ignore_rebuild_check = rebuild_output['ignored']
+
+                to_rebuild = None
+                if rebuild_check and rebuild_output is not None:
                     self.logger.info("Waiting for rebuild-detector")
                     rebuild_check.join()
+                    to_rebuild = rebuild_output['to_rebuild']
 
                 for pkgdata in pkgsinfo:
                     pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
@@ -477,10 +484,15 @@ class ArchManager(SoftwareManager):
                         pkg.update = self._check_aur_package_update(pkg=pkg,
                                                                     installed_data=aur_pkgs.get(pkg.name, {}),
                                                                     api_data=pkgdata)
+                        pkg.aur_update = pkg.update  # used in 'set_rebuild_check'
+
+                        if ignore_rebuild_check is not None:
+                            pkg.allow_rebuild = pkg.name not in ignore_rebuild_check
 
                         if to_rebuild and not pkg.update and pkg.name in to_rebuild:
                             pkg.require_rebuild = True
-                            pkg.update = True
+
+                        pkg.update_state()
 
                     pkg.status = PackageStatus.READY
                     output.append(pkg)
@@ -564,15 +576,19 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
-    def __fill_packages_to_rebuild(self, output: Set[str]):
+    def __fill_packages_to_rebuild(self, output: Dict[str, Set[str]]):
         if rebuild_detector.is_installed():
             if 'PYCHARM_CLASSPATH' in os.environ:
                 self.logger.warning("'rebuild-detector' is currently not working within PyCharm. Aborting...")
                 return
 
             self.logger.info("rebuild-detector: checking")
-            output.update(rebuild_detector.list_required_rebuild())
-            self.logger.info("rebuild-detector: packages detected -> {}".format(output))
+            to_rebuild = rebuild_detector.list_required_rebuild()
+            output['to_rebuild'].update(to_rebuild)
+            self.logger.info("rebuild-detector: {} packages require rebuild".format(len(to_rebuild)))
+
+    def __fill_ignored_by_rebuild_detector(self, output: Dict[str, Set[str]]):
+        output['ignored'].update(rebuild_detector.list_ignored())
 
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
@@ -583,10 +599,14 @@ class ArchManager(SoftwareManager):
         if not aur_supported and not repos_supported:
             return SearchResult.empty()
 
-        to_rebuild, rebuild_check = set(), None
+        rebuild_output, rebuild_check, rebuild_ignored = None, None, None
         if aur_supported and arch_config['aur_rebuild_detector']:
-            rebuild_check = Thread(target=self.__fill_packages_to_rebuild, args=(to_rebuild,), daemon=True)
+            rebuild_output = {'to_rebuild': set(), 'ignored': set()}
+            rebuild_check = Thread(target=self.__fill_packages_to_rebuild, args=(rebuild_output,), daemon=True)
             rebuild_check.start()
+
+            rebuild_ignored = Thread(target=self.__fill_ignored_by_rebuild_detector, args=(rebuild_output, ), daemon=True)
+            rebuild_ignored.start()
 
         installed = pacman.map_installed(names=names)
 
@@ -622,7 +642,7 @@ class ArchManager(SoftwareManager):
             map_threads = []
 
             if aur_pkgs:
-                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config, rebuild_check, to_rebuild), daemon=True)
+                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config, rebuild_check, rebuild_ignored, rebuild_output), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -3461,3 +3481,22 @@ class ArchManager(SoftwareManager):
                             watcher=watcher,
                             context=context,
                             disk_loader=self.context.disk_loader_factory.new()).success
+
+    def set_rebuild_check(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if pkg.repository != 'aur':
+            return False
+
+        try:
+            if pkg.allow_rebuild:
+                rebuild_detector.add_as_ignored(pkg.name)
+                pkg.allow_rebuild = False
+            else:
+                rebuild_detector.remove_from_ignored(pkg.name)
+                pkg.allow_rebuild = True
+        except:
+            self.logger.error("An unexpected exception happened")
+            traceback.print_exc()
+            return False
+
+        pkg.update_state()
+        return True

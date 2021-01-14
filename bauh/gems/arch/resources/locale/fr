@@ -1,3 +1,9 @@
+arch.action.rebuild_check.allow=Allow reinstallation check
+arch.action.rebuild_check.allow.status=Allowing reinstallation check
+arch.action.rebuild_check.allow.confirm=Allow reinstallation check for {} ?
+arch.action.rebuild_check.ignore=Ignore reinstallation check
+arch.action.rebuild_check.ignore.status=Ignoring reinstallation check
+arch.action.rebuild_check.ignore.confirm=Ignore reinstallation check for {} ?
 arch.action.db_locked.body.l1=La base de données de paquets du système est verrouillée.
 arch.action.db_locked.body.l2=Il faut la déverrouiller pour continuer.
 arch.action.db_locked.confirmation=Déverrouiller et continuer

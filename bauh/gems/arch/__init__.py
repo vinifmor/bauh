@@ -18,6 +18,7 @@ CONFIG_FILE = '{}/arch.yml'.format(CONFIG_PATH)
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/aur_suggestions.txt'
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
 EDITABLE_PKGBUILDS_FILE = '{}/aur/editable_pkgbuilds.txt'.format(CONFIG_DIR)
+IGNORED_REBUILD_CHECK_FILE = '{}/aur/ignored_rebuild_check.txt'.format(CONFIG_DIR)
 
 
 def get_icon_path() -> str:

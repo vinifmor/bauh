@@ -16,6 +16,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
                     <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/rebuild_detector.png">
             </p>
             
+            - new package actions to Allow/Ignore rebuild check for a specific package. Useful for binary packages (e.g: package-bin).
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/allow_rebuild_check.png">
+            </p>
+            
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/ignore_rebuild_check.png">
+            </p>
+            
             - form some reason **rebuild-detector** hangs when executed within PyCharm (this integration is disabled regarding this particular scenario for now)
         
         - new custom action to quickly reinstall a package

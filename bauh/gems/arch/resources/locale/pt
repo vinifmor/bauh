@@ -1,3 +1,9 @@
+arch.action.rebuild_check.allow=Permitir verificação de reinstalação
+arch.action.rebuild_check.allow.status=Permitindo verificação de reinstalação
+arch.action.rebuild_check.allow.confirm=Permitir verificação de reinstalação para {} ?
+arch.action.rebuild_check.ignore=Ignorar verificação de reinstalação
+arch.action.rebuild_check.ignore.status=Ignorando verificação de reinstalação
+arch.action.rebuild_check.ignore.confirm=Ignorar verificação de reinstalação para {} ?
 arch.action.db_locked.body.l1=O banco de dados de pacotes do sistema está bloqueado.
 arch.action.db_locked.body.l2=É necessário desbloquea-lo para continuar.
 arch.action.db_locked.confirmation=Desbloquear e continuar
