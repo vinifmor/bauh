@@ -41,6 +41,7 @@ arch.checking.conflicts={} ile çakışmalar kontrol ediliyor
 arch.checking.deps={} bağımlılıkları kontrol ediliyor
 arch.checking.missing_deps={} eksik bağımlılıkları kontrol ediliyor
 arch.clone=AUR deposu kopyalanıyor {}
+arch.category.remove_from_aur=Removed from AUR
 arch.config.aur=AUR paketleri
 arch.config.aur.tip=AUR paketlerinin yönetilmesine izin verir. git yüklenmeli.
 arch.config.aur_rebuild_detector=Check reinstallation need {}

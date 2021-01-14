@@ -530,7 +530,7 @@ class ArchManager(SoftwareManager):
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, aur_supported: bool, disk_loader: DiskCacheLoader):
+    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, aur_index: Optional[Set[str]], disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
@@ -552,7 +552,7 @@ class ArchManager(SoftwareManager):
                               i18n=self.i18n,
                               installed=True,
                               repository=pkgrepo,
-                              categories=self.categories.get(name))
+                              categories=self.categories.get(name, []))
 
             if updates:
                 update_version = updates.get(pkg.name)
@@ -564,11 +564,16 @@ class ArchManager(SoftwareManager):
             if disk_loader:
                 disk_loader.fill(pkg, sync=True)
 
-            if not aur_supported and pkg.repository == 'aur':
-                pkg.repository = None  # if AUR support is disabled, the repository should be reported as "unknown"
+            if pkg.repository == 'aur':
+                pkg.repository = None
 
-            if aur_supported or pkg.repository != 'aur':  # this case happens when a package was removed from AUR
-                pkgs.append(pkg)
+                if aur_index and pkg.name not in aur_index:
+                    removed_cat = self.i18n['arch.category.remove_from_aur']
+
+                    if removed_cat not in pkg.categories:
+                        pkg.categories.append(removed_cat)
+
+            pkgs.append(pkg)
 
     def _wait_for_disk_cache(self):
         if self.disk_cache_updater and self.disk_cache_updater.is_alive():
@@ -610,7 +615,7 @@ class ArchManager(SoftwareManager):
 
         installed = pacman.map_installed(names=names)
 
-        aur_pkgs, repo_pkgs = None, None
+        aur_pkgs, repo_pkgs, aur_index = None, None, None
 
         if repos_supported:
             repo_pkgs = installed['signed']
@@ -647,7 +652,7 @@ class ArchManager(SoftwareManager):
                 map_threads.append(t)
 
             if repo_pkgs:
-                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, aur_supported, disk_loader), daemon=True)
+                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, aur_index, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 

@@ -41,6 +41,7 @@ arch.checking.conflicts=Verificando se hay conflictos con {}
 arch.checking.deps=Verificando las dependencias de {}
 arch.checking.missing_deps=Verificando las dependencias faltantes de {}
 arch.clone=Clonando el repositorio {} de AUR
+arch.category.remove_from_aur=Eliminado del AUR
 arch.config.aur=Paquetes de AUR
 arch.config.aur.tip=Permite gestionar paquetes del AUR. git debe estar instalado.
 arch.config.aur_rebuild_detector=Verificar necesidad de reinstalación {}

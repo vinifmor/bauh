@@ -41,6 +41,7 @@ arch.checking.conflicts=Проверка конфликтов с {}
 arch.checking.deps=Проверка зависимостей {}
 arch.checking.missing_deps=Проверка отсутствующих зависимостей {}
 arch.clone=Клонирование AUR-репозитория {}
+arch.category.remove_from_aur=Removed from AUR
 arch.config.aur=пакеты AUR
 arch.config.aur.tip=Это позволяет управлять пакетами AUR. git должен быть установлен.
 arch.config.aur_rebuild_detector=Check reinstallation need {}
