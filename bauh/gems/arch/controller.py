@@ -1071,7 +1071,7 @@ class ArchManager(SoftwareManager):
 
             return True
         except:
-            self.logger.error("An error occured while removing packages: {}".format(', '.join(to_remove)))
+            self.logger.error("An error occurred while removing packages: {}".format(', '.join(to_remove)))
             traceback.print_exc()
             output_handler.stop_working()
             output_handler.join()
