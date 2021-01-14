@@ -39,4 +39,4 @@ class ArchConfigManager(YAMLConfigManager):
                 'suggest_optdep_uninstall': False,
                 'aur_idx_exp': 1,
                 'categories_exp': 24,
-                'aur_rebuild_detector': True}
+                'aur_rebuild_detector': False}

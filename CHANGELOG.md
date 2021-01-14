@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         - [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration
             - if a package needs to be rebuilt, it will be marked for update (rebuild-detector must be installed on your system, but it is not a hard requirement). 
             - if you hold the mouse over the package 'version' the message "The package needs to be reinstalled" will be displayed.
-            - this integration can be controlled though the new settings property **aur_rebuild_detector** (default: true).
+            - this integration is still in testing and can be controlled though the new settings property **aur_rebuild_detector** (default: false).
             <p align="center">
                     <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/rebuild_detector.png">
             </p>
