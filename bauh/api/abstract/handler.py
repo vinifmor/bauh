@@ -5,7 +5,7 @@ from bauh.api.abstract.view import MessageType, ViewComponent
 
 class ProcessWatcher:
     """
-    Represents an view component watching background processes. It's a bridge for ApplicationManager instances notifiy the view of processes progression and also
+    Represents an view component watching background processes. It's a bridge for ApplicationManager instances notify the view of processes progression and also
     request any user interaction without the need of knowing any GUI code.
     """
 

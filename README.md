@@ -184,7 +184,7 @@ database:
     - **synchronize packages database**: synchronizes the database against the configured mirrors (`sudo pacman -Syy`)
     - **refresh mirrors**: allows the user to define multiple mirrors locations and sort by the fastest (`sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy`)
     - **quick system upgrade**: it executes a default pacman upgrade (`pacman -Syyu --noconfirm`)
-    - **clean cache**: it cleans the pacman cache diretory (default: `/var/cache/pacman/pkg`)
+    - **clean cache**: it cleans the pacman cache directory (default: `/var/cache/pacman/pkg`)
     - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
     - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
     - **check Snaps support**: checks if the Snapd services are properly enabled.
