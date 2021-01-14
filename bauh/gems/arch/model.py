@@ -37,7 +37,8 @@ class ArchPackage(SoftwarePackage):
                  maintainer: str = None, url_download: str = None, pkgbuild: str = None, repository: str = None,
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
-                 pkgbuild_editable: bool = None, install_date: Optional[int] = None, commit: Optional[str] = None):
+                 pkgbuild_editable: bool = None, install_date: Optional[int] = None, commit: Optional[str] = None,
+                 require_rebuild: bool = False):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -62,6 +63,7 @@ class ArchPackage(SoftwarePackage):
         self.pkgbuild_editable = pkgbuild_editable  # if the PKGBUILD can be edited by the user (only for AUR)
         self.install_date = install_date
         self.commit = commit  # only for AUR for downgrading purposes
+        self.require_rebuild = require_rebuild
 
     @staticmethod
     def disk_cache_path(pkgname: str):
@@ -188,6 +190,10 @@ class ArchPackage(SoftwarePackage):
                 actions.append(ACTION_AUR_DISABLE_PKGBUILD_EDITION if self.pkgbuild_editable else ACTION_AUR_ENABLE_PKGBUILD_EDITION)
 
             return actions
+
+    def get_update_tip(self) -> Optional[str]:
+        if self.repository == 'aur' and self.require_rebuild:
+            return self.i18n['arch.package.requires_rebuild'] + ' (rebuild)'
 
     def __hash__(self):
         if self.view_name is not None:

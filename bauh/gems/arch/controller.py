@@ -37,7 +37,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR
+    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -449,48 +449,57 @@ class ArchManager(SoftwareManager):
         return res
 
     def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
-                       arch_config: dict):
+                       arch_config: dict, rebuild_check: Optional[Thread], to_rebuild: Set[str]):
 
         if internet_available:
             try:
                 pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
-
-                if pkgsinfo:
-                    editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
-                    for pkgdata in pkgsinfo:
-                        pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
-                        pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
-
-                        if pkg.installed:
-                            if disk_loader:
-                                disk_loader.fill(pkg, sync=True)
-
-                            pkg.update = self._check_aur_package_update(pkg=pkg,
-                                                                        installed_data=aur_pkgs.get(pkg.name, {}),
-                                                                        api_data=pkgdata)
-                        pkg.status = PackageStatus.READY
-                        output.append(pkg)
-
-                    return
-
             except requests.exceptions.ConnectionError:
                 self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
                 self.logger.info("Reading only local AUR packages data")
+                return
 
-        editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
-        for name, data in aur_pkgs.items():
-            pkg = ArchPackage(name=name, version=data.get('version'),
-                              latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, repository='aur', i18n=self.i18n)
+            if pkgsinfo:
+                editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
 
-            pkg.categories = self.categories.get(pkg.name)
-            pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+                if rebuild_check:
+                    self.logger.info("Waiting for rebuild-detector")
+                    rebuild_check.join()
 
-            if disk_loader:
-                disk_loader.fill(pkg)
+                for pkgdata in pkgsinfo:
+                    pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
+                    pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
-            pkg.status = PackageStatus.READY
-            output.append(pkg)
+                    if pkg.installed:
+                        if disk_loader:
+                            disk_loader.fill(pkg, sync=True)
+
+                        pkg.update = self._check_aur_package_update(pkg=pkg,
+                                                                    installed_data=aur_pkgs.get(pkg.name, {}),
+                                                                    api_data=pkgdata)
+
+                        if to_rebuild and not pkg.update and pkg.name in to_rebuild:
+                            pkg.require_rebuild = True
+                            pkg.update = True
+
+                    pkg.status = PackageStatus.READY
+                    output.append(pkg)
+
+        else:
+            editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
+            for name, data in aur_pkgs.items():
+                pkg = ArchPackage(name=name, version=data.get('version'),
+                                  latest_version=data.get('version'), description=data.get('description'),
+                                  installed=True, repository='aur', i18n=self.i18n)
+
+                pkg.categories = self.categories.get(pkg.name)
+                pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+
+                if disk_loader:
+                    disk_loader.fill(pkg)
+
+                pkg.status = PackageStatus.READY
+                output.append(pkg)
 
     def _check_aur_package_update(self, pkg: ArchPackage, installed_data: dict, api_data: dict) -> bool:
         if pkg.last_modified is None:  # if last_modified is not available, then the install_date will be used instead
@@ -555,6 +564,16 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
+    def __fill_packages_to_rebuild(self, output: Set[str]):
+        if rebuild_detector.is_installed():
+            if 'PYCHARM_CLASSPATH' in os.environ:
+                self.logger.warning("'rebuild-detector' is currently not working within PyCharm. Aborting...")
+                return
+
+            self.logger.info("rebuild-detector: checking")
+            output.update(rebuild_detector.list_required_rebuild())
+            self.logger.info("rebuild-detector: packages detected -> {}".format(output))
+
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = self.configman.get_config()
@@ -563,6 +582,11 @@ class ArchManager(SoftwareManager):
 
         if not aur_supported and not repos_supported:
             return SearchResult.empty()
+
+        to_rebuild, rebuild_check = set(), None
+        if aur_supported and arch_config['aur_rebuild_detector']:
+            rebuild_check = Thread(target=self.__fill_packages_to_rebuild, args=(to_rebuild,), daemon=True)
+            rebuild_check.start()
 
         installed = pacman.map_installed(names=names)
 
@@ -598,7 +622,7 @@ class ArchManager(SoftwareManager):
             map_threads = []
 
             if aur_pkgs:
-                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config), daemon=True)
+                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config, rebuild_check, to_rebuild), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -2800,6 +2824,14 @@ class ArchManager(SoftwareManager):
                                     label_params=['(AUR)'],
                                     capitalize_label=False,
                                     max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector',
+                                    label_key='arch.config.aur_rebuild_detector',
+                                    tooltip_key='arch.config.aur_rebuild_detector.tip',
+                                    value=bool(arch_config['aur_rebuild_detector']),
+                                    label_params=['(AUR)'],
+                                    tooltip_params=["'rebuild-detector'"],
+                                    capitalize_label=False,
+                                    max_width=max_width),
             self._gen_bool_selector(id_='autoprovs',
                                     label_key='arch.config.automatch_providers',
                                     tooltip_key='arch.config.automatch_providers.tip',
@@ -2908,6 +2940,7 @@ class ArchManager(SoftwareManager):
         form = component.get_form_component('root')
         arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
         arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
+        arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
         arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
         arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
         arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()

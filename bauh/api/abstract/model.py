@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from bauh.api.constants import CACHE_PATH
 
@@ -222,6 +222,12 @@ class SoftwarePackage(ABC):
         :return: name displayed on the table
         """
         return self.name
+
+    def get_update_tip(self) -> Optional[str]:
+        """
+        custom 'version' update tooltip
+        """
+        return
 
     @abstractmethod
     def supports_backup(self) -> bool:

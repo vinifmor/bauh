@@ -25,7 +25,7 @@ USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
 
 
-def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set[str] = None) -> dict:
+def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
 
     if lang:
@@ -33,6 +33,7 @@ def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Set
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
         custom_env['PATH'] = GLOBAL_INTERPRETER_PATH
+
     else:
         custom_env['PATH'] = PATH
 
@@ -322,11 +323,19 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
 
 
-def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True) -> Tuple[int, Optional[str]]:
-    p = subprocess.run(args=cmd.split(' ') if not shell else [cmd],
-                       stdout=subprocess.PIPE if output else subprocess.DEVNULL,
-                       stderr=subprocess.STDOUT if output else subprocess.DEVNULL,
-                       shell=shell,
-                       cwd=cwd)
+def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True, custom_env: Optional[dict] = None) -> Tuple[int, Optional[str]]:
+    params = {
+        'args': cmd.split(' ') if not shell else [cmd],
+        'stdout': subprocess.PIPE if output else subprocess.DEVNULL,
+        'stderr': subprocess.STDOUT if output else subprocess.DEVNULL,
+        'shell': shell
+    }
 
+    if cwd is not None:
+        params['cwd'] = cwd
+
+    if custom_env is not None:
+        params['env'] = custom_env
+
+    p = subprocess.run(**params)
     return p.returncode, p.stdout.decode() if p.stdout else None

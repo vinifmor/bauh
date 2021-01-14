@@ -7,10 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.12] 2021
 ### Features
 - Arch
-    - AUR: new custom action to quickly reinstall a package
-    <p align="center">
-            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/aur_reinstall.png">
-    </p>
+    - AUR:
+        - [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration
+            - if a package needs to be rebuilt, it will be marked for update (rebuild-detector must be installed on your system, but it is not a hard requirement). 
+            - if you hold the mouse over the package 'version' the message "The package needs to be reinstalled" will be displayed.
+            - this integration can be controlled though the new settings property **aur_rebuild_detector** (default: true).
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/rebuild_detector.png">
+            </p>
+            
+            - form some reason **rebuild-detector** hangs when executed within PyCharm (this integration is disabled regarding this particular scenario for now)
+        
+        - new custom action to quickly reinstall a package
+        <p align="center">
+                <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/aur_reinstall.png">
+        </p>
     
 ### Improvements
 - Arch
@@ -31,7 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - crashing when trying to retrieve size of runtimes subcomponents [#164](https://github.com/vinifmor/bauh/issues/164)
 - UI
     - displaying a popup when information of a given package is not available
-
+    
+    
 ## [0.9.11] 2020-12-30
 ### New system requirements
 - **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)
