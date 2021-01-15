@@ -11,7 +11,7 @@ def is_installed() -> bool:
 
 
 def list_required_rebuild() -> Set[str]:
-    code, output = system.execute(cmd='checkrebuild')
+    code, output = system.execute(cmd='checkrebuild', shell=True, stdin=False)
 
     required = set()
     if code == 0 and output:

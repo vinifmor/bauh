@@ -214,7 +214,7 @@ check_dependency_breakage: true # if, during the verification of the update requ
 suggest_unneeded_uninstall: false  # if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property 'suggest_optdep_uninstall'. Default: false (to prevent new users from making mistakes)
 suggest_optdep_uninstall: false  # if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
 categories_exp: 24  # It defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
-aur_rebuild_detector: false # it checks if packages built with old library versions require to be rebuilt. If a package needs to be rebuilt, it will be marked for update ({} must be installed). Default: false.
+aur_rebuild_detector: true # it checks if packages built with old library versions require to be rebuilt. If a package needs to be rebuilt, it will be marked for update ('rebuild-detector' must be installed). Default: true.
 ```
 - Required dependencies:
     - **pacman**

@@ -583,10 +583,6 @@ class ArchManager(SoftwareManager):
 
     def __fill_packages_to_rebuild(self, output: Dict[str, Set[str]]):
         if rebuild_detector.is_installed():
-            if 'PYCHARM_CLASSPATH' in os.environ:
-                self.logger.warning("'rebuild-detector' is currently not working within PyCharm. Aborting...")
-                return
-
             self.logger.info("rebuild-detector: checking")
             to_rebuild = rebuild_detector.list_required_rebuild()
             output['to_rebuild'].update(to_rebuild)

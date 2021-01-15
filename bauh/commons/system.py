@@ -323,13 +323,16 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
 
 
-def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True, custom_env: Optional[dict] = None) -> Tuple[int, Optional[str]]:
+def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True, custom_env: Optional[dict] = None, stdin: bool = True) -> Tuple[int, Optional[str]]:
     params = {
         'args': cmd.split(' ') if not shell else [cmd],
         'stdout': subprocess.PIPE if output else subprocess.DEVNULL,
         'stderr': subprocess.STDOUT if output else subprocess.DEVNULL,
         'shell': shell
     }
+
+    if not stdin:
+        params['stdin'] = subprocess.DEVNULL
 
     if cwd is not None:
         params['cwd'] = cwd
