@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - initialization dialog hanging sometimes (due to thread locking)
     - displaying a popup when information of a given package is not available
+    - wrong package type icon size depending on resolution
     
     
 ## [0.9.11] 2020-12-30

@@ -15,7 +15,6 @@ from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
 from bauh.commons.html import strip_html, bold
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
-from bauh.view.qt.qt_utils import measure_based_on_height
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
@@ -71,6 +70,7 @@ class UpgradeToggleButton(QToolButton):
 
 class PackagesTable(QTableWidget):
     COL_NUMBER = 9
+    ICONS_SIZE = QSize(16, 16)
 
     def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
         super(PackagesTable, self).__init__()
@@ -99,10 +99,6 @@ class PackagesTable(QTableWidget):
         self.setRowHeight(80, 80)
         self.cache_type_icon = {}
         self.i18n = self.window.i18n
-
-    def icon_size(self) -> QSize:
-        pixels = measure_based_on_height(0.02083)
-        return QSize(pixels, pixels)
 
     def has_any_settings(self, pkg: PackageView):
         return pkg.model.has_history() or \
@@ -348,7 +344,7 @@ class PackagesTable(QTableWidget):
         icon_data = self.cache_type_icon.get(pkg.model.get_type())
 
         if icon_data is None:
-            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(self.icon_size())
+            pixmap = QIcon(pkg.model.get_type_icon_path()).pixmap(self.ICONS_SIZE)
             icon_data = {'px': pixmap, 'tip': '{}: {}'.format(self.i18n['type'], pkg.get_type_label())}
             self.cache_type_icon[pkg.model.get_type()] = icon_data
 
@@ -453,7 +449,7 @@ class PackagesTable(QTableWidget):
         self.setCellWidget(pkg.table_index, col, col_name)
 
     def _update_icon(self, label: QLabel, icon: QIcon):
-        label.setPixmap(icon.pixmap(QSize(self.icon_size())))
+        label.setPixmap(icon.pixmap(self.ICONS_SIZE))
 
     def _set_col_description(self, col: int, pkg: PackageView):
         item = QLabel()
