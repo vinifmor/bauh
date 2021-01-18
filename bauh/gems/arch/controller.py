@@ -62,6 +62,7 @@ RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
 RE_PKGBUILD_PKGNAME = re.compile(r'pkgname\s*=.+')
 RE_CONFLICT_DETECTED = re.compile(r'\n::\s*(.+)\s+are in conflict\s*.')
 RE_DEPENDENCY_BREAKAGE = re.compile(r'\n?::\s+installing\s+(.+\s\(.+\))\sbreaks\sdependency\s\'(.+)\'\srequired\sby\s(.+)\s*', flags=re.IGNORECASE)
+RE_PKG_ENDS_WITH_BIN = re.compile(r'.+[\-_]bin$')
 
 
 class TransactionContext:
@@ -581,10 +582,14 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
-    def __fill_packages_to_rebuild(self, output: Dict[str, Set[str]]):
+    def __fill_packages_to_rebuild(self, output: Dict[str, Set[str]], ignore_binaries: bool):
         if rebuild_detector.is_installed():
             self.logger.info("rebuild-detector: checking")
             to_rebuild = rebuild_detector.list_required_rebuild()
+
+            if to_rebuild and ignore_binaries:
+                to_rebuild = {p for p in to_rebuild if not RE_PKG_ENDS_WITH_BIN.match(p)}
+
             output['to_rebuild'].update(to_rebuild)
             self.logger.info("rebuild-detector: {} packages require rebuild".format(len(to_rebuild)))
 
@@ -603,7 +608,9 @@ class ArchManager(SoftwareManager):
         rebuild_output, rebuild_check, rebuild_ignored = None, None, None
         if aur_supported and arch_config['aur_rebuild_detector']:
             rebuild_output = {'to_rebuild': set(), 'ignored': set()}
-            rebuild_check = Thread(target=self.__fill_packages_to_rebuild, args=(rebuild_output,), daemon=True)
+            rebuild_check = Thread(target=self.__fill_packages_to_rebuild,
+                                   args=(rebuild_output, arch_config['aur_rebuild_detector_no_bin']),
+                                   daemon=True)
             rebuild_check.start()
 
             rebuild_ignored = Thread(target=self.__fill_ignored_by_rebuild_detector, args=(rebuild_output, ), daemon=True)
@@ -2853,6 +2860,14 @@ class ArchManager(SoftwareManager):
                                     tooltip_params=["'rebuild-detector'"],
                                     capitalize_label=False,
                                     max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector_no_bin',
+                                    label_key='arch.config.aur_rebuild_detector_no_bin',
+                                    label_params=['rebuild-detector'],
+                                    tooltip_key='arch.config.aur_rebuild_detector_no_bin.tip',
+                                    tooltip_params=['rebuild-detector', self.i18n['arch.config.aur_rebuild_detector'].format('')],
+                                    value=bool(arch_config['aur_rebuild_detector_no_bin']),
+                                    capitalize_label=False,
+                                    max_width=max_width),
             self._gen_bool_selector(id_='autoprovs',
                                     label_key='arch.config.automatch_providers',
                                     tooltip_key='arch.config.automatch_providers.tip',
@@ -2962,6 +2977,7 @@ class ArchManager(SoftwareManager):
         arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
         arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
         arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
+        arch_config['aur_rebuild_detector_no_bin'] = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
         arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
         arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
         arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
