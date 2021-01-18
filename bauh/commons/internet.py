@@ -1,4 +1,4 @@
-import http.client as http_client
+import socket
 
 
 class InternetChecker:
@@ -10,11 +10,9 @@ class InternetChecker:
         if self.offline:
             return False
 
-        conn = http_client.HTTPConnection("www.google.com", timeout=5)
         try:
-            conn.request("HEAD", "/")
-            conn.close()
+            socket.gethostbyname('google.com')
             return True
         except:
-            conn.close()
             return False
+

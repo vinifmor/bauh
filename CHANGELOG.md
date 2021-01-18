@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 - Core
     - saving settings time (=~ -11%)
+    - internet checking time (=~ -58%)
 - UI
     - minor improvements
     
