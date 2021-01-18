@@ -60,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Flatpak
     - crashing when trying to retrieve size of runtimes subcomponents [#164](https://github.com/vinifmor/bauh/issues/164)
 - UI
+    - initialization dialog hanging sometimes (due to thread locking)
     - displaying a popup when information of a given package is not available
     
     

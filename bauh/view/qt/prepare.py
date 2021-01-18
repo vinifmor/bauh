@@ -2,10 +2,9 @@ import datetime
 import operator
 import time
 from functools import reduce
-from threading import Lock
 from typing import Tuple, Optional
 
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication
+from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication, QMutex
 from PyQt5.QtGui import QIcon, QCursor, QCloseEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, \
     QProgressBar, QPlainTextEdit, QToolButton, QHBoxLayout
@@ -38,8 +37,8 @@ class Prepare(QThread, TaskManager):
         self.password_response = None
         self._tasks_added = set()
         self._tasks_finished = set()
-        self._add_lock = Lock()
-        self._finish_lock = Lock()
+        self._add_lock = QMutex()
+        self._finish_lock = QMutex()
 
     def ask_password(self) -> Tuple[bool, Optional[str]]:
         self.waiting_password = True
@@ -63,42 +62,44 @@ class Prepare(QThread, TaskManager):
                 QCoreApplication.exit(1)
 
         self.manager.prepare(self, root_pwd, None)
-        self._add_lock.acquire()
         self.signal_started.emit(len(self._tasks_added))
-        self._add_lock.release()
 
     def update_progress(self, task_id: str, progress: float, substatus: str):
+        self._add_lock.lock()
         if task_id in self._tasks_added:
             self.signal_update.emit(task_id, progress, substatus)
+        self._add_lock.unlock()
 
     def update_output(self, task_id: str, output: str):
+        self._add_lock.lock()
         if task_id in self._tasks_added:
             self.signal_output.emit(task_id, output)
+        self._add_lock.unlock()
 
     def register_task(self, id_: str, label: str, icon_path: str):
-        self._add_lock.acquire()
+        self._add_lock.lock()
 
         if id_ not in self._tasks_added:
             self._tasks_added.add(id_)
             self.signal_register.emit(id_, label, icon_path)
 
-        self._add_lock.release()
+        self._add_lock.unlock()
 
     def finish_task(self, task_id: str):
-        self._add_lock.acquire()
+        self._add_lock.lock()
         task_registered = task_id in self._tasks_added
-        self._add_lock.release()
+        self._add_lock.unlock()
 
         if not task_registered:
             return
 
-        self._finish_lock.acquire()
+        self._finish_lock.lock()
 
         if task_id not in self._tasks_finished:
             self._tasks_finished.add(task_id)
             self.signal_finished.emit(task_id)
 
-        self._finish_lock.release()
+        self._finish_lock.unlock()
 
 
 class CheckFinished(QThread):
