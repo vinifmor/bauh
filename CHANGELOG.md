@@ -58,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying packages removed from AUR as AUR packages
     - downloading AUR index during the initialization process when AUR support is disabled
 - Flatpak
+    - crashing for version 1.10 [#167](https://github.com/vinifmor/bauh/issues/167)
     - crashing when trying to retrieve size of runtimes subcomponents [#164](https://github.com/vinifmor/bauh/issues/164)
 - UI
     - initialization dialog hanging sometimes (due to thread locking)

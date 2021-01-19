@@ -5,10 +5,13 @@ import traceback
 from datetime import datetime
 from typing import List, Dict, Set, Iterable, Optional
 
+from packaging.version import Version
+from pkg_resources import parse_version
+
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler
 from bauh.commons.util import size_to_byte
-from bauh.gems.flatpak import EXPORTS_PATH
+from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
@@ -65,9 +68,9 @@ def is_installed():
     return False if version is None else True
 
 
-def get_version():
+def get_version() -> Optional[Version]:
     res = run_cmd('{} --version'.format('flatpak'), print_error=False)
-    return res.split(' ')[1].strip() if res else None
+    return parse_version(res.split(' ')[1].strip()) if res else None
 
 
 def get_app_info(app_id: str, branch: str, installation: str):
@@ -87,11 +90,10 @@ def get_commit(app_id: str, branch: str, installation: str) -> Optional[str]:
             return commits[0][1].strip()
 
 
-def list_installed(version: str) -> List[dict]:
-
+def list_installed(version: Version) -> List[dict]:
     apps = []
 
-    if version < '1.2':
+    if version < VERSION_1_3:
         app_list = new_subprocess(['flatpak', 'list', '-d'])
 
         for o in app_list.stdout:
@@ -114,7 +116,7 @@ def list_installed(version: str) -> List[dict]:
                 })
 
     else:
-        cols = 'application,ref,arch,branch,description,origin,options,{}version'.format('' if version < '1.3' else 'name,')
+        cols = 'application,ref,arch,branch,description,origin,options,{}version'.format('' if version < VERSION_1_3 else 'name,')
         app_list = new_subprocess(['flatpak', 'list', '--columns=' + cols])
 
         for o in app_list.stdout:
@@ -122,7 +124,7 @@ def list_installed(version: str) -> List[dict]:
                 data = o.decode().strip().split('\t')
                 runtime = 'runtime' in data[6]
 
-                if version < '1.3':
+                if version < VERSION_1_3:
                     name = data[0].split('.')[-1]
 
                     if len(data) > 7 and data[7]:
@@ -172,7 +174,7 @@ def uninstall(app_ref: str, installation: str) -> SimpleProcess:
                          shell=True)
 
 
-def list_updates_as_str(version: str) -> Dict[str, set]:
+def list_updates_as_str(version: Version) -> Dict[str, set]:
     updates = read_updates(version, 'system')
     user_updates = read_updates(version, 'user')
 
@@ -182,9 +184,9 @@ def list_updates_as_str(version: str) -> Dict[str, set]:
     return updates
 
 
-def read_updates(version: str, installation: str) -> Dict[str, set]:
+def read_updates(version: Version, installation: str) -> Dict[str, set]:
     res = {'partial': set(), 'full': set()}
-    if version < '1.2':
+    if version < VERSION_1_2:
         try:
             output = run_cmd('{} update --no-related --no-deps --{}'.format('flatpak', installation), ignore_return_code=True)
 
@@ -205,7 +207,7 @@ def read_updates(version: str, installation: str) -> Dict[str, set]:
                     line_split = o.decode().strip().split('\t')
 
                     if len(line_split) > 2:
-                        if version >= '1.5.0':
+                        if version >= VERSION_1_5:
                             update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
                         else:
                             update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
@@ -275,7 +277,7 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str, full_str:
     return commits
 
 
-def search(version: str, word: str, installation: str, app_id: bool = False) -> List[dict]:
+def search(version: Version, word: str, installation: str, app_id: bool = False) -> List[dict]:
 
     res = run_cmd('{} search {} --{}'.format('flatpak', word, installation))
 
@@ -287,7 +289,7 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
         for info in split_res:
             if info:
                 info_list = info.split('\t')
-                if version >= '1.3.0':
+                if version >= VERSION_1_3:
                     id_ = info_list[2].strip()
 
                     if app_id and id_ != word:
@@ -306,7 +308,7 @@ def search(version: str, word: str, installation: str, app_id: bool = False) -> 
                         'arch': None,  # unknown at this moment,
                         'ref': None  # unknown at this moment
                     }
-                elif version >= '1.2.0':
+                elif version >= VERSION_1_2:
                     id_ = info_list[1].strip()
 
                     if app_id and id_ != word:
@@ -392,9 +394,9 @@ def run(app_id: str):
     subprocess.Popen(['flatpak run {}'.format(app_id)], shell=True, env={**os.environ})
 
 
-def map_update_download_size(app_ids: Iterable[str], installation: str, version: str) -> Dict[str, int]:
+def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, int]:
     success, output = ProcessHandler().handle_simple(SimpleProcess(['flatpak', 'update', '--{}'.format(installation)]))
-    if version >= '1.5':
+    if version >= VERSION_1_5:
         res = {}
         p = re.compile(r'^\d+.\t')
         p2 = re.compile(r'\s([0-9.?a-zA-Z]+)\s?')

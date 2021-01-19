@@ -7,6 +7,8 @@ from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Optional
 
+from packaging.version import Version
+
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -20,7 +22,7 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH, \
-    get_icon_path
+    get_icon_path, VERSION_1_5, VERSION_1_4
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -35,12 +37,12 @@ class FlatpakManager(SoftwareManager):
     def __init__(self, context: ApplicationContext):
         super(FlatpakManager, self).__init__(context=context)
         self.i18n = context.i18n
-        self.api_cache = context.cache_factory.new()
-        self.category_cache = context.cache_factory.new()
+        self.api_cache = context.cache_factory.new(None)
+        self.category_cache = context.cache_factory.new(None)
         context.disk_loader_factory.map(FlatpakApplication, self.api_cache)
         self.enabled = True
         self.http_client = context.http_client
-        self.suggestions_cache = context.cache_factory.new()
+        self.suggestions_cache = context.cache_factory.new(None)
         self.logger = context.logger
         self.configman = FlatpakConfigManager()
 
@@ -111,7 +113,7 @@ class FlatpakManager(SoftwareManager):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def _add_updates(self, version: str, output: list):
+    def _add_updates(self, version: Version, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
@@ -141,7 +143,7 @@ class FlatpakManager(SoftwareManager):
                 models.append(model)
 
                 if update_map and (update_map['full'] or update_map['partial']):
-                    if version >= '1.4.0':
+                    if version >= VERSION_1_4:
                         update_id = '{}/{}/{}'.format(app_json['id'], app_json['branch'], app_json['installation'])
 
                         if update_map['full'] and update_id in update_map['full']:
@@ -210,7 +212,7 @@ class FlatpakManager(SoftwareManager):
             related, deps = False, False
             ref = req.pkg.ref
 
-            if req.pkg.partial and flatpak_version < '1.5':
+            if req.pkg.partial and flatpak_version < VERSION_1_5:
                 related, deps = True, True
                 ref = req.pkg.base_ref
 
@@ -252,10 +254,10 @@ class FlatpakManager(SoftwareManager):
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
             version = flatpak.get_version()
-            id_ = app.base_id if app.partial and version < '1.5' else app.id
+            id_ = app.base_id if app.partial and version < VERSION_1_5 else app.id
             app_info = flatpak.get_app_info_fields(id_, app.branch, app.installation)
 
-            if app.partial and version < '1.5':
+            if app.partial and version < VERSION_1_5:
                 app_info['id'] = app.id
                 app_info['ref'] = app.ref
 

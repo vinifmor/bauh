@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from pkg_resources import parse_version
+
 from bauh.api.constants import CONFIG_PATH
 from bauh.commons import resource
 
@@ -10,6 +12,10 @@ CONFIG_FILE = '{}/flatpak.yml'.format(CONFIG_PATH)
 CONFIG_DIR = '{}/flatpak'.format(CONFIG_PATH)
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
 EXPORTS_PATH = '{}/.local/share/flatpak/exports/share'.format(str(Path.home()))
+VERSION_1_2 = parse_version('1.2')
+VERSION_1_3 = parse_version('1.3')
+VERSION_1_4 = parse_version('1.4')
+VERSION_1_5 = parse_version('1.5')
 
 
 def get_icon_path() -> str:
