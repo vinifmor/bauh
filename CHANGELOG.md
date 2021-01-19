@@ -4,19 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.12] 2021
+## [0.9.12] 2021-01-19
 ### Features
 - Arch
-    - AUR:
+    - AUR
         - [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration [#139](https://github.com/vinifmor/bauh/issues/139)
             - if a package needs to be rebuilt, it will be marked for update (rebuild-detector must be installed on your system, but it is not a hard requirement). 
-            - if you hold the mouse over the package 'version' the message "The package needs to be reinstalled" will be displayed.
+            - if you hold the mouse over the package 'version' (on the table), a tip will be displayed with the message "It needs to be reinstalled".
             - this integration can be controlled though the new settings property **aur_rebuild_detector** (default: true).
             <p align="center">
                     <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/rebuild_detector.png">
             </p>
             
-            - new package actions to Allow/Ignore rebuild check for a specific package. Useful for binary packages (e.g: package-bin).
+            - new package actions to Allow/Ignore rebuild check for a specific package
             <p align="center">
                     <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/allow_rebuild_check.png">
             </p>
@@ -38,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
     - repositories/AUR search time (=~ -70%)
-    - new category to filter packages removed from AUR
+    - new category to filter packages removed from AUR (only available for packages installed from AUR through bauh)
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/aur_removed.png">
     </p>
