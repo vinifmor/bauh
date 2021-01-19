@@ -4,6 +4,70 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.12] 2021-01-19
+### Features
+- Arch
+    - AUR
+        - [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration [#139](https://github.com/vinifmor/bauh/issues/139)
+            - if a package needs to be rebuilt, it will be marked for update (rebuild-detector must be installed on your system, but it is not a hard requirement). 
+            - if you hold the mouse over the package 'version' (on the table), a tip will be displayed with the message "It needs to be reinstalled".
+            - this integration can be controlled though the new settings property **aur_rebuild_detector** (default: true).
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/rebuild_detector.png">
+            </p>
+            
+            - new package actions to Allow/Ignore rebuild check for a specific package
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/allow_rebuild_check.png">
+            </p>
+            
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/ignore_rebuild_check.png">
+            </p>
+            
+            - new settings property **aur_rebuild_detector_no_bin** to ignore binary packages when checking with rebuild-detector (e.g: package-bin ). Default: true
+            <p align="center">
+                    <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/ignore_bin.png">
+            </p>
+            
+        - new custom action to quickly reinstall a package
+        <p align="center">
+                <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/aur_reinstall.png">
+        </p>
+    
+### Improvements
+- Arch
+    - repositories/AUR search time (=~ -70%)
+    - new category to filter packages removed from AUR (only available for packages installed from AUR through bauh)
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.12/aur_removed.png">
+    </p>
+    
+- Core
+    - saving settings time (=~ -11%)
+    - internet checking time (=~ -58%)
+- UI
+    - not displaying the number of packages when none is displayed / available
+    - minor improvements
+    
+### Fixes
+- Arch
+    - crashing when information of a given package is not available
+    - displaying "provided" repository packages on the search results (e.g: **nvidia** would appear as a package)
+    - calling pacman to read installed packages when "Repositories" and "AUR" properties are set to "false" (it would not display the packages, but the call was unnecessary being done)
+    - not displaying installed AUR packages when AUR support is disabled
+    - displaying packages removed from AUR as AUR packages
+    - downloading AUR index during the initialization process when AUR support is disabled
+- Flatpak
+    - crashing for version 1.10 [#167](https://github.com/vinifmor/bauh/issues/167)
+    - crashing when trying to retrieve size of runtimes subcomponents [#164](https://github.com/vinifmor/bauh/issues/164)
+- UI
+    - initialization dialog hanging sometimes (due to thread locking)
+    - settings dialog hangs sometimes when the button "Change" is clicked
+    - displaying a popup when information of a given package is not available
+    - wrong package type icon size depending on resolution
+    
+    
 ## [0.9.11] 2020-12-30
 ### New system requirements
 - **python-dateutil**: better Python library for date handling (install the equivalent package for your Linux distribution before upgrading bauh)

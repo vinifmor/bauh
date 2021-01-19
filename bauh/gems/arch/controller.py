@@ -26,6 +26,7 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
 from bauh.api.constants import TEMP_DIR
+from bauh.api.exception import NoInternetException
 from bauh.commons import user, system
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
@@ -36,7 +37,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR
+    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -61,6 +62,7 @@ RE_PRE_DOWNLOAD_BL_EXT = re.compile(r'.+\.(git|gpg)$')
 RE_PKGBUILD_PKGNAME = re.compile(r'pkgname\s*=.+')
 RE_CONFLICT_DETECTED = re.compile(r'\n::\s*(.+)\s+are in conflict\s*.')
 RE_DEPENDENCY_BREAKAGE = re.compile(r'\n?::\s+installing\s+(.+\s\(.+\))\sbreaks\sdependency\s\'(.+)\'\srequired\sby\s(.+)\s*', flags=re.IGNORECASE)
+RE_PKG_ENDS_WITH_BIN = re.compile(r'.+[\-_]bin$')
 
 
 class TransactionContext:
@@ -246,7 +248,7 @@ class ArchManager(SoftwareManager):
         self.disk_cache_updater = disk_cache_updater
 
     @staticmethod
-    def get_semantic_search_map() -> Dict[str, str]:
+    def get_aur_semantic_search_map() -> Dict[str, str]:
         return {'google chrome': 'google-chrome',
                 'chrome google': 'google-chrome',
                 'googlechrome': 'google-chrome'}
@@ -337,61 +339,21 @@ class ArchManager(SoftwareManager):
         database.register_sync(self.logger)
         return True
 
-    def _upgrade_search_result(self, apidata: dict, installed_pkgs: Dict[str, ArchPackage], res: SearchResult):
-        pkg = installed_pkgs.get(apidata['Name'])
+    def _fill_repos_search_results(self, query: str, output: dict):
+        ti = time.time()
+        output['repositories'] = pacman.search(query)
+        tf = time.time()
+        self.logger.info("Repositories search took {0:.2f} seconds".format(tf - ti))
 
-        if not pkg:
-            pkg = self.aur_mapper.map_api_data(apidata, None, self.categories)
+    def _fill_aur_search_results(self, query: str, output: dict):
+        ti = time.time()
+        api_res = self.aur_client.search(query)
 
-        if pkg.installed:
-            res.installed.append(pkg)
-        else:
-            res.new.append(pkg)
-
-        Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True).start()
-
-    def _search_in_repos_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
-        repo_search = pacman.search(words)
-        pkgname = words.split(' ')[0].strip()
-
-        if not repo_search or pkgname not in repo_search:
-            pkg_found = pacman.get_info_dict(pkgname, remote=False)
-
-            if pkg_found and pkg_found['validated by'] and pkg_found['name'] not in repo_search:
-                repo_search[pkgname] = {'version': pkg_found.get('version'),
-                                        'repository': 'unknown',
-                                        'description': pkg_found.get('description')}
-
-        if repo_search:
-            repo_pkgs = []
-            for name, data in repo_search.items():
-                pkg = ArchPackage(name=name, i18n=self.i18n, **data)
-                repo_pkgs.append(pkg)
-
-            if repo_pkgs:
-                read_installed.join()
-
-                repo_installed = {p.name: p for p in installed if p.repository != 'aur'} if installed else {}
-
-                for pkg in repo_pkgs:
-                    pkg_installed = repo_installed.get(pkg.name)
-                    if pkg_installed:
-                        res.installed.append(pkg_installed)
-                    else:
-                        pkg.installed = False
-                        res.new.append(pkg)
-
-    def _search_in_aur_and_fill(self, words: str, disk_loader: DiskCacheLoader, read_installed: Thread, installed: List[ArchPackage], res: SearchResult):
-        api_res = self.aur_client.search(words)
-
+        pkgs_found = None
         if api_res and api_res.get('results'):
-            read_installed.join()
-            aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
-
-            for pkgdata in api_res['results']:
-                self._upgrade_search_result(pkgdata, aur_installed, res)
-
-        else:  # if there are no results from the API (it could be because there were too many), tries the names index:
+            pkgs_found = api_res['results']
+        else:
+            tii = time.time()
             if self.index_aur:
                 self.index_aur.join()
 
@@ -400,103 +362,157 @@ class ArchManager(SoftwareManager):
                 self.logger.info("Querying through the local AUR index")
                 to_query = set()
                 for norm_name, real_name in aur_index.items():
-                    if words in norm_name:
+                    if query in norm_name:
                         to_query.add(real_name)
 
                     if len(to_query) == 25:
                         break
 
-                pkgsinfo = self.aur_client.get_info(to_query)
+                pkgs_found = self.aur_client.get_info(to_query)
 
-                if pkgsinfo:
-                    read_installed.join()
-                    aur_installed = {p.name: p for p in installed if p.repository == 'aur'}
+            tif = time.time()
+            self.logger.info("Query through local AUR index took {0:.2f} seconds".format(tif - tii))
 
-                    for pkgdata in pkgsinfo:
-                        self._upgrade_search_result(pkgdata, aur_installed, res)
+        if pkgs_found:
+            for pkg in pkgs_found:
+                output['aur'][pkg['Name']] = pkg
+
+        tf = time.time()
+        self.logger.info("AUR search took {0:.2f} seconds".format(tf - ti))
+
+    def __fill_search_installed_and_matched(self, query: str, res: dict):
+        matches = set()
+        installed = pacman.list_installed_names()
+        res['installed'] = installed
+        res['installed_matches'] = matches
+
+        if installed and ' ' not in query:  # already filling some matches only based on the query
+            matches.update((name for name in installed if query in name))
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
-            return SearchResult([], [], 0)
+            return SearchResult.empty()
 
         arch_config = self.configman.get_config()
-        aur_supported = aur.is_supported(arch_config)
+        repos_supported, aur_supported = arch_config['repositories'], aur.is_supported(arch_config)
 
-        if not any([arch_config['repositories'], aur_supported]):
-            return SearchResult([], [], 0)
+        if not any([repos_supported, aur_supported]):
+            return SearchResult.empty()
 
-        installed = []
-        read_installed = Thread(target=lambda: installed.extend(self.read_installed(disk_loader=disk_loader,
-                                                                                    only_apps=False,
-                                                                                    limit=-1,
-                                                                                    internet_available=True).installed), daemon=True)
-        read_installed.start()
+        res = SearchResult.empty()
 
-        res = SearchResult([], [], 0)
+        search_output, search_threads = {'aur': {}, 'repositories': {}}, []
+        t = Thread(target=self.__fill_search_installed_and_matched, args=(words, search_output), daemon=True)
+        t.start()
+        search_threads.append(t)
 
-        if not any([aur_supported, arch_config['repositories']]):
-            return res
-
-        mapped_words = self.get_semantic_search_map().get(words)
-        final_words = mapped_words or words
-
-        aur_search = None
         if aur_supported:
-            aur_search = Thread(target=self._search_in_aur_and_fill, args=(final_words, disk_loader, read_installed, installed, res), daemon=True)
-            aur_search.start()
+            aur_query = self.get_aur_semantic_search_map().get(words, words)
+            taur = Thread(target=self._fill_aur_search_results, args=(aur_query, search_output), daemon=True)
+            taur.start()
+            search_threads.append(taur)
 
-        if arch_config['repositories']:
-            self._search_in_repos_and_fill(final_words, disk_loader, read_installed, installed, res)
+        if repos_supported:
+            trepo = Thread(target=self._fill_repos_search_results, args=(words, search_output), daemon=True)
+            trepo.start()
+            search_threads.append(trepo)
 
-        if aur_search:
-            aur_search.join()
+        for t in search_threads:
+            t.join()
 
-        res.total = len(res.installed) + len(res.new)
+        for name in {*search_output['repositories'].keys(), *search_output['aur'].keys()}:
+            if name in search_output['installed']:
+                search_output['installed_matches'].add(name)
+
+        if search_output['installed_matches']:
+            installed = self.read_installed(disk_loader=disk_loader, names=search_output['installed_matches']).installed
+
+            for pkg in installed:
+                if pkg.repository != 'aur':
+                    if repos_supported:
+                        res.installed.append(pkg)
+                        if pkg.name in search_output['repositories']:
+                            del search_output['repositories'][pkg.name]
+                elif aur_supported:
+                    res.installed.append(pkg)
+                    if pkg.name in search_output['aur']:
+                        del search_output['aur'][pkg.name]
+
+        if search_output['repositories']:
+            for pkgname, data in search_output['repositories'].items():
+                res.new.append(ArchPackage(name=pkgname, i18n=self.i18n, **data))
+
+        if search_output['aur']:
+            for pkgname, apidata in search_output['aur'].items():
+                res.new.append(self.aur_mapper.map_api_data(apidata, None, self.categories))
+
+        res.update_total()
         return res
 
     def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
-                       arch_config: dict):
+                       arch_config: dict, rebuild_check: Optional[Thread], rebuild_ignored: Optional[Thread], rebuild_output: Optional[Dict[str, Set[str]]]):
 
         if internet_available:
             try:
                 pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
-
-                if pkgsinfo:
-                    editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
-                    for pkgdata in pkgsinfo:
-                        pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
-                        pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
-
-                        if pkg.installed:
-                            if disk_loader:
-                                disk_loader.fill(pkg, sync=True)
-
-                            pkg.update = self._check_aur_package_update(pkg=pkg,
-                                                                        installed_data=aur_pkgs.get(pkg.name, {}),
-                                                                        api_data=pkgdata)
-                        pkg.status = PackageStatus.READY
-                        output.append(pkg)
-
-                    return
-
             except requests.exceptions.ConnectionError:
                 self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
                 self.logger.info("Reading only local AUR packages data")
+                return
 
-        editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
-        for name, data in aur_pkgs.items():
-            pkg = ArchPackage(name=name, version=data.get('version'),
-                              latest_version=data.get('version'), description=data.get('description'),
-                              installed=True, repository='aur', i18n=self.i18n)
+            if pkgsinfo:
+                editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
 
-            pkg.categories = self.categories.get(pkg.name)
-            pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+                ignore_rebuild_check = None
+                if rebuild_ignored and rebuild_output is not None:
+                    rebuild_ignored.join()
+                    ignore_rebuild_check = rebuild_output['ignored']
 
-            if disk_loader:
-                disk_loader.fill(pkg)
+                to_rebuild = None
+                if rebuild_check and rebuild_output is not None:
+                    self.logger.info("Waiting for rebuild-detector")
+                    rebuild_check.join()
+                    to_rebuild = rebuild_output['to_rebuild']
 
-            pkg.status = PackageStatus.READY
-            output.append(pkg)
+                for pkgdata in pkgsinfo:
+                    pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
+                    pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+
+                    if pkg.installed:
+                        if disk_loader:
+                            disk_loader.fill(pkg, sync=True)
+
+                        pkg.update = self._check_aur_package_update(pkg=pkg,
+                                                                    installed_data=aur_pkgs.get(pkg.name, {}),
+                                                                    api_data=pkgdata)
+                        pkg.aur_update = pkg.update  # used in 'set_rebuild_check'
+
+                        if ignore_rebuild_check is not None:
+                            pkg.allow_rebuild = pkg.name not in ignore_rebuild_check
+
+                        if to_rebuild and not pkg.update and pkg.name in to_rebuild:
+                            pkg.require_rebuild = True
+
+                        pkg.update_state()
+
+                    pkg.status = PackageStatus.READY
+                    output.append(pkg)
+
+        else:
+            editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
+            for name, data in aur_pkgs.items():
+                pkg = ArchPackage(name=name, version=data.get('version'),
+                                  latest_version=data.get('version'), description=data.get('description'),
+                                  installed=True, repository='aur', i18n=self.i18n)
+
+                pkg.categories = self.categories.get(pkg.name)
+                pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+
+                if disk_loader:
+                    disk_loader.fill(pkg)
+
+                pkg.status = PackageStatus.READY
+                output.append(pkg)
 
     def _check_aur_package_update(self, pkg: ArchPackage, installed_data: dict, api_data: dict) -> bool:
         if pkg.last_modified is None:  # if last_modified is not available, then the install_date will be used instead
@@ -515,18 +531,15 @@ class ArchManager(SoftwareManager):
     def _fill_repo_updates(self, updates: dict):
         updates.update(pacman.list_repository_updates())
 
-    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, aur_supported: bool, disk_loader: DiskCacheLoader):
+    def _fill_repo_pkgs(self, repo_pkgs: dict, pkgs: list, aur_index: Optional[Set[str]], disk_loader: DiskCacheLoader):
         updates = {}
 
         thread_updates = Thread(target=self._fill_repo_updates, args=(updates,), daemon=True)
         thread_updates.start()
 
         repo_map = pacman.map_repositories(repo_pkgs)
-        if len(repo_map) != len(repo_pkgs):
-            self.logger.warning("Not mapped all signed packages repositories. Mapped: {}. Total: {}".format(len(repo_map), len(repo_pkgs)))
 
         thread_updates.join()
-
         self.logger.info("Repository updates found" if updates else "No repository updates found")
 
         for name, data in repo_pkgs.items():
@@ -540,7 +553,7 @@ class ArchManager(SoftwareManager):
                               i18n=self.i18n,
                               installed=True,
                               repository=pkgrepo,
-                              categories=self.categories.get(name))
+                              categories=self.categories.get(name, []))
 
             if updates:
                 update_version = updates.get(pkg.name)
@@ -552,8 +565,16 @@ class ArchManager(SoftwareManager):
             if disk_loader:
                 disk_loader.fill(pkg, sync=True)
 
-            if aur_supported or pkg.repository != 'aur':  # this case happens when a package was removed from AUR
-                pkgs.append(pkg)
+            if pkg.repository == 'aur':
+                pkg.repository = None
+
+                if aur_index and pkg.name not in aur_index:
+                    removed_cat = self.i18n['arch.category.remove_from_aur']
+
+                    if removed_cat not in pkg.categories:
+                        pkg.categories.append(removed_cat)
+
+            pkgs.append(pkg)
 
     def _wait_for_disk_cache(self):
         if self.disk_cache_updater and self.disk_cache_updater.is_alive():
@@ -561,34 +582,65 @@ class ArchManager(SoftwareManager):
             self.disk_cache_updater.join()
             self.logger.info("Disk cache ready")
 
+    def __fill_packages_to_rebuild(self, output: Dict[str, Set[str]], ignore_binaries: bool):
+        if rebuild_detector.is_installed():
+            self.logger.info("rebuild-detector: checking")
+            to_rebuild = rebuild_detector.list_required_rebuild()
+
+            if to_rebuild and ignore_binaries:
+                to_rebuild = {p for p in to_rebuild if not RE_PKG_ENDS_WITH_BIN.match(p)}
+
+            output['to_rebuild'].update(to_rebuild)
+            self.logger.info("rebuild-detector: {} packages require rebuild".format(len(to_rebuild)))
+
+    def __fill_ignored_by_rebuild_detector(self, output: Dict[str, Set[str]]):
+        output['ignored'].update(rebuild_detector.list_ignored())
+
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None, names: Iterable[str] = None, wait_disk_cache: bool = True) -> SearchResult:
         self.aur_client.clean_caches()
         arch_config = self.configman.get_config()
 
-        aur_supported = aur.is_supported(arch_config)
+        aur_supported, repos_supported = aur.is_supported(arch_config), arch_config['repositories']
+
+        if not aur_supported and not repos_supported:
+            return SearchResult.empty()
+
+        rebuild_output, rebuild_check, rebuild_ignored = None, None, None
+        if aur_supported and arch_config['aur_rebuild_detector']:
+            rebuild_output = {'to_rebuild': set(), 'ignored': set()}
+            rebuild_check = Thread(target=self.__fill_packages_to_rebuild,
+                                   args=(rebuild_output, arch_config['aur_rebuild_detector_no_bin']),
+                                   daemon=True)
+            rebuild_check.start()
+
+            rebuild_ignored = Thread(target=self.__fill_ignored_by_rebuild_detector, args=(rebuild_output, ), daemon=True)
+            rebuild_ignored.start()
 
         installed = pacman.map_installed(names=names)
 
-        aur_pkgs, repo_pkgs = None, None
+        aur_pkgs, repo_pkgs, aur_index = None, None, None
 
-        if arch_config['repositories'] and installed['signed']:
+        if repos_supported:
             repo_pkgs = installed['signed']
 
         if installed['not_signed']:
-            if self.index_aur:
-                self.index_aur.join()
+            if aur_supported:
+                if self.index_aur:
+                    self.index_aur.join()
 
-            aur_index = self.aur_client.read_index()
+                aur_index = self.aur_client.read_index()
 
-            for pkg in {*installed['not_signed']}:
-                if pkg not in aur_index:
-                    if repo_pkgs is not None:
-                        repo_pkgs[pkg] = installed['not_signed'][pkg]
+                for pkg in {*installed['not_signed']}:
+                    if pkg not in aur_index:
+                        if repos_supported:
+                            repo_pkgs[pkg] = installed['not_signed'][pkg]
 
-                    if aur_supported and installed['not_signed']:
-                        del installed['not_signed'][pkg]
+                        if aur_supported and installed['not_signed']:
+                            del installed['not_signed'][pkg]
 
-            aur_pkgs = installed['not_signed'] if aur_supported else None
+                aur_pkgs = installed['not_signed']
+            elif repos_supported:
+                repo_pkgs.update(installed['not_signed'])
 
         pkgs = []
         if repo_pkgs or aur_pkgs:
@@ -598,12 +650,12 @@ class ArchManager(SoftwareManager):
             map_threads = []
 
             if aur_pkgs:
-                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config), daemon=True)
+                t = Thread(target=self._fill_aur_pkgs, args=(aur_pkgs, pkgs, disk_loader, internet_available, arch_config, rebuild_check, rebuild_ignored, rebuild_output), daemon=True)
                 t.start()
                 map_threads.append(t)
 
             if repo_pkgs:
-                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, aur_supported, disk_loader), daemon=True)
+                t = Thread(target=self._fill_repo_pkgs, args=(repo_pkgs, pkgs, aur_index, disk_loader), daemon=True)
                 t.start()
                 map_threads.append(t)
 
@@ -1412,26 +1464,28 @@ class ArchManager(SoftwareManager):
         return {ArchPackage}
 
     def _get_info_aur_pkg(self, pkg: ArchPackage) -> dict:
+        fill_pkgbuild = Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True)
+        fill_pkgbuild.start()
+
         if pkg.installed:
-            t = Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True)
-            t.start()
-
             info = pacman.get_info_dict(pkg.name)
-            self._parse_dates_string_from_info(pkg.name, info)
 
-            if pkg.commit:
-                info['commit'] = pkg.commit
+            if info is not None:
+                self._parse_dates_string_from_info(pkg.name, info)
 
-            if pkg.last_modified:
-                info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
-                                                              error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
+                if pkg.commit:
+                    info['commit'] = pkg.commit
 
-            t.join()
+                if pkg.last_modified:
+                    info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
+                                                                  error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
 
-            if pkg.pkgbuild:
-                info['13_pkg_build'] = pkg.pkgbuild
+                info['14_installed_files'] = pacman.list_installed_files(pkg.name)
 
-            info['14_installed_files'] = pacman.list_installed_files(pkg.name)
+                fill_pkgbuild.join()
+
+                if pkg.pkgbuild:
+                    info['13_pkg_build'] = pkg.pkgbuild
 
             return info
         else:
@@ -1474,6 +1528,8 @@ class ArchManager(SoftwareManager):
                         else:
                             info[info_attr].extend(srcinfo[arch_attr])
 
+            fill_pkgbuild.join()
+
             if pkg.pkgbuild:
                 info['00_pkg_build'] = pkg.pkgbuild
             else:
@@ -1501,9 +1557,12 @@ class ArchManager(SoftwareManager):
 
     def _get_info_repo_pkg(self, pkg: ArchPackage) -> dict:
         info = pacman.get_info_dict(pkg.name, remote=not pkg.installed)
-        self._parse_dates_string_from_info(pkg.name, info)
-        if pkg.installed:
-            info['installed files'] = pacman.list_installed_files(pkg.name)
+
+        if info is not None:
+            self._parse_dates_string_from_info(pkg.name, info)
+
+            if pkg.installed:
+                info['installed files'] = pacman.list_installed_files(pkg.name)
 
         return info
 
@@ -2793,6 +2852,22 @@ class ArchManager(SoftwareManager):
                                     label_params=['(AUR)'],
                                     capitalize_label=False,
                                     max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector',
+                                    label_key='arch.config.aur_rebuild_detector',
+                                    tooltip_key='arch.config.aur_rebuild_detector.tip',
+                                    value=bool(arch_config['aur_rebuild_detector']),
+                                    label_params=['(AUR)'],
+                                    tooltip_params=["'rebuild-detector'"],
+                                    capitalize_label=False,
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector_no_bin',
+                                    label_key='arch.config.aur_rebuild_detector_no_bin',
+                                    label_params=['rebuild-detector'],
+                                    tooltip_key='arch.config.aur_rebuild_detector_no_bin.tip',
+                                    tooltip_params=['rebuild-detector', self.i18n['arch.config.aur_rebuild_detector'].format('')],
+                                    value=bool(arch_config['aur_rebuild_detector_no_bin']),
+                                    capitalize_label=False,
+                                    max_width=max_width),
             self._gen_bool_selector(id_='autoprovs',
                                     label_key='arch.config.automatch_providers',
                                     tooltip_key='arch.config.automatch_providers.tip',
@@ -2893,34 +2968,42 @@ class ArchManager(SoftwareManager):
                                value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
         ]
 
-        return PanelComponent([FormComponent(fields, spaces=False)])
+        return PanelComponent([FormComponent(fields, spaces=False, id_='root')])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         arch_config = self.configman.get_config()
 
-        panel = component.components[0]
-        arch_config['repositories'] = panel.get_component('repos').get_selected()
-        arch_config['aur'] = panel.get_component('aur').get_selected()
-        arch_config['optimize'] = panel.get_component('opts').get_selected()
-        arch_config['sync_databases'] = panel.get_component('sync_dbs').get_selected()
-        arch_config['sync_databases_startup'] = panel.get_component('sync_dbs_start').get_selected()
-        arch_config['clean_cached'] = panel.get_component('clean_cached').get_selected()
-        arch_config['refresh_mirrors_startup'] = panel.get_component('ref_mirs').get_selected()
-        arch_config['mirrors_sort_limit'] = panel.get_component('mirrors_sort_limit').get_int_value()
-        arch_config['repositories_mthread_download'] = panel.get_component('mthread_download').get_selected()
-        arch_config['automatch_providers'] = panel.get_component('autoprovs').get_selected()
-        arch_config['edit_aur_pkgbuild'] = panel.get_component('edit_aur_pkgbuild').get_selected()
-        arch_config['aur_remove_build_dir'] = panel.get_component('aur_remove_build_dir').get_selected()
-        arch_config['aur_build_dir'] = panel.get_component('aur_build_dir').file_path
-        arch_config['aur_build_only_chosen'] = panel.get_component('aur_build_only_chosen').get_selected()
-        arch_config['aur_idx_exp'] = panel.get_component('aur_idx_exp').get_int_value()
-        arch_config['check_dependency_breakage'] = panel.get_component('check_dependency_breakage').get_selected()
-        arch_config['suggest_optdep_uninstall'] = panel.get_component('suggest_optdep_uninstall').get_selected()
-        arch_config['suggest_unneeded_uninstall'] = panel.get_component('suggest_unneeded_uninstall').get_selected()
-        arch_config['categories_exp'] = panel.get_component('arch_cats_exp').get_int_value()
+        form = component.get_form_component('root')
+        arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
+        arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
+        arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
+        arch_config['aur_rebuild_detector_no_bin'] = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
+        arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
+        arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
+        arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
+        arch_config['refresh_mirrors_startup'] = form.get_single_select_component('ref_mirs').get_selected()
+        arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit').get_int_value()
+        arch_config['repositories_mthread_download'] = form.get_component('mthread_download').get_selected()
+        arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
+        arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
+        arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
+        arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
+        arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
+        arch_config['aur_idx_exp'] = form.get_component('aur_idx_exp').get_int_value()
+        arch_config['check_dependency_breakage'] = form.get_single_select_component('check_dependency_breakage').get_selected()
+        arch_config['suggest_optdep_uninstall'] = form.get_single_select_component('suggest_optdep_uninstall').get_selected()
+        arch_config['suggest_unneeded_uninstall'] = form.get_single_select_component('suggest_unneeded_uninstall').get_selected()
+        arch_config['categories_exp'] = form.get_component('arch_cats_exp').get_int_value()
 
         if not arch_config['aur_build_dir']:
             arch_config['aur_build_dir'] = None
+
+        aur_enabled_select = form.get_single_select_component('aur')
+        arch_config['aur'] = aur_enabled_select.get_selected()
+
+        if aur_enabled_select.changed() and arch_config['aur']:
+            self.index_aur = AURIndexUpdater(context=self.context, taskman=TaskManager(), arch_config=arch_config)
+            self.index_aur.start()
 
         try:
             self.configman.save_config(arch_config)
@@ -3386,3 +3469,51 @@ class ArchManager(SoftwareManager):
                         continue
 
         return res
+
+    def reinstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:  # only available for AUR packages
+        if not self.context.internet_checker.is_available():
+            raise NoInternetException()
+
+        self.aur_client.clean_caches()
+
+        apidatas = self.aur_client.get_info({pkg.name})
+
+        if not apidatas:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['arch.action.reinstall.error.no_apidata'],
+                                 type_=MessageType.ERROR)
+            return False
+
+        self.aur_mapper.fill_last_modified(pkg, apidatas[0])
+        context = TransactionContext.gen_context_from(pkg=pkg,
+                                                      arch_config=self.configman.get_config(),
+                                                      root_password=root_password,
+                                                      handler=ProcessHandler(watcher),
+                                                      aur_supported=True)
+        context.skip_opt_deps = False
+        context.update_aur_index = True
+
+        return self.install(pkg=pkg,
+                            root_password=root_password,
+                            watcher=watcher,
+                            context=context,
+                            disk_loader=self.context.disk_loader_factory.new()).success
+
+    def set_rebuild_check(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+        if pkg.repository != 'aur':
+            return False
+
+        try:
+            if pkg.allow_rebuild:
+                rebuild_detector.add_as_ignored(pkg.name)
+                pkg.allow_rebuild = False
+            else:
+                rebuild_detector.remove_from_ignored(pkg.name)
+                pkg.allow_rebuild = True
+        except:
+            self.logger.error("An unexpected exception happened")
+            traceback.print_exc()
+            return False
+
+        pkg.update_state()
+        return True

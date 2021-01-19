@@ -22,6 +22,7 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         self.cache_map = cache_map
         self.logger = logger
         self.processed = 0
+        self._working = False
 
     def fill(self, pkg: SoftwarePackage, sync: bool = False):
         """
@@ -31,7 +32,7 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         :return:
         """
         if pkg and pkg.supports_disk_cache():
-            if sync:
+            if sync or not self._working:
                 self._fill_cached_data(pkg)
             else:
                 self.pkgs.append(pkg)
@@ -40,6 +41,7 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         self._work = False
 
     def run(self):
+        self._working = True
         last = 0
 
         while True:
@@ -52,6 +54,8 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
                 last += 1
             elif not self._work:
                 break
+
+        self._working = False
 
     def _fill_cached_data(self, pkg: SoftwarePackage) -> bool:
         if os.path.exists(pkg.get_disk_data_path()):

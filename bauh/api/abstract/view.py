@@ -33,18 +33,6 @@ class SpacerComponent(ViewComponent):
         super(SpacerComponent, self).__init__(id_=None)
 
 
-class PanelComponent(ViewComponent):
-
-    def __init__(self, components: List[ViewComponent], id_: str = None):
-        super(PanelComponent, self).__init__(id_=id_)
-        self.components = components
-        self.component_map = {c.id: c for c in components if c.id is not None} if components else None
-
-    def get_component(self, id_: str) -> ViewComponent:
-        if self.component_map:
-            return self.component_map.get(id_)
-
-
 class InputViewComponent(ViewComponent):
     """
     Represents an component which needs a user interaction to provide its value
@@ -96,6 +84,7 @@ class SingleSelectComponent(InputViewComponent):
         self.label = label
         self.options = options
         self.value = default_option
+        self.init_value = default_option
         self.max_per_line = max_per_line
         self.tooltip = tooltip
         self.max_width = max_width
@@ -104,6 +93,9 @@ class SingleSelectComponent(InputViewComponent):
     def get_selected(self):
         if self.value:
             return self.value.value
+
+    def changed(self) -> bool:
+        return self.init_value != self.value
 
 
 class MultipleSelectComponent(InputViewComponent):
@@ -214,9 +206,25 @@ class FormComponent(ViewComponent):
         self.components = components
         self.component_map = {c.id: c for c in components if c.id} if components else None
 
-    def get_component(self, id_: str) -> ViewComponent:
+    def get_component(self, id_: str) -> Optional[ViewComponent]:
         if self.component_map:
             return self.component_map.get(id_)
+
+    def get_single_select_component(self, id_: str) -> Optional[SingleSelectComponent]:
+        comp = self.get_component(id_)
+
+        if comp:
+            if not isinstance(comp, SingleSelectComponent):
+                raise Exception("'{}' is not a {}".format(id_, SingleSelectComponent.__class__.__name__))
+            return comp
+
+    def get_form_component(self, id_: str) -> Optional["FormComponent"]:
+        comp = self.get_component(id_)
+
+        if comp:
+            if not isinstance(comp, FormComponent):
+                raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
+            return comp
 
 
 class FileChooserComponent(ViewComponent):
@@ -281,3 +289,23 @@ class RangeInputComponent(InputViewComponent):
         self.step = step_value
         self.value = value
         self.max_width = max_width
+
+
+class PanelComponent(ViewComponent):
+
+    def __init__(self, components: List[ViewComponent], id_: str = None):
+        super(PanelComponent, self).__init__(id_=id_)
+        self.components = components
+        self.component_map = {c.id: c for c in components if c.id is not None} if components else None
+
+    def get_component(self, id_: str) -> Optional[ViewComponent]:
+        if self.component_map:
+            return self.component_map.get(id_)
+
+    def get_form_component(self, id_: str) -> Optional[FormComponent]:
+        comp = self.get_component(id_)
+
+        if comp:
+            if not isinstance(comp, FormComponent):
+                raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
+            return comp

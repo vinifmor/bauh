@@ -41,7 +41,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     ListWarnings, \
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
-    IgnorePackageUpdates, SaveTheme
+    IgnorePackageUpdates, SaveTheme, StartAsyncAction
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -346,6 +346,9 @@ class ManageWindow(QWidget):
 
         self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
+
+        self.thread_reload = StartAsyncAction(delay_in_milis=5)
+        self.thread_reload.signal_start.connect(self._reload)
 
         self.container_bottom = QWidget()
         self.container_bottom.setObjectName('container_bottom')
@@ -837,7 +840,11 @@ class ManageWindow(QWidget):
             self.table_apps.change_headers_policy(QHeaderView.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
-            self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
+
+            if len(self.pkgs) == 0 and len(self.pkgs_available) == 0:
+                self.label_displayed.setText('')
+            else:
+                self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
         else:
             self.label_displayed.hide()
 
@@ -1216,9 +1223,16 @@ class ManageWindow(QWidget):
 
     def _finish_show_info(self, pkg_info: dict):
         self._finish_action(action_id=ACTION_INFO)
-        dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache,
-                                 i18n=self.i18n, screen_size=self.screen_size)
-        dialog_info.exec_()
+
+        if pkg_info:
+            if len(pkg_info) > 1:
+                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache,
+                                         i18n=self.i18n, screen_size=self.screen_size)
+                dialog_info.exec_()
+            else:
+                dialog.show_message(title=self.i18n['warning'].capitalize(),
+                                    body=self.i18n['manage_window.info.no_info'].format(bold(pkg_info['__app__'].model.name)),
+                                    type_=MessageType.WARNING)
 
     def begin_show_screenshots(self, pkg: PackageView):
         self._begin_action(action_label=self.i18n['manage_window.status.screenshots'].format(bold(pkg.model.name)),
@@ -1610,3 +1624,12 @@ class ManageWindow(QWidget):
         actions.sort(key=lambda a: a.get_label())
         actions.insert(0, current_action)
         return actions
+
+    def reload(self):
+        self.thread_reload.start()
+
+    def _reload(self):
+        self.update_custom_actions()
+        self.verify_warnings()
+        self.types_changed = True
+        self.begin_refresh_packages()

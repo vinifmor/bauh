@@ -149,7 +149,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+            self.logger.info(man.__class__.__name__ + " took {0:.8f} seconds".format(mtf - mti))
 
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
@@ -158,7 +158,7 @@ class GenericSoftwareManager(SoftwareManager):
         ti = time.time()
         self._wait_to_be_ready()
 
-        res = SearchResult([], [], 0)
+        res = SearchResult.empty()
 
         if self.context.is_internet_available():
             norm_word = words.strip().lower()
@@ -183,12 +183,12 @@ class GenericSoftwareManager(SoftwareManager):
 
             res.installed = self._sort(res.installed, norm_word)
             res.new = self._sort(res.new, norm_word)
-            res.total = len(res.installed) + len(res.new)
         else:
             raise NoInternetException()
 
+        res.update_total()
         tf = time.time()
-        self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
+        self.logger.info('Took {0:.8f} seconds'.format(tf - ti))
         return res
 
     def _wait_to_be_ready(self):

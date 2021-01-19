@@ -165,6 +165,7 @@ database:
 - Repository packages supported actions: search, install, uninstall, launch and ignore updates
 - AUR packages supported actions: search, install, uninstall, downgrade, launch, history and ignore updates
 - It handles conflicts, missing / optional packages installations, and several providers scenarios
+- [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration (AUR only)
 - Automatically makes simple package compilation improvements:
 
     a) if **MAKEFLAGS** is not set in **/etc/makepkg.conf**,
@@ -187,6 +188,8 @@ database:
     - **clean cache**: it cleans the pacman cache directory (default: `/var/cache/pacman/pkg`)
     - **mark PKGBUILD as editable**: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
     - **unmark PKGBUILD as editable**: reverts the action described above. Action only available when the configuration property **edit_aur_pkgbuild** is not **false**.
+    - **allow reinstallation check**: it allows to check if a given AUR packages requires to be rebuilt
+    - **ignore reinstallation check**: it does not to check if a given AUR packages requires to be rebuilt
     - **check Snaps support**: checks if the Snapd services are properly enabled.
 - Installed AUR packages have their **PKGBUILD** files cached at **~/.cache/bauh/arch/installed/$pkgname**
 - Packages with ignored updates are defined at **~/.config/bauh/arch/updates_ignored.txt**
@@ -211,6 +214,7 @@ check_dependency_breakage: true # if, during the verification of the update requ
 suggest_unneeded_uninstall: false  # if the dependencies apparently no longer necessary associated with the uninstalled packages should be suggested for uninstallation. When this property is enabled it automatically disables the property 'suggest_optdep_uninstall'. Default: false (to prevent new users from making mistakes)
 suggest_optdep_uninstall: false  # if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
 categories_exp: 24  # It defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
+aur_rebuild_detector: true # it checks if packages built with old library versions require to be rebuilt. If a package needs to be rebuilt, it will be marked for update ('rebuild-detector' must be installed). Default: true.
 ```
 - Required dependencies:
     - **pacman**

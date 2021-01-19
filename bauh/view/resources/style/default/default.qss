@@ -268,7 +268,14 @@ PackagesTable QLabel#icon_publisher_verified {
 }
 
 PackagesTable QLabel[icon = "true"]  {
-    qproperty-alignment: AlignCenter;
+    qproperty-scaledContents: True;
+    min-height: 16;
+    max-height: 16;
+    min-width: 16;
+    max-width: 16;
+    margin-left: 12px;
+    margin-right: 12px;
+    margin-top: 7px;
 }
 
 PackagesTable QToolButton#bt_install {

@@ -28,6 +28,17 @@ class SearchResult:
         self.new = new
         self.total = total
 
+    def update_total(self):
+        total = 0
+
+        if self.installed:
+            total += len(self.installed)
+
+        if self.new:
+            total += len(self.new)
+
+        self.total = total
+
     @classmethod
     def empty(cls):
         return cls(installed=[], new=[], total=0)

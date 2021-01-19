@@ -2,9 +2,9 @@ import gc
 from io import StringIO
 from typing import Optional
 
-from PyQt5.QtCore import QSize, Qt, QCoreApplication
+from PyQt5.QtCore import QSize, Qt, QCoreApplication, QThread, pyqtSignal
 from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout, QApplication
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
@@ -16,6 +16,22 @@ from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.qt_utils import centralize
 from bauh.view.util import util
 from bauh.view.util.translation import I18n
+
+
+class ReloadManagePanel(QThread):
+
+    signal_finished = pyqtSignal()
+
+    def __init__(self, manager: SoftwareManager):
+        super(ReloadManagePanel, self).__init__()
+        self.manager = manager
+
+    def run(self):
+        if isinstance(self.manager, GenericSoftwareManager):
+            self.manager.reset_cache()
+
+        self.manager.prepare(task_manager=None, root_password=None, internet_available=None)
+        self.signal_finished.emit()
 
 
 class SettingsWindow(QWidget):
@@ -31,9 +47,9 @@ class SettingsWindow(QWidget):
 
         self.settings_model = self.manager.get_settings(screen_size.width(), screen_size.height())
 
-        tab_group = to_widget(self.settings_model, i18n)
-        tab_group.setObjectName('settings')
-        self.layout().addWidget(tab_group)
+        self.tab_group = to_widget(self.settings_model, i18n)
+        self.tab_group.setObjectName('settings')
+        self.layout().addWidget(self.tab_group)
 
         lower_container = QWidget()
         lower_container.setObjectName('lower_container')
@@ -41,25 +57,28 @@ class SettingsWindow(QWidget):
         lower_container.setLayout(QHBoxLayout())
         lower_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
-        bt_close = QPushButton()
-        bt_close.setObjectName('cancel')
-        bt_close.setAutoDefault(True)
-        bt_close.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_close.setText(self.i18n['close'].capitalize())
-        bt_close.clicked.connect(lambda: self.close())
-        lower_container.layout().addWidget(bt_close)
+        self.bt_close = QPushButton()
+        self.bt_close.setObjectName('cancel')
+        self.bt_close.setAutoDefault(True)
+        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_close.setText(self.i18n['close'].capitalize())
+        self.bt_close.clicked.connect(lambda: self.close())
+        lower_container.layout().addWidget(self.bt_close)
 
         lower_container.layout().addWidget(new_spacer())
 
-        bt_change = QPushButton()
-        bt_change.setAutoDefault(True)
-        bt_change.setObjectName('ok')
-        bt_change.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_change.setText(self.i18n['change'].capitalize())
-        bt_change.clicked.connect(self._save_settings)
-        lower_container.layout().addWidget(bt_change)
+        self.bt_change = QPushButton()
+        self.bt_change.setAutoDefault(True)
+        self.bt_change.setObjectName('ok')
+        self.bt_change.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_change.setText(self.i18n['change'].capitalize())
+        self.bt_change.clicked.connect(self._save_settings)
+        lower_container.layout().addWidget(self.bt_change)
 
         self.layout().addWidget(lower_container)
+
+        self.thread_reload_panel = ReloadManagePanel(manager=manager)
+        self.thread_reload_panel.signal_finished.connect(self._reload_manage_panel)
 
     def show(self):
         super(SettingsWindow, self).show()
@@ -83,6 +102,10 @@ class SettingsWindow(QWidget):
             self.setWindowState(self.windowState() and Qt.WindowMinimized or Qt.WindowActive)
 
     def _save_settings(self):
+        self.tab_group.setEnabled(False)
+        self.bt_change.setEnabled(False)
+        self.bt_close.setEnabled(False)
+
         success, warnings = self.manager.save_settings(self.settings_model)
 
         if success:
@@ -98,17 +121,8 @@ class SettingsWindow(QWidget):
                 self.close()
                 util.restart_app()
             else:
-                if isinstance(self.manager, GenericSoftwareManager):
-                    self.manager.reset_cache()
-
-                self.manager.prepare(task_manager=None, root_password=None, internet_available=None)
-
-                if self.window and self.window.isVisible():
-                    self.window.update_custom_actions()
-                    self.window.verify_warnings()
-                    self.window.types_changed = True
-                    self.window.begin_refresh_packages()
-                self.close()
+                self.thread_reload_panel.start()
+                QApplication.setOverrideCursor(Qt.WaitCursor)
         else:
             msg = StringIO()
             msg.write("<p>{}</p>".format(self.i18n['settings.error']))
@@ -118,3 +132,10 @@ class SettingsWindow(QWidget):
 
             msg.seek(0)
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=msg.read(), type_=MessageType.WARNING)
+
+    def _reload_manage_panel(self):
+        if self.window and self.window.isVisible():
+            self.window.reload()
+
+        QApplication.restoreOverrideCursor()
+        self.close()
