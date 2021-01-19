@@ -62,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - crashing when trying to retrieve size of runtimes subcomponents [#164](https://github.com/vinifmor/bauh/issues/164)
 - UI
     - initialization dialog hanging sometimes (due to thread locking)
+    - settings dialog hangs sometimes when the button "Change" is clicked
     - displaying a popup when information of a given package is not available
     - wrong package type icon size depending on resolution
     
