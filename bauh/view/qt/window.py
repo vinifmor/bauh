@@ -840,7 +840,11 @@ class ManageWindow(QWidget):
             self.table_apps.change_headers_policy(QHeaderView.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
-            self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
+
+            if len(self.pkgs) == 0 and len(self.pkgs_available) == 0:
+                self.label_displayed.setText('')
+            else:
+                self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
         else:
             self.label_displayed.hide()
 
