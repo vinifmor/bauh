@@ -274,6 +274,7 @@ PackagesTable QLabel[icon = "true"]  {
     min-width: 16;
     max-width: 16;
     margin-left: 12px;
+    margin-right: 12px;
     margin-top: 7px;
 }
 
