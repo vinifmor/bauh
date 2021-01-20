@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.constants import CONFIG_PATH
 from bauh.commons import resource

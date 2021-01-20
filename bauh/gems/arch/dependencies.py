@@ -3,7 +3,7 @@ import traceback
 from threading import Thread
 from typing import Set, List, Tuple, Dict, Iterable
 
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation

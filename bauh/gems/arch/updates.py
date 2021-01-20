@@ -4,7 +4,7 @@ import traceback
 from threading import Thread
 from typing import Dict, Set, List, Tuple, Iterable, Optional
 
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
