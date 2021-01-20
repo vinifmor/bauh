@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh import __app_name__, __version__
 from bauh.api.constants import CACHE_PATH

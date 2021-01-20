@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Set, Iterable, Optional
 
 from packaging.version import Version
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.exception import NoInternetException
 from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler

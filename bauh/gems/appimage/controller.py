@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Set, Type, List, Tuple, Optional
 
 from colorama import Fore
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \

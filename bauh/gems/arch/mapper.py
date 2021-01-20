@@ -4,7 +4,7 @@ import traceback
 from typing import Optional
 
 from colorama import Fore
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
