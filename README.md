@@ -12,7 +12,7 @@ Key features
 </p>
 
 
-## Summary
+## Index
 1.  [Installation](#installation)
     - [Ubuntu-based distros (20.04)](#inst_ubuntu)
     - [Arch-based distros](#inst_arch)
