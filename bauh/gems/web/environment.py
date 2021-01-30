@@ -21,7 +21,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, URL_NATIVEFIER, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
+    nativefier, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
     ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
@@ -173,10 +173,9 @@ class EnvironmentUpdater:
 
         return installed
 
-    def _install_nativefier(self, version: str, handler: ProcessHandler) -> bool:
+    def _install_nativefier(self, version: str, url: str, handler: ProcessHandler) -> bool:
         self.logger.info("Checking if nativefier@{} exists".format(version))
 
-        url = URL_NATIVEFIER.format(version=version)
         if not self.http_client.exists(url):
             self.logger.warning("The file {} seems not to exist".format(url))
             handler.watcher.show_message(title=self.i18n['message.file.not_exist'],
@@ -449,7 +448,7 @@ class EnvironmentUpdater:
             return True
 
     def _map_nativefier_file(self, nativefier_settings: dict) -> EnvironmentComponent:
-        url = URL_NATIVEFIER.format(version=nativefier_settings['version'])
+        url = nativefier_settings['url'].format(version=nativefier_settings['version'])
         return EnvironmentComponent(name='nativefier@{}'.format(nativefier_settings['version']),
                                     url=url,
                                     size=self.http_client.get_content_length(url),
@@ -496,10 +495,10 @@ class EnvironmentUpdater:
             if not self._download_and_install(version=node_data.version, version_url=node_data.url, watcher=handler.watcher):
                 return False
 
-            if not self._install_nativefier(version=nativefier_data.version, handler=handler):
+            if not self._install_nativefier(version=nativefier_data.version, url=nativefier_data.url, handler=handler):
                 return False
         else:
-            if nativefier_data and not self._install_nativefier(version=nativefier_data.version, handler=handler):
+            if nativefier_data and not self._install_nativefier(version=nativefier_data.version, url=nativefier_data.url, handler=handler):
                 return False
 
         electron_data = comp_map.get('electron')

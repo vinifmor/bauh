@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.14] 2021
+### Improvements
+- Web
+    - nativefier URL moved to [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)
+    
 ### Fixes
 - Installation setup
     - wrong style resources paths
