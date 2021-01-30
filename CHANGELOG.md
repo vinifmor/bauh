@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.14] 2021
 ### Fixes
+- Installation setup
+    - wrong style resources paths
+
 - Web
     - failing to install some applications when the expected temp directory does not exist
     - using the old nativefier GitHub URL
+
+
 
 ## [0.9.13] 2021-01-20
 ### Fixes
