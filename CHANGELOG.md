@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - nativefier URL moved to [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)
     
 ### Fixes
+- Arch
+    - crashing when trying to upgrade AUR packages which data could not be retrieved
+
 - Installation setup
     - wrong style resources paths
 

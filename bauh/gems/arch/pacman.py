@@ -632,8 +632,8 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
     else:
         output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
+    res = {}
     if output:
-        res = {}
         latest_name = None
         data = {'ds': None, 's': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
         latest_field = None
@@ -713,7 +713,7 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
                     else:
                         data[latest_field].update((w.strip() for w in l.split(' ') if w))
 
-        return res
+    return res
 
 
 def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
