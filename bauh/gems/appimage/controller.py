@@ -27,13 +27,13 @@ from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, SUGGESTIONS_FILE, ROOT_DIR, \
+from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, ROOT_DIR, \
     CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
-    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, DATABASES_DIR, get_icon_path
+    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, APPIMAGE_CACHE_PATH, get_icon_path
 from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.util import replace_desktop_entry_exec_command
-from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier
+from bauh.gems.appimage.worker import DatabaseUpdater, SymlinksVerifier, AppImageSuggestionsDownloader
 
 RE_DESKTOP_ICON = re.compile(r'Icon\s*=\s*.+\n')
 RE_ICON_ENDS_WITH = re.compile(r'.+\.(png|svg)$')
@@ -629,6 +629,10 @@ class AppImageManager(SoftwareManager):
                             create_config=create_config, http_client=self.context.http_client,
                             logger=self.context.logger).start()
 
+            AppImageSuggestionsDownloader(taskman=task_manager, i18n=self.context.i18n,
+                                          http_client=self.context.http_client, logger=self.context.logger,
+                                          create_config=create_config).start()
+
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
 
@@ -641,7 +645,7 @@ class AppImageManager(SoftwareManager):
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        dbfiles = glob.glob('{}/*.db'.format(DATABASES_DIR))
+        dbfiles = glob.glob('{}/*.db'.format(APPIMAGE_CACHE_PATH))
 
         if not dbfiles or len({f for f in (DATABASE_APPS_FILE, DATABASE_RELEASES_FILE) if f in dbfiles}) != 2:
             return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]
@@ -652,16 +656,16 @@ class AppImageManager(SoftwareManager):
         connection = self._get_db_connection(DATABASE_APPS_FILE)
 
         if connection:
-            file = self.http_client.get(SUGGESTIONS_FILE)
+            suggestions = AppImageSuggestionsDownloader(appimage_config=self.configman.get_config(), logger=self.logger,
+                                                        i18n=self.i18n, http_client=self.http_client,
+                                                        taskman=TaskManager()).read()
 
-            if not file or not file.text:
-                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+            if not suggestions:
+                self.logger.warning("Could not read suggestions")
                 return res
             else:
                 self.logger.info("Mapping suggestions")
                 try:
-                    sugs = [l for l in file.text.split('\n') if l]
-
                     if filter_installed:
                         installed = {i.name.lower() for i in self.read_installed(disk_loader=None, connection=connection).installed}
                     else:
@@ -669,7 +673,7 @@ class AppImageManager(SoftwareManager):
 
                     sugs_map = {}
 
-                    for s in sugs:
+                    for s in suggestions:
                         lsplit = s.split('=')
 
                         name = lsplit[1].strip()

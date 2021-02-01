@@ -8,20 +8,23 @@ import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
-from typing import Optional
+from typing import Optional, List
+
+import requests
 
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.gems.appimage import get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
-    DATABASES_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES
+    APPIMAGE_CACHE_PATH, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES, SUGGESTIONS_FILE, \
+    SUGGESTIONS_CACHED_TS_FILE, SUGGESTIONS_CACHED_FILE
 from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
 
 
 class DatabaseUpdater(Thread):
-    COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(DATABASES_DIR)
+    COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(APPIMAGE_CACHE_PATH)
 
     def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, taskman: TaskManager,
                  watcher: Optional[ProcessWatcher] = None, appimage_config: Optional[dict] = None, create_config: Optional[CreateConfigFile] = None):
@@ -49,10 +52,10 @@ class DatabaseUpdater(Thread):
             self.logger.info("No expiration time configured for the AppImage database")
             return True
 
-        files = {*glob.glob('{}/*'.format(DATABASES_DIR))}
+        files = {*glob.glob('{}/*'.format(APPIMAGE_CACHE_PATH))}
 
         if not files:
-            self.logger.warning('No database files on {}'.format(DATABASES_DIR))
+            self.logger.warning('No database files on {}'.format(APPIMAGE_CACHE_PATH))
             return True
 
         if DATABASES_TS_FILE not in files:
@@ -102,7 +105,7 @@ class DatabaseUpdater(Thread):
             self.logger.warning('Could not download the database file {}'.format(URL_COMPRESSED_DATABASES))
             return False
 
-        Path(DATABASES_DIR).mkdir(parents=True, exist_ok=True)
+        Path(APPIMAGE_CACHE_PATH).mkdir(parents=True, exist_ok=True)
 
         with open(self.COMPRESS_FILE_PATH, 'wb+') as f:
             f.write(res.content)
@@ -110,7 +113,7 @@ class DatabaseUpdater(Thread):
         self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
 
         self._update_task_progress(50, self.i18n['appimage.update_database.deleting_old'])
-        old_db_files = glob.glob(DATABASES_DIR + '/*.db')
+        old_db_files = glob.glob(APPIMAGE_CACHE_PATH + '/*.db')
 
         if old_db_files:
             self.logger.info('Deleting old database files')
@@ -124,7 +127,7 @@ class DatabaseUpdater(Thread):
 
         try:
             tf = tarfile.open(self.COMPRESS_FILE_PATH)
-            tf.extractall(DATABASES_DIR)
+            tf.extractall(APPIMAGE_CACHE_PATH)
             self.logger.info('Successfully uncompressed file {}'.format(self.COMPRESS_FILE_PATH))
         except:
             self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
@@ -279,3 +282,146 @@ class SymlinksVerifier(Thread):
         self.logger.info("No AppImage applications found. Aborting")
         self.taskman.update_progress(self.task_id, 100, '')
         self.taskman.finish_task(self.task_id)
+
+
+class AppImageSuggestionsDownloader(Thread):
+
+    def __init__(self, logger: logging.Logger, http_client: HttpClient, i18n: I18n, taskman: TaskManager, create_config: Optional[CreateConfigFile] = None,  appimage_config: Optional[dict] = None):
+        super(AppImageSuggestionsDownloader, self).__init__(daemon=True)
+        self.create_config = create_config
+        self.logger = logger
+        self.i18n = i18n
+        self.http_client = http_client
+        self.taskman = taskman
+        self.config = appimage_config
+        self.task_id = 'appim.suggestions'
+        self.taskman.register_task(id_=self.task_id, label=i18n['appimage.task.suggestions'], icon_path=get_icon_path())
+
+    def should_download(self, appimage_config: dict) -> bool:
+        try:
+            exp_hours = int(appimage_config['suggestions']['expiration'])
+        except:
+            self.logger.error("An exception happened while trying to parse 'suggestions.expiration'")
+            traceback.print_exc()
+            return True
+
+        if exp_hours <= 0:
+            self.logger.info("Suggestions cache is disabled")
+            return True
+
+        if not os.path.exists(SUGGESTIONS_CACHED_FILE):
+            self.logger.info("'{}' not found. It must be downloaded".format(SUGGESTIONS_CACHED_FILE))
+            return True
+
+        if not os.path.exists(SUGGESTIONS_CACHED_TS_FILE):
+            self.logger.info("'{}' not found. The suggestions file must be downloaded.")
+            return True
+
+        with open(SUGGESTIONS_CACHED_TS_FILE) as f:
+            timestamp_str = f.read()
+
+        try:
+            suggestions_timestamp = datetime.fromtimestamp(float(timestamp_str))
+        except:
+            self.logger.error('Could not parse the cached suggestions timestamp: {}'.format(timestamp_str))
+            traceback.print_exc()
+            return True
+
+        update = suggestions_timestamp + timedelta(hours=exp_hours) <= datetime.utcnow()
+        return update
+
+    def read(self) -> Optional[List[str]]:
+        self.logger.info("Checking if suggestions should be downloaded")
+        if self.should_download(self.config):
+            suggestions_timestamp = datetime.utcnow().timestamp()
+            suggestions_str = self.download()
+
+            Thread(target=self.cache_suggestions, args=(suggestions_str, suggestions_timestamp), daemon=True).start()
+        else:
+            self.logger.info("Reading cached suggestions from '{}'".format(SUGGESTIONS_CACHED_FILE))
+            with open(SUGGESTIONS_CACHED_FILE) as f:
+                suggestions_str = f.read()
+
+        return self.map_suggestions(suggestions_str) if suggestions_str else None
+
+    def cache_suggestions(self, text: str, timestamp: float):
+        self.logger.info("Caching suggestions to '{}'".format(SUGGESTIONS_FILE))
+
+        cache_dir = os.path.dirname(SUGGESTIONS_CACHED_FILE)
+
+        try:
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            cache_dir_ok = True
+        except OSError:
+            self.logger.error("Could not create cache directory '{}'".format(cache_dir))
+            traceback.print_exc()
+            cache_dir_ok = False
+
+        if cache_dir_ok:
+            try:
+                with open(SUGGESTIONS_CACHED_FILE, 'w+') as f:
+                    f.write(text)
+            except:
+                self.logger.error("An exception happened while writing the file '{}'".format(SUGGESTIONS_FILE))
+                traceback.print_exc()
+
+            try:
+                with open(SUGGESTIONS_CACHED_TS_FILE, 'w+') as f:
+                    f.write(str(timestamp))
+            except:
+                self.logger.error("An exception happened while writing the file '{}'".format(SUGGESTIONS_CACHED_TS_FILE))
+                traceback.print_exc()
+
+    def download(self) -> Optional[str]:
+        self.logger.info("Downloading suggestions from {}".format(SUGGESTIONS_FILE))
+
+        try:
+            res = self.http_client.get(SUGGESTIONS_FILE)
+        except requests.exceptions.ConnectionError:
+            self.logger.warning("Could not download suggestion from '{}'".format(SUGGESTIONS_FILE))
+            return
+
+        if not res:
+            self.logger.warning("Could not download suggestion from '{}'".format(SUGGESTIONS_FILE))
+            return
+
+        if not res.text:
+            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+            return
+
+        return res.text
+
+    def map_suggestions(self, text: str) -> List[str]:
+        return [line for line in text.split('\n') if line]
+
+    def run(self):
+        if self.create_config:
+            self.taskman.update_progress(self.task_id, 0, self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
+            self.create_config.join()
+            self.config = self.create_config.config
+
+        ti = time.time()
+        self.taskman.update_progress(self.task_id, 1, None)
+
+        self.logger.info("Checking if suggestions should be downloaded")
+        should_download = self.should_download(self.config)
+        self.taskman.update_progress(self.task_id, 30, None)
+
+        try:
+            if should_download:
+                suggestions_timestamp = datetime.utcnow().timestamp()
+                suggestions_str = self.download()
+                self.taskman.update_progress(self.task_id, 70, None)
+
+                if suggestions_str:
+                    self.cache_suggestions(suggestions_str, suggestions_timestamp)
+            else:
+                self.logger.info("Cached suggestions are up-to-date")
+        except:
+            self.logger.error("An unexpected exception happened")
+            traceback.print_exc()
+
+        self.taskman.update_progress(self.task_id, 100, None)
+        self.taskman.finish_task(self.task_id)
+        tf = time.time()
+        self.logger.info("Took {0:.9f} seconds to download suggestions".format(tf - ti))

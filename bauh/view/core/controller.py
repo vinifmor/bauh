@@ -477,7 +477,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             man_sugs = man.list_suggestions(limit=limit, filter_installed=filter_installed)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ + ' took {0:.2f} seconds'.format(mtf - mti))
+            self.logger.info(man.__class__.__name__ + ' took {0:.5f} seconds'.format(mtf - mti))
 
             if man_sugs:
                 if 0 < limit < len(man_sugs):

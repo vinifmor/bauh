@@ -37,6 +37,7 @@ appimage.update_database.downloading=Baixando arquivos do banco de dados
 appimage.update_database.uncompressing=Descomprimindo arquivos
 appimage.task.db_update=Atualizando base de dados
 appimage.task.db_update.checking=Checando atualizações
+appimage.task.suggestions=Baixando sugestões
 appimage.task.symlink_check=Verificando links simbólicos
 appimage.uninstall.error.remove_folder=Não foi possível remover o diretóri ode instalação do aplicativo {}
 appimage.warning.missing_db_files=Arquivos do banco de dados {appimage} não foram encontrados. Algumas ações não funcionarão corretamente.

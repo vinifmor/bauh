@@ -14,11 +14,13 @@ CONFIG_DIR = '{}/appimage'.format(CONFIG_PATH)
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-DATABASES_DIR = '{}/appimage'.format(CACHE_PATH)
-DATABASE_APPS_FILE = '{}/apps.db'.format(DATABASES_DIR)
-DATABASE_RELEASES_FILE = '{}/releases.db'.format(DATABASES_DIR)
-DATABASES_TS_FILE = '{}/dbs.ts'.format(DATABASES_DIR)
+APPIMAGE_CACHE_PATH = '{}/appimage'.format(CACHE_PATH)
+DATABASE_APPS_FILE = '{}/apps.db'.format(APPIMAGE_CACHE_PATH)
+DATABASE_RELEASES_FILE = '{}/releases.db'.format(APPIMAGE_CACHE_PATH)
+DATABASES_TS_FILE = '{}/dbs.ts'.format(APPIMAGE_CACHE_PATH)
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
+SUGGESTIONS_CACHED_FILE = '{}/suggestions.txt'.format(APPIMAGE_CACHE_PATH)
+SUGGESTIONS_CACHED_TS_FILE = '{}/suggestions.ts'.format(APPIMAGE_CACHE_PATH)
 
 
 def get_icon_path() -> str:

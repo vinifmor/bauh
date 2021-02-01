@@ -198,6 +198,8 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
 ```
 database:
   expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
+suggestions:
+    expiration: 24  # defines the period (in hours) in which the cached suggestions will be considered up to date. Use 0 if you always want to update them.
 ```
 
 
