@@ -226,6 +226,15 @@ class FormComponent(ViewComponent):
                 raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
             return comp
 
+    def get_text_input(self, id_) -> Optional[TextInputComponent]:
+        comp = self.get_component(id_)
+
+        if comp:
+            if not isinstance(comp, TextInputComponent):
+                raise Exception("'{}' is not a {}".format(id_, TextInputComponent.__class__.__name__))
+            return comp
+
+
 
 class FileChooserComponent(ViewComponent):
 
@@ -308,4 +317,12 @@ class PanelComponent(ViewComponent):
         if comp:
             if not isinstance(comp, FormComponent):
                 raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
+            return comp
+
+    def get_text_input(self, id_) -> Optional[TextInputComponent]:
+        comp = self.get_component(id_)
+
+        if comp:
+            if not isinstance(comp, TextInputComponent):
+                raise Exception("'{}' is not a {}".format(id_, TextInputComponent.__class__.__name__))
             return comp

@@ -1,6 +1,7 @@
-appimage.config.database=Banco de dados
-appimage.config.database.expiration=Expiração
-appimage.config.database.expiration.tip=Define o período (em minutos) no qual o banco de dados será considerado atualizado durante o processo de inicialização. Use 0 se você quiser que ele sempre seja atualizado.
+appimage.config.database.expiration=Expiração do banco de dados
+appimage.config.database.expiration.tip=Define o período (em minutos) no qual o banco de dados será considerado atualizado durante o processo de inicialização. Use 0 se quiser que ele sempre seja atualizado.
+appimage.config.suggestions.expiration=Expiração das sugestões
+appimage.config.suggestions.expiration.tip=Define o período (em horas) no qual as sugestões armazenadas em disco serão consideradas atualizadas. Use 0 se quiser que elas sempre seja atualizadas.
 appimage.custom_action.install_file=Instalar arquivo AppImage
 appimage.custom_action.install_file.details=Detalhes de instalação
 appimage.custom_action.install_file.invalid_file=Você precisa definir um arquivo AppImage válido

@@ -1,6 +1,7 @@
-appimage.config.database=Database
-appimage.config.database.expiration=Expiration
-appimage.config.database.expiration.tip=It defines the period (in minutes) in which the database will be considered up to date. Use 0 if you always want to update it.
+appimage.config.database.expiration=Database expiration
+appimage.config.database.expiration.tip=It defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
+appimage.config.suggestions.expiration=Suggestions expiration
+appimage.config.suggestions.expiration.tip=It defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
 appimage.custom_action.install_file=Install AppImage file
 appimage.custom_action.install_file.details=Installation details
 appimage.custom_action.install_file.invalid_file=You must define a valid AppImage file

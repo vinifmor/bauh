@@ -738,22 +738,31 @@ class AppImageManager(SoftwareManager):
         appimage_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 
-        opts = [
+        comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
-                               value=int(appimage_config['database']['expiration']) if isinstance(appimage_config['database']['expiration'], int) else '',
+                               value=int(appimage_config['database']['expiration']) if isinstance(
+                                   appimage_config['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
-                               id_='appim_db_exp')
+                               id_='appim_db_exp'),
+            TextInputComponent(label=self.i18n['appimage.config.suggestions.expiration'],
+                               value=int(appimage_config['suggestions']['expiration']) if isinstance(
+                                   appimage_config['suggestions']['expiration'], int) else '',
+                               tooltip=self.i18n['appimage.config.suggestions.expiration.tip'],
+                               only_int=True,
+                               max_width=max_width,
+                               id_='appim_sugs_exp')
         ]
 
-        return PanelComponent([FormComponent(opts, self.i18n['appimage.config.database'])])
+        return PanelComponent([FormComponent(components=comps, id_='form')])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         appimage_config = self.configman.get_config()
 
-        panel = component.components[0]
-        appimage_config['database']['expiration'] = panel.get_component('appim_db_exp').get_int_value()
+        form = component.get_form_component('form')
+        appimage_config['database']['expiration'] = form.get_text_input('appim_db_exp').get_int_value()
+        appimage_config['suggestions']['expiration'] = form.get_text_input('appim_sugs_exp').get_int_value()
 
         try:
             self.configman.save_config(appimage_config)
