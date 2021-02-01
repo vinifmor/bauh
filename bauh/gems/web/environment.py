@@ -22,7 +22,7 @@ from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
     ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
     nativefier, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
-    ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path
+    ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path, NATIVEFIER_BASE_URL
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
@@ -176,7 +176,7 @@ class EnvironmentUpdater:
     def _install_nativefier(self, version: str, url: str, handler: ProcessHandler) -> bool:
         self.logger.info("Checking if nativefier@{} exists".format(version))
 
-        if not self.http_client.exists(url):
+        if not url or not self.http_client.exists(url):
             self.logger.warning("The file {} seems not to exist".format(url))
             handler.watcher.show_message(title=self.i18n['message.file.not_exist'],
                                          body=self.i18n['message.file.not_exist.body'].format(bold(url)),
@@ -448,7 +448,12 @@ class EnvironmentUpdater:
             return True
 
     def _map_nativefier_file(self, nativefier_settings: dict) -> EnvironmentComponent:
-        url = nativefier_settings['url'].format(version=nativefier_settings['version'])
+        base_url = nativefier_settings.get('url')
+        if not base_url:
+            self.logger.warning("'url' not found in nativefier environment settings. Using hardcoded URL '{}'".format(NATIVEFIER_BASE_URL))
+            base_url = NATIVEFIER_BASE_URL
+
+        url = base_url.format(version=nativefier_settings['version'])
         return EnvironmentComponent(name='nativefier@{}'.format(nativefier_settings['version']),
                                     url=url,
                                     size=self.http_client.get_content_length(url),
