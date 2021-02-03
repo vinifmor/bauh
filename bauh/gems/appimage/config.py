@@ -11,5 +11,8 @@ class AppImageConfigManager(YAMLConfigManager):
         return {
             'database': {
                 'expiration': 60
+            },
+            'suggestions': {
+                'expiration': 24
             }
         }

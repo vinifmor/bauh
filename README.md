@@ -197,7 +197,9 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
 - The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
 ```
 database:
-  expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
+  expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it. Default: 60.
+suggestions:
+    expiration: 24  # defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them. Default: 24.
 ```
 
 

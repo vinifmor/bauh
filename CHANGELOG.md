@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.14] 2021-02-03
+### Improvements
+- AppImage
+    - caching suggestions to disk. The cache expiration can be controlled through the new property settings `suggestions.expiration` (in hours. Default: 24).
+- Web
+    - nativefier URL moved to [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/web/env/v1/environment.yml)
+    
+### Fixes
+- Arch
+    - crashing when trying to upgrade repository packages which data could not be retrieved [#164](https://github.com/vinifmor/bauh/issues/164)
+    - multi-threaded download: crashing when could not retrieve download data for packages to upgrade [#164](https://github.com/vinifmor/bauh/issues/164)
+
+- Installation setup
+    - wrong style resources paths
+
+- Web
+    - failing to install some applications when the expected temp directory does not exist
+    - using the old nativefier GitHub URL
+
+
+
 ## [0.9.13] 2021-01-20
 ### Fixes
 - missing Python hard dependency: **packaging**

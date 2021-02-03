@@ -1,6 +1,7 @@
-appimage.config.database=Database
-appimage.config.database.expiration=Expiration
+appimage.config.database.expiration=Database expiration
 appimage.config.database.expiration.tip=It defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
+appimage.config.suggestions.expiration=Suggestions expiration
+appimage.config.suggestions.expiration.tip=It defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
 appimage.custom_action.install_file=Установить файл AppImage
 appimage.custom_action.install_file.details=Детали установки
 appimage.custom_action.install_file.invalid_file=Вы должны определить допустимый файл AppImage
@@ -37,6 +38,7 @@ appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files
 appimage.task.db_update=Обновление базы данных
 appimage.task.db_update.checking=Checking for updates
+appimage.task.suggestions=Downloading suggestions
 appimage.task.symlink_check=Checking symlinks
 appimage.uninstall.error.remove_folder=Не удалось удалить каталог приложения {}
 appimage.warning.missing_db_files={appimage} database files were not found. Some actions will not work properly.

@@ -160,6 +160,12 @@ class MultithreadedDownloadService:
         downloaded = 0
         pkgs_data = pacman.list_download_data(pkgs)
 
+        if not pkgs_data:
+            error_msg = "Could not retrieve download data of the following packages: {}".format(', '.join(pkgs))
+            watcher.print(error_msg)
+            self.logger.error(error_msg)
+            return 0
+
         for pkg in pkgs_data:
             self.logger.info('Preparing to download package: {} ({})'.format(pkg['n'], pkg['v']))
             try:

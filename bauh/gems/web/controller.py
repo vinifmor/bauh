@@ -689,6 +689,9 @@ class WebApplicationManager(SoftwareManager):
                 install_options.append('--icon={}'.format(temp_icon_path))
 
                 self.logger.info("Writing a temp suggestion icon at {}".format(temp_icon_path))
+
+                Path(os.path.dirname(temp_icon_path)).mkdir(parents=True, exist_ok=True)
+
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
 

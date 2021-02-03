@@ -32,9 +32,9 @@ SEARCH_INDEX_FILE = '{}/index.yml'.format(WEB_CACHE_PATH)
 SUGGESTIONS_CACHE_FILE = '{}/suggestions.yml'.format(WEB_CACHE_PATH)
 SUGGESTIONS_CACHE_TS_FILE = map_timestamp_file(SUGGESTIONS_CACHE_FILE)
 CONFIG_FILE = '{}/web.yml'.format(CONFIG_PATH)
-URL_NATIVEFIER = 'https://github.com/jiahaog/nativefier/archive/v{version}.tar.gz'
 ENVIRONMENT_SETTINGS_CACHED_FILE = '{}/environment.yml'.format(WEB_CACHE_PATH)
 ENVIRONMENT_SETTINGS_TS_FILE = '{}/environment.ts'.format(WEB_CACHE_PATH)
+NATIVEFIER_BASE_URL = 'https://github.com/nativefier/nativefier/archive/v{version}.tar.gz'
 
 
 def get_icon_path() -> str:
