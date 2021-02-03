@@ -13,7 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### Fixes
 - Arch
-    - crashing when trying to upgrade AUR packages which data could not be retrieved
+    - crashing when trying to upgrade repository packages which data could not be retrieved
+    - multi-threaded download: crashing when could not retrieve download data for packages to upgrade
 
 - Installation setup
     - wrong style resources paths
