@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.14] 2021
+## [0.9.14] 2021-02-03
 ### Improvements
 - AppImage
     - caching suggestions to disk. The cache expiration can be controlled through the new property settings `suggestions.expiration` (in hours. Default: 24).
