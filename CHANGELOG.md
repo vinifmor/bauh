@@ -13,8 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 ### Fixes
 - Arch
-    - crashing when trying to upgrade repository packages which data could not be retrieved
-    - multi-threaded download: crashing when could not retrieve download data for packages to upgrade
+    - crashing when trying to upgrade repository packages which data could not be retrieved [#164](https://github.com/vinifmor/bauh/issues/164)
+    - multi-threaded download: crashing when could not retrieve download data for packages to upgrade [#164](https://github.com/vinifmor/bauh/issues/164)
 
 - Installation setup
     - wrong style resources paths
