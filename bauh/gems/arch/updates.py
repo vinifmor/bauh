@@ -8,7 +8,7 @@ from packaging.version import parse as parse_version
 
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
-from bauh.gems.arch import pacman, sorting, aur
+from bauh.gems.arch import pacman, sorting
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
@@ -327,19 +327,21 @@ class UpdatesSummarizer:
         requirement = UpgradeRequirement(pkg)
 
         if pkg.repository != 'aur':
-            data = context.pkgs_data[pkg.name]
-            requirement.required_size = data['ds']
-            requirement.extra_size = data['s']
-    
-            current_size = installed_sizes.get(pkg.name) if installed_sizes else None
+            pkgdata = context.pkgs_data.get(pkg.name)
 
-            if current_size is not None and data['s']:
-                requirement.extra_size = data['s'] - current_size
+            if pkgdata:
+                requirement.required_size = pkgdata['ds']
+                requirement.extra_size = pkgdata['s']
+    
+                current_size = installed_sizes.get(pkg.name) if installed_sizes else None
+
+                if current_size is not None and pkgdata['s']:
+                    requirement.extra_size = pkgdata['s'] - current_size
 
             required_by = set()
 
             if to_install and to_sync and context.pkgs_data:
-                names = context.pkgs_data[pkg.name].get('p', {pkg.name})
+                names = pkgdata.get('p', {pkg.name}) if pkgdata else {pkg.name}
                 to_sync_deps_cache = {}
                 for p in to_sync:
                     if p != pkg.name and p in context.pkgs_data:
