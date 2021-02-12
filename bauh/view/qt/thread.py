@@ -22,6 +22,7 @@ from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOp
 from bauh.api.exception import NoInternetException
 from bauh.commons import user
 from bauh.commons.html import bold
+from bauh.commons.internet import InternetChecker
 from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
 from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager
@@ -202,11 +203,12 @@ class UpgradeSelected(AsyncAction):
     LOGS_DIR = '{}/upgrade'.format(LOGS_PATH)
     SUMMARY_FILE = LOGS_DIR + '/{}_summary.txt'
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, pkgs: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n, pkgs: List[PackageView] = None):
         super(UpgradeSelected, self).__init__()
         self.pkgs = pkgs
         self.manager = manager
         self.i18n = i18n
+        self.internet_checker = internet_checker
 
     def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
         if req.pkg.installed:
@@ -387,6 +389,12 @@ class UpgradeSelected(AsyncAction):
             traceback.print_exc()
 
     def run(self):
+        if not self.internet_checker.is_available():
+            self.pkgs = None
+            self.print(self.i18n['internet.required'])
+            self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
+            return
+
         root_user = user.is_root()
         to_update, upgrade_requires_root, bkp_supported = [], False, False
 
