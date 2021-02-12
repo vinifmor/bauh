@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.15] 2021
+### Fixes
+- AppImage
+    - crashing when trying to upgrade and the internet connection is off
+
+
 ## [0.9.14] 2021-02-03
 ### Improvements
 - AppImage
