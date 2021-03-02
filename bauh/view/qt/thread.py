@@ -388,12 +388,14 @@ class UpgradeSelected(AsyncAction):
         except:
             traceback.print_exc()
 
+    def _handle_internet_off(self):
+        self.pkgs = None
+        self.print(self.i18n['internet.required'])
+        self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
+
     def run(self):
         if not self.internet_checker.is_available():
-            self.pkgs = None
-            self.print(self.i18n['internet.required'])
-            self.notify_finished({'success': False, 'updated': 0, 'types': set(), 'id': None})
-            return
+            return self._handle_internet_off()
 
         root_user = user.is_root()
         to_update, upgrade_requires_root, bkp_supported = [], False, False
@@ -471,6 +473,9 @@ class UpgradeSelected(AsyncAction):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return
+
+        if not self.internet_checker.is_available():
+            return self._handle_internet_off()
 
         self.change_substatus('')
 

@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.15] 2021
 ### Improvements
 - UI
-    - checking if internet connection is available before trying to upgrade the selected packages
+    - checking if the internet connection is available before trying to upgrade the selected packages
     
 ### Fixes
 - AppImage
