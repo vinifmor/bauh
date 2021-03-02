@@ -16,8 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - Upgrading: when an installed package does not meet a dependency expression, it is displayed to be installed (e.g: 'optimus-manager-qt' relies on 'optimus-manager' >= 1.4, but the current provided version is '1.3'. Even so, 'optimus-manager' will be displayed to be installed)
     - Not checking the dependency version expression when it is only available on AUR
-    - Not properly treating a dependency version before comparing with others (could display that a given dependency was not found)    
+    - Not properly treating a dependency version before comparing with others (could display that a given dependency was not found)
     
+- Flatpak
+    - installation level tooltip not being localized
+    - displaying installation level tooltip for not installed apps
 
 ## [0.9.14] 2021-02-03
 ### Improvements

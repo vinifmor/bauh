@@ -95,13 +95,13 @@ class FlatpakApplication(SoftwarePackage):
             partial.base_ref = self.ref
             partial.ref = '/'.join((partial_id, *self.ref.split('/')[1:]))
             partial.status = PackageStatus.READY
-            partial.name += ' ( {} )'.format(partial_id.split('.')[-1])
+            partial.name += ' ({})'.format(partial_id.split('.')[-1])
 
         return partial
 
     def get_name_tooltip(self) -> str:
-        if self.installation and self.i18n is not None:
-            return '{} ( {} )'.format(self.name, self.i18n[self.installation.lower()])
+        if self.installed and self.installation and self.i18n is not None:
+            return '{} ({})'.format(self.name, self.i18n['flatpak.info.installation.{}'.format(self.installation.lower().strip())])
 
         return self.name
 
