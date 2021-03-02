@@ -1,7 +1,7 @@
 import re
 import traceback
 from threading import Thread
-from typing import Set, List, Tuple, Dict, Iterable
+from typing import Set, List, Tuple, Dict, Iterable, Optional
 
 from packaging.version import parse as parse_version
 
@@ -9,6 +9,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.exceptions import PackageNotFoundException
+from bauh.gems.arch.util import clean_version
 from bauh.view.util.translation import I18n
 
 
@@ -204,7 +205,7 @@ class DependenciesAnalyser:
                     if match:
                         providers = {match}
 
-                if providers and len(providers) > 1:
+                if providers:
                     no_mapped_data = {p for p in providers if
                                       p not in deps_data}  # checking providers with no mapped data
 
@@ -219,7 +220,7 @@ class DependenciesAnalyser:
                     matched_providers = set()
                     split_informed_dep = self.re_dep_operator.split(dep_exp)
                     try:
-                        version_informed = parse_version(split_informed_dep[2])
+                        version_required = parse_version(clean_version(split_informed_dep[2]))
                         exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
 
                         for p in providers:
@@ -229,9 +230,9 @@ class DependenciesAnalyser:
                                 split_dep = self.re_dep_operator.split(provided_exp)
 
                                 if len(split_dep) == 3 and split_dep[0] == dep_name:
-                                    provided_version = parse_version(split_dep[2])
+                                    version_provided = parse_version(clean_version(split_dep[2]))
 
-                                    if eval('provided_version {} version_informed'.format(exp_op)):
+                                    if eval('version_provided {} version_required'.format(exp_op)):
                                         matched_providers.add(p)
                                         break
 
@@ -259,14 +260,40 @@ class DependenciesAnalyser:
             missing_deps.add(dep_data)
 
         elif aur_index and dep_name in aur_index:
-            aur_deps.add(dep_name)
-            missing_deps.add((dep_name, 'aur'))
-        else:
-            if watcher:
-                message.show_dep_not_found(dep_exp, self.i18n, watcher)
-                raise PackageNotFoundException(dep_exp)
+            if dep_name == dep_exp:
+                aur_deps.add(dep_name)
+                missing_deps.add((dep_name, 'aur'))
             else:
-                raise PackageNotFoundException(dep_exp)
+                dep_info = self.aur_client.get_info({dep_name})
+
+                if not dep_info:
+                    self.__raise_dependency_not_found(dep_exp, watcher)
+                else:
+                    try:
+                        dep_version = parse_version(clean_version(dep_info[0]['Version']))
+                    except:
+                        traceback.print_exc()
+                        self.__raise_dependency_not_found(dep_exp, watcher)
+
+                    split_informed_dep = self.re_dep_operator.split(dep_exp)
+                    try:
+                        version_required = parse_version(clean_version(split_informed_dep[2]))
+                        exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
+
+                        if eval('dep_version {} version_required'.format(exp_op)):
+                            aur_deps.add(dep_name)
+                            missing_deps.add((dep_name, 'aur'))
+                    except:
+                        self.__raise_dependency_not_found(dep_exp, watcher)
+        else:
+            self.__raise_dependency_not_found(dep_exp, watcher)
+
+    def __raise_dependency_not_found(self, dep_exp: str, watcher: Optional[ProcessWatcher]):
+        if watcher:
+            message.show_dep_not_found(dep_exp, self.i18n, watcher)
+            raise PackageNotFoundException(dep_exp)
+        else:
+            raise PackageNotFoundException(dep_exp)
 
     def __fill_aur_update_data(self, pkgname: str, output: dict):
         output[pkgname] = self.aur_client.map_update_data(pkgname, None)
@@ -307,21 +334,15 @@ class DependenciesAnalyser:
                                 version_found = [p for p in provided_map if p.startswith(version_pattern)]
 
                                 if version_found:
-                                    version_found = version_found[0].split('=')[1]
-                                    version_informed = dep_split[2].strip()
-
-                                    if ':' not in version_informed:
-                                        version_found = version_found.split(':')[-1]
-
-                                    if '-' not in version_informed:
-                                        version_found = version_found.split('-')[0]
+                                    version_found = clean_version(version_found[0].split('=')[1])
+                                    version_required = clean_version(dep_split[2])
 
                                     try:
                                         version_found = parse_version(version_found)
-                                        version_informed = parse_version(version_informed)
+                                        version_required = parse_version(version_required)
 
                                         op = dep_split[1] if dep_split[1] != '=' else '=='
-                                        match = eval('version_found {} version_informed'.format(op))
+                                        match = eval('version_found {} version_required'.format(op))
                                     except:
                                         match = False
                                         traceback.print_exc()
