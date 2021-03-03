@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.15] 2021-03-03
+### Improvements
+- UI
+    - checking if the internet connection is available before trying to upgrade the selected packages
+    
+### Fixes
+- AppImage
+    - crashing when trying to upgrade and the internet connection is off
+    
+- Arch
+    - Upgrading: when an installed package does not meet a dependency expression, it is displayed to be installed (e.g: 'optimus-manager-qt' relies on 'optimus-manager' >= 1.4, but the current provided version is '1.3'. Even so, 'optimus-manager' will be displayed to be installed)
+    - Not checking the dependency version expression when it is only available on AUR
+    - Not properly treating a dependency version before comparing with others (could display that a given dependency was not found)
+    
+- Flatpak
+    - displaying duplicate runtimes on the upgrade summary when a runtime is available at the system and user levels
+    - installation level tooltip not being localized
+    - displaying installation level tooltip for not installed apps
+    
+- UI
+    - wrongly formatted tooltips
+    - conflict resolution: still displaying that updates are ignored for a given package after its uninstallation
+
+
 ## [0.9.14] 2021-02-03
 ### Improvements
 - AppImage

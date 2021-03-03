@@ -68,12 +68,17 @@ class HttpClient:
         res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects, session=session)
         return yaml.safe_load(res.text) if res else None
 
-    def get_content_length_in_bytes(self, url: str, session: bool = True) -> int:
+    def get_content_length_in_bytes(self, url: str, session: bool = True) -> Optional[int]:
         params = {'url': url, 'allow_redirects': True, 'stream': True}
-        if session:
-            res = self.session.get(**params)
-        else:
-            res = requests.get(**params)
+
+        try:
+            if session:
+                res = self.session.get(**params)
+            else:
+                res = requests.get(**params)
+        except requests.exceptions.ConnectionError:
+            self.logger.info("Internet seems to be off. Could not reach '{}'".format(url))
+            return
 
         if res.status_code == 200:
             size = res.headers.get('Content-Length')
@@ -84,7 +89,7 @@ class HttpClient:
                 except:
                     pass
 
-    def get_content_length(self, url: str, session: bool = True) -> str:
+    def get_content_length(self, url: str, session: bool = True) -> Optional[str]:
         size = self.get_content_length_in_bytes(url, session)
 
         if size:
@@ -98,4 +103,3 @@ class HttpClient:
             res = self.session.get(**params)
 
         return res.status_code in (200, 403)
-        return False

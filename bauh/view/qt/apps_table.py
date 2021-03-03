@@ -373,11 +373,11 @@ class PackagesTable(QTableWidget):
         else:
             tooltip = self.i18n['version.unknown']
 
-        if pkg.model.update and not pkg.model.is_update_ignored():
+        if pkg.model.installed and pkg.model.update and not pkg.model.is_update_ignored():
             label_version.setProperty('update', 'true')
             tooltip = pkg.model.get_update_tip() or self.i18n['version.installed_outdated']
 
-        if pkg.model.is_update_ignored():
+        if pkg.model.installed and pkg.model.is_update_ignored():
             label_version.setProperty('ignored', 'true')
             tooltip = self.i18n['version.updates_ignored']
 

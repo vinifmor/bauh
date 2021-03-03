@@ -164,8 +164,8 @@ class GenericSettingsManager:
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
         select_def_icon = FileChooserComponent(id_='def_icon',
-                                               label=self.i18n["core.config.ui.tray.default_icon"].capitalize(),
-                                               tooltip=self.i18n["core.config.ui.tray.default_icon.tip"].capitalize(),
+                                               label=self.i18n["core.config.ui.tray.default_icon"],
+                                               tooltip=self.i18n["core.config.ui.tray.default_icon.tip"],
                                                file_path=str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None,
                                                max_width=default_width,
                                                allowed_extensions=allowed_exts)

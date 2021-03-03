@@ -630,8 +630,9 @@ class FlatpakManager(SoftwareManager):
             all_runtimes = []
             for runtime in runtimes:
                 for partial in partials:
-                    if partial.base_id == runtime.id:
+                    if partial.installation == runtime.installation and partial.base_id == runtime.id:
                         all_runtimes.append(partial)
+                        break
 
                 all_runtimes.append(runtime)
             return [*all_runtimes, *apps]
