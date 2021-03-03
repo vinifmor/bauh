@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying duplicate runtimes on the upgrade summary when a runtime is available at the system and user levels
     - installation level tooltip not being localized
     - displaying installation level tooltip for not installed apps
+    
+- UI
+    - wrongly formatted tooltips
 
 ## [0.9.14] 2021-02-03
 ### Improvements
