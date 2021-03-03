@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.15] 2021
+## [0.9.15] 2021-03-03
 ### Improvements
 - UI
     - checking if the internet connection is available before trying to upgrade the selected packages
@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
     - wrongly formatted tooltips
     - conflict resolution: still displaying that updates are ignored for a given package after its uninstallation
+
 
 ## [0.9.14] 2021-02-03
 ### Improvements
