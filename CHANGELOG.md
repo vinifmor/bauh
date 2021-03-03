@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     
 - UI
     - wrongly formatted tooltips
+    - conflict resolution: still displaying that updates are ignored for a given package after its uninstallation
 
 ## [0.9.14] 2021-02-03
 ### Improvements
