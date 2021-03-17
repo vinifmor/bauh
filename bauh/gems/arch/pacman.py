@@ -723,7 +723,7 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
         cmd.append('--overwrite=*')
 
     if skip_dependency_checks:
-        cmd.append('-d')
+        cmd.append('-dd')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,

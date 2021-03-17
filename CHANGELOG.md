@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.16]
+### Fixes
+- Arch
+    - not skipping dependency checking when the user opts to proceed with a transaction that would break other packages
+
+
 ## [0.9.15] 2021-03-03
 ### Improvements
 - UI
