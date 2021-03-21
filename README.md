@@ -1,9 +1,9 @@
-**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports: AppImage, ArchLinux repositories/AUR, Flatpak, Snap and Web applications.
+**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux repositories/AUR, Flatpak, Snap and Web applications.
 
 Key features
-- A management panel where you can: search, install, uninstall, upgrade, downgrade and launch you applications (more actions are available...)
+- A management panel where you can: search, install, uninstall, upgrade, downgrade and launch you applications (and more...)
 - Tray mode: it launches attached to the system tray and publishes notifications when there are software updates available
-- System backup: it integrates with [Timeshift](https://github.com/teejee2008/timeshift) to provide a simple and safe backup process before applying changes to your system.
+- System backup: it integrates with [Timeshift](https://github.com/teejee2008/timeshift) to provide a simple and safe backup process before applying changes to your system
 - Custom themes: it's possible to customize the tool's style/appearance. More at [Custom themes](#custom_themes) 
 
 
@@ -55,7 +55,7 @@ Key features
 
 ##### Optional dependencies (they should be installed with apt-get/apt)
 
-- `timeshift`: system backups
+- `timeshift`: system backup
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator3-1`: tray-mode
@@ -103,7 +103,7 @@ makepkg -si
 
 ##### Optional dependencies
 
-- `timeshift`: system backups
+- `timeshift`: system backup
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator-gtk2`: tray-mode (GTK2 desktop environments)
@@ -171,7 +171,7 @@ Exec=/path/to/bauh-tray
 
 #### <a name="dist">Distribution</a>
 
-bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and AUR ([bauh](https://aur.archlinux.org/packages/bauh) / [bauh-staging](https://aur.archlinux.org/packages/bauh-staging))
+bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and [AUR](https://aur.archlinux.org) ([bauh](https://aur.archlinux.org/packages/bauh) / [bauh-staging](https://aur.archlinux.org/packages/bauh-staging))
 
 
 #### <a name="types">Supported types</a>
@@ -184,7 +184,7 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
 - **Only x86_64 AppImage files are available through the search mechanism at the moment**
 - Crashes may happen during an AppImage installation if [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher) is installed. It is recommended to uninstall it and reboot your system before trying to install an application.
 - Extra actions
-    - `Install AppImage file`: allows to install a external AppImage file
+    - `Install AppImage file`: allows to install an external AppImage file
     - `Upgrade file`: allows to upgrade a manually installed AppImage file
     - `Update database`: manually synchronize the AppImage database
 
@@ -207,7 +207,7 @@ suggestions:
 
 - Only available for Arch-based systems
 - It handles conflicts, missing / optional packages installations, and several providers scenarios
-- [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration (AUR only)
+- [rebuild-detector](https://github.com/maximbaz/rebuild-detector) integration (**AUR only**)
 - Automatically makes simple package compilation improvements (for AUR packages):
 
     a) if `MAKEFLAGS` is not set in `/etc/makepkg.conf`,
@@ -224,7 +224,7 @@ suggestions:
 
 - Extra actions
     - `Synchronize packages database`: synchronizes the database against the configured mirrors (`sudo pacman -Syy`)
-    - `Refresh mirrors`: allows the user to define multiple mirrors locations and sort by the fastest (`sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy`)
+    - `Refresh mirrors`: allows to define multiple mirrors locations and sort by the fastest (`sudo pacman-mirrors -c country1,country2 && sudo pacman-mirrors --fasttrack 5 && sudo pacman -Syy`)
     - `Quick system upgrade`: it executes a default pacman upgrade (`pacman -Syyu --noconfirm`)
     - `Clean cache`: it cleans the pacman cache directory (default: `/var/cache/pacman/pkg`)
     - `Mark PKGBUILD as editable`: it marks a given PKGBUILD of a package as editable (a popup with the PKGBUILD will be displayed before upgrading/downgrading this package). Action only available when the configuration property `edit_aur_pkgbuild` is not `false`.
@@ -232,9 +232,10 @@ suggestions:
     - `Allow reinstallation check`: it allows to check if a given AUR packages requires to be rebuilt
     - `Ignore reinstallation check`: it does not to check if a given AUR packages requires to be rebuilt
     - `Check Snaps support`: checks if the Snapd services are properly enabled.
+    - `Reinstall` (AUR only): rebuilds an installed package.
 
 - If you have AUR added as a repository on you pacman configuration, make sure to disable bauh's support (through the settings described below)
-- AUR package compilation may require additional installed packages to properly work. Some of them are defined on the field `optdepends` of the [PKGBUILD](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=bauh) 
+- AUR package compilation may require additional installed packages to work properly. Some of them are defined on the field `optdepends` of the [PKGBUILD](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=bauh) 
 - **Repository packages currently do not support the following actions: Downgrade and History**
 - If some of your installed packages are not categorized, open a PullRequest to the **bauh-files** repository changing [categories.txt](https://github.com/vinifmor/bauh-files/blob/master/arch/categories.txt)
 - During bauh initialization a full AUR normalized index is saved at `~/.cache/bauh/arch/aur/index.txt`
@@ -244,7 +245,7 @@ suggestions:
 ```
 aur:  true # allows to manage AUR packages. Default: true
 repositories: true  # allows to manage packages from the configured repositories. Default: true
-optimize: true  # if 'false': disables the auto-compilation improvements
+optimize: true  # if 'false': disables the auto-compilation improvements (AUR)
 sync_databases: true # package databases synchronization once a day before the first package installation/upgrade/downgrade
 sync_databases_startup: true  # package databases synchronization once a day during startup
 clean_cached: true  # defines if old cached versions should be removed from the disk cache during a package uninstallation
@@ -270,7 +271,7 @@ aur_rebuild_detector: true # it checks if packages built with old library versio
 - Applications with ignored updates are defined at `~/.config/bauh/flatpak/updates_ignored.txt`
 - The configuration file is located at `~/.config/bauh/flatpak.yml` and it allows the following customizations:
 ```
-installation_level: null # defines a default installation level: user or system. (the popup will not be displayed if a value is defined)
+installation_level: null # defines a default installation level: "user" or "system". (null will display a popup asking the level)
 ```
 
 
@@ -302,7 +303,7 @@ categories_exp: 24  # It defines the expiration time (in HOURS) of the Snaps cat
 </p>
 
 
-- It provides some suggestions coming with predefined settings, and they also can be find by their names. They are
+- It provides some suggestions coming with predefined settings, and they also can be found by their names. They are
 defined at [suggestions.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/suggestions.yml), and downloaded during the application usage.
 
 <p align="center">
@@ -447,7 +448,7 @@ Priority:
 - Disable the application types you do not want to deal with
 - If you don't care about restarting the app every time a new supported package technology is installed, enable `single_dependency_checking`. This can reduce the application response time, since it won't need to recheck if the required technologies are available on your system every time a given action is executed.
 - If you don't mind to see the applications icons, you can disable them via `download: icons: false`. The application may have a slight response improvement, since it will reduce the IO and parallelism within it.
-- For a faster initialization process, consider raising the values of settings properties associated with disk caching and the property `boot.load_apps` to `false`.
+- For a faster initialization process, consider raising the values of the settings properties associated with disk caching and the property `boot.load_apps` to `false`.
 
 
 #### <a name="bauh_files">[bauh-files](https://github.com/vinifmor/bauh-files)</a>
