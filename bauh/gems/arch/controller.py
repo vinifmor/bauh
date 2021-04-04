@@ -1944,13 +1944,12 @@ class ArchManager(SoftwareManager):
 
         # building main package
         context.watcher.change_substatus(self.i18n['arch.building.package'].format(bold(context.name)))
-        optimize = bool(context.config['optimize']) and cpu_manager.supports_performance_mode() and not cpu_manager.all_in_performance()
+        optimize = bool(context.config['optimize']) and cpu_manager.supports_performance_mode()
 
-        cpu_optimized = False
+        cpus_changed, cpu_prev_governors = False, None
+
         if optimize:
-            self.logger.info("Setting cpus to performance mode")
-            cpu_manager.set_mode('performance', context.root_password)
-            cpu_optimized = True
+            cpus_changed, cpu_prev_governors = cpu_manager.set_all_cpus_to('performance', context.root_password, self.logger)
 
         try:
             pkgbuilt, output = makepkg.make(pkgdir=context.project_dir,
@@ -1958,9 +1957,9 @@ class ArchManager(SoftwareManager):
                                             handler=context.handler,
                                             custom_pkgbuild=context.custom_pkgbuild_path)
         finally:
-            if cpu_optimized:
-                self.logger.info("Setting cpus to powersave mode")
-                cpu_manager.set_mode('powersave', context.root_password)
+            if cpus_changed and cpu_prev_governors:
+                self.logger.info("Restoring CPU governors")
+                cpu_manager.set_cpus(cpu_prev_governors, context.root_password, {'performance'}, self.logger)
 
         self._update_progress(context, 65)
 
