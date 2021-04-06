@@ -393,7 +393,7 @@ class DependenciesAnalyser:
                 for t in aur_threads:
                     t.join()
 
-            missing_subdeps = self.map_missing_deps(pkgs_data=deps_data, provided_map=provided_map, aur_index=aur_index,
+            missing_subdeps = self.map_missing_deps(pkgs_data={**deps_data}, provided_map=provided_map, aur_index=aur_index,
                                                     deps_checked=deps_checked, sort=False, deps_data=deps_data,
                                                     watcher=watcher,
                                                     remote_provided_map=remote_provided_map,

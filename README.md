@@ -218,7 +218,7 @@ suggestions:
     
     c) `ccache` will be added to `BUILDENV` if it is installed on the system and already not defined 
     
-    d) set the device processors to performance mode
+    d) set the device CPUs to performance scaling governor
 
     Obs: For more information about them, have a look at [Makepkg](https://wiki.archlinux.org/index.php/Makepkg)
 
