@@ -1,15 +1,16 @@
 import os
+import shutil
 import subprocess
 from io import StringIO
 from typing import Tuple, Optional
 
-from bauh.commons.system import run_cmd, SimpleProcess
+from bauh.commons.system import SimpleProcess
 
 BASE_CMD = 'snap'
 
 
 def is_installed() -> bool:
-    return bool(run_cmd('which {}'.format(BASE_CMD), print_error=False))
+    return bool(shutil.which(BASE_CMD))
 
 
 def uninstall_and_stream(app_name: str, root_password: str) -> SimpleProcess:

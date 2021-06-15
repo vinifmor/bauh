@@ -1,4 +1,5 @@
 import os
+import shutil
 from pathlib import Path
 from typing import Set
 
@@ -7,7 +8,7 @@ from bauh.gems.arch import IGNORED_REBUILD_CHECK_FILE
 
 
 def is_installed() -> bool:
-    return system.execute(cmd='which checkrebuild', output=False)[0] == 0
+    return bool(shutil.which('checkrebuild'))
 
 
 def list_required_rebuild() -> Set[str]:

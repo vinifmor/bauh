@@ -1,5 +1,6 @@
 import re
 import re
+import shutil
 import time
 import traceback
 from subprocess import Popen, STDOUT
@@ -16,7 +17,6 @@ from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
@@ -71,7 +71,7 @@ class GenericSoftwareManager(SoftwareManager):
                                                            refresh=False): self.is_backups_action_available}
 
     def _is_timeshift_launcher_available(self) -> bool:
-        return bool(run_cmd('which timeshift-launcher', print_error=False))
+        return bool(shutil.which('timeshift-launcher'))
 
     def is_backups_action_available(self, app_config: dict) -> bool:
         return bool(app_config['backup']['enabled']) and self._is_timeshift_launcher_available()

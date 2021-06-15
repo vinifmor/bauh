@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shutil
 from threading import Thread
 from typing import List, Set, Tuple, Dict, Iterable, Optional
 
@@ -26,8 +27,7 @@ RE_DESKTOP_FILES = re.compile(r'\n?([\w\-_]+)\s+(/usr/share/.+\.desktop)')
 
 
 def is_available() -> bool:
-    res = run_cmd('which pacman', print_error=False)
-    return res and not res.strip().startswith('which ')
+    return bool(shutil.which('pacman'))
 
 
 def get_repositories(pkgs: Iterable[str]) -> dict:
@@ -463,8 +463,7 @@ def get_databases() -> Set[str]:
 
 
 def can_refresh_mirrors() -> bool:
-    output = run_cmd('which pacman-mirrors', print_error=False)
-    return True if output else False
+    return is_mirrors_available()
 
 
 def refresh_mirrors(root_password: str) -> SimpleProcess:
@@ -497,8 +496,7 @@ def get_current_mirror_countries() -> List[str]:
 
 
 def is_mirrors_available() -> bool:
-    code, _ = system.execute(cmd='which pacman-mirrors', output=False)
-    return code == 0
+    return bool(shutil.which('pacman-mirrors'))
 
 
 def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:

@@ -1,3 +1,4 @@
+import shutil
 from typing import List, Optional
 
 from bauh.commons.system import SimpleProcess, run_cmd
@@ -18,8 +19,7 @@ def install(url: str, name: str, output_dir: str, electron_version: Optional[str
 
 
 def is_available() -> bool:
-    res = run_cmd('which nativefier', print_error=False)
-    return res and not res.strip().startswith('which ')
+    return bool(shutil.which('nativefier'))
 
 
 def get_version() -> str:

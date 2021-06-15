@@ -2,6 +2,7 @@ import glob
 import logging
 import os
 import re
+import shutil
 import time
 import traceback
 from datetime import datetime, timedelta
@@ -13,7 +14,6 @@ import requests
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.handler import TaskManager
-from bauh.commons import system
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import new_root_subprocess, ProcessHandler
@@ -259,8 +259,7 @@ class ArchCompilationOptimizer(Thread):
         self.taskman.register_task(self.task_id, self.i18n['arch.task.optimizing'].format(bold('makepkg.conf')), get_icon_path())
 
     def _is_ccache_installed(self) -> bool:
-        code, _ = system.execute(cmd='which ccache', output=False)
-        return code == 0
+        return bool(shutil.which('ccache'))
 
     def optimize(self):
         ti = time.time()
