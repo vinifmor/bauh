@@ -674,7 +674,7 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
                         if val == 'None':
                             data['d'] = None
                         else:
-                            data['d'] = {w.strip().split(':')[0].strip() for w in val.split(' ') if w}
+                            data['d'] = {w.strip() for w in val.split(' ') if w}
                             latest_field = 'd'
                     elif field == 'Conflicts With':
                         if val == 'None':

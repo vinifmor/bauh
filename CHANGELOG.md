@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.17]
+### Fixes
+- Arch
+    - skipping the package version epoch when checking the updates requirements 
+    
 ## [0.9.16] 2021-04-06
 ### Fixes
 - Arch
