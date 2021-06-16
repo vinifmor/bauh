@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.17] 2021-06-16
 ### Improvements
-- general: replacing subprocess commands to detected installed CLIs by Python faster calls (**shutil.which**)
+- general: replacing subprocess commands to detect installed CLIs by Python faster calls (**shutil.which**)
 
 ### Fixes
 - Arch
