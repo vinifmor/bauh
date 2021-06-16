@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import shutil
 import time
 import traceback
 from math import floor
@@ -29,15 +30,15 @@ class AdaptableFileDownloader(FileDownloader):
 
     @staticmethod
     def is_aria2c_available() -> bool:
-        return bool(run_cmd('which aria2c', print_error=False))
+        return bool(shutil.which('aria2c'))
 
     @staticmethod
     def is_axel_available() -> bool:
-        return bool(run_cmd('which axel', print_error=False))
+        return bool(shutil.which('axel'))
 
     @staticmethod
     def is_wget_available() -> bool:
-        return bool(run_cmd('which wget', print_error=False))
+        return bool(shutil.which('wget'))
 
     def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
         cmd = ['aria2c', url,

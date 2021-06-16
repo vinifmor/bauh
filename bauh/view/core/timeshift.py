@@ -1,8 +1,10 @@
-from bauh.commons.system import run_cmd, SimpleProcess
+import shutil
+
+from bauh.commons.system import SimpleProcess
 
 
 def is_available() -> bool:
-    return bool(run_cmd('which timeshift', print_error=False))
+    return bool(shutil.which('timeshift'))
 
 
 def delete_all_snapshots(root_password: str) -> SimpleProcess:

@@ -606,9 +606,8 @@ class AppImageManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def _is_sqlite3_available(self):
-        res = run_cmd('which sqlite3')
-        return res and not res.strip().startswith('which ')
+    def _is_sqlite3_available(self) -> bool:
+        return bool(shutil.which('sqlite3'))
 
     def can_work(self) -> bool:
         return self._is_sqlite3_available() and self.file_downloader.can_work()

@@ -1,3 +1,4 @@
+import shutil
 from datetime import datetime
 from typing import List, Tuple, Optional
 
@@ -6,8 +7,7 @@ from bauh.commons.system import new_subprocess, SimpleProcess
 
 
 def is_installed() -> bool:
-    code, _ = system.execute(cmd='which git', output=False)
-    return code == 0
+    return bool(shutil.which('git'))
 
 
 def list_commits(proj_dir: str) -> List[dict]:

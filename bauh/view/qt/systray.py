@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import shutil
 import sys
 import traceback
 from io import StringIO
@@ -15,7 +16,6 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate
 from bauh.api.http import HttpClient
-from bauh.commons import system
 from bauh.commons.system import run_cmd
 from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
@@ -40,11 +40,8 @@ def get_cli_path() -> str:
         if os.path.exists(cli_path):
             return cli_path
     else:
-        cli_path = system.run_cmd('which bauh-cli', print_error=False)
+        return shutil.which('bauh-cli')
     
-        if cli_path:
-            return cli_path.strip()
-
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
     cli_path = get_cli_path()

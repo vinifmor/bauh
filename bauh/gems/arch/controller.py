@@ -2649,9 +2649,8 @@ class ArchManager(SoftwareManager):
 
         return res
 
-    def _is_wget_available(self):
-        res = run_cmd('which wget')
-        return res and not res.strip().startswith('which ')
+    def _is_wget_available(self) -> bool:
+        return bool(shutil.which('wget'))
 
     def is_enabled(self) -> bool:
         return self.enabled
