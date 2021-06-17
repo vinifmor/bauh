@@ -1,7 +1,7 @@
 import re
 
 RE_STRIP_EPIC = re.compile(r'^\d+:')
-RE_STRIP_RELEASE = re.compile(r'-[\d\.?]+$')
+RE_STRIP_RELEASE = re.compile(r'-[\d.?]+$')
 
 
 def clean_version(version: str) -> str:

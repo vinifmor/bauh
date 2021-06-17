@@ -233,7 +233,7 @@ class AURClient:
     def clean_caches(self):
         self.srcinfo_cache.clear()
 
-    def map_update_data(self, pkgname: str, latest_version: str, srcinfo: dict = None) -> dict:
+    def map_update_data(self, pkgname: str, latest_version: Optional[str], srcinfo: Optional[dict] = None) -> dict:
         info = self.get_src_info(pkgname) if not srcinfo else srcinfo
 
         provided = set()

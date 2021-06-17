@@ -138,8 +138,7 @@ class DependenciesAnalyser:
                         return missing
         return missing
 
-    def map_known_missing_deps(self, known_deps: Dict[str, str], watcher: ProcessWatcher, check_subdeps: bool = True) -> \
-    List[Tuple[str, str]]:
+    def map_known_missing_deps(self, known_deps: Dict[str, str], watcher: ProcessWatcher, check_subdeps: bool = True) -> Optional[List[Tuple[str, str]]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         repo_deps, aur_deps = set(), set()
@@ -411,7 +410,7 @@ class DependenciesAnalyser:
                             provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                             already_checked: Set[str], remote_provided_map: Dict[str, Set[str]],
                             deps_data: Dict[str, dict], aur_idx: Iterable[str], sort: bool,
-                            watcher: ProcessWatcher, automatch_providers: bool) -> List[Tuple[str, str]]:
+                            watcher: ProcessWatcher, automatch_providers: bool) -> Optional[List[Tuple[str, str]]]:
         """
         :param missing_deps:
         :param provided_map:

@@ -11,7 +11,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable, Optional
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection
 
 import requests
 from dateutil.parser import parse as parse_date
@@ -927,7 +927,7 @@ class ArchManager(SoftwareManager):
         else:
             return [TextComponent(output)]
 
-    def list_related(self, pkgs: Iterable[str], all_pkgs: Iterable[str], data: Dict[str, dict], related: Set[str], provided_map: Dict[str, Set[str]]) -> Set[str]:
+    def list_related(self, pkgs: Collection[str], all_pkgs: Collection[str], data: Dict[str, dict], related: Set[str], provided_map: Dict[str, Set[str]]) -> Set[str]:
         related.update(pkgs)
 
         deps = set()
@@ -1261,7 +1261,7 @@ class ArchManager(SoftwareManager):
 
         return all_uninstalled
 
-    def _request_uninstall_confirmation(self, to_uninstall: Iterable[str], required: Iterable[str], watcher: ProcessWatcher) -> bool:
+    def _request_uninstall_confirmation(self, to_uninstall: Collection[str], required: Collection[str], watcher: ProcessWatcher) -> bool:
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in required]
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1 if len(reqs) < 4 else 3)
 
@@ -1291,7 +1291,7 @@ class ArchManager(SoftwareManager):
                                             window_cancel=False):
             return {*reqs_select.get_selected_values()}
 
-    def _request_all_unncessary_uninstall_confirmation(self, pkgs: Iterable[str], context: TransactionContext):
+    def _request_all_unncessary_uninstall_confirmation(self, pkgs: Collection[str], context: TransactionContext):
         reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
 
@@ -1738,12 +1738,6 @@ class ArchManager(SoftwareManager):
             return res
 
     def _install_deps(self, context: TransactionContext, deps: List[Tuple[str, str]]) -> Iterable[str]:
-        """
-        :param pkgs_repos:
-        :param root_password:
-        :param handler:
-        :return: not installed dependency
-        """
         progress_increment = int(100 / len(deps))
         progress = 0
         self._update_progress(context, 1)
@@ -1820,7 +1814,7 @@ class ArchManager(SoftwareManager):
 
         self._update_progress(context, 100)
 
-    def _map_repos(self, pkgnames: Iterable[str]) -> dict:
+    def _map_repos(self, pkgnames: Collection[str]) -> dict:
         pkg_repos = pacman.get_repositories(pkgnames)  # getting repositories set
 
         if len(pkgnames) != len(pkg_repos):  # checking if any dep not found in the distro repos are from AUR

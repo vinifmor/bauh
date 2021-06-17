@@ -366,7 +366,7 @@ class UpdatesSummarizer:
 
         return requirement
 
-    def summarize(self, pkgs: List[ArchPackage], root_password: str, arch_config: dict) -> UpgradeRequirements:
+    def summarize(self, pkgs: List[ArchPackage], root_password: str, arch_config: dict) -> Optional[UpgradeRequirements]:
         res = UpgradeRequirements([], [], [], [])
 
         remote_provided_map = pacman.map_provided(remote=True)

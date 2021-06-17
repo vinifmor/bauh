@@ -12,13 +12,13 @@ from bauh.commons.system import run_cmd, new_subprocess, new_root_subprocess, Sy
 from bauh.commons.util import size_to_byte
 from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
 
-RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-\.]+\s+\[\w+\]')
-RE_OPTDEPS = re.compile(r'[\w\._\-]+\s*:')
+RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-.]+\s+\[\w+]')
+RE_OPTDEPS = re.compile(r'[\w._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
 RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Install Date|Validated By)\s*:\s*(.+)')
-RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
-RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,\.]+)\s(\w+)\n?', re.IGNORECASE)
+RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,.]+)\s(\w+)\n?', re.IGNORECASE)
+RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
 RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s([\w\-_]+)\n?')
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
@@ -251,7 +251,7 @@ def check_missing(names: Set[str]) -> Set[str]:
     return not_installed
 
 
-def read_repository_from_info(name: str) -> str:
+def read_repository_from_info(name: str) -> Optional[str]:
     info = new_subprocess(['pacman', '-Si', name])
 
     not_found = False
@@ -459,7 +459,7 @@ def get_databases() -> Set[str]:
     with open('/etc/pacman.conf') as f:
         conf_str = f.read()
 
-    return {db for db in re.findall(r'[\n|\s]+\[(\w+)\]', conf_str) if db != 'options'}
+    return {db for db in re.findall(r'[\n|\s]+\[(\w+)]', conf_str) if db != 'options'}
 
 
 def can_refresh_mirrors() -> bool:
