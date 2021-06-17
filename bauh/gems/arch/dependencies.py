@@ -3,13 +3,11 @@ import traceback
 from threading import Thread
 from typing import Set, List, Tuple, Dict, Iterable, Optional
 
-from packaging.version import parse as parse_version
-
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.exceptions import PackageNotFoundException
-from bauh.gems.arch.util import clean_version
+from bauh.gems.arch.version import compare_versions
 from bauh.view.util.translation import I18n
 
 
@@ -220,7 +218,7 @@ class DependenciesAnalyser:
                     matched_providers = set()
                     split_informed_dep = self.re_dep_operator.split(dep_exp)
                     try:
-                        version_required = parse_version(clean_version(split_informed_dep[2]))
+                        version_required = split_informed_dep[2]
                         exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
 
                         for p in providers:
@@ -230,9 +228,9 @@ class DependenciesAnalyser:
                                 split_dep = self.re_dep_operator.split(provided_exp)
 
                                 if len(split_dep) == 3 and split_dep[0] == dep_name:
-                                    version_provided = parse_version(clean_version(split_dep[2]))
+                                    version_provided = split_dep[2]
 
-                                    if eval('version_provided {} version_required'.format(exp_op)):
+                                    if compare_versions(version_provided, exp_op, version_required):
                                         matched_providers.add(p)
                                         break
 
@@ -270,17 +268,17 @@ class DependenciesAnalyser:
                     self.__raise_dependency_not_found(dep_exp, watcher)
                 else:
                     try:
-                        dep_version = parse_version(clean_version(dep_info[0]['Version']))
+                        dep_version = dep_info[0]['Version']
                     except:
                         traceback.print_exc()
-                        self.__raise_dependency_not_found(dep_exp, watcher)
+                        return self.__raise_dependency_not_found(dep_exp, watcher)
 
                     split_informed_dep = self.re_dep_operator.split(dep_exp)
                     try:
-                        version_required = parse_version(clean_version(split_informed_dep[2]))
+                        version_required = split_informed_dep[2]
                         exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
 
-                        if eval('dep_version {} version_required'.format(exp_op)):
+                        if compare_versions(dep_version, exp_op, version_required):
                             aur_deps.add(dep_name)
                             missing_deps.add((dep_name, 'aur'))
                     except:
@@ -334,20 +332,11 @@ class DependenciesAnalyser:
                                 version_found = [p for p in provided_map if p.startswith(version_pattern)]
 
                                 if version_found:
-                                    version_found = clean_version(version_found[0].split('=')[1])
-                                    version_required = clean_version(dep_split[2])
+                                    version_found = version_found[0].split('=')[1]
+                                    version_required = dep_split[2]
+                                    op = dep_split[1] if dep_split[1] != '=' else '=='
 
-                                    try:
-                                        version_found = parse_version(version_found)
-                                        version_required = parse_version(version_required)
-
-                                        op = dep_split[1] if dep_split[1] != '=' else '=='
-                                        match = eval('version_found {} version_required'.format(op))
-                                    except:
-                                        match = False
-                                        traceback.print_exc()
-
-                                    if not match:
+                                    if not compare_versions(version_found, op, version_required):
                                         self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
                                                                missing_deps=missing_deps,
                                                                remote_provided_map=remote_provided_map,

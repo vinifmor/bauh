@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.18]
+### Fixes
+- Arch
+    - install/upgrade/downgrade: some dependencies not being matched during comparisons between numeric and alphanumeric versions
+    
+
 ## [0.9.17] 2021-06-16
 ### Improvements
 - general: replacing subprocess commands to detect installed CLIs by Python faster calls (**shutil.which**)
