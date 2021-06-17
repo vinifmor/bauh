@@ -1,9 +1,14 @@
+import warnings
 from unittest import TestCase
 
 from bauh.gems.arch import version
 
 
 class CompareVersionsTest(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.filterwarnings('ignore')
 
     def test_both_versions_only_filled_with_numbers_and_same_number_of_divisions(self):
         self.assertFalse(version.compare_versions('1', '>', '2'))

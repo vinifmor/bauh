@@ -1,3 +1,4 @@
+import warnings
 from unittest import TestCase
 from unittest.mock import Mock
 
@@ -6,6 +7,10 @@ from bauh.gems.arch.model import ArchPackage
 
 
 class ArchDataMapperTest(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.filterwarnings('ignore')
 
     def test_check_version_update(self):
         self.assertTrue(AURDataMapper.check_version_update('1.0.0-1', '1.0.0-2'))
