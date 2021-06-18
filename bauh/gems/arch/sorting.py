@@ -1,4 +1,4 @@
-from typing import Dict, Set, Iterable, Tuple, List
+from typing import Dict, Set, Tuple, List, Collection
 
 
 def __add_dep_to_sort(pkgname: str, pkgs_data: Dict[str, dict], sorted_names: dict, not_sorted: Set[str],
@@ -35,7 +35,7 @@ def __add_dep_to_sort(pkgname: str, pkgs_data: Dict[str, dict], sorted_names: di
         return idx
 
 
-def sort(pkgs: Iterable[str], pkgs_data: Dict[str, dict], provided_map: Dict[str, Set[str]] = None) -> List[Tuple[str, str]]:
+def sort(pkgs: Collection[str], pkgs_data: Dict[str, dict], provided_map: Dict[str, Set[str]] = None) -> List[Tuple[str, str]]:
     sorted_list, sorted_names, not_sorted = [], set(), set()
     provided = provided_map if provided_map else {}
 

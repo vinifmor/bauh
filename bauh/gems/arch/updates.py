@@ -4,8 +4,6 @@ import traceback
 from threading import Thread
 from typing import Dict, Set, List, Tuple, Iterable, Optional
 
-from packaging.version import parse as parse_version
-
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, sorting
@@ -14,6 +12,7 @@ from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
+from bauh.gems.arch.version import match_required_version
 from bauh.view.util.translation import I18n
 
 
@@ -367,7 +366,7 @@ class UpdatesSummarizer:
 
         return requirement
 
-    def summarize(self, pkgs: List[ArchPackage], root_password: str, arch_config: dict) -> UpgradeRequirements:
+    def summarize(self, pkgs: List[ArchPackage], root_password: str, arch_config: dict) -> Optional[UpgradeRequirements]:
         res = UpgradeRequirements([], [], [], [])
 
         remote_provided_map = pacman.map_provided(remote=True)
@@ -726,16 +725,11 @@ class UpdatesSummarizer:
                         if versions:
                             op = ''.join(RE_DEP_OPERATORS.findall(dep))
 
-                            if op == '=':
-                                op = '=='
-
                             version_match = False
 
                             for v in versions:
                                 try:
-                                    provided_version, required_version = parse_version(v), parse_version(dep_split[1])
-
-                                    if eval('provided_version {} required_version'.format(op)):
+                                    if match_required_version(current_version=v, operator=op, required_version=dep_split[1]):
                                         version_match = True
                                         break
                                 except:

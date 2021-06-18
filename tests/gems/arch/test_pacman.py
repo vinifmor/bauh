@@ -1,4 +1,5 @@
 import os
+import warnings
 from unittest import TestCase
 
 from bauh.gems.arch import pacman
@@ -7,6 +8,10 @@ FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class PacmanTest(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
 
     def test_list_ignored_packages(self):
         ignored = pacman.list_ignored_packages(FILE_DIR + '/resources/pacman_ign_pkgs.conf')

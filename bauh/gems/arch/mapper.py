@@ -1,14 +1,11 @@
 import logging
 import os
-import traceback
 from typing import Optional
-
-from colorama import Fore
-from packaging.version import parse as parse_version
 
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
+from bauh.gems.arch.version import normalize_version
 from bauh.view.util.translation import I18n
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
@@ -64,26 +61,7 @@ class AURDataMapper:
     @staticmethod
     def check_version_update(version: str, latest_version: str) -> bool:
         if version and latest_version and version != latest_version:
-            try:
-                ver_epoch, latest_epoch = version.split(':'), latest_version.split(':')
-
-                if len(ver_epoch) > 1 and len(latest_epoch) > 1:
-                    parsed_ver_epoch, parsed_latest_epoch = parse_version(ver_epoch[0]), parse_version(latest_epoch[0])
-
-                    if parsed_ver_epoch == parsed_latest_epoch:
-                        return parse_version(''.join(ver_epoch[1:])) < parse_version(''.join(latest_epoch[1:]))
-                    else:
-                        return parsed_ver_epoch < parsed_latest_epoch
-                elif len(ver_epoch) > 1 and len(latest_epoch) == 1:
-                    return False
-                elif len(ver_epoch) == 1 and len(latest_epoch) > 1:
-                    return True
-                else:
-                    return parse_version(version) < parse_version(latest_version)
-            except:
-                print('{}Version: {}. Latest version: {}{}'.format(Fore.RED, version, latest_version, Fore.RESET))
-                traceback.print_exc()
-                return False
+            return normalize_version(latest_version) > normalize_version(version)
 
         return False
 
