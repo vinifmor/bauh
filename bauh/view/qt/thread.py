@@ -762,7 +762,7 @@ class AnimateProgress(QThread):
     def __init__(self):
         super(AnimateProgress, self).__init__()
         self.progress_value = 0
-        self.increment = 3
+        self.increment = 5
         self.stop = False
         self.limit = 100
         self.wait_time = 50
@@ -772,7 +772,7 @@ class AnimateProgress(QThread):
 
     def _reset(self):
         self.progress_value = 0
-        self.increment = 3
+        self.increment = 5
         self.stop = False
         self.limit = 100
         self.wait_time = 50

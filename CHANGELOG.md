@@ -9,10 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
     - install/upgrade/downgrade: some dependencies not being matched during comparisons between numeric and alphanumeric versions
     
-### UI
-- progress bar speed reduced
-
-    
 
 ## [0.9.17] 2021-06-16
 ### Improvements
