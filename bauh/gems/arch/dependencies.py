@@ -7,7 +7,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.exceptions import PackageNotFoundException
-from bauh.gems.arch.version import compare_versions
+from bauh.gems.arch.version import match_required_version
 from bauh.view.util.translation import I18n
 
 
@@ -229,7 +229,7 @@ class DependenciesAnalyser:
                                 if len(split_dep) == 3 and split_dep[0] == dep_name:
                                     version_provided = split_dep[2]
 
-                                    if compare_versions(version_provided, exp_op, version_required):
+                                    if match_required_version(version_provided, exp_op, version_required):
                                         matched_providers.add(p)
                                         break
 
@@ -275,9 +275,9 @@ class DependenciesAnalyser:
                     split_informed_dep = self.re_dep_operator.split(dep_exp)
                     try:
                         version_required = split_informed_dep[2]
-                        exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
+                        exp_op = split_informed_dep[1].strip()
 
-                        if compare_versions(dep_version, exp_op, version_required):
+                        if match_required_version(dep_version, exp_op, version_required):
                             aur_deps.add(dep_name)
                             missing_deps.add((dep_name, 'aur'))
                     except:
@@ -333,9 +333,9 @@ class DependenciesAnalyser:
                                 if version_found:
                                     version_found = version_found[0].split('=')[1]
                                     version_required = dep_split[2]
-                                    op = dep_split[1] if dep_split[1] != '=' else '=='
+                                    op = dep_split[1].strip()
 
-                                    if not compare_versions(version_found, op, version_required):
+                                    if not match_required_version(version_found, op, version_required):
                                         self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
                                                                missing_deps=missing_deps,
                                                                remote_provided_map=remote_provided_map,

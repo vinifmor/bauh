@@ -10,7 +10,7 @@ class ArchDataMapperTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        warnings.filterwarnings('ignore')
+        warnings.filterwarnings('ignore', category=DeprecationWarning)
 
     def test_check_version_update(self):
         self.assertTrue(AURDataMapper.check_version_update('1.0.0-1', '1.0.0-2'))
@@ -181,3 +181,17 @@ class ArchDataMapperTest(TestCase):
         # in this case, install_date will be considered instead of package's last_modified.
         # as 'install_date' is higher, only the string versions will be compared
         self.assertTrue(mapper.check_update(pkg=pkg, last_modified=None))
+
+    def test_check_version_update__one_version_contain_mixed_letters_and_symbols(self):
+        self.assertTrue(AURDataMapper.check_version_update('2.2.6', '2.3.3op2'))
+        self.assertFalse(AURDataMapper.check_version_update('2.3', '2.2.a'))
+        self.assertTrue(AURDataMapper.check_version_update('2.2.a.123', '2.3'))
+
+    def test_check_update__only_installed_version_with_release_number(self):
+        self.assertTrue(AURDataMapper.check_version_update('2.2.6-1', '2.3'))
+        self.assertTrue(AURDataMapper.check_version_update('2.2', '2.2-2'))
+        self.assertFalse(AURDataMapper.check_version_update('2.2', '2.2-1'))
+
+    def test_check_update__versions_with_epoch(self):
+        self.assertTrue(AURDataMapper.check_version_update('2.3', '1:2.1'))
+        self.assertFalse(AURDataMapper.check_version_update('1:1.0', '2.1'))

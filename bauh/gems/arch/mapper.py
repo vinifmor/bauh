@@ -5,7 +5,7 @@ from typing import Optional
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.version import compare_versions
+from bauh.gems.arch.version import normalize_version
 from bauh.view.util.translation import I18n
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
@@ -61,7 +61,7 @@ class AURDataMapper:
     @staticmethod
     def check_version_update(version: str, latest_version: str) -> bool:
         if version and latest_version and version != latest_version:
-            return compare_versions(latest_version, '>', version)
+            return normalize_version(latest_version) > normalize_version(version)
 
         return False
 

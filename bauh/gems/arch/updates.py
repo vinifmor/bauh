@@ -12,7 +12,7 @@ from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
-from bauh.gems.arch.version import compare_versions
+from bauh.gems.arch.version import match_required_version
 from bauh.view.util.translation import I18n
 
 
@@ -725,14 +725,11 @@ class UpdatesSummarizer:
                         if versions:
                             op = ''.join(RE_DEP_OPERATORS.findall(dep))
 
-                            if op == '=':
-                                op = '=='
-
                             version_match = False
 
                             for v in versions:
                                 try:
-                                    if compare_versions(v, op, dep_split[1]):
+                                    if match_required_version(current_version=v, operator=op, required_version=dep_split[1]):
                                         version_match = True
                                         break
                                 except:
