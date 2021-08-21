@@ -1,4 +1,5 @@
 import re
+from io import StringIO
 from typing import List, Optional
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
@@ -127,3 +128,20 @@ class AppImage(SoftwarePackage):
     def get_clean_name(self) -> Optional[str]:
         if self.name:
             return RE_MANY_SPACES.sub('-', self.name.lower().strip())
+
+    def to_desktop_entry(self) -> str:
+        de = StringIO()
+        de.write("[Desktop Entry]\nType=Application\nName={}\n".format(self.name))
+
+        if self.install_dir and self.local_file_path:
+            de.write('Exec="{}/{}"\n'.format(self.install_dir, self.local_file_path.split('/')[-1]))
+
+        if self.icon_path:
+            de.write('Icon={}\n'.format(self.icon_path))
+
+        if self.categories:
+            de.write('Categories={};\n'.format(';'.join((c for c in self.categories if c.lower() != 'imported'))))
+
+        de.write('Terminal=false')
+        de.seek(0)
+        return de.read()

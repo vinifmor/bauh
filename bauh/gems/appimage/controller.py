@@ -561,17 +561,23 @@ class AppImageManager(SoftwareManager):
                     with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
                         de_content = f.read()
 
-                    de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
-                                                                    appname=pkg.name,
-                                                                    file_path=file_path)
-
+                    if de_content:
+                        de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
+                                                                        appname=pkg.name,
+                                                                        file_path=file_path)
                     extracted_icon = self._find_icon_file(extracted_folder)
 
                     if extracted_icon:
                         icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
                         shutil.copy(extracted_icon, icon_path)
-                        de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+
+                        if de_content:
+                            de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+
                         pkg.icon_path = icon_path
+
+                    if not de_content:
+                        de_content = pkg.to_desktop_entry()
 
                     Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
 

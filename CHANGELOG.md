@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.19]
+### Fixes
+- AppImage
+    - manual installation: not generating desktop entries for AppImage files providing empty .desktop files (https://github.com/vinifmor/bauh/issues/186)[#186]
+
 ## [0.9.18] 2021-06-18
 ### Fixes
 - Arch
