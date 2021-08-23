@@ -98,7 +98,7 @@ class AppImageManager(SoftwareManager):
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
-                                            allowed_extensions={'AppImage'},
+                                            allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
@@ -118,7 +118,7 @@ class AppImageManager(SoftwareManager):
                                             components=[form],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize()):
-                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path):
+                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path) or not file_chooser.file_path.lower().strip().endswith('.appimage'):
                     watcher.request_confirmation(title=self.i18n['error'].capitalize(),
                                                  body=self.i18n['appimage.custom_action.install_file.invalid_file'],
                                                  deny_button=False)
@@ -214,27 +214,30 @@ class AppImageManager(SoftwareManager):
         except:
             self.logger.error("An exception happened while querying the 'apps' database")
             traceback.print_exc()
-            apps_conn.close()
-            return SearchResult.empty()
+
+        try:
+            installed = self.read_installed(connection=apps_conn, disk_loader=disk_loader, limit=limit, only_apps=False, pkg_types=None, internet_available=True).installed
+        except:
+            installed = None
 
         installed_found = []
 
-        if not_installed:
-            installed = self.read_installed(disk_loader=disk_loader, limit=limit,
-                                            only_apps=False,
-                                            pkg_types=None,
-                                            connection=apps_conn,
-                                            internet_available=True).installed
-            if installed:
-                for appim in installed:
-                    key = self._gen_app_key(appim)
+        if installed:
+            lower_words = words.lower()
+            for appim in installed:
+                found = False
 
+                if not_installed and found_map:
+                    key = self._gen_app_key(appim)
                     new_found = found_map.get(key)
 
                     if new_found:
                         del not_installed[new_found['idx']]
                         installed_found.append(appim)
+                        found = True
 
+                if not found and lower_words in appim.name.lower() or (appim.description and lower_words in appim.description.lower()):
+                    installed_found.append(appim)
         try:
             apps_conn.close()
         except:
@@ -561,17 +564,23 @@ class AppImageManager(SoftwareManager):
                     with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
                         de_content = f.read()
 
-                    de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
-                                                                    appname=pkg.name,
-                                                                    file_path=file_path)
-
+                    if de_content:
+                        de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
+                                                                        appname=pkg.name,
+                                                                        file_path=file_path)
                     extracted_icon = self._find_icon_file(extracted_folder)
 
                     if extracted_icon:
                         icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
                         shutil.copy(extracted_icon, icon_path)
-                        de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+
+                        if de_content:
+                            de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+
                         pkg.icon_path = icon_path
+
+                    if not de_content:
+                        de_content = pkg.to_desktop_entry()
 
                     Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
 
@@ -706,7 +715,8 @@ class AppImageManager(SoftwareManager):
             appimag_path = util.find_appimage_file(installation_dir)
 
             if appimag_path:
-                subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ})
+                subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ},
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
             else:
                 self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
 

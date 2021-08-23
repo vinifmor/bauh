@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.19] 2021-08-23
+### Improvements
+- AppImage
+    - manual installation: adding generic file filter extension (.*) since some desktop environments filters are case sensitive [#185](https://github.com/vinifmor/bauh/issues/185)
+    - installation: generating a default **.desktop** file for AppImages that provide empty desktop entries [#186](https://github.com/vinifmor/bauh/issues/186)
+    - hiding the app's launching output
+- Arch
+  - AUR: **rebuild-detector** integration disabled by default since it has a great impact on the overall refresh time (it can be enabled through the settings panel -> "Check reinstallation need")
+- UI
+  - not using native dialogs for file/directory choosing to prevent unexpected behaviors and wrong theming
+  
+### Fixes
+- AppImage
+  - search: not matching manually installed applications
+  - info button remains "clickable" after an imported Appimage is uninstalled
+
+
 ## [0.9.18] 2021-06-18
 ### Fixes
 - Arch
