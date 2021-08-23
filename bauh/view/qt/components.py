@@ -870,9 +870,11 @@ class FormQt(QGroupBox):
                 cur_path = str(Path.home())
 
             if c.directory:
-                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=QFileDialog.Options())
+                opts = QFileDialog.DontUseNativeDialog
+                opts |= QFileDialog.ShowDirsOnly
+                file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=opts)
             else:
-                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.Options())
+                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.DontUseNativeDialog)
 
             if file_path:
                 c.set_file_path(file_path)

@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - hiding the app's launching output
 - Arch
   - AUR: **rebuild-detector** integration disabled by default since it has a great impact on the overall refresh time (it can be enabled through the settings panel -> "Check reinstallation need")
+- UI
+  - not using native dialogs for file/directory choosing to prevent unexpected behaviors and wrong theming
   
 ### Fixes
 - AppImage
