@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - manual installation: adding generic file filter extension (.*) since some desktop environments filters are case sensitive (https://github.com/vinifmor/bauh/issues/185)[#185]
     - installation: generating a default **.desktop** file for AppImages that provide empty desktop entries (https://github.com/vinifmor/bauh/issues/186)[#186]
     - hiding the app's launching output
+- Arch
+  - AUR: **rebuild-detector** integration disabled by default since it has a great impact on the overall refresh time (it can be enabled through the settings panel -> "Check reinstallation need")
   
 ### Fixes
 - AppImage
