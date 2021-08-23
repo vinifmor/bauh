@@ -50,7 +50,7 @@ class AppImage(SoftwarePackage):
         return self.installed and not self.imported
 
     def has_info(self):
-        return True
+        return self.installed if self.imported else True
 
     def can_be_downgraded(self):
         return self.installed and not self.imported
