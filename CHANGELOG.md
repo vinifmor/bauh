@@ -7,9 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.19]
 ### Improvements
 - AppImage
-    - manual installation
-      - adding generic file filter extension (.*) since some desktop environments filters are case sensitive (https://github.com/vinifmor/bauh/issues/185)[#185]
-      - generating a default **.desktop** file based on the installation form for AppImage files that provide empty desktop entries (https://github.com/vinifmor/bauh/issues/186)[#186]
+    - manual installation: adding generic file filter extension (.*) since some desktop environments filters are case sensitive (https://github.com/vinifmor/bauh/issues/185)[#185]
+    - installation: generating a default **.desktop** file for AppImages that provide empty desktop entries (https://github.com/vinifmor/bauh/issues/186)[#186]
     - hiding the app's launching output
   
 ### Fixes
