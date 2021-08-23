@@ -133,6 +133,9 @@ class AppImage(SoftwarePackage):
         de = StringIO()
         de.write("[Desktop Entry]\nType=Application\nName={}\n".format(self.name))
 
+        if self.description:
+            de.write("Comment={}\n".format(self.description.replace('\n', ' ')))
+
         if self.install_dir and self.local_file_path:
             de.write('Exec="{}/{}"\n'.format(self.install_dir, self.local_file_path.split('/')[-1]))
 
