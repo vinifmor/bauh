@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.19]
+### Improvements
+- AppImage
+    - manual installation: adding generic file filter extension (.*) since some desktop environments filters are case sensitive (https://github.com/vinifmor/bauh/issues/185)[#185]
+  
 ### Fixes
 - AppImage
     - manual installation: not generating desktop entries for AppImage files providing empty .desktop files (https://github.com/vinifmor/bauh/issues/186)[#186]

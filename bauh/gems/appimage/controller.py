@@ -98,7 +98,7 @@ class AppImageManager(SoftwareManager):
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
-                                            allowed_extensions={'AppImage'},
+                                            allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
         input_name = TextInputComponent(label=self.i18n['name'].capitalize())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
@@ -118,7 +118,7 @@ class AppImageManager(SoftwareManager):
                                             components=[form],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize()):
-                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path):
+                if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path) or not file_chooser.file_path.lower().strip().endswith('.appimage'):
                     watcher.request_confirmation(title=self.i18n['error'].capitalize(),
                                                  body=self.i18n['appimage.custom_action.install_file.invalid_file'],
                                                  deny_button=False)
