@@ -219,7 +219,7 @@ class AppImageManager(SoftwareManager):
             installed = self.read_installed(connection=apps_conn, disk_loader=disk_loader, limit=limit, only_apps=False, pkg_types=None, internet_available=True).installed
         except:
             installed = None
-            
+
         installed_found = []
 
         if installed:
@@ -715,7 +715,8 @@ class AppImageManager(SoftwareManager):
             appimag_path = util.find_appimage_file(installation_dir)
 
             if appimag_path:
-                subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ})
+                subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ},
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
             else:
                 self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
 
