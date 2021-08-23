@@ -214,27 +214,30 @@ class AppImageManager(SoftwareManager):
         except:
             self.logger.error("An exception happened while querying the 'apps' database")
             traceback.print_exc()
-            apps_conn.close()
-            return SearchResult.empty()
 
+        try:
+            installed = self.read_installed(connection=apps_conn, disk_loader=disk_loader, limit=limit, only_apps=False, pkg_types=None, internet_available=True).installed
+        except:
+            installed = None
+            
         installed_found = []
 
-        if not_installed:
-            installed = self.read_installed(disk_loader=disk_loader, limit=limit,
-                                            only_apps=False,
-                                            pkg_types=None,
-                                            connection=apps_conn,
-                                            internet_available=True).installed
-            if installed:
-                for appim in installed:
-                    key = self._gen_app_key(appim)
+        if installed:
+            lower_words = words.lower()
+            for appim in installed:
+                found = False
 
+                if not_installed and found_map:
+                    key = self._gen_app_key(appim)
                     new_found = found_map.get(key)
 
                     if new_found:
                         del not_installed[new_found['idx']]
                         installed_found.append(appim)
+                        found = True
 
+                if not found and lower_words in appim.name.lower() or (appim.description and lower_words in appim.description.lower()):
+                    installed_found.append(appim)
         try:
             apps_conn.close()
         except:
