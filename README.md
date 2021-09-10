@@ -1,3 +1,5 @@
+[![GitHub release](https://img.shields.io/github/release/vinifmor/bauh.svg?label=Release)](https://github.com/vinifmor/bauh/releases/) [![Follow on Twitter](https://img.shields.io/twitter/follow/bauh4linux?style=social)](https://twitter.com/bauh4linux)
+
 **bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux repositories/AUR, Flatpak, Snap and Web applications.
 
 Key features
@@ -35,8 +37,7 @@ Key features
 13. [bauh-files](#bauh_files)
 14. [Code structure](#code)
 15. [Roadmap](#roadmap)
-16. [Social media](#social)
-17. [Contributing](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
+16. [Contributing](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
 
  
 
@@ -469,6 +470,3 @@ the `view` code is only attached to them (it does not know how the `gems` handle
 - Separate modules for each packaging technology
 - Memory and performance improvements
 - Improve user experience
-
-#### <a name="social">Social media</a>
-- Twitter: [@bauh4linux](https://twitter.com/bauh4linux).
