@@ -38,6 +38,7 @@ Key features
 14. [Code structure](#code)
 15. [Roadmap](#roadmap)
 16. [Contributing](https://github.com/vinifmor/bauh/blob/master/CONTRIBUTING.md)
+17. [Donations](#donations)
 
  
 
@@ -470,3 +471,6 @@ the `view` code is only attached to them (it does not know how the `gems` handle
 - Separate modules for each packaging technology
 - Memory and performance improvements
 - Improve user experience
+    
+#### <a name="donations">Donations</a>
+- You can support this project through [ko-fi](https://ko-fi.com/vinifmor).
