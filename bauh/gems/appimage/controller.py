@@ -152,7 +152,7 @@ class AppImageManager(SoftwareManager):
 
     def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
-                                            allowed_extensions={'AppImage'},
+                                            allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
         input_version = TextInputComponent(label=self.i18n['version'].capitalize())
         file_chooser.observers.append(ManualInstallationFileObserver(None, input_version))
