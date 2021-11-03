@@ -864,7 +864,7 @@ class FormQt(QGroupBox):
                 if '*' in c.allowed_extensions:
                     sorted_exts.append('*')
 
-                exts = ';;'.join({f'*.{e}' for e in sorted_exts})
+                exts = ';;'.join((f'*.{e}' for e in sorted_exts))
             else:
                 exts = '{} (*);;'.format(self.i18n['all_files'].capitalize())
 
