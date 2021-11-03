@@ -858,7 +858,13 @@ class FormQt(QGroupBox):
 
         def open_chooser(e):
             if c.allowed_extensions:
-                exts = ';;'.join({'*.{}'.format(e) for e in c.allowed_extensions})
+                sorted_exts = [e for e in c.allowed_extensions if e != '*']
+                sorted_exts.sort()
+
+                if '*' in c.allowed_extensions:
+                    sorted_exts.append('*')
+
+                exts = ';;'.join({f'*.{e}' for e in sorted_exts})
             else:
                 exts = '{} (*);;'.format(self.i18n['all_files'].capitalize())
 

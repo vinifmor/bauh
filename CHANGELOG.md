@@ -5,9 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.20]
+### Improvements
+- UI:
+  - always displaying the "any file filter" (*) as the last option for file chooser components [#193](https://github.com/vinifmor/bauh/issues/193)
+
 ### Fixes
 - AppImage
     - not displaying the filter for any kind of file (*) when updating imported AppImages [#193](https://github.com/vinifmor/bauh/issues/193)
+
 
 
 ## [0.9.19] 2021-08-23
