@@ -15,7 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AppImage
     - not displaying the filter for any kind of file (*) when updating imported AppImages [#193](https://github.com/vinifmor/bauh/issues/193)
-
+- UI
+  - always requesting the password on the initialization dialog when launched by the root user [#195](https://github.com/vinifmor/bauh/issues/195) 
 
 
 ## [0.9.19] 2021-08-23
