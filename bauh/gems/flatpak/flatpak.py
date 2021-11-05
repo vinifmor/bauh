@@ -93,7 +93,7 @@ def get_commit(app_id: str, branch: str, installation: str) -> Optional[str]:
 def list_installed(version: Version) -> List[dict]:
     apps = []
 
-    if version < VERSION_1_3:
+    if version < VERSION_1_2:
         app_list = new_subprocess(['flatpak', 'list', '-d'])
 
         for o in app_list.stdout:
