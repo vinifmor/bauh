@@ -89,14 +89,12 @@ class SimpleProcess:
         args = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
+            "stdin": stdin if stdin else subprocess.DEVNULL,
             "bufsize": -1,
             "cwd": cwd,
             "env": gen_env(global_interpreter, lang, extra_paths=extra_paths),
             "shell": self.shell
         }
-
-        if stdin:
-            args['stdin'] = stdin
 
         return subprocess.Popen(args=[' '.join(cmd)] if self.shell else cmd, **args)
 

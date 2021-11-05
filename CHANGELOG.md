@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - always displaying the "any file filter" (*) as the last option for file chooser components [#193](https://github.com/vinifmor/bauh/issues/193)
 
 ### Fixes
+- Arch
+  - not able to install packages when launched by the root user
 - AppImage
     - not displaying the filter for any kind of file (*) when updating imported AppImages [#193](https://github.com/vinifmor/bauh/issues/193)
 - Flatpak
