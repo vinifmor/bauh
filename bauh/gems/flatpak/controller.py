@@ -22,7 +22,7 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH, \
-    get_icon_path, VERSION_1_5, VERSION_1_4
+    get_icon_path, VERSION_1_5, VERSION_1_2
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -143,7 +143,7 @@ class FlatpakManager(SoftwareManager):
                 models.append(model)
 
                 if update_map and (update_map['full'] or update_map['partial']):
-                    if version >= VERSION_1_4:
+                    if version >= VERSION_1_2:
                         update_id = '{}/{}/{}'.format(app_json['id'], app_json['branch'], app_json['installation'])
 
                         if update_map['full'] and update_id in update_map['full']:

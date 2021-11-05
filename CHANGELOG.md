@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - not displaying the filter for any kind of file (*) when updating imported AppImages [#193](https://github.com/vinifmor/bauh/issues/193)
 - Flatpak
   - not listing installed packages for Flatpak 1.2 [#201](https://github.com/vinifmor/bauh/issues/201)
+  - not listing updates for Flatpak 1.2
 - UI
   - always requesting the password on the initialization dialog when launched by the root user [#195](https://github.com/vinifmor/bauh/issues/195) 
 
