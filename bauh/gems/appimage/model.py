@@ -102,7 +102,7 @@ class AppImage(SoftwarePackage):
     def has_screenshots(self):
         return not self.installed and self.url_screenshot
 
-    def get_display_name(self) -> str:
+    def get_name_tooltip(self) -> str:
         if self.name and self.imported:
             return '{} ({})'.format(self.name, self.i18n['imported'])
 

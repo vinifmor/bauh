@@ -235,7 +235,6 @@ class FormComponent(ViewComponent):
             return comp
 
 
-
 class FileChooserComponent(ViewComponent):
 
     def __init__(self, allowed_extensions: Optional[Set[str]] = None, label: Optional[str] = None, tooltip: Optional[str] = None,

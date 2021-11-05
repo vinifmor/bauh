@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.20] 2021-11-05
+### Improvements
+- AppImage:
+  - not displaying "imported" besides the imported application name on the table (only for the name tip) 
+  
+- UI:
+  - always displaying the "any file filter" (*) as the last option for file chooser components [#193](https://github.com/vinifmor/bauh/issues/193)
+
+### Fixes
+- General
+  - some backend commands could hang when require user interaction 
+- AppImage
+    - not displaying the filter for any kind of file (*) when updating imported AppImages [#193](https://github.com/vinifmor/bauh/issues/193)
+- Flatpak
+  - not listing installed packages for Flatpak 1.2 [#201](https://github.com/vinifmor/bauh/issues/201)
+  - not listing updates for Flatpak 1.2
+- UI
+  - always requesting the password on the initialization dialog when launched by the root user [#195](https://github.com/vinifmor/bauh/issues/195) 
+
+
 ## [0.9.19] 2021-08-23
 ### Improvements
 - AppImage
