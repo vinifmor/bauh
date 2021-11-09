@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Flatpak
   - not displaying update components not associated with installed packages 
+  - not displaying the updates size for Flatpak 1.2
 
 - UI
   - upgrade summary: not displaying the icon type for some applications 

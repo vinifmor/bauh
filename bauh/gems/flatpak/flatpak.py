@@ -399,10 +399,10 @@ def run(app_id: str):
 
 def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, int]:
     success, output = ProcessHandler().handle_simple(SimpleProcess(['flatpak', 'update', '--{}'.format(installation)]))
-    if version >= VERSION_1_5:
+    if version >= VERSION_1_2:
         res = {}
         p = re.compile(r'^\d+.\t')
-        p2 = re.compile(r'\s([0-9.?a-zA-Z]+)\s?')
+        p2 = re.compile(r'([0-9.?a-zA-Z]+\s?)')
         for l in output.split('\n'):
             if l:
                 line = l.strip()
@@ -420,11 +420,17 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
                             size_tuple = p2.findall(line_split[6])
 
                             if size_tuple:
-                                size = size_tuple[0].split('?')
+                                if version >= VERSION_1_5:
+                                    size = size_tuple[0].split('?')
 
-                                if size and len(size) > 1:
+                                    if size and len(size) > 1:
+                                        try:
+                                            res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1].strip())
+                                        except:
+                                            traceback.print_exc()
+                                else:
                                     try:
-                                        res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1])
+                                        res[related_id[0].strip()] = size_to_byte(float(size_tuple[0]), size_tuple[1].strip())
                                     except:
                                         traceback.print_exc()
         return res
