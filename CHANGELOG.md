@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - not displaying the updates size for Flatpak 1.2
 
 - UI
-  - upgrade summary: not displaying the icon type for some applications 
+  - upgrade summary: not displaying the icon type for some applications
+  - displaying initial warnings related to supported technologies even when they are not enabled or have the required dependencies
 
 ## [0.9.20] 2021-11-05
 ### Improvements

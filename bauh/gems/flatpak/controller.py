@@ -517,8 +517,8 @@ class FlatpakManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self, internet_available: bool) -> List[str]:
-        return []
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
+        pass
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()

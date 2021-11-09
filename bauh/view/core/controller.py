@@ -461,7 +461,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         if self.managers:
             for man in self.managers:
-                if man.is_enabled():
+                if self._can_work(man):
                     man_warnings = man.list_warnings(internet_available=int_available)
 
                     if man_warnings:
