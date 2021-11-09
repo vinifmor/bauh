@@ -168,13 +168,16 @@ class FlatpakManager(SoftwareManager):
                 for partial_update_id in update_map['partial']:
                     partial_data = partial_update_id.split('/')
 
-                    for model_update_id, model in models.items():
-                        if model.installation == partial_data[2] and model_update_id in partial_data[0] and \
-                                                                     model.branch == partial_data[1]:
-                            partial_model = model.gen_partial(partial_data[0])
-                            partial_model.update = True
-                            models[partial_update_id] = partial_model
-                            break
+                    for model in models.values():
+                        if model.installation == partial_data[2] and model.branch == partial_data[1]:
+                            if model.id == partial_data[0]:
+                                model.update = True
+                                break
+                            elif model.id in partial_data[0]:
+                                partial_model = model.gen_partial(partial_data[0])
+                                partial_model.update = True
+                                models[partial_update_id] = partial_model
+                                break
 
         if models:
             ignored = self._read_ignored_updates()
