@@ -166,7 +166,7 @@ class FlatpakManager(SoftwareManager):
 
             if version >= VERSION_1_2:
                 for partial_update_id in update_map['partial']:
-                    partial_data = partial_update_id.split['/']
+                    partial_data = partial_update_id.split('/')
 
                     for model_update_id, model in models.items():
                         if model.installation == partial_data[2] and model_update_id in partial_data[0] and \
