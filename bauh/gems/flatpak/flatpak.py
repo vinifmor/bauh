@@ -15,6 +15,7 @@ from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
+OPERATION_UPDATE_SYMBOLS = {'i', 'u'}
 
 
 def get_app_info_fields(app_id: str, branch: str, installation: str, fields: List[str] = [], check_runtime: bool = False):
@@ -208,12 +209,14 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
 
                     if len(line_split) > 2:
                         if version >= VERSION_1_5:
-                            update_id = '{}/{}/{}'.format(line_split[2], line_split[3], installation)
+                            update_id = f'{line_split[2]}/{line_split[3]}/{installation}/{line_split[5]}'
+                        elif version >= VERSION_1_2:
+                            update_id = f'{line_split[2]}/{line_split[4]}/{installation}/{line_split[5]}'
                         else:
                             update_id = '{}/{}/{}'.format(line_split[2], line_split[4], installation)
 
-                        if len(line_split) >= 6:
-                            if line_split[4] != 'i':
+                        if version >= VERSION_1_3 and len(line_split) >= 6:
+                            if line_split[4].strip().lower() in OPERATION_UPDATE_SYMBOLS:
                                 if '(partial)' in line_split[-1]:
                                     res['partial'].add(update_id)
                                 else:
