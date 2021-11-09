@@ -465,9 +465,6 @@ class GenericSoftwareManager(SoftwareManager):
                     man_warnings = man.list_warnings(internet_available=int_available)
 
                     if man_warnings:
-                        if warnings is None:
-                            warnings = []
-
                         warnings.extend(man_warnings)
 
         return warnings
