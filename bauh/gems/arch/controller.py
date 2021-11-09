@@ -2735,7 +2735,7 @@ class ArchManager(SoftwareManager):
 
     def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         if not git.is_installed():
-            return [self.i18n['arch.warning.git'].format(bold('git'))]
+            return [self.i18n['arch.warning.aur_missing_dep'].format(bold('git'))]
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
