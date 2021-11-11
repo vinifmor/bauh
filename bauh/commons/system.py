@@ -295,7 +295,7 @@ def get_human_size_str(size) -> str:
 
 
 def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
     return p.returncode == success_code, p.stdout.decode()
 
 
