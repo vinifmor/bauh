@@ -243,11 +243,9 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
         "stderr": PIPE,
         "cwd": cwd,
         "shell": shell,
-        "env": gen_env(global_interpreter, lang, extra_paths)
+        "env": gen_env(global_interpreter, lang, extra_paths),
+        "stdin": stdin if stdin else subprocess.DEVNULL
     }
-
-    if input:
-        args['stdin'] = stdin
 
     return subprocess.Popen(cmd, **args)
 
