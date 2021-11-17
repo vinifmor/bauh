@@ -788,6 +788,9 @@ class AppImageManager(SoftwareManager):
 
         for pkg in pkgs:
             requirement = UpgradeRequirement(pkg)
+            if pkg.url_download is None:
+                self.logger.error("AppImage '{}' has no package url, skipping ...".format(pkg.name))
+                continue
             installed_size = self.http_client.get_content_length_in_bytes(pkg.url_download)
             upgrade_size = self.http_client.get_content_length_in_bytes(pkg.url_download_latest_version)
             requirement.required_size = upgrade_size
