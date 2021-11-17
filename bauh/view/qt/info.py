@@ -104,8 +104,8 @@ class InfoDialog(QDialog):
 
         lower_container.layout().addWidget(self.bt_close)
         layout.addWidget(lower_container)
-        self.setMinimumWidth(self.gbox_info.sizeHint().width() * 1.2)
-        self.setMaximumHeight(screen_size.height() * 0.8)
+        self.setMinimumWidth(int(self.gbox_info.sizeHint().width() * 1.2))
+        self.setMaximumHeight(int(screen_size.height() * 0.8))
         self.adjustSize()
 
     def _gen_show_button(self, idx: int, val):

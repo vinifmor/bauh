@@ -153,9 +153,9 @@ class PreparePanel(QWidget, TaskManager):
         self.app_config = app_config
         self.manage_window = manage_window
         self.setWindowTitle('{} ({})'.format(__app_name__, self.i18n['prepare_panel.title.start'].lower()))
-        self.setMinimumWidth(screen_size.width() * 0.5)
-        self.setMinimumHeight(screen_size.height() * 0.35)
-        self.setMaximumHeight(screen_size.height() * 0.95)
+        self.setMinimumWidth(int(screen_size.width() * 0.5))
+        self.setMinimumHeight(int(screen_size.height() * 0.35))
+        self.setMaximumHeight(int(screen_size.height() * 0.95))
         self.setLayout(QVBoxLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.manager = manager

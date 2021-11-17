@@ -340,7 +340,7 @@ class FormComboBoxQt(QComboBox):
         self.view().setCursor(QCursor(Qt.PointingHandCursor))
 
         if model.max_width > 0:
-            self.setMaximumWidth(model.max_width)
+            self.setMaximumWidth(int(model.max_width))
 
         for idx, op in enumerate(self.model.options):
             icon = QIcon(op.icon_path) if op.icon_path else QIcon()
@@ -368,7 +368,7 @@ class FormRadioSelectQt(QWidget):
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         if model.max_width > 0:
-            self.setMaximumWidth(model.max_width)
+            self.setMaximumWidth(int(model.max_width))
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -393,7 +393,7 @@ class FormRadioSelectQt(QWidget):
                 col += 1
 
         if model.max_width <= 0:
-            self.setMaximumWidth(self.sizeHint().width())
+            self.setMaximumWidth(int(self.sizeHint().width()))
 
 
 class RadioSelectQt(QGroupBox):
@@ -472,7 +472,7 @@ class TextInputQt(QGroupBox):
         self.setLayout(QGridLayout())
 
         if self.model.max_width > 0:
-            self.setMaximumWidth(self.model.max_width)
+            self.setMaximumWidth(int(self.model.max_width))
 
         self.text_input = QLineEditObserver() if model.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
 
@@ -483,10 +483,10 @@ class TextInputQt(QGroupBox):
             self.text_input.setPlaceholderText(model.placeholder)
 
         if model.min_width >= 0:
-            self.text_input.setMinimumWidth(model.min_width)
+            self.text_input.setMinimumWidth(int(model.min_width))
 
         if model.min_height >= 0:
-            self.text_input.setMinimumHeight(model.min_height)
+            self.text_input.setMinimumHeight(int(model.min_height))
 
         if model.tooltip:
             self.text_input.setToolTip(model.tooltip)
@@ -514,10 +514,10 @@ class MultipleSelectQt(QGroupBox):
         self.setLayout(self._layout)
 
         if model.max_width > 0:
-            self.setMaximumWidth(model.max_width)
+            self.setMaximumWidth(int(model.max_width))
 
         if model.max_height > 0:
-            self.setMaximumHeight(model.max_height)
+            self.setMaximumHeight(int(model.max_height))
 
         if model.label:
             line = 1
@@ -567,10 +567,10 @@ class FormMultipleSelectQt(QWidget):
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
 
         if model.max_width > 0:
-            self.setMaximumWidth(model.max_width)
+            self.setMaximumWidth(int(model.max_width))
 
         if model.max_height > 0:
-            self.setMaximumHeight(model.max_height)
+            self.setMaximumHeight(int(model.max_height))
 
         self._layout = QGridLayout()
         self.setLayout(self._layout)
@@ -773,10 +773,10 @@ class FormQt(QGroupBox):
         view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
 
         if c.min_width >= 0:
-            view.setMinimumWidth(c.min_width)
+            view.setMinimumWidth(int(c.min_width))
 
         if c.min_height >= 0:
-            view.setMinimumHeight(c.min_height)
+            view.setMinimumHeight(int(c.min_height))
 
         if c.only_int:
             view.setValidator(QIntValidator())
@@ -837,7 +837,7 @@ class FormQt(QGroupBox):
         field_container.setLayout(QHBoxLayout())
 
         if model.max_width > 0:
-            field_container.setMaximumWidth(model.max_width)
+            field_container.setMaximumWidth(int(model.max_width))
 
         field_container.layout().addWidget(comp)
         return field_container
@@ -847,7 +847,7 @@ class FormQt(QGroupBox):
         chooser.setReadOnly(True)
 
         if c.max_width > 0:
-            chooser.setMaximumWidth(c.max_width)
+            chooser.setMaximumWidth(int(c.max_width))
 
         if c.file_path:
             chooser.setText(c.file_path)
@@ -940,7 +940,7 @@ def new_spacer(min_width: int = None) -> QWidget:
     spacer.setProperty('spacer', 'true')
 
     if min_width:
-        spacer.setMinimumWidth(min_width)
+        spacer.setMinimumWidth(int(min_width))
 
     spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     return spacer
@@ -986,7 +986,7 @@ class RangeInputQt(QGroupBox):
         self.layout().addWidget(QLabel(model.label.capitalize() + ' :' if model.label else ''), 0, 0)
 
         if self.model.max_width > 0:
-            self.setMaximumWidth(self.model.max_width)
+            self.setMaximumWidth(int(self.model.max_width))
 
         self.spinner = QSpinBox()
         self.spinner.setCursor(QCursor(Qt.PointingHandCursor))
