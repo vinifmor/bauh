@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - more fixes related to some backend commands hanging
   - crashing when trying to retrieve a file size without proving its URL [#207](https://github.com/vinifmor/bauh/issues/207)
+
+- AppImage
+  - displaying updates without the associated download URL for some applications [#207](https://github.com/vinifmor/bauh/issues/207) 
   
 - Flatpak
   - not displaying update components not associated with installed packages 
@@ -20,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - displaying initial warnings related to supported technologies even when they are not enabled or have the required dependencies
   - crashing when QT components sizes are not integers [#198](https://github.com/vinifmor/bauh/issues/198)
   
+
+
 ## [0.9.20] 2021-11-05
 ### Improvements
 - AppImage:

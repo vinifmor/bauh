@@ -279,16 +279,18 @@ class AppImageManager(SoftwareManager):
                                     if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
                                         continuous_version = app.version == 'continuous'
                                         continuous_update = tup[2] == 'continuous'
-                                        if continuous_version and not continuous_update:
-                                            app.update = True
-                                        elif continuous_update and not continuous_version:
-                                            app.update = False
-                                        else:
-                                            try:
-                                                app.update = parse_version(tup[2]) > parse_version(app.version) if tup[2] else False
-                                            except:
+
+                                        if tup[3]:
+                                            if continuous_version and not continuous_update:
+                                                app.update = True
+                                            elif continuous_update and not continuous_version:
                                                 app.update = False
-                                                traceback.print_exc()
+                                            else:
+                                                try:
+                                                    app.update = parse_version(tup[2]) > parse_version(app.version) if tup[2] else False
+                                                except:
+                                                    app.update = False
+                                                    traceback.print_exc()
 
                                         if app.update:
                                             app.latest_version = tup[2]
