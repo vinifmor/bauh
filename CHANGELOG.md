@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - General
   - more fixes related to some backend commands hanging
+  - crashing when trying to retrieve a file size without proving its URL [#207](https://github.com/vinifmor/bauh/issues/207)
+  
 - Flatpak
   - not displaying update components not associated with installed packages 
   - not displaying the updates size for Flatpak 1.2

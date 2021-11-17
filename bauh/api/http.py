@@ -69,6 +69,9 @@ class HttpClient:
         return yaml.safe_load(res.text) if res else None
 
     def get_content_length_in_bytes(self, url: str, session: bool = True) -> Optional[int]:
+        if not url:
+            return None
+
         params = {'url': url, 'allow_redirects': True, 'stream': True}
 
         try:
