@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - crashing when QT components sizes are not integers [#198](https://github.com/vinifmor/bauh/issues/198)
   
 ### Improvements
+- General
+  - multi-threaded download not enabled by default since it fails for some scenarios (still can be enabled through the settings panel/file)
+  
 - AppImage
   - not stopping the upgrade process when one of several applications have been selected to upgrade 
 

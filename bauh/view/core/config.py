@@ -48,7 +48,7 @@ class CoreConfigManager(YAMLConfigManager):
 
             },
             'download': {
-                'multithreaded': True,
+                'multithreaded': False,
                 'multithreaded_client': None,
                 'icons': True
             },
