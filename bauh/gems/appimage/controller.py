@@ -519,7 +519,7 @@ class AppImageManager(SoftwareManager):
 
         if not downloaded:
             watcher.show_message(title=self.i18n['error'],
-                                 body=self.i18n['appimage.install.download.error'].format(bold(pkg.url_download)),
+                                 body=self.i18n['appimage.download.error'].format(bold(pkg.url_download)),
                                  type_=MessageType.ERROR)
             return
 
