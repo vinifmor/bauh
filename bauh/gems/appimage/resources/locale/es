@@ -36,6 +36,7 @@ appimage.install.permission=Concediendo permiso de ejecución a {}
 appimage.update_database.deleting_old=Eliminando archivos antiguos
 appimage.update_database.downloading=Descargando archivos de la base de datos
 appimage.update_database.uncompressing=Descomprindo archivos
+appimage.upgrade.failed=No fue posible actualizar las siguientes aplicaciones: {apps}
 appimage.task.db_update=Actualizando base de datos
 appimage.task.db_update.checking=Buscando actualizaciones
 appimage.task.suggestions=Descargando sugerencias

@@ -359,29 +359,40 @@ class AppImageManager(SoftwareManager):
             return False
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+        not_upgraded = []
+
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
 
             download_data = self._download(req.pkg, watcher)
 
             if not download_data:
-                return False
+                not_upgraded.append(req.pkg)
+                watcher.change_substatus('')
+                continue
 
             if not self.uninstall(req.pkg, root_password, watcher).success:
-                watcher.show_message(title=self.i18n['error'],
-                                     body=self.i18n['appimage.error.uninstall_current_version'],
-                                     type_=MessageType.ERROR)
+                not_upgraded.append(req.pkg)
                 watcher.change_substatus('')
-                return False
+                continue
 
             if not self._install(pkg=req.pkg, watcher=watcher, pre_downloaded_file=download_data).success:
+                not_upgraded.append(req.pkg)
                 watcher.change_substatus('')
-                return False
+                continue
 
             self.cache_to_disk(req.pkg, None, False)
 
+        all_failed = len(not_upgraded) == len(requirements.to_upgrade)
+
+        if not_upgraded:
+            pkgs_str = ''.join((f'<li>{app.name}</li>' for app in not_upgraded))
+            watcher.show_message(title=self.i18n['error' if all_failed else 'warning'].capitalize(),
+                                 body=self.i18n['appimage.upgrade.failed'].format(apps=f'<ul>{pkgs_str}</ul>'),
+                                 type_=MessageType.ERROR if all_failed else MessageType.WARNING)
+
         watcher.change_substatus('')
-        return True
+        return not all_failed
 
     def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         if os.path.exists(pkg.get_disk_cache_path()):

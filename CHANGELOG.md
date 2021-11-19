@@ -24,7 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - displaying initial warnings related to supported technologies even when they are not enabled or have the required dependencies
   - crashing when QT components sizes are not integers [#198](https://github.com/vinifmor/bauh/issues/198)
   
-
+### Improvements
+- AppImage
+  - not stopping the upgrade process when one of several applications have been selected to upgrade 
 
 ## [0.9.20] 2021-11-05
 ### Improvements

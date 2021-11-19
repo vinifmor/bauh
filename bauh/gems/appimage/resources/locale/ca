@@ -36,6 +36,7 @@ appimage.install.permission=S’està concedint el permís d’execució a {}
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files
+appimage.upgrade.failed=It was not possible to upgrade the following applications: {apps}
 appimage.task.db_update=Actualització de bases de dades
 appimage.task.db_update.checking=Checking for updates
 appimage.task.suggestions=Downloading suggestions
