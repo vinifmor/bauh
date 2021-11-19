@@ -333,12 +333,18 @@ class AppImageManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
         else:
+            old_release = versions.history[versions.pkg_status_idx + 1]
+            pkg.version = old_release['0_version']
+            pkg.latest_version = pkg.version
+            pkg.url_download = old_release['2_url_download']
+
+            download_data = self._download(pkg=pkg, watcher=watcher)
+
+            if not download_data:
+                return False
+
             if self.uninstall(pkg, root_password, watcher).success:
-                old_release = versions.history[versions.pkg_status_idx + 1]
-                pkg.version = old_release['0_version']
-                pkg.latest_version = pkg.version
-                pkg.url_download = old_release['2_url_download']
-                if self.install(pkg, root_password, None, watcher).success:
+                if self._install(pkg=pkg, watcher=watcher, pre_downloaded_file=download_data).success:
                     self.cache_to_disk(pkg, None, False)
                     return True
                 else:
