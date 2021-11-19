@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - AppImage
   - displaying updates without the associated download URL for some applications [#207](https://github.com/vinifmor/bauh/issues/207) 
+  - uninstalling the application when an update download fails [#207](https://github.com/vinifmor/bauh/issues/207)
   
 - Flatpak
   - not displaying update components not associated with installed packages 
