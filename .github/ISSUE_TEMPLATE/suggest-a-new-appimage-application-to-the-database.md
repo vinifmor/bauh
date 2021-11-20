@@ -11,4 +11,4 @@ assignees: ''
 - Github page:
 - Official website (if available):
 
-`P.S: only application's with a GitHub page can be accepted`
+`P.S: only applications with AppImage releases published to GitHub can be accepted`
