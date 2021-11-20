@@ -327,7 +327,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return TransactionResult(success=False, installed=[], removed=[])
             finally:
                 tf = time.time()
-                self.logger.info('Uninstallation of {}'.format(pkg) + 'took {0:.2f} minutes'.format((tf - ti) / 60))
+                self.logger.info(f'Uninstallation of {pkg} took {(tf - ti) / 60:.2f} minutes')
 
     def install(self, app: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
         man = self._get_manager_for(app)
@@ -348,7 +348,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return TransactionResult(success=False, installed=[], removed=[])
             finally:
                 tf = time.time()
-                self.logger.info('Installation of {}'.format(app) + 'took {0:.2f} minutes'.format((tf - ti)/60))
+                self.logger.info(f'Installation of {app} took {(tf - ti) / 60:.2f} minutes')
 
     def get_info(self, app: SoftwarePackage):
         man = self._get_manager_for(app)
