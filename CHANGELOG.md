@@ -27,7 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - multi-threaded download not enabled by default since it fails for some scenarios (still can be enabled through the settings panel/file)
-  
+  - refactorings related to String concatenation 
+
 - AppImage
   - not stopping the upgrade process when one of several applications have been selected to upgrade 
 

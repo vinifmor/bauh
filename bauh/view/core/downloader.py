@@ -4,6 +4,7 @@ import re
 import shutil
 import time
 import traceback
+from io import StringIO
 from math import floor
 from threading import Thread
 from typing import Iterable, List
@@ -12,7 +13,7 @@ from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold
-from bauh.commons.system import run_cmd, ProcessHandler, SimpleProcess, get_human_size_str
+from bauh.commons.system import ProcessHandler, SimpleProcess, get_human_size_str
 from bauh.view.util.translation import I18n
 
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
@@ -94,12 +95,15 @@ class AdaptableFileDownloader(FileDownloader):
             success, _ = handler.handle_simple(SimpleProcess(['rm', '-rf',to_delete], root_password=root_password))
             return success
 
-    def _display_file_size(self, file_url: str, base_substatus, watcher: ProcessWatcher):
+    def _concat_file_size(self, file_url: str, base_substatus: StringIO, watcher: ProcessWatcher):
+        watcher.change_substatus(f'{base_substatus.getvalue()} ( ? Mb )')
+        
         try:
             size = self.http_client.get_content_length(file_url)
 
             if size:
-                watcher.change_substatus(base_substatus + ' ( {} )'.format(size))
+                base_substatus.write(f' ( {size} )')
+                watcher.change_substatus(base_substatus.getvalue())
         except:
             pass
 
@@ -153,21 +157,20 @@ class AdaptableFileDownloader(FileDownloader):
             if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
                 name = output_path.split('/')[-1]
 
-            if substatus_prefix:
-                msg = substatus_prefix + ' '
-            else:
-                msg = ''
-
-            msg += bold('[{}] ').format(downloader) + self.i18n['downloading'] + ' ' + bold(name)
-
             if watcher:
-                watcher.change_substatus(msg)
+                msg = StringIO()
+                msg.write(f'{substatus_prefix} ' if substatus_prefix else '')
+                msg.write(f"{bold('[{}]'.format(downloader))} {self.i18n['downloading']} {bold(name)}")
 
                 if display_file_size:
                     if known_size:
-                        watcher.change_substatus(msg + ' ( {} )'.format(get_human_size_str(known_size)))
+                        msg.write(f' ( {get_human_size_str(known_size)} )')
+                        watcher.change_substatus(msg.getvalue())
                     else:
-                        Thread(target=self._display_file_size, args=(file_url, msg, watcher)).start()
+                        Thread(target=self._concat_file_size, args=(file_url, msg, watcher)).start()
+                else:
+                    msg.write(' ( ? Mb )')
+                    watcher.change_substatus(msg.getvalue())
 
             success, _ = handler.handle_simple(process)
         except:
