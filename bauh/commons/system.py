@@ -243,11 +243,9 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
         "stderr": PIPE,
         "cwd": cwd,
         "shell": shell,
-        "env": gen_env(global_interpreter, lang, extra_paths)
+        "env": gen_env(global_interpreter, lang, extra_paths),
+        "stdin": stdin if stdin else subprocess.DEVNULL
     }
-
-    if input:
-        args['stdin'] = stdin
 
     return subprocess.Popen(cmd, **args)
 
@@ -297,7 +295,7 @@ def get_human_size_str(size) -> str:
 
 
 def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
     return p.returncode == success_code, p.stdout.decode()
 
 

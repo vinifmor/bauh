@@ -317,20 +317,19 @@ class SnapManager(SoftwareManager):
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
 
-    def list_warnings(self, internet_available: bool) -> List[str]:
-        if snap.is_installed():
-            if not snapd.is_running():
-                snap_bold = bold('Snap')
-                return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
-                        self.i18n['snap.notification.snap.disable'].format(snap_bold, bold('{} > {}'.format(self.i18n['settings'].capitalize(),
-                                                                                                            self.i18n['core.config.tab.types'])))]
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
+        if not snapd.is_running():
+            snap_bold = bold('Snap')
+            return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
+                    self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(
+                        '{} > {}'.format(self.i18n['settings'].capitalize(),
+                                         self.i18n['core.config.tab.types'])))]
+        elif internet_available:
+            available, output = snap.is_api_available()
 
-            elif internet_available:
-                available, output = snap.is_api_available()
-
-                if not available:
-                    self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
-                    return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
+            if not available:
+                self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
+                return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
     def _fill_suggestion(self, name: str, priority: SuggestionPriority, snapd_client: SnapdClient, out: List[PackageSuggestion]):
         res = snapd_client.find_by_name(name)

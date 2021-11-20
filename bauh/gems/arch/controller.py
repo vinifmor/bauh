@@ -2733,20 +2733,9 @@ class ArchManager(SoftwareManager):
 
         return [PackageUpdate(p.name, p.latest_version, aur_type if p.repository == 'aur' else repo_type, p.name) for p in installed if p.update and not p.is_update_ignored()]
 
-    def list_warnings(self, internet_available: bool) -> List[str]:
-        warnings = []
-
-        if self.arch_distro:
-            if not pacman.is_available():
-                warnings.append(self.i18n['arch.warning.disabled'].format(bold('pacman')))
-
-            if not self._is_wget_available():
-                warnings.append(self.i18n['arch.warning.disabled'].format(bold('wget')))
-
-            if not git.is_installed():
-                warnings.append(self.i18n['arch.warning.git'].format(bold('git')))
-
-        return warnings
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
+        if not git.is_installed():
+            return [self.i18n['arch.warning.aur_missing_dep'].format(bold('git'))]
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))

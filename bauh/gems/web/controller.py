@@ -848,7 +848,7 @@ class WebApplicationManager(SoftwareManager):
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         pass
 
-    def list_warnings(self, internet_available: bool) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         pass
 
     def _fill_suggestion(self, app: WebApplication):

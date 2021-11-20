@@ -128,48 +128,66 @@ class FlatpakManager(SoftwareManager):
             thread_updates = None
 
         installed = flatpak.list_installed(version)
-        models = []
+
+        update_map = None
+        if thread_updates:
+            thread_updates.join()
+            update_map = updates[0]
+
+        models = {}
 
         if installed:
-            update_map = None
-            if thread_updates:
-                thread_updates.join()
-                update_map = updates[0]
-
             for app_json in installed:
                 model = self._map_to_model(app_json=app_json, installed=True,
                                            disk_loader=disk_loader, internet=internet_available)
-                model.update = None
-                models.append(model)
+                model.update = False
+                models[model.get_update_id(version)] = model
 
-                if update_map and (update_map['full'] or update_map['partial']):
-                    if version >= VERSION_1_2:
-                        update_id = '{}/{}/{}'.format(app_json['id'], app_json['branch'], app_json['installation'])
+        if update_map:
+            for update_id in update_map['full']:
+                model_with_update = models.get(update_id)
+                if model_with_update:
+                    model_with_update.update = True
+                else:
+                    # it is a new component that must be installed
+                    update_id_split = update_id.split('/')
+                    new_app = FlatpakApplication(id=update_id_split[0],
+                                                 branch=update_id_split[1],
+                                                 installation=update_id_split[2],
+                                                 name=update_id_split[0].split('.')[-1].strip(),
+                                                 version=update_id_split[1],
+                                                 arch='x86_64' if self.context.is_system_x86_64() else 'x86',
+                                                 origin=update_id_split[3] if len(update_id_split) == 4 else None)
+                    new_app.update_component = True  # mark as "update component"
+                    new_app.installed = True  # faking the "installed" status to be displayed as an update
+                    new_app.update = True
+                    new_app.update_ref()
+                    models[update_id] = new_app
 
-                        if update_map['full'] and update_id in update_map['full']:
-                            model.update = True
+            if version >= VERSION_1_2:
+                for partial_update_id in update_map['partial']:
+                    partial_data = partial_update_id.split('/')
 
-                        if update_map['partial']:
-                            for partial in update_map['partial']:
-                                partial_data = partial.split('/')
-                                if app_json['id'] in partial_data[0] and\
-                                        app_json['branch'] == partial_data[1] and\
-                                        app_json['installation'] == partial_data[2]:
-                                    partial_model = model.gen_partial(partial.split('/')[0])
-                                    partial_model.update = True
-                                    models.append(partial_model)
-                    else:
-                        model.update = '{}/{}'.format(app_json['installation'], app_json['ref']) in update_map['full']
+                    for model in models.values():
+                        if model.installation == partial_data[2] and model.branch == partial_data[1]:
+                            if model.id == partial_data[0]:
+                                model.update = True
+                                break
+                            elif model.id in partial_data[0]:
+                                partial_model = model.gen_partial(partial_data[0])
+                                partial_model.update = True
+                                models[partial_update_id] = partial_model
+                                break
 
         if models:
             ignored = self._read_ignored_updates()
 
             if ignored:
-                for model in models:
+                for model in models.values():
                     if model.get_update_ignore_key() in ignored:
                         model.updates_ignored = True
 
-        return SearchResult(models, None, len(models))
+        return SearchResult([*models.values()], None, len(models))
 
     def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
         if not self._make_exports_dir(watcher):
@@ -217,10 +235,16 @@ class FlatpakManager(SoftwareManager):
                 ref = req.pkg.base_ref
 
             try:
-                res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
-                                                                              installation=req.pkg.installation,
-                                                                              related=related,
-                                                                              deps=deps))
+                if req.pkg.update_component:
+                    res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=ref,
+                                                                                   installation=req.pkg.installation,
+                                                                                   origin=req.pkg.origin))
+
+                else:
+                    res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
+                                                                                  installation=req.pkg.installation,
+                                                                                  related=related,
+                                                                                  deps=deps))
 
                 watcher.change_substatus('')
                 if not res:
@@ -253,23 +277,33 @@ class FlatpakManager(SoftwareManager):
 
     def get_info(self, app: FlatpakApplication) -> dict:
         if app.installed:
-            version = flatpak.get_version()
-            id_ = app.base_id if app.partial and version < VERSION_1_5 else app.id
-            app_info = flatpak.get_app_info_fields(id_, app.branch, app.installation)
+            if app.update_component:
+                app_info = {'id': app.id,
+                            'name': app.name,
+                            'branch': app.branch,
+                            'installation': app.installation,
+                            'origin': app.origin,
+                            'arch': app.arch,
+                            'ref': app.ref,
+                            'type': self.i18n['unknown']}
+            else:
+                version = flatpak.get_version()
+                id_ = app.base_id if app.partial and version < VERSION_1_5 else app.id
+                app_info = flatpak.get_app_info_fields(id_, app.branch, app.installation)
 
-            if app.partial and version < VERSION_1_5:
-                app_info['id'] = app.id
-                app_info['ref'] = app.ref
+                if app.partial and version < VERSION_1_5:
+                    app_info['id'] = app.id
+                    app_info['ref'] = app.ref
 
-            app_info['name'] = app.name
-            app_info['type'] = 'runtime' if app.runtime else 'app'
-            app_info['description'] = strip_html(app.description) if app.description else ''
+                app_info['name'] = app.name
+                app_info['type'] = 'runtime' if app.runtime else 'app'
+                app_info['description'] = strip_html(app.description) if app.description else ''
 
-            if app.installation:
-                app_info['installation'] = app.installation
+                if app.installation:
+                    app_info['installation'] = app.installation
 
-            if app_info.get('installed'):
-                app_info['installed'] = app_info['installed'].replace('?', ' ')
+                if app_info.get('installed'):
+                    app_info['installed'] = app_info['installed'].replace('?', ' ')
 
             return app_info
         else:
@@ -486,8 +520,8 @@ class FlatpakManager(SoftwareManager):
 
         return updates
 
-    def list_warnings(self, internet_available: bool) -> List[str]:
-        return []
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
+        pass
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
         cli_version = flatpak.get_version()

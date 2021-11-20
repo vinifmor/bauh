@@ -216,7 +216,7 @@ class UpgradeSelected(AsyncAction):
 
             if not icon_path:
                 icon_path = req.pkg.get_type_icon_path()
-            elif not os.path.isfile(icon_path) and QIcon.fromTheme(icon_path).isNull():
+            elif not os.path.isfile(icon_path) or QIcon.fromTheme(icon_path).isNull():
                 icon_path = req.pkg.get_type_icon_path()
 
         else:

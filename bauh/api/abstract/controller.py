@@ -318,7 +318,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def list_warnings(self, internet_available: bool) -> List[str]:
+    def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         """
         :param internet_available
         :return: a list of warnings to be shown to the user

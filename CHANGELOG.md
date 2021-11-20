@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.21] 2021-11-20
+### Fixes
+- General
+  - more fixes related to some backend commands hanging
+  - crashing when trying to retrieve a file size without proving its URL [#207](https://github.com/vinifmor/bauh/issues/207)
+
+- AppImage
+  - displaying updates without the associated download URL for some applications [#207](https://github.com/vinifmor/bauh/issues/207) 
+  - uninstalling the application when an update/downgrade download fails [#207](https://github.com/vinifmor/bauh/issues/207)
+  
+- Flatpak
+  - not displaying update components not associated with installed packages 
+  - not displaying the updates size for Flatpak 1.2
+  - not displaying updates for "partials" listed as installed apps/runtimes 
+
+- UI
+  - upgrade summary: not displaying the icon type for some applications
+  - displaying initial warnings related to supported technologies even when they are not enabled or have the required dependencies
+  - crashing when QT components sizes are not integers [#198](https://github.com/vinifmor/bauh/issues/198)
+  
+### Improvements
+- General
+  - multi-threaded download not enabled by default since it fails for some scenarios (still can be enabled through the settings panel/file)
+  - refactorings related to String concatenation 
+
+- AppImage
+  - not stopping the upgrade process when one of several applications have been selected to upgrade 
+
 ## [0.9.20] 2021-11-05
 ### Improvements
 - AppImage:

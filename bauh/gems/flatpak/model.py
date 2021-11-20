@@ -1,6 +1,8 @@
+from packaging.version import Version
+
 from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.commons import resource
-from bauh.gems.flatpak import ROOT_DIR
+from bauh.gems.flatpak import ROOT_DIR, VERSION_1_2, VERSION_1_5
 from bauh.view.util.translation import I18n
 
 
@@ -23,6 +25,7 @@ class FlatpakApplication(SoftwarePackage):
         self.base_id = None
         self.base_ref = None
         self.updates_ignored = updates_ignored
+        self.update_component = False  # if it is a new app/runtime that has come as an update
 
         if runtime:
             self.categories = ['runtime']
@@ -31,13 +34,13 @@ class FlatpakApplication(SoftwarePackage):
         return self.description is None and self.icon_url
 
     def has_history(self) -> bool:
-        return not self.partial and self.installed and self.ref
+        return not self.partial and not self.update_component and self.installed and self.ref
 
     def has_info(self):
         return bool(self.id)
 
     def can_be_downgraded(self):
-        return not self.partial and self.installed and self.ref
+        return not self.partial and not self.update_component and self.installed and self.ref
 
     def get_type(self):
         return 'flatpak'
@@ -49,20 +52,21 @@ class FlatpakApplication(SoftwarePackage):
         return self.get_default_icon_path()
 
     def is_application(self):
-        return not self.runtime and not self.partial
+        return not self.runtime and not self.partial and not self.update_component
 
     def get_disk_cache_path(self):
         return super(FlatpakApplication, self).get_disk_cache_path() + '/installed/' + self.id
 
     def get_data_to_cache(self):
-        return {
-            'description': self.description,
-            'icon_url': self.icon_url,
-            'latest_version': self.latest_version,
-            'version': self.version,
-            'name': self.name,
-            'categories': self.categories
-        }
+        if not self.update_component:
+            return {
+                'description': self.description,
+                'icon_url': self.icon_url,
+                'latest_version': self.latest_version,
+                'version': self.version,
+                'name': self.name,
+                'categories': self.categories
+            }
 
     def fill_cached_data(self, data: dict):
         for attr in self.get_data_to_cache().keys():
@@ -70,7 +74,7 @@ class FlatpakApplication(SoftwarePackage):
                 setattr(self, attr, data[attr])
 
     def can_be_run(self) -> bool:
-        return self.installed and not self.runtime and not self.partial
+        return self.installed and not self.runtime and not self.partial and not self.update_component
 
     def get_publisher(self):
         return self.origin
@@ -124,3 +128,16 @@ class FlatpakApplication(SoftwarePackage):
     def get_disk_icon_path(self) -> str:
         if not self.runtime:
             return super(FlatpakApplication, self).get_disk_icon_path()
+
+    def get_update_id(self, flatpak_version: Version) -> str:
+        if flatpak_version >= VERSION_1_2:
+            return f'{self.id}/{self.branch}/{self.installation}/{self.origin}'
+        else:
+            return f'{self.installation}/{self.ref}'
+
+    def can_be_uninstalled(self) -> bool:
+        return not self.update_component and super(FlatpakApplication, self).can_be_uninstalled()
+
+    def update_ref(self):
+        if self.id and self.arch and self.branch:
+            self.ref = f'{self.id}/{self.arch}/{self.branch}'

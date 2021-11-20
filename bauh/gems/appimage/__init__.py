@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.constants import CONFIG_PATH, CACHE_PATH
+from bauh.api.constants import CONFIG_PATH, CACHE_PATH, TEMP_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +21,7 @@ DATABASES_TS_FILE = '{}/dbs.ts'.format(APPIMAGE_CACHE_PATH)
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 SUGGESTIONS_CACHED_FILE = '{}/suggestions.txt'.format(APPIMAGE_CACHE_PATH)
 SUGGESTIONS_CACHED_TS_FILE = '{}/suggestions.ts'.format(APPIMAGE_CACHE_PATH)
+DOWNLOAD_DIR = f'{TEMP_DIR}/appimage/download'
 
 
 def get_icon_path() -> str:
