@@ -70,7 +70,7 @@ class HttpClient:
 
     def get_content_length_in_bytes(self, url: str, session: bool = True) -> Optional[int]:
         if not url:
-            return None
+            return
 
         params = {'url': url, 'allow_redirects': True, 'stream': True}
 
