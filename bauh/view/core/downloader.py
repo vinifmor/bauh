@@ -74,7 +74,7 @@ class AdaptableFileDownloader(FileDownloader):
         cmd = ['axel', url, '-n', str(threads), '-4', '-c', '-T', '5']
 
         if output_path:
-            cmd.append('--output={}'.format(output_path))
+            cmd.append(f'--output={output_path}')
 
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
@@ -88,16 +88,16 @@ class AdaptableFileDownloader(FileDownloader):
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
     def _rm_bad_file(self, file_name: str, output_path: str, cwd, handler: ProcessHandler, root_password: str):
-        to_delete = output_path if output_path else '{}/{}'.format(cwd, file_name)
+        to_delete = output_path if output_path else f'{cwd}/{file_name}'
 
         if to_delete and os.path.exists(to_delete):
-            self.logger.info('Removing downloaded file {}'.format(to_delete))
-            success, _ = handler.handle_simple(SimpleProcess(['rm', '-rf',to_delete], root_password=root_password))
+            self.logger.info(f'Removing downloaded file {to_delete}')
+            success, _ = handler.handle_simple(SimpleProcess(['rm', '-rf', to_delete], root_password=root_password))
             return success
 
     def _concat_file_size(self, file_url: str, base_substatus: StringIO, watcher: ProcessWatcher):
         watcher.change_substatus(f'{base_substatus.getvalue()} ( ? Mb )')
-        
+
         try:
             size = self.http_client.get_content_length(file_url)
 
@@ -121,7 +121,7 @@ class AdaptableFileDownloader(FileDownloader):
         return threads
 
     def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
-        self.logger.info('Downloading {}'.format(file_url))
+        self.logger.info(f'Downloading {file_url}')
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]
 
@@ -131,9 +131,9 @@ class AdaptableFileDownloader(FileDownloader):
         ti = time.time()
         try:
             if output_path and os.path.exists(output_path):
-                self.logger.info('Removing old file found before downloading: {}'.format(output_path))
+                self.logger.info(f'Removing old file found before downloading: {output_path}')
                 os.remove(output_path)
-                self.logger.info("Old file {} removed".format(output_path))
+                self.logger.info(f'Old file {output_path} removed')
 
             client = self.get_available_multithreaded_tool()
             if client:
@@ -178,10 +178,10 @@ class AdaptableFileDownloader(FileDownloader):
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         tf = time.time()
-        self.logger.info(file_name + ' download took {0:.2f} minutes'.format((tf - ti) / 60))
+        self.logger.info(f'{file_name} download took {(tf - ti) / 60:.2f} minutes')
 
         if not success:
-            self.logger.error("Could not download '{}'".format(file_name))
+            self.logger.error(f"Could not download '{file_name}'")
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         return success
