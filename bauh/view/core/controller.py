@@ -148,7 +148,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ + " took {0:.8f} seconds".format(mtf - mti))
+            self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.8f} seconds')
 
             res.installed.extend(apps_found.installed)
             res.new.extend(apps_found.new)
@@ -187,7 +187,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         res.update_total()
         tf = time.time()
-        self.logger.info('Took {0:.8f} seconds'.format(tf - ti))
+        self.logger.info(f'Took {tf - ti:.8f} seconds')
         return res
 
     def _wait_to_be_ready(self):
@@ -223,7 +223,7 @@ class GenericSoftwareManager(SoftwareManager):
                     mti = time.time()
                     man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
                     mtf = time.time()
-                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+                    self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.2f} seconds')
 
                     res.installed.extend(man_res.installed)
                     res.total += man_res.total
@@ -241,7 +241,7 @@ class GenericSoftwareManager(SoftwareManager):
                     mti = time.time()
                     man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
                     mtf = time.time()
-                    self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+                    self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.2f} seconds')
 
                     res.installed.extend(man_res.installed)
                     res.total += man_res.total
@@ -261,7 +261,7 @@ class GenericSoftwareManager(SoftwareManager):
             res.installed.sort(key=self._get_package_lower_name)
 
         tf = time.time()
-        self.logger.info('Took {0:.2f} seconds'.format(tf - ti))
+        self.logger.info(f'Took {tf - ti:.2f} seconds')
         return res
 
     def downgrade(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
@@ -271,10 +271,10 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             res = man.downgrade(app, root_password, handler)
             mtf = time.time()
-            self.logger.info('Took {0:.2f} seconds'.format(mtf - mti))
+            self.logger.info(f'Took {mtf - mti:.2f} seconds')
             return res
         else:
-            raise Exception("downgrade is not possible for {}".format(app.__class__.__name__))
+            raise Exception(f"Downgrading is not possible for {app.__class__.__name__}")
 
     def clean_cache_for(self, app: SoftwarePackage):
         man = self._get_manager_for(app)
@@ -314,7 +314,7 @@ class GenericSoftwareManager(SoftwareManager):
             ti = time.time()
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
-            self.logger.info("Uninstalling {}".format(pkg.name))
+            self.logger.info(f"Uninstalling {pkg.name}")
             try:
                 res = man.uninstall(pkg, root_password, handler, disk_loader)
                 disk_loader.stop_working()
@@ -336,7 +336,7 @@ class GenericSoftwareManager(SoftwareManager):
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
             try:
-                self.logger.info('Installing {}'.format(app))
+                self.logger.info(f'Installing {app}')
                 res = man.install(app, root_password, disk_loader, handler)
                 disk_loader.stop_working()
                 disk_loader.join()
@@ -362,7 +362,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             history = man.get_history(app)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(mtf - mti))
+            self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.2f} seconds')
             return history
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
@@ -424,7 +424,7 @@ class GenericSoftwareManager(SoftwareManager):
                 t.join()
 
         tf = time.time()
-        self.logger.info("Finished. Took {0:.2f} seconds".format(tf - ti))
+        self.logger.info(f'Finished ({tf - ti:.2f} seconds)')
 
     def cache_available_managers(self):
         if self.managers:
@@ -473,7 +473,7 @@ class GenericSoftwareManager(SoftwareManager):
             mti = time.time()
             man_sugs = man.list_suggestions(limit=limit, filter_installed=filter_installed)
             mtf = time.time()
-            self.logger.info(man.__class__.__name__ + ' took {0:.5f} seconds'.format(mtf - mti))
+            self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.5f} seconds')
 
             if man_sugs:
                 if 0 < limit < len(man_sugs):
@@ -506,7 +506,7 @@ class GenericSoftwareManager(SoftwareManager):
         man = action.manager if action.manager else self._get_manager_for(pkg)
 
         if man:
-            return eval('man.{}({}root_password=root_password, watcher=watcher)'.format(action.manager_method, 'pkg=pkg, ' if pkg else ''))
+            return eval(f"man.{action.manager_method}({'pkg=pkg, ' if pkg else ''}root_password=root_password, watcher=watcher)")
 
     def is_default_enabled(self) -> bool:
         return True
@@ -517,7 +517,7 @@ class GenericSoftwareManager(SoftwareManager):
         man = self._get_manager_for(pkg)
 
         if man:
-            self.logger.info('Launching {}'.format(pkg))
+            self.logger.info(f'Launching {pkg}')
             man.launch(pkg)
 
     def get_screenshots(self, pkg: SoftwarePackage):
@@ -574,7 +574,7 @@ class GenericSoftwareManager(SoftwareManager):
                 ti = time.time()
                 man_reqs = man.get_upgrade_requirements(pkgs, root_password, watcher)
                 tf = time.time()
-                self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+                self.logger.info(f'{man.__class__.__name__} took {tf - ti:.2f} seconds')
 
                 if not man_reqs:
                     return  # it means the process should be stopped
@@ -596,8 +596,9 @@ class GenericSoftwareManager(SoftwareManager):
         return res
 
     def reset(self, root_password: str, watcher: ProcessWatcher) -> bool:
-        body = '<p>{}</p><p>{}</p>'.format(self.i18n['action.reset.body_1'].format(bold(self.context.app_name)),
-                                           self.i18n['action.reset.body_2'])
+        body = f"<p>{self.i18n['action.reset.body_1'].format(bold(self.context.app_name))}</p>" \
+               f"<p>{self.i18n['action.reset.body_2']}</p>"
+
         if watcher.request_confirmation(title=self.i18n['action.reset'],
                                         body=body,
                                         confirmation_label=self.i18n['proceed'].capitalize(),
@@ -643,7 +644,7 @@ class GenericSoftwareManager(SoftwareManager):
         ti = time.time()
         man.fill_sizes(pkgs)
         tf = time.time()
-        self.logger.info(man.__class__.__name__ + " took {0:.2f} seconds".format(tf - ti))
+        self.logger.info(f'{man.__class__.__name__} took {tf - ti:.2f} seconds')
 
     def fill_sizes(self, pkgs: List[SoftwarePackage]):
         by_manager = self._map_pkgs_by_manager(pkgs, pkg_filters=[lambda p: p.size is None])
