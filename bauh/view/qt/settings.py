@@ -133,6 +133,10 @@ class SettingsWindow(QWidget):
             msg.seek(0)
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=msg.read(), type_=MessageType.WARNING)
 
+            self.tab_group.setEnabled(True)
+            self.bt_change.setEnabled(True)
+            self.bt_close.setEnabled(True)
+
     def _reload_manage_panel(self):
         if self.window and self.window.isVisible():
             self.window.reload()

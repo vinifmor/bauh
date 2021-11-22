@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - **wget** as a hard requirement for Arch package management
 
+- UI
+  - settings panel:
+    - not re-enabling the action buttons when a validation error is displayed 
+
 ### Improvements
 - General
   - useless code removed
