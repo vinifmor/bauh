@@ -38,7 +38,7 @@ class SettingsWindow(QWidget):
 
     def __init__(self, manager: SoftwareManager, i18n: I18n, screen_size: QSize, window: QWidget, parent: Optional[QWidget] = None):
         super(SettingsWindow, self).__init__(parent=parent, flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
-        self.setWindowTitle('{} ({})'.format(i18n['settings'].capitalize(), __app_name__))
+        self.setWindowTitle(f"{i18n['settings'].capitalize()} ({__app_name__})")
         self.setLayout(QVBoxLayout())
         self.manager = manager
         self.i18n = i18n
@@ -115,8 +115,8 @@ class SettingsWindow(QWidget):
                                     type_=MessageType.INFO)
                 QCoreApplication.exit()
             elif ConfirmationDialog(title=self.i18n['warning'].capitalize(),
-                                    body="<p>{}</p><p>{}</p>".format(self.i18n['settings.changed.success.warning'],
-                                                                     self.i18n['settings.changed.success.reboot']),
+                                    body=f"<p>{self.i18n['settings.changed.success.warning']}</p>"
+                                         f"<p>{self.i18n['settings.changed.success.reboot']}</p>",
                                     i18n=self.i18n).ask():
                 self.close()
                 util.restart_app()
@@ -125,7 +125,7 @@ class SettingsWindow(QWidget):
                 QApplication.setOverrideCursor(Qt.WaitCursor)
         else:
             msg = StringIO()
-            msg.write("<p>{}</p>".format(self.i18n['settings.error']))
+            msg.write(f"<p>{self.i18n['settings.error']}</p>")
 
             for w in warnings:
                 msg.write('<p style="font-weight: bold">* ' + w + '</p><br/>')

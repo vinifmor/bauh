@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - useless code removed
+  - refactorings related to String formatting
 
 
 ## [0.9.21] 2021-11-20
