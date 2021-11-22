@@ -32,6 +32,7 @@ appimage.install.download.error=Échec du téléchargement du fichier {}. Le ser
 appimage.install.extract=Extractiion du contenu de {}
 appimage.install.imported.rename_error=Impossible de déplacer {} vers {}
 appimage.install.permission={} est maintenant exécutable
+appimage.missing_downloader=No download client installed ({clients})
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files

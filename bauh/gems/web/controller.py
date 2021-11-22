@@ -795,17 +795,23 @@ class WebApplicationManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        if BS4_AVAILABLE and LXML_AVAILABLE:
-            config = self.configman.get_config()
-            use_system_env = config['environment']['system']
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not BS4_AVAILABLE:
+            return False, self.i18n['missing_dep'].format(dep=bold('python3-beautifulsoup4'))
 
-            if not use_system_env:
-                return True
+        if not LXML_AVAILABLE:
+            return False, self.i18n['missing_dep'].format(dep=bold('python3-lxml'))
 
-            return nativefier.is_available()
+        config = self.configman.get_config()
+        use_system_env = config['environment']['system']
 
-        return False
+        if not use_system_env:
+            return True, None
+
+        if not nativefier.is_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('nativefier'))
+
+        return True, None
 
     def requires_root(self, action: SoftwareAction, pkg: SoftwarePackage) -> bool:
         return False

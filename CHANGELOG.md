@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.22]
+### Improvements
+- UI
+  - settings panel: 
+    - always displaying all supported packaging technologies
+    - displaying a tooltip with the missing dependencies for a supported packaging technology
+        <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.22/missing_type_dep.png">
+        </p>
+
 ### Fixes
 - Arch
   - **wget** as a hard requirement for Arch package management

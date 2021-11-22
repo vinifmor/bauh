@@ -253,8 +253,8 @@ class SnapManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        return snap.is_installed()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        return (True, None) if snap.is_installed() else (False, self.i18n['missing_dep'].format(dep=bold('snap')))
 
     def requires_root(self, action: SoftwareAction, pkg: SnapApplication) -> bool:
         return action not in (SoftwareAction.PREPARE, SoftwareAction.SEARCH)

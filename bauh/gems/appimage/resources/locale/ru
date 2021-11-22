@@ -33,6 +33,7 @@ appimage.install.desktop_entry=Создать ярлык в меню
 appimage.install.extract=Извлечь содержимое из {}
 appimage.install.imported.rename_error=Не удалось переместить файл {} в {}
 appimage.install.permission=Установить права на выполнение для {}
+appimage.missing_downloader=No download client installed ({clients})
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files

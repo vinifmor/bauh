@@ -33,6 +33,7 @@ appimage.install.desktop_entry=Bir menü kısayolu oluşturuluyor
 appimage.install.extract={} 'den içerik ayıklanıyor
 appimage.install.imported.rename_error={} dosyasını {} klasörüne taşımak mümkün değildi
 appimage.install.permission={} için yürütme izni veriliyor
+appimage.missing_downloader=No download client installed ({clients})
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files

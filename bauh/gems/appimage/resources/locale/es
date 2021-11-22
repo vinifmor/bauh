@@ -33,6 +33,7 @@ appimage.install.desktop_entry=Creando un atajo en el menú
 appimage.install.extract=Extrayendo el contenido de {}
 appimage.install.imported.rename_error=No fue posible mover el archivo {} a {}
 appimage.install.permission=Concediendo permiso de ejecución a {}
+appimage.missing_downloader=No hay ningún cliente de descarga instalado ({clients})
 appimage.update_database.deleting_old=Eliminando archivos antiguos
 appimage.update_database.downloading=Descargando archivos de la base de datos
 appimage.update_database.uncompressing=Descomprindo archivos

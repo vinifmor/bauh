@@ -33,6 +33,7 @@ appimage.install.download.error=Non è stato possibile scaricare il file {}. Il 
 appimage.install.extract=Estrarre il contenuto da {}
 appimage.install.imported.rename_error=It was not possible to move the file {} to {}
 appimage.install.permission=Gdare il permesso di esecuzione a {}
+appimage.missing_downloader=No download client installed ({clients})
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files

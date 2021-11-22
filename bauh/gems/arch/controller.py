@@ -11,7 +11,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator
 
 import requests
 from dateutil.parser import parse as parse_date
@@ -2649,8 +2649,14 @@ class ArchManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        return self.arch_distro and pacman.is_available()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self.arch_distro:
+            return False, self.i18n['arch.can_work.not_arch_distro']
+
+        if not pacman.is_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('pacman'))
+
+        return True, None
 
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
         pass

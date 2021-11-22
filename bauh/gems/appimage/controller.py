@@ -680,8 +680,15 @@ class AppImageManager(SoftwareManager):
     def _is_sqlite3_available(self) -> bool:
         return bool(shutil.which('sqlite3'))
 
-    def can_work(self) -> bool:
-        return self._is_sqlite3_available() and self.file_downloader.can_work()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self._is_sqlite3_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('sqlite3'))
+
+        if not self.file_downloader.can_work():
+            download_clients = ', '.join(self.file_downloader.get_supported_clients())
+            return False, self.i18n['appimage.missing_downloader'].format(clients=download_clients)
+
+        return True, None
 
     def requires_root(self, action: SoftwareAction, pkg: AppImage) -> bool:
         return False

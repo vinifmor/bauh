@@ -348,6 +348,7 @@ manage_window.upgrade_all.popup.title=Actualizar
 message.file.not_exist=Archivo no existe
 message.file.not_exist.body=El archivo {} parece no existir
 mirror=espejo
+missing_dep={dep} no está instalado
 name=nombre
 no=no
 not_installed=no instalada

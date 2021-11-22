@@ -484,8 +484,8 @@ class FlatpakManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        return flatpak.is_installed()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        return (True, None) if flatpak.is_installed() else (False, self.i18n['missing_dep'].format(dep=bold('flatpak')))
 
     def requires_root(self, action: SoftwareAction, pkg: FlatpakApplication) -> bool:
         return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'

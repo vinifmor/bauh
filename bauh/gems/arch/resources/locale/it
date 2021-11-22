@@ -37,6 +37,7 @@ arch.aur.sync.several_names.popup.body=The definition file (PKGBUILD) of {} conf
 arch.aur.sync.several_names.popup.bt_only_chosen=Build only {}
 arch.aur.sync.several_names.popup.bt_selected=Build selected too
 arch.building.package=Pacchetto costruito {}
+arch.can_work.not_arch_distro=Only available for ArchLinux based distributions
 arch.checking.conflicts=Verifica di eventuali conflitti con {}
 arch.checking.deps=Verifica di {} dipendenze
 arch.checking.missing_deps=Verifica delle dipendenze mancanti di {}

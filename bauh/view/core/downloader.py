@@ -7,7 +7,7 @@ import traceback
 from io import StringIO
 from math import floor
 from threading import Thread
-from typing import Iterable, List
+from typing import Iterable, List, Tuple
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -223,3 +223,6 @@ class AdaptableFileDownloader(FileDownloader):
 
     def list_available_multithreaded_clients(self) -> List[str]:
         return [c for c in self.supported_multithread_clients if self.is_multithreaded_client_available(c)]
+
+    def get_supported_clients(self) -> tuple:
+        return 'wget', 'aria2', 'axel'

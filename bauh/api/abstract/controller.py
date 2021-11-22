@@ -4,7 +4,7 @@ import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List, Set, Type, Tuple, Optional
+from typing import List, Set, Type, Tuple, Optional, Generator
 
 import yaml
 
@@ -243,9 +243,9 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def can_work(self) -> bool:
+    def can_work(self) -> Tuple[bool, Optional[str]]:
         """
-        :return: if the instance can work based on what is installed in the user's machine.
+        :return: if the instance can work based on what is installed in the user's machine. If not, an optional string as a reason.
         """
 
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):

@@ -275,6 +275,10 @@ class RadioButtonQt(QRadioButton):
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.NoFocus)
 
+        if model.extra_properties:
+            for name, val in model.extra_properties.items():
+                self.setProperty(name, val)
+
     def _set_checked(self, checked: bool):
         if checked:
             self.model_parent.value = self.model
@@ -302,6 +306,10 @@ class CheckboxQt(QCheckBox):
             self.setFocusPolicy(Qt.NoFocus)
         else:
             self.setCursor(QCursor(Qt.PointingHandCursor))
+
+        if model.extra_properties:
+            for name, val in model.extra_properties.items():
+                self.setProperty(name, val)
 
     def _set_checked(self, state):
         checked = state == 2
@@ -541,7 +549,12 @@ class MultipleSelectQt(QGroupBox):
 
             if op.tooltip:
                 help_icon = QLabel()
-                help_icon.setProperty('help_icon', 'true')
+
+                if op.extra_properties and op.extra_properties.get('warning') == 'true':
+                    help_icon.setProperty('warning_icon', 'true')
+                else:
+                    help_icon.setProperty('help_icon', 'true')
+
                 help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
                 help_icon.setToolTip(op.tooltip)
                 widget.layout().addWidget(help_icon)
@@ -596,7 +609,12 @@ class FormMultipleSelectQt(QWidget):
 
             if op.tooltip:
                 help_icon = QLabel()
-                help_icon.setProperty('help_icon', 'true')
+
+                if op.extra_properties and op.extra_properties.get('warning') == 'true':
+                    help_icon.setProperty('warning_icon', 'true')
+                else:
+                    help_icon.setProperty('help_icon', 'true')
+
                 help_icon.setToolTip(op.tooltip)
                 help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
                 widget.layout().addWidget(help_icon)
