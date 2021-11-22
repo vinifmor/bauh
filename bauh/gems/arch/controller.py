@@ -2650,10 +2650,7 @@ class ArchManager(SoftwareManager):
         self.enabled = enabled
 
     def can_work(self) -> bool:
-        try:
-            return self.arch_distro and pacman.is_available()
-        except FileNotFoundError:
-            return False
+        return self.arch_distro and pacman.is_available()
 
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
         pass

@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - **wget** as a hard requirement for Arch package management
 
+### Improvements
+- General
+  - useless code removed
+
 
 ## [0.9.21] 2021-11-20
 ### Fixes
