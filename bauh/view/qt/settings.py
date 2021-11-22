@@ -130,8 +130,7 @@ class SettingsWindow(QWidget):
             for w in warnings:
                 msg.write(f'<p style="font-weight: bold">* {w}</p><br/>')
 
-            msg.seek(0)
-            dialog.show_message(title=self.i18n['warning'].capitalize(), body=msg.read(), type_=MessageType.WARNING)
+            dialog.show_message(title=self.i18n['warning'].capitalize(), body=msg.getvalue(), type_=MessageType.WARNING)
 
             self.tab_group.setEnabled(True)
             self.bt_change.setEnabled(True)
