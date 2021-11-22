@@ -6,6 +6,7 @@ labels: ''
 assignees: ''
 
 ---
+
 **Before opening a new issue**
 Install the **staging** branch and check if the unexpected behavior is happening there as well.
 If you are on ArchLinux-based distro, you can install it through AUR (**bauh-staging**). Otherwise, you have

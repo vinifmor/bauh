@@ -111,8 +111,9 @@ makepkg -si
 - `libappindicator-gtk2`: tray-mode (GTK2 desktop environments)
 - `libappindicator-gtk3`: tray-mode (GTK3 desktop environments) 
 - `wget`, `sqlite`, `fuse2`, `fuse3`: AppImage support
-- `flatpak`: Flatpaks support
-- `snapd`: Snaps support
+- `flatpak`: Flatpak support
+- `snapd`: Snap support
+- `pacman`: ArchLinux package management support
 - `python-lxml`, `python-beautifulsoup4`: Web apps support
 - `python-venv`: [isolated installation](#inst_iso)
 
