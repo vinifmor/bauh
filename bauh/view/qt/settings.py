@@ -128,7 +128,7 @@ class SettingsWindow(QWidget):
             msg.write(f"<p>{self.i18n['settings.error']}</p>")
 
             for w in warnings:
-                msg.write('<p style="font-weight: bold">* ' + w + '</p><br/>')
+                msg.write(f'<p style="font-weight: bold">* {w}</p><br/>')
 
             msg.seek(0)
             dialog.show_message(title=self.i18n['warning'].capitalize(), body=msg.read(), type_=MessageType.WARNING)
