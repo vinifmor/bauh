@@ -2643,9 +2643,6 @@ class ArchManager(SoftwareManager):
 
         return res
 
-    def _is_wget_available(self) -> bool:
-        return bool(shutil.which('wget'))
-
     def is_enabled(self) -> bool:
         return self.enabled
 
@@ -2654,7 +2651,7 @@ class ArchManager(SoftwareManager):
 
     def can_work(self) -> bool:
         try:
-            return self.arch_distro and pacman.is_available() and self._is_wget_available()
+            return self.arch_distro and pacman.is_available()
         except FileNotFoundError:
             return False
 

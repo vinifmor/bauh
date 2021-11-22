@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.22]
+### Fixes
+- Arch
+  - **wget** as a hard requirement for Arch package management
+
+
 ## [0.9.21] 2021-11-20
 ### Fixes
 - General
