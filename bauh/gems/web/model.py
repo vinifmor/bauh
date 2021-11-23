@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import List
 
 from bauh.api.abstract.model import SoftwarePackage
-from bauh.commons import resource, user
+from bauh.commons import resource
+from bauh.api import user
 from bauh.gems.web import ROOT_DIR
 
 

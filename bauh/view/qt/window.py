@@ -18,7 +18,7 @@ from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
-from bauh.commons import user
+from bauh.api import user
 from bauh.commons.html import bold
 from bauh.context import set_theme
 from bauh.stylesheet import read_all_themes_metadata, ThemeMetadata

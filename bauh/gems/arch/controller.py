@@ -11,7 +11,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection
 
 import requests
 from dateutil.parser import parse as parse_date
@@ -27,7 +27,8 @@ from bauh.api.abstract.view import MessageType, FormComponent, InputOption, Sing
     FileChooserComponent, TextComponent
 from bauh.api.paths import TEMP_DIR
 from bauh.api.exception import NoInternetException
-from bauh.commons import user, system
+from bauh.commons import system
+from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold

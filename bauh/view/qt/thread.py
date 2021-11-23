@@ -20,7 +20,7 @@ from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwa
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
     FormComponent, ViewComponent
 from bauh.api.exception import NoInternetException
-from bauh.commons import user
+from bauh.api import user
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
 from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess

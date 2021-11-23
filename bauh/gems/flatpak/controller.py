@@ -17,7 +17,7 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
-from bauh.commons import user
+from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
