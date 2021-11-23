@@ -3,7 +3,7 @@ import os
 import re
 from typing import Optional, Dict, Tuple, Set
 
-from bauh.api.constants import USER_THEMES_PATH
+from bauh.api.paths import USER_THEMES_PATH
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 

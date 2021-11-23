@@ -26,7 +26,7 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
-from bauh.api.constants import DESKTOP_ENTRIES_DIR
+from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold

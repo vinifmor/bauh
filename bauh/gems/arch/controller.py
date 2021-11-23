@@ -25,7 +25,7 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
-from bauh.api.constants import TEMP_DIR
+from bauh.api.paths import TEMP_DIR
 from bauh.api.exception import NoInternetException
 from bauh.commons import user, system
 from bauh.commons.boot import CreateConfigFile

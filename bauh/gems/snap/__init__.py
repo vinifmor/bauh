@@ -1,6 +1,6 @@
 import os
 
-from bauh.api.constants import CACHE_PATH, CONFIG_PATH
+from bauh.api.paths import CACHE_PATH, CONFIG_PATH
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))

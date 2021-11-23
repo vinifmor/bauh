@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Optional
 
-from bauh.api.constants import CACHE_PATH
+from bauh.api.paths import CACHE_PATH
 
 
 class CustomSoftwareAction:

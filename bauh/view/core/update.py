@@ -5,7 +5,7 @@ from pathlib import Path
 from packaging.version import parse as parse_version
 
 from bauh import __app_name__, __version__
-from bauh.api.constants import CACHE_PATH
+from bauh.api.paths import CACHE_PATH
 from bauh.api.http import HttpClient
 from bauh.commons.html import bold, link
 from bauh.view.util.translation import I18n

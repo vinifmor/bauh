@@ -3,7 +3,7 @@ from pathlib import Path
 
 from packaging.version import parse as parse_version
 
-from bauh.api.constants import CONFIG_PATH
+from bauh.api.paths import CONFIG_PATH
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))

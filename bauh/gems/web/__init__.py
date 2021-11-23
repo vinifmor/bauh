@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from bauh.api.constants import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR, CACHE_PATH
+from bauh.api.paths import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
 from bauh.commons.util import map_timestamp_file
 

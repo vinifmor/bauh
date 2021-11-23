@@ -6,7 +6,7 @@ from datetime import datetime
 from logging import Logger
 from pathlib import Path
 
-from bauh.api.constants import CACHE_PATH
+from bauh.api.paths import CACHE_PATH
 
 SYNC_FILE = '{}/arch/mirrors_sync'.format(CACHE_PATH)
 

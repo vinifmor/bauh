@@ -7,7 +7,7 @@ from typing import Optional
 
 import yaml
 
-from bauh.api.constants import CONFIG_PATH
+from bauh.api.paths import CONFIG_PATH
 from bauh.commons import util
 
 

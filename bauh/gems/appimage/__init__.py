@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.constants import CONFIG_PATH, CACHE_PATH, TEMP_DIR
+from bauh.api.paths import CONFIG_PATH, CACHE_PATH, TEMP_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -11,7 +11,7 @@ from colorama import Fore
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.constants import CACHE_PATH, CONFIG_PATH
+from bauh.api.paths import CACHE_PATH, CONFIG_PATH
 from bauh.commons.system import run_cmd
 from bauh.view.util import resource
 

@@ -7,7 +7,7 @@ from logging import Logger
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.constants import CACHE_PATH
+from bauh.api.paths import CACHE_PATH
 from bauh.commons.system import ProcessHandler
 
 SYNC_FILE = '{}/arch/db_sync'.format(CACHE_PATH)
