@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - directory paths changed for a root user using bauh:
     - caching: `/var/cache/bauh`
+    - temp dir: `/tmp/bauh@root` (`/tmp/bauh@$USER` for non root users)
 
 - UI
   - settings panel: 

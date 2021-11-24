@@ -1,3 +1,4 @@
+from getpass import getuser
 from pathlib import Path
 
 from bauh import __app_name__
@@ -7,4 +8,4 @@ CACHE_PATH = f'/var/cache/{__app_name__}' if user.is_root() else f'{Path.home()}
 CONFIG_PATH = '{}/.config/bauh'.format(str(Path.home()))
 USER_THEMES_PATH = '{}/.local/share/bauh/themes'.format(str(Path.home()))
 DESKTOP_ENTRIES_DIR = '{}/.local/share/applications'.format(str(Path.home()))
-TEMP_DIR = '/tmp/bauh{}'.format('_root' if user.is_root() else '')
+TEMP_DIR = f'/tmp/{__app_name__}@{getuser()}'

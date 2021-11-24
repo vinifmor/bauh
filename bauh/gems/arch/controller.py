@@ -1656,7 +1656,7 @@ class ArchManager(SoftwareManager):
                         version_files[ver] = file_path
 
         versions.sort(reverse=True)
-        extract_path = '{}/arch/history'.format(TEMP_DIR)
+        extract_path = f'{TEMP_DIR}/arch/history'
 
         try:
             Path(extract_path).mkdir(parents=True, exist_ok=True)

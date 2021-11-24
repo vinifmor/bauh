@@ -411,7 +411,7 @@ boot:
 
 #### <a name="dirs">Directory structure, caching and logs</a>
 - `~/.cache/bauh` (or `/var/cache/bauh` for **root**): stores data about your installed applications, databases, indexes, etc. Files are stored here to provide a faster initialization and data recovery. 
-- `/tmp/bauh` (or `/tmp/bauh_root` for **root**): stores logging and temporary files (e.g: build dependencies)
+- `/tmp/bauh@$USER` (e.g: `/tmp/bauh@root`): stores logging and temporary files (e.g: build dependencies)
 
 
 #### <a name="custom_themes">Custom themes</a>
