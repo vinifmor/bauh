@@ -410,6 +410,7 @@ boot:
 ```
 
 #### <a name="dirs">Directory structure, caching and logs</a>
+- `~/.config/bauh` (or `/etc/bauh` for **root**): stores configuration files
 - `~/.cache/bauh` (or `/var/cache/bauh` for **root**): stores data about your installed applications, databases, indexes, etc. Files are stored here to provide a faster initialization and data recovery. 
 - `/tmp/bauh@$USER` (e.g: `/tmp/bauh@root`): stores logging and temporary files (e.g: build dependencies)
 
