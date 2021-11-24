@@ -3,9 +3,9 @@ import os
 from pathlib import Path
 from typing import List
 
+from bauh.api import user
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
-from bauh.api import user
 from bauh.gems.web import ROOT_DIR
 
 
@@ -55,11 +55,11 @@ class WebApplication(SoftwarePackage):
 
     def get_exec_path(self) -> str:
         if self.installation_dir:
-            return '{}/{}'.format(self.installation_dir, self.id)
+            return f'{self.installation_dir}/{self.id}'
 
     def get_command(self) -> str:
         if self.installation_dir:
-            return '{}{}'.format(self.get_exec_path(), ' --no-sandbox' if user.is_root() else '')
+            return f"{self.get_exec_path()}{' --no-sandbox' if user.is_root() else ''}"
 
     def get_type(self):
         return 'web'
@@ -71,14 +71,14 @@ class WebApplication(SoftwarePackage):
         return resource.get_path('img/web.svg', ROOT_DIR)
 
     def get_disk_data_path(self) -> str:
-        return '{}/data.yml'.format(self.get_disk_cache_path())
+        return f'{self.get_disk_cache_path()}/data.yml'
 
     def get_disk_icon_path(self) -> str:
         if self.custom_icon:
             return self.custom_icon
 
         if self.installation_dir:
-            return '{}/resources/app/icon.png'.format(self.installation_dir)
+            return f'{self.installation_dir}/resources/app/icon.png'
 
     def is_application(self):
         return True
@@ -124,7 +124,7 @@ class WebApplication(SoftwarePackage):
 
     def get_autostart_path(self) -> str:
         if self.desktop_entry:
-            return '{}/.config/autostart/{}'.format(Path.home(), self.desktop_entry.split('/')[-1])
+            return f"{Path.home()}/.config/autostart/{self.desktop_entry.split('/')[-1]}"
 
     def set_custom_icon(self, custom_icon: str):
         self.custom_icon = custom_icon
@@ -134,16 +134,16 @@ class WebApplication(SoftwarePackage):
 
     def get_config_dir(self) -> str:
         if self.package_name:
-            config_dir = '{}/.config/{}'.format(str(Path.home()), self.package_name)
+            config_dir = f'{Path.home()}/.config/{self.package_name}'
 
             if os.path.exists(config_dir):
                 return config_dir
         else:
             if self.installation_dir:
-                config_path = '{}/.config'.format(str(Path.home()))
+                config_path = f'{Path.home()}/.config'
 
                 if os.path.exists(config_path):
-                    config_dirs = glob.glob('{}/{}-nativefier-*'.format(config_path, self.installation_dir.split('/')[-1]))
+                    config_dirs = glob.glob(f"{config_path}/{self.installation_dir.split('/')[-1]}-nativefier-*")
 
                     if config_dirs:
                         return config_dirs[0]
