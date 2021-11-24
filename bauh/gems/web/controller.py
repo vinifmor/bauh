@@ -768,6 +768,8 @@ class WebApplicationManager(SoftwareManager):
             with open(pkg.get_autostart_path(), 'w+') as f:
                 f.write(entry_content)
 
+            self.logger.info(f"Autostart file created '{autostart_file}'")
+
         if install_options:
             pkg.options_set = install_options
 
