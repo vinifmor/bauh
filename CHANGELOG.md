@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.22]
 ### Improvements
+- General
+  - directory paths changed for a root user using bauh:
+    - caching: `/var/cache/bauh`
+
 - UI
   - settings panel: 
     - always displaying all supported packaging technologies
@@ -13,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <p align="center">
           <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.22/missing_type_dep.png">
         </p>
+   
 
 ### Fixes
 - Arch

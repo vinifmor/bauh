@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.paths import CONFIG_PATH, CACHE_PATH, TEMP_DIR
+from bauh.api.paths import CONFIG_PATH, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,13 +14,13 @@ CONFIG_DIR = '{}/appimage'.format(CONFIG_PATH)
 UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-APPIMAGE_CACHE_PATH = '{}/appimage'.format(CACHE_PATH)
-DATABASE_APPS_FILE = '{}/apps.db'.format(APPIMAGE_CACHE_PATH)
-DATABASE_RELEASES_FILE = '{}/releases.db'.format(APPIMAGE_CACHE_PATH)
-DATABASES_TS_FILE = '{}/dbs.ts'.format(APPIMAGE_CACHE_PATH)
+APPIMAGE_CACHE_PATH = f'{CACHE_PATH}/appimage'
+DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_PATH}/apps.db'
+DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_PATH}/releases.db'
+DATABASES_TS_FILE = f'{APPIMAGE_CACHE_PATH}/dbs.ts'
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
-SUGGESTIONS_CACHED_FILE = '{}/suggestions.txt'.format(APPIMAGE_CACHE_PATH)
-SUGGESTIONS_CACHED_TS_FILE = '{}/suggestions.ts'.format(APPIMAGE_CACHE_PATH)
+SUGGESTIONS_CACHED_FILE = f'{APPIMAGE_CACHE_PATH}/suggestions.txt'
+SUGGESTIONS_CACHED_TS_FILE = f'{APPIMAGE_CACHE_PATH}/suggestions.ts'
 DOWNLOAD_DIR = f'{TEMP_DIR}/appimage/download'
 
 

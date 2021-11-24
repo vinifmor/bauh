@@ -5,8 +5,8 @@ from pathlib import Path
 from packaging.version import parse as parse_version
 
 from bauh import __app_name__, __version__
-from bauh.api.paths import CACHE_PATH
 from bauh.api.http import HttpClient
+from bauh.api.paths import CACHE_PATH
 from bauh.commons.html import bold, link
 from bauh.view.util.translation import I18n
 
@@ -33,7 +33,7 @@ def check_for_update(logger: logging.Logger, http_client: HttpClient, i18n: I18n
                     break
 
             if latest and latest.get('tag_name'):
-                notifications_dir = '{}/updates'.format(CACHE_PATH)
+                notifications_dir = f'{CACHE_PATH}/updates'
                 release_file = '{}/{}{}'.format(notifications_dir, '' if not tray else 'tray_', latest['tag_name'])
                 if os.path.exists(release_file):
                     logger.info("Release {} already notified".format(latest['tag_name']))

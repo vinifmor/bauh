@@ -2,7 +2,7 @@ from pathlib import Path
 
 from bauh.api.paths import CACHE_PATH
 
-TRAY_CHECK_FILE = '{}/notify_tray'.format(CACHE_PATH)  # it is a file that signals to the tray icon it should recheck for updates
+TRAY_CHECK_FILE = f'{CACHE_PATH}/notify_tray'  # it is a file that signals to the tray icon it should recheck for updates
 
 
 def notify_tray():

@@ -29,7 +29,7 @@ Key features
     - [Snap](#type_snap)
     - [Native Web applications](#type_web)
 7.  [General settings](#settings)
-8.  [Cache and logs](#cache_logs)
+8.  [Directory structure, caching and logs](#dirs)
 9.  [Custom themes](#custom_themes)
 10. [Tray icons](#tray_icons)
 11. [CLI (Command Line Interface)](#cli)
@@ -409,9 +409,9 @@ boot:
     load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
 ```
 
-#### <a name="cache_logs">Cache and Logs</a>
-- Installation logs and temporary files are saved at `/tmp/bauh` (or `/tmp/bauh_root` if you launch it as root)
-- Some data about your installed applications are stored in `~/.cache/bauh` to load them faster
+#### <a name="dirs">Directory structure, caching and logs</a>
+- `~/.cache/bauh` (or `/var/cache/bauh` for **root**): stores data about your installed applications, databases, indexes, etc. Files are stored here to provide a faster initialization and data recovery. 
+- `/tmp/bauh` (or `/tmp/bauh_root` for **root**): stores logging and temporary files (e.g: build dependencies)
 
 
 #### <a name="custom_themes">Custom themes</a>

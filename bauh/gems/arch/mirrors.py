@@ -8,7 +8,7 @@ from pathlib import Path
 
 from bauh.api.paths import CACHE_PATH
 
-SYNC_FILE = '{}/arch/mirrors_sync'.format(CACHE_PATH)
+SYNC_FILE = f'{CACHE_PATH}/arch/mirrors_sync'
 
 
 def should_sync(logger: logging.Logger):

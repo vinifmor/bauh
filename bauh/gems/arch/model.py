@@ -85,7 +85,7 @@ class ArchPackage(SoftwarePackage):
 
     @staticmethod
     def disk_cache_path(pkgname: str):
-        return ARCH_CACHE_PATH + '/installed/' + pkgname
+        return f'{ARCH_CACHE_PATH}/installed/{pkgname}'
 
     def get_pkg_build_url(self):
         if self.package_base:

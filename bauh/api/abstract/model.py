@@ -146,7 +146,7 @@ class SoftwarePackage(ABC):
         """
         :return: base cache path for the specific app type
         """
-        return CACHE_PATH + '/' + self.get_type()
+        return f'{CACHE_PATH}/{self.get_type()}'
 
     def can_be_updated(self) -> bool:
         """

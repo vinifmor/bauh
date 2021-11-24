@@ -722,7 +722,7 @@ class AppImageManager(SoftwareManager):
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        dbfiles = glob.glob('{}/*.db'.format(APPIMAGE_CACHE_PATH))
+        dbfiles = glob.glob(f'{APPIMAGE_CACHE_PATH}/*.db')
 
         if not dbfiles or len({f for f in (DATABASE_APPS_FILE, DATABASE_RELEASES_FILE) if f in dbfiles}) != 2:
             return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]

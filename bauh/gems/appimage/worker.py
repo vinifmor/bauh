@@ -24,7 +24,7 @@ from bauh.view.util.translation import I18n
 
 
 class DatabaseUpdater(Thread):
-    COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(APPIMAGE_CACHE_PATH)
+    COMPRESS_FILE_PATH = f'{APPIMAGE_CACHE_PATH}/db.tar.gz'
 
     def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, taskman: TaskManager,
                  watcher: Optional[ProcessWatcher] = None, appimage_config: Optional[dict] = None, create_config: Optional[CreateConfigFile] = None):
@@ -52,10 +52,10 @@ class DatabaseUpdater(Thread):
             self.logger.info("No expiration time configured for the AppImage database")
             return True
 
-        files = {*glob.glob('{}/*'.format(APPIMAGE_CACHE_PATH))}
+        files = {*glob.glob(f'{APPIMAGE_CACHE_PATH}/*')}
 
         if not files:
-            self.logger.warning('No database files on {}'.format(APPIMAGE_CACHE_PATH))
+            self.logger.warning(f'No database files on {APPIMAGE_CACHE_PATH}')
             return True
 
         if DATABASES_TS_FILE not in files:
@@ -113,7 +113,7 @@ class DatabaseUpdater(Thread):
         self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
 
         self._update_task_progress(50, self.i18n['appimage.update_database.deleting_old'])
-        old_db_files = glob.glob(APPIMAGE_CACHE_PATH + '/*.db')
+        old_db_files = glob.glob(f'{APPIMAGE_CACHE_PATH}/*.db')
 
         if old_db_files:
             self.logger.info('Deleting old database files')

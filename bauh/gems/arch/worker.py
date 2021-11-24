@@ -156,8 +156,8 @@ class ArchDiskCacheUpdater(Thread):
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
         self.controller = controller
         self.internet_available = internet_available
-        self.installed_hash_path = '{}/installed.sha1'.format(ARCH_CACHE_PATH)
-        self.installed_cache_dir = '{}/installed'.format(ARCH_CACHE_PATH)
+        self.installed_hash_path = f'{ARCH_CACHE_PATH}/installed.sha1'
+        self.installed_cache_dir = f'{ARCH_CACHE_PATH}/installed'
         self.aur_indexer = aur_indexer
         self.create_config = create_config
         self.taskman.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
