@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import List
 
+from bauh import __app_name__
 from bauh.api import user
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.commons import resource
@@ -117,7 +118,7 @@ class WebApplication(SoftwarePackage):
         return False
 
     def get_publisher(self) -> str:
-        return 'bauh'
+        return __app_name__
 
     def has_screenshots(self) -> bool:
         return False
