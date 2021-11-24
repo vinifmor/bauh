@@ -26,7 +26,7 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
-from bauh.api.paths import DESKTOP_ENTRIES_DIR, AUTOSTART_DIR
+from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
@@ -762,10 +762,12 @@ class WebApplicationManager(SoftwareManager):
 
         pkg.desktop_entry = desktop_entry_path
 
-        if '--tray=start-in-tray' in install_options:
-            Path(AUTOSTART_DIR).mkdir(parents=True, exist_ok=True)
+        autostart_file = pkg.get_autostart_path()
 
-            with open(pkg.get_autostart_path(), 'w+') as f:
+        if autostart_file and '--tray=start-in-tray' in install_options:
+            Path(os.path.dirname(autostart_file)).mkdir(parents=True, exist_ok=True)
+
+            with open(autostart_file, 'w+') as f:
                 f.write(entry_content)
 
             self.logger.info(f"Autostart file created '{autostart_file}'")
