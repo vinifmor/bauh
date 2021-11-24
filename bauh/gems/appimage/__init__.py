@@ -2,15 +2,15 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.paths import CONFIG_PATH, TEMP_DIR, CACHE_PATH
+from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 LOCAL_PATH = '{}/.local/share/bauh/appimage'.format(str(Path.home()))
 INSTALLATION_PATH = LOCAL_PATH + '/installed/'
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/suggestions.txt'
-CONFIG_FILE = f'{CONFIG_PATH}/appimage.yml'
-APPIMAGE_CONFIG_DIR = f'{CONFIG_PATH}/appimage'
+CONFIG_FILE = f'{CONFIG_DIR}/appimage.yml'
+APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'
 UPDATES_IGNORED_FILE = f'{APPIMAGE_CONFIG_DIR}/updates_ignored.txt'
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'

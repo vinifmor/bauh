@@ -3,13 +3,13 @@ from pathlib import Path
 
 from packaging.version import parse as parse_version
 
-from bauh.api.paths import CONFIG_PATH
+from bauh.api.paths import CONFIG_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/flatpak/suggestions.txt'
-CONFIG_FILE = f'{CONFIG_PATH}/flatpak.yml'
-FLATPAK_CONFIG_DIR = f'{CONFIG_PATH}/flatpak'
+CONFIG_FILE = f'{CONFIG_DIR}/flatpak.yml'
+FLATPAK_CONFIG_DIR = f'{CONFIG_DIR}/flatpak'
 UPDATES_IGNORED_FILE = f'{FLATPAK_CONFIG_DIR}/updates_ignored.txt'
 EXPORTS_PATH = '{}/.local/share/flatpak/exports/share'.format(str(Path.home()))
 VERSION_1_2 = parse_version('1.2')

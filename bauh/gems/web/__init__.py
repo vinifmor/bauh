@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from bauh.api.paths import DESKTOP_ENTRIES_DIR, CONFIG_PATH, TEMP_DIR, CACHE_PATH
+from bauh.api.paths import DESKTOP_ENTRIES_DIR, CONFIG_DIR, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
 from bauh.commons.util import map_timestamp_file
 
@@ -31,7 +31,7 @@ TEMP_PATH = f'{TEMP_DIR}/web'
 SEARCH_INDEX_FILE = f'{WEB_CACHE_PATH}/index.yml'
 SUGGESTIONS_CACHE_FILE = f'{WEB_CACHE_PATH}/suggestions.yml'
 SUGGESTIONS_CACHE_TS_FILE = map_timestamp_file(SUGGESTIONS_CACHE_FILE)
-CONFIG_FILE = f'{CONFIG_PATH}/web.yml'
+CONFIG_FILE = f'{CONFIG_DIR}/web.yml'
 ENVIRONMENT_SETTINGS_CACHED_FILE = f'{WEB_CACHE_PATH}/environment.yml'
 ENVIRONMENT_SETTINGS_TS_FILE = f'{WEB_CACHE_PATH}/environment.ts'
 NATIVEFIER_BASE_URL = 'https://github.com/nativefier/nativefier/archive/v{version}.tar.gz'
