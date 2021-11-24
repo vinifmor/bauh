@@ -28,7 +28,7 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
+    APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, APPIMAGE_CACHE_PATH, get_icon_path, DOWNLOAD_DIR
 from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
@@ -903,7 +903,7 @@ class AppImageManager(SoftwareManager):
         pkg.updates_ignored = True
 
     def _write_ignored_updates(self, names: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(APPIMAGE_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*names]
         ignored_list.sort()
 
