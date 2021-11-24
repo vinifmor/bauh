@@ -38,7 +38,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
+    ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -3193,7 +3193,7 @@ class ArchManager(SoftwareManager):
         return ignored
 
     def _write_ignored(self, names: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(ARCH_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*names]
         ignored_list.sort()
 

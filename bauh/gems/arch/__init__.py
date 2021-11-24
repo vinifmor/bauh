@@ -9,15 +9,15 @@ ARCH_CACHE_PATH = f'{CACHE_PATH}/arch'
 CATEGORIES_FILE_PATH = f'{ARCH_CACHE_PATH}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/categories.txt'
 URL_GPG_SERVERS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/gpgservers.txt'
-CONFIG_DIR = f'{CONFIG_PATH}/arch'
-CUSTOM_MAKEPKG_FILE = '{}/makepkg.conf'.format(CONFIG_DIR)
+ARCH_CONFIG_DIR = f'{CONFIG_PATH}/arch'
+CUSTOM_MAKEPKG_FILE = f'{ARCH_CONFIG_DIR}/makepkg.conf'
 AUR_INDEX_FILE = f'{ARCH_CACHE_PATH}/aur/index.txt'
 AUR_INDEX_TS_FILE = f'{ARCH_CACHE_PATH}/aur/index.ts'
 CONFIG_FILE = f'{CONFIG_PATH}/arch.yml'
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/aur_suggestions.txt'
-UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
-EDITABLE_PKGBUILDS_FILE = '{}/aur/editable_pkgbuilds.txt'.format(CONFIG_DIR)
-IGNORED_REBUILD_CHECK_FILE = '{}/aur/ignored_rebuild_check.txt'.format(CONFIG_DIR)
+UPDATES_IGNORED_FILE = f'{ARCH_CONFIG_DIR}/updates_ignored.txt'
+EDITABLE_PKGBUILDS_FILE = f'{ARCH_CONFIG_DIR}/aur/editable_pkgbuilds.txt'
+IGNORED_REBUILD_CHECK_FILE = f'{ARCH_CONFIG_DIR}/aur/ignored_rebuild_check.txt'
 
 
 def get_icon_path() -> str:

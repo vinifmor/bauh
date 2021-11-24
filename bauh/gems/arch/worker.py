@@ -17,7 +17,7 @@ from bauh.api.abstract.handler import TaskManager
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import new_root_subprocess, ProcessHandler
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, ARCH_CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
     mirrors, ARCH_CACHE_PATH, AUR_INDEX_TS_FILE, aur
 from bauh.gems.arch.aur import URL_INDEX
 from bauh.view.util.translation import I18n
@@ -275,7 +275,7 @@ class ArchCompilationOptimizer(Thread):
             with open(GLOBAL_MAKEPKG) as f:
                 global_makepkg = f.read()
 
-            Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+            Path(ARCH_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
 
             custom_makepkg, optimizations = None, []
 
