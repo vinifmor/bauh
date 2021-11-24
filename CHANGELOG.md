@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
    
 
 ### Fixes
+- General
+  - single thread downloader (**wget**) does not create the directory where the file will be stored 
+  
 - Arch
   - **wget** as a hard requirement for Arch package management
 
