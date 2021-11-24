@@ -6,6 +6,7 @@ from typing import List
 from bauh import __app_name__
 from bauh.api import user
 from bauh.api.abstract.model import SoftwarePackage
+from bauh.api.paths import AUTOSTART_DIR
 from bauh.commons import resource
 from bauh.gems.web import ROOT_DIR
 
@@ -125,7 +126,7 @@ class WebApplication(SoftwarePackage):
 
     def get_autostart_path(self) -> str:
         if self.desktop_entry:
-            return f"{Path.home()}/.config/autostart/{self.desktop_entry.split('/')[-1]}"
+            return f"{AUTOSTART_DIR}/{self.desktop_entry.split('/')[-1]}"
 
     def set_custom_icon(self, custom_icon: str):
         self.custom_icon = custom_icon

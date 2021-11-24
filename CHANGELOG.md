@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - caching: `/var/cache/bauh`
     - configuration: `/etc/bauh`
     - temp dir: `/tmp/bauh@root` (`/tmp/bauh@$USER` for non root users)
+    - autostart: `/etc/xdg/autostart` (only used by the Web gem at the moment)
 
 - UI
   - settings panel: 
