@@ -9,3 +9,4 @@ CONFIG_PATH = '{}/.config/bauh'.format(str(Path.home()))
 USER_THEMES_PATH = '{}/.local/share/bauh/themes'.format(str(Path.home()))
 DESKTOP_ENTRIES_DIR = '{}/.local/share/applications'.format(str(Path.home()))
 TEMP_DIR = f'/tmp/{__app_name__}@{getuser()}'
+LOGS_DIR = f'{TEMP_DIR}/logs'

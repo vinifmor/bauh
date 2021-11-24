@@ -12,7 +12,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QObject
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
-from bauh import LOGS_PATH
+from bauh.api import user
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.controller import SoftwareManager, UpgradeRequirement, UpgradeRequirements, SoftwareAction
 from bauh.api.abstract.handler import ProcessWatcher
@@ -20,7 +20,7 @@ from bauh.api.abstract.model import PackageStatus, SoftwarePackage, CustomSoftwa
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, TextComponent, \
     FormComponent, ViewComponent
 from bauh.api.exception import NoInternetException
-from bauh.api import user
+from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
 from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
@@ -200,8 +200,8 @@ class AsyncAction(QThread, ProcessWatcher):
 
 class UpgradeSelected(AsyncAction):
 
-    LOGS_DIR = '{}/upgrade'.format(LOGS_PATH)
-    SUMMARY_FILE = LOGS_DIR + '/{}_summary.txt'
+    UPGRADE_LOGS_DIR = f'{LOGS_DIR}/upgrade'
+    SUMMARY_FILE = UPGRADE_LOGS_DIR + '/{}_summary.txt'
 
     def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n, pkgs: List[PackageView] = None):
         super(UpgradeSelected, self).__init__()
@@ -330,7 +330,7 @@ class UpgradeSelected(AsyncAction):
 
     def _write_summary_log(self, upgrade_id: str, requirements: UpgradeRequirements):
         try:
-            Path(self.LOGS_DIR).mkdir(parents=True, exist_ok=True)
+            Path(self.UPGRADE_LOGS_DIR).mkdir(parents=True, exist_ok=True)
 
             summary_text = StringIO()
             summary_text.write('Upgrade summary ( id: {} )'.format(upgrade_id))
