@@ -21,7 +21,7 @@ from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH, \
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, EXPORTS_PATH, \
     get_icon_path, VERSION_1_5, VERSION_1_2
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -689,7 +689,7 @@ class FlatpakManager(SoftwareManager):
         return ignored
 
     def _write_ignored_updates(self, keys: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(FLATPAK_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*keys]
         ignored_list.sort()
 
