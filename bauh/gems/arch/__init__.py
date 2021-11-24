@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 from bauh.api.paths import CONFIG_PATH, TEMP_DIR, CACHE_PATH
 from bauh.commons import resource
@@ -10,7 +9,7 @@ ARCH_CACHE_PATH = f'{CACHE_PATH}/arch'
 CATEGORIES_FILE_PATH = f'{ARCH_CACHE_PATH}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/categories.txt'
 URL_GPG_SERVERS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/gpgservers.txt'
-CONFIG_DIR = '{}/.config/bauh/arch'.format(str(Path.home()))
+CONFIG_DIR = f'{CONFIG_PATH}/arch'
 CUSTOM_MAKEPKG_FILE = '{}/makepkg.conf'.format(CONFIG_DIR)
 AUR_INDEX_FILE = f'{ARCH_CACHE_PATH}/aur/index.txt'
 AUR_INDEX_TS_FILE = f'{ARCH_CACHE_PATH}/aur/index.ts'
