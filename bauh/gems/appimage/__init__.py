@@ -2,18 +2,19 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from bauh import __app_name__
 from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-LOCAL_PATH = '{}/.local/share/bauh/appimage'.format(str(Path.home()))
-INSTALLATION_PATH = LOCAL_PATH + '/installed/'
-SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/suggestions.txt'
+LOCAL_PATH = f'{Path.home()}/.local/share/{__app_name__}/appimage'
+INSTALLATION_PATH = f'{LOCAL_PATH}/installed/'
+SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/suggestions.txt'
 CONFIG_FILE = f'{CONFIG_DIR}/appimage.yml'
 APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'
 UPDATES_IGNORED_FILE = f'{APPIMAGE_CONFIG_DIR}/updates_ignored.txt'
-SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
-URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
+SYMLINKS_DIR = f'{Path.home()}/.local/bin'
+URL_COMPRESSED_DATABASES = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/dbs.tar.gz'
 APPIMAGE_CACHE_DIR = f'{CACHE_DIR}/appimage'
 DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_DIR}/apps.db'
 DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_DIR}/releases.db'
@@ -28,5 +29,5 @@ def get_icon_path() -> str:
 
 
 def get_default_manual_installation_file_dir() -> Optional[str]:
-    default_path = '{}/Downloads'.format(str(Path.home()))
+    default_path = f'{Path.home()}/Downloads'
     return default_path if os.path.isdir(default_path) else None
