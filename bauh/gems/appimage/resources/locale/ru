@@ -18,6 +18,7 @@ appimage.downgrade.impossible.title=Не удалось понизить вер�
 appimage.downgrade.install_version=Не удалось установить версию {} ({})
 appimage.downgrade.unknown_version.body=Не удалось определить текущую версию  {} в истории версий
 appimage.download.error=Не удалось загрузить файл {}. Файловый сервер не отвечает
+appimage.download.no_url=No download URL associated with the app {app}
 appimage.error.uninstall_current_version=Не удалось удалить текущую версию {}
 appimage.history.0_version=версия
 appimage.history.1_published_at=дата

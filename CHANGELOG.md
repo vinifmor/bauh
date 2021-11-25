@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - single thread downloader (**wget**) does not create the directory where the file will be stored 
   
+- AppImage
+  - trying to download a file without a URL associated with [#210](https://github.com/vinifmor/bauh/issues/210)
+  
 - Arch
   - **wget** as a hard requirement for Arch package management
 

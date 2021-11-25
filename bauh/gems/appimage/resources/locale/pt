@@ -18,6 +18,7 @@ appimage.downgrade.impossible.title=Impossível reverter a versão
 appimage.downgrade.install_version=Não foi possivel instalar a versão {} ({})
 appimage.downgrade.unknown_version.body=Não foi possível identificar a versão atual de {} no seu histórico de versões
 appimage.download.error=Não foi possível baixar o arquivo {}. O servidor do arquivo pode estar fora do ar.
+appimage.download.no_url=Nenhuma URL de download associada ao aplicativo {app}
 appimage.error.uninstall_current_version=It was not possible to uninstall the current version of {}
 appimage.history.0_version=versão
 appimage.history.1_published_at=data

@@ -512,6 +512,13 @@ class AppImageManager(SoftwareManager):
 
     def _download(self, pkg: AppImage, watcher: ProcessWatcher) -> Optional[Tuple[str, str]]:
         appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
+
+        if not appimage_url:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['appimage.download.no_url'].format(app=bold(pkg.name)),
+                                 type_=MessageType.ERROR)
+            return
+
         file_name = appimage_url.split('/')[-1]
         pkg.version = pkg.latest_version
         pkg.url_download = appimage_url

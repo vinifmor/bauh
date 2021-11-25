@@ -18,6 +18,7 @@ appimage.downgrade.impossible.title=Sürüm düşürmek imkansız
 appimage.downgrade.install_version={} ({}) sürümünü kurmak mümkün değildi
 appimage.downgrade.unknown_version.body=Sürüm geçmişinde {} mevcut sürümü tanımlamak mümkün değildi
 appimage.download.error={} dosyası indirilemedi. Dosya sunucusu kapalı olabilir.
+appimage.download.no_url=No download URL associated with the app {app}
 appimage.error.uninstall_current_version={} mevcut sürümünü kaldırmak mümkün değildi
 appimage.history.0_version=sürüm
 appimage.history.1_published_at=tarih

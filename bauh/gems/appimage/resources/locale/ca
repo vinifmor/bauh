@@ -18,6 +18,7 @@ appimage.downgrade.impossible.title=No s’ha pogut revertir la versió
 appimage.downgrade.install_version=No s’ha pogut instal·lar la versió {} ({})
 appimage.downgrade.unknown_version.body=No s’ha pogut identificar la versió actual de {} a l’historial de versions
 appimage.download.error=No s’ha pogut baixar el fitxer {}. El servidor del fitxer pot estar inactiu.
+appimage.download.no_url=No download URL associated with the app {app}
 appimage.error.uninstall_current_version=It was not possible to uninstall the current version of {}
 appimage.history.0_version=versió
 appimage.history.1_published_at=data
