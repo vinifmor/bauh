@@ -50,48 +50,48 @@ class EnvironmentUpdater:
         self.taskman = taskman
 
     def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
-        self.logger.info("Downloading NodeJS {}: {}".format(version, version_url))
+        self.logger.info(f"Downloading NodeJS {version}: {version_url}")
 
-        tarf_path = '{}/{}'.format(ENV_PATH, version_url.split('/')[-1])
+        tarf_path = f"{ENV_PATH}/{version_url.split('/')[-1]}"
         downloaded = self.file_downloader.download(version_url, watcher=watcher, output_path=tarf_path, cwd=ENV_PATH)
 
         if not downloaded:
-            self.logger.error("Could not download '{}'. Aborting...".format(version_url))
+            self.logger.error(f"Could not download '{version_url}'. Aborting...")
             return False
         else:
             try:
                 tf = tarfile.open(tarf_path)
                 tf.extractall(path=ENV_PATH)
 
-                extracted_file = '{}/{}'.format(ENV_PATH, tf.getnames()[0])
+                extracted_file = f'{ENV_PATH}/{tf.getnames()[0]}'
 
                 if os.path.exists(NODE_DIR_PATH):
-                    self.logger.info("Removing old NodeJS version installation dir -> {}".format(NODE_DIR_PATH))
+                    self.logger.info(f"Removing old NodeJS version installation dir -> {NODE_DIR_PATH}")
                     try:
                         shutil.rmtree(NODE_DIR_PATH)
                     except:
-                        self.logger.error("Could not delete old NodeJS version dir -> {}".format(NODE_DIR_PATH))
+                        self.logger.error(f"Could not delete old NodeJS version dir -> {NODE_DIR_PATH}")
                         traceback.print_exc()
                         return False
 
                 try:
                     os.rename(extracted_file, NODE_DIR_PATH)
                 except:
-                    self.logger.error("Could not rename the NodeJS version file {} as {}".format(extracted_file, NODE_DIR_PATH))
+                    self.logger.error(f"Could not rename the NodeJS version file {extracted_file} as {NODE_DIR_PATH}")
                     traceback.print_exc()
                     return False
 
                 if os.path.exists(NODE_MODULES_PATH):
-                    self.logger.info('Deleting {}'.format(NODE_MODULES_PATH))
+                    self.logger.info(f'Deleting {NODE_MODULES_PATH}')
                     try:
                         shutil.rmtree(NODE_MODULES_PATH)
                     except:
-                        self.logger.error("Could not delete the directory {}".format(NODE_MODULES_PATH))
+                        self.logger.error(f"Could not delete the directory {NODE_MODULES_PATH}")
                         return False
 
                 return True
             except:
-                self.logger.error('Could not extract {}'.format(tarf_path))
+                self.logger.error(f'Could not extract {tarf_path}')
                 traceback.print_exc()
                 return False
             finally:
@@ -99,13 +99,13 @@ class EnvironmentUpdater:
                     try:
                         os.remove(tarf_path)
                     except:
-                        self.logger.error('Could not delete file {}'.format(tarf_path))
+                        self.logger.error(f'Could not delete file {tarf_path}')
 
     def check_node_installed(self, version: str) -> bool:
         if not os.path.exists(NODE_DIR_PATH):
             return False
         else:
-            installed_version = system.run_cmd('{} --version'.format(NODE_BIN_PATH), print_error=False)
+            installed_version = system.run_cmd(f'{NODE_BIN_PATH} --version', print_error=False)
 
             if installed_version:
                 installed_version = installed_version.strip()
@@ -113,7 +113,7 @@ class EnvironmentUpdater:
                 if installed_version.startswith('v'):
                     installed_version = installed_version[1:]
 
-                self.logger.info('Node versions: installed ({}), cloud ({})'.format(installed_version, version))
+                self.logger.info(f'Node versions: installed ({installed_version}), cloud ({version})')
 
                 if version != installed_version:
                     self.logger.info("The NodeJs installed version is different from the Cloud.")
@@ -139,7 +139,7 @@ class EnvironmentUpdater:
                 if installed_version.startswith('v'):
                     installed_version = installed_version[1:]
 
-                self.logger.info('Node versions: installed ({}), cloud ({})'.format(installed_version, version))
+                self.logger.info(f'Node versions: installed ({installed_version}), cloud ({version})')
 
                 if version != installed_version:
                     self.logger.info("The NodeJs installed version is different from the Cloud.")
@@ -149,17 +149,17 @@ class EnvironmentUpdater:
                     return True
             else:
                 self.logger.warning("Could not determine the current NodeJS installed version")
-                self.logger.info("Removing {}".format(NODE_DIR_PATH))
+                self.logger.info(f"Removing {NODE_DIR_PATH}")
                 try:
                     shutil.rmtree(NODE_DIR_PATH)
                     return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
                 except:
-                    self.logger.error('Could not delete the dir {}'.format(NODE_DIR_PATH))
+                    self.logger.error(f'Could not delete the dir {NODE_DIR_PATH}')
                     return False
 
     def _install_node_lib(self, name: str, version: str, handler: ProcessHandler):
-        lib_repr = '{}{}'.format(name, '@{}'.format(version) if version else '')
-        self.logger.info("Installing {}".format(lib_repr))
+        lib_repr = f"{name}{'@{}'.format(version) if version else ''}"
+        self.logger.info(f"Installing {lib_repr}")
 
         if handler and handler.watcher:
             handler.watcher.change_substatus(self.i18n['web.environment.install'].format(bold(lib_repr)))
@@ -169,15 +169,15 @@ class EnvironmentUpdater:
         installed = handler.handle_simple(proc)[0]
 
         if installed:
-            self.logger.info("{} successfully installed".format(lib_repr))
+            self.logger.info(f"{lib_repr} successfully installed")
 
         return installed
 
     def _install_nativefier(self, version: str, url: str, handler: ProcessHandler) -> bool:
-        self.logger.info("Checking if nativefier@{} exists".format(version))
+        self.logger.info(f"Checking if nativefier@{version} exists")
 
         if not url or not self.http_client.exists(url):
-            self.logger.warning("The file {} seems not to exist".format(url))
+            self.logger.warning(f"The file {url} seems not to exist")
             handler.watcher.show_message(title=self.i18n['message.file.not_exist'],
                                          body=self.i18n['message.file.not_exist.body'].format(bold(url)),
                                          type_=MessageType.ERROR)
@@ -192,12 +192,12 @@ class EnvironmentUpdater:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
     def download_electron(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        self.logger.info("Downloading Electron {}".format(version))
+        self.logger.info(f"Downloading Electron {version}")
 
         electron_path = self._get_electron_file_path(url=url, relative=False)
 
         if not self.http_client.exists(url):
-            self.logger.warning("The file {} seems not to exist".format(url))
+            self.logger.warning(f"The file {url} seems not to exist")
             watcher.show_message(title=self.i18n['message.file.not_exist'],
                                  body=self.i18n['message.file.not_exist.body'].format(bold(url)),
                                  type_=MessageType.ERROR)
@@ -206,12 +206,12 @@ class EnvironmentUpdater:
         return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_CACHE_DIR)
 
     def download_electron_sha256(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        self.logger.info("Downloading Electron {} sha526".format(version))
+        self.logger.info(f"Downloading Electron {version} sha526")
 
         sha256_path = self._get_electron_file_path(url=url, relative=False)
 
         if not self.http_client.exists(url):
-            self.logger.warning("The file {} seems not to exist".format(url))
+            self.logger.warning(f"The file {url} seems not to exist")
             watcher.show_message(title=self.i18n['message.file.not_exist'],
                                  body=self.i18n['message.file.not_exist.body'].format(bold(url)),
                                  type_=MessageType.ERROR)
@@ -237,7 +237,7 @@ class EnvironmentUpdater:
         return f'{ELECTRON_CACHE_DIR}/{file_path}' if not relative else file_path
 
     def check_electron_installed(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
-        self.logger.info("Checking if Electron {} (widevine={}) is installed".format(version, widevine))
+        self.logger.info(f"Checking if Electron {version} (widevine={widevine}) is installed")
         res = {'electron': False, 'sha256': False}
 
         if not os.path.exists(ELECTRON_CACHE_DIR):
@@ -262,7 +262,7 @@ class EnvironmentUpdater:
 
             for att in ('electron', 'sha256'):
                 if res[att]:
-                    self.logger.info('{} ({}) already downloaded'.format(att, version))
+                    self.logger.info(f'{att} ({version}) already downloaded')
 
         return res
 
@@ -275,7 +275,7 @@ class EnvironmentUpdater:
         try:
             settings_exp = int(web_config['environment']['cache_exp'])
         except ValueError:
-            self.logger.error("Could not parse settings property 'environment.cache_exp': {}".format(web_config['environment']['cache_exp']))
+            self.logger.error(f"Could not parse settings property 'environment.cache_exp': {web_config['environment']['cache_exp']}")
             return True
 
         if settings_exp <= 0:
@@ -298,7 +298,7 @@ class EnvironmentUpdater:
         try:
             env_timestamp = datetime.fromtimestamp(float(env_ts_str))
         except:
-            self.logger.error("Could not parse environment settings file timestamp: {}".format(env_ts_str))
+            self.logger.error(f"Could not parse environment settings file timestamp: {env_ts_str}")
             return True
 
         expired = env_timestamp + timedelta(hours=settings_exp) <= datetime.utcnow()
@@ -318,7 +318,7 @@ class EnvironmentUpdater:
             try:
                 return yaml.safe_load(cached_settings_str)
             except yaml.YAMLError:
-                self.logger.error('Could not parse the cache environment settings file: {}'.format(cached_settings_str))
+                self.logger.error(f'Could not parse the cache environment settings file: {cached_settings_str}')
 
     def read_settings(self, web_config: dict, cache: bool = True) -> Optional[dict]:
         if self.taskman:
@@ -345,7 +345,7 @@ class EnvironmentUpdater:
             try:
                 settings = yaml.safe_load(res.content)
             except yaml.YAMLError:
-                self.logger.error('Could not parse environment settings: {}'.format(res.text))
+                self.logger.error(f'Could not parse environment settings: {res.text}')
                 self._finish_task_download_settings()
                 return
 
@@ -355,7 +355,7 @@ class EnvironmentUpdater:
             try:
                 Path(cache_dir).mkdir(parents=True, exist_ok=True)
             except OSError:
-                self.logger.error("Could not create Web cache directory: {}".format(cache_dir))
+                self.logger.error(f"Could not create Web cache directory: {cache_dir}")
                 self.logger.info('Finished')
                 self._finish_task_download_settings()
                 return
@@ -379,11 +379,11 @@ class EnvironmentUpdater:
         electron_version = env['electron-wvvmp' if widevine else 'electron']['version']
 
         if not widevine and pkg.version and pkg.version != electron_version:  # this feature does not support custom widevine electron at the moment
-            self.logger.info('A preset Electron version is defined for {}: {}'.format(pkg.url, pkg.version))
+            self.logger.info(f'A preset Electron version is defined for {pkg.url}: {pkg.version}')
             electron_version = pkg.version
 
         if not widevine and local_config['environment']['electron']['version']:
-            self.logger.warning("A custom Electron version will be used {} to install {}".format(electron_version, pkg.url))
+            self.logger.warning(f"A custom Electron version will be used {electron_version} to install {pkg.url}")
             electron_version = local_config['environment']['electron']['version']
 
         electron_status = self.check_electron_installed(version=electron_version, is_x86_x64_arch=x86_x64, widevine=widevine)
@@ -426,7 +426,7 @@ class EnvironmentUpdater:
 
     def _check_nativefier_installed(self, nativefier_settings: dict) -> bool:
         if not os.path.exists(NODE_MODULES_PATH):
-            self.logger.info('Node modules path {} not found'.format(NODE_MODULES_PATH))
+            self.logger.info(f'Node modules path {NODE_MODULES_PATH} not found')
             return False
         else:
             if not self._is_nativefier_installed():
@@ -437,7 +437,7 @@ class EnvironmentUpdater:
             if installed_version:
                 installed_version = installed_version.strip()
 
-            self.logger.info("Nativefier versions: installed ({}), cloud ({})".format(installed_version, nativefier_settings['version']))
+            self.logger.info(f"Nativefier versions: installed ({installed_version}), cloud ({nativefier_settings['version']})")
 
             if nativefier_settings['version'] != installed_version:
                 self.logger.info("Installed nativefier version is different from cloud's. Changing version.")
@@ -449,11 +449,11 @@ class EnvironmentUpdater:
     def _map_nativefier_file(self, nativefier_settings: dict) -> EnvironmentComponent:
         base_url = nativefier_settings.get('url')
         if not base_url:
-            self.logger.warning("'url' not found in nativefier environment settings. Using hardcoded URL '{}'".format(NATIVEFIER_BASE_URL))
+            self.logger.warning(f"'url' not found in nativefier environment settings. Using hardcoded URL '{NATIVEFIER_BASE_URL}'")
             base_url = NATIVEFIER_BASE_URL
 
         url = base_url.format(version=nativefier_settings['version'])
-        return EnvironmentComponent(name='nativefier@{}'.format(nativefier_settings['version']),
+        return EnvironmentComponent(name=f"nativefier@{nativefier_settings['version']}",
                                     url=url,
                                     size=self.http_client.get_content_length(url),
                                     version=nativefier_settings['version'],
@@ -471,7 +471,7 @@ class EnvironmentUpdater:
         system_env = local_config['environment'].get('system', False)
 
         if system_env:
-            self.logger.warning("Using system's nativefier to install {}".format(app.url))
+            self.logger.warning(f"Using system's nativefier to install {app.url}")
         else:
             node_check = Thread(target=self._check_and_fill_node, args=(env, components))
             node_check.start()
