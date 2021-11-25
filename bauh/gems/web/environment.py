@@ -20,7 +20,7 @@ from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
-    ELECTRON_PATH, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
+    ELECTRON_CACHE_DIR, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
     nativefier, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
     ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path, NATIVEFIER_BASE_URL
 from bauh.gems.web.model import WebApplication
@@ -192,7 +192,7 @@ class EnvironmentUpdater:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
     def download_electron(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        Path(ELECTRON_PATH).mkdir(parents=True, exist_ok=True)
+        Path(ELECTRON_CACHE_DIR).mkdir(parents=True, exist_ok=True)
         self.logger.info("Downloading Electron {}".format(version))
 
         electron_path = self._get_electron_file_path(url=url, relative=False)
@@ -204,7 +204,7 @@ class EnvironmentUpdater:
                                  type_=MessageType.ERROR)
             return False
 
-        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_PATH)
+        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_CACHE_DIR)
 
     def download_electron_sha256(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
         self.logger.info("Downloading Electron {} sha526".format(version))
@@ -218,7 +218,7 @@ class EnvironmentUpdater:
                                  type_=MessageType.ERROR)
             return False
 
-        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_PATH)
+        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_CACHE_DIR)
 
     def _get_electron_url(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> str:
         arch = 'x64' if is_x86_x64_arch else 'ia32'
@@ -235,16 +235,16 @@ class EnvironmentUpdater:
 
     def _get_electron_file_path(self, url: str, relative: bool) -> str:
         file_path = url.replace(':', '').replace('/', '') + '/' + url.split('/')[-1]
-        return '{}/{}'.format(ELECTRON_PATH, file_path) if not relative else file_path
+        return f'{ELECTRON_CACHE_DIR}/{file_path}' if not relative else file_path
 
     def check_electron_installed(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
         self.logger.info("Checking if Electron {} (widevine={}) is installed".format(version, widevine))
         res = {'electron': False, 'sha256': False}
 
-        if not os.path.exists(ELECTRON_PATH):
-            self.logger.info("The Electron folder {} was not found".format(ELECTRON_PATH))
+        if not os.path.exists(ELECTRON_CACHE_DIR):
+            self.logger.info(f"Electron cache directory {ELECTRON_CACHE_DIR} not found")
         else:
-            files = {f.split(ELECTRON_PATH + '/')[1] for f in glob.glob(ELECTRON_PATH + '/**', recursive=True) if os.path.isfile(f)}
+            files = {f.split(ELECTRON_CACHE_DIR + '/')[1] for f in glob.glob(ELECTRON_CACHE_DIR + '/**', recursive=True) if os.path.isfile(f)}
 
             if files:
                 electron_url = self._get_electron_url(version, is_x86_x64_arch, widevine)
@@ -259,7 +259,7 @@ class EnvironmentUpdater:
                     sha_path = self._get_electron_file_path(url=sha_url, relative=True)
                     res['sha256'] = sha_path in files
             else:
-                self.logger.info('No Electron file found in {}'.format(ELECTRON_PATH))
+                self.logger.info(f"No Electron file found in '{ELECTRON_CACHE_DIR}'")
 
             for att in ('electron', 'sha256'):
                 if res[att]:

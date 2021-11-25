@@ -32,7 +32,7 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_PATH, \
+    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_CACHE_DIR, \
     get_icon_path
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
@@ -93,7 +93,7 @@ class WebApplicationManager(SoftwareManager):
         handler = ProcessHandler(watcher)
 
         success = True
-        for path in (ENV_PATH, ELECTRON_PATH):
+        for path in (ENV_PATH, ELECTRON_CACHE_DIR):
             self.logger.info("Checking path '{}'".format(path))
             if os.path.exists(path):
                 try:

@@ -1,8 +1,9 @@
+import os
 import shutil
 from typing import List, Optional
 
 from bauh.commons.system import SimpleProcess, run_cmd
-from bauh.gems.web import NATIVEFIER_BIN_PATH, NODE_PATHS
+from bauh.gems.web import NATIVEFIER_BIN_PATH, NODE_PATHS, ELECTRON_CACHE_DIR
 
 
 def install(url: str, name: str, output_dir: str, electron_version: Optional[str], cwd: str, system: bool, extra_options: List[str] = None) -> SimpleProcess:
@@ -15,7 +16,8 @@ def install(url: str, name: str, output_dir: str, electron_version: Optional[str
     if extra_options:
         cmd.extend(extra_options)
 
-    return SimpleProcess(cmd, cwd=cwd, extra_paths=NODE_PATHS if not system else None)
+    return SimpleProcess(cmd, cwd=cwd, extra_paths=NODE_PATHS if not system else None,
+                         extra_env={'XDG_CACHE_HOME': os.path.dirname(ELECTRON_CACHE_DIR)})
 
 
 def is_available() -> bool:
