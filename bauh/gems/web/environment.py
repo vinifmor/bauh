@@ -461,11 +461,7 @@ class EnvironmentUpdater:
 
     def check_environment(self, env: dict, local_config: dict, app: WebApplication,
                           is_x86_x64_arch: bool, widevine: bool) -> List[EnvironmentComponent]:
-        """
-        :param app:
-        :param is_x86_x64_arch:
-        :return: the environment settings
-        """
+
         components, check_threads = [], []
 
         system_env = local_config['environment'].get('system', False)
