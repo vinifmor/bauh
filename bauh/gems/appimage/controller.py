@@ -566,18 +566,19 @@ class AppImageManager(SoftwareManager):
 
             downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
 
-            file_path = out_dir + '/' + file_name
+            install_file_path = out_dir + '/' + file_name
 
             try:
-                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, file_path]))
+                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, install_file_path]))
             except:
-                self.logger.error("Could not rename file '' as '{}'".format(pkg.local_file_path, file_path))
+                output = ''
+                self.logger.error("Could not rename file '' as '{}'".format(pkg.local_file_path, install_file_path))
                 moved = False
 
             if not moved:
                 watcher.show_message(title=self.i18n['error'].capitalize(),
-                                     body=self.i18n['appimage.install.imported.rename_error'].format(
-                                         bold(pkg.local_file_path.split('/')[-1]), bold(output)),
+                                     body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]),
+                                                                                                     bold(output)),
                                      type_=MessageType.ERROR)
 
                 return TransactionResult.fail()
@@ -600,76 +601,76 @@ class AppImageManager(SoftwareManager):
                                                                             dest=bold(install_file_path)))
                 return TransactionResult.fail()
 
-            watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
-            permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', install_file_path])))
+        watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
+        permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', install_file_path])))
 
-            if permission_given:
+        if permission_given:
 
-                watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
+            watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
 
-                try:
-                    res, output = handler.handle_simple(
-                        SimpleProcess([install_file_path, '--appimage-extract'], cwd=out_dir))
+            try:
+                res, output = handler.handle_simple(
+                    SimpleProcess([install_file_path, '--appimage-extract'], cwd=out_dir))
 
-                    if 'Error: Failed to register AppImage in AppImageLauncherFS' in output:
-                        watcher.show_message(title=self.i18n['error'],
-                                             body=self.i18n['appimage.install.appimagelauncher.error'].format(
-                                                 appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
-                                             type_=MessageType.ERROR)
-                        handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                        return TransactionResult.fail()
-                except:
+                if 'Error: Failed to register AppImage in AppImageLauncherFS' in output:
                     watcher.show_message(title=self.i18n['error'],
-                                         body=traceback.format_exc(),
+                                         body=self.i18n['appimage.install.appimagelauncher.error'].format(
+                                             appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
                                          type_=MessageType.ERROR)
-                    traceback.print_exc()
                     handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
                     return TransactionResult.fail()
+            except:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=traceback.format_exc(),
+                                     type_=MessageType.ERROR)
+                traceback.print_exc()
+                handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
+                return TransactionResult.fail()
 
-                watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
-                extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
+            watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
+            extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
 
-                if os.path.exists(extracted_folder):
-                    desktop_entry = self._find_desktop_file(extracted_folder)
+            if os.path.exists(extracted_folder):
+                desktop_entry = self._find_desktop_file(extracted_folder)
 
-                    with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
-                        de_content = f.read()
+                with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
+                    de_content = f.read()
+
+                if de_content:
+                    de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
+                                                                    appname=pkg.name,
+                                                                    file_path=install_file_path)
+                extracted_icon = self._find_icon_file(extracted_folder)
+
+                if extracted_icon:
+                    icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
+                    shutil.copy(extracted_icon, icon_path)
 
                     if de_content:
-                        de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
-                                                                        appname=pkg.name,
-                                                                        file_path=install_file_path)
-                    extracted_icon = self._find_icon_file(extracted_folder)
+                        de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
 
-                    if extracted_icon:
-                        icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
-                        shutil.copy(extracted_icon, icon_path)
+                    pkg.icon_path = icon_path
 
-                        if de_content:
-                            de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+                if not de_content:
+                    de_content = pkg.to_desktop_entry()
 
-                        pkg.icon_path = icon_path
+                Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
 
-                    if not de_content:
-                        de_content = pkg.to_desktop_entry()
+                with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
+                    f.write(de_content)
 
-                    Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+                try:
+                    shutil.rmtree(extracted_folder)
+                except:
+                    traceback.print_exc()
 
-                    with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
-                        f.write(de_content)
-
-                    try:
-                        shutil.rmtree(extracted_folder)
-                    except:
-                        traceback.print_exc()
-
-                    SymlinksVerifier.create_symlink(app=pkg, file_path=install_file_path, logger=self.logger,
-                                                    watcher=watcher)
-                    return TransactionResult(success=True, installed=[pkg], removed=[])
-                else:
-                    watcher.show_message(title=self.i18n['error'],
-                                         body='Could extract content from {}'.format(bold(file_name)),
-                                         type_=MessageType.ERROR)
+                SymlinksVerifier.create_symlink(app=pkg, file_path=install_file_path, logger=self.logger,
+                                                watcher=watcher)
+                return TransactionResult(success=True, installed=[pkg], removed=[])
+            else:
+                watcher.show_message(title=self.i18n['error'],
+                                     body='Could extract content from {}'.format(bold(file_name)),
+                                     type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return TransactionResult.fail()
