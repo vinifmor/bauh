@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - autostart: `/etc/xdg/autostart` (only used by the Web gem at the moment)
     - desktop entries: `/usr/share/applications`
     - custom themes: `/usr/share/bauh/themes`
+    - symlinks/binaries : `/usr/local/bin`
 
 - UI
   - settings panel: 

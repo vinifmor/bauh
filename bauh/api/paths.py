@@ -11,3 +11,4 @@ DESKTOP_ENTRIES_DIR = '/usr/share/applications' if user.is_root() else f'{Path.h
 TEMP_DIR = f'/tmp/{__app_name__}@{getuser()}'
 LOGS_DIR = f'{TEMP_DIR}/logs'
 AUTOSTART_DIR = f'/etc/xdg/autostart' if user.is_root() else f'{Path.home()}/.config/autostart'
+BINARIES_DIR = f'/usr/local/bin' if user.is_root() else f'{Path.home()}/.local/bin'
