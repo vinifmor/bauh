@@ -192,7 +192,6 @@ class EnvironmentUpdater:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
     def download_electron(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        Path(ELECTRON_CACHE_DIR).mkdir(parents=True, exist_ok=True)
         self.logger.info("Downloading Electron {}".format(version))
 
         electron_path = self._get_electron_file_path(url=url, relative=False)
