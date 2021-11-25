@@ -16,6 +16,7 @@ appimage.downgrade.impossible.body={} a une seule version publiée.
 appimage.downgrade.impossible.title=Impossible à downgrader
 appimage.downgrade.install_version=Installer la version {} ({}) était impossible
 appimage.downgrade.unknown_version.body=Impossible d'identifier la version actuelle de {} dans son historique de versions
+appimage.download.error=It was not possible to download the file {}. The file server can be down.
 appimage.download.no_url=No download URL associated with the app {app}
 appimage.error.uninstall_current_version=Impossible de désinstaller la version actuelle de {}
 appimage.history.0_version=version
