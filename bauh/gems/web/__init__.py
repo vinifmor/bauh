@@ -7,7 +7,7 @@ from bauh.commons.util import map_timestamp_file
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_PATH = '{}/.local/share/bauh/web'.format(Path.home())
-WEB_CACHE_PATH = f'{CACHE_DIR}/web'
+WEB_CACHE_DIR = f'{CACHE_DIR}/web'
 INSTALLED_PATH = '{}/installed'.format(WEB_PATH)
 ENV_PATH = '{}/env'.format(WEB_PATH)
 FIXES_PATH = '{}/fixes'.format(WEB_PATH)
@@ -28,12 +28,12 @@ URL_FIX_PATTERN = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/
 URL_SUGGESTIONS = "https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/suggestions.yml"
 UA_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'
 TEMP_PATH = f'{TEMP_DIR}/web'
-SEARCH_INDEX_FILE = f'{WEB_CACHE_PATH}/index.yml'
-SUGGESTIONS_CACHE_FILE = f'{WEB_CACHE_PATH}/suggestions.yml'
+SEARCH_INDEX_FILE = f'{WEB_CACHE_DIR}/index.yml'
+SUGGESTIONS_CACHE_FILE = f'{WEB_CACHE_DIR}/suggestions.yml'
 SUGGESTIONS_CACHE_TS_FILE = map_timestamp_file(SUGGESTIONS_CACHE_FILE)
 CONFIG_FILE = f'{CONFIG_DIR}/web.yml'
-ENVIRONMENT_SETTINGS_CACHED_FILE = f'{WEB_CACHE_PATH}/environment.yml'
-ENVIRONMENT_SETTINGS_TS_FILE = f'{WEB_CACHE_PATH}/environment.ts'
+ENVIRONMENT_SETTINGS_CACHED_FILE = f'{WEB_CACHE_DIR}/environment.yml'
+ENVIRONMENT_SETTINGS_TS_FILE = f'{WEB_CACHE_DIR}/environment.ts'
 NATIVEFIER_BASE_URL = 'https://github.com/nativefier/nativefier/archive/v{version}.tar.gz'
 
 
