@@ -29,7 +29,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   
 - AppImage
   - trying to download a file without a URL associated with [#210](https://github.com/vinifmor/bauh/issues/210)
-  - regression: not able to import AppImage files (introduced in **0.9.21**)    
+  - regressions: 
+    - not able to import AppImage files (introduced in **0.9.21**)
+    - not able to upgrade imported AppImage files (introduced in **0.9.21**)
 
 - Arch
   - **wget** as a hard requirement for Arch package management

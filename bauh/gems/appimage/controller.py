@@ -364,12 +364,15 @@ class AppImageManager(SoftwareManager):
         for req in requirements.to_upgrade:
             watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
 
-            download_data = self._download(req.pkg, watcher)
+            download_data = None
 
-            if not download_data:
-                not_upgraded.append(req.pkg)
-                watcher.change_substatus('')
-                continue
+            if not req.pkg.imported:
+                download_data = self._download(req.pkg, watcher)
+
+                if not download_data:
+                    not_upgraded.append(req.pkg)
+                    watcher.change_substatus('')
+                    continue
 
             if not self.uninstall(req.pkg, root_password, watcher).success:
                 not_upgraded.append(req.pkg)
