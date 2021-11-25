@@ -416,7 +416,7 @@ boot:
 
 
 #### <a name="custom_themes">Custom themes</a>
-- Custom themes can be provided by adding their files at `~/.local/share/bauh/themes` (sub-folders are allowed). 
+- Custom themes can be provided by adding their files at `~/.local/share/bauh/themes` (or `/usr/share/bauh/themes` for **root**). Sub-folders are allowed. 
 - Themes are composed by 2 required and 1 optional files sharing the same name:
     - `my_theme.qss`: file with the qss rules. Full example: [light.qss](https://github.com/vinifmor/bauh/blob/master/bauh/view/resources/style/light/light.qss)
     - `my_theme.meta`: file defining the theme's data. Full example: [light.meta](https://github.com/vinifmor/bauh/blob/master/bauh/view/resources/style/light/light.meta) 
