@@ -5,14 +5,14 @@ from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = f'{TEMP_DIR}/arch'
-ARCH_CACHE_PATH = f'{CACHE_DIR}/arch'
-CATEGORIES_FILE_PATH = f'{ARCH_CACHE_PATH}/categories.txt'
+ARCH_CACHE_DIR = f'{CACHE_DIR}/arch'
+CATEGORIES_FILE_PATH = f'{ARCH_CACHE_DIR}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/categories.txt'
 URL_GPG_SERVERS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/gpgservers.txt'
 ARCH_CONFIG_DIR = f'{CONFIG_DIR}/arch'
 CUSTOM_MAKEPKG_FILE = f'{ARCH_CONFIG_DIR}/makepkg.conf'
-AUR_INDEX_FILE = f'{ARCH_CACHE_PATH}/aur/index.txt'
-AUR_INDEX_TS_FILE = f'{ARCH_CACHE_PATH}/aur/index.ts'
+AUR_INDEX_FILE = f'{ARCH_CACHE_DIR}/aur/index.txt'
+AUR_INDEX_TS_FILE = f'{ARCH_CACHE_DIR}/aur/index.ts'
 CONFIG_FILE = f'{CONFIG_DIR}/arch.yml'
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/aur_suggestions.txt'
 UPDATES_IGNORED_FILE = f'{ARCH_CONFIG_DIR}/updates_ignored.txt'
