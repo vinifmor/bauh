@@ -14,13 +14,13 @@ APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'
 UPDATES_IGNORED_FILE = f'{APPIMAGE_CONFIG_DIR}/updates_ignored.txt'
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-APPIMAGE_CACHE_PATH = f'{CACHE_DIR}/appimage'
-DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_PATH}/apps.db'
-DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_PATH}/releases.db'
-DATABASES_TS_FILE = f'{APPIMAGE_CACHE_PATH}/dbs.ts'
+APPIMAGE_CACHE_DIR = f'{CACHE_DIR}/appimage'
+DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_DIR}/apps.db'
+DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_DIR}/releases.db'
+DATABASES_TS_FILE = f'{APPIMAGE_CACHE_DIR}/dbs.ts'
 DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
-SUGGESTIONS_CACHED_FILE = f'{APPIMAGE_CACHE_PATH}/suggestions.txt'
-SUGGESTIONS_CACHED_TS_FILE = f'{APPIMAGE_CACHE_PATH}/suggestions.ts'
+SUGGESTIONS_CACHED_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.txt'
+SUGGESTIONS_CACHED_TS_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.ts'
 DOWNLOAD_DIR = f'{TEMP_DIR}/appimage/download'
 
 
