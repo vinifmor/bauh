@@ -18,7 +18,6 @@ APPIMAGE_CACHE_DIR = f'{CACHE_DIR}/appimage'
 DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_DIR}/apps.db'
 DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_DIR}/releases.db'
 DATABASES_TS_FILE = f'{APPIMAGE_CACHE_DIR}/dbs.ts'
-DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
 SUGGESTIONS_CACHED_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.txt'
 SUGGESTIONS_CACHED_TS_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.ts'
 DOWNLOAD_DIR = f'{TEMP_DIR}/appimage/download'

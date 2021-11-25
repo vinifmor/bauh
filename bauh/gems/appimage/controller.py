@@ -23,13 +23,14 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
+from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
-    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
+    DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
 from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.util import replace_desktop_entry_exec_command
@@ -657,7 +658,7 @@ class AppImageManager(SoftwareManager):
                 if not de_content:
                     de_content = pkg.to_desktop_entry()
 
-                Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+                Path(DESKTOP_ENTRIES_DIR).mkdir(parents=True, exist_ok=True)
 
                 with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
                     f.write(de_content)
@@ -678,9 +679,8 @@ class AppImageManager(SoftwareManager):
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return TransactionResult.fail()
 
-
     def _gen_desktop_entry_path(self, app: AppImage) -> str:
-        return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.get_clean_name())
+        return f'{DESKTOP_ENTRIES_DIR}/bauh_appimage_{app.get_clean_name()}.desktop'
 
     def is_enabled(self) -> bool:
         return self.enabled

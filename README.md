@@ -154,7 +154,7 @@ rm -rf bauh_env` (just remove the directory)
 
 To create a shortcut for bauh on your desktop menu:
 
-- Copy the files from [bauh/desktop](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/desktop/bauh.desktop) to `~/.local/share/applications`
+- Copy the files from [bauh/desktop](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/desktop/bauh.desktop) to `~/.local/share/applications` (or `/usr/share/applications` for **root**)
 - Replace the `Exec` field on theses files by the bauh binary path. e.g: `Exec=/usr/bin/bauh` (or `bauh_env/bin/bauh`)
 - Copy [logo.svg](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/view/resources/img/logo.svg) to `/usr/share/icons/hicolor/scalable/apps` as `bauh.svg`
 
@@ -192,7 +192,7 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
     - `Update database`: manually synchronize the AppImage database
 
 - Installed applications are store at `~/.local/share/bauh/appimage/installed`
-- Desktop entries (menu shortcuts) of the installed applications are stored at **~/.local/share/applications** (name pattern: `bauh_appimage_appname.desktop`)
+- Desktop entries (menu shortcuts) of the installed applications are stored at **~/.local/share/applications** (or `/usr/share/applications` for **root**). Name pattern: `bauh_appimage_appname.desktop`
 - Symlinks are created at **~/.local/bin**. They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: `rpcs3-appimage`)
 - Downloaded database files are stored at **~/.cache/bauh/appimage** as **apps.db** and **releases.db**
 - Databases are updated during the initialization process if they are considered outdated
