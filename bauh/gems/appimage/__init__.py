@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_PATH
+from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +14,7 @@ APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'
 UPDATES_IGNORED_FILE = f'{APPIMAGE_CONFIG_DIR}/updates_ignored.txt'
 SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
 URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-APPIMAGE_CACHE_PATH = f'{CACHE_PATH}/appimage'
+APPIMAGE_CACHE_PATH = f'{CACHE_DIR}/appimage'
 DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_PATH}/apps.db'
 DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_PATH}/releases.db'
 DATABASES_TS_FILE = f'{APPIMAGE_CACHE_PATH}/dbs.ts'

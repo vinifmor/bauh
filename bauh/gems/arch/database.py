@@ -7,10 +7,10 @@ from logging import Logger
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.paths import CACHE_PATH
+from bauh.api.paths import CACHE_DIR
 from bauh.commons.system import ProcessHandler
 
-SYNC_FILE = f'{CACHE_PATH}/arch/db_sync'
+SYNC_FILE = f'{CACHE_DIR}/arch/db_sync'
 
 
 def should_sync(arch_config: dict, aur_supported: bool, handler: Optional[ProcessHandler], logger: logging.Logger):

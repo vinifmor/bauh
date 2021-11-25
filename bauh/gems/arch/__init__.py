@@ -1,11 +1,11 @@
 import os
 
-from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_PATH
+from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = f'{TEMP_DIR}/arch'
-ARCH_CACHE_PATH = f'{CACHE_PATH}/arch'
+ARCH_CACHE_PATH = f'{CACHE_DIR}/arch'
 CATEGORIES_FILE_PATH = f'{ARCH_CACHE_PATH}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/categories.txt'
 URL_GPG_SERVERS = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/arch/gpgservers.txt'
