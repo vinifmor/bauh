@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Optional
 
 from bauh import __app_name__
-from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR, BINARIES_DIR
+from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR, BINARIES_DIR, SHARED_FILES_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-LOCAL_PATH = f'{Path.home()}/.local/share/{__app_name__}/appimage'
+LOCAL_PATH = f'{SHARED_FILES_DIR}/appimage'
 INSTALLATION_PATH = f'{LOCAL_PATH}/installed/'
 SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/suggestions.txt'
 CONFIG_FILE = f'{CONFIG_DIR}/appimage.yml'
