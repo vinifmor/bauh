@@ -191,34 +191,6 @@ class EnvironmentUpdater:
     def _is_nativefier_installed(self) -> bool:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
-    def download_electron(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        self.logger.info(f"Downloading Electron {version}")
-
-        electron_path = self._get_electron_file_path(url=url, relative=False)
-
-        if not self.http_client.exists(url):
-            self.logger.warning(f"The file {url} seems not to exist")
-            watcher.show_message(title=self.i18n['message.file.not_exist'],
-                                 body=self.i18n['message.file.not_exist.body'].format(bold(url)),
-                                 type_=MessageType.ERROR)
-            return False
-
-        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=electron_path, cwd=ELECTRON_CACHE_DIR)
-
-    def download_electron_sha256(self, version: str, url: str, widevine: bool, watcher: ProcessWatcher) -> bool:
-        self.logger.info(f"Downloading Electron {version} sha526")
-
-        sha256_path = self._get_electron_file_path(url=url, relative=False)
-
-        if not self.http_client.exists(url):
-            self.logger.warning(f"The file {url} seems not to exist")
-            watcher.show_message(title=self.i18n['message.file.not_exist'],
-                                 body=self.i18n['message.file.not_exist.body'].format(bold(url)),
-                                 type_=MessageType.ERROR)
-            return False
-
-        return self.file_downloader.download(file_url=url, watcher=watcher, output_path=sha256_path, cwd=ELECTRON_CACHE_DIR)
-
     def _get_electron_url(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> str:
         arch = 'x64' if is_x86_x64_arch else 'ia32'
         if widevine:
@@ -232,10 +204,6 @@ class EnvironmentUpdater:
         else:
             return ELECTRON_SHA256_URL.format(version=version)
 
-    def _get_electron_file_path(self, url: str, relative: bool) -> str:
-        file_path = url.replace(':', '').replace('/', '') + '/' + url.split('/')[-1]
-        return f'{ELECTRON_CACHE_DIR}/{file_path}' if not relative else file_path
-
     def check_electron_installed(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
         self.logger.info(f"Checking if Electron {version} (widevine={widevine}) is installed")
         res = {'electron': False, 'sha256': False}
@@ -243,20 +211,14 @@ class EnvironmentUpdater:
         if not os.path.exists(ELECTRON_CACHE_DIR):
             self.logger.info(f"Electron cache directory {ELECTRON_CACHE_DIR} not found")
         else:
-            files = {f.split(ELECTRON_CACHE_DIR + '/')[1] for f in glob.glob(ELECTRON_CACHE_DIR + '/**', recursive=True) if os.path.isfile(f)}
+            files = {f for f in glob.glob(f'{ELECTRON_CACHE_DIR}/**', recursive=True) if os.path.isfile(f)}
 
             if files:
                 electron_url = self._get_electron_url(version, is_x86_x64_arch, widevine)
-                file_path = self._get_electron_file_path(url=electron_url, relative=True)
-
-                res['electron'] = file_path in files
-
-                if not res['electron']:
-                    res['sha256'] = True
-                else:
-                    sha_url = self._get_electron_sha256_url(version=version, widevine=widevine)
-                    sha_path = self._get_electron_file_path(url=sha_url, relative=True)
-                    res['sha256'] = sha_path in files
+                electron_file_name = os.path.basename(electron_url)
+                file_path_found = [f for f in files if os.path.basename(f) == electron_file_name]
+                res['electron'] = bool(file_path_found)
+                res['sha256'] = res['electron']
             else:
                 self.logger.info(f"No Electron file found in '{ELECTRON_CACHE_DIR}'")
 
@@ -499,18 +461,6 @@ class EnvironmentUpdater:
                 return False
         else:
             if nativefier_data and not self._install_nativefier(version=nativefier_data.version, url=nativefier_data.url, handler=handler):
-                return False
-
-        electron_data = comp_map.get('electron')
-
-        if electron_data:
-            if not self.download_electron(version=electron_data.version, url=electron_data.url, watcher=handler.watcher, widevine=electron_data.properties['widevine']):
-                return False
-
-        sha256_data = comp_map.get('electron_sha256')
-
-        if sha256_data:
-            if not self.download_electron_sha256(version=sha256_data.version, url=sha256_data.url, watcher=handler.watcher, widevine=sha256_data.properties['widevine']):
                 return False
 
         self.logger.info('Environment successfully updated')

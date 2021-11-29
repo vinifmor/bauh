@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   
 - Web
   - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
-   
+  - letting the Electron client to download the Electron build file instead of bauh (to avoid wrong caching paths)
 
 ### Fixes
 - General
