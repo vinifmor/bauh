@@ -3,12 +3,13 @@ from pathlib import Path
 
 from packaging.version import parse as parse_version
 
+from bauh import __app_name__
 from bauh.api import user
 from bauh.api.paths import CONFIG_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/flatpak/suggestions.txt'
+SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/flatpak/suggestions.txt'
 CONFIG_FILE = f'{CONFIG_DIR}/flatpak.yml'
 FLATPAK_CONFIG_DIR = f'{CONFIG_DIR}/flatpak'
 UPDATES_IGNORED_FILE = f'{FLATPAK_CONFIG_DIR}/updates_ignored.txt'
