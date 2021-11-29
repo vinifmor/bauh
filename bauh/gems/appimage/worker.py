@@ -234,7 +234,7 @@ class SymlinksVerifier(Thread):
 
     def run(self):
         if os.path.exists(INSTALLATION_PATH):
-            installed_files = glob.glob('{}/*/*.json'.format(INSTALLATION_PATH))
+            installed_files = glob.glob(f'{INSTALLATION_PATH}/*/*.json')
 
             if installed_files:
                 self.logger.info("Checking installed AppImage files with no symlinks created")

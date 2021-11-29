@@ -94,7 +94,7 @@ class AppImage(SoftwarePackage):
         if self.install_dir:
             return self.install_dir
         elif self.name:
-            return INSTALLATION_PATH + self.name.lower()
+            return f'{INSTALLATION_PATH}/{self.name.lower()}'
 
     def get_disk_icon_path(self):
         return self.icon_path

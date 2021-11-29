@@ -254,7 +254,7 @@ class AppImageManager(SoftwareManager):
         res = SearchResult(installed_apps, [], 0)
 
         if os.path.exists(INSTALLATION_PATH):
-            installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
+            installed = run_cmd(f'ls {INSTALLATION_PATH}/*/data.json', print_error=False)
 
             if installed:
                 names = set()
@@ -553,7 +553,7 @@ class AppImageManager(SoftwareManager):
     def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None):
 
         handler = ProcessHandler(watcher)
-        out_dir = INSTALLATION_PATH + pkg.get_clean_name()
+        out_dir = f'{INSTALLATION_PATH}/{pkg.get_clean_name()}'
         counter = 0
         while True:
             if os.path.exists(out_dir):
