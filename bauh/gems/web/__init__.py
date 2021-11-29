@@ -6,11 +6,11 @@ from bauh.commons import resource
 from bauh.commons.util import map_timestamp_file
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-WEB_PATH = f'{SHARED_FILES_DIR}/web'
+WEB_SHARED_DIR = f'{SHARED_FILES_DIR}/web'
 WEB_CACHE_DIR = f'{CACHE_DIR}/web'
-INSTALLED_PATH = f'{WEB_PATH}/installed'
-ENV_PATH = f'{WEB_PATH}/env'
-FIXES_PATH = f'{WEB_PATH}/fixes'
+INSTALLED_PATH = f'{WEB_SHARED_DIR}/installed'
+ENV_PATH = f'{WEB_SHARED_DIR}/env'
+FIXES_PATH = f'{WEB_SHARED_DIR}/fixes'
 NODE_DIR_PATH = f'{ENV_PATH}/node'
 NODE_PATHS = {f'{NODE_DIR_PATH}/bin'}
 NODE_BIN_PATH = f'{NODE_DIR_PATH}/bin/node'
