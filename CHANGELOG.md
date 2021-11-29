@@ -16,8 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - custom themes: `/usr/share/bauh/themes`
     - symlinks/binaries : `/usr/local/bin`
     - shared files: `/usr/local/share/bauh`
+  - adding the `XDG_RUNTIME_DIR` environment variable if not available (following the pattern `/run/user/$UID`)
 
-- UI
+- UI 
   - settings panel: 
     - always displaying all supported packaging technologies
     - displaying a tooltip with the missing dependencies for a supported packaging technology
