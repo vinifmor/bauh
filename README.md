@@ -316,15 +316,15 @@ defined at [suggestions.yml](https://raw.githubusercontent.com/vinifmor/bauh-fil
 
 
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
-will be generated at **~/.local/share/bauh/web/env**.
+will be generated at `~/.local/share/bauh/web/env` (or `/usr/local/share/bauh/web/env` for **root**).
 - It supports DRM protected content through a custom Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). nativefier handles the switch between the official Electron and the custom.
 - The isolated environment is created based on the settings defined in [environment.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/environment.yml)
  (downloaded during runtime).
 - Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
 attach it to the generated app.
-- The installed applications are located at `~/.local/share/bauh/installed`.
-- A desktop entry / menu shortcut will be generated for the installed applications at `~/.local/share/application`
-- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at `~/.config/autostart`
+- The installed applications are located at `~/.local/share/bauh/installed` (or `/usr/local/share/bauh/web/installed` for **root**).
+- A desktop entry / menu shortcut will be generated for the installed applications at `~/.local/share/applications` (or `/usr/share/applications` for **root**)
+- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at `~/.config/autostart` (or `/etc/xdg/autostart` for **root**)
 allowing the application to launch automatically after the system's boot attached to the tray.
 
 <p align="center">
@@ -335,7 +335,7 @@ allowing the application to launch automatically after the system's boot attache
 - Extra actions
     - `Clean installation environment`: removes all the installation environment folders (it does not remove installed apps)
  
-- The configuration file is located at `~/.config/bauh/web.yml` and it allows the following customizations:
+- The configuration file is located at `~/.config/bauh/web.yml` (or `/etc/bauh/web.yml` for **root**) and it allows the following customizations:
 
 ```
 environment:
