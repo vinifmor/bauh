@@ -28,7 +28,7 @@ from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, ROOT_DIR, \
+from bauh.gems.appimage import query, INSTALLATION_PATH, APPIMAGE_SHARED_DIR, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
 from bauh.gems.appimage.config import AppImageConfigManager
@@ -810,7 +810,7 @@ class AppImageManager(SoftwareManager):
         return []
 
     def clear_data(self, logs: bool = True):
-        for f in glob.glob('{}/*.db'.format(LOCAL_PATH)):
+        for f in glob.glob('{}/*.db'.format(APPIMAGE_SHARED_DIR)):
             try:
                 if logs:
                     print('[bauh][appimage] Deleting {}'.format(f))
