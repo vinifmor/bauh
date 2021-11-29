@@ -211,13 +211,11 @@ class EnvironmentUpdater:
         if not os.path.exists(ELECTRON_CACHE_DIR):
             self.logger.info(f"Electron cache directory {ELECTRON_CACHE_DIR} not found")
         else:
-            files = {f for f in glob.glob(f'{ELECTRON_CACHE_DIR}/**', recursive=True) if os.path.isfile(f)}
+            files = {os.path.basename(f) for f in glob.glob(f'{ELECTRON_CACHE_DIR}/**', recursive=True) if os.path.isfile(f)}
 
             if files:
                 electron_url = self._get_electron_url(version, is_x86_x64_arch, widevine)
-                electron_file_name = os.path.basename(electron_url)
-                file_path_found = [f for f in files if os.path.basename(f) == electron_file_name]
-                res['electron'] = bool(file_path_found)
+                res['electron'] = os.path.basename(electron_url) in files
                 res['sha256'] = res['electron']
             else:
                 self.logger.info(f"No Electron file found in '{ELECTRON_CACHE_DIR}'")
