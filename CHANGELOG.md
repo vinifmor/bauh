@@ -24,7 +24,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <p align="center">
           <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.22/missing_type_dep.png">
         </p>
-    
+
+- AppImage
+  - faster reading of installed applications (subprocess call replaced by Python call)
+  
 - Web
   - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
    

@@ -254,11 +254,11 @@ class AppImageManager(SoftwareManager):
         res = SearchResult(installed_apps, [], 0)
 
         if os.path.exists(INSTALLATION_DIR):
-            installed = run_cmd(f'ls {INSTALLATION_DIR}/*/data.json', print_error=False)
+            installed = glob.glob(f'{INSTALLATION_DIR}/*/data.json')
 
             if installed:
                 names = set()
-                for path in installed.split('\n'):
+                for path in installed:
                     if path:
                         with open(path) as f:
                             app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
