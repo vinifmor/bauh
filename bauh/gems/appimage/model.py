@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
-from bauh.gems.appimage import ROOT_DIR, INSTALLATION_PATH
+from bauh.gems.appimage import ROOT_DIR, INSTALLATION_DIR
 from bauh.view.util.translation import I18n
 
 RE_MANY_SPACES = re.compile(r'\s+')
@@ -94,7 +94,7 @@ class AppImage(SoftwarePackage):
         if self.install_dir:
             return self.install_dir
         elif self.name:
-            return f'{INSTALLATION_PATH}/{self.name.lower()}'
+            return f'{INSTALLATION_DIR}/{self.name.lower()}'
 
     def get_disk_icon_path(self):
         return self.icon_path

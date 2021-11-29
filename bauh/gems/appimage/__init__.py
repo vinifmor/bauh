@@ -8,7 +8,7 @@ from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 APPIMAGE_SHARED_DIR = f'{SHARED_FILES_DIR}/appimage'
-INSTALLATION_PATH = f'{APPIMAGE_SHARED_DIR}/installed'
+INSTALLATION_DIR = f'{APPIMAGE_SHARED_DIR}/installed'
 SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/suggestions.txt'
 CONFIG_FILE = f'{CONFIG_DIR}/appimage.yml'
 APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'

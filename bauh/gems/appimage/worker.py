@@ -16,7 +16,7 @@ from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.gems.appimage import get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
+from bauh.gems.appimage import get_icon_path, INSTALLATION_DIR, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
     APPIMAGE_CACHE_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES, SUGGESTIONS_FILE, \
     SUGGESTIONS_CACHED_TS_FILE, SUGGESTIONS_CACHED_FILE
 from bauh.gems.appimage.model import AppImage
@@ -233,8 +233,8 @@ class SymlinksVerifier(Thread):
                     watcher.print('[error] {}'.format(msg))
 
     def run(self):
-        if os.path.exists(INSTALLATION_PATH):
-            installed_files = glob.glob(f'{INSTALLATION_PATH}/*/*.json')
+        if os.path.exists(INSTALLATION_DIR):
+            installed_files = glob.glob(f'{INSTALLATION_DIR}/*/*.json')
 
             if installed_files:
                 self.logger.info("Checking installed AppImage files with no symlinks created")

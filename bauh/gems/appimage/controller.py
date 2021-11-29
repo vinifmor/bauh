@@ -28,7 +28,7 @@ from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, APPIMAGE_SHARED_DIR, ROOT_DIR, \
+from bauh.gems.appimage import query, INSTALLATION_DIR, APPIMAGE_SHARED_DIR, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
 from bauh.gems.appimage.config import AppImageConfigManager
@@ -253,8 +253,8 @@ class AppImageManager(SoftwareManager):
         installed_apps = []
         res = SearchResult(installed_apps, [], 0)
 
-        if os.path.exists(INSTALLATION_PATH):
-            installed = run_cmd(f'ls {INSTALLATION_PATH}/*/data.json', print_error=False)
+        if os.path.exists(INSTALLATION_DIR):
+            installed = run_cmd(f'ls {INSTALLATION_DIR}/*/data.json', print_error=False)
 
             if installed:
                 names = set()
@@ -553,7 +553,7 @@ class AppImageManager(SoftwareManager):
     def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None):
 
         handler = ProcessHandler(watcher)
-        out_dir = f'{INSTALLATION_PATH}/{pkg.get_clean_name()}'
+        out_dir = f'{INSTALLATION_DIR}/{pkg.get_clean_name()}'
         counter = 0
         while True:
             if os.path.exists(out_dir):
