@@ -1,13 +1,12 @@
 import os
-from pathlib import Path
 
 from bauh import __app_name__
-from bauh.api.paths import DESKTOP_ENTRIES_DIR, CONFIG_DIR, TEMP_DIR, CACHE_DIR
+from bauh.api.paths import DESKTOP_ENTRIES_DIR, CONFIG_DIR, TEMP_DIR, CACHE_DIR, SHARED_FILES_DIR
 from bauh.commons import resource
 from bauh.commons.util import map_timestamp_file
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-WEB_PATH = f'{Path.home()}/.local/share/{__app_name__}/web'
+WEB_PATH = f'{SHARED_FILES_DIR}/web'
 WEB_CACHE_DIR = f'{CACHE_DIR}/web'
 INSTALLED_PATH = f'{WEB_PATH}/installed'
 ENV_PATH = f'{WEB_PATH}/env'
