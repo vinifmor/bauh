@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 from bauh.api.abstract.handler import ProcessWatcher
 
@@ -40,4 +40,8 @@ class FileDownloader(ABC):
 
     @abstractmethod
     def list_available_multithreaded_clients(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_supported_clients(self) -> tuple:
         pass

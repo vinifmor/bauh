@@ -1,9 +1,7 @@
-from pathlib import Path
-
-from bauh import __app_name__
+from bauh.api.paths import CONFIG_DIR
 from bauh.commons.config import YAMLConfigManager
 
-FILE_PATH = '{}/.config/{}/config.yml'.format(str(Path.home()), __app_name__)
+FILE_PATH = f'{CONFIG_DIR}/config.yml'
 
 
 class CoreConfigManager(YAMLConfigManager):

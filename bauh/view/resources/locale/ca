@@ -347,6 +347,7 @@ manage_window.upgrade_all.popup.title=Actualitza
 message.file.not_exist=Fitxer no existeix
 message.file.not_exist.body=El fitxer {} sembla no existir
 mirror=mirall
+missing_dep={dep} is not installed
 name=nom
 no=no
 not_installed=no instal·lada

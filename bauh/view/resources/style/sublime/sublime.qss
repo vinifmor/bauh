@@ -47,6 +47,10 @@ QCheckBox::indicator:checked:disabled {
   image: url("@style_dir/img/checkbox_checked_disabled.svg");
 }
 
+QCheckBox[warning = "true"] {
+    color: @color.yellow;
+}
+
 QComboBox, QComboBox QAbstractItemView, QMenu QAbstractItemView {
     selection-background-color: @menu.item.selected.background.color;
     selection-color: @menu.item.selected.font.color;
@@ -113,6 +117,10 @@ QLabel[error = "true"] {
 
 QLabel[help_icon = "true"] {
     qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
+QLabel[warning_icon = "true"] {
+    qproperty-pixmap: url("@style_dir/img/warning.svg");
 }
 
 QLabel[tip_icon = "true"] {

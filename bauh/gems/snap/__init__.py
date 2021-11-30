@@ -1,12 +1,12 @@
 import os
 
-from bauh.api.constants import CACHE_PATH, CONFIG_PATH
+from bauh.api.paths import CONFIG_DIR, CACHE_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-SNAP_CACHE_PATH = CACHE_PATH + '/snap'
-CONFIG_FILE = '{}/snap.yml'.format(CONFIG_PATH)
-CATEGORIES_FILE_PATH = SNAP_CACHE_PATH + '/categories.txt'
+SNAP_CACHE_DIR = f'{CACHE_DIR}/snap'
+CONFIG_FILE = f'{CONFIG_DIR}/snap.yml'
+CATEGORIES_FILE_PATH = f'{SNAP_CACHE_DIR}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/categories.txt'
 SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/suggestions.txt'
 

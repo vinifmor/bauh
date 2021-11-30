@@ -6,6 +6,7 @@ import time
 import traceback
 from io import StringIO
 from math import floor
+from pathlib import Path
 from threading import Thread
 from typing import Iterable, List
 
@@ -130,10 +131,20 @@ class AdaptableFileDownloader(FileDownloader):
         success = False
         ti = time.time()
         try:
-            if output_path and os.path.exists(output_path):
-                self.logger.info(f'Removing old file found before downloading: {output_path}')
-                os.remove(output_path)
-                self.logger.info(f'Old file {output_path} removed')
+            if output_path:
+                if os.path.exists(output_path):
+                    self.logger.info(f'Removing old file found before downloading: {output_path}')
+                    os.remove(output_path)
+                    self.logger.info(f'Old file {output_path} removed')
+                else:
+                    output_dir = os.path.dirname(output_path)
+
+                    try:
+                        Path(output_dir).mkdir(exist_ok=True, parents=True)
+                    except OSError:
+                        self.logger.error(f"Could not make download directory '{output_dir}'")
+                        watcher.print(self.i18n['error.mkdir'].format(dir=output_dir))
+                        return False
 
             client = self.get_available_multithreaded_tool()
             if client:
@@ -223,3 +234,6 @@ class AdaptableFileDownloader(FileDownloader):
 
     def list_available_multithreaded_clients(self) -> List[str]:
         return [c for c in self.supported_multithread_clients if self.is_multithreaded_client_available(c)]
+
+    def get_supported_clients(self) -> tuple:
+        return 'wget', 'aria2', 'axel'

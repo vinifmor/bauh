@@ -20,6 +20,10 @@ QCheckBox::indicator:checked:disabled {
   image: url("@style_dir/img/checkbox_checked_disabled.svg");
 }
 
+QCheckBox[warning = "true"] {
+    color: @color.warning;
+}
+
 QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled {
     color: @disabled.color;
 }
@@ -406,6 +410,10 @@ PackagesTable QToolButton#bt_uninstall:disabled {
 
 QLabel[help_icon = "true"] {
     qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
+QLabel[warning_icon = "true"] {
+    qproperty-pixmap: url("@style_dir/img/warning.svg");
 }
 
 QLabel[tip_icon = "true"] {

@@ -23,13 +23,14 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
     SuggestionPriority, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
+from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
-from bauh.gems.appimage import query, INSTALLATION_PATH, LOCAL_PATH, ROOT_DIR, \
-    CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
-    DATABASE_RELEASES_FILE, DESKTOP_ENTRIES_PATH, APPIMAGE_CACHE_PATH, get_icon_path, DOWNLOAD_DIR
+from bauh.gems.appimage import query, INSTALLATION_DIR, APPIMAGE_SHARED_DIR, ROOT_DIR, \
+    APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
+    DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
 from bauh.gems.appimage.config import AppImageConfigManager
 from bauh.gems.appimage.model import AppImage
 from bauh.gems.appimage.util import replace_desktop_entry_exec_command
@@ -107,7 +108,7 @@ class AppImageManager(SoftwareManager):
         input_description = TextInputComponent(label=self.i18n['description'].capitalize())
 
         cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
-        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c.lower()).capitalize(), value=c) for c in self.context.default_categories])
+        cat_ops.extend([InputOption(label=self.i18n.get(f'category.{c.lower()}', c.lower()).capitalize(), value=c) for c in self.context.default_categories])
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
                                         default_option=cat_ops[0])
 
@@ -183,13 +184,13 @@ class AppImageManager(SoftwareManager):
             try:
                 return sqlite3.connect(db_path)
             except:
-                self.logger.error("Could not connect to database file '{}'".format(db_path))
+                self.logger.error(f"Could not connect to database file '{db_path}'")
                 traceback.print_exc()
         else:
-            self.logger.warning("Could not get a connection for database '{}'".format(db_path))
+            self.logger.warning(f"Could not get a connection for database '{db_path}'")
 
     def _gen_app_key(self, app: AppImage):
-        return '{}{}'.format(app.name.lower(), app.github.lower() if app.github else '')
+        return f"{app.name.lower()}{app.github.lower() if app.github else ''}"
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
@@ -242,7 +243,7 @@ class AppImageManager(SoftwareManager):
         try:
             apps_conn.close()
         except:
-            self.logger.error("An exception happened when trying to close the connection to database file '{}'".format(DATABASE_APPS_FILE))
+            self.logger.error(f"An exception happened when trying to close the connection to database file '{DATABASE_APPS_FILE}'")
             traceback.print_exc()
 
         return SearchResult(new=not_installed, installed=installed_found, total=len(not_installed) + len(installed_found))
@@ -252,19 +253,19 @@ class AppImageManager(SoftwareManager):
         installed_apps = []
         res = SearchResult(installed_apps, [], 0)
 
-        if os.path.exists(INSTALLATION_PATH):
-            installed = run_cmd('ls {}*/data.json'.format(INSTALLATION_PATH), print_error=False)
+        if os.path.exists(INSTALLATION_DIR):
+            installed = glob.glob(f'{INSTALLATION_DIR}/*/data.json')
 
             if installed:
                 names = set()
-                for path in installed.split('\n'):
+                for path in installed:
                     if path:
                         with open(path) as f:
                             app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
                         installed_apps.append(app)
-                        names.add("'{}'".format(app.name.lower()))
+                        names.add(f"'{app.name.lower()}'")
 
                 if installed_apps:
                     apps_con = self._get_db_connection(DATABASE_APPS_FILE) if not connection else connection
@@ -298,7 +299,7 @@ class AppImageManager(SoftwareManager):
 
                                         break
                         except:
-                            self.logger.error("An exception happened while querying the database file {}".format(apps_con))
+                            self.logger.error(f"An exception happened while querying the database file '{DATABASE_APPS_FILE}'")
                             traceback.print_exc()
                         finally:
                             if not connection:  # the connection can only be closed if it was opened within this method
@@ -362,14 +363,17 @@ class AppImageManager(SoftwareManager):
         not_upgraded = []
 
         for req in requirements.to_upgrade:
-            watcher.change_status("{} {} ({})...".format(self.i18n['manage_window.status.upgrading'], req.pkg.name, req.pkg.version))
+            watcher.change_status(f"{self.i18n['manage_window.status.upgrading']} {req.pkg.name} ({req.pkg.version})...")
 
-            download_data = self._download(req.pkg, watcher)
+            download_data = None
 
-            if not download_data:
-                not_upgraded.append(req.pkg)
-                watcher.change_substatus('')
-                continue
+            if not req.pkg.imported:
+                download_data = self._download(req.pkg, watcher)
+
+                if not download_data:
+                    not_upgraded.append(req.pkg)
+                    watcher.change_substatus('')
+                    continue
 
             if not self.uninstall(req.pkg, root_password, watcher).success:
                 not_upgraded.append(req.pkg)
@@ -409,17 +413,17 @@ class AppImageManager(SoftwareManager):
             self.revert_ignored_update(pkg)
 
         if pkg.symlink and os.path.islink(pkg.symlink):
-            self.logger.info("Removing symlink '{}'".format(pkg.symlink))
+            self.logger.info(f"Removing symlink '{pkg.symlink}'")
 
             try:
                 os.remove(pkg.symlink)
-                self.logger.info("symlink '{}' successfully removed".format(pkg.symlink))
+                self.logger.info(f"symlink '{pkg.symlink}' successfully removed")
             except:
-                msg = "could not remove symlink '{}'".format(pkg.symlink)
+                msg = f"could not remove symlink '{pkg.symlink}'"
                 self.logger.error(msg)
 
                 if watcher:
-                    watcher.print("[error] {}".format(msg))
+                    watcher.print(f"[error] {msg}")
 
         return TransactionResult(success=True, installed=None, removed=[pkg])
 
@@ -440,7 +444,7 @@ class AppImageManager(SoftwareManager):
         categories = data.get('categories')
 
         if categories:
-            data['categories'] = [self.i18n.get('category.{}'.format(c.lower()), self.i18n.get(c, c)).capitalize() for c in data['categories']]
+            data['categories'] = [self.i18n.get(f'category.{c.lower()}', self.i18n.get(c, c)).capitalize() for c in data['categories']]
 
         if data.get('symlink') and not os.path.islink(data['symlink']):
             del data['symlink']
@@ -463,10 +467,10 @@ class AppImageManager(SoftwareManager):
             app_tuple = cursor.fetchone()
 
             if not app_tuple:
-                self.logger.warning("Could not retrieve {} from the database {}".format(pkg, DATABASE_APPS_FILE))
+                self.logger.warning(f"Could not retrieve {pkg} from the database '{DATABASE_APPS_FILE}'")
                 return res
         except:
-            self.logger.error("An exception happened while querying the database file '{}'".format(DATABASE_APPS_FILE))
+            self.logger.error(f"An exception happened while querying the database file '{DATABASE_APPS_FILE}'")
             traceback.print_exc()
             app_con.close()
             return res
@@ -494,7 +498,7 @@ class AppImageManager(SoftwareManager):
 
                 return res
         except:
-            self.logger.error("An exception happened while querying the database file '{}'".format(DATABASE_RELEASES_FILE))
+            self.logger.error(f"An exception happened while querying the database file '{DATABASE_RELEASES_FILE}'")
             traceback.print_exc()
         finally:
             releases_con.close()
@@ -512,6 +516,13 @@ class AppImageManager(SoftwareManager):
 
     def _download(self, pkg: AppImage, watcher: ProcessWatcher) -> Optional[Tuple[str, str]]:
         appimage_url = pkg.url_download_latest_version if pkg.update else pkg.url_download
+
+        if not appimage_url:
+            watcher.show_message(title=self.i18n['error'],
+                                 body=self.i18n['appimage.download.no_url'].format(app=bold(pkg.name)),
+                                 type_=MessageType.ERROR)
+            return
+
         file_name = appimage_url.split('/')[-1]
         pkg.version = pkg.latest_version
         pkg.url_download = appimage_url
@@ -542,12 +553,12 @@ class AppImageManager(SoftwareManager):
     def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None):
 
         handler = ProcessHandler(watcher)
-        out_dir = INSTALLATION_PATH + pkg.get_clean_name()
+        out_dir = f'{INSTALLATION_DIR}/{pkg.get_clean_name()}'
         counter = 0
         while True:
             if os.path.exists(out_dir):
-                self.logger.info("Installation dir '{}' already exists. Generating a different one".format(out_dir))
-                out_dir += '-{}'.format(counter)
+                self.logger.info(f"Installation dir '{out_dir}' already exists. Generating a different one")
+                out_dir += f'-{counter}'
                 counter += 1
             else:
                 break
@@ -559,18 +570,19 @@ class AppImageManager(SoftwareManager):
 
             downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
 
-            file_path = out_dir + '/' + file_name
+            install_file_path = out_dir + '/' + file_name
 
             try:
-                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, file_path]))
+                moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, install_file_path]))
             except:
-                self.logger.error("Could not rename file '' as '{}'".format(pkg.local_file_path, file_path))
+                output = ''
+                self.logger.error(f"Could not rename file '{pkg.local_file_path}' as '{install_file_path}'")
                 moved = False
 
             if not moved:
                 watcher.show_message(title=self.i18n['error'].capitalize(),
-                                     body=self.i18n['appimage.install.imported.rename_error'].format(
-                                         bold(pkg.local_file_path.split('/')[-1]), bold(output)),
+                                     body=self.i18n['appimage.install.imported.rename_error'].format(bold(pkg.local_file_path.split('/')[-1]),
+                                                                                                     bold(output)),
                                      type_=MessageType.ERROR)
 
                 return TransactionResult.fail()
@@ -593,83 +605,82 @@ class AppImageManager(SoftwareManager):
                                                                             dest=bold(install_file_path)))
                 return TransactionResult.fail()
 
-            watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
-            permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', install_file_path])))
+        watcher.change_substatus(self.i18n['appimage.install.permission'].format(bold(file_name)))
+        permission_given = handler.handle(SystemProcess(new_subprocess(['chmod', 'a+x', install_file_path])))
 
-            if permission_given:
+        if permission_given:
 
-                watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
+            watcher.change_substatus(self.i18n['appimage.install.extract'].format(bold(file_name)))
 
-                try:
-                    res, output = handler.handle_simple(
-                        SimpleProcess([install_file_path, '--appimage-extract'], cwd=out_dir))
+            try:
+                res, output = handler.handle_simple(
+                    SimpleProcess([install_file_path, '--appimage-extract'], cwd=out_dir))
 
-                    if 'Error: Failed to register AppImage in AppImageLauncherFS' in output:
-                        watcher.show_message(title=self.i18n['error'],
-                                             body=self.i18n['appimage.install.appimagelauncher.error'].format(
-                                                 appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
-                                             type_=MessageType.ERROR)
-                        handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
-                        return TransactionResult.fail()
-                except:
+                if 'Error: Failed to register AppImage in AppImageLauncherFS' in output:
                     watcher.show_message(title=self.i18n['error'],
-                                         body=traceback.format_exc(),
+                                         body=self.i18n['appimage.install.appimagelauncher.error'].format(
+                                             appimgl=bold('AppImageLauncher'), app=bold(pkg.name)),
                                          type_=MessageType.ERROR)
-                    traceback.print_exc()
                     handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
                     return TransactionResult.fail()
+            except:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=traceback.format_exc(),
+                                     type_=MessageType.ERROR)
+                traceback.print_exc()
+                handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
+                return TransactionResult.fail()
 
-                watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
-                extracted_folder = '{}/{}'.format(out_dir, 'squashfs-root')
+            watcher.change_substatus(self.i18n['appimage.install.desktop_entry'])
+            extracted_folder = f'{out_dir}/squashfs-root'
 
-                if os.path.exists(extracted_folder):
-                    desktop_entry = self._find_desktop_file(extracted_folder)
+            if os.path.exists(extracted_folder):
+                desktop_entry = self._find_desktop_file(extracted_folder)
 
-                    with open('{}/{}'.format(extracted_folder, desktop_entry)) as f:
-                        de_content = f.read()
+                with open(f'{extracted_folder}/{desktop_entry}') as f:
+                    de_content = f.read()
+
+                if de_content:
+                    de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
+                                                                    appname=pkg.name,
+                                                                    file_path=install_file_path)
+                extracted_icon = self._find_icon_file(extracted_folder)
+
+                if extracted_icon:
+                    icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
+                    shutil.copy(extracted_icon, icon_path)
 
                     if de_content:
-                        de_content = replace_desktop_entry_exec_command(desktop_entry=de_content,
-                                                                        appname=pkg.name,
-                                                                        file_path=install_file_path)
-                    extracted_icon = self._find_icon_file(extracted_folder)
+                        de_content = RE_DESKTOP_ICON.sub(f'Icon={icon_path}\n', de_content)
 
-                    if extracted_icon:
-                        icon_path = out_dir + '/logo.' + extracted_icon.split('/')[-1].split('.')[-1]
-                        shutil.copy(extracted_icon, icon_path)
+                    pkg.icon_path = icon_path
 
-                        if de_content:
-                            de_content = RE_DESKTOP_ICON.sub('Icon={}\n'.format(icon_path), de_content)
+                if not de_content:
+                    de_content = pkg.to_desktop_entry()
 
-                        pkg.icon_path = icon_path
+                Path(DESKTOP_ENTRIES_DIR).mkdir(parents=True, exist_ok=True)
 
-                    if not de_content:
-                        de_content = pkg.to_desktop_entry()
+                with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
+                    f.write(de_content)
 
-                    Path(DESKTOP_ENTRIES_PATH).mkdir(parents=True, exist_ok=True)
+                try:
+                    shutil.rmtree(extracted_folder)
+                except:
+                    traceback.print_exc()
 
-                    with open(self._gen_desktop_entry_path(pkg), 'w+') as f:
-                        f.write(de_content)
-
-                    try:
-                        shutil.rmtree(extracted_folder)
-                    except:
-                        traceback.print_exc()
-
-                    SymlinksVerifier.create_symlink(app=pkg, file_path=install_file_path, logger=self.logger,
-                                                    watcher=watcher)
-                    return TransactionResult(success=True, installed=[pkg], removed=[])
-                else:
-                    watcher.show_message(title=self.i18n['error'],
-                                         body='Could extract content from {}'.format(bold(file_name)),
-                                         type_=MessageType.ERROR)
+                SymlinksVerifier.create_symlink(app=pkg, file_path=install_file_path, logger=self.logger,
+                                                watcher=watcher)
+                return TransactionResult(success=True, installed=[pkg], removed=[])
+            else:
+                watcher.show_message(title=self.i18n['error'],
+                                     body=f'Could extract content from {bold(file_name)}',
+                                     type_=MessageType.ERROR)
 
         handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
         return TransactionResult.fail()
 
-
     def _gen_desktop_entry_path(self, app: AppImage) -> str:
-        return '{}/bauh_appimage_{}.desktop'.format(DESKTOP_ENTRIES_PATH, app.get_clean_name())
+        return f'{DESKTOP_ENTRIES_DIR}/bauh_appimage_{app.get_clean_name()}.desktop'
 
     def is_enabled(self) -> bool:
         return self.enabled
@@ -680,8 +691,15 @@ class AppImageManager(SoftwareManager):
     def _is_sqlite3_available(self) -> bool:
         return bool(shutil.which('sqlite3'))
 
-    def can_work(self) -> bool:
-        return self._is_sqlite3_available() and self.file_downloader.can_work()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self._is_sqlite3_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('sqlite3'))
+
+        if not self.file_downloader.can_work():
+            download_clients = ', '.join(self.file_downloader.get_supported_clients())
+            return False, self.i18n['appimage.missing_downloader'].format(clients=download_clients)
+
+        return True, None
 
     def requires_root(self, action: SoftwareAction, pkg: AppImage) -> bool:
         return False
@@ -715,7 +733,7 @@ class AppImageManager(SoftwareManager):
         return updates
 
     def list_warnings(self, internet_available: bool) -> List[str]:
-        dbfiles = glob.glob('{}/*.db'.format(APPIMAGE_CACHE_PATH))
+        dbfiles = glob.glob(f'{APPIMAGE_CACHE_DIR}/*.db')
 
         if not dbfiles or len({f for f in (DATABASE_APPS_FILE, DATABASE_RELEASES_FILE) if f in dbfiles}) != 2:
             return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]
@@ -755,12 +773,12 @@ class AppImageManager(SoftwareManager):
                             break
 
                     cursor = connection.cursor()
-                    cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join(["'{}'".format(s) for s in sugs_map.keys()])))
+                    cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join([f"'{s}'" for s in sugs_map.keys()])))
 
                     for t in cursor.fetchall():
                         app = AppImage(*t, i18n=self.i18n, custom_actions=self.custom_app_actions)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
-                    self.logger.info("Mapped {} suggestions".format(len(res)))
+                    self.logger.info(f"Mapped {len(res)} suggestions")
                 except:
                     traceback.print_exc()
                 finally:
@@ -780,7 +798,7 @@ class AppImageManager(SoftwareManager):
                 subprocess.Popen(args=[appimag_path], shell=True, env={**os.environ},
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
             else:
-                self.logger.error("Could not find the AppImage file of '{}' in '{}'".format(pkg.name, installation_dir))
+                self.logger.error(f"Could not find the AppImage file of '{pkg.name}' in '{installation_dir}'")
 
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         self.serialize_to_disk(pkg, icon_bytes, only_icon)
@@ -792,20 +810,20 @@ class AppImageManager(SoftwareManager):
         return []
 
     def clear_data(self, logs: bool = True):
-        for f in glob.glob('{}/*.db'.format(LOCAL_PATH)):
+        for f in glob.glob(f'{APPIMAGE_SHARED_DIR}/*.db'):
             try:
                 if logs:
-                    print('[bauh][appimage] Deleting {}'.format(f))
+                    print(f'[bauh][appimage] Deleting {f}')
                 os.remove(f)
 
                 if logs:
-                    print('{}[bauh][appimage] {} deleted{}'.format(Fore.YELLOW, f, Fore.RESET))
+                    print(f'{Fore.YELLOW}[bauh][appimage] {f} deleted{Fore.RESET}')
             except:
                 if logs:
-                    print('{}[bauh][appimage] An exception has happened when deleting {}{}'.format(Fore.RED, f, Fore.RESET))
+                    print(f'{Fore.RED}[bauh][appimage] An exception has happened when deleting {f}{Fore.RESET}')
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         appimage_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 
@@ -885,14 +903,14 @@ class AppImageManager(SoftwareManager):
         pkg.updates_ignored = True
 
     def _write_ignored_updates(self, names: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(APPIMAGE_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*names]
         ignored_list.sort()
 
         with open(UPDATES_IGNORED_FILE, 'w+') as f:
             if ignored_list:
                 for ignored in ignored_list:
-                    f.write('{}\n'.format(ignored))
+                    f.write(f'{ignored}\n')
             else:
                 f.write('')
 

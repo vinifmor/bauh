@@ -39,6 +39,10 @@ QCheckBox::indicator:checked:disabled {
   image: url("@style_dir/img/checkbox_checked_disabled.svg");
 }
 
+QCheckBox[warning = "true"] {
+    color: @color.red;
+}
+
 QMenu QPushButton:hover {
     background-color: @menu.item.selected.background.color;
 }
@@ -65,6 +69,10 @@ QLabel[error = "true"] {
 
 QLabel[help_icon = "true"] {
     qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
+QLabel[warning_icon = "true"] {
+    qproperty-pixmap: url("@style_dir/img/warning.svg");
 }
 
 QLabel[tip_icon = "true"] {

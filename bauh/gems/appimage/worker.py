@@ -16,15 +16,15 @@ from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.http import HttpClient
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.gems.appimage import get_icon_path, INSTALLATION_PATH, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
-    APPIMAGE_CACHE_PATH, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES, SUGGESTIONS_FILE, \
+from bauh.gems.appimage import get_icon_path, INSTALLATION_DIR, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
+    APPIMAGE_CACHE_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES, SUGGESTIONS_FILE, \
     SUGGESTIONS_CACHED_TS_FILE, SUGGESTIONS_CACHED_FILE
 from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
 
 
 class DatabaseUpdater(Thread):
-    COMPRESS_FILE_PATH = '{}/db.tar.gz'.format(APPIMAGE_CACHE_PATH)
+    COMPRESS_FILE_PATH = f'{APPIMAGE_CACHE_DIR}/db.tar.gz'
 
     def __init__(self, i18n: I18n, http_client: HttpClient, logger: logging.Logger, taskman: TaskManager,
                  watcher: Optional[ProcessWatcher] = None, appimage_config: Optional[dict] = None, create_config: Optional[CreateConfigFile] = None):
@@ -52,10 +52,10 @@ class DatabaseUpdater(Thread):
             self.logger.info("No expiration time configured for the AppImage database")
             return True
 
-        files = {*glob.glob('{}/*'.format(APPIMAGE_CACHE_PATH))}
+        files = {*glob.glob(f'{APPIMAGE_CACHE_DIR}/*')}
 
         if not files:
-            self.logger.warning('No database files on {}'.format(APPIMAGE_CACHE_PATH))
+            self.logger.warning(f'No database files on {APPIMAGE_CACHE_DIR}')
             return True
 
         if DATABASES_TS_FILE not in files:
@@ -105,7 +105,7 @@ class DatabaseUpdater(Thread):
             self.logger.warning('Could not download the database file {}'.format(URL_COMPRESSED_DATABASES))
             return False
 
-        Path(APPIMAGE_CACHE_PATH).mkdir(parents=True, exist_ok=True)
+        Path(APPIMAGE_CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
         with open(self.COMPRESS_FILE_PATH, 'wb+') as f:
             f.write(res.content)
@@ -113,7 +113,7 @@ class DatabaseUpdater(Thread):
         self.logger.info("Database file saved at {}".format(self.COMPRESS_FILE_PATH))
 
         self._update_task_progress(50, self.i18n['appimage.update_database.deleting_old'])
-        old_db_files = glob.glob(APPIMAGE_CACHE_PATH + '/*.db')
+        old_db_files = glob.glob(f'{APPIMAGE_CACHE_DIR}/*.db')
 
         if old_db_files:
             self.logger.info('Deleting old database files')
@@ -127,7 +127,7 @@ class DatabaseUpdater(Thread):
 
         try:
             tf = tarfile.open(self.COMPRESS_FILE_PATH)
-            tf.extractall(APPIMAGE_CACHE_PATH)
+            tf.extractall(APPIMAGE_CACHE_DIR)
             self.logger.info('Successfully uncompressed file {}'.format(self.COMPRESS_FILE_PATH))
         except:
             self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
@@ -233,8 +233,8 @@ class SymlinksVerifier(Thread):
                     watcher.print('[error] {}'.format(msg))
 
     def run(self):
-        if os.path.exists(INSTALLATION_PATH):
-            installed_files = glob.glob('{}/*/*.json'.format(INSTALLATION_PATH))
+        if os.path.exists(INSTALLATION_DIR):
+            installed_files = glob.glob(f'{INSTALLATION_DIR}/*/*.json')
 
             if installed_files:
                 self.logger.info("Checking installed AppImage files with no symlinks created")

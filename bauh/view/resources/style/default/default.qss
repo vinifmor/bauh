@@ -28,6 +28,10 @@ QCheckBox::indicator {
     height: 18px;
 }
 
+QCheckBox[warning = "true"] {
+    color: yellow;
+}
+
 QProgressBar {
     max-height: 4px;
 }
@@ -54,7 +58,7 @@ QMenu QPushButton {
     text-align: left;
 }
 
-QLabel[help_icon = "true"] {
+QLabel[help_icon = "true"], QLabel[warning_icon = "true"]  {
     qproperty-scaledContents: True;
     min-height: 16;
     max-height: 16;

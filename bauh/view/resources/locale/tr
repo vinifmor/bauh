@@ -346,6 +346,7 @@ manage_window.upgrade_all.popup.title=Yükselt
 message.file.not_exist.body={} Dosyası yok gibi görünüyor
 message.file.not_exist=Dosya bulunamuyor
 mirror=yansı
+missing_dep={dep} is not installed
 name=isim
 no=hayır
 not_installed=yüklü değil

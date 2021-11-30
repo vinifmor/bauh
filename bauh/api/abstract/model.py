@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Optional
 
-from bauh.api.constants import CACHE_PATH
+from bauh.api.paths import CACHE_DIR
 
 
 class CustomSoftwareAction:
@@ -146,7 +146,7 @@ class SoftwarePackage(ABC):
         """
         :return: base cache path for the specific app type
         """
-        return CACHE_PATH + '/' + self.get_type()
+        return f'{CACHE_DIR}/{self.get_type()}'
 
     def can_be_updated(self) -> bool:
         """

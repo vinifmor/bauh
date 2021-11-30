@@ -7,13 +7,13 @@ from typing import Optional
 
 import yaml
 
-from bauh.api.constants import CONFIG_PATH
+from bauh.api.paths import CONFIG_DIR
 from bauh.commons import util
 
 
 def read_config(file_path: str, template: dict, update_file: bool = False, update_async: bool = False) -> dict:
     if not os.path.exists(file_path):
-        Path(CONFIG_PATH).mkdir(parents=True, exist_ok=True)
+        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         save_config(template, file_path)
     else:
         with open(file_path) as f:

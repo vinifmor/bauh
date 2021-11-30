@@ -2,25 +2,25 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from bauh.api.constants import CONFIG_PATH, CACHE_PATH, TEMP_DIR
+from bauh import __app_name__
+from bauh.api.paths import CONFIG_DIR, TEMP_DIR, CACHE_DIR, BINARIES_DIR, SHARED_FILES_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-LOCAL_PATH = '{}/.local/share/bauh/appimage'.format(str(Path.home()))
-INSTALLATION_PATH = LOCAL_PATH + '/installed/'
-SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/suggestions.txt'
-CONFIG_FILE = '{}/appimage.yml'.format(CONFIG_PATH)
-CONFIG_DIR = '{}/appimage'.format(CONFIG_PATH)
-UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
-SYMLINKS_DIR = '{}/.local/bin'.format(str(Path.home()))
-URL_COMPRESSED_DATABASES = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/dbs.tar.gz'
-APPIMAGE_CACHE_PATH = '{}/appimage'.format(CACHE_PATH)
-DATABASE_APPS_FILE = '{}/apps.db'.format(APPIMAGE_CACHE_PATH)
-DATABASE_RELEASES_FILE = '{}/releases.db'.format(APPIMAGE_CACHE_PATH)
-DATABASES_TS_FILE = '{}/dbs.ts'.format(APPIMAGE_CACHE_PATH)
-DESKTOP_ENTRIES_PATH = '{}/.local/share/applications'.format(str(Path.home()))
-SUGGESTIONS_CACHED_FILE = '{}/suggestions.txt'.format(APPIMAGE_CACHE_PATH)
-SUGGESTIONS_CACHED_TS_FILE = '{}/suggestions.ts'.format(APPIMAGE_CACHE_PATH)
+APPIMAGE_SHARED_DIR = f'{SHARED_FILES_DIR}/appimage'
+INSTALLATION_DIR = f'{APPIMAGE_SHARED_DIR}/installed'
+SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/suggestions.txt'
+CONFIG_FILE = f'{CONFIG_DIR}/appimage.yml'
+APPIMAGE_CONFIG_DIR = f'{CONFIG_DIR}/appimage'
+UPDATES_IGNORED_FILE = f'{APPIMAGE_CONFIG_DIR}/updates_ignored.txt'
+SYMLINKS_DIR = BINARIES_DIR
+URL_COMPRESSED_DATABASES = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/appimage/dbs.tar.gz'
+APPIMAGE_CACHE_DIR = f'{CACHE_DIR}/appimage'
+DATABASE_APPS_FILE = f'{APPIMAGE_CACHE_DIR}/apps.db'
+DATABASE_RELEASES_FILE = f'{APPIMAGE_CACHE_DIR}/releases.db'
+DATABASES_TS_FILE = f'{APPIMAGE_CACHE_DIR}/dbs.ts'
+SUGGESTIONS_CACHED_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.txt'
+SUGGESTIONS_CACHED_TS_FILE = f'{APPIMAGE_CACHE_DIR}/suggestions.ts'
 DOWNLOAD_DIR = f'{TEMP_DIR}/appimage/download'
 
 
@@ -29,5 +29,5 @@ def get_icon_path() -> str:
 
 
 def get_default_manual_installation_file_dir() -> Optional[str]:
-    default_path = '{}/Downloads'.format(str(Path.home()))
+    default_path = f'{Path.home()}/Downloads'
     return default_path if os.path.isdir(default_path) else None

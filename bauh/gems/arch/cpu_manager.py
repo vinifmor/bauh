@@ -4,6 +4,7 @@ import traceback
 from logging import Logger
 from typing import Optional, Set, Tuple, Dict
 
+from bauh.api.paths import TEMP_DIR
 from bauh.commons.system import new_root_subprocess
 
 
@@ -24,7 +25,7 @@ def current_governors() -> Dict[str, Set[int]]:
 
 
 def set_governor(governor: str, root_password: str, cpu_idxs: Optional[Set[int]] = None):
-    new_gov_file = '/tmp/bauh_scaling_governor'
+    new_gov_file = f'{TEMP_DIR}/bauh_scaling_governor'
     with open(new_gov_file, 'w+') as f:
         f.write(governor)
 

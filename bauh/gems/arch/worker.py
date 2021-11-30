@@ -17,8 +17,8 @@ from bauh.api.abstract.handler import TaskManager
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import new_root_subprocess, ProcessHandler
-from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
-    mirrors, ARCH_CACHE_PATH, AUR_INDEX_TS_FILE, aur
+from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, ARCH_CONFIG_DIR, AUR_INDEX_FILE, get_icon_path, database, \
+    mirrors, ARCH_CACHE_DIR, AUR_INDEX_TS_FILE, aur
 from bauh.gems.arch.aur import URL_INDEX
 from bauh.view.util.translation import I18n
 
@@ -156,8 +156,8 @@ class ArchDiskCacheUpdater(Thread):
         self.progress = 0  # progress is defined by the number of packages prepared and indexed
         self.controller = controller
         self.internet_available = internet_available
-        self.installed_hash_path = '{}/installed.sha1'.format(ARCH_CACHE_PATH)
-        self.installed_cache_dir = '{}/installed'.format(ARCH_CACHE_PATH)
+        self.installed_hash_path = f'{ARCH_CACHE_DIR}/installed.sha1'
+        self.installed_cache_dir = f'{ARCH_CACHE_DIR}/installed'
         self.aur_indexer = aur_indexer
         self.create_config = create_config
         self.taskman.register_task(self.task_id, self.i18n['arch.task.disk_cache'], get_icon_path())
@@ -275,7 +275,7 @@ class ArchCompilationOptimizer(Thread):
             with open(GLOBAL_MAKEPKG) as f:
                 global_makepkg = f.read()
 
-            Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+            Path(ARCH_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
 
             custom_makepkg, optimizations = None, []
 

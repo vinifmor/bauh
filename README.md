@@ -29,7 +29,7 @@ Key features
     - [Snap](#type_snap)
     - [Native Web applications](#type_web)
 7.  [General settings](#settings)
-8.  [Cache and logs](#cache_logs)
+8.  [Directory structure, caching and logs](#dirs)
 9.  [Custom themes](#custom_themes)
 10. [Tray icons](#tray_icons)
 11. [CLI (Command Line Interface)](#cli)
@@ -154,7 +154,7 @@ rm -rf bauh_env` (just remove the directory)
 
 To create a shortcut for bauh on your desktop menu:
 
-- Copy the files from [bauh/desktop](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/desktop/bauh.desktop) to `~/.local/share/applications`
+- Copy the files from [bauh/desktop](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/desktop/bauh.desktop) to `~/.local/share/applications` (or `/usr/share/applications` for **root**)
 - Replace the `Exec` field on theses files by the bauh binary path. e.g: `Exec=/usr/bin/bauh` (or `bauh_env/bin/bauh`)
 - Copy [logo.svg](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/view/resources/img/logo.svg) to `/usr/share/icons/hicolor/scalable/apps` as `bauh.svg`
 
@@ -191,13 +191,14 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
     - `Upgrade file`: allows to upgrade a manually installed AppImage file
     - `Update database`: manually synchronize the AppImage database
 
-- Installed applications are store at `~/.local/share/bauh/appimage/installed`
-- Desktop entries (menu shortcuts) of the installed applications are stored at **~/.local/share/applications** (name pattern: `bauh_appimage_appname.desktop`)
-- Symlinks are created at **~/.local/bin**. They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: `rpcs3-appimage`)
-- Downloaded database files are stored at **~/.cache/bauh/appimage** as **apps.db** and **releases.db**
+- Installed applications are store at `~/.local/share/bauh/appimage/installed` (or `/usr/local/share/bauh/installed` for **root**)
+- Desktop entries (menu shortcuts) of the installed applications are stored at `~/.local/share/applications` (or `/usr/share/applications` for **root**). Name pattern: `bauh_appimage_appname.desktop`
+- Symlinks are created at `~/.local/bin` (or `/usr/local/bin` for **root**). They have the same name of the application (if the name already exists, it will be created as 'app_name-appimage'. e.g: `rpcs3-appimage`)
+- Downloaded database files are stored at `~/.cache/bauh/appimage` (or `/var/cache/bauh/appimage` for **root**) as **apps.db** and **releases.db**
 - Databases are updated during the initialization process if they are considered outdated
-- Applications with ignored updates are defined at **~/.config/bauh/appimage/updates_ignored.txt**
-- The configuration file is located at **~/.config/bauh/appimage.yml** and it allows the following customizations:
+- The configuration file is located at `~/.config/bauh/appimage.yml` (or `/etc/bauh/appimage.yml` for **root**) and it allows the following customizations:
+- Applications with ignored updates are defined at `~/.config/bauh/appimage/updates_ignored.txt` (or `/etc/bauh/appimage/updates_ignored.txt` for **root**) 
+
 ```
 database:
   expiration: 60  # defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it. Default: 60.
@@ -315,15 +316,15 @@ defined at [suggestions.yml](https://raw.githubusercontent.com/vinifmor/bauh-fil
 
 
 - It relies on [NodeJS](https://nodejs.org/en/), [Electron](https://electronjs.org/) and [nativefier](https://github.com/jiahaog/nativefier) to do all the magic, but you do not need them installed on your system. An isolated installation environment
-will be generated at **~/.local/share/bauh/web/env**.
+will be generated at `~/.local/share/bauh/web/env` (or `/usr/local/share/bauh/web/env` for **root**).
 - It supports DRM protected content through a custom Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). nativefier handles the switch between the official Electron and the custom.
 - The isolated environment is created based on the settings defined in [environment.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/environment.yml)
  (downloaded during runtime).
 - Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
 attach it to the generated app.
-- The installed applications are located at `~/.local/share/bauh/installed`.
-- A desktop entry / menu shortcut will be generated for the installed applications at `~/.local/share/application`
-- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at `~/.config/autostart`
+- The installed applications are located at `~/.local/share/bauh/installed` (or `/usr/local/share/bauh/web/installed` for **root**).
+- A desktop entry / menu shortcut will be generated for the installed applications at `~/.local/share/applications` (or `/usr/share/applications` for **root**)
+- If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at `~/.config/autostart` (or `/etc/xdg/autostart` for **root**)
 allowing the application to launch automatically after the system's boot attached to the tray.
 
 <p align="center">
@@ -334,7 +335,7 @@ allowing the application to launch automatically after the system's boot attache
 - Extra actions
     - `Clean installation environment`: removes all the installation environment folders (it does not remove installed apps)
  
-- The configuration file is located at `~/.config/bauh/web.yml` and it allows the following customizations:
+- The configuration file is located at `~/.config/bauh/web.yml` (or `/etc/bauh/web.yml` for **root**) and it allows the following customizations:
 
 ```
 environment:
@@ -409,13 +410,14 @@ boot:
     load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
 ```
 
-#### <a name="cache_logs">Cache and Logs</a>
-- Installation logs and temporary files are saved at `/tmp/bauh` (or `/tmp/bauh_root` if you launch it as root)
-- Some data about your installed applications are stored in `~/.cache/bauh` to load them faster
+#### <a name="dirs">Directory structure, caching and logs</a>
+- `~/.config/bauh` (or `/etc/bauh` for **root**): stores configuration files
+- `~/.cache/bauh` (or `/var/cache/bauh` for **root**): stores data about your installed applications, databases, indexes, etc. Files are stored here to provide a faster initialization and data recovery. 
+- `/tmp/bauh@$USER` (e.g: `/tmp/bauh@root`): stores logging and temporary files (e.g: build dependencies)
 
 
 #### <a name="custom_themes">Custom themes</a>
-- Custom themes can be provided by adding their files at `~/.local/share/bauh/themes` (sub-folders are allowed). 
+- Custom themes can be provided by adding their files at `~/.local/share/bauh/themes` (or `/usr/share/bauh/themes` for **root**). Sub-folders are allowed. 
 - Themes are composed by 2 required and 1 optional files sharing the same name:
     - `my_theme.qss`: file with the qss rules. Full example: [light.qss](https://github.com/vinifmor/bauh/blob/master/bauh/view/resources/style/light/light.qss)
     - `my_theme.meta`: file defining the theme's data. Full example: [light.meta](https://github.com/vinifmor/bauh/blob/master/bauh/view/resources/style/light/light.meta) 

@@ -17,11 +17,11 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
-from bauh.commons import user
+from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, CONFIG_DIR, EXPORTS_PATH, \
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, EXPORTS_PATH, \
     get_icon_path, VERSION_1_5, VERSION_1_2
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -375,9 +375,11 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        flatpak_config = self.configman.get_config()
-
-        install_level = flatpak_config['installation_level']
+        if not self.context.root_user:
+            flatpak_config = self.configman.get_config()
+            install_level = flatpak_config['installation_level']
+        else:
+            install_level = 'system'
 
         if install_level is not None:
             self.logger.info("Default Flaptak installation level defined: {}".format(install_level))
@@ -484,8 +486,8 @@ class FlatpakManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        return flatpak.is_installed()
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        return (True, None) if flatpak.is_installed() else (False, self.i18n['missing_dep'].format(dep=bold('flatpak')))
 
     def requires_root(self, action: SoftwareAction, pkg: FlatpakApplication) -> bool:
         return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'
@@ -591,28 +593,29 @@ class FlatpakManager(SoftwareManager):
 
         return urls
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
-        fields = []
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+        if not self.context.root_user:
+            fields = []
 
-        flatpak_config = self.configman.get_config()
+            flatpak_config = self.configman.get_config()
 
-        install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
-                                    value='system',
-                                    tooltip=self.i18n['flatpak.config.install_level.system.tip']),
-                        InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
-                                    value='user',
-                                    tooltip=self.i18n['flatpak.config.install_level.user.tip']),
-                        InputOption(label=self.i18n['ask'].capitalize(),
-                                    value=None,
-                                    tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
-        fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
-                                            options=install_opts,
-                                            default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
-                                            max_per_line=len(install_opts),
-                                            max_width=floor(screen_width * 0.22),
-                                            type_=SelectViewType.RADIO))
+            install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
+                                        value='system',
+                                        tooltip=self.i18n['flatpak.config.install_level.system.tip']),
+                            InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
+                                        value='user',
+                                        tooltip=self.i18n['flatpak.config.install_level.user.tip']),
+                            InputOption(label=self.i18n['ask'].capitalize(),
+                                        value=None,
+                                        tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
+            fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
+                                                options=install_opts,
+                                                default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
+                                                max_per_line=len(install_opts),
+                                                max_width=floor(screen_width * 0.22),
+                                                type_=SelectViewType.RADIO))
 
-        return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+            return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         flatpak_config = self.configman.get_config()
@@ -689,7 +692,7 @@ class FlatpakManager(SoftwareManager):
         return ignored
 
     def _write_ignored_updates(self, keys: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(FLATPAK_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*keys]
         ignored_list.sort()
 

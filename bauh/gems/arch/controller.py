@@ -25,9 +25,10 @@ from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePacka
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
-from bauh.api.constants import TEMP_DIR
+from bauh.api.paths import TEMP_DIR
 from bauh.api.exception import NoInternetException
-from bauh.commons import user, system
+from bauh.commons import system
+from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
@@ -37,7 +38,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, makepkg, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
-    CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
+    ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, BUILD_DIR, rebuild_detector
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -1655,7 +1656,7 @@ class ArchManager(SoftwareManager):
                         version_files[ver] = file_path
 
         versions.sort(reverse=True)
-        extract_path = '{}/arch/history'.format(TEMP_DIR)
+        extract_path = f'{TEMP_DIR}/arch/history'
 
         try:
             Path(extract_path).mkdir(parents=True, exist_ok=True)
@@ -2643,20 +2644,20 @@ class ArchManager(SoftwareManager):
 
         return res
 
-    def _is_wget_available(self) -> bool:
-        return bool(shutil.which('wget'))
-
     def is_enabled(self) -> bool:
         return self.enabled
 
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        try:
-            return self.arch_distro and pacman.is_available() and self._is_wget_available()
-        except FileNotFoundError:
-            return False
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self.arch_distro:
+            return False, self.i18n['arch.can_work.not_arch_distro']
+
+        if not pacman.is_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('pacman'))
+
+        return True, None
 
     def cache_to_disk(self, pkg: ArchPackage, icon_bytes: bytes, only_icon: bool):
         pass
@@ -2802,7 +2803,7 @@ class ArchManager(SoftwareManager):
                                      id_=id_,
                                      capitalize_label=capitalize_label)
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         arch_config = self.configman.get_config()
         max_width = floor(screen_width * 0.25)
 
@@ -3192,7 +3193,7 @@ class ArchManager(SoftwareManager):
         return ignored
 
     def _write_ignored(self, names: Set[str]):
-        Path(CONFIG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(ARCH_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
         ignored_list = [*names]
         ignored_list.sort()
 

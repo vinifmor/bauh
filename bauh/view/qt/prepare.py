@@ -13,7 +13,7 @@ from bauh import __app_name__
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.handler import TaskManager
-from bauh.commons import user
+from bauh.api import user
 from bauh.view.qt.components import new_spacer, QCustomToolbar
 from bauh.view.qt.qt_utils import centralize
 from bauh.view.qt.root import RootDialog

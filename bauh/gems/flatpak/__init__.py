@@ -3,15 +3,17 @@ from pathlib import Path
 
 from packaging.version import parse as parse_version
 
-from bauh.api.constants import CONFIG_PATH
+from bauh import __app_name__
+from bauh.api import user
+from bauh.api.paths import CONFIG_DIR
 from bauh.commons import resource
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/flatpak/suggestions.txt'
-CONFIG_FILE = '{}/flatpak.yml'.format(CONFIG_PATH)
-CONFIG_DIR = '{}/flatpak'.format(CONFIG_PATH)
-UPDATES_IGNORED_FILE = '{}/updates_ignored.txt'.format(CONFIG_DIR)
-EXPORTS_PATH = '{}/.local/share/flatpak/exports/share'.format(str(Path.home()))
+SUGGESTIONS_FILE = f'https://raw.githubusercontent.com/vinifmor/{__app_name__}-files/master/flatpak/suggestions.txt'
+CONFIG_FILE = f'{CONFIG_DIR}/flatpak.yml'
+FLATPAK_CONFIG_DIR = f'{CONFIG_DIR}/flatpak'
+UPDATES_IGNORED_FILE = f'{FLATPAK_CONFIG_DIR}/updates_ignored.txt'
+EXPORTS_PATH = '/usr/share/flatpak/exports/share' if user.is_root() else f'{Path.home()}/.local/share/flatpak/exports/share'
 VERSION_1_2 = parse_version('1.2')
 VERSION_1_3 = parse_version('1.3')
 VERSION_1_4 = parse_version('1.4')

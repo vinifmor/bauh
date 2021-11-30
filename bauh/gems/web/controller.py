@@ -26,13 +26,13 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
-from bauh.api.constants import DESKTOP_ENTRIES_DIR
+from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_PATH, \
+    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_CACHE_DIR, \
     get_icon_path
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
@@ -93,7 +93,7 @@ class WebApplicationManager(SoftwareManager):
         handler = ProcessHandler(watcher)
 
         success = True
-        for path in (ENV_PATH, ELECTRON_PATH):
+        for path in (ENV_PATH, ELECTRON_CACHE_DIR):
             self.logger.info("Checking path '{}'".format(path))
             if os.path.exists(path):
                 try:
@@ -762,12 +762,15 @@ class WebApplicationManager(SoftwareManager):
 
         pkg.desktop_entry = desktop_entry_path
 
-        if '--tray=start-in-tray' in install_options:
-            autostart_dir = '{}/.config/autostart'.format(Path.home())
-            Path(autostart_dir).mkdir(parents=True, exist_ok=True)
+        autostart_file = pkg.get_autostart_path()
 
-            with open(pkg.get_autostart_path(), 'w+') as f:
+        if autostart_file and '--tray=start-in-tray' in install_options:
+            Path(os.path.dirname(autostart_file)).mkdir(parents=True, exist_ok=True)
+
+            with open(autostart_file, 'w+') as f:
                 f.write(entry_content)
+
+            self.logger.info(f"Autostart file created '{autostart_file}'")
 
         if install_options:
             pkg.options_set = install_options
@@ -795,17 +798,23 @@ class WebApplicationManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         self.enabled = enabled
 
-    def can_work(self) -> bool:
-        if BS4_AVAILABLE and LXML_AVAILABLE:
-            config = self.configman.get_config()
-            use_system_env = config['environment']['system']
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not BS4_AVAILABLE:
+            return False, self.i18n['missing_dep'].format(dep=bold('python3-beautifulsoup4'))
 
-            if not use_system_env:
-                return True
+        if not LXML_AVAILABLE:
+            return False, self.i18n['missing_dep'].format(dep=bold('python3-lxml'))
 
-            return nativefier.is_available()
+        config = self.configman.get_config()
+        use_system_env = config['environment']['system']
 
-        return False
+        if not use_system_env:
+            return True, None
+
+        if not nativefier.is_available():
+            return False, self.i18n['missing_dep'].format(dep=bold('nativefier'))
+
+        return True, None
 
     def requires_root(self, action: SoftwareAction, pkg: SoftwarePackage) -> bool:
         return False
@@ -993,7 +1002,7 @@ class WebApplicationManager(SoftwareManager):
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         web_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 

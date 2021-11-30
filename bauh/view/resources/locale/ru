@@ -346,6 +346,7 @@ manage_window.upgrade_all.popup.title=Обновление
 message.file.not_exist=Файл не существует
 message.file.not_exist.body=Файл {}, кажется, не существует
 mirror=Зеркало
+missing_dep={dep} is not installed
 name=Имя
 no=Нет
 not_installed=Не установлено

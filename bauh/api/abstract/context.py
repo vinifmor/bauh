@@ -14,7 +14,7 @@ class ApplicationContext:
     def __init__(self, download_icons: bool, http_client: HttpClient, app_root_dir: str, i18n: I18n,
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
                  logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str,
-                 internet_checker: InternetChecker):
+                 internet_checker: InternetChecker, root_user: bool):
         """
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
@@ -41,6 +41,7 @@ class ApplicationContext:
         self.default_categories = ('AudioVideo', 'Audio', 'Video', 'Development', 'Education', 'Game',
                                    'Graphics', 'Network', 'Office', 'Science', 'Settings', 'System', 'Utility')
         self.app_name = app_name
+        self.root_user = root_user
         self.root_password = None
         self.internet_checker = internet_checker
 

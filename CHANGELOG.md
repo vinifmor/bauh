@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.22] 2021-11-30
+### Improvements
+- General
+  - directory paths changed for a root user using bauh:
+    - caching: `/var/cache/bauh`
+    - configuration: `/etc/bauh`
+    - temp dir: `/tmp/bauh@root` (`/tmp/bauh@$USER` for non-root users)
+    - autostart: `/etc/xdg/autostart` (only used by the Web gem at the moment)
+    - desktop entries: `/usr/share/applications`
+    - custom themes: `/usr/share/bauh/themes`
+    - symlinks/binaries : `/usr/local/bin`
+    - shared files: `/usr/local/share/bauh`
+  - adding the `XDG_RUNTIME_DIR` environment variable if not available (following the pattern `/run/user/$UID`)
+  - refactorings related to String formatting
+  - refactorings related to shared information
+  - useless code removed
+
+- UI 
+  - settings panel: 
+    - always displaying all supported packaging technologies
+    - displaying a tooltip with the missing dependencies for a supported packaging technology
+        <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.22/missing_type_dep.png">
+        </p>
+
+- AppImage
+  - faster reading of installed applications (subprocess call replaced by Python call)
+  
+- Flatpak
+  - settings: not displaying the installation target option when bauh is launched by the **root** user
+  - always considering **system** as the installation level for the **root** user
+
+- Web
+  - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
+  - letting the Electron client to download the Electron build file instead of bauh (to avoid wrong caching paths)
+
+### Fixes
+- General
+  - single thread downloader (**wget**) does not create the directory where the file will be stored 
+  
+- AppImage
+  - trying to download a file without a URL associated with [#210](https://github.com/vinifmor/bauh/issues/210)
+  - regressions: 
+    - not able to import AppImage files (introduced in **0.9.21**)
+    - not able to upgrade imported AppImage files (introduced in **0.9.21**)
+
+- Arch
+  - **wget** as a hard requirement for Arch package management
+
+- UI
+  - settings panel:
+    - not re-enabling the action buttons when a validation error is displayed 
+
+
 ## [0.9.21] 2021-11-20
 ### Fixes
 - General

@@ -4,7 +4,7 @@ import time
 import traceback
 from subprocess import Popen, STDOUT
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict
+from typing import List, Set, Type, Tuple, Dict, Optional
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction
@@ -119,20 +119,19 @@ class GenericSoftwareManager(SoftwareManager):
         return res
 
     def _can_work(self, man: SoftwareManager):
-
         if self._available_cache is not None:
             available = False
             for t in man.get_managed_types():
                 available = self._available_cache.get(t)
 
                 if available is None:
-                    available = man.is_enabled() and man.can_work()
+                    available = man.is_enabled() and man.can_work()[0]
                     self._available_cache[t] = available
 
                 if available:
                     available = True
         else:
-            available = man.is_enabled() and man.can_work()
+            available = man.is_enabled() and man.can_work()[0]
 
         if available:
             if man not in self.working_managers:
@@ -198,8 +197,8 @@ class GenericSoftwareManager(SoftwareManager):
     def set_enabled(self, enabled: bool):
         pass
 
-    def can_work(self) -> bool:
-        return True
+    def can_work(self) -> Tuple[bool, Optional[str]]:
+        return True, None
 
     def _get_package_lower_name(self, pkg: SoftwarePackage):
         return pkg.name.lower()

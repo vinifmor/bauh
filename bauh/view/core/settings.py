@@ -39,23 +39,26 @@ class GenericSettingsManager:
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
 
         for man in self.managers:
-            if man.can_work():
-                man_comp = man.get_settings(screen_width, screen_height)
-                modname = man.__module__.split('.')[-2]
-                icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
+            can_work, reason_not_work = man.can_work()
+            modname = man.__module__.split('.')[-2]
+            icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
-                if man_comp:
-                    tab_name = self.i18n.get('gem.{}.label'.format(modname), modname.capitalize())
-                    gem_tabs.append(TabComponent(label=tab_name, content=man_comp, icon_path=icon_path, id_=modname))
+            man_comp = man.get_settings(screen_width, screen_height) if can_work else None
+            if man_comp:
+                tab_name = self.i18n.get('gem.{}.label'.format(modname), modname.capitalize())
+                gem_tabs.append(TabComponent(label=tab_name, content=man_comp, icon_path=icon_path, id_=modname))
 
-                opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
-                                  tooltip=self.i18n.get('gem.{}.info'.format(modname)),
-                                  value=modname,
-                                  icon_path='{r}/gems/{n}/resources/img/{n}.svg'.format(r=ROOT_DIR, n=modname))
-                gem_opts.append(opt)
+            help_tip = reason_not_work if not can_work and reason_not_work else self.i18n.get(f'gem.{modname}.info')
+            opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
+                              tooltip=help_tip,
+                              value=modname,
+                              icon_path='{r}/gems/{n}/resources/img/{n}.svg'.format(r=ROOT_DIR, n=modname),
+                              read_only=not can_work,
+                              extra_properties={'warning': 'true'} if not can_work else None)
+            gem_opts.append(opt)
 
-                if man.is_enabled() and man in self.working_managers:
-                    def_gem_opts.add(opt)
+            if man.is_enabled() and man in self.working_managers:
+                def_gem_opts.add(opt)
 
         core_config = self.configman.get_config()
 

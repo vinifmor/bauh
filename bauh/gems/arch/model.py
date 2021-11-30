@@ -2,7 +2,7 @@ from typing import List, Set, Optional
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
-from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_PATH
+from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_DIR
 from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified', 'commit'}
@@ -85,7 +85,7 @@ class ArchPackage(SoftwarePackage):
 
     @staticmethod
     def disk_cache_path(pkgname: str):
-        return ARCH_CACHE_PATH + '/installed/' + pkgname
+        return f'{ARCH_CACHE_DIR}/installed/{pkgname}'
 
     def get_pkg_build_url(self):
         if self.package_base:

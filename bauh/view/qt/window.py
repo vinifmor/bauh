@@ -11,14 +11,14 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolB
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
 
-from bauh import LOGS_PATH
+from bauh.api import user
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.api.abstract.view import MessageType
 from bauh.api.http import HttpClient
-from bauh.commons import user
+from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.context import set_theme
 from bauh.stylesheet import read_all_themes_metadata, ThemeMetadata
@@ -1106,8 +1106,8 @@ class ManageWindow(QWidget):
 
             if output:
                 try:
-                    Path(UpgradeSelected.LOGS_DIR).mkdir(parents=True, exist_ok=True)
-                    logs_path = '{}/{}.log'.format(UpgradeSelected.LOGS_DIR, res['id'])
+                    Path(UpgradeSelected.UPGRADE_LOGS_DIR).mkdir(parents=True, exist_ok=True)
+                    logs_path = '{}/{}.log'.format(UpgradeSelected.UPGRADE_LOGS_DIR, res['id'])
                     with open(logs_path, 'w+') as f:
                         f.write(output)
 
@@ -1339,11 +1339,12 @@ class ManageWindow(QWidget):
         console_output = self.textarea_details.toPlainText()
 
         if console_output:
-            log_path = '{}/install/{}/{}'.format(LOGS_PATH, res['pkg'].model.get_type(), res['pkg'].model.name)
+            log_path = f"{LOGS_DIR}/install/{res['pkg'].model.get_type()}/{res['pkg'].model.name}"
             try:
                 Path(log_path).mkdir(parents=True, exist_ok=True)
 
-                log_file = log_path + '/{}.log'.format(int(time.time()))
+                log_file = f'{log_path}/{int(time.time())}.log'
+
                 with open(log_file, 'w+') as f:
                     f.write(console_output)
 

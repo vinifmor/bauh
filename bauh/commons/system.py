@@ -68,7 +68,7 @@ class SimpleProcess:
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False,
-                 success_phrases: Set[str] = None):
+                 success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None):
         pwdin, final_cmd = None, []
 
         self.shell = shell
@@ -78,13 +78,21 @@ class SimpleProcess:
 
         final_cmd.extend(cmd)
 
-        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths)
+        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths, extra_env=extra_env)
         self.expected_code = expected_code
         self.error_phrases = error_phrases
         self.wrong_error_phrases = wrong_error_phrases
         self.success_phrases = success_phrases
 
-    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None, extra_paths: Set[str] = None) -> subprocess.Popen:
+    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None,
+             extra_paths: Set[str] = None, extra_env: Optional[Dict[str, str]] = None) -> subprocess.Popen:
+
+        env = gen_env(global_interpreter, lang, extra_paths=extra_paths)
+
+        if extra_env:
+            for var, val in extra_env.items():
+                if var not in env:
+                    env[var] = val
 
         args = {
             "stdout": subprocess.PIPE,
@@ -92,7 +100,7 @@ class SimpleProcess:
             "stdin": stdin if stdin else subprocess.DEVNULL,
             "bufsize": -1,
             "cwd": cwd,
-            "env": gen_env(global_interpreter, lang, extra_paths=extra_paths),
+            "env": env,
             "shell": self.shell
         }
 

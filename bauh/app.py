@@ -15,6 +15,9 @@ def main(tray: bool = False):
     if not os.getenv('PYTHONUNBUFFERED'):
         os.environ['PYTHONUNBUFFERED'] = '1'
 
+    if not os.getenv('XDG_RUNTIME_DIR'):
+        os.environ['XDG_RUNTIME_DIR'] = f'/run/user/{os.getuid()}'
+
     faulthandler.enable()
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

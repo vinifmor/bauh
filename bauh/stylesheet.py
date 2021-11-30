@@ -3,7 +3,7 @@ import os
 import re
 from typing import Optional, Dict, Tuple, Set
 
-from bauh.api.constants import USER_THEMES_PATH
+from bauh.api.paths import USER_THEMES_DIR
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
@@ -114,7 +114,7 @@ def read_default_themes() -> Dict[str, str]:
 
 
 def read_user_themes() -> Dict[str, str]:
-    return {f: f for f in glob.glob('{}/**/*.qss'.format(USER_THEMES_PATH), recursive=True)}
+    return {f: f for f in glob.glob('{}/**/*.qss'.format(USER_THEMES_DIR), recursive=True)}
 
 
 def read_all_themes_metadata() -> Set[ThemeMetadata]:
