@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - symlinks/binaries : `/usr/local/bin`
     - shared files: `/usr/local/share/bauh`
   - adding the `XDG_RUNTIME_DIR` environment variable if not available (following the pattern `/run/user/$UID`)
+  - refactorings related to String formatting
+  - refactorings related to shared information
+  - useless code removed
 
 - UI 
   - settings panel: 
@@ -49,12 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
   - settings panel:
     - not re-enabling the action buttons when a validation error is displayed 
-
-### Improvements
-- General
-  - useless code removed
-  - refactorings related to String formatting
-  - refactoring related to shared information
 
 
 ## [0.9.21] 2021-11-20
