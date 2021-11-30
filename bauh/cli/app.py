@@ -3,6 +3,7 @@ import os
 import urllib3
 
 from bauh import ROOT_DIR
+from bauh.api import user
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
 from bauh.cli import __app_name__, cli_args
@@ -45,7 +46,8 @@ def main():
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
                                  app_name=__app_name__,
-                                 internet_checker=InternetChecker(offline=False))
+                                 internet_checker=InternetChecker(offline=False),
+                                 root_user=user.is_root())
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
 

@@ -5,6 +5,7 @@ from typing import Tuple
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from bauh import ROOT_DIR, __app_name__
+from bauh.api import user
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
 from bauh.commons.internet import InternetChecker
@@ -41,7 +42,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
                                  app_name=__app_name__,
-                                 internet_checker=InternetChecker(offline=app_args.offline))
+                                 internet_checker=InternetChecker(offline=app_args.offline),
+                                 root_user=user.is_root())
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
 

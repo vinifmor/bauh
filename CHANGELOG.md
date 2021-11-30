@@ -54,6 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - useless code removed
   - refactorings related to String formatting
+  - refactoring related to shared information
 
 
 ## [0.9.21] 2021-11-20
