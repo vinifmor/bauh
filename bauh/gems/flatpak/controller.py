@@ -375,9 +375,11 @@ class FlatpakManager(SoftwareManager):
         return True
 
     def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        flatpak_config = self.configman.get_config()
-
-        install_level = flatpak_config['installation_level']
+        if not self.context.root_user:
+            flatpak_config = self.configman.get_config()
+            install_level = flatpak_config['installation_level']
+        else:
+            install_level = 'system'
 
         if install_level is not None:
             self.logger.info("Default Flaptak installation level defined: {}".format(install_level))

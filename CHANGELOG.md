@@ -33,7 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - faster reading of installed applications (subprocess call replaced by Python call)
   
 - Flatpak
-  - settings: not displaying the installation target option when bauh is launched by the root user 
+  - settings: not displaying the installation target option when bauh is launched by the root user
+  - always considering **system** as the installation level for the root user
 
 - Web
   - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
