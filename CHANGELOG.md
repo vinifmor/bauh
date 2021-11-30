@@ -32,6 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
   - faster reading of installed applications (subprocess call replaced by Python call)
   
+- Flatpak
+  - settings: not displaying the installation target option when bauh is launched by the root user 
+
 - Web
   - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
   - letting the Electron client to download the Electron build file instead of bauh (to avoid wrong caching paths)

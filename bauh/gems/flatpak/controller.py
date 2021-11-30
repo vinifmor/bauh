@@ -592,27 +592,28 @@ class FlatpakManager(SoftwareManager):
         return urls
 
     def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
-        fields = []
+        if not self.context.root_user:
+            fields = []
 
-        flatpak_config = self.configman.get_config()
+            flatpak_config = self.configman.get_config()
 
-        install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
-                                    value='system',
-                                    tooltip=self.i18n['flatpak.config.install_level.system.tip']),
-                        InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
-                                    value='user',
-                                    tooltip=self.i18n['flatpak.config.install_level.user.tip']),
-                        InputOption(label=self.i18n['ask'].capitalize(),
-                                    value=None,
-                                    tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
-        fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
-                                            options=install_opts,
-                                            default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
-                                            max_per_line=len(install_opts),
-                                            max_width=floor(screen_width * 0.22),
-                                            type_=SelectViewType.RADIO))
+            install_opts = [InputOption(label=self.i18n['flatpak.config.install_level.system'].capitalize(),
+                                        value='system',
+                                        tooltip=self.i18n['flatpak.config.install_level.system.tip']),
+                            InputOption(label=self.i18n['flatpak.config.install_level.user'].capitalize(),
+                                        value='user',
+                                        tooltip=self.i18n['flatpak.config.install_level.user.tip']),
+                            InputOption(label=self.i18n['ask'].capitalize(),
+                                        value=None,
+                                        tooltip=self.i18n['flatpak.config.install_level.ask.tip'].format(app=self.context.app_name))]
+            fields.append(SingleSelectComponent(label=self.i18n['flatpak.config.install_level'],
+                                                options=install_opts,
+                                                default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
+                                                max_per_line=len(install_opts),
+                                                max_width=floor(screen_width * 0.22),
+                                                type_=SelectViewType.RADIO))
 
-        return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+            return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         flatpak_config = self.configman.get_config()
