@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.22]
+## [0.9.22] 2021-11-30
 ### Improvements
 - General
   - directory paths changed for a root user using bauh:
     - caching: `/var/cache/bauh`
     - configuration: `/etc/bauh`
-    - temp dir: `/tmp/bauh@root` (`/tmp/bauh@$USER` for non root users)
+    - temp dir: `/tmp/bauh@root` (`/tmp/bauh@$USER` for non-root users)
     - autostart: `/etc/xdg/autostart` (only used by the Web gem at the moment)
     - desktop entries: `/usr/share/applications`
     - custom themes: `/usr/share/bauh/themes`
@@ -33,8 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - faster reading of installed applications (subprocess call replaced by Python call)
   
 - Flatpak
-  - settings: not displaying the installation target option when bauh is launched by the root user
-  - always considering **system** as the installation level for the root user
+  - settings: not displaying the installation target option when bauh is launched by the **root** user
+  - always considering **system** as the installation level for the **root** user
 
 - Web
   - the Electron builds cache directory has been moved to the environment directory `~/.local/share/bauh/web/env/electron`
