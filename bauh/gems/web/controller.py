@@ -1002,7 +1002,7 @@ class WebApplicationManager(SoftwareManager):
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         web_config = self.configman.get_config()
         max_width = floor(screen_width * 0.15)
 

@@ -4,7 +4,7 @@ import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List, Set, Type, Tuple, Optional, Generator
+from typing import List, Set, Type, Tuple, Optional
 
 import yaml
 
@@ -368,7 +368,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         """
         :param screen_width
         :param screen_height

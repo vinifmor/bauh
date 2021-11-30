@@ -2803,7 +2803,7 @@ class ArchManager(SoftwareManager):
                                      id_=id_,
                                      capitalize_label=capitalize_label)
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         arch_config = self.configman.get_config()
         max_width = floor(screen_width * 0.25)
 

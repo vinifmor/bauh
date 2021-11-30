@@ -591,7 +591,7 @@ class FlatpakManager(SoftwareManager):
 
         return urls
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         fields = []
 
         flatpak_config = self.configman.get_config()

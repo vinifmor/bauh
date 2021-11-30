@@ -443,7 +443,7 @@ class SnapManager(SoftwareManager):
     def get_screenshots(self, pkg: SnapApplication) -> List[str]:
         return pkg.screenshots if pkg.has_screenshots() else []
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         snap_config = self.configman.get_config()
         max_width = 200
 
