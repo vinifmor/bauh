@@ -240,6 +240,9 @@ suggestions:
 
 - If you have AUR added as a repository on you pacman configuration, make sure to disable bauh's support (through the settings described below)
 - AUR package compilation may require additional installed packages to work properly. Some of them are defined on the field `optdepends` of the [PKGBUILD](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=bauh) 
+  - for a **root** user the following additional applications must be installed: 
+    - `useradd`: required to create a simple user named **bauh-aur** (since **makepkg** does not allow building packages as the **root** user)
+    - `runuser`: required to run commands as another user
 - **Repository packages currently do not support the following actions: Downgrade and History**
 - If some of your installed packages are not categorized, open a PullRequest to the **bauh-files** repository changing [categories.txt](https://github.com/vinifmor/bauh-files/blob/master/arch/categories.txt)
 - During bauh initialization a full AUR normalized index is saved at `~/.cache/bauh/arch/aur/index.txt`

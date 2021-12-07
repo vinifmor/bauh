@@ -1,16 +1,15 @@
-from pathlib import Path
+from typing import Optional
 
 from bauh.commons.config import YAMLConfigManager
-from bauh.gems.arch import CONFIG_FILE, BUILD_DIR
+from bauh.gems.arch import CONFIG_FILE, get_pkgbuild_dir
 
 
-def get_build_dir(arch_config: dict) -> str:
+def get_build_dir(arch_config: dict, user: Optional[str]) -> str:
     build_dir = arch_config.get('aur_build_dir')
 
     if not build_dir:
-        build_dir = BUILD_DIR
+        build_dir = get_pkgbuild_dir(user)
 
-    Path(build_dir).mkdir(parents=True, exist_ok=True)
     return build_dir
 
 

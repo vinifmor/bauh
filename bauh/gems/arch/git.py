@@ -53,10 +53,13 @@ def log_shas_and_timestamps(repo_path: str) -> Optional[List[Tuple[str, int]]]:
         return logs
 
 
-def clone_as_process(url: str, cwd: Optional[str], depth: int = -1) -> SimpleProcess:
+def clone(url: str, target_dir: Optional[str], depth: int = -1, custom_user: Optional[str] = None) -> SimpleProcess:
     cmd = ['git', 'clone', url]
 
     if depth > 0:
-        cmd.append('--depth={}'.format(depth))
+        cmd.append(f'--depth={depth}')
 
-    return SimpleProcess(cmd=cmd, cwd=cwd)
+    if target_dir:
+        cmd.append(target_dir)
+
+    return SimpleProcess(cmd=cmd, custom_user=custom_user)
