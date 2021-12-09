@@ -2585,11 +2585,11 @@ class ArchManager(SoftwareManager):
                              root_password=root_password, handler=handler)
 
         if pkg.repository == 'aur':
-            res = self._install_from_aur(install_context)
+            pkg_installed = self._install_from_aur(install_context)
         else:
-            res = self._install_from_repository(install_context)
+            pkg_installed = self._install_from_repository(install_context)
 
-        if res:
+        if pkg_installed:
             pkg.name = install_context.name  # changes the package name in case the PKGBUILD was edited
 
             if os.path.exists(pkg.get_disk_data_path()):
@@ -2607,7 +2607,7 @@ class ArchManager(SoftwareManager):
 
         installed = []
 
-        if res and disk_loader and install_context.installed:
+        if pkg_installed and disk_loader and install_context.installed:
             installed.append(pkg)
 
             installed_to_load = []
@@ -2628,7 +2628,7 @@ class ArchManager(SoftwareManager):
                         self.logger.warning("Could not load all installed packages. Missing: {}".format(missing))
 
         removed = [*install_context.removed.values()] if install_context.removed else []
-        return TransactionResult(success=res, installed=installed, removed=removed)
+        return TransactionResult(success=pkg_installed, installed=installed, removed=removed)
 
     def _install_from_repository(self, context: TransactionContext) -> bool:
         try:
