@@ -3474,6 +3474,8 @@ class ArchManager(SoftwareManager):
                     except PackageInHoldException:
                         self.logger.warning("There is a requirement in hold for opt dep '{}'".format(p))
                         continue
+                    except PackageNotFoundException:
+                        self.logger.warning(f"No hard requirements found for optional {p}. Reason: package not found")
 
         return res
 
