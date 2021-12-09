@@ -1457,7 +1457,14 @@ class ArchManager(SoftwareManager):
                                   names={pkg.name},
                                   disk_loader=disk_loader)  # to be able to return all uninstalled packages
         if success:
-            return TransactionResult(success=True, installed=None, removed=[*removed.values()] if removed else [])
+            removed_list = []
+
+            if pkg.name in removed:
+                pkg.installed = False
+                removed_list.append(pkg)
+
+            removed_list.extend((inst for name, inst in removed.items() if name != pkg.name))
+            return TransactionResult(success=not pkg.installed, installed=None, removed=removed_list)
         else:
             return TransactionResult.fail()
 

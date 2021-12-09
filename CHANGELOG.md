@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes
 - Arch
+  - not updating the view (GUI) status correctly after uninstalling a package whose PKGBUILD file was edited (specifically the **name**) 
   - missing error handling when hard requirements for optional dependencies cannot be found by pacman
 
 ## [0.9.22] 2021-11-30
