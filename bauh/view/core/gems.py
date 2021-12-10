@@ -22,9 +22,9 @@ def find_manager(member):
 def load_managers(locale: str, context: ApplicationContext, config: dict, default_locale: str) -> List[SoftwareManager]:
     managers = []
 
-    for f in os.scandir(ROOT_DIR + '/gems'):
+    for f in os.scandir(f'{ROOT_DIR}/gems'):
         if f.is_dir() and f.name != '__pycache__':
-            loader = pkgutil.find_loader('bauh.gems.{}.controller'.format(f.name))
+            loader = pkgutil.find_loader(f'bauh.gems.{f.name}.controller')
 
             if loader:
                 module = loader.load_module()
@@ -33,7 +33,7 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
 
                 if manager_class:
                     if locale:
-                        locale_path = '{}/resources/locale'.format(f.path)
+                        locale_path = f'{f.path}/resources/locale'
 
                         if os.path.exists(locale_path):
                             context.i18n.current.update(translation.get_locale_keys(locale, locale_path)[1])
@@ -51,4 +51,3 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
                     managers.append(man)
 
     return managers
-
