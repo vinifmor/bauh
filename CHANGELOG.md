@@ -10,10 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - allowing AUR packages to be installed when bauh is launched by the root user [#196](https://github.com/vinifmor/bauh/issues/196)
     - it creates a non-root user called **bauh-aur** for building the packages (`useradd` and `runuser` commands must be installed)
 
+### Improvements
+- code refactoring (String formatting method)
+
 ### Fixes
 - Arch
   - not updating the view (GUI) status correctly after uninstalling a package whose PKGBUILD file was edited (specifically the **name**) 
   - missing error handling when hard requirements for optional dependencies cannot be found by pacman
+
 
 ## [0.9.22] 2021-11-30
 ### Improvements
