@@ -49,7 +49,8 @@ def main():
                                  internet_checker=InternetChecker(offline=False),
                                  root_user=user.is_root())
 
-    managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
+    managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config,
+                                  default_locale=DEFAULT_I18N_KEY, logger=logger)
 
     cli = CLIManager(GenericSoftwareManager(managers, context=context, config=app_config))
 

@@ -45,7 +45,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  internet_checker=InternetChecker(offline=app_args.offline),
                                  root_user=user.is_root())
 
-    managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config, default_locale=DEFAULT_I18N_KEY)
+    managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config,
+                                  default_locale=DEFAULT_I18N_KEY, logger=logger)
 
     if app_args.reset:
         util.clean_app_files(managers)

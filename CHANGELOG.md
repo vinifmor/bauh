@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.23]
 ### Features
+- General
+  - new configuration file `/etc/bauh/gems.forbidden` can be used by system administrators/distribution package managers to disable the management of supported packaging formats globally (more on that [here](https://github.com/vinifmor/bauh#forbidden_gems))
+
 - Arch
   - allowing AUR packages to be installed when bauh is launched by the root user [#196](https://github.com/vinifmor/bauh/issues/196)
     - it creates a non-root user called **bauh-aur** for building the packages (`useradd` and `runuser` commands must be installed)

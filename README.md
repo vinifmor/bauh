@@ -15,22 +15,23 @@ Key features
 
 
 ## Index
-1.  [Installation](#installation)
+1. [Installation](#installation)
     - [Ubuntu-based distros (20.04)](#inst_ubuntu)
     - [Arch-based distros](#inst_arch)
-2.  [Isolated installation](#inst_iso)
-3.  [Desktop entry / menu shortcut](#desk_entry)
-4.  [Autostart: tray mode](#autostart)
-5.  [Distribution](#dist)
-6.  [Supported types](#types)
+2. [Isolated installation](#inst_iso)
+3. [Desktop entry / menu shortcut](#desk_entry)
+4. [Autostart: tray mode](#autostart)
+5. [Distribution](#dist)
+6. [Supported types](#types)
     - [AppImage](#type_appimage)
     - [Arch packages/AUR](#type_arch)
     - [Flatpak](#type_flatpak)
     - [Snap](#type_snap)
     - [Native Web applications](#type_web)
-7.  [General settings](#settings)
-8.  [Directory structure, caching and logs](#dirs)
-9.  [Custom themes](#custom_themes)
+7. [General settings](#settings)
+   - [Forbidden packaging formats](#forbidden_gems)
+8. [Directory structure, caching and logs](#dirs)
+9. [Custom themes](#custom_themes)
 10. [Tray icons](#tray_icons)
 11. [CLI (Command Line Interface)](#cli)
 12. [Improving performance](#performance)
@@ -411,6 +412,16 @@ backup:
     type: rsync  # defines the Timeshift backup mode -> 'rsync' (default) or 'btrfs'
 boot:
     load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
+```
+
+##### <a name="forbidden_gems">Forbidden packaging formats</a>
+- System administrators and package managers of Linux distributions can disable the usage/management of supported packaging formats
+by adding their ids to the file `/etc/bauh/gems.forbidden`. This will prevent their management code to be loaded.
+- Example (one id per line):
+```
+arch
+appimage
+# flatpak  # 'sharps' can be used to ignore a given line (comment)
 ```
 
 #### <a name="dirs">Directory structure, caching and logs</a>

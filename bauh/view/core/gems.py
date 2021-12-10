@@ -1,11 +1,14 @@
 import inspect
 import os
 import pkgutil
-from typing import List
+from logging import Logger
+from typing import List, Generator
 
-from bauh import ROOT_DIR
+from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
 from bauh.view.util import translation
+
+FORBIDDEN_GEMS_FILE = f'/etc/{__app_name__}/gems.forbidden'
 
 
 def find_manager(member):
@@ -19,11 +22,33 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(locale: str, context: ApplicationContext, config: dict, default_locale: str) -> List[SoftwareManager]:
+def read_forbidden_gems() -> Generator[str, None, None]:
+    try:
+        with open(FORBIDDEN_GEMS_FILE) as f:
+            forbidden_lines = f.readlines()
+
+        for line in forbidden_lines:
+            clean_line = line.strip()
+
+            if clean_line and not clean_line.startswith('#'):
+                yield clean_line
+
+    except FileNotFoundError:
+        pass
+
+
+def load_managers(locale: str, context: ApplicationContext, config: dict, default_locale: str, logger: Logger) -> List[SoftwareManager]:
     managers = []
+
+    forbidden_gems = {gem for gem in read_forbidden_gems()}
 
     for f in os.scandir(f'{ROOT_DIR}/gems'):
         if f.is_dir() and f.name != '__pycache__':
+
+            if f.name in forbidden_gems:
+                logger.warning(f"gem '{f.name}' could not be loaded because it was marked as forbidden in '{FORBIDDEN_GEMS_FILE}'")
+                continue
+
             loader = pkgutil.find_loader(f'bauh.gems.{f.name}.controller')
 
             if loader:
