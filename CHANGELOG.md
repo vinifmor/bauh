@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.9.23]
+## [0.9.23] 2021-12-10
 ### Features
 - General
   - new configuration file `/etc/bauh/gems.forbidden` can be used by system administrators/distribution package managers to disable the management of supported packaging formats globally (more on that [here](https://github.com/vinifmor/bauh#forbidden_gems))
