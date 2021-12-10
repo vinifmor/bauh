@@ -1459,8 +1459,10 @@ class ArchManager(SoftwareManager):
         if success:
             removed_list = []
 
-            if pkg.name in removed:
+            main_removed = removed.get(pkg.name)
+            if main_removed:
                 pkg.installed = False
+                pkg.url_download = main_removed.url_download  # otherwise uninstalled AUR packages cannot be reinstalled on the same view
                 removed_list.append(pkg)
 
             removed_list.extend((inst for name, inst in removed.items() if name != pkg.name))
