@@ -55,7 +55,7 @@ class SnapdClient:
         final_query = query.strip()
 
         if final_query and self.session:
-            res = self.session.get(url='{}/find'.format(URL_BASE), params={'q': final_query})
+            res = self.session.get(url=f'{URL_BASE}/find', params={'q': final_query})
 
             if res.status_code == 200:
                 json_res = res.json()
@@ -65,7 +65,7 @@ class SnapdClient:
 
     def find_by_name(self, name: str) -> Optional[List[dict]]:
         if name and self.session:
-            res = self.session.get('{}/find?name={}'.format(URL_BASE, name))
+            res = self.session.get(f'{URL_BASE}/find?name={name}')
 
             if res.status_code == 200:
                 json_res = res.json()
@@ -75,7 +75,7 @@ class SnapdClient:
 
     def list_all_snaps(self) -> List[dict]:
         if self.session:
-            res = self.session.get('{}/snaps'.format(URL_BASE))
+            res = self.session.get(f'{URL_BASE}/snaps')
 
             if res.status_code == 200:
                 json_res = res.json()
@@ -87,7 +87,7 @@ class SnapdClient:
 
     def list_only_apps(self) -> List[dict]:
         if self.session:
-            res = self.session.get('{}/apps'.format(URL_BASE))
+            res = self.session.get(f'{URL_BASE}/apps')
 
             if res.status_code == 200:
                 json_res = res.json()
@@ -98,7 +98,7 @@ class SnapdClient:
 
     def list_commands(self, name: str) -> List[dict]:
         if self.session:
-            res = self.session.get('{}/apps?names={}'.format(URL_BASE, name))
+            res = self.session.get(f'{URL_BASE}/apps?names={name}')
 
             if res.status_code == 200:
                 json_res = res.json()

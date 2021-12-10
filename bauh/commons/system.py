@@ -67,12 +67,15 @@ class SimpleProcess:
     def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
-                 shell: bool = False,
-                 success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None):
+                 shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
+                 custom_user: Optional[str] = None):
         pwdin, final_cmd = None, []
 
         self.shell = shell
-        if root_password is not None:
+
+        if custom_user:
+            final_cmd.extend(['runuser', '-u', custom_user, '--'])
+        elif root_password is not None:
             final_cmd.extend(['sudo', '-S'])
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
 
@@ -219,14 +222,10 @@ class ProcessHandler:
 
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
-            cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None) -> str:
+            cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None,
+            custom_user: Optional[str] = None) -> str:
     """
     runs a given command and returns its default output
-    :param cmd:
-    :param expected_code:
-    :param ignore_return_code:
-    :param print_error:
-    :param global_interpreter
     :return:
     """
     args = {
@@ -239,13 +238,14 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
     if not print_error:
         args["stderr"] = subprocess.DEVNULL
 
-    res = subprocess.run(cmd, **args)
+    final_cmd = f"runuser -u {custom_user} -- {cmd}" if custom_user else cmd
+    res = subprocess.run(final_cmd, **args)
     return res.stdout.decode() if ignore_return_code or res.returncode == expected_code else None
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
                    global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
-                   extra_paths: Set[str] = None) -> subprocess.Popen:
+                   extra_paths: Set[str] = None, custom_user: Optional[str] = None) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
         "stderr": PIPE,
@@ -255,7 +255,8 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
         "stdin": stdin if stdin else subprocess.DEVNULL
     }
 
-    return subprocess.Popen(cmd, **args)
+    final_cmd = ['runuser', '-u', custom_user, '--', *cmd] if custom_user else cmd
+    return subprocess.Popen(final_cmd, **args)
 
 
 def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
@@ -302,8 +303,9 @@ def get_human_size_str(size) -> str:
     return str(int_size)
 
 
-def run(cmd: List[str], success_code: int = 0) -> Tuple[bool, str]:
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
+def run(cmd: List[str], success_code: int = 0, custom_user: Optional[str] = None) -> Tuple[bool, str]:
+    final_cmd = ['runuser', '-u', custom_user, '--', *cmd] if custom_user else cmd
+    p = subprocess.run(final_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
     return p.returncode == success_code, p.stdout.decode()
 
 
@@ -327,9 +329,13 @@ def check_enabled_services(*names: str) -> Dict[str, bool]:
         return {s: status[i].strip().lower() == 'enabled' for i, s in enumerate(names) if s}
 
 
-def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True, custom_env: Optional[dict] = None, stdin: bool = True) -> Tuple[int, Optional[str]]:
+def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bool = True, custom_env: Optional[dict] = None,
+            stdin: bool = True, custom_user: Optional[str] = None) -> Tuple[int, Optional[str]]:
+
+    final_cmd = f"runuser -u {custom_user} -- {cmd}" if custom_user else cmd
+
     params = {
-        'args': cmd.split(' ') if not shell else [cmd],
+        'args': final_cmd.split(' ') if not shell else [final_cmd],
         'stdout': subprocess.PIPE if output else subprocess.DEVNULL,
         'stderr': subprocess.STDOUT if output else subprocess.DEVNULL,
         'shell': shell

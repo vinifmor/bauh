@@ -124,7 +124,7 @@ class SnapManager(SoftwareManager):
         return ProcessHandler(watcher).handle_simple(snap.downgrade_and_stream(pkg.name, root_password))[0]
 
     def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
-        raise Exception("'upgrade' is not supported by {}".format(SnapManager.__class__.__name__))
+        raise Exception(f"'upgrade' is not supported by {SnapManager.__class__.__name__}")
 
     def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         if snap.is_installed() and snapd.is_running():
@@ -173,7 +173,7 @@ class SnapManager(SoftwareManager):
         return info
 
     def get_history(self, pkg: SnapApplication) -> PackageHistory:
-        raise Exception("'get_history' is not supported by {}".format(pkg.__class__.__name__))
+        raise Exception(f"'get_history' is not supported by {pkg.__class__.__name__}")
 
     def install(self, pkg: SnapApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
@@ -210,20 +210,20 @@ class SnapManager(SoftwareManager):
                 if channels:
                     opts = [InputOption(label=c[0], value=c[1]) for c in channels]
                     channel_select = SingleSelectComponent(type_=SelectViewType.RADIO, label='', options=opts, default_option=opts[0])
-                    body = '<p>{}.</p>'.format(self.i18n['snap.install.available_channels.message'].format(bold(self.i18n['stable']), bold(pkg.name)))
-                    body += '<p>{}:</p>'.format(self.i18n['snap.install.available_channels.help'])
+                    body = f"<p>{self.i18n['snap.install.available_channels.message'].format(bold(self.i18n['stable']), bold(pkg.name))}.</p>"
+                    body += f"<p>{self.i18n['snap.install.available_channels.help']}:</p>"
 
                     if watcher.request_confirmation(title=self.i18n['snap.install.available_channels.title'],
                                                     body=body,
                                                     components=[channel_select],
                                                     confirmation_label=self.i18n['continue'],
                                                     deny_label=self.i18n['cancel']):
-                        self.logger.info("Installing '{}' with the custom command '{}'".format(pkg.name, channel_select.value))
+                        self.logger.info(f"Installing '{pkg.name}' with the custom command '{channel_select.value}'")
                         res = ProcessHandler(watcher).handle(SystemProcess(new_root_subprocess(channel_select.value.value.split(' '), root_password=root_password)))
                         return self._gen_installation_response(success=res, pkg=pkg,
                                                                installed=installed_names, disk_loader=disk_loader)
                 else:
-                    self.logger.error("Could not find available channels in the installation output: {}".format(output))
+                    self.logger.error(f"Could not find available channels in the installation output: {output}")
 
         return self._gen_installation_response(success=res, pkg=pkg, installed=installed_names, disk_loader=disk_loader)
 
@@ -321,14 +321,13 @@ class SnapManager(SoftwareManager):
         if not snapd.is_running():
             snap_bold = bold('Snap')
             return [self.i18n['snap.notification.snapd_unavailable'].format(bold('snapd'), snap_bold),
-                    self.i18n['snap.notification.snap.disable'].format(snap_bold, bold(
-                        '{} > {}'.format(self.i18n['settings'].capitalize(),
-                                         self.i18n['core.config.tab.types'])))]
+                    self.i18n['snap.notification.snap.disable'].format(snap_bold,
+                                                                       bold(f"{self.i18n['settings'].capitalize()} > {self.i18n['core.config.tab.types']}"))]
         elif internet_available:
             available, output = snap.is_api_available()
 
             if not available:
-                self.logger.warning('It seems Snap API is not available. Search output: {}'.format(output))
+                self.logger.warning(f'It seems Snap API is not available. Search output: {output}')
                 return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
     def _fill_suggestion(self, name: str, priority: SuggestionPriority, snapd_client: SnapdClient, out: List[PackageSuggestion]):
@@ -347,7 +346,7 @@ class SnapManager(SoftwareManager):
                 out.append(sug)
                 return
 
-        self.logger.warning("Could not retrieve suggestion '{}'".format(name))
+        self.logger.warning(f"Could not retrieve suggestion '{name}'")
 
     def _map_to_app(self, app_json: dict, installed: bool, disk_loader: Optional[DiskCacheLoader] = None, is_application: bool = False) -> SnapApplication:
         app = SnapApplication(id=app_json.get('id'),
@@ -382,11 +381,11 @@ class SnapManager(SoftwareManager):
         res = []
 
         if snapd.is_running():
-            self.logger.info('Downloading suggestions file {}'.format(SUGGESTIONS_FILE))
+            self.logger.info(f'Downloading suggestions file {SUGGESTIONS_FILE}')
             file = self.http_client.get(SUGGESTIONS_FILE)
 
             if not file or not file.text:
-                self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+                self.logger.warning(f"No suggestion found in {SUGGESTIONS_FILE}")
                 return res
             else:
                 self.logger.info('Mapping suggestions')
@@ -437,7 +436,7 @@ class SnapManager(SoftwareManager):
                 else:
                     cmd = commands[0]['name']
 
-            self.logger.info("Running '{}': {}".format(pkg.name, cmd))
+            self.logger.info(f"Running '{pkg.name}': {cmd}")
             snap.run(cmd)
 
     def get_screenshots(self, pkg: SnapApplication) -> List[str]:
@@ -482,19 +481,19 @@ class SnapManager(SoftwareManager):
             try:
                 data = [r for r in snapd_client.find_by_name(pkg.name) if r['name'] == pkg.name]
             except:
-                self.logger.warning("snapd client could not retrieve channels for '{}'".format(pkg.name))
+                self.logger.warning(f"snapd client could not retrieve channels for '{pkg.name}'")
                 return
 
             if not data:
-                self.logger.warning("snapd client could find a match for name '{}' when retrieving its channels".format(pkg.name))
+                self.logger.warning(f"snapd client could find a match for name '{pkg.name}' when retrieving its channels")
             else:
                 if not data[0].get('channels'):
-                    self.logger.info("No channel available for '{}'. Skipping selection.".format(pkg.name))
+                    self.logger.info(f"No channel available for '{pkg.name}'. Skipping selection.")
                 else:
                     if pkg.channel:
-                        current_channel = pkg.channel if '/' in pkg.channel else 'latest/{}'.format(pkg.channel)
+                        current_channel = pkg.channel if '/' in pkg.channel else f'latest/{pkg.channel}'
                     else:
-                        current_channel = 'latest/{}'.format(data[0].get('channel', 'stable'))
+                        current_channel = f"latest/{data[0].get('channel', 'stable')}"
 
                     opts = []
                     def_opt = None
@@ -510,7 +509,7 @@ class SnapManager(SoftwareManager):
                                 def_opt = op
 
                     if not opts:
-                        self.logger.info("No different channel available for '{}'. Skipping selection.".format(pkg.name))
+                        self.logger.info(f"No different channel available for '{pkg.name}'. Skipping selection.")
                         return
 
                     select = SingleSelectComponent(label='',

@@ -42,10 +42,6 @@ KNOWN_LIST_FIELDS = ('validpgpkeys',
                      'conflicts')
 
 
-def map_pkgbuild(pkgbuild: str) -> dict:
-    return {attr: val.replace('"', '').replace("'", '').replace('(', '').replace(')', '') for attr, val in re.findall(r'\n(\w+)=(.+)', pkgbuild)}
-
-
 def map_srcinfo(string: str, pkgname: Optional[str], fields: Set[str] = None) -> dict:
     subinfos, subinfo = [], {}
 
@@ -260,3 +256,4 @@ class AURClient:
 
 def is_supported(arch_config: dict) -> bool:
     return arch_config['aur'] and git.is_installed()
+

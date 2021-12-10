@@ -70,7 +70,7 @@ class SnapApplication(SoftwarePackage):
             return self.type == 'app'
 
     def get_disk_cache_path(self):
-        return super(SnapApplication, self).get_disk_cache_path() + '/installed/' + self.name
+        return f'{super(SnapApplication, self).get_disk_cache_path()}/installed/{self.name}'
 
     def is_trustable(self) -> bool:
         return self.verified_publisher

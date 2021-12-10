@@ -1,11 +1,14 @@
 import inspect
 import os
 import pkgutil
-from typing import List
+from logging import Logger
+from typing import List, Generator
 
-from bauh import ROOT_DIR
+from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
 from bauh.view.util import translation
+
+FORBIDDEN_GEMS_FILE = f'/etc/{__app_name__}/gems.forbidden'
 
 
 def find_manager(member):
@@ -19,12 +22,34 @@ def find_manager(member):
                     return manager_found
 
 
-def load_managers(locale: str, context: ApplicationContext, config: dict, default_locale: str) -> List[SoftwareManager]:
+def read_forbidden_gems() -> Generator[str, None, None]:
+    try:
+        with open(FORBIDDEN_GEMS_FILE) as f:
+            forbidden_lines = f.readlines()
+
+        for line in forbidden_lines:
+            clean_line = line.strip()
+
+            if clean_line and not clean_line.startswith('#'):
+                yield clean_line
+
+    except FileNotFoundError:
+        pass
+
+
+def load_managers(locale: str, context: ApplicationContext, config: dict, default_locale: str, logger: Logger) -> List[SoftwareManager]:
     managers = []
 
-    for f in os.scandir(ROOT_DIR + '/gems'):
+    forbidden_gems = {gem for gem in read_forbidden_gems()}
+
+    for f in os.scandir(f'{ROOT_DIR}/gems'):
         if f.is_dir() and f.name != '__pycache__':
-            loader = pkgutil.find_loader('bauh.gems.{}.controller'.format(f.name))
+
+            if f.name in forbidden_gems:
+                logger.warning(f"gem '{f.name}' could not be loaded because it was marked as forbidden in '{FORBIDDEN_GEMS_FILE}'")
+                continue
+
+            loader = pkgutil.find_loader(f'bauh.gems.{f.name}.controller')
 
             if loader:
                 module = loader.load_module()
@@ -33,7 +58,7 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
 
                 if manager_class:
                     if locale:
-                        locale_path = '{}/resources/locale'.format(f.path)
+                        locale_path = f'{f.path}/resources/locale'
 
                         if os.path.exists(locale_path):
                             context.i18n.current.update(translation.get_locale_keys(locale, locale_path)[1])
@@ -51,4 +76,3 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
                     managers.append(man)
 
     return managers
-

@@ -27,7 +27,7 @@ def install_and_stream(app_name: str, confinement: str, root_password: str, chan
         install_cmd.append('--classic')
 
     if channel:
-        install_cmd.append('--channel={}'.format(channel))
+        install_cmd.append(f'--channel={channel}')
 
     return SimpleProcess(install_cmd, root_password=root_password, shell=True)
 
@@ -42,7 +42,7 @@ def refresh_and_stream(app_name: str, root_password: str, channel: Optional[str]
     cmd = [BASE_CMD, 'refresh', app_name]
 
     if channel:
-        cmd.append('--channel={}'.format(channel))
+        cmd.append(f'--channel={channel}')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
@@ -51,7 +51,7 @@ def refresh_and_stream(app_name: str, root_password: str, channel: Optional[str]
 
 
 def run(cmd: str):
-    subprocess.Popen(['snap run {}'.format(cmd)], shell=True, env={**os.environ})
+    subprocess.Popen([f'{BASE_CMD} run {cmd}'], shell=True, env={**os.environ})
 
 
 def is_api_available() -> Tuple[bool, str]:
