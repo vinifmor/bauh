@@ -702,6 +702,7 @@ class WebApplicationManager(SoftwareManager):
                                                              electron_version=electron_version if not widevine_support else None,
                                                              system=bool(web_config['environment']['system']),
                                                              cwd=INSTALLED_PATH,
+                                                             user_agent=pkg.user_agent,
                                                              extra_options=install_options))
 
         if not installed:
@@ -893,7 +894,8 @@ class WebApplicationManager(SoftwareManager):
                              icon_url=suggestion.get('icon_url'),
                              categories=[suggestion['category']] if suggestion.get('category') else None,
                              preset_options=suggestion.get('options'),
-                             save_icon=suggestion.get('save_icon', False))
+                             save_icon=suggestion.get('save_icon', False),
+                             user_agent=suggestion.get('user_agent'))
 
         app.set_version(suggestion.get('version'))
 

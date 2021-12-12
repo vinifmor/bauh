@@ -6,12 +6,16 @@ from bauh.commons.system import SimpleProcess, run_cmd
 from bauh.gems.web import NATIVEFIER_BIN_PATH, NODE_PATHS, ELECTRON_CACHE_DIR
 
 
-def install(url: str, name: str, output_dir: str, electron_version: Optional[str], cwd: str, system: bool, extra_options: List[str] = None) -> SimpleProcess:
+def install(url: str, name: str, output_dir: str, electron_version: Optional[str], cwd: str, system: bool,
+            user_agent: Optional[str] = None, extra_options: List[str] = None) -> SimpleProcess:
     cmd = [NATIVEFIER_BIN_PATH if not system else 'nativefier', url, '--name', name, output_dir]
 
     if electron_version:
         cmd.append('-e')
         cmd.append(electron_version)
+
+    if user_agent:
+        cmd.extend(('--user-agent', user_agent))
 
     if extra_options:
         cmd.extend(extra_options)

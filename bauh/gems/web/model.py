@@ -17,7 +17,8 @@ class WebApplication(SoftwarePackage):
                  icon_url: Optional[str] = None, installation_dir: Optional[str] = None, desktop_entry: Optional[str] = None,
                  installed: bool = False, version: Optional[str] = None, categories: Optional[List[str]] = None,
                  custom_icon: Optional[str] = None, preset_options: Optional[List[str]] = None, save_icon: bool = True,
-                 options_set: Optional[List[str]] = None, package_name: Optional[str] = None, source_url: Optional[str] = None):
+                 options_set: Optional[List[str]] = None, package_name: Optional[str] = None, source_url: Optional[str] = None,
+                 user_agent: Optional[str] = None):
         super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
                                              icon_url=icon_url, installed=installed, version=version,
                                              categories=categories)
@@ -31,6 +32,7 @@ class WebApplication(SoftwarePackage):
         self.package_name = package_name
         self.custom_icon = custom_icon
         self.set_custom_icon(custom_icon)
+        self.user_agent = user_agent
 
     def get_source_url(self):
         if self.source_url:
@@ -51,7 +53,8 @@ class WebApplication(SoftwarePackage):
     @staticmethod
     def _get_cached_attrs() -> tuple:
         return 'id', 'name', 'version', 'url', 'description', 'icon_url', 'installation_dir', \
-               'desktop_entry', 'categories', 'custom_icon', 'options_set', 'save_icon', 'package_name', 'source_url'
+               'desktop_entry', 'categories', 'custom_icon', 'options_set', 'save_icon', 'package_name', 'source_url', \
+               'user_agent'
 
     def can_be_downgraded(self):
         return False

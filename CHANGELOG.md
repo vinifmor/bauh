@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.24]
+### Improvements
+- Web
+  - able to specify a custom User-Agent when installing apps that demand specific settings to work properly on Electron 13.X (e.g: WhatsApp Web)
+
 ## [0.9.23] 2021-12-10
 ### Features
 - General
