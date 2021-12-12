@@ -1,7 +1,7 @@
 import glob
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from bauh import __app_name__
 from bauh.api import user
@@ -13,10 +13,11 @@ from bauh.gems.web import ROOT_DIR
 
 class WebApplication(SoftwarePackage):
 
-    def __init__(self, id: str = None, url: str = None, name: str = None, description: str = None, icon_url: str = None,
-                 installation_dir: str = None, desktop_entry: str = None, installed: bool = False, version: str = None,
-                 categories: List[str] = None, custom_icon: str = None, preset_options: List[str] = None, save_icon: bool = True,
-                 options_set: List[str] = None, package_name: str = None, source_url: str = None):
+    def __init__(self, id: Optional[str] = None, url: Optional[str] = None, name: Optional[str] = None, description: Optional[str] = None,
+                 icon_url: Optional[str] = None, installation_dir: Optional[str] = None, desktop_entry: Optional[str] = None,
+                 installed: bool = False, version: Optional[str] = None, categories: Optional[List[str]] = None,
+                 custom_icon: Optional[str] = None, preset_options: Optional[List[str]] = None, save_icon: bool = True,
+                 options_set: Optional[List[str]] = None, package_name: Optional[str] = None, source_url: Optional[str] = None):
         super(WebApplication, self).__init__(id=id if id else url, name=name, description=description,
                                              icon_url=icon_url, installed=installed, version=version,
                                              categories=categories)
