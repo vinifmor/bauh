@@ -34,7 +34,6 @@ SUGGESTIONS_CACHE_TS_FILE = map_timestamp_file(SUGGESTIONS_CACHE_FILE)
 CONFIG_FILE = f'{CONFIG_DIR}/web.yml'
 ENVIRONMENT_SETTINGS_CACHED_FILE = f'{WEB_CACHE_DIR}/environment.yml'
 ENVIRONMENT_SETTINGS_TS_FILE = f'{WEB_CACHE_DIR}/environment.ts'
-NATIVEFIER_BASE_URL = 'https://github.com/nativefier/nativefier/archive/v{version}.tar.gz'
 
 
 def get_icon_path() -> str:
