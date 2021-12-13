@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
   - able to specify a custom User-Agent when installing apps that demand specific settings to work properly on Electron 13.X (e.g: WhatsApp Web)
 
+### Fixes
+- UI
+  - crashing when resizing with floats instead of integers [#216](https://github.com/vinifmor/bauh/issues/216)
+
 ## [0.9.23] 2021-12-10
 ### Features
 - General

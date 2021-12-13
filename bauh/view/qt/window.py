@@ -1076,7 +1076,7 @@ class ManageWindow(QWidget):
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
-            self.resize(new_width, self.height())
+            self.resize(int(new_width), self.height())
 
     def set_progress_controll(self, enabled: bool):
         self.progress_controll_enabled = enabled
