@@ -324,8 +324,8 @@ will be generated at `~/.local/share/bauh/web/env` (or `/usr/local/share/bauh/we
 - It supports DRM protected content through a custom Electron implementation provided by [castLabs](https://github.com/castlabs/electron-releases). nativefier handles the switch between the official Electron and the custom.
 - The isolated environment is created based on the settings defined in [environment.yml](https://raw.githubusercontent.com/vinifmor/bauh-files/master/web/env/v1/environment.yml)
  (downloaded during runtime).
-- Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/fix) and
-attach it to the generated app.
+- Some applications require Javascript fixes to properly work. If there is a known fix, bauh will download the file from [fix](https://github.com/vinifmor/bauh-files/tree/master/web/env/v2/fix) and
+attach it to the generated app. The fix files are saved on the disk following the pattern `~/.local/share/bauh/web/fixes/electron_{branch}/{app_name}.js` (or `/usr/local/share/bauh/web/fixes/...` for **root**)
 - The installed applications are located at `~/.local/share/bauh/installed` (or `/usr/local/share/bauh/web/installed` for **root**).
 - A desktop entry / menu shortcut will be generated for the installed applications at `~/.local/share/applications` (or `/usr/share/applications` for **root**)
 - If the Tray Mode **Start Minimized** is defined during the installation setup, a desktop entry will be also generated at `~/.config/autostart` (or `/etc/xdg/autostart` for **root**)

@@ -32,7 +32,7 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_CACHE_DIR, \
+    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, \
     get_icon_path
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
@@ -182,9 +182,8 @@ class WebApplicationManager(SoftwareManager):
         return description
 
     def _get_fix_for(self, url_domain: str, electron_version: str) -> str:
-        electron_branch = f"electron_{'_'.join(electron_version.split('.')[0:-1])}_X"
         fix_url = URL_FIX_PATTERN.format(domain=url_domain,
-                                         electron_branch=electron_branch)
+                                         electron_branch=self._map_electron_branch(electron_version))
 
         try:
             res = self.http_client.get(fix_url, session=False)
@@ -192,6 +191,9 @@ class WebApplicationManager(SoftwareManager):
                 return res.text
         except Exception as e:
             self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
+
+    def _map_electron_branch(self, version: str) -> str:
+        return f"electron_{'_'.join(version.split('.')[0:-1])}_X"
 
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
@@ -404,16 +406,15 @@ class WebApplicationManager(SoftwareManager):
                                      type_=MessageType.WARNING)
                 traceback.print_exc()
 
-        self.logger.info("Checking if there is any Javascript fix file associated with {} ".format(pkg.name))
-
-        fix_path = '{}/{}.js'.format(FIXES_PATH, pkg.id)
+        self.logger.info(f"Checking for Javascript fix file associated with {pkg.name}")
+        fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=self._map_electron_branch(pkg.version))
 
         if os.path.isfile(fix_path):
-            self.logger.info("Removing fix file '{}'".format(fix_path))
+            self.logger.info(f"Removing fix file '{fix_path}'")
             try:
                 os.remove(fix_path)
             except:
-                self.logger.error("Could not remove fix file '{}'".format(fix_path))
+                self.logger.error(f"Could not remove fix file '{fix_path}'")
                 traceback.print_exc()
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
@@ -667,17 +668,20 @@ class WebApplicationManager(SoftwareManager):
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
 
         fix = self._get_fix_for(url_domain=self._strip_url_protocol(pkg.url), electron_version=electron_version)
-        fix_path = '{}/{}.js'.format(FIXES_PATH, app_id)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
             fix_log = f'Fix found for {pkg.url} (electron={electron_version}, widevine={widevine_support})'
             self.logger.info(fix_log)
             watcher.print(fix_log)
-            install_options.append('--inject={}'.format(fix_path))
-            Path(FIXES_PATH).mkdir(exist_ok=True, parents=True)
 
-            self.logger.info('Writting JS fix at {}'.format(fix_path))
+            fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=self._map_electron_branch(electron_version))
+            Path(os.path.dirname(fix_path)).mkdir(parents=True, exist_ok=True)
+
+            install_options.append(f'--inject={fix_path}')
+            Path(FIX_FILE_PATH).mkdir(exist_ok=True, parents=True)
+
+            self.logger.info(f'Writting JS fix at {fix_path}')
             with open(fix_path, 'w+') as f:
                 f.write(fix)
 
