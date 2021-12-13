@@ -304,6 +304,11 @@ class EnvironmentUpdater:
 
             try:
                 settings = yaml.safe_load(res.content)
+                nodejs_settings = settings.get('nodejs')
+
+                if nodejs_settings:
+                    nodejs_settings['url'] = nodejs_settings['url'].format(version=nodejs_settings['version'])
+
             except yaml.YAMLError:
                 self.logger.error(f'Could not parse environment settings: {res.text}')
                 self._finish_task_download_settings()
