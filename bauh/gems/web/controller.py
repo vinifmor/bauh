@@ -681,7 +681,7 @@ class WebApplicationManager(SoftwareManager):
             install_options.append(f'--inject={fix_path}')
             Path(FIX_FILE_PATH).mkdir(exist_ok=True, parents=True)
 
-            self.logger.info(f'Writting JS fix at {fix_path}')
+            self.logger.info(f'Writing JS fix at {fix_path}')
             with open(fix_path, 'w+') as f:
                 f.write(fix)
 
@@ -694,7 +694,7 @@ class WebApplicationManager(SoftwareManager):
                 icon_path, icon_bytes = download[0], download[1]
                 pkg.custom_icon = icon_path
 
-                # writting the icon in a temporary folder to be used by the nativefier process
+                # writing the icon in a temporary folder to be used by the nativefier process
                 temp_icon_path = '{}/{}'.format(TEMP_PATH, pkg.icon_url.split('/')[-1])
                 install_options.append('--icon={}'.format(temp_icon_path))
 
