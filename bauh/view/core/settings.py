@@ -208,7 +208,7 @@ class GenericSettingsManager:
 
         select_scale = RangeInputComponent(id_="scalef", label=self.i18n['core.config.ui.scale_factor'] + ' (%)',
                                            tooltip=self.i18n['core.config.ui.scale_factor.tip'],
-                                           min_value=100, max_value=400, step_value=5, value=scale * 100,
+                                           min_value=100, max_value=400, step_value=5, value=int(scale * 100),
                                            max_width=default_width)
 
         cur_style = QApplication.instance().property('qt_style') if not core_config['ui']['qt_style'] else core_config['ui']['qt_style']
