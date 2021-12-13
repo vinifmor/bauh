@@ -181,8 +181,10 @@ class WebApplicationManager(SoftwareManager):
 
         return description
 
-    def _get_fix_for(self, url_no_protocol: str) -> str:
-        fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
+    def _get_fix_for(self, url_domain: str, electron_version: str) -> str:
+        electron_branch = f"electron_{'_'.join(electron_version.split('.')[0:-1])}_X"
+        fix_url = URL_FIX_PATTERN.format(domain=url_domain,
+                                         electron_branch=electron_branch)
 
         try:
             res = self.http_client.get(fix_url, session=False)
@@ -661,13 +663,17 @@ class WebApplicationManager(SoftwareManager):
         app_dir = '{}/{}'.format(INSTALLED_PATH, app_id)
 
         watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
-        fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
+
+        electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
+
+        fix = self._get_fix_for(url_domain=self._strip_url_protocol(pkg.url), electron_version=electron_version)
         fix_path = '{}/{}.js'.format(FIXES_PATH, app_id)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
-            self.logger.info('Fix found for {}'.format(pkg.url))
-            watcher.print('Fix found for {}'.format(pkg.url))
+            fix_log = f'Fix found for {pkg.url} (electron={electron_version}, widevine={widevine_support})'
+            self.logger.info(fix_log)
+            watcher.print(fix_log)
             install_options.append('--inject={}'.format(fix_path))
             Path(FIXES_PATH).mkdir(exist_ok=True, parents=True)
 
@@ -697,7 +703,6 @@ class WebApplicationManager(SoftwareManager):
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
-        electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version if not widevine_support else None,
                                                              system=bool(web_config['environment']['system']),
