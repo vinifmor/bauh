@@ -49,7 +49,7 @@ class EnvironmentUpdater:
         self.task_read_settings_id = 'web_read_settings'
         self.taskman = taskman
 
-    def _download_and_install(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
+    def _install_nodejs(self, version: str, version_url: str, watcher: ProcessWatcher) -> bool:
         self.logger.info(f"Downloading NodeJS {version}: {version_url}")
 
         tarf_path = f"{ENV_PATH}/{version_url.split('/')[-1]}"
@@ -129,7 +129,7 @@ class EnvironmentUpdater:
         Path(ENV_PATH).mkdir(parents=True, exist_ok=True)
 
         if not os.path.exists(NODE_DIR_PATH):
-            return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
+            return self._install_nodejs(version=version, version_url=version_url, watcher=watcher)
         else:
             installed_version = system.run_cmd('{} --version'.format(NODE_BIN_PATH), print_error=False)
 
@@ -143,7 +143,7 @@ class EnvironmentUpdater:
 
                 if version != installed_version:
                     self.logger.info("The NodeJs installed version is different from the Cloud.")
-                    return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
+                    return self._install_nodejs(version=version, version_url=version_url, watcher=watcher)
                 else:
                     self.logger.info("Node is already up to date")
                     return True
@@ -152,7 +152,7 @@ class EnvironmentUpdater:
                 self.logger.info(f"Removing {NODE_DIR_PATH}")
                 try:
                     shutil.rmtree(NODE_DIR_PATH)
-                    return self._download_and_install(version=version, version_url=version_url, watcher=watcher)
+                    return self._install_nodejs(version=version, version_url=version_url, watcher=watcher)
                 except:
                     self.logger.error(f'Could not delete the dir {NODE_DIR_PATH}')
                     return False
@@ -452,7 +452,7 @@ class EnvironmentUpdater:
         nativefier_data = comp_map.get('nativefier')
 
         if node_data:
-            if not self._download_and_install(version=node_data.version, version_url=node_data.url, watcher=handler.watcher):
+            if not self._install_nodejs(version=node_data.version, version_url=node_data.url, watcher=handler.watcher):
                 return False
 
             if not self._install_nativefier(version=nativefier_data.version, url=nativefier_data.url, handler=handler):
