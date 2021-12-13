@@ -20,9 +20,8 @@ from bauh.commons import system
 from bauh.commons.html import bold
 from bauh.commons.system import SimpleProcess, ProcessHandler
 from bauh.gems.web import ENV_PATH, NODE_DIR_PATH, NODE_BIN_PATH, NODE_MODULES_PATH, NATIVEFIER_BIN_PATH, \
-    ELECTRON_CACHE_DIR, ELECTRON_DOWNLOAD_URL, ELECTRON_SHA256_URL, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
-    nativefier, ELECTRON_WIDEVINE_URL, ELECTRON_WIDEVINE_SHA256_URL, \
-    ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path
+    ELECTRON_CACHE_DIR, URL_ENVIRONMENT_SETTINGS, NPM_BIN_PATH, NODE_PATHS, \
+    nativefier, ENVIRONMENT_SETTINGS_CACHED_FILE, ENVIRONMENT_SETTINGS_TS_FILE, get_icon_path
 from bauh.gems.web.model import WebApplication
 from bauh.view.util.translation import I18n
 
@@ -191,20 +190,10 @@ class EnvironmentUpdater:
     def _is_nativefier_installed(self) -> bool:
         return os.path.exists(NATIVEFIER_BIN_PATH)
 
-    def _get_electron_url(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> str:
-        arch = 'x64' if is_x86_x64_arch else 'ia32'
-        if widevine:
-            return ELECTRON_WIDEVINE_URL.format(version=version, arch=arch)
-        else:
-            return ELECTRON_DOWNLOAD_URL.format(version=version, arch=arch)
+    def _get_electron_url(self, version: str, base_url: str, is_x86_x64_arch: bool) -> str:
+        return base_url.format(version=version, arch='x64' if is_x86_x64_arch else 'ia32')
 
-    def _get_electron_sha256_url(self, version: str, widevine: bool) -> str:
-        if widevine:
-            return ELECTRON_WIDEVINE_SHA256_URL.format(version=version)
-        else:
-            return ELECTRON_SHA256_URL.format(version=version)
-
-    def check_electron_installed(self, version: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
+    def check_electron_installed(self, version: str, base_url: str, is_x86_x64_arch: bool, widevine: bool) -> Dict[str, bool]:
         self.logger.info(f"Checking if Electron {version} (widevine={widevine}) is installed")
         res = {'electron': False, 'sha256': False}
 
@@ -214,7 +203,7 @@ class EnvironmentUpdater:
             files = {os.path.basename(f) for f in glob.glob(f'{ELECTRON_CACHE_DIR}/**', recursive=True) if os.path.isfile(f)}
 
             if files:
-                electron_url = self._get_electron_url(version, is_x86_x64_arch, widevine)
+                electron_url = self._get_electron_url(version=version, base_url=base_url, is_x86_x64_arch=is_x86_x64_arch)
                 res['electron'] = os.path.basename(electron_url) in files
                 res['sha256'] = res['electron']
             else:
@@ -341,7 +330,8 @@ class EnvironmentUpdater:
             return
 
     def _check_and_fill_electron(self, pkg: WebApplication, env: dict, local_config: dict, x86_x64: bool, widevine: bool, output: List[EnvironmentComponent]):
-        electron_version = env['electron-wvvmp' if widevine else 'electron']['version']
+        electron_settings = env['electron-wvvmp' if widevine else 'electron']
+        electron_version = electron_settings['version']
 
         if not widevine and pkg.version and pkg.version != electron_version:  # this feature does not support custom widevine electron at the moment
             self.logger.info(f'A preset Electron version is defined for {pkg.url}: {pkg.version}')
@@ -351,9 +341,11 @@ class EnvironmentUpdater:
             self.logger.warning(f"A custom Electron version will be used {electron_version} to install {pkg.url}")
             electron_version = local_config['environment']['electron']['version']
 
-        electron_status = self.check_electron_installed(version=electron_version, is_x86_x64_arch=x86_x64, widevine=widevine)
+        electron_status = self.check_electron_installed(version=electron_version, base_url=electron_settings['url'],
+                                                        is_x86_x64_arch=x86_x64, widevine=widevine)
 
-        electron_url = self._get_electron_url(version=electron_version, is_x86_x64_arch=x86_x64, widevine=widevine)
+        electron_url = self._get_electron_url(version=electron_version, base_url=electron_settings['url'], is_x86_x64_arch=x86_x64)
+
         output.append(EnvironmentComponent(name=electron_url.split('/')[-1],
                                            version=electron_version,
                                            url=electron_url,
@@ -362,7 +354,7 @@ class EnvironmentUpdater:
                                            update=not electron_status['electron'],
                                            properties={'widevine': widevine}))
 
-        sha_url = self._get_electron_sha256_url(version=electron_version, widevine=widevine)
+        sha_url = electron_settings['sha_url'].format(version=electron_version)
 
         output.append(EnvironmentComponent(name=sha_url.split('/')[-1],
                                            version=electron_version,
