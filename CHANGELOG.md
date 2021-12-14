@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - handling http redirect errors
   
 - Web
-  - able to specify a custom User-Agent when installing apps that demand specific settings to work properly on Electron 13.X (e.g: WhatsApp Web)
+  - using custom installation properties by Electron version if required (available on **bauh-files**). e.g: custom User-Agent for WhatsApp Web on Electron 13.6.X.
   - checking for javascript fixes based on the Electron version (saved on disk as `~/.local/share/bauh/web/fixes/electron_{branch}/{app_name}.js`)
   - handling http redirect errors
   

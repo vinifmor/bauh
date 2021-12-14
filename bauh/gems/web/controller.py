@@ -9,7 +9,7 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Dict
 
 import requests
 import yaml
@@ -33,7 +33,7 @@ from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
     SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, \
-    get_icon_path
+    get_icon_path, URL_PROPS_PATTERN
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -191,6 +191,30 @@ class WebApplicationManager(SoftwareManager):
                 return res.text
         except Exception as e:
             self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
+
+    def _get_custom_properties(self, url_domain: str, electron_version: str) -> Optional[Dict[str, object]]:
+        props_url = URL_PROPS_PATTERN.format(domain=url_domain,
+                                             electron_branch=self._map_electron_branch(electron_version))
+
+        try:
+            res = self.http_client.get(props_url, session=False)
+            if res:
+                props = {}
+                for line in res.text.split('\n'):
+                    line_strip = line.strip()
+                    if line_strip:
+                        line_split = line_strip.split('=', 1)
+
+                        if len(line_split) == 2:
+                            key, val = line_split[0].strip(), line_split[1].strip()
+
+                            if key:
+                                props[key] = val
+
+                return props
+
+        except Exception as e:
+            self.logger.warning(f"Error when trying to retrieve custom installation properties for {props_url}: {e.__class__.__name__}")
 
     def _map_electron_branch(self, version: str) -> str:
         return f"electron_{'_'.join(version.split('.')[0:-1])}_X"
@@ -667,7 +691,8 @@ class WebApplicationManager(SoftwareManager):
 
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
 
-        fix = self._get_fix_for(url_domain=self._strip_url_protocol(pkg.url), electron_version=electron_version)
+        url_domain = self._strip_url_protocol(pkg.url)
+        fix = self._get_fix_for(url_domain=url_domain, electron_version=electron_version)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
@@ -704,6 +729,20 @@ class WebApplicationManager(SoftwareManager):
 
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
+
+        custom_props = self._get_custom_properties(url_domain=url_domain, electron_version=electron_version)
+
+        if custom_props:
+            # self.logger.info(f"Custom installation properties found for '{url_domain}' (Electron {electron_version}. Widevine: {widevine_support})")
+            for prop, val in custom_props.items():
+                if hasattr(pkg, prop):
+                    try:
+                        setattr(pkg, prop, val)
+                        self.logger.info(f"Using custom installation property '{prop}' ({val if val else '<null>'}) for '{url_domain}' "
+                                         f"(Electron: {electron_version})")
+                    except:
+                        self.logger.error(f"Could not set the custom installation property '{prop}' ({val if val else '<null>'}) "
+                                          f"for '{url_domain}' (Electron: {electron_version})")
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
