@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
   - able to specify a custom User-Agent when installing apps that demand specific settings to work properly on Electron 13.X (e.g: WhatsApp Web)
   - checking for javascript fixes based on the Electron version (saved on disk as `~/.local/share/bauh/web/fixes/electron_{branch}/{app_name}.js`)
+  - handling http redirect errors
   
 ### Fixes
 - UI

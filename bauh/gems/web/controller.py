@@ -201,13 +201,13 @@ class WebApplicationManager(SoftwareManager):
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _request_url(self, url: str) -> Response:
+    def _request_url(self, url: str) -> Optional[Response]:
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
             return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
-        except exceptions.ConnectionError as e:
-            self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
+        except (exceptions.ConnectionError, requests.exceptions.TooManyRedirects) as e:
+            self.logger.warning(f"Could not GET {url}. Exception: {e.__class__.__name__}")
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
