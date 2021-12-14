@@ -696,7 +696,7 @@ class WebApplicationManager(SoftwareManager):
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
-            fix_log = f'Fix found for {pkg.url} (electron={electron_version}, widevine={widevine_support})'
+            fix_log = f'Fix found for {pkg.url} (Electron: {electron_version})'
             self.logger.info(fix_log)
             watcher.print(fix_log)
 
