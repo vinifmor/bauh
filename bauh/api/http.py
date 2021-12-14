@@ -52,7 +52,10 @@ class HttpClient:
             except Exception as e:
                 if isinstance(e, requests.exceptions.ConnectionError):
                     self.logger.error('Internet seems to be off')
-                    raise
+                    raise e
+                elif isinstance(e, requests.exceptions.TooManyRedirects):
+                    self.logger.warning(f"Too many redirects for GET -> {url}")
+                    raise e
 
                 self.logger.error("Could not retrieve data from '{}'".format(url))
                 traceback.print_exc()
@@ -100,9 +103,14 @@ class HttpClient:
 
     def exists(self, url: str, session: bool = True, timeout: int = 5) -> bool:
         params = {'url': url, 'allow_redirects': True, 'verify': False, 'timeout': timeout}
-        if session:
-            res = self.session.head(**params)
-        else:
-            res = self.session.get(**params)
+
+        try:
+            if session:
+                res = self.session.head(**params)
+            else:
+                res = self.session.get(**params)
+        except requests.exceptions.TooManyRedirects:
+            self.logger.warning(f"{url} seems to exist, but too many redirects have happened")
+            return True
 
         return res.status_code in (200, 403)
