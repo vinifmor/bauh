@@ -181,9 +181,9 @@ class WebApplicationManager(SoftwareManager):
 
         return description
 
-    def _get_fix_for(self, url_domain: str, electron_version: str) -> str:
+    def _get_fix_for(self, url_domain: str, electron_branch: str) -> str:
         fix_url = URL_FIX_PATTERN.format(domain=url_domain,
-                                         electron_branch=self._map_electron_branch(electron_version))
+                                         electron_branch=electron_branch)
 
         try:
             res = self.http_client.get(fix_url, session=False)
@@ -192,9 +192,9 @@ class WebApplicationManager(SoftwareManager):
         except Exception as e:
             self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
 
-    def _get_custom_properties(self, url_domain: str, electron_version: str) -> Optional[Dict[str, object]]:
+    def _get_custom_properties(self, url_domain: str, electron_branch: str) -> Optional[Dict[str, object]]:
         props_url = URL_PROPS_PATTERN.format(domain=url_domain,
-                                             electron_branch=self._map_electron_branch(electron_version))
+                                             electron_branch=electron_branch)
 
         try:
             res = self.http_client.get(props_url, session=False)
@@ -691,8 +691,8 @@ class WebApplicationManager(SoftwareManager):
 
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
 
-        url_domain = self._strip_url_protocol(pkg.url)
-        fix = self._get_fix_for(url_domain=url_domain, electron_version=electron_version)
+        url_domain, electron_branch = self._strip_url_protocol(pkg.url), self._map_electron_branch(electron_version)
+        fix = self._get_fix_for(url_domain=url_domain, electron_branch=electron_branch)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
@@ -700,7 +700,7 @@ class WebApplicationManager(SoftwareManager):
             self.logger.info(fix_log)
             watcher.print(fix_log)
 
-            fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=self._map_electron_branch(electron_version))
+            fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=electron_branch)
             Path(os.path.dirname(fix_path)).mkdir(parents=True, exist_ok=True)
 
             install_options.append(f'--inject={fix_path}')
@@ -730,10 +730,10 @@ class WebApplicationManager(SoftwareManager):
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
 
-        custom_props = self._get_custom_properties(url_domain=url_domain, electron_version=electron_version)
+        custom_props = self._get_custom_properties(url_domain=url_domain, electron_branch=electron_branch)
 
         if custom_props:
-            # self.logger.info(f"Custom installation properties found for '{url_domain}' (Electron {electron_version}. Widevine: {widevine_support})")
+            # self.logger.info(f"Custom installation properties found for '{url_domain}' (Electron {electron_branch}. Widevine: {widevine_support})")
             for prop, val in custom_props.items():
                 if hasattr(pkg, prop):
                     try:
@@ -1061,7 +1061,7 @@ class WebApplicationManager(SoftwareManager):
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
                                             max_width=max_width,
-                                            id_='electron_version')
+                                            id_='electron_branch')
 
         native_opts = [
             InputOption(label=self.i18n['web.settings.nativefier.env'].capitalize(), value=False, tooltip=self.i18n['web.settings.nativefier.env.tooltip'].format(app=self.context.app_name)),
@@ -1103,7 +1103,7 @@ class WebApplicationManager(SoftwareManager):
 
         form_env = component.components[0]
 
-        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_version').get_value()).strip()
+        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_branch').get_value()).strip()
 
         if len(web_config['environment']['electron']['version']) == 0:
             web_config['environment']['electron']['version'] = None
