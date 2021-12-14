@@ -733,7 +733,6 @@ class WebApplicationManager(SoftwareManager):
         custom_props = self._get_custom_properties(url_domain=url_domain, electron_branch=electron_branch)
 
         if custom_props:
-            # self.logger.info(f"Custom installation properties found for '{url_domain}' (Electron {electron_branch}. Widevine: {widevine_support})")
             for prop, val in custom_props.items():
                 if hasattr(pkg, prop):
                     try:
