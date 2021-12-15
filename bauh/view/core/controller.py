@@ -162,14 +162,14 @@ class GenericSoftwareManager(SoftwareManager):
         if self.context.is_internet_available():
             norm_word = words.strip().lower()
 
-            url_words = RE_IS_URL.match(norm_word)
+            is_url = bool(RE_IS_URL.match(norm_word))
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
 
             threads = []
 
             for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, url_words, man, disk_loader, res))
+                t = Thread(target=self._search, args=(norm_word, is_url, man, disk_loader, res))
                 t.start()
                 threads.append(t)
 
