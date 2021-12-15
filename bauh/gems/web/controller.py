@@ -485,6 +485,11 @@ class WebApplicationManager(SoftwareManager):
                 if opt.value == app.categories[0]:
                     def_cat = opt
                     break
+        else:
+            for op in cat_ops:
+                if op.value == 'Network':
+                    def_cat = op
+                    break
 
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=def_cat)
         op_wv = InputOption(id_='widevine', label=self.i18n['web.install.option.widevine.label'] + ' (DRM)', value="--widevine", tooltip=self.i18n['web.install.option.widevine.tip'])

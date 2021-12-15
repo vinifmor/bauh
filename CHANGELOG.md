@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - checking for javascript fixes based on the Electron version (saved on disk as `~/.local/share/bauh/web/fixes/electron_{branch}/{app_name}.js`)
   - handling http redirect errors
   - installation form title
+  - default pre-selected installation category is now "Network" (Internet)
 
 - UI
   - only displaying a confirmation dialog for custom actions that start immediately 
