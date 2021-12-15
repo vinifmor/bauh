@@ -571,7 +571,8 @@ class WebApplicationManager(SoftwareManager):
                 if not typed_url or not self._request_url(typed_url):
                     watcher.show_message(title=self.i18n['error'].capitalize(),
                                          type_=MessageType.ERROR,
-                                         body=self.i18n['web.custom_action.install_app.invalid_url'].format(url=bold(f'"{inp_url.get_value()}"')))
+                                         body=self.i18n['web.custom_action.install_app.invalid_url'].format(URL='(URL)',
+                                                                                                            url=bold(f'"{inp_url.get_value()}"')))
                     return False, []
                 else:
                     app.url = typed_url
