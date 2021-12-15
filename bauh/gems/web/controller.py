@@ -485,7 +485,7 @@ class WebApplicationManager(SoftwareManager):
     def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
-        inp_url = TextInputComponent(label=self.i18n['address'], value=app.url, read_only=pre_validated)
+        inp_url = TextInputComponent(label=self.i18n['address'].capitalize() + ' (URL)', capitalize_label=False, value=app.url, read_only=pre_validated)
         inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
         inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
 
