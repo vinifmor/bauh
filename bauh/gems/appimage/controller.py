@@ -78,19 +78,7 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
-        self.custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
-                                                    i18n_status_key='appimage.custom_action.install_file.status',
-                                                    manager=self,
-                                                    manager_method='install_file',
-                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False),
-                               CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
-                                                    i18n_status_key='appimage.custom_action.update_db.status',
-                                                    manager=self,
-                                                    manager_method='update_database',
-                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False,
-                                                    requires_internet=True))
+        self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
         self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
@@ -863,8 +851,21 @@ class AppImageManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
-        for action in self.custom_actions:
-            yield action
+        if self._custom_actions is None:
+            self._custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
+                                                         i18n_status_key='appimage.custom_action.install_file.status',
+                                                         manager=self,
+                                                         manager_method='install_file',
+                                                         icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                         requires_root=False),
+                                    CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
+                                                         i18n_status_key='appimage.custom_action.update_db.status',
+                                                         manager=self,
+                                                         manager_method='update_database',
+                                                         icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                         requires_root=False,
+                                                         requires_internet=True))
+        yield from self._custom_actions
 
     def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         to_update = []
