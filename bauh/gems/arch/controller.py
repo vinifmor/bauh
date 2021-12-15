@@ -211,41 +211,7 @@ class ArchManager(SoftwareManager):
         self.categories = {}
         self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n)
         self.http_client = context.http_client
-        self.custom_actions = {
-            'sys_up': CustomSoftwareAction(i18n_label_key='arch.custom_action.upgrade_system',
-                                           i18n_status_key='arch.custom_action.upgrade_system.status',
-                                           manager_method='upgrade_system',
-                                           icon_path=get_icon_path(),
-                                           requires_root=True,
-                                           backup=True,
-                                           manager=self),
-            'ref_dbs': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_dbs',
-                                            i18n_status_key='arch.sync_databases.substatus',
-                                            manager_method='sync_databases',
-                                            icon_path=get_icon_path(),
-                                            requires_root=True,
-                                            manager=self),
-            'ref_mirrors': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_mirrors',
-                                                i18n_status_key='arch.task.mirrors',
-                                                manager_method='refresh_mirrors',
-                                                icon_path=get_icon_path(),
-                                                requires_root=True,
-                                                manager=self),
-            'clean_cache': CustomSoftwareAction(i18n_label_key='arch.custom_action.clean_cache',
-                                                i18n_status_key='arch.custom_action.clean_cache.status',
-                                                manager_method='clean_cache',
-                                                icon_path=get_icon_path(),
-                                                requires_root=True,
-                                                refresh=False,
-                                                manager=self),
-            'setup_snapd': CustomSoftwareAction(i18n_label_key='arch.custom_action.setup_snapd',
-                                                i18n_status_key='arch.custom_action.setup_snapd.status',
-                                                manager_method='setup_snapd',
-                                                icon_path=get_icon_path(),
-                                                requires_root=False,
-                                                refresh=False,
-                                                manager=self),
-        }
+        self._custom_actions: Optional[Dict[str, CustomSoftwareAction]] = None
         self.index_aur = None
         self.re_file_conflict = re.compile(r'[\w\d\-_.]+:')
         self.disk_cache_updater = disk_cache_updater
@@ -3041,19 +3007,56 @@ class ArchManager(SoftwareManager):
             pass  # when nothing is returned, the upgrade is called off by the UI
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        if self._custom_actions is None:
+            self._custom_actions = {
+                'sys_up': CustomSoftwareAction(i18n_label_key='arch.custom_action.upgrade_system',
+                                               i18n_status_key='arch.custom_action.upgrade_system.status',
+                                               manager_method='upgrade_system',
+                                               icon_path=get_icon_path(),
+                                               requires_root=True,
+                                               backup=True,
+                                               manager=self),
+                'ref_dbs': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_dbs',
+                                                i18n_status_key='arch.sync_databases.substatus',
+                                                manager_method='sync_databases',
+                                                icon_path=get_icon_path(),
+                                                requires_root=True,
+                                                manager=self),
+                'ref_mirrors': CustomSoftwareAction(i18n_label_key='arch.custom_action.refresh_mirrors',
+                                                    i18n_status_key='arch.task.mirrors',
+                                                    manager_method='refresh_mirrors',
+                                                    icon_path=get_icon_path(),
+                                                    requires_root=True,
+                                                    manager=self),
+                'clean_cache': CustomSoftwareAction(i18n_label_key='arch.custom_action.clean_cache',
+                                                    i18n_status_key='arch.custom_action.clean_cache.status',
+                                                    manager_method='clean_cache',
+                                                    icon_path=get_icon_path(),
+                                                    requires_root=True,
+                                                    refresh=False,
+                                                    manager=self),
+                'setup_snapd': CustomSoftwareAction(i18n_label_key='arch.custom_action.setup_snapd',
+                                                    i18n_status_key='arch.custom_action.setup_snapd.status',
+                                                    manager_method='setup_snapd',
+                                                    icon_path=get_icon_path(),
+                                                    requires_root=False,
+                                                    refresh=False,
+                                                    manager=self)
+            }
+
         arch_config = self.configman.get_config()
 
         if pacman.is_mirrors_available():
-            yield self.custom_actions['ref_mirrors']
+            yield self._custom_actions['ref_mirrors']
 
-        yield self.custom_actions['ref_dbs']
-        yield self.custom_actions['clean_cache']
+        yield self._custom_actions['ref_dbs']
+        yield self._custom_actions['clean_cache']
 
         if bool(arch_config['repositories']):
-            yield self.custom_actions['sys_up']
+            yield self._custom_actions['sys_up']
 
         if pacman.is_snapd_installed():
-            yield self.custom_actions['setup_snapd']
+            yield self._custom_actions['setup_snapd']
 
     def fill_sizes(self, pkgs: List[ArchPackage]):
         installed, new, all_names, installed_names = [], [], [], []
