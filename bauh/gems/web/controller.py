@@ -9,7 +9,7 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple, Optional, Dict, Generator
+from typing import List, Type, Set, Tuple, Optional, Dict, Generator, Iterable
 
 import requests
 import yaml
@@ -74,23 +74,8 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions = {}
         self.configman = WebConfigManager()
         self.idxman = SearchIndexManager(logger=context.logger)
-        self.custom_actions = (
-            CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
-                                 i18n_status_key='web.custom_action.install_app.status',
-                                 manager=self,
-                                 manager_method='install_app',
-                                 icon_path=resource.get_path('img/web.svg', ROOT_DIR),
-                                 requires_root=False,
-                                 refresh=True),
-            CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
-                                 i18n_status_key='web.custom_action.clean_env.status',
-                                 manager=self,
-                                 manager_method='clean_environment',
-                                 icon_path=resource.get_path('img/web.svg', ROOT_DIR),
-                                 requires_root=False,
-                                 refresh=False)
-        )
-        
+        self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
+
     def _get_lang_header(self) -> str:
         try:
             system_locale = locale.getdefaultlocale()
@@ -1171,5 +1156,22 @@ class WebApplicationManager(SoftwareManager):
             return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
-        for action in self.custom_actions:
-            yield action
+        if self._custom_actions is None:
+            self._custom_actions = (
+                CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
+                                     i18n_status_key='web.custom_action.install_app.status',
+                                     manager=self,
+                                     manager_method='install_app',
+                                     icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                     requires_root=False,
+                                     refresh=True),
+                CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
+                                     i18n_status_key='web.custom_action.clean_env.status',
+                                     manager=self,
+                                     manager_method='clean_environment',
+                                     icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                     requires_root=False,
+                                     refresh=False)
+            )
+
+        yield from self._custom_actions
