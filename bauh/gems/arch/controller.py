@@ -3041,7 +3041,8 @@ class ArchManager(SoftwareManager):
                                                     icon_path=get_icon_path(),
                                                     requires_root=False,
                                                     refresh=False,
-                                                    manager=self)
+                                                    manager=self,
+                                                    requires_confirmation=False)
             }
 
         arch_config = self.configman.get_config()
