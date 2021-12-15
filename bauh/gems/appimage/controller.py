@@ -27,7 +27,7 @@ from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
+from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_DIR, APPIMAGE_SHARED_DIR, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
@@ -692,6 +692,9 @@ class AppImageManager(SoftwareManager):
         return bool(shutil.which('sqlite3'))
 
     def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self.context.is_system_x86_64():
+            return False, self.i18n['message.requires_architecture'].format(arch=bold('x86_64'))
+
         if not self._is_sqlite3_available():
             return False, self.i18n['missing_dep'].format(dep=bold('sqlite3'))
 

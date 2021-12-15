@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - handling http redirect errors
+
+- AppImage
+  - not enabled for non-x86_64 systems 
   
 - Web
   - using custom installation properties by Electron version if required (available on **bauh-files**). e.g: custom User-Agent for WhatsApp Web on Electron 13.6.X.

@@ -346,6 +346,7 @@ manage_window.upgrade_all.popup.body=Voleu actualitzar totes les aplicacions sel
 manage_window.upgrade_all.popup.title=Actualitza
 message.file.not_exist=Fitxer no existeix
 message.file.not_exist.body=El fitxer {} sembla no existir
+message.requires_architecture=Requires {arch} architecture
 mirror=mirall
 missing_dep={dep} is not installed
 name=nom
