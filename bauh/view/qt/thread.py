@@ -1025,7 +1025,7 @@ class CustomAction(AsyncAction):
         res = {'success': False, 'pkg': self.pkg, 'action': self.custom_action, 'error': None, 'error_type': MessageType.ERROR}
 
         if self.custom_action.backup:
-            proceed, _ = self.request_backup(app_config=CoreConfigManager.get_config(),
+            proceed, _ = self.request_backup(app_config=CoreConfigManager().get_config(),
                                              action_key=None,
                                              i18n=self.i18n,
                                              root_password=self.root_pwd,
