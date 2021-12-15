@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - handling http redirect errors
+  - memory usage improvements when retrieving available custom actions
 
 - AppImage
   - not enabled for non-x86_64 systems 

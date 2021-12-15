@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from math import floor
 from pathlib import Path
-from typing import Set, Type, List, Tuple, Optional
+from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
 from packaging.version import parse as parse_version
@@ -78,7 +78,7 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
-        self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
+        self.custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                     i18n_status_key='appimage.custom_action.install_file.status',
                                                     manager=self,
                                                     manager_method='install_file',
@@ -90,7 +90,7 @@ class AppImageManager(SoftwareManager):
                                                     manager_method='update_database',
                                                     icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
                                                     requires_root=False,
-                                                    requires_internet=True)]
+                                                    requires_internet=True))
         self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
@@ -862,8 +862,9 @@ class AppImageManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        return self.custom_actions
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        for action in self.custom_actions:
+            yield action
 
     def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         to_update = []

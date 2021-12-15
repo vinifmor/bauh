@@ -9,7 +9,7 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple, Optional, Dict
+from typing import List, Type, Set, Tuple, Optional, Dict, Generator
 
 import requests
 import yaml
@@ -74,7 +74,7 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions = {}
         self.configman = WebConfigManager()
         self.idxman = SearchIndexManager(logger=context.logger)
-        self.custom_actions = [
+        self.custom_actions = (
             CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
                                  i18n_status_key='web.custom_action.install_app.status',
                                  manager=self,
@@ -89,7 +89,7 @@ class WebApplicationManager(SoftwareManager):
                                  icon_path=resource.get_path('img/web.svg', ROOT_DIR),
                                  requires_root=False,
                                  refresh=False)
-        ]
+        )
         
     def _get_lang_header(self) -> str:
         try:
@@ -1170,5 +1170,6 @@ class WebApplicationManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        return self.custom_actions
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        for action in self.custom_actions:
+            yield action

@@ -373,7 +373,7 @@ class ManageWindow(QWidget):
         self.container_bottom.layout().addWidget(bt_themes)
         self.comp_manager.register_component(BT_THEMES, bt_themes)
 
-        self.custom_actions = manager.get_custom_actions()
+        self.custom_actions = [a for a in manager.gen_custom_actions()]
         bt_custom_actions = IconButton(action=self.show_custom_actions,
                                        i18n=self.i18n,
                                        tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
@@ -460,7 +460,7 @@ class ManageWindow(QWidget):
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
 
     def update_custom_actions(self):
-        self.custom_actions = self.manager.get_custom_actions()
+        self.custom_actions = [a for a in self.manager.gen_custom_actions()]
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:

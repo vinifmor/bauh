@@ -12,7 +12,7 @@ from math import floor
 from pathlib import Path
 from pwd import getpwnam
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator
 
 import requests
 from dateutil.parser import parse as parse_date
@@ -3040,24 +3040,20 @@ class ArchManager(SoftwareManager):
         except PackageNotFoundException:
             pass  # when nothing is returned, the upgrade is called off by the UI
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        actions = []
-
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
         arch_config = self.configman.get_config()
 
         if pacman.is_mirrors_available():
-            actions.append(self.custom_actions['ref_mirrors'])
+            yield self.custom_actions['ref_mirrors']
 
-        actions.append(self.custom_actions['ref_dbs'])
-        actions.append(self.custom_actions['clean_cache'])
+        yield self.custom_actions['ref_dbs']
+        yield self.custom_actions['clean_cache']
 
         if bool(arch_config['repositories']):
-            actions.append(self.custom_actions['sys_up'])
+            yield self.custom_actions['sys_up']
 
         if pacman.is_snapd_installed():
-            actions.append(self.custom_actions['setup_snapd'])
-
-        return actions
+            yield self.custom_actions['setup_snapd']
 
     def fill_sizes(self, pkgs: List[ArchPackage]):
         installed, new, all_names, installed_names = [], [], [], []

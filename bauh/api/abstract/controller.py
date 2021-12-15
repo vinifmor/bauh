@@ -4,7 +4,7 @@ import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List, Set, Type, Tuple, Optional
+from typing import List, Set, Type, Tuple, Optional, Generator
 
 import yaml
 
@@ -382,11 +382,11 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
         """
-        :return: custom actions
+        :return: generates available custom actions
         """
-        pass
+        yield from ()
 
     def fill_sizes(self, pkgs: List[SoftwarePackage]):
         pass
