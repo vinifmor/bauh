@@ -56,6 +56,9 @@ class HttpClient:
                 elif isinstance(e, requests.exceptions.TooManyRedirects):
                     self.logger.warning(f"Too many redirects for GET -> {url}")
                     raise e
+                elif e.__class__ in (requests.exceptions.MissingSchema, requests.exceptions.InvalidSchema):
+                    self.logger.warning(f"The URL '{url}' has an invalid schema")
+                    raise e
 
                 self.logger.error("Could not retrieve data from '{}'".format(url))
                 traceback.print_exc()

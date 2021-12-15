@@ -14,7 +14,7 @@ from typing import List, Type, Set, Tuple, Optional, Dict
 import requests
 import yaml
 from colorama import Fore
-from requests import exceptions, Response
+from requests import Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult, \
@@ -74,13 +74,22 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions = {}
         self.configman = WebConfigManager()
         self.idxman = SearchIndexManager(logger=context.logger)
-        self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
-                                                    i18n_status_key='web.custom_action.clean_env.status',
-                                                    manager=self,
-                                                    manager_method='clean_environment',
-                                                    icon_path=resource.get_path('img/web.svg', ROOT_DIR),
-                                                    requires_root=False,
-                                                    refresh=False)]
+        self.custom_actions = [
+            CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
+                                 i18n_status_key='web.custom_action.install_app.status',
+                                 manager=self,
+                                 manager_method='install_app',
+                                 icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                 requires_root=False,
+                                 refresh=True),
+            CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
+                                 i18n_status_key='web.custom_action.clean_env.status',
+                                 manager=self,
+                                 manager_method='clean_environment',
+                                 icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                 requires_root=False,
+                                 refresh=False)
+        ]
         
     def _get_lang_header(self) -> str:
         try:
@@ -222,7 +231,7 @@ class WebApplicationManager(SoftwareManager):
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
 
-    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
     def _request_url(self, url: str) -> Optional[Response]:
@@ -230,8 +239,8 @@ class WebApplicationManager(SoftwareManager):
 
         try:
             return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
-        except (exceptions.ConnectionError, requests.exceptions.TooManyRedirects) as e:
-            self.logger.warning(f"Could not GET {url}. Exception: {e.__class__.__name__}")
+        except Exception as e:
+            self.logger.warning(f"Could not GET '{url}'. Exception: {e.__class__.__name__}")
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
@@ -473,10 +482,10 @@ class WebApplicationManager(SoftwareManager):
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
+    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
-        inp_url = TextInputComponent(label=self.i18n['address'], value=app.url, read_only=True)
+        inp_url = TextInputComponent(label=self.i18n['address'], value=app.url, read_only=pre_validated)
         inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
         inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
 
@@ -513,11 +522,15 @@ class WebApplicationManager(SoftwareManager):
 
         icon_op_ded = InputOption(id_='icon_ded', label=self.i18n['web.install.option.wicon.deducted.label'], value=0,
                                   tooltip=self.i18n['web.install.option.wicon.deducted.tip'].format('Nativefier'))
-        icon_op_disp = InputOption(id_='icon_disp', label=self.i18n['web.install.option.wicon.displayed.label'],
-                                   value=1, tooltip=self.i18n['web.install.option.wicon.displayed.tip'])
+
+        if pre_validated:
+            icon_op_disp = InputOption(id_='icon_disp', label=self.i18n['web.install.option.wicon.displayed.label'],
+                                       value=1, tooltip=self.i18n['web.install.option.wicon.displayed.tip'])
+        else:
+            icon_op_disp = None
 
         inp_icon = SingleSelectComponent(type_=SelectViewType.COMBO,
-                                         options=[icon_op_disp, icon_op_ded],
+                                         options=[op for op in (icon_op_ded, icon_op_disp) if op],
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
                                          label=self.i18n['web.install.option.wicon.label'])
 
@@ -544,13 +557,24 @@ class WebApplicationManager(SoftwareManager):
 
         check_options = MultipleSelectComponent(options=adv_opts, default_options=def_adv_opts, label=self.i18n['web.install.options.advanced'].capitalize())
 
-        res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
-                                           body=None,
-                                           components=[form_1, check_options],
-                                           confirmation_label=self.i18n['continue'].capitalize(),
-                                           deny_label=self.i18n['cancel'].capitalize())
+        install_ = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
+                                                body=None,
+                                                components=[form_1, check_options],
+                                                confirmation_label=self.i18n['continue'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize())
 
-        if res:
+        if install_:
+            if not pre_validated:
+                typed_url = inp_url.get_value().strip()
+
+                if not typed_url or not self._request_url(typed_url):
+                    watcher.show_message(title=self.i18n['error'].capitalize(),
+                                         type_=MessageType.ERROR,
+                                         body=self.i18n['web.custom_action.install_app.invalid_url'].format(url=bold(f'"{inp_url.get_value()}"')))
+                    return False, []
+                else:
+                    app.url = typed_url
+
             selected = []
 
             if check_options.values:
@@ -579,9 +603,9 @@ class WebApplicationManager(SoftwareManager):
                 app.set_custom_icon(icon_chooser.file_path)
                 selected.append('--icon={}'.format(icon_chooser.file_path))
 
-            app.save_icon = inp_icon.value == icon_op_disp
+            app.save_icon = inp_icon.value == icon_op_disp if icon_op_disp else False
 
-            return res, selected
+            return True, selected
 
         return False, []
 
@@ -649,12 +673,8 @@ class WebApplicationManager(SoftwareManager):
                                                                                                          pkg.name))
             traceback.print_exc()
 
-    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        continue_install, install_options = self._ask_install_options(pkg, watcher)
+    def _install(self, pkg: WebApplication, install_options: List[str], watcher: ProcessWatcher) -> TransactionResult:
         widevine_support = '--widevine' in install_options
-
-        if not continue_install:
-            return TransactionResult(success=False, installed=[], removed=[])
 
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
@@ -664,7 +684,8 @@ class WebApplicationManager(SoftwareManager):
 
         if web_config['environment']['system'] and not nativefier.is_available():
             watcher.show_message(title=self.i18n['error'].capitalize(),
-                                 body=self.i18n['web.install.global_nativefier.unavailable'].format(n=bold('Nativefier'), app=bold(pkg.name)) + '.',
+                                 body=self.i18n['web.install.global_nativefier.unavailable'].format(
+                                     n=bold('Nativefier'), app=bold(pkg.name)) + '.',
                                  type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
@@ -677,8 +698,9 @@ class WebApplicationManager(SoftwareManager):
         if comps_to_update and not self._ask_update_permission(comps_to_update, watcher):
             return TransactionResult(success=False, installed=[], removed=[])
 
-        if not self.env_updater.update(components=comps_to_update,  handler=handler):
-            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
+        if not self.env_updater.update(components=comps_to_update, handler=handler):
+            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)),
+                                 type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
@@ -737,11 +759,13 @@ class WebApplicationManager(SoftwareManager):
                 if hasattr(pkg, prop):
                     try:
                         setattr(pkg, prop, val)
-                        self.logger.info(f"Using custom installation property '{prop}' ({val if val else '<null>'}) for '{url_domain}' "
-                                         f"(Electron: {electron_version})")
+                        self.logger.info(
+                            f"Using custom installation property '{prop}' ({val if val else '<null>'}) for '{url_domain}' "
+                            f"(Electron: {electron_version})")
                     except:
-                        self.logger.error(f"Could not set the custom installation property '{prop}' ({val if val else '<null>'}) "
-                                          f"for '{url_domain}' (Electron: {electron_version})")
+                        self.logger.error(
+                            f"Could not set the custom installation property '{prop}' ({val if val else '<null>'}) "
+                            f"for '{url_domain}' (Electron: {electron_version})")
 
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
@@ -754,7 +778,8 @@ class WebApplicationManager(SoftwareManager):
 
         if not installed:
             msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
-                                  self.i18n['web.install.nativefier.error.unknown'].format(bold(self.i18n['details'].capitalize())))
+                                  self.i18n['web.install.nativefier.error.unknown'].format(
+                                      bold(self.i18n['details'].capitalize())))
             watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
@@ -824,6 +849,27 @@ class WebApplicationManager(SoftwareManager):
             pkg.options_set = install_options
 
         return TransactionResult(success=True, installed=[pkg], removed=[])
+
+    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+        continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=True)
+
+        if not continue_install:
+            return TransactionResult(success=False, installed=[], removed=[])
+
+        return self._install(pkg, install_options, watcher)
+
+    def install_app(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        pkg = WebApplication()
+        continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=False)
+
+        if not continue_install:
+            return False
+
+        if self._install(pkg, install_options, watcher).success:
+            self.serialize_to_disk(pkg, icon_bytes=None, only_icon=False)
+            return True
+
+        return False
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
         return """

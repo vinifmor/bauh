@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.24]
+### Features
+- Web
+  - new custom action button to install apps (to improve usability since some users don't know about how to install Web apps through the search bar)
+      <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.24/install_web_app.png">
+      </p>
+
 ### Improvements
 - General
   - handling http redirect errors
