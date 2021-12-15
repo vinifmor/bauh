@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - installation form title
   
 ### Fixes
+- Web
+  - wrong spelling (i18n)
+  
 - UI
   - crashing when resizing with floats instead of integers [#216](https://github.com/vinifmor/bauh/issues/216)
   - crashing when using floats for spinner components [#217](https://github.com/vinifmor/bauh/issues/217)
