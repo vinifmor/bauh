@@ -65,8 +65,7 @@ class ConfirmationDialog(QDialog):
             self.layout().addWidget(container_body)
 
             lb_icon = QLabel()
-            lb_icon.setObjectName('confirm_icon')
-            lb_icon.setPixmap(QApplication.style().standardIcon(QStyle.SP_MessageBoxQuestion).pixmap(QSize(48, 48)))
+            lb_icon.setObjectName("confirm_dialog_icon")
             container_body.layout().addWidget(lb_icon)
 
         if body:

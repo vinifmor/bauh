@@ -28,7 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - default pre-selected installation category is now "Network" (Internet)
 
 - UI
-  - only displaying a confirmation dialog for custom actions that start immediately 
+  - only displaying a confirmation dialog for custom actions that start immediately
+  - not depending on system's confirmation dialog icon
   
 ### Fixes
 - Web

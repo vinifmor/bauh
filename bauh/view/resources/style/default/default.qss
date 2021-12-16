@@ -74,6 +74,15 @@ QLabel[tip_icon = "true"] {
     max-width: 12;
 }
 
+QLabel#confirm_dialog_icon {
+     qproperty-scaledContents: True;
+     min-width: 48px;
+     max-width: 48px;
+     min-height: 48px;
+     max-height: 48px;
+
+}
+
 QCustomToolbar QWidget[spacer = "true"] {
     min-width: 5px;
 }

@@ -79,6 +79,10 @@ QLabel[tip_icon = "true"] {
     qproperty-pixmap: url("@style_dir/img/help.svg");
 }
 
+QLabel#confirm_dialog_icon {
+     qproperty-pixmap: url("@style_dir/img/question.svg");
+}
+
 QPlainTextEdit[console = 'true'] {
     background: @console.background.color;
     color: @console.font.color;
