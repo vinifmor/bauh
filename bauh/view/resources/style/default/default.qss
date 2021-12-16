@@ -76,10 +76,10 @@ QLabel[tip_icon = "true"] {
 
 QLabel#confirm_dialog_icon {
      qproperty-scaledContents: True;
-     min-width: 48px;
-     max-width: 48px;
-     min-height: 48px;
-     max-height: 48px;
+     min-width: 32px;
+     max-width: 32px;
+     min-height: 32px;
+     max-height: 32px;
 
 }
 
