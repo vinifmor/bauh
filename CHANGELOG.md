@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - crashing when resizing with floats instead of integers [#216](https://github.com/vinifmor/bauh/issues/216)
   - crashing when using floats for spinner components [#217](https://github.com/vinifmor/bauh/issues/217)
   - crashing for custom actions that can request a system backup (e.g: Arch -> Quick system upgrade)
+  - initialization panel's lower components positioning
 
 ## [0.9.23] 2021-12-10
 ### Features

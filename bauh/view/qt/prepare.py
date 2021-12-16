@@ -230,7 +230,7 @@ class PreparePanel(QWidget, TaskManager):
         self.layout().addWidget(self.bottom_widget)
         self.bottom_widget.setVisible(False)
 
-        self.bt_bar = QCustomToolbar()
+        self.bt_bar = QCustomToolbar(policy_height=QSizePolicy.Fixed)
         self.bt_close = QPushButton(self.i18n['close'].capitalize())
         self.bt_close.setObjectName('bt_cancel')
         self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
