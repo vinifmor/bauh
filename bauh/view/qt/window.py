@@ -1424,9 +1424,9 @@ class ManageWindow(QWidget):
     def begin_execute_custom_action(self, pkg: Optional[PackageView], action: CustomSoftwareAction):
         if pkg is None and action.requires_confirmation and \
                 not ConfirmationDialog(title=self.i18n['confirmation'].capitalize(),
-                                                  body='<p>{}</p>'.format(self.i18n['custom_action.proceed_with'].capitalize().format(bold(self.i18n[action.i18n_label_key]))),
-                                                  icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
-                                                  i18n=self.i18n).ask():
+                                       body='<p>{}</p>'.format(self.i18n['custom_action.proceed_with'].capitalize().format(bold(self.i18n[action.i18n_label_key]))),
+                                       icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
+                                       i18n=self.i18n).ask():
             return False
 
         pwd = None
