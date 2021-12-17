@@ -83,7 +83,8 @@ class AppImageManager(SoftwareManager):
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
                                                         requires_root=False,
-                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
+                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
+                                                        requires_confirmation=False)]
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
