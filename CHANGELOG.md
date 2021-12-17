@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.24/install_web_app.png">
       </p>
+  - using the new Web environment specifications downloaded from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/web/env/v2/environment.yml)  
 
 ### Improvements
 - General
