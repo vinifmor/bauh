@@ -55,7 +55,8 @@ class SnapManager(SoftwareManager):
                                  i18n_confirm_key='snap.action.channel.confirm',
                                  icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                  manager_method='change_channel',
-                                 requires_root=True)
+                                 requires_root=True,
+                                 requires_confirmation=False)
         ]
 
     def _fill_categories(self, app: SnapApplication):
