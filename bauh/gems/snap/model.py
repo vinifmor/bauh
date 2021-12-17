@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import Optional, Set, Iterable
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
@@ -10,7 +10,7 @@ class SnapApplication(SoftwarePackage):
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, publisher: str = None, rev: str = None, notes: str = None,
                  confinement: str = None, verified_publisher: bool = False,
-                 extra_actions: List[CustomSoftwareAction] = None,
+                 extra_actions: Optional[Iterable[CustomSoftwareAction]] = None,
                  screenshots: Optional[Set[str]] = None,
                  license: Optional[str] = None,
                  installed: bool = False,
@@ -92,7 +92,7 @@ class SnapApplication(SoftwarePackage):
     def get_publisher(self):
         return self.publisher
 
-    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+    def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         if self.installed:
             return self.extra_actions
 

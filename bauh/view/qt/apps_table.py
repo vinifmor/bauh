@@ -104,7 +104,7 @@ class PackagesTable(QTableWidget):
         return pkg.model.has_history() or \
                pkg.model.can_be_downgraded() or \
                pkg.model.supports_ignored_updates() or \
-               bool(pkg.model.get_custom_supported_actions())
+               bool(pkg.model.get_custom_actions())
 
     def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
@@ -154,8 +154,8 @@ class PackagesTable(QTableWidget):
                                                      button_name=button_name,
                                                      action=ignore_updates))
 
-        if bool(pkg.model.get_custom_supported_actions()):
-            actions = [self._map_custom_action(pkg, a, menu_row) for a in pkg.model.get_custom_supported_actions()]
+        if bool(pkg.model.get_custom_actions()):
+            actions = [self._map_custom_action(pkg, a, menu_row) for a in pkg.model.get_custom_actions()]
             menu_row.addActions(actions)
 
         menu_row.adjustSize()

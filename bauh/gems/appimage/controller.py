@@ -79,12 +79,12 @@ class AppImageManager(SoftwareManager):
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
-        self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
+        self.custom_app_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
                                                         requires_root=False,
                                                         icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
-                                                        requires_confirmation=False)]
+                                                        requires_confirmation=False),)
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),

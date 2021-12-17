@@ -1,4 +1,4 @@
-from typing import List, Set, Optional
+from typing import List, Set, Optional, Iterable
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
@@ -200,7 +200,7 @@ class ArchPackage(SoftwarePackage):
     def get_cached_pkgbuild_path(self) -> str:
         return '{}/PKGBUILD'.format(self.get_disk_cache_path())
 
-    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+    def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         if self.installed and self.repository == 'aur':
             actions = [ACTION_AUR_REINSTALL]
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 from bauh.api.paths import CACHE_DIR
 
@@ -202,7 +202,7 @@ class SoftwarePackage(ABC):
         """
         pass
 
-    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+    def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         """
         :return: custom supported actions
         """
