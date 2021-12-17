@@ -169,10 +169,10 @@ class PackagesTable(QTableWidget):
             else:
                 body = '{} ?'.format(self.i18n[action.i18n_label_key])
 
-            if ConfirmationDialog(icon=QIcon(pkg.model.get_type_icon_path()),
-                                  title=self.i18n[action.i18n_label_key],
-                                  body=self._parag(body),
-                                  i18n=self.i18n).ask():
+            if not action.requires_confirmation or ConfirmationDialog(icon=QIcon(pkg.model.get_type_icon_path()),
+                                                                      title=self.i18n[action.i18n_label_key],
+                                                                      body=self._parag(body),
+                                                                      i18n=self.i18n).ask():
                 self.window.begin_execute_custom_action(pkg, action)
 
         return QCustomMenuAction(parent=parent,
