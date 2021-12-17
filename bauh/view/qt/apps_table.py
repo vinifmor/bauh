@@ -154,8 +154,9 @@ class PackagesTable(QTableWidget):
                                                      button_name=button_name,
                                                      action=ignore_updates))
 
-        if bool(pkg.model.get_custom_actions()):
-            actions = [self._map_custom_action(pkg, a, menu_row) for a in pkg.model.get_custom_actions()]
+        custom_actions = pkg.model.get_custom_actions()
+        if custom_actions:
+            actions = [self._map_custom_action(pkg, a, menu_row) for a in custom_actions]
             menu_row.addActions(actions)
 
         menu_row.adjustSize()
