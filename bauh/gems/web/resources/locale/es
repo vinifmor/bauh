@@ -1,4 +1,4 @@
-gem.web.info=Le permite instalar aplicaciones web a través de sus direcciones (URLs)
+gem.web.info=Le permite instalar aplicaciones web a través de sus direcciones (URL)
 gem.web.install.warning=Esta aplicación no es distribuida oficialmente por el propietario del dominio
 web.custom_action.clean_env.failed=Se produjo un error durante la limpieza del ambiente de instalación
 web.custom_action.clean_env.status=Limpiando el ambiente de instalación

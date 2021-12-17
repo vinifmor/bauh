@@ -1,4 +1,4 @@
-gem.web.info=Permet d'installer des applications Web sur le système depuis leur adresses ( URLs )
+gem.web.info=Permet d'installer des applications Web sur le système depuis leur adresses (URL)
 gem.web.install.warning=Cette application n'est pas officiellement distribué par le propiétaire de son domaine
 web.custom_action.clean_env.failed=Une erreur est survenue lors du nettoyage de l'environnement d'installation
 web.custom_action.clean_env.status=Nettoyage de l'environnement d'installation
