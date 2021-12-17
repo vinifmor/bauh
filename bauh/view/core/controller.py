@@ -4,7 +4,7 @@ import time
 import traceback
 from subprocess import Popen, STDOUT
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Optional
+from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction
@@ -54,20 +54,21 @@ class GenericSoftwareManager(SoftwareManager):
         self.settings_manager = settings_manager
         self.http_client = context.http_client
         self.configman = CoreConfigManager()
-        self.extra_actions = [CustomSoftwareAction(i18n_label_key='action.reset',
+        self.extra_actions = (CustomSoftwareAction(i18n_label_key='action.reset',
                                                    i18n_status_key='action.reset.status',
                                                    manager_method='reset',
                                                    manager=self,
                                                    icon_path=resource.get_path('img/logo.svg'),
                                                    requires_root=False,
-                                                   refresh=False)]
-        self.dynamic_extra_actions = {CustomSoftwareAction(i18n_label_key='action.backups',
-                                                           i18n_status_key='action.backups.status',
-                                                           manager_method='launch_timeshift',
-                                                           manager=self,
-                                                           icon_path='timeshift',
-                                                           requires_root=False,
-                                                           refresh=False): self.is_backups_action_available}
+                                                   refresh=False),)
+        self.dynamic_extra_actions: Dict[CustomSoftwareAction, Callable[[dict], bool]] = {
+            CustomSoftwareAction(i18n_label_key='action.backups',
+                                 i18n_status_key='action.backups.status',
+                                 manager_method='launch_timeshift',
+                                 manager=self,
+                                 icon_path='timeshift',
+                                 requires_root=False,
+                                 refresh=False): self.is_backups_action_available}
 
     def _is_timeshift_launcher_available(self) -> bool:
         return bool(shutil.which('timeshift-launcher'))
@@ -161,14 +162,14 @@ class GenericSoftwareManager(SoftwareManager):
         if self.context.is_internet_available():
             norm_word = words.strip().lower()
 
-            url_words = RE_IS_URL.match(norm_word)
+            is_url = bool(RE_IS_URL.match(norm_word))
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
 
             threads = []
 
             for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, url_words, man, disk_loader, res))
+                t = Thread(target=self._search, args=(norm_word, is_url, man, disk_loader, res))
                 t.start()
                 threads.append(t)
 
@@ -611,8 +612,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         return True
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        actions = []
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
         if self.managers:
             working_managers = []
 
@@ -624,20 +624,17 @@ class GenericSoftwareManager(SoftwareManager):
                 working_managers.sort(key=lambda m: m.__class__.__name__)
 
                 for man in working_managers:
-                    man_actions = man.get_custom_actions()
-
-                    if man_actions:
-                        actions.extend(man_actions)
+                    for action in man.gen_custom_actions():
+                        yield action
 
         app_config = self.configman.get_config()
 
         for action, available in self.dynamic_extra_actions.items():
             if available(app_config):
-                actions.append(action)
+                yield action
 
-        actions.extend(self.extra_actions)
-
-        return actions
+        for action in self.extra_actions:
+            yield action
 
     def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
         ti = time.time()

@@ -345,6 +345,7 @@ manage_window.upgrade_all.popup.body=Обновить все выбранные 
 manage_window.upgrade_all.popup.title=Обновление
 message.file.not_exist=Файл не существует
 message.file.not_exist.body=Файл {}, кажется, не существует
+message.requires_architecture=Requires {arch} architecture
 mirror=Зеркало
 missing_dep={dep} is not installed
 name=Имя

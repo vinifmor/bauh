@@ -409,7 +409,7 @@ PackagesTable QToolButton#bt_uninstall:disabled {
 }
 
 QLabel[help_icon = "true"] {
-    qproperty-pixmap: url("@style_dir/img/help.svg");
+    qproperty-pixmap: url("@style_dir/img/question.svg");
 }
 
 QLabel[warning_icon = "true"] {
@@ -417,7 +417,11 @@ QLabel[warning_icon = "true"] {
 }
 
 QLabel[tip_icon = "true"] {
-    qproperty-pixmap: url("@style_dir/img/help.svg");
+    qproperty-pixmap: url("@style_dir/img/question.svg");
+}
+
+QLabel#confirm_dialog_icon {
+     qproperty-pixmap: url("@style_dir/img/question.svg");
 }
 
 FormQt IconButton#clean_field {

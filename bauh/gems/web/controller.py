@@ -9,12 +9,12 @@ import traceback
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Dict, Generator, Iterable
 
 import requests
 import yaml
 from colorama import Fore
-from requests import exceptions, Response
+from requests import Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult, \
@@ -32,8 +32,8 @@ from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIXES_PATH, ELECTRON_CACHE_DIR, \
-    get_icon_path
+    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, \
+    get_icon_path, URL_PROPS_PATTERN
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -74,14 +74,8 @@ class WebApplicationManager(SoftwareManager):
         self.suggestions = {}
         self.configman = WebConfigManager()
         self.idxman = SearchIndexManager(logger=context.logger)
-        self.custom_actions = [CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
-                                                    i18n_status_key='web.custom_action.clean_env.status',
-                                                    manager=self,
-                                                    manager_method='clean_environment',
-                                                    icon_path=resource.get_path('img/web.svg', ROOT_DIR),
-                                                    requires_root=False,
-                                                    refresh=False)]
-        
+        self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
+
     def _get_lang_header(self) -> str:
         try:
             system_locale = locale.getdefaultlocale()
@@ -181,8 +175,9 @@ class WebApplicationManager(SoftwareManager):
 
         return description
 
-    def _get_fix_for(self, url_no_protocol: str) -> str:
-        fix_url = URL_FIX_PATTERN.format(url=url_no_protocol)
+    def _get_fix_for(self, url_domain: str, electron_branch: str) -> str:
+        fix_url = URL_FIX_PATTERN.format(domain=url_domain,
+                                         electron_branch=electron_branch)
 
         try:
             res = self.http_client.get(fix_url, session=False)
@@ -191,19 +186,46 @@ class WebApplicationManager(SoftwareManager):
         except Exception as e:
             self.logger.warning("Error when trying to retrieve a fix for {}: {}".format(fix_url, e.__class__.__name__))
 
+    def _get_custom_properties(self, url_domain: str, electron_branch: str) -> Optional[Dict[str, object]]:
+        props_url = URL_PROPS_PATTERN.format(domain=url_domain,
+                                             electron_branch=electron_branch)
+
+        try:
+            res = self.http_client.get(props_url, session=False)
+            if res:
+                props = {}
+                for line in res.text.split('\n'):
+                    line_strip = line.strip()
+                    if line_strip:
+                        line_split = line_strip.split('=', 1)
+
+                        if len(line_split) == 2:
+                            key, val = line_split[0].strip(), line_split[1].strip()
+
+                            if key:
+                                props[key] = val
+
+                return props
+
+        except Exception as e:
+            self.logger.warning(f"Error when trying to retrieve custom installation properties for {props_url}: {e.__class__.__name__}")
+
+    def _map_electron_branch(self, version: str) -> str:
+        return f"electron_{'_'.join(version.split('.')[0:-1])}_X"
+
     def _strip_url_protocol(self, url: str) -> str:
         return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
 
-    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: bytes, only_icon: bool):
+    def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
-    def _request_url(self, url: str) -> Response:
+    def _request_url(self, url: str) -> Optional[Response]:
         headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
 
         try:
             return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
-        except exceptions.ConnectionError as e:
-            self.logger.warning("Could not get {}: {}".format(url, e.__class__.__name__))
+        except Exception as e:
+            self.logger.warning(f"Could not GET '{url}'. Exception: {e.__class__.__name__}")
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
@@ -402,16 +424,15 @@ class WebApplicationManager(SoftwareManager):
                                      type_=MessageType.WARNING)
                 traceback.print_exc()
 
-        self.logger.info("Checking if there is any Javascript fix file associated with {} ".format(pkg.name))
-
-        fix_path = '{}/{}.js'.format(FIXES_PATH, pkg.id)
+        self.logger.info(f"Checking for Javascript fix file associated with {pkg.name}")
+        fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=self._map_electron_branch(pkg.version))
 
         if os.path.isfile(fix_path):
-            self.logger.info("Removing fix file '{}'".format(fix_path))
+            self.logger.info(f"Removing fix file '{fix_path}'")
             try:
                 os.remove(fix_path)
             except:
-                self.logger.error("Could not remove fix file '{}'".format(fix_path))
+                self.logger.error(f"Could not remove fix file '{fix_path}'")
                 traceback.print_exc()
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(fix_path)),
@@ -446,10 +467,11 @@ class WebApplicationManager(SoftwareManager):
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher) -> Tuple[bool, List[str]]:
+    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
-        inp_url = TextInputComponent(label=self.i18n['address'], value=app.url, read_only=True)
+        inp_url = TextInputComponent(label=self.i18n['address'].capitalize() + ' (URL)', capitalize_label=False, value=app.url,
+                                     read_only=pre_validated, placeholder=f"({self.i18n['example.short']}: https://myapp123.com)")
         inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
         inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
 
@@ -462,6 +484,11 @@ class WebApplicationManager(SoftwareManager):
             for opt in cat_ops:
                 if opt.value == app.categories[0]:
                     def_cat = opt
+                    break
+        else:
+            for op in cat_ops:
+                if op.value == 'Network':
+                    def_cat = op
                     break
 
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=def_cat)
@@ -486,11 +513,15 @@ class WebApplicationManager(SoftwareManager):
 
         icon_op_ded = InputOption(id_='icon_ded', label=self.i18n['web.install.option.wicon.deducted.label'], value=0,
                                   tooltip=self.i18n['web.install.option.wicon.deducted.tip'].format('Nativefier'))
-        icon_op_disp = InputOption(id_='icon_disp', label=self.i18n['web.install.option.wicon.displayed.label'],
-                                   value=1, tooltip=self.i18n['web.install.option.wicon.displayed.tip'])
+
+        if pre_validated:
+            icon_op_disp = InputOption(id_='icon_disp', label=self.i18n['web.install.option.wicon.displayed.label'],
+                                       value=1, tooltip=self.i18n['web.install.option.wicon.displayed.tip'])
+        else:
+            icon_op_disp = None
 
         inp_icon = SingleSelectComponent(type_=SelectViewType.COMBO,
-                                         options=[icon_op_disp, icon_op_ded],
+                                         options=[op for op in (icon_op_ded, icon_op_disp) if op],
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
                                          label=self.i18n['web.install.option.wicon.label'])
 
@@ -517,13 +548,25 @@ class WebApplicationManager(SoftwareManager):
 
         check_options = MultipleSelectComponent(options=adv_opts, default_options=def_adv_opts, label=self.i18n['web.install.options.advanced'].capitalize())
 
-        res = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
-                                           body=None,
-                                           components=[form_1, check_options],
-                                           confirmation_label=self.i18n['continue'].capitalize(),
-                                           deny_label=self.i18n['cancel'].capitalize())
+        install_ = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
+                                                body=None,
+                                                components=[form_1, check_options],
+                                                confirmation_label=self.i18n['continue'].capitalize(),
+                                                deny_label=self.i18n['cancel'].capitalize())
 
-        if res:
+        if install_:
+            if not pre_validated:
+                typed_url = inp_url.get_value().strip()
+
+                if not typed_url or not self._request_url(typed_url):
+                    watcher.show_message(title=self.i18n['error'].capitalize(),
+                                         type_=MessageType.ERROR,
+                                         body=self.i18n['web.custom_action.install_app.invalid_url'].format(URL='(URL)',
+                                                                                                            url=bold(f'"{inp_url.get_value()}"')))
+                    return False, []
+                else:
+                    app.url = typed_url
+
             selected = []
 
             if check_options.values:
@@ -552,9 +595,9 @@ class WebApplicationManager(SoftwareManager):
                 app.set_custom_icon(icon_chooser.file_path)
                 selected.append('--icon={}'.format(icon_chooser.file_path))
 
-            app.save_icon = inp_icon.value == icon_op_disp
+            app.save_icon = inp_icon.value == icon_op_disp if icon_op_disp else False
 
-            return res, selected
+            return True, selected
 
         return False, []
 
@@ -622,12 +665,8 @@ class WebApplicationManager(SoftwareManager):
                                                                                                          pkg.name))
             traceback.print_exc()
 
-    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
-        continue_install, install_options = self._ask_install_options(pkg, watcher)
+    def _install(self, pkg: WebApplication, install_options: List[str], watcher: ProcessWatcher) -> TransactionResult:
         widevine_support = '--widevine' in install_options
-
-        if not continue_install:
-            return TransactionResult(success=False, installed=[], removed=[])
 
         watcher.change_substatus(self.i18n['web.env.checking'])
         handler = ProcessHandler(watcher)
@@ -637,7 +676,8 @@ class WebApplicationManager(SoftwareManager):
 
         if web_config['environment']['system'] and not nativefier.is_available():
             watcher.show_message(title=self.i18n['error'].capitalize(),
-                                 body=self.i18n['web.install.global_nativefier.unavailable'].format(n=bold('Nativefier'), app=bold(pkg.name)) + '.',
+                                 body=self.i18n['web.install.global_nativefier.unavailable'].format(
+                                     n=bold('Nativefier'), app=bold(pkg.name)) + '.',
                                  type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
@@ -650,8 +690,9 @@ class WebApplicationManager(SoftwareManager):
         if comps_to_update and not self._ask_update_permission(comps_to_update, watcher):
             return TransactionResult(success=False, installed=[], removed=[])
 
-        if not self.env_updater.update(components=comps_to_update,  handler=handler):
-            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)), type_=MessageType.ERROR)
+        if not self.env_updater.update(components=comps_to_update, handler=handler):
+            watcher.show_message(title=self.i18n['error'], body=self.i18n['web.env.error'].format(bold(pkg.name)),
+                                 type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
         Path(INSTALLED_PATH).mkdir(parents=True, exist_ok=True)
@@ -661,17 +702,25 @@ class WebApplicationManager(SoftwareManager):
         app_dir = '{}/{}'.format(INSTALLED_PATH, app_id)
 
         watcher.change_substatus(self.i18n['web.install.substatus.checking_fixes'])
-        fix = self._get_fix_for(url_no_protocol=self._strip_url_protocol(pkg.url))
-        fix_path = '{}/{}.js'.format(FIXES_PATH, app_id)
+
+        electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
+
+        url_domain, electron_branch = self._strip_url_protocol(pkg.url), self._map_electron_branch(electron_version)
+        fix = self._get_fix_for(url_domain=url_domain, electron_branch=electron_branch)
 
         if fix:
             # just adding the fix as an installation option. The file will be written later
-            self.logger.info('Fix found for {}'.format(pkg.url))
-            watcher.print('Fix found for {}'.format(pkg.url))
-            install_options.append('--inject={}'.format(fix_path))
-            Path(FIXES_PATH).mkdir(exist_ok=True, parents=True)
+            fix_log = f'Fix found for {pkg.url} (Electron: {electron_version})'
+            self.logger.info(fix_log)
+            watcher.print(fix_log)
 
-            self.logger.info('Writting JS fix at {}'.format(fix_path))
+            fix_path = FIX_FILE_PATH.format(app_id=pkg.id, electron_branch=electron_branch)
+            Path(os.path.dirname(fix_path)).mkdir(parents=True, exist_ok=True)
+
+            install_options.append(f'--inject={fix_path}')
+            Path(FIX_FILE_PATH).mkdir(exist_ok=True, parents=True)
+
+            self.logger.info(f'Writing JS fix at {fix_path}')
             with open(fix_path, 'w+') as f:
                 f.write(fix)
 
@@ -684,7 +733,7 @@ class WebApplicationManager(SoftwareManager):
                 icon_path, icon_bytes = download[0], download[1]
                 pkg.custom_icon = icon_path
 
-                # writting the icon in a temporary folder to be used by the nativefier process
+                # writing the icon in a temporary folder to be used by the nativefier process
                 temp_icon_path = '{}/{}'.format(TEMP_PATH, pkg.icon_url.split('/')[-1])
                 install_options.append('--icon={}'.format(temp_icon_path))
 
@@ -695,18 +744,34 @@ class WebApplicationManager(SoftwareManager):
                 with open(temp_icon_path, 'wb+') as f:
                     f.write(icon_bytes)
 
+        custom_props = self._get_custom_properties(url_domain=url_domain, electron_branch=electron_branch)
+
+        if custom_props:
+            for prop, val in custom_props.items():
+                if hasattr(pkg, prop):
+                    try:
+                        setattr(pkg, prop, val)
+                        self.logger.info(
+                            f"Using custom installation property '{prop}' ({val if val else '<null>'}) for '{url_domain}' "
+                            f"(Electron: {electron_version})")
+                    except:
+                        self.logger.error(
+                            f"Could not set the custom installation property '{prop}' ({val if val else '<null>'}) "
+                            f"for '{url_domain}' (Electron: {electron_version})")
+
         watcher.change_substatus(self.i18n['web.install.substatus.call_nativefier'].format(bold('nativefier')))
 
-        electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
         installed = handler.handle_simple(nativefier.install(url=pkg.url, name=app_id, output_dir=app_dir,
                                                              electron_version=electron_version if not widevine_support else None,
                                                              system=bool(web_config['environment']['system']),
                                                              cwd=INSTALLED_PATH,
+                                                             user_agent=pkg.user_agent,
                                                              extra_options=install_options))
 
         if not installed:
             msg = '{}.{}.'.format(self.i18n['wen.install.error'].format(bold(pkg.name)),
-                                  self.i18n['web.install.nativefier.error.unknown'].format(bold(self.i18n['details'].capitalize())))
+                                  self.i18n['web.install.nativefier.error.unknown'].format(
+                                      bold(self.i18n['details'].capitalize())))
             watcher.show_message(title=self.i18n['error'], body=msg, type_=MessageType.ERROR)
             return TransactionResult(success=False, installed=[], removed=[])
 
@@ -776,6 +841,27 @@ class WebApplicationManager(SoftwareManager):
             pkg.options_set = install_options
 
         return TransactionResult(success=True, installed=[pkg], removed=[])
+
+    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+        continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=True)
+
+        if not continue_install:
+            return TransactionResult(success=False, installed=[], removed=[])
+
+        return self._install(pkg, install_options, watcher)
+
+    def install_app(self, root_password: str, watcher: ProcessWatcher) -> bool:
+        pkg = WebApplication()
+        continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=False)
+
+        if not continue_install:
+            return False
+
+        if self._install(pkg, install_options, watcher).success:
+            self.serialize_to_disk(pkg, icon_bytes=None, only_icon=False)
+            return True
+
+        return False
 
     def _gen_desktop_entry_content(self, pkg: WebApplication) -> str:
         return """
@@ -893,7 +979,8 @@ class WebApplicationManager(SoftwareManager):
                              icon_url=suggestion.get('icon_url'),
                              categories=[suggestion['category']] if suggestion.get('category') else None,
                              preset_options=suggestion.get('options'),
-                             save_icon=suggestion.get('save_icon', False))
+                             save_icon=suggestion.get('save_icon', False),
+                             user_agent=suggestion.get('user_agent'))
 
         app.set_version(suggestion.get('version'))
 
@@ -1011,7 +1098,7 @@ class WebApplicationManager(SoftwareManager):
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
                                             max_width=max_width,
-                                            id_='electron_version')
+                                            id_='electron_branch')
 
         native_opts = [
             InputOption(label=self.i18n['web.settings.nativefier.env'].capitalize(), value=False, tooltip=self.i18n['web.settings.nativefier.env.tooltip'].format(app=self.context.app_name)),
@@ -1053,7 +1140,7 @@ class WebApplicationManager(SoftwareManager):
 
         form_env = component.components[0]
 
-        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_version').get_value()).strip()
+        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_branch').get_value()).strip()
 
         if len(web_config['environment']['electron']['version']) == 0:
             web_config['environment']['electron']['version'] = None
@@ -1073,5 +1160,24 @@ class WebApplicationManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        return self.custom_actions
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        if self._custom_actions is None:
+            self._custom_actions = (
+                CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
+                                     i18n_status_key='web.custom_action.install_app.status',
+                                     manager=self,
+                                     manager_method='install_app',
+                                     icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                     requires_root=False,
+                                     refresh=True,
+                                     requires_confirmation=False),
+                CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
+                                     i18n_status_key='web.custom_action.clean_env.status',
+                                     manager=self,
+                                     manager_method='clean_environment',
+                                     icon_path=resource.get_path('img/web.svg', ROOT_DIR),
+                                     requires_root=False,
+                                     refresh=False)
+            )
+
+        yield from self._custom_actions

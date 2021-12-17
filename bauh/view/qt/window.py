@@ -373,7 +373,7 @@ class ManageWindow(QWidget):
         self.container_bottom.layout().addWidget(bt_themes)
         self.comp_manager.register_component(BT_THEMES, bt_themes)
 
-        self.custom_actions = manager.get_custom_actions()
+        self.custom_actions = [a for a in manager.gen_custom_actions()]
         bt_custom_actions = IconButton(action=self.show_custom_actions,
                                        i18n=self.i18n,
                                        tooltip=self.i18n['manage_window.bt_custom_actions.tip'])
@@ -460,7 +460,7 @@ class ManageWindow(QWidget):
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
 
     def update_custom_actions(self):
-        self.custom_actions = self.manager.get_custom_actions()
+        self.custom_actions = [a for a in self.manager.gen_custom_actions()]
 
     def _update_process_progress(self, val: int):
         if self.progress_controll_enabled:
@@ -1076,7 +1076,7 @@ class ManageWindow(QWidget):
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
-            self.resize(new_width, self.height())
+            self.resize(int(new_width), self.height())
 
     def set_progress_controll(self, enabled: bool):
         self.progress_controll_enabled = enabled
@@ -1422,10 +1422,11 @@ class ManageWindow(QWidget):
         self.progress_bar.setValue(value)
 
     def begin_execute_custom_action(self, pkg: Optional[PackageView], action: CustomSoftwareAction):
-        if pkg is None and not ConfirmationDialog(title=self.i18n['confirmation'].capitalize(),
-                                                  body='<p>{}</p>'.format(self.i18n['custom_action.proceed_with'].capitalize().format(bold(self.i18n[action.i18n_label_key]))),
-                                                  icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
-                                                  i18n=self.i18n).ask():
+        if pkg is None and action.requires_confirmation and \
+                not ConfirmationDialog(title=self.i18n['confirmation'].capitalize(),
+                                       body='<p>{}</p>'.format(self.i18n['custom_action.proceed_with'].capitalize().format(bold(self.i18n[action.i18n_label_key]))),
+                                       icon=QIcon(action.icon_path) if action.icon_path else QIcon(resource.get_path('img/logo.svg')),
+                                       i18n=self.i18n).ask():
             return False
 
         pwd = None

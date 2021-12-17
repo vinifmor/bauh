@@ -345,6 +345,7 @@ manage_window.upgrade_all.popup.body=Seçilen tüm uygulamalar yükseltilsin mi 
 manage_window.upgrade_all.popup.title=Yükselt
 message.file.not_exist.body={} Dosyası yok gibi görünüyor
 message.file.not_exist=Dosya bulunamuyor
+message.requires_architecture=Requires {arch} architecture
 mirror=yansı
 missing_dep={dep} is not installed
 name=isim

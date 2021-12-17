@@ -1,6 +1,6 @@
 import re
 from io import StringIO
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
@@ -19,7 +19,7 @@ class AppImage(SoftwarePackage):
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
-                 i18n: I18n = None, install_dir: str = None, custom_actions: List[CustomSoftwareAction] = None, updates_ignored: bool = False,
+                 i18n: I18n = None, install_dir: str = None, custom_actions: Optional[Iterable[CustomSoftwareAction]] = None, updates_ignored: bool = False,
                  symlink: str = None, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
@@ -108,7 +108,7 @@ class AppImage(SoftwarePackage):
 
         return self.name
 
-    def get_custom_supported_actions(self) -> List[CustomSoftwareAction]:
+    def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         if self.imported:
             return self.custom_actions
 

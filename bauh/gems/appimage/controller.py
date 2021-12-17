@@ -9,7 +9,7 @@ import traceback
 from datetime import datetime
 from math import floor
 from pathlib import Path
-from typing import Set, Type, List, Tuple, Optional
+from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
 from packaging.version import parse as parse_version
@@ -27,7 +27,7 @@ from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, run_cmd, SimpleProcess
+from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, SimpleProcess
 from bauh.gems.appimage import query, INSTALLATION_DIR, APPIMAGE_SHARED_DIR, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
@@ -78,24 +78,13 @@ class AppImageManager(SoftwareManager):
         self.logger = context.logger
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
-        self.custom_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
-                                                    i18n_status_key='appimage.custom_action.install_file.status',
-                                                    manager=self,
-                                                    manager_method='install_file',
-                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False),
-                               CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
-                                                    i18n_status_key='appimage.custom_action.update_db.status',
-                                                    manager=self,
-                                                    manager_method='update_database',
-                                                    icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
-                                                    requires_root=False,
-                                                    requires_internet=True)]
-        self.custom_app_actions = [CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
+        self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
+        self.custom_app_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
                                                         manager_method='update_file',
                                                         requires_root=False,
-                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR))]
+                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
+                                                        requires_confirmation=False),)
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
@@ -692,6 +681,9 @@ class AppImageManager(SoftwareManager):
         return bool(shutil.which('sqlite3'))
 
     def can_work(self) -> Tuple[bool, Optional[str]]:
+        if not self.context.is_system_x86_64():
+            return False, self.i18n['message.requires_architecture'].format(arch=bold('x86_64'))
+
         if not self._is_sqlite3_available():
             return False, self.i18n['missing_dep'].format(dep=bold('sqlite3'))
 
@@ -859,8 +851,23 @@ class AppImageManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_custom_actions(self) -> List[CustomSoftwareAction]:
-        return self.custom_actions
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        if self._custom_actions is None:
+            self._custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
+                                                         i18n_status_key='appimage.custom_action.install_file.status',
+                                                         manager=self,
+                                                         manager_method='install_file',
+                                                         icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                         requires_root=False,
+                                                         requires_confirmation=False),
+                                    CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
+                                                         i18n_status_key='appimage.custom_action.update_db.status',
+                                                         manager=self,
+                                                         manager_method='update_database',
+                                                         icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                         requires_root=False,
+                                                         requires_internet=True))
+        yield from self._custom_actions
 
     def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
         to_update = []

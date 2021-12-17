@@ -347,6 +347,7 @@ manage_window.upgrade_all.popup.body=Aggiornare tutte le applicazioni selezionat
 manage_window.upgrade_all.popup.title=Aggiorna
 message.file.not_exist=File non esiste
 message.file.not_exist.body=Il file {} sembra non esistere
+message.requires_architecture=Requires {arch} architecture
 mirror=specchio
 missing_dep={dep} is not installed
 name=nome

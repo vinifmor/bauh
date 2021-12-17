@@ -104,7 +104,7 @@ class PackagesTable(QTableWidget):
         return pkg.model.has_history() or \
                pkg.model.can_be_downgraded() or \
                pkg.model.supports_ignored_updates() or \
-               bool(pkg.model.get_custom_supported_actions())
+               bool(pkg.model.get_custom_actions())
 
     def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
@@ -154,8 +154,9 @@ class PackagesTable(QTableWidget):
                                                      button_name=button_name,
                                                      action=ignore_updates))
 
-        if bool(pkg.model.get_custom_supported_actions()):
-            actions = [self._map_custom_action(pkg, a, menu_row) for a in pkg.model.get_custom_supported_actions()]
+        custom_actions = pkg.model.get_custom_actions()
+        if custom_actions:
+            actions = [self._map_custom_action(pkg, a, menu_row) for a in custom_actions]
             menu_row.addActions(actions)
 
         menu_row.adjustSize()
@@ -169,10 +170,10 @@ class PackagesTable(QTableWidget):
             else:
                 body = '{} ?'.format(self.i18n[action.i18n_label_key])
 
-            if ConfirmationDialog(icon=QIcon(pkg.model.get_type_icon_path()),
-                                  title=self.i18n[action.i18n_label_key],
-                                  body=self._parag(body),
-                                  i18n=self.i18n).ask():
+            if not action.requires_confirmation or ConfirmationDialog(icon=QIcon(pkg.model.get_type_icon_path()),
+                                                                      title=self.i18n[action.i18n_label_key],
+                                                                      body=self._parag(body),
+                                                                      i18n=self.i18n).ask():
                 self.window.begin_execute_custom_action(pkg, action)
 
         return QCustomMenuAction(parent=parent,

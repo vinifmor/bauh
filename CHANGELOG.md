@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.24] 2021-12-17
+### Features
+- Web
+  - new custom action button to install apps (to improve usability since some users don't know about how to install Web apps through the search bar)
+      <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.9.24/install_web_app.png">
+      </p>
+  - using the new Web environment specifications downloaded from [bauh-files](https://github.com/vinifmor/bauh-files/blob/master/web/env/v2/environment.yml)  
+
+### Improvements
+- General
+  - handling http redirect errors
+  - memory usage improvements when retrieving available custom actions
+  - code refactoring
+
+- AppImage
+  - not enabled for non-x86_64 systems 
+  
+- Web
+  - using custom installation properties by Electron version if required (available on **bauh-files**). e.g: custom User-Agent for WhatsApp Web on Electron 13.6.X.
+  - checking for javascript fixes based on the Electron version (saved on disk as `~/.local/share/bauh/web/fixes/electron_{branch}/{app_name}.js`)
+  - handling http redirect errors
+  - installation form title
+  - default pre-selected installation category is now "Network" (Internet)
+
+- UI
+  - only displaying a confirmation dialog for custom actions that start immediately
+  - not depending on system's confirmation dialog icon
+  
+### Fixes
+- Web
+  - wrong spelling (i18n)
+  
+- UI
+  - crashing when resizing with floats instead of integers [#216](https://github.com/vinifmor/bauh/issues/216)
+  - crashing when using floats for spinner components [#217](https://github.com/vinifmor/bauh/issues/217)
+  - crashing for custom actions that can request a system backup (e.g: Arch -> Quick system upgrade)
+  - initialization panel's lower components positioning
+
 ## [0.9.23] 2021-12-10
 ### Features
 - General

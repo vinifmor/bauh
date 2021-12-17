@@ -346,6 +346,7 @@ manage_window.upgrade_all.popup.body=Upgrade all selected applications ?
 manage_window.upgrade_all.popup.title=Upgrade
 message.file.not_exist.body=The file {} seems not to exist
 message.file.not_exist=File does not exist
+message.requires_architecture=Requires {arch} architecture
 mirror=mirror
 missing_dep={dep} is not installed
 name=name

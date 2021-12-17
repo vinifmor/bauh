@@ -289,8 +289,8 @@ class TabGroupComponent(ViewComponent):
 
 class RangeInputComponent(InputViewComponent):
 
-    def __init__(self, id_: str, label: str, tooltip: str, min_value: float, max_value: float,
-                 step_value: float, value: float = None, max_width: int = None):
+    def __init__(self, id_: str, label: str, tooltip: str, min_value: int, max_value: int,
+                 step_value: int, value: Optional[int] = None, max_width: int = None):
         super(RangeInputComponent, self).__init__(id_=id_)
         self.label = label
         self.tooltip = tooltip
