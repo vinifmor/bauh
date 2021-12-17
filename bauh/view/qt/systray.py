@@ -25,28 +25,30 @@ from bauh.view.qt.qt_utils import load_resource_icon
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
+CLI_NAME = f'{__app_name__}-cli'
+
 
 def get_cli_path() -> str:
     venv = os.getenv('VIRTUAL_ENV')
 
     if venv:
-        cli_path = '{}/bin/bauh-cli'.format(venv)
+        cli_path = f'{venv}/bin/{CLI_NAME}'
 
         if os.path.exists(cli_path):
             return cli_path
     elif not sys.executable.startswith('/usr'):
-        cli_path = '{}/bin/bauh-cli'.format(sys.prefix)
+        cli_path = f'{sys.prefix}/bin/{CLI_NAME}'
 
         if os.path.exists(cli_path):
             return cli_path
     else:
-        return shutil.which('bauh-cli')
+        return shutil.which(CLI_NAME)
     
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
     cli_path = get_cli_path()
     if cli_path:
-        output = run_cmd('{} updates -f json'.format(cli_path))
+        output = run_cmd(f'{cli_path} updates -f json')
 
         if output:
             return [PackageUpdate(pkg_id=o['id'], name=o['name'], version=o['version'], pkg_type=o['type']) for o in json.loads(output)]
@@ -54,7 +56,7 @@ def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
             logger.info("No updates found")
 
     else:
-        logger.warning('bauh-cli seems not to be installed')
+        logger.warning(f'"{CLI_NAME}" seems not to be installed')
 
     return []
 
@@ -186,7 +188,7 @@ class TrayIcon(QSystemTrayIcon):
         self.set_default_tooltip()
 
     def set_default_tooltip(self):
-        self.setToolTip('{} ({})'.format(self.i18n['tray.action.manage'], __app_name__).lower())
+        self.setToolTip(f"{self.i18n['tray.action.manage']} ({__app_name__})".lower())
 
     def handle_click(self, reason):
         if reason == self.Trigger:
@@ -203,8 +205,8 @@ class TrayIcon(QSystemTrayIcon):
 
         try:
             if len(updates) > 0:
-                self.logger.info("{} updates available".format(len(updates)))
-                update_keys = {'{}:{}:{}'.format(up.type, up.id, up.version) for up in updates}
+                self.logger.info(f"{len(updates)} updates available")
+                update_keys = {f'{up.type}:{up.id}:{up.version}' for up in updates}
 
                 new_icon = self.icon_updates
 
@@ -220,11 +222,11 @@ class TrayIcon(QSystemTrayIcon):
                         ups_by_type[ptype] = count
 
                     msg = StringIO()
-                    msg.write(self.i18n['notification.update{}'.format('' if n_updates == 1 else 's')].format(n_updates))
+                    msg.write(self.i18n[f"notification.update{'' if n_updates == 1 else 's'}"].format(n_updates))
 
                     if len(ups_by_type) > 1:
                         for ptype in sorted(ups_by_type):
-                            msg.write('\n  * {} ( {} )'.format(ptype, ups_by_type[ptype]))
+                            msg.write(f'\n  * {ptype} ({ups_by_type[ptype]})')
 
                     msg.seek(0)
                     msg = msg.read()
@@ -246,14 +248,14 @@ class TrayIcon(QSystemTrayIcon):
 
     def show_manage_window(self):
         if self.manage_process is None:
-            self.manage_process = Popen([sys.executable, '{}/app.py'.format(ROOT_DIR)])
+            self.manage_process = Popen([sys.executable, f'{ROOT_DIR}/app.py'])
         elif self.manage_process.poll() is not None:  # it means it has finished
             self.manage_process = None
             self.show_manage_window()
 
     def show_settings_window(self):
         if self.settings_process is None:
-            self.settings_process = Popen([sys.executable, '{}/app.py'.format(ROOT_DIR), '--settings'])
+            self.settings_process = Popen([sys.executable, f'{ROOT_DIR}/app.py', '--settings'])
         elif self.settings_process.poll() is not None:  # it means it has finished
             self.settings_process = None
             self.show_settings_window()
