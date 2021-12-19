@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/vinifmor/bauh.svg?label=Release)](https://github.com/vinifmor/bauh/releases/) [![kofi](https://img.shields.io/badge/Ko--Fi-Donate-orange?style=flat&logo=ko-fi)](https://ko-fi.com/vinifmor) [![Follow on Twitter](https://img.shields.io/twitter/follow/bauh4linux?style=social)](https://twitter.com/bauh4linux)
+[![GitHub release](https://img.shields.io/github/release/vinifmor/bauh.svg?label=Release)](https://github.com/vinifmor/bauh/releases/) [![License](https://img.shields.io/github/license/vinifmor/bauh?label=License)](https://github.com/vinifmor/bauh/blob/master/LICENSE) [![kofi](https://img.shields.io/badge/Ko--Fi-Donate-orange?style=flat&logo=ko-fi)](https://ko-fi.com/vinifmor) [![Follow on Twitter](https://img.shields.io/twitter/follow/bauh4linux?style=social)](https://twitter.com/bauh4linux)
 
 **bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux repositories/AUR, Flatpak, Snap and Web applications.
 
