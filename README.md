@@ -16,6 +16,7 @@ Key features
 
 ## Index
 1. [Installation](#installation)
+    - [AppImage](#inst_appimage)
     - [Ubuntu-based distros (20.04)](#inst_ubuntu)
     - [Arch-based distros](#inst_arch)
 2. [Isolated installation](#inst_iso)
@@ -45,6 +46,15 @@ Key features
 
 ### Installation
 
+#### <a name="inst_appimage">AppImage</a>
+
+##### Required dependencies
+- `fuse`: the package name may vary from distribution
+
+##### Steps
+- Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases.
+- Run the following command through a terminal: `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
+- Launch it: `./bauh-${version}-x86_64.AppImage`
 
 #### <a name="inst_ubuntu">Ubuntu-based distros (20.04)</a>
 
