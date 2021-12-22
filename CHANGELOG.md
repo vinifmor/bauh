@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.25]
+### Fixes
+- AppImage package
+    - not able to reinitialize (e.g: when settings are changed) 
+
 ## [0.9.24] 2021-12-17
 ### Features
 - Web
