@@ -35,7 +35,6 @@ AppDir:
       - python3-pyqt5
       - python3-lxml
       - python3-bs4
-      - python3-pkg-resources
       - sqlite3
       - axel
       - aria2
