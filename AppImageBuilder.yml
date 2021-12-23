@@ -39,6 +39,7 @@ AppDir:
       - sqlite3
       - axel
       - aria2
+      - wget
       - libfreetype6
       - libfontconfig1
     exclude: []
