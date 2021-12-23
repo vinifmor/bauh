@@ -7,7 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.25]
 ### Fixes
 - AppImage package
-    - not able to reinitialize (e.g: when settings are changed) 
+    - not able to reinitialize (e.g: when settings are changed)
+    - tray mode: not able to call `bauh-cli` to notify updates
 
 ## [0.9.24] 2021-12-17
 ### Features

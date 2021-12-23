@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate
 from bauh.api.http import HttpClient
-from bauh.commons.system import run_cmd
+from bauh.commons import system
 from bauh.context import generate_i18n
 from bauh.view.core.tray_client import TRAY_CHECK_FILE
 from bauh.view.core.update import check_for_update
@@ -29,6 +29,9 @@ CLI_NAME = f'{__app_name__}-cli'
 
 
 def get_cli_path() -> str:
+    if os.getenv('APPIMAGE'):
+        return CLI_NAME
+
     venv = os.getenv('VIRTUAL_ENV')
 
     if venv:
@@ -48,9 +51,12 @@ def get_cli_path() -> str:
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
     cli_path = get_cli_path()
     if cli_path:
-        output = run_cmd(f'{cli_path} updates -f json')
+        exitcode, output = system.execute(f'{cli_path} updates -f json', custom_env=dict(os.environ))
 
-        if output:
+        if exitcode != 0:
+            output_log = output.replace('\n', ' ') if output else ' '
+            logger.warning(f'Command "{CLI_NAME} updates" returned an unexpected exitcode ({exitcode}). Output: {output_log}')
+        elif output:
             return [PackageUpdate(pkg_id=o['id'], name=o['name'], version=o['version'], pkg_type=o['type']) for o in json.loads(output)]
         else:
             logger.info("No updates found")
