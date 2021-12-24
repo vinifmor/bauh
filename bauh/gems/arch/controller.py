@@ -217,12 +217,6 @@ class ArchManager(SoftwareManager):
         self.disk_cache_updater = disk_cache_updater
         self.pkgbuilder_user: Optional[str] = f'{__app_name__}-aur' if context.root_user else None
 
-    @staticmethod
-    def get_aur_semantic_search_map() -> Dict[str, str]:
-        return {'google chrome': 'google-chrome',
-                'chrome google': 'google-chrome',
-                'googlechrome': 'google-chrome'}
-
     def refresh_mirrors(self, root_password: str, watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
 
@@ -377,8 +371,7 @@ class ArchManager(SoftwareManager):
         search_threads.append(t)
 
         if aur_supported:
-            aur_query = self.get_aur_semantic_search_map().get(words, words)
-            taur = Thread(target=self._fill_aur_search_results, args=(aur_query, search_output), daemon=True)
+            taur = Thread(target=self._fill_aur_search_results, args=(words, search_output), daemon=True)
             taur.start()
             search_threads.append(taur)
 

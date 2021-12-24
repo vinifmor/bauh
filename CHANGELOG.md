@@ -6,7 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.25]
 ### Improvements
-- `--reset`: cleaning the temporary files as well (`/tmp/bauh@$USER`)
+- General
+  - `--reset`: cleaning the temporary files as well (`/tmp/bauh@$USER`)
+
+- Arch
+  - AUR: letting the API perform the semantic search
 
 ### Fixes
 - AppImage package
