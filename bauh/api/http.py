@@ -60,11 +60,11 @@ class HttpClient:
                     self.logger.warning(f"The URL '{url}' has an invalid schema")
                     raise e
 
-                self.logger.error("Could not retrieve data from '{}'".format(url))
+                self.logger.error(f"Could not retrieve data from '{url}'")
                 traceback.print_exc()
                 continue
 
-            self.logger.warning("Could not retrieve data from '{}'".format(url))
+            self.logger.warning(f"Could not retrieve data from '{url}'")
 
     def get_json(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, session: bool = True):
         res = self.get(url, params=params, headers=headers, allow_redirects=allow_redirects, session=session)
@@ -86,7 +86,7 @@ class HttpClient:
             else:
                 res = requests.get(**params)
         except requests.exceptions.ConnectionError:
-            self.logger.info("Internet seems to be off. Could not reach '{}'".format(url))
+            self.logger.info(f"Internet seems to be off. Could not reach '{url}'")
             return
 
         if res.status_code == 200:

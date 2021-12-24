@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.25] 2021-12-24
+### Improvements
+- General
+  - `--reset`: cleaning the temporary files as well (`/tmp/bauh@$USER`)
+  - code refactoring
+
+- Arch
+  - AUR: letting the API perform the semantic search
+
+### Fixes
+- AppImage package
+    - not able to reinitialize (e.g: when settings are changed)
+    - tray mode: not able to call `bauh-cli` to notify updates
+
+
 ## [0.9.24] 2021-12-17
 ### Features
 - Web
