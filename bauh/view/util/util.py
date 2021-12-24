@@ -11,7 +11,7 @@ from colorama import Fore
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.paths import CONFIG_DIR, CACHE_DIR
+from bauh.api.paths import CONFIG_DIR, CACHE_DIR, TEMP_DIR
 from bauh.commons.system import run_cmd
 from bauh.view.util import resource
 
@@ -60,7 +60,7 @@ def clean_app_files(managers: List[SoftwareManager], logs: bool = True):
     if logs:
         print('[bauh] Cleaning configuration and cache files')
 
-    for path in (CACHE_DIR, CONFIG_DIR):
+    for path in (CACHE_DIR, CONFIG_DIR, TEMP_DIR):
         if logs:
             print('[bauh] Deleting directory {}'.format(path))
 
