@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.26]
+
+### UI
+    - new dark theme (**knight**) based on Kimi-dark gtk by [DN-debug](https://github.com/DN-debug)
+
+
+
 ## [0.9.25] 2021-12-24
 ### Improvements
 - General
