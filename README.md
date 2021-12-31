@@ -167,7 +167,7 @@ To create a shortcut for bauh on your desktop menu:
 
 - Copy the files from [bauh/desktop](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/desktop/bauh.desktop) to `~/.local/share/applications` (or `/usr/share/applications` for **root**)
 - Replace the `Exec` field on theses files by the bauh binary path. e.g: `Exec=/usr/bin/bauh` (or `bauh_env/bin/bauh`)
-- Copy [logo.svg](https://raw.githubusercontent.com/vinifmor/bauh/master/bauh/view/resources/img/logo.svg) to `/usr/share/icons/hicolor/scalable/apps` as `bauh.svg`
+- Copy [logo.svg](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/logo.svg) to `/usr/share/icons/hicolor/scalable/apps` as `bauh.svg`
 
 
 #### <a name="autostart">Autostart: tray mode</a>
