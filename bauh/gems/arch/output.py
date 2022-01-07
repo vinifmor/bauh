@@ -1,7 +1,7 @@
 import logging
 import time
 from threading import Thread
-from typing import Set
+from typing import Optional, Collection
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.commons.html import bold
@@ -10,13 +10,13 @@ from bauh.view.util.translation import I18n
 
 class TransactionStatusHandler(Thread):
 
-    def __init__(self, watcher: ProcessWatcher, i18n: I18n, names: Set[str], logger: logging.Logger,
+    def __init__(self, watcher: ProcessWatcher, i18n: I18n, names: Optional[Collection[str]], logger: logging.Logger,
                  percentage: bool = True, downloading: int = 0, pkgs_to_remove: int = 0):
         super(TransactionStatusHandler, self).__init__(daemon=True)
         self.watcher = watcher
         self.i18n = i18n
-        self.pkgs_to_sync = len(names)
         self.names = names
+        self.pkgs_to_sync = len(names) if names else 0
         self.pkgs_to_remove = pkgs_to_remove
         self.downloading = downloading
         self.upgrading = 0
