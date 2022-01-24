@@ -882,22 +882,14 @@ def map_required_dependencies(*names: str) -> Dict[str, Set[str]]:
                             deps = set()
 
                         if val != 'None':
-                            if ':' in val:
-                                dep_info = val.split(':')
-                                deps.add(dep_info[0].strip())
-                            else:
-                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+                            deps.update((dep for dep in val.split(' ') if dep))
 
                     elif latest_name and deps is not None:
                         res[latest_name] = deps
                         latest_name, deps, latest_field = None, None, None
 
                 elif latest_name and deps is not None:
-                    if ':' in l:
-                        dep_info = l.split(':')
-                        deps.add(dep_info[0].strip())
-                    else:
-                        deps.update({dep.strip() for dep in l.split(' ') if dep})
+                    deps.update((dep for dep in l.split(' ') if dep))
 
         return res
 
