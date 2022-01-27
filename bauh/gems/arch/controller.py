@@ -2108,9 +2108,10 @@ class ArchManager(SoftwareManager):
             return True
 
     def _handle_aur_package_deps_and_keys(self, context: TransactionContext) -> bool:
-        handled_deps = self._handle_missing_deps(context)
-        if not handled_deps:
-            return False
+        if not context.dependency:
+            handled_deps = self._handle_missing_deps(context)
+            if not handled_deps:
+                return False
 
         check_res = makepkg.check(project_dir=context.project_dir,
                                   optimize=bool(context.config['optimize']),
