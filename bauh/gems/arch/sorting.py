@@ -1,4 +1,4 @@
-from typing import Dict, Set, Tuple, List, Collection
+from typing import Dict, Set, Tuple, List, Collection, Optional
 
 
 def __add_dep_to_sort(pkgname: str, pkgs_data: Dict[str, dict], sorted_names: dict, not_sorted: Set[str],
@@ -35,16 +35,18 @@ def __add_dep_to_sort(pkgname: str, pkgs_data: Dict[str, dict], sorted_names: di
         return idx
 
 
-def sort(pkgs: Collection[str], pkgs_data: Dict[str, dict], provided_map: Dict[str, Set[str]] = None) -> List[Tuple[str, str]]:
+def sort(pkgs: Collection[str], pkgs_data: Dict[str, dict], provided_map: Optional[Dict[str, Set[str]]] = None) -> List[Tuple[str, str]]:
     sorted_list, sorted_names, not_sorted = [], set(), set()
-    provided = provided_map if provided_map else {}
+    all_provided = {**provided_map} if provided_map else {}
 
-    # add all packages with no dependencies first
+    # adding all packages with no dependencies first
     for pkgname in pkgs:
         data = pkgs_data[pkgname]
-        if not provided_map and data['p']:  # mapping provided if reeded
+
+        if data['p']:  # adding providers not mapped to the sorting context
             for p in data['p']:
-                provided[p] = {pkgname}
+                if p not in all_provided:
+                    all_provided[p] = {pkgname}
 
         if not data['d']:
             sorted_list.append(pkgname)
@@ -57,7 +59,7 @@ def sort(pkgs: Collection[str], pkgs_data: Dict[str, dict], provided_map: Dict[s
         pkgsdeps = set()
         data = pkgs_data[pkg]
         for dep in data['d']:
-            providers = provided.get(dep)
+            providers = all_provided.get(dep)
 
             if providers:
                 for p in providers:
