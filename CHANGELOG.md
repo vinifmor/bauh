@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - not rechecking sub-dependencies of an AUR dependency to be installed
 
 ### Fixes
+- General
+  - not handling unicode decode errors when reading a subprocess output
+  
 - Arch
   - not upgrading a package when a dependent package relies on a specific version with epoch (e.g: alsa-plugins 1:1.2.6-1 would not be upgraded to 1:1.2.6-2 because lib32-alsa-plugins relies on 1:1.2.6)
   - not informing all the provided packages on the transaction context to the dependency sorting algorithm (could lead to a wrong installation order)
