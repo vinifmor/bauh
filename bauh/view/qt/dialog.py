@@ -33,7 +33,8 @@ class ConfirmationDialog(QDialog):
 
     def __init__(self, title: str, body: Optional[str], i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')),
                  widgets: Optional[List[QWidget]] = None, confirmation_button: bool = True, deny_button: bool = True,
-                 window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None):
+                 window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None,
+                 confirmation_icon: bool = True):
         super(ConfirmationDialog, self).__init__()
 
         if not window_cancel:
@@ -64,9 +65,10 @@ class ConfirmationDialog(QDialog):
             container_body.setLayout(QHBoxLayout())
             self.layout().addWidget(container_body)
 
-            lb_icon = QLabel()
-            lb_icon.setObjectName("confirm_dialog_icon")
-            container_body.layout().addWidget(lb_icon)
+            if confirmation_icon:
+                lb_icon = QLabel()
+                lb_icon.setObjectName("confirm_dialog_icon")
+                container_body.layout().addWidget(lb_icon)
 
         if body:
             lb_msg = QLabel(body)
