@@ -39,4 +39,5 @@ class ArchConfigManager(YAMLConfigManager):
                 'aur_idx_exp': 1,
                 'categories_exp': 24,
                 'aur_rebuild_detector': False,
-                "aur_rebuild_detector_no_bin": True}
+                "aur_rebuild_detector_no_bin": True,
+                "prefer_repository_provider": True}

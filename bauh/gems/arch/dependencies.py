@@ -287,7 +287,7 @@ class DependenciesAnalyser:
                           missing_deps: Set[Tuple[str, str]],
                           remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                           repo_deps: Set[str], aur_deps: Set[str], deps_data: Dict[str, dict], watcher: ProcessWatcher,
-                          automatch_providers: bool, dependent: Optional[str] = None):
+                          automatch_providers: bool, prefer_repository_provider: bool, dependent: Optional[str] = None):
 
         repo_matches = None
 
@@ -308,6 +308,16 @@ class DependenciesAnalyser:
                 repo_matches = []
 
             repo_matches.append((pkgname, repo, data))
+
+        if prefer_repository_provider and repo_matches and len(repo_matches) == 1:
+            pkg_name, pkg_repo, pkg_data = repo_matches[0]
+            missing_deps.add((pkg_name, pkg_repo))
+            repo_deps.add(pkg_name)
+
+            if pkg_data:
+                deps_data[pkg_name] = pkg_data
+
+            return
 
         aur_matches = None
 
@@ -379,7 +389,7 @@ class DependenciesAnalyser:
                          remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                          aur_index: Iterable[str], deps_checked: Set[str], deps_data: Dict[str, dict],
                          sort: bool, watcher: ProcessWatcher, choose_providers: bool = True,
-                         automatch_providers: bool = False) -> Optional[List[Tuple[str, str]]]:
+                         automatch_providers: bool = False, prefer_repository_provider: bool = False) -> Optional[List[Tuple[str, str]]]:
         sorted_deps = []  # it will hold the proper order to install the missing dependencies
 
         missing_deps, repo_missing, aur_missing = set(), set(), set()
@@ -406,6 +416,7 @@ class DependenciesAnalyser:
                                                        repo_deps=repo_missing, aur_deps=aur_missing, watcher=watcher,
                                                        deps_data=deps_data,
                                                        automatch_providers=automatch_providers,
+                                                       prefer_repository_provider=prefer_repository_provider,
                                                        dependent=p)
                             else:
                                 version_pattern = '{}='.format(dep_name)
@@ -425,6 +436,7 @@ class DependenciesAnalyser:
                                                                watcher=watcher,
                                                                deps_data=deps_data,
                                                                automatch_providers=automatch_providers,
+                                                               prefer_repository_provider=prefer_repository_provider,
                                                                dependent=p)
                                 else:
                                     self._fill_missing_dep(dep_name=dep_name, dep_exp=dep, aur_index=aur_index,
@@ -435,6 +447,7 @@ class DependenciesAnalyser:
                                                            watcher=watcher,
                                                            deps_data=deps_data,
                                                            automatch_providers=automatch_providers,
+                                                           prefer_repository_provider=prefer_repository_provider,
                                                            dependent=p)
 
         if missing_deps:
@@ -446,7 +459,8 @@ class DependenciesAnalyser:
                                                     remote_provided_map=remote_provided_map,
                                                     remote_repo_map=remote_repo_map,
                                                     automatch_providers=automatch_providers,
-                                                    choose_providers=False)
+                                                    choose_providers=False,
+                                                    prefer_repository_provider=prefer_repository_provider)
 
             if missing_subdeps:
                 missing_deps.update(missing_subdeps)
@@ -461,7 +475,8 @@ class DependenciesAnalyser:
                                             remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
                                             watcher=watcher, sort=sort, already_checked=deps_checked,
                                             aur_idx=aur_index, deps_data=deps_data,
-                                            automatch_providers=automatch_providers)
+                                            automatch_providers=automatch_providers,
+                                            prefer_repository_provider=prefer_repository_provider)
 
         return sorted_deps
 
@@ -514,7 +529,8 @@ class DependenciesAnalyser:
                             provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                             already_checked: Set[str], remote_provided_map: Dict[str, Set[str]],
                             deps_data: Dict[str, dict], aur_idx: Iterable[str], sort: bool,
-                            watcher: ProcessWatcher, automatch_providers: bool) -> Optional[List[Tuple[str, str]]]:
+                            watcher: ProcessWatcher, automatch_providers: bool,
+                            prefer_repository_provider: bool) -> Optional[List[Tuple[str, str]]]:
         """
         :param missing_deps:
         :param provided_map:
@@ -526,6 +542,7 @@ class DependenciesAnalyser:
         :param sort:
         :param watcher:
         :param automatch_providers
+        :param prefer_repository_provider
         :return: all deps sorted or None if the user declined the providers options
         """
 
@@ -583,7 +600,8 @@ class DependenciesAnalyser:
                                                        remote_repo_map=remote_repo_map,
                                                        watcher=watcher,
                                                        choose_providers=True,
-                                                       automatch_providers=automatch_providers)
+                                                       automatch_providers=automatch_providers,
+                                                       prefer_repository_provider=prefer_repository_provider)
 
                 if providers_deps is None:  # it means the user called off the installation process
                     return
@@ -610,7 +628,8 @@ class DependenciesAnalyser:
                                                 remote_repo_map=remote_repo_map, already_checked=already_checked,
                                                 aur_idx=aur_idx, remote_provided_map=remote_provided_map,
                                                 deps_data=deps_data, sort=False, watcher=watcher,
-                                                automatch_providers=automatch_providers):
+                                                automatch_providers=automatch_providers,
+                                                prefer_repository_provider=prefer_repository_provider):
                     return
 
                 if sort:

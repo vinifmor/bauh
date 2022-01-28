@@ -2082,6 +2082,7 @@ class ArchManager(SoftwareManager):
                                                            remote_provided_map=context.get_remote_provided_map(),
                                                            remote_repo_map=context.get_remote_repo_map(),
                                                            automatch_providers=context.config['automatch_providers'],
+                                                           prefer_repository_provider=context.config['prefer_repository_provider'],
                                                            watcher=context.watcher)
 
         tf = time.time()
@@ -2197,6 +2198,7 @@ class ArchManager(SoftwareManager):
                                                                    remote_provided_map=remote_provided_map,
                                                                    remote_repo_map=remote_repo_map,
                                                                    automatch_providers=context.config['automatch_providers'],
+                                                                   prefer_repository_provider=context.config['prefer_repository_provider'],
                                                                    sort=False)
 
                 if missing_deps is None:
@@ -2823,6 +2825,12 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.automatch_providers.tip',
                                     value=bool(arch_config['automatch_providers']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='prefer_repo_provider',
+                                    label_key='arch.config.prefer_repository_provider',
+                                    tooltip_key='arch.config.prefer_repository_provider.tip',
+                                    value=bool(arch_config['prefer_repository_provider']),
+                                    max_width=max_width,
+                                    tooltip_params=['AUR']),
             self._gen_bool_selector(id_='check_dependency_breakage',
                                     label_key='arch.config.check_dependency_breakage',
                                     tooltip_key='arch.config.check_dependency_breakage.tip',
@@ -2935,6 +2943,7 @@ class ArchManager(SoftwareManager):
         arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit').get_int_value()
         arch_config['repositories_mthread_download'] = form.get_component('mthread_download').get_selected()
         arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
+        arch_config['prefer_repository_provider'] = form.get_single_select_component('prefer_repo_provider').get_selected()
         arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
         arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
         arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
