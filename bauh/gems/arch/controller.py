@@ -209,7 +209,7 @@ class ArchManager(SoftwareManager):
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
         self.categories = {}
-        self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n)
+        self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n, self.logger)
         self.http_client = context.http_client
         self._custom_actions: Optional[Dict[str, CustomSoftwareAction]] = None
         self.index_aur = None
@@ -2333,7 +2333,7 @@ class ArchManager(SoftwareManager):
         to_install = []
 
         if context.missing_deps:
-            to_install.extend((d[0] for d in context.missing_deps))
+            to_install.extend((d[0] for d in context.missing_deps if d[1] != 'aur'))
 
         to_install.extend(pkgpaths)
 
@@ -2357,7 +2357,8 @@ class ArchManager(SoftwareManager):
             status_handler = None
 
         installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names=context.get_package_names()).installed
-        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
+        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name))) #
+
         installed = self._handle_install_call(context=context, to_install=to_install, status_handler=status_handler)
 
         if status_handler:
@@ -2600,28 +2601,8 @@ class ArchManager(SoftwareManager):
         return TransactionResult(success=pkg_installed, installed=installed, removed=removed)
 
     def _install_from_repository(self, context: TransactionContext) -> bool:
-        try:
-            missing_deps = self._list_missing_deps(context)
-        except PackageNotFoundException:
-            self.logger.error("Package '{}' was not found")
+        if not self._handle_missing_deps(context):
             return False
-
-        if missing_deps is None:
-            return False  # called off by the user
-
-        if missing_deps:
-            if any((dep for dep in missing_deps if dep[1] == 'aur')):
-                context.watcher.show_message(title=self.i18n['error'].capitalize(),
-                                             body=self.i18n['arch.install.repo_pkg.error.aur_deps'],
-                                             type_=MessageType.ERROR)
-                return False
-
-            context.missing_deps = missing_deps
-            context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
-
-            if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n):
-                context.watcher.print(self.i18n['action.cancelled'])
-                return False
 
         res = self._install(context)
 
