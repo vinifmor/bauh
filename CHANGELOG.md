@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - allowing AUR packages to be installed as dependencies of a repository package
   - always listing repository packages as primary options when multiple providers for a given dependency are available
   - settings:
-    - "Auto-define dependency providers" property renamed to "Auto-define providers by name"
+    - "Auto-define dependency providers" property renamed to "Auto-match dependency by name" 
     - new property 'prefer_repository_provider': automatically picks the single package from the repositories among several external (AUR) available as the provider for a given dependency 
 
 ### Fixes
