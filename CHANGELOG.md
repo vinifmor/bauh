@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
   - not rechecking sub-dependencies of an AUR dependency to be installed
-  - allowing AUR packages to be installed as dependencies of a repository package 
+  - allowing AUR packages to be installed as dependencies of a repository package
+  - always listing repository packages as primary options when multiple providers for a given dependency are available
 
 ### Fixes
 - General
