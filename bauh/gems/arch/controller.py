@@ -1760,7 +1760,8 @@ class ArchManager(SoftwareManager):
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
                                                                                    root_password=context.root_password,
-                                                                                   file=False),
+                                                                                   file=False,
+                                                                                   as_deps=True),
                                                          output_handler=status_handler.handle)
 
             if installed:
@@ -2427,7 +2428,8 @@ class ArchManager(SoftwareManager):
                                                                        root_password=context.root_password,
                                                                        file=context.has_install_files(),
                                                                        pkgdir=context.project_dir,
-                                                                       overwrite_conflicting_files=overwrite_files),
+                                                                       overwrite_conflicting_files=overwrite_files,
+                                                                       as_deps=context.dependency),
                                              output_handler=status_handler.handle if status_handler else None)
 
     def _handle_install_call(self, context: TransactionContext, to_install: List[str], status_handler) -> bool:

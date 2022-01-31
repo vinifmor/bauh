@@ -147,7 +147,7 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
 
 
 def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.',
-                       overwrite_conflicting_files: bool = False, simulate: bool = False) -> SimpleProcess:
+                       overwrite_conflicting_files: bool = False, simulate: bool = False, as_deps: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-U'] if file else ['pacman', '-S']
     cmd.extend(pkgpaths)
 
@@ -157,6 +157,9 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
+
+    if as_deps:
+        cmd.append('--asdeps')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
