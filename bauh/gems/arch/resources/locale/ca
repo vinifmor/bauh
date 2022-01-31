@@ -227,6 +227,7 @@ arch.substatus.integrity=Checking packages integrity
 arch.substatus.keyring=Checking keyring
 arch.substatus.loading_files=Loading package files
 arch.substatus.pre_hooks=Running pre-transaction hooks
+arch.substatus.retrieve_pkgs=Retrieving packages
 arch.sync.dep_breakage.reason={} requires {}
 arch.sync_databases.substatus=Synchronizing package databases
 arch.sync_databases.substatus.error=It was not possible to synchronize the package database

@@ -31,7 +31,8 @@ class TransactionStatusHandler(Thread):
                          'loading package files': 'loading_files',
                          'checking for file conflicts': 'conflicts',
                          'checking available disk space': 'disk_space',
-                         ':: Running pre-transaction hooks': 'pre_hooks'}
+                         ':: running pre-transaction hooks': 'pre_hooks',
+                         ':: retrieving packages': 'retrieve_pkgs'}
 
     def gen_percentage(self) -> str:
         if self.percentage:
@@ -56,13 +57,13 @@ class TransactionStatusHandler(Thread):
                 else:
                     self.watcher.change_substatus('{} {}'.format(self.i18n['uninstalling'].capitalize(), output_split[1].strip()))
 
-            elif output_split[0].lower() == 'downloading' and (not self.names or (n for n in self.names if n in output_split[1])):
+            elif output_split[1].lower().startswith('downloading') and (not self.names or (n for n in self.names if output_split[0].startswith(n))):
                 if self.downloading < self.pkgs_to_sync:
                     perc = self.gen_percentage()
                     self.downloading += 1
 
                     self.watcher.change_substatus('{}[{}/{}] {} {} {}'.format(perc, self.downloading, self.pkgs_to_sync, bold('[pacman]'),
-                                                                              self.i18n['downloading'].capitalize(), output_split[1].strip()))
+                                                                              self.i18n['downloading'].capitalize(), output_split[0].strip()))
             elif output_split[0].lower() == 'upgrading' and (not self.names or output_split[1].split('.')[0] in self.names):
                 if self.get_performed() < self.pkgs_to_sync:
                     perc = self.gen_percentage()
@@ -86,7 +87,7 @@ class TransactionStatusHandler(Thread):
                                                                                output_split[1].strip()))
             else:
                 substatus_found = False
-                lower_output = output.lower()
+                lower_output = output.lower().strip()
                 for msg, key in self.accepted.items():
                     if lower_output.startswith(msg):
                         self.watcher.change_substatus(self.i18n['arch.substatus.{}'.format(key)].capitalize())

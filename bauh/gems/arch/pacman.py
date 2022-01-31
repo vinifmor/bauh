@@ -733,7 +733,7 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
 
 
 def download(root_password: str, *pkgnames: str) -> SimpleProcess:
-    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm'],
+    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm', '--noprogressbar'],
                          root_password=root_password,
                          error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
                          shell=True)

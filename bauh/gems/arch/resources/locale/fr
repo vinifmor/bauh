@@ -227,6 +227,7 @@ arch.substatus.integrity=Recherche de paquets corrompus
 arch.substatus.keyring=Verification du trousseau de clés
 arch.substatus.loading_files=Chargement des fichers du paquet
 arch.substatus.pre_hooks=Éxécution des pre-transaction hooks
+arch.substatus.retrieve_pkgs=Retrieving packages
 arch.sync.dep_breakage.reason={} requiert {}
 arch.sync_databases.substatus=Synchronisation des bases de données du paquet
 arch.sync_databases.substatus.error=Impossible de synchroniser les bases de données du paquet
