@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.26] 2022-01-31
+
+### Improvements
+- Arch
+  - not rechecking sub-dependencies of an AUR dependency to be installed
+  - allowing AUR packages to be installed as dependencies of a repository package
+  - always listing repository packages as primary options when multiple providers for a given dependency are available
+  - installation: explicitly marking installed dependent packages as "dependencies" (`--asdeps`)
+  - settings:
+    - "Auto-define dependency providers" property renamed to "Auto-match dependency by name" 
+    - new property 'prefer_repository_provider': automatically picks the single package from the repositories among several external (AUR) available as the provider for a given dependency
+
+### Fixes
+- General
+  - not handling unicode decode errors when reading a subprocess output
+  
+- Arch
+  - not upgrading a package when a dependent package relies on a specific version with epoch (e.g: alsa-plugins 1:1.2.6-1 would not be upgraded to 1:1.2.6-2 because lib32-alsa-plugins relies on 1:1.2.6)
+  - not informing all the provided packages on the transaction context to the dependency sorting algorithm (could lead to a wrong installation order)
+  - not displaying all possible AUR providers for a given dependency
+  - not displaying any substatus when retrieving packages (pacman)
+
+- UI:
+  - settings panel: confirmation dialog icon when launched alone  
+
+### UI
+    - new logo by [DN-debug](https://github.com/DN-debug)
+    - new dark theme (**knight**) based on Kimi-dark gtk by [DN-debug](https://github.com/DN-debug)
+
+
 ## [0.9.25] 2021-12-24
 ### Improvements
 - General

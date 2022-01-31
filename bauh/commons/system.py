@@ -130,7 +130,12 @@ class ProcessHandler:
 
         if not process.skip_stdout:
             for output in process.subproc.stdout:
-                line = output.decode().strip()
+
+                try:
+                    line = output.decode().strip()
+                except UnicodeDecodeError:
+                    line = None
+
                 if line:
                     self._notify_watcher(line)
 
@@ -148,7 +153,11 @@ class ProcessHandler:
 
         for output in process.subproc.stderr:
             if output:
-                line = output.decode().strip()
+                try:
+                    line = output.decode().strip()
+                except UnicodeDecodeError:
+                    line = None
+
                 if line:
                     self._notify_watcher(line)
 
@@ -181,7 +190,10 @@ class ProcessHandler:
         output = StringIO()
         for o in proc.instance.stdout:
             if o:
-                line = o.decode()
+                try:
+                    line = o.decode()
+                except UnicodeDecodeError:
+                    continue
 
                 output.write(line)
 
@@ -223,7 +235,7 @@ class ProcessHandler:
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
             cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None,
-            custom_user: Optional[str] = None) -> str:
+            custom_user: Optional[str] = None) -> Optional[str]:
     """
     runs a given command and returns its default output
     :return:
@@ -240,7 +252,12 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
 
     final_cmd = f"runuser -u {custom_user} -- {cmd}" if custom_user else cmd
     res = subprocess.run(final_cmd, **args)
-    return res.stdout.decode() if ignore_return_code or res.returncode == expected_code else None
+
+    if ignore_return_code or res.returncode == expected_code:
+        try:
+            return res.stdout.decode()
+        except UnicodeDecodeError:
+            pass
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
@@ -306,7 +323,13 @@ def get_human_size_str(size) -> str:
 def run(cmd: List[str], success_code: int = 0, custom_user: Optional[str] = None) -> Tuple[bool, str]:
     final_cmd = ['runuser', '-u', custom_user, '--', *cmd] if custom_user else cmd
     p = subprocess.run(final_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL)
-    return p.returncode == success_code, p.stdout.decode()
+
+    try:
+        output = p.stdout.decode()
+    except UnicodeDecodeError:
+        output = ''
+
+    return p.returncode == success_code, output
 
 
 def check_active_services(*names: str) -> Dict[str, bool]:
@@ -351,4 +374,12 @@ def execute(cmd: str, shell: bool = False, cwd: Optional[str] = None, output: bo
         params['env'] = custom_env
 
     p = subprocess.run(**params)
-    return p.returncode, p.stdout.decode() if p.stdout else None
+
+    output = None
+    if p.stdout:
+        try:
+            output = p.stdout.decode()
+        except UnicodeDecodeError:
+            output = None
+
+    return p.returncode, output

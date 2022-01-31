@@ -413,6 +413,10 @@ QLabel[tip_icon = "true"] {
     qproperty-pixmap: url("@style_dir/img/help.svg");
 }
 
+QLabel#confirm_dialog_icon {
+    qproperty-pixmap: url("@style_dir/img/help.svg");
+}
+
 FormQt IconButton#clean_field {
     qproperty-icon: url("@style_dir/img/clean.svg");
 }

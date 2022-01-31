@@ -147,7 +147,7 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
 
 
 def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.',
-                       overwrite_conflicting_files: bool = False, simulate: bool = False) -> SimpleProcess:
+                       overwrite_conflicting_files: bool = False, simulate: bool = False, as_deps: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-U'] if file else ['pacman', '-S']
     cmd.extend(pkgpaths)
 
@@ -157,6 +157,9 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
 
     if overwrite_conflicting_files:
         cmd.append('--overwrite=*')
+
+    if as_deps:
+        cmd.append('--asdeps')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password,
@@ -730,7 +733,7 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
 
 
 def download(root_password: str, *pkgnames: str) -> SimpleProcess:
-    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm'],
+    return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm', '--noprogressbar'],
                          root_password=root_password,
                          error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
                          shell=True)
@@ -882,22 +885,14 @@ def map_required_dependencies(*names: str) -> Dict[str, Set[str]]:
                             deps = set()
 
                         if val != 'None':
-                            if ':' in val:
-                                dep_info = val.split(':')
-                                deps.add(dep_info[0].strip())
-                            else:
-                                deps.update({dep.strip() for dep in val.split(' ') if dep})
+                            deps.update((dep for dep in val.split(' ') if dep))
 
                     elif latest_name and deps is not None:
                         res[latest_name] = deps
                         latest_name, deps, latest_field = None, None, None
 
                 elif latest_name and deps is not None:
-                    if ':' in l:
-                        dep_info = l.split(':')
-                        deps.add(dep_info[0].strip())
-                    else:
-                        deps.update({dep.strip() for dep in l.split(' ') if dep})
+                    deps.update((dep for dep in l.split(' ') if dep))
 
         return res
 

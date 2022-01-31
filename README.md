@@ -281,6 +281,7 @@ suggest_unneeded_uninstall: false  # if the dependencies apparently no longer ne
 suggest_optdep_uninstall: false  # if the optional dependencies associated with uninstalled packages should be suggested for uninstallation. Only the optional dependencies that are not dependencies of other packages will be suggested. Default: false (to prevent new users from making mistakes)
 categories_exp: 24  # It defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 aur_rebuild_detector: true # it checks if packages built with old library versions require to be rebuilt. If a package needs to be rebuilt, it will be marked for update ('rebuild-detector' must be installed). Default: true.
+prefer_repository_provider: true  # when there is just one repository provider for a given a dependency and several from AUR, it will be automatically picked.
 ```
 
 

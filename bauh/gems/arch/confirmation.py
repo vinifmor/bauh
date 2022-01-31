@@ -79,15 +79,22 @@ def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, st
     for dep, providers in providers_map.items():
         opts = []
 
-        providers_list = [*providers]
-        providers_list.sort()
+        repo_providers, aur_providers = {}, {}
 
-        for p in providers_list:
+        for p in providers:
             repo = repo_map.get(p, 'aur')
-            opts.append(InputOption(label=p,
-                                    value=p,
-                                    icon_path=aur_icon_path if repo == 'aur' else repo_icon_path,
-                                    tooltip='{}: {}'.format(i18n['repository'].capitalize(), repo)))
+
+            if repo == 'aur':
+                aur_providers[p] = repo
+            else:
+                repo_providers[p] = repo
+
+        for current_providers in (repo_providers, aur_providers):
+            for pname, repo in sorted(current_providers.items()):
+                opts.append(InputOption(label=pname,
+                                        value=pname,
+                                        icon_path=aur_icon_path if repo == 'aur' else repo_icon_path,
+                                        tooltip='{}: {}'.format(i18n['repository'].capitalize(), repo)))
 
         form.components.append(SingleSelectComponent(label=bold(dep.lower()),
                                                      options=opts,

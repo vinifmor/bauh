@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import urllib.parse
-from typing import Set, List, Iterable, Dict, Optional
+from typing import Set, List, Iterable, Dict, Optional, Generator, Tuple
 
 import requests
 
@@ -119,6 +119,43 @@ class AURClient:
         except:
             return []
 
+    def map_provided(self, pkgname: str, pkgver: str, provided: Optional[Iterable[str]] = None, strip_epoch: bool = True) -> Set[str]:
+        all_provided = {pkgname, f"{pkgname}={pkgver.split('-')[0] if strip_epoch else pkgver}"}
+
+        if provided:
+            for provided in provided:
+                all_provided.add(provided)
+                all_provided.add(provided.split('=', 1)[0])
+
+        return all_provided
+
+    def gen_updates_data(self, names: Iterable[str]) -> Generator[Tuple[str, dict], None, None]:
+        for package in self.get_info(names):
+            pkgname, pkgver = package['Name'], package['Version'].split('-')[0]
+
+            deps = set()
+
+            for dtype in ('Depends', 'MakeDepends', 'CheckDepends'):
+                dep_set = package.get(dtype)
+                if dep_set:
+                    deps.update(dep_set)
+
+            conflicts = set()
+            pkg_conflicts = package.get('Conflicts')
+
+            if pkg_conflicts:
+                conflicts.update(pkg_conflicts)
+
+            yield pkgname, {
+                'v': pkgver,
+                'b': package.get('PackageBase', pkgname),
+                'r': 'aur',
+                'p': self.map_provided(pkgname=pkgname, pkgver=pkgver, provided=package.get('Provides'), strip_epoch=False),
+                'd': deps,
+                'c': conflicts,
+                'ds': None,
+                's': None}
+
     def get_src_info(self, name: str, real_name: Optional[str] = None) -> dict:
         srcinfo = self.srcinfo_cache.get(name)
 
@@ -229,7 +266,7 @@ class AURClient:
     def clean_caches(self):
         self.srcinfo_cache.clear()
 
-    def map_update_data(self, pkgname: str, latest_version: Optional[str], srcinfo: Optional[dict] = None) -> dict:
+    def map_update_data(self, pkgname: str, latest_version: Optional[str] = None, srcinfo: Optional[dict] = None) -> dict:
         info = self.get_src_info(pkgname) if not srcinfo else srcinfo
 
         provided = set()

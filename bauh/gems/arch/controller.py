@@ -209,7 +209,7 @@ class ArchManager(SoftwareManager):
         self.enabled = True
         self.arch_distro = context.distro == 'arch'
         self.categories = {}
-        self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n)
+        self.deps_analyser = DependenciesAnalyser(self.aur_client, self.i18n, self.logger)
         self.http_client = context.http_client
         self._custom_actions: Optional[Dict[str, CustomSoftwareAction]] = None
         self.index_aur = None
@@ -1760,7 +1760,8 @@ class ArchManager(SoftwareManager):
             status_handler.start()
             installed, _ = context.handler.handle_simple(pacman.install_as_process(pkgpaths=repo_dep_names,
                                                                                    root_password=context.root_password,
-                                                                                   file=False),
+                                                                                   file=False,
+                                                                                   as_deps=True),
                                                          output_handler=status_handler.handle)
 
             if installed:
@@ -2082,6 +2083,7 @@ class ArchManager(SoftwareManager):
                                                            remote_provided_map=context.get_remote_provided_map(),
                                                            remote_repo_map=context.get_remote_repo_map(),
                                                            automatch_providers=context.config['automatch_providers'],
+                                                           prefer_repository_provider=context.config['prefer_repository_provider'],
                                                            watcher=context.watcher)
 
         tf = time.time()
@@ -2108,9 +2110,10 @@ class ArchManager(SoftwareManager):
             return True
 
     def _handle_aur_package_deps_and_keys(self, context: TransactionContext) -> bool:
-        handled_deps = self._handle_missing_deps(context)
-        if not handled_deps:
-            return False
+        if not context.dependency:
+            handled_deps = self._handle_missing_deps(context)
+            if not handled_deps:
+                return False
 
         check_res = makepkg.check(project_dir=context.project_dir,
                                   optimize=bool(context.config['optimize']),
@@ -2196,6 +2199,7 @@ class ArchManager(SoftwareManager):
                                                                    remote_provided_map=remote_provided_map,
                                                                    remote_repo_map=remote_repo_map,
                                                                    automatch_providers=context.config['automatch_providers'],
+                                                                   prefer_repository_provider=context.config['prefer_repository_provider'],
                                                                    sort=False)
 
                 if missing_deps is None:
@@ -2332,7 +2336,7 @@ class ArchManager(SoftwareManager):
         to_install = []
 
         if context.missing_deps:
-            to_install.extend((d[0] for d in context.missing_deps))
+            to_install.extend((d[0] for d in context.missing_deps if d[1] != 'aur'))
 
         to_install.extend(pkgpaths)
 
@@ -2356,7 +2360,8 @@ class ArchManager(SoftwareManager):
             status_handler = None
 
         installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names=context.get_package_names()).installed
-        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))
+        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name))) #
+
         installed = self._handle_install_call(context=context, to_install=to_install, status_handler=status_handler)
 
         if status_handler:
@@ -2423,7 +2428,8 @@ class ArchManager(SoftwareManager):
                                                                        root_password=context.root_password,
                                                                        file=context.has_install_files(),
                                                                        pkgdir=context.project_dir,
-                                                                       overwrite_conflicting_files=overwrite_files),
+                                                                       overwrite_conflicting_files=overwrite_files,
+                                                                       as_deps=context.dependency),
                                              output_handler=status_handler.handle if status_handler else None)
 
     def _handle_install_call(self, context: TransactionContext, to_install: List[str], status_handler) -> bool:
@@ -2599,28 +2605,8 @@ class ArchManager(SoftwareManager):
         return TransactionResult(success=pkg_installed, installed=installed, removed=removed)
 
     def _install_from_repository(self, context: TransactionContext) -> bool:
-        try:
-            missing_deps = self._list_missing_deps(context)
-        except PackageNotFoundException:
-            self.logger.error("Package '{}' was not found")
+        if not self._handle_missing_deps(context):
             return False
-
-        if missing_deps is None:
-            return False  # called off by the user
-
-        if missing_deps:
-            if any((dep for dep in missing_deps if dep[1] == 'aur')):
-                context.watcher.show_message(title=self.i18n['error'].capitalize(),
-                                             body=self.i18n['arch.install.repo_pkg.error.aur_deps'],
-                                             type_=MessageType.ERROR)
-                return False
-
-            context.missing_deps = missing_deps
-            context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
-
-            if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n):
-                context.watcher.print(self.i18n['action.cancelled'])
-                return False
 
         res = self._install(context)
 
@@ -2841,6 +2827,12 @@ class ArchManager(SoftwareManager):
                                     tooltip_key='arch.config.automatch_providers.tip',
                                     value=bool(arch_config['automatch_providers']),
                                     max_width=max_width),
+            self._gen_bool_selector(id_='prefer_repo_provider',
+                                    label_key='arch.config.prefer_repository_provider',
+                                    tooltip_key='arch.config.prefer_repository_provider.tip',
+                                    value=bool(arch_config['prefer_repository_provider']),
+                                    max_width=max_width,
+                                    tooltip_params=['AUR']),
             self._gen_bool_selector(id_='check_dependency_breakage',
                                     label_key='arch.config.check_dependency_breakage',
                                     tooltip_key='arch.config.check_dependency_breakage.tip',
@@ -2953,6 +2945,7 @@ class ArchManager(SoftwareManager):
         arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit').get_int_value()
         arch_config['repositories_mthread_download'] = form.get_component('mthread_download').get_selected()
         arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
+        arch_config['prefer_repository_provider'] = form.get_single_select_component('prefer_repo_provider').get_selected()
         arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
         arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
         arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
