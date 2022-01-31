@@ -30,8 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - settings panel: confirmation dialog icon when launched alone  
 
 ### UI
-    - new logo by [DN-debug](https://github.com/DN-debug)
-    - new dark theme (**knight**) based on Kimi-dark gtk by [DN-debug](https://github.com/DN-debug)
+- new logo by [DN-debug](https://github.com/DN-debug)
+- new dark theme (**knight**) based on Kimi-dark gtk by [DN-debug](https://github.com/DN-debug)
 
 
 ## [0.9.25] 2021-12-24
