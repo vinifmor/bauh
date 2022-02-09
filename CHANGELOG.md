@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.9.27]
 
+### Improvements
+- code refactoring (String formatting method)
+
 ### Fixes
 - Arch
   - silent crash when handling and displaying transaction sub-status
 
 - AppImage
   - search: displaying duplicate installed apps for some cases
+
 
 ## [0.9.26] 2022-01-31
 
