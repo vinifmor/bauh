@@ -214,8 +214,8 @@ class AURClient:
 
         return self.extract_required_dependencies(info)
 
-    def _map_names_as_queries(self, names) -> str:
-        return '&'.join(['arg[{}]={}'.format(i, urllib.parse.quote(n)) for i, n in enumerate(names)])
+    def _map_names_as_queries(self, names: Iterable[str]) -> str:
+        return '&'.join(['arg[]={}'.format(urllib.parse.quote(n)) for n in names])
 
     def read_local_index(self) -> dict:
         self.logger.info('Checking if the cached AUR index file exists')
