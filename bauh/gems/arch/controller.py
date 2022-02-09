@@ -1322,9 +1322,13 @@ class ArchManager(SoftwareManager):
         else:
             instances = None
 
+        provided_by_uninstalled = pacman.map_provided(pkgs=to_uninstall)
+
         uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler, ignore_dependencies=skip_requirements)
 
         if uninstalled:
+            self._remove_uninstalled_from_context(provided_by_uninstalled, context)
+
             if disk_loader:  # loading package instances in case the uninstall succeeds
                 if instances:
                     for p in instances:
@@ -1394,6 +1398,22 @@ class ArchManager(SoftwareManager):
 
         self._update_progress(context, 100)
         return uninstalled
+
+    def _remove_uninstalled_from_context(self, provided_by_uninstalled: Dict[str, Set[str]], context: TransactionContext):
+        if context.provided_map and provided_by_uninstalled:  # updating the current provided context
+            for name, provided in provided_by_uninstalled.items():
+                if name in context.provided_map:
+                    del context.provided_map[name]
+
+                if provided:
+                    for exp in provided:
+                        exp_provided = context.provided_map.get(exp)
+
+                        if exp_provided and name in exp_provided:
+                            exp_provided.remove(name)
+
+                            if not exp_provided:
+                                del context.provided_map[exp]
 
     def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.aur_client.clean_caches()
@@ -1703,6 +1723,8 @@ class ArchManager(SoftwareManager):
 
             res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader,
                                   remove_unneeded=False, skip_requirements=skip_requirements)
+
+
             context.restabilish_progress()
             return res
 

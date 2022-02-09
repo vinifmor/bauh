@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - silent crash when handling and displaying transaction sub-status
   - AUR: not detecting installed packages anymore due to recent AUR API changes
+  - installation fails when several dependent packages conflict with the installed ones 
 
 - AppImage
   - search: displaying duplicate installed apps for some cases
