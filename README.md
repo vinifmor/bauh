@@ -17,7 +17,7 @@ Key features
 ## Index
 1. [Installation](#installation)
     - [AppImage](#inst_appimage)
-    - [Ubuntu-based distros (20.04)](#inst_ubuntu)
+    - [Ubuntu 20.04 based distros (Linux Mint, PopOS, ...)](#inst_ubuntu)
     - [Arch-based distros](#inst_arch)
 2. [Isolated installation](#inst_iso)
 3. [Desktop entry / menu shortcut](#desk_entry)
@@ -56,7 +56,7 @@ Key features
 - Run the following command through a terminal: `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
 - Launch it: `./bauh-${version}-x86_64.AppImage`
 
-#### <a name="inst_ubuntu">Ubuntu-based distros (20.04)</a>
+#### <a name="inst_ubuntu">Ubuntu 20.04 based distros (Linux Mint, PopOS, ...)</a>
 
 ##### Required dependencies
 
@@ -65,6 +65,7 @@ Key features
 ##### Installing bauh
 
 `sudo pip3 install bauh`
+
 
 ##### Optional dependencies (they should be installed with apt-get/apt)
 
