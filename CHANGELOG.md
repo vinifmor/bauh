@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - preventing AUR's installed packages from not being mapped in cases the communication with the API fails
   - code refactoring (String formatting method)
 
+- Setup
+  - able to install bauh with python/pip without enforcing requirements through the environment variable `BAUH_SETUP_NO_REQS=1`
+
 ### Fixes
 - Arch
   - silent crash when handling and displaying transaction sub-status
