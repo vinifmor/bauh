@@ -112,12 +112,29 @@ class AURClient:
     def search(self, words: str) -> dict:
         return self.http_client.get_json(URL_SEARCH + words)
 
-    def get_info(self, names: Iterable[str]) -> List[dict]:
+    def get_info(self, names: Iterable[str]) -> Optional[List[dict]]:
         try:
             res = self.http_client.get_json(URL_INFO + self._map_names_as_queries(names))
-            return res['results'] if res and res.get('results') else []
-        except:
-            return []
+        except requests.exceptions.ConnectionError:
+            self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
+            return
+
+        if res is None:
+            self.logger.warning("Call to AUR API's info endpoint has failed")
+            return
+
+        error = res.get('error')
+
+        if error:
+            self.logger.warning(f"AUR API's info endpoint returned an unexpected error: {error}")
+            return
+
+        results = res.get('results')
+
+        if results is not None:
+            return results
+
+        self.logger.warning(f"AUR API's info endpoint returned an unexpected response: {res}")
 
     def map_provided(self, pkgname: str, pkgver: str, provided: Optional[Iterable[str]] = None, strip_epoch: bool = True) -> Set[str]:
         all_provided = {pkgname, f"{pkgname}={pkgver.split('-')[0] if strip_epoch else pkgver}"}
@@ -130,31 +147,34 @@ class AURClient:
         return all_provided
 
     def gen_updates_data(self, names: Iterable[str]) -> Generator[Tuple[str, dict], None, None]:
-        for package in self.get_info(names):
-            pkgname, pkgver = package['Name'], package['Version'].split('-')[0]
+        pkgs_info = self.get_info(names)
 
-            deps = set()
+        if pkgs_info:
+            for package in pkgs_info:
+                pkgname, pkgver = package['Name'], package['Version'].split('-')[0]
 
-            for dtype in ('Depends', 'MakeDepends', 'CheckDepends'):
-                dep_set = package.get(dtype)
-                if dep_set:
-                    deps.update(dep_set)
+                deps = set()
 
-            conflicts = set()
-            pkg_conflicts = package.get('Conflicts')
+                for dtype in ('Depends', 'MakeDepends', 'CheckDepends'):
+                    dep_set = package.get(dtype)
+                    if dep_set:
+                        deps.update(dep_set)
 
-            if pkg_conflicts:
-                conflicts.update(pkg_conflicts)
+                conflicts = set()
+                pkg_conflicts = package.get('Conflicts')
 
-            yield pkgname, {
-                'v': pkgver,
-                'b': package.get('PackageBase', pkgname),
-                'r': 'aur',
-                'p': self.map_provided(pkgname=pkgname, pkgver=pkgver, provided=package.get('Provides'), strip_epoch=False),
-                'd': deps,
-                'c': conflicts,
-                'ds': None,
-                's': None}
+                if pkg_conflicts:
+                    conflicts.update(pkg_conflicts)
+
+                yield pkgname, {
+                    'v': pkgver,
+                    'b': package.get('PackageBase', pkgname),
+                    'r': 'aur',
+                    'p': self.map_provided(pkgname=pkgname, pkgver=pkgver, provided=package.get('Provides'), strip_epoch=False),
+                    'd': deps,
+                    'c': conflicts,
+                    'ds': None,
+                    's': None}
 
     def get_src_info(self, name: str, real_name: Optional[str] = None) -> dict:
         srcinfo = self.srcinfo_cache.get(name)
@@ -215,7 +235,7 @@ class AURClient:
         return self.extract_required_dependencies(info)
 
     def _map_names_as_queries(self, names: Iterable[str]) -> str:
-        return '&'.join(['arg[]={}'.format(urllib.parse.quote(n)) for n in names])
+        return '&'.join((f'arg[]={urllib.parse.quote(n)}' for n in names))
 
     def read_local_index(self) -> dict:
         self.logger.info('Checking if the cached AUR index file exists')

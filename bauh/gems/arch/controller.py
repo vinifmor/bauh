@@ -14,7 +14,6 @@ from pwd import getpwnam
 from threading import Thread
 from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator
 
-import requests
 from dateutil.parser import parse as parse_date
 
 from bauh import __app_name__
@@ -412,67 +411,72 @@ class ArchManager(SoftwareManager):
         res.update_total()
         return res
 
-    def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: DiskCacheLoader, internet_available: bool,
+    def _fill_aur_pkgs_offline(self, aur_pkgs: dict,  arch_config: dict, output: List[ArchPackage], disk_loader: Optional[DiskCacheLoader]):
+        self.logger.info("Reading cached data from installed AUR packages")
+
+        editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
+        for name, data in aur_pkgs.items():
+            pkg = ArchPackage(name=name, version=data.get('version'),
+                              latest_version=data.get('version'), description=data.get('description'),
+                              installed=True, repository='aur', i18n=self.i18n)
+
+            pkg.categories = self.categories.get(pkg.name)
+            pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
+
+            if disk_loader:
+                disk_loader.fill(pkg)
+
+            pkg.status = PackageStatus.READY
+            output.append(pkg)
+
+    def _fill_aur_pkgs(self, aur_pkgs: dict, output: List[ArchPackage], disk_loader: Optional[DiskCacheLoader], internet_available: bool,
                        arch_config: dict, rebuild_check: Optional[Thread], rebuild_ignored: Optional[Thread], rebuild_output: Optional[Dict[str, Set[str]]]):
 
-        if internet_available:
-            try:
-                pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
-            except requests.exceptions.ConnectionError:
-                self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
-                self.logger.info("Reading only local AUR packages data")
-                return
+        if not internet_available:
+            self._fill_aur_pkgs_offline(aur_pkgs=aur_pkgs, arch_config=arch_config,
+                                        output=output, disk_loader=disk_loader)
+            return
 
-            if pkgsinfo:
-                editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
+        pkgsinfo = self.aur_client.get_info(aur_pkgs.keys())
 
-                ignore_rebuild_check = None
-                if rebuild_ignored and rebuild_output is not None:
-                    rebuild_ignored.join()
-                    ignore_rebuild_check = rebuild_output['ignored']
-
-                to_rebuild = None
-                if rebuild_check and rebuild_output is not None:
-                    self.logger.info("Waiting for rebuild-detector")
-                    rebuild_check.join()
-                    to_rebuild = rebuild_output['to_rebuild']
-
-                for pkgdata in pkgsinfo:
-                    pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
-                    pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
-
-                    if pkg.installed:
-                        if disk_loader:
-                            disk_loader.fill(pkg, sync=True)
-
-                        pkg.update = self._check_aur_package_update(pkg=pkg,
-                                                                    installed_data=aur_pkgs.get(pkg.name, {}),
-                                                                    api_data=pkgdata)
-                        pkg.aur_update = pkg.update  # used in 'set_rebuild_check'
-
-                        if ignore_rebuild_check is not None:
-                            pkg.allow_rebuild = pkg.name not in ignore_rebuild_check
-
-                        if to_rebuild and not pkg.update and pkg.name in to_rebuild:
-                            pkg.require_rebuild = True
-
-                        pkg.update_state()
-
-                    pkg.status = PackageStatus.READY
-                    output.append(pkg)
-
+        if pkgsinfo is None:
+            self._fill_aur_pkgs_offline(aur_pkgs=aur_pkgs, arch_config=arch_config, output=output, disk_loader=disk_loader)
+        elif not pkgsinfo:
+            self.logger.warning("No data found for the supposed installed AUR packages returned from AUR API's info endpoint")
         else:
             editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
-            for name, data in aur_pkgs.items():
-                pkg = ArchPackage(name=name, version=data.get('version'),
-                                  latest_version=data.get('version'), description=data.get('description'),
-                                  installed=True, repository='aur', i18n=self.i18n)
 
-                pkg.categories = self.categories.get(pkg.name)
+            ignore_rebuild_check = None
+            if rebuild_ignored and rebuild_output is not None:
+                rebuild_ignored.join()
+                ignore_rebuild_check = rebuild_output['ignored']
+
+            to_rebuild = None
+            if rebuild_check and rebuild_output is not None:
+                self.logger.info("Waiting for rebuild-detector")
+                rebuild_check.join()
+                to_rebuild = rebuild_output['to_rebuild']
+
+            for pkgdata in pkgsinfo:
+                pkg = self.aur_mapper.map_api_data(pkgdata, aur_pkgs, self.categories)
                 pkg.pkgbuild_editable = pkg.name in editable_pkgbuilds if editable_pkgbuilds is not None else None
 
-                if disk_loader:
-                    disk_loader.fill(pkg)
+                if pkg.installed:
+                    if disk_loader:
+                        disk_loader.fill(pkg, sync=True)
+
+                    pkg.update = self._check_aur_package_update(pkg=pkg,
+                                                                installed_data=aur_pkgs.get(pkg.name, {}),
+                                                                api_data=pkgdata)
+                    pkg.aur_update = pkg.update  # used in 'set_rebuild_check'
+
+                    if ignore_rebuild_check is not None:
+                        pkg.allow_rebuild = pkg.name not in ignore_rebuild_check
+
+                    if to_rebuild and not pkg.update and pkg.name in to_rebuild:
+                        pkg.require_rebuild = True
+
+                    pkg.update_state()
 
                 pkg.status = PackageStatus.READY
                 output.append(pkg)
@@ -1811,9 +1815,13 @@ class ArchManager(SoftwareManager):
 
         if len(pkgnames) != len(pkg_repos):  # checking if any dep not found in the distro repos are from AUR
             norepos = {p for p in pkgnames if p not in pkg_repos}
-            for pkginfo in self.aur_client.get_info(norepos):
-                if pkginfo.get('Name') in norepos:
-                    pkg_repos[pkginfo['Name']] = 'aur'
+
+            aur_info = self.aur_client.get_info(norepos)
+
+            if aur_info:
+                for pkginfo in aur_info:
+                    if pkginfo.get('Name') in norepos:
+                        pkg_repos[pkginfo['Name']] = 'aur'
 
         return pkg_repos
 

@@ -7,7 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.9.27]
 
 ### Improvements
-- code refactoring (String formatting method)
+- Arch:
+  - preventing AUR's installed packages from not being mapped in cases the communication with the API fails
+  - code refactoring (String formatting method)
 
 ### Fixes
 - Arch
