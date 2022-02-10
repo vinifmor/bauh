@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Setup
   - able to install bauh with python/pip without enforcing requirements through the environment variable `BAUH_SETUP_NO_REQS=1`
 
+- Distribution
+    - AppImage: -~50% size reduction (141.93 MB -> 72.20 MB)
+
+
 ### Fixes
 - Arch
   - silent crash when handling and displaying transaction sub-status
