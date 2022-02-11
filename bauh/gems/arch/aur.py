@@ -113,28 +113,29 @@ class AURClient:
         return self.http_client.get_json(URL_SEARCH + words)
 
     def get_info(self, names: Iterable[str]) -> Optional[List[dict]]:
-        try:
-            res = self.http_client.get_json(URL_INFO + self._map_names_as_queries(names))
-        except requests.exceptions.ConnectionError:
-            self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
-            return
+        if names:
+            try:
+                res = self.http_client.get_json(URL_INFO + self._map_names_as_queries(names))
+            except requests.exceptions.ConnectionError:
+                self.logger.warning('Could not retrieve installed AUR packages API data. It seems the internet connection is off.')
+                return
 
-        if res is None:
-            self.logger.warning("Call to AUR API's info endpoint has failed")
-            return
+            if res is None:
+                self.logger.warning("Call to AUR API's info endpoint has failed")
+                return
 
-        error = res.get('error')
+            error = res.get('error')
 
-        if error:
-            self.logger.warning(f"AUR API's info endpoint returned an unexpected error: {error}")
-            return
+            if error:
+                self.logger.warning(f"AUR API's info endpoint returned an unexpected error: {error}")
+                return
 
-        results = res.get('results')
+            results = res.get('results')
 
-        if results is not None:
-            return results
+            if results is not None:
+                return results
 
-        self.logger.warning(f"AUR API's info endpoint returned an unexpected response: {res}")
+            self.logger.warning(f"AUR API's info endpoint returned an unexpected response: {res}")
 
     def map_provided(self, pkgname: str, pkgver: str, provided: Optional[Iterable[str]] = None, strip_epoch: bool = True) -> Set[str]:
         all_provided = {pkgname, f"{pkgname}={pkgver.split('-')[0] if strip_epoch else pkgver}"}
@@ -195,7 +196,7 @@ class AURClient:
         self.logger.warning('No .SRCINFO found for {}'.format(name))
         self.logger.info('Checking if {} is based on another package'.format(name))
         # if was not found, it may be based on another package.
-        infos = self.get_info({name})
+        infos = self.get_info((name,))
 
         if infos:
             info = infos[0]
