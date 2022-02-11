@@ -519,10 +519,6 @@ class DependenciesAnalyser:
             if repo_providers_data:
                 deps_data.update(repo_providers_data)
 
-            if aur_providers_no_data:
-                for pkgname, pkgdata in self.aur_client.gen_updates_data(aur_providers_no_data):
-                    deps_data[pkgname] = pkgdata
-
         if aur_data_filler:
             aur_data_filler.join()
 
