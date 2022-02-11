@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - able to install bauh with python/pip without enforcing requirements through the environment variable `BAUH_SETUP_NO_REQS=1`
 
 - Distribution
-    - AppImage: -~50% size reduction (141.93 MB -> 72.20 MB) [#1ba610da9d651f627b3c6163bbcf8ecfd17276b5](https://github.com/vinifmor/bauh/commit/1ba610da9d651f627b3c6163bbcf8ecfd17276b5)
+    - AppImage: -~32% size reduction (141.93 MB -> 96.32 MB)
 
 
 ### Fixes
