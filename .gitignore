@@ -8,3 +8,10 @@ dist
 *.egg-info
 build
 *.db
+linux_dist/appimage/AppDir
+linux_dist/appimage/appimage-builder-cache
+linux_dist/appimage/*.zsync
+linux_dist/appimage/*.AppImage
+linux_dist/appimage/*.gz
+linux_dist/appimage/bauh-*
+

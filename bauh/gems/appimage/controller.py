@@ -227,7 +227,7 @@ class AppImageManager(SoftwareManager):
                         installed_found.append(appim)
                         found = True
 
-                if not found and lower_words in appim.name.lower() or (appim.description and lower_words in appim.description.lower()):
+                if not found and (lower_words in appim.name.lower() or (appim.description and lower_words in appim.description.lower())):
                     installed_found.append(appim)
         try:
             apps_conn.close()

@@ -14,8 +14,11 @@ URL = "https://github.com/vinifmor/" + NAME
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 
-with open(file_dir + '/requirements.txt', 'r') as f:
-    requirements = [line.strip() for line in f.readlines() if line]
+if os.getenv('BAUH_SETUP_NO_REQS'):
+    requirements = []
+else:
+    with open(f'{file_dir}/requirements.txt', 'r') as f:
+        requirements = [line.strip() for line in f.readlines() if line]
 
 
 with open(file_dir + '/{}/__init__.py'.format(NAME), 'r') as f:

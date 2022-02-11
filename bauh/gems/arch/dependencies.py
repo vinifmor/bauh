@@ -264,24 +264,26 @@ class DependenciesAnalyser:
         aur_search = self.aur_client.search(dep_name)
 
         if aur_search:
-            if dep_name == dep_exp:
-                version_required, exp_op = None, None
-            else:
-                split_informed_dep = self.re_dep_operator.split(dep_exp)
-                version_required = split_informed_dep[2]
-                exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
+            aur_results = aur_search.get('results')
 
-            for pkgname, pkgdata in self.aur_client.gen_updates_data(
-                    (aur_res['Name'] for aur_res in aur_search['results'])):
-                if pkgname == dep_name or (dep_name in pkgdata['p']):
-                    try:
-                        if not version_required or match_required_version(pkgdata['v'], exp_op,
-                                                                          version_required):
-                            yield pkgname, pkgdata
-                    except:
-                        self._log.warning(f"Could not compare AUR package '{pkgname}' version '{pkgdata['v']}' "
-                                          f"with the dependency expression '{dep_exp}'")
-                        traceback.print_exc()
+            if aur_results:
+                if dep_name == dep_exp:
+                    version_required, exp_op = None, None
+                else:
+                    split_informed_dep = self.re_dep_operator.split(dep_exp)
+                    version_required = split_informed_dep[2]
+                    exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
+
+                for pkgname, pkgdata in self.aur_client.gen_updates_data((aur_res['Name'] for aur_res in aur_results)):
+                    if pkgname == dep_name or (dep_name in pkgdata['p']):
+                        try:
+                            if not version_required or match_required_version(pkgdata['v'], exp_op,
+                                                                              version_required):
+                                yield pkgname, pkgdata
+                        except:
+                            self._log.warning(f"Could not compare AUR package '{pkgname}' version '{pkgdata['v']}' "
+                                              f"with the dependency expression '{dep_exp}'")
+                            traceback.print_exc()
 
     def _fill_missing_dep(self, dep_name: str, dep_exp: str, aur_index: Iterable[str],
                           missing_deps: Set[Tuple[str, str]],
@@ -382,8 +384,9 @@ class DependenciesAnalyser:
             raise PackageNotFoundException(dep_exp)
 
     def _fill_aur_updates_data(self, pkgnames: Iterable[str], output_data: dict):
-        for pkgname, pkgdata in self.aur_client.gen_updates_data(pkgnames):
-            output_data[pkgname] = pkgdata
+        if pkgnames:
+            for pkgname, pkgdata in self.aur_client.gen_updates_data(pkgnames):
+                output_data[pkgname] = pkgdata
 
     def map_missing_deps(self, pkgs_data: Dict[str, dict], provided_map: Dict[str, Set[str]],
                          remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
@@ -515,9 +518,6 @@ class DependenciesAnalyser:
 
             if repo_providers_data:
                 deps_data.update(repo_providers_data)
-
-            for pkgname, pkgdata in self.aur_client.gen_updates_data(aur_providers_no_data):
-                deps_data[pkgname] = pkgdata
 
         if aur_data_filler:
             aur_data_filler.join()

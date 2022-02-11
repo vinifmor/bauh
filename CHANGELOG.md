@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.27] 2022-02-11
+
+### Improvements
+- Arch:
+  - preventing AUR's installed packages from not being mapped in cases the communication with the API fails
+  - code refactoring (String formatting method)
+
+- Setup
+  - able to install bauh with python/pip without enforcing requirements through the environment variable `BAUH_SETUP_NO_REQS=1`
+
+- Distribution
+    - AppImage: -~32% size reduction (141.93 MB -> 96.32 MB)
+
+
+### Fixes
+- Arch
+  - silent crash when handling and displaying transaction sub-status
+  - AUR: not detecting installed packages anymore due to recent AUR API changes
+  - installation fails when several dependent packages conflict with the installed ones
+  - removing a duplicate call to checking for AUR updates
+
+- AppImage
+  - search: displaying duplicate installed apps for some cases
+
+
 ## [0.9.26] 2022-01-31
 
 ### Improvements
