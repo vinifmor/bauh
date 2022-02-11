@@ -50,11 +50,6 @@ AppDir:
         - python3-pip
         - python3-setuptools
         - python3-distutils
-        - libc-bin
-        - libc-dev-bin
-        - libc6
-        - libc6-dbg
-        - libc6-dev
 
   after_bundle:
       - pip3 install pyqt5 --prefix=/usr --root=AppDir || exit 1
