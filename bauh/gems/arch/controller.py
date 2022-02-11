@@ -2414,7 +2414,7 @@ class ArchManager(SoftwareManager):
                 if context.pkg and context.pkg.maintainer:
                     pkg_maintainer = context.pkg.maintainer
                 elif context.repository == 'aur':
-                    aur_infos = self.aur_client.get_info({context.name})
+                    aur_infos = self.aur_client.get_info((context.name,))
                     pkg_maintainer = aur_infos[0].get('Maintainer') if aur_infos else None
                 else:
                     pkg_maintainer = context.repository
@@ -3512,7 +3512,7 @@ class ArchManager(SoftwareManager):
 
         self.aur_client.clean_caches()
 
-        apidatas = self.aur_client.get_info({pkg.name})
+        apidatas = self.aur_client.get_info((pkg.name,))
 
         if not apidatas:
             watcher.show_message(title=self.i18n['error'],
