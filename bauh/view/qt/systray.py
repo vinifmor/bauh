@@ -30,7 +30,7 @@ CLI_NAME = f'{__app_name__}-cli'
 
 def get_cli_path() -> str:
     if os.getenv('APPIMAGE'):
-        return CLI_NAME
+        return f"{os.environ['APPRUN_STARTUP_EXEC_PATH']} {os.environ['APPDIR']}usr/bin/{CLI_NAME}"
 
     venv = os.getenv('VIRTUAL_ENV')
 
@@ -51,7 +51,7 @@ def get_cli_path() -> str:
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
     cli_path = get_cli_path()
     if cli_path:
-        exitcode, output = system.execute(f'{cli_path} updates -f json', custom_env=dict(os.environ))
+        exitcode, output = system.execute(f'{cli_path} updates -f json')
 
         if exitcode != 0:
             output_log = output.replace('\n', ' ') if output else ' '

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.27] 2022-02-14
+
+### Fixes
+- Distribution
+  - AppImage: not able to detect updates on the **tray mode** because the `bauh-cli` call was referencing the system's Python interpreter instead of the containerized one.
+
+
 ## [0.9.27] 2022-02-11
 
 ### Improvements
