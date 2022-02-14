@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes
 - Distribution
-  - AppImage: not able to detect updates on the **tray mode** because the `bauh-cli` call was referencing the system's Python interpreter instead of the containerized one.
+  - AppImage: not able to detect updates on the **tray mode** because the `bauh-cli` call was referencing the system's Python interpreter instead of the containerized one [#230](https://github.com/vinifmor/bauh/issues/230)
 
 
 ## [0.9.27] 2022-02-11
