@@ -65,7 +65,7 @@ AppDir:
   runtime:
     version: "continuous"
     env:
-      PATH: '${APPDIR}/usr/bin:${PATH}'
+      PATH: '${PATH}:${APPDIR}/usr/bin'
       PYTHONHOME: '${APPDIR}/usr'
       PYTHONPATH: '${APPDIR}/usr/lib/python3.8/site-packages'
 
