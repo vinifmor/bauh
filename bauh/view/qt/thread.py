@@ -55,12 +55,13 @@ class AsyncAction(QThread, ProcessWatcher):
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
                              confirmation_label: str = None, deny_label: str = None, deny_button: bool = True,
                              window_cancel: bool = False,
-                             confirmation_button: bool = True) -> bool:
+                             confirmation_button: bool = True,
+                             min_width: Optional[int] = None) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components,
                                        'confirmation_label': confirmation_label, 'deny_label': deny_label,
                                        'deny_button': deny_button, 'window_cancel': window_cancel,
-                                       'confirmation_button': confirmation_button})
+                                       'confirmation_button': confirmation_button, 'min_width': min_width})
         self.wait_user()
         return self.confirmation_res
 
@@ -203,12 +204,14 @@ class UpgradeSelected(AsyncAction):
     UPGRADE_LOGS_DIR = f'{LOGS_DIR}/upgrade'
     SUMMARY_FILE = UPGRADE_LOGS_DIR + '/{}_summary.txt'
 
-    def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n, pkgs: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n,
+                 screen_width: int, pkgs: List[PackageView] = None):
         super(UpgradeSelected, self).__init__()
         self.pkgs = pkgs
         self.manager = manager
         self.i18n = i18n
         self.internet_checker = internet_checker
+        self.screen_width = screen_width
 
     def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
         if req.pkg.installed:
@@ -469,7 +472,7 @@ class UpgradeSelected(AsyncAction):
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
                                          confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize(),
-                                         confirmation_button=can_upgrade):
+                                         confirmation_button=can_upgrade, min_width=int(0.45 * self.screen_width)):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return

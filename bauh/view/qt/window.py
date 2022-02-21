@@ -5,7 +5,7 @@ import traceback
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
@@ -94,7 +94,7 @@ class ManageWindow(QWidget):
     signal_table_update = pyqtSignal()
     signal_stop_notifying = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size: QSize, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.setObjectName('manage_window')
@@ -316,7 +316,10 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
-        self.thread_update = self._bind_async_action(UpgradeSelected(self.manager, context.internet_checker, self.i18n), finished_call=self._finish_upgrade_selected)
+        self.thread_update = self._bind_async_action(UpgradeSelected(manager=self.manager, i18n=self.i18n,
+                                                                     internet_checker=context.internet_checker,
+                                                                     screen_width=screen_size.width()),
+                                                     finished_call=self._finish_upgrade_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
         self.thread_show_info = self._bind_async_action(ShowPackageInfo(self.manager), finished_call=self._finish_show_info)
@@ -542,7 +545,8 @@ class ManageWindow(QWidget):
                                   deny_label=msg['deny_label'],
                                   deny_button=msg['deny_button'],
                                   window_cancel=msg['window_cancel'],
-                                  confirmation_button=msg.get('confirmation_button', True))
+                                  confirmation_button=msg.get('confirmation_button', True),
+                                  min_width=msg.get('min_width'))
         diag.ask()
         res = diag.confirmed
         self.thread_animate_progress.animate()
