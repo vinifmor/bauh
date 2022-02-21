@@ -760,6 +760,9 @@ class FormQt(QGroupBox):
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
 
+        if hasattr(comp, 'min_width') and comp.min_width is not None and comp.min_width > 0:
+            label_comp.setMinimumWidth(comp.min_width)
+
         if hasattr(comp, 'size') and comp.size is not None:
             label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
 
