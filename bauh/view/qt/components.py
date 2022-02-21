@@ -713,6 +713,9 @@ class FormQt(QGroupBox):
         self.i18n = i18n
         self.setLayout(QFormLayout())
 
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(model.min_width)
+
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
 

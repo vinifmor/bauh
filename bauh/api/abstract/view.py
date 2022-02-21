@@ -204,12 +204,14 @@ class TextInputComponent(ViewComponent):
 
 class FormComponent(ViewComponent):
 
-    def __init__(self, components: List[ViewComponent], label: str = None, spaces: bool = True, id_: str = None):
+    def __init__(self, components: List[ViewComponent], label: str = None, spaces: bool = True, id_: str = None,
+                 min_width: Optional[int] = None):
         super(FormComponent, self).__init__(id_=id_)
         self.label = label
         self.spaces = spaces
         self.components = components
         self.component_map = {c.id: c for c in components if c.id} if components else None
+        self.min_width = min_width
 
     def get_component(self, id_: str) -> Optional[ViewComponent]:
         if self.component_map:
