@@ -104,7 +104,7 @@ class MultipleSelectComponent(InputViewComponent):
 
     def __init__(self, label: Optional[str], options: List[InputOption], default_options: Set[InputOption] = None,
                  max_per_line: int = 1, tooltip: str = None, spaces: bool = True, max_width: int = -1,
-                 max_height: int = -1, id_: str = None):
+                 max_height: int = -1, id_: str = None, min_width: Optional[int] = None):
         super(MultipleSelectComponent, self).__init__(id_=id_)
 
         if not options:
@@ -116,6 +116,7 @@ class MultipleSelectComponent(InputViewComponent):
         self.tooltip = tooltip
         self.values = default_options if default_options else set()
         self.max_per_line = max_per_line
+        self.min_width = min_width
         self.max_width = max_width
         self.max_height = max_height
 

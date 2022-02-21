@@ -521,6 +521,9 @@ class MultipleSelectQt(QGroupBox):
         self._layout = QGridLayout()
         self.setLayout(self._layout)
 
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(int(model.min_width))
+
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
 
@@ -578,6 +581,9 @@ class FormMultipleSelectQt(QWidget):
         super(FormMultipleSelectQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(int(model.min_width))
 
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
