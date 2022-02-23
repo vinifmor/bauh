@@ -195,6 +195,9 @@ class ProcessHandler:
                 except UnicodeDecodeError:
                     continue
 
+                if line.startswith('[sudo] password'):
+                    continue
+
                 output.write(line)
 
                 line = line.strip()
