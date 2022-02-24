@@ -67,6 +67,10 @@ class ScreenshotsDialog(QDialog):
         self.container_buttons.layout().addWidget(self.bt_back)
         self.container_buttons.layout().addWidget(new_spacer())
 
+        self.img_label = QLabel()
+        self.img_label.setObjectName("image_label")
+        self.container_buttons.layout().addWidget(self.img_label)
+
         self.container_buttons.layout().addWidget(self.progress_bar)
         self.container_buttons.layout().addWidget(new_spacer())
 
@@ -99,6 +103,7 @@ class ScreenshotsDialog(QDialog):
             img = self.loaded_imgs[self.img_idx]
 
             if isinstance(img, QPixmap):
+                self.img_label.setText(f'{self.img_idx + 1}/{len(self.screenshots)}')
                 self.img.setText('')
                 self.img.setPixmap(img)
             else:
