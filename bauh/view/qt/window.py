@@ -1441,8 +1441,15 @@ class ManageWindow(QWidget):
             if not valid:
                 return
 
-        self._begin_action(action_label='{}{}'.format(self.i18n[action.i18n_status_key], ' {}'.format(pkg.model.name) if pkg else ''),
-                           action_id=ACTION_CUSTOM_ACTION)
+        action_label = self.i18n[action.i18n_status_key]
+
+        if pkg:
+            if '{}' in action_label:
+                action_label = action_label.format(pkg.model.name)
+            else:
+                action_label += f' {pkg.model.name}'
+
+        self._begin_action(action_label=action_label, action_id=ACTION_CUSTOM_ACTION)
         self.comp_manager.set_components_visible(False)
         self._handle_console_option(True)
 
