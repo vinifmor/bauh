@@ -135,6 +135,7 @@ arch.info.01_id=id
 arch.info.02_name=nombre
 arch.info.03_description=descripción
 arch.info.03_version=versión
+arch.info.04_exec=Ejecutable
 arch.info.04_popularity=popularidad
 arch.info.05_votes=votos
 arch.info.06_package_base=paquete base

@@ -1561,9 +1561,14 @@ class ArchManager(SoftwareManager):
 
     def get_info(self, pkg: ArchPackage) -> dict:
         if pkg.repository == 'aur':
-            return self._get_info_aur_pkg(pkg)
+            info = self._get_info_aur_pkg(pkg)
         else:
-            return self._get_info_repo_pkg(pkg)
+            info = self._get_info_repo_pkg(pkg)
+
+        if pkg.is_application():
+            info['04_exec'] = pkg.command
+
+        return info
 
     def _get_history_aur_pkg(self, pkg: ArchPackage) -> PackageHistory:
 

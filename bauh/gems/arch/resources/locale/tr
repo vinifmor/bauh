@@ -135,6 +135,7 @@ arch.info.01_id=kimlik
 arch.info.02_name=isim
 arch.info.03_description=açıklama
 arch.info.03_version=sürüm
+arch.info.04_exec=Executable
 arch.info.04_popularity=rağbet
 arch.info.05_votes=oylar
 arch.info.06_package_base=taban paket
