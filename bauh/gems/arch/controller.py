@@ -1557,6 +1557,13 @@ class ArchManager(SoftwareManager):
             if pkg.installed:
                 info['installed files'] = pacman.list_installed_files(pkg.name)
 
+        for attr in ('version', 'description'):
+            val = info.get(attr)
+
+            if val is not None:
+                info[f'03_{attr}'] = val
+                del info[attr]
+
         return info
 
     def get_info(self, pkg: ArchPackage) -> dict:

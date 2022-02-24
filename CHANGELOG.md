@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - Arch
-  - info dialog: displaying the "executable" field if the package is recognized as an application
+  - info dialog: 
+    - displaying the "executable" field if the package is recognized as an application
+    - displaying "description" and "version" as primary fields for repository packages
   - removing the "%U" parameter before launching applications to prevent error messages
   - minor code refactoring
 
