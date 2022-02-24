@@ -2781,7 +2781,7 @@ class ArchManager(SoftwareManager):
     def launch(self, pkg: ArchPackage):
         if pkg.command:
             final_cmd = pkg.command.replace('%U', '')
-            subprocess.Popen(args=[final_cmd], shell=True, env={**os.environ})
+            subprocess.Popen(final_cmd, shell=True)
 
     def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
         pass
