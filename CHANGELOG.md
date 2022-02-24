@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
   - info dialog: displaying the "executable" field if the package is recognized as an application
+  - removing the "%U" parameter before launching applications to prevent error messages
 
 - UI
   - upgrade summary dialog size
