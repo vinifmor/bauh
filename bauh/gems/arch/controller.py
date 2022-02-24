@@ -2790,9 +2790,6 @@ class ArchManager(SoftwareManager):
             final_cmd = pkg.command.replace('%U', '')
             subprocess.Popen(final_cmd, shell=True)
 
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        pass
-
     def _gen_bool_selector(self, id_: str, label_key: str, tooltip_key: str, value: bool, max_width: int,
                            capitalize_label: bool = True, label_params: Optional[list] = None, tooltip_params: Optional[list] = None) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),

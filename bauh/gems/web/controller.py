@@ -1072,9 +1072,6 @@ class WebApplicationManager(SoftwareManager):
     def launch(self, pkg: WebApplication):
         subprocess.Popen(args=[pkg.get_command()], shell=True, env={**os.environ})
 
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        pass
-
     def clear_data(self, logs: bool = True):
         if os.path.exists(ENV_PATH):
             if logs:

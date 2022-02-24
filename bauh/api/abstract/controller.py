@@ -355,10 +355,9 @@ class SoftwareManager(ABC):
     def launch(self, pkg: SoftwarePackage):
         pass
 
-    @abstractmethod
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+    def get_screenshots(self, pkg: SoftwarePackage) -> Generator[str, None, None]:
         """
-        :return: screenshot urls for the given package
+        :return: yields screenshot urls for the given package
         """
         pass
 

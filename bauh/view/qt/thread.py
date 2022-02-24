@@ -1066,7 +1066,7 @@ class ShowScreenshots(AsyncAction):
 
     def run(self):
         if self.pkg:
-            self.notify_finished({'pkg': self.pkg, 'screenshots': self.manager.get_screenshots(self.pkg.model)})
+            self.notify_finished({'pkg': self.pkg, 'screenshots': tuple(self.manager.get_screenshots(self.pkg.model))})
 
         self.pkg = None
 

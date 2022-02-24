@@ -5,10 +5,11 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Optional
+from typing import List, Set, Type, Tuple, Optional, Generator
 
 from packaging.version import Version
 
+from bauh.api import user
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -17,11 +18,11 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
-from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, EXPORTS_PATH, \
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
+    EXPORTS_PATH, \
     get_icon_path, VERSION_1_5, VERSION_1_2
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
@@ -574,24 +575,22 @@ class FlatpakManager(SoftwareManager):
     def launch(self, pkg: FlatpakApplication):
         flatpak.run(str(pkg.id))
 
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        screenshots_url = '{}/apps/{}'.format(FLATHUB_API_URL, pkg.id)
-        urls = []
+    def get_screenshots(self, pkg: FlatpakApplication) -> Generator[str, None, None]:
+        screenshots_url = f'{FLATHUB_API_URL}/apps/{pkg.id}'
+
         try:
             res = self.http_client.get_json(screenshots_url)
 
             if res and res.get('screenshots'):
                 for s in res['screenshots']:
                     if s.get('imgDesktopUrl'):
-                        urls.append(s['imgDesktopUrl'])
+                        yield s['imgDesktopUrl']
 
         except Exception as e:
             if e.__class__.__name__ == 'JSONDecodeError':
                 self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
             else:
                 traceback.print_exc()
-
-        return urls
 
     def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         if not self.context.root_user:

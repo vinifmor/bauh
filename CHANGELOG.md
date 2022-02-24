@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.X.X]
 
 ### Improvements
+- General
+  - minor memory improvements
+
 - Arch
   - info dialog: 
     - displaying the "executable" field if the package is recognized as an application

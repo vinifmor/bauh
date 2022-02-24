@@ -520,11 +520,11 @@ class GenericSoftwareManager(SoftwareManager):
             self.logger.info(f'Launching {pkg}')
             man.launch(pkg)
 
-    def get_screenshots(self, pkg: SoftwarePackage):
+    def get_screenshots(self, pkg: SoftwarePackage) -> Generator[str, None, None]:
         man = self._get_manager_for(pkg)
 
         if man:
-            return man.get_screenshots(pkg)
+            yield from man.get_screenshots(pkg)
 
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]

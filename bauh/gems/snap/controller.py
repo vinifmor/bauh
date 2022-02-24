@@ -2,7 +2,7 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type, Optional, Tuple
+from typing import List, Set, Type, Optional, Tuple, Generator
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     TransactionResult, SoftwareAction
@@ -440,8 +440,9 @@ class SnapManager(SoftwareManager):
             self.logger.info(f"Running '{pkg.name}': {cmd}")
             snap.run(cmd)
 
-    def get_screenshots(self, pkg: SnapApplication) -> List[str]:
-        return pkg.screenshots if pkg.has_screenshots() else []
+    def get_screenshots(self, pkg: SnapApplication) -> Generator[str, None, None]:
+        if pkg.screenshots:
+            yield from pkg.screenshots
 
     def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         snap_config = self.configman.get_config()

@@ -795,11 +795,9 @@ class AppImageManager(SoftwareManager):
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
-    def get_screenshots(self, pkg: AppImage) -> List[str]:
-        if pkg.has_screenshots():
-            return [pkg.url_screenshot]
-
-        return []
+    def get_screenshots(self, pkg: AppImage) -> Generator[str, None, None]:
+        if pkg.url_screenshot:
+            yield pkg.url_screenshot
 
     def clear_data(self, logs: bool = True):
         for f in glob.glob(f'{APPIMAGE_SHARED_DIR}/*.db'):
