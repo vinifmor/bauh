@@ -353,7 +353,6 @@ class PackagesTable(QTableWidget):
             self.cache_type_icon[pkg.model.get_type()] = icon_data
 
         col_type_icon = QLabel()
-        col_type_icon.setCursor(QCursor(Qt.WhatsThisCursor))
         col_type_icon.setProperty('icon', 'true')
         col_type_icon.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
         col_type_icon.setPixmap(icon_data['px'])
@@ -367,7 +366,6 @@ class PackagesTable(QTableWidget):
 
         item = QWidget()
         item.setProperty('container', 'true')
-        item.setCursor(QCursor(Qt.WhatsThisCursor))
         item.setLayout(QHBoxLayout())
         item.layout().addWidget(label_version)
 
@@ -432,7 +430,6 @@ class PackagesTable(QTableWidget):
         col_name = QLabel()
         col_name.setObjectName('app_name')
         col_name.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
-        col_name.setCursor(QCursor(Qt.WhatsThisCursor))
 
         name = pkg.model.get_display_name()
         if name:
@@ -460,7 +457,6 @@ class PackagesTable(QTableWidget):
     def _set_col_description(self, col: int, pkg: PackageView):
         item = QLabel()
         item.setObjectName('app_description')
-        item.setCursor(QCursor(Qt.WhatsThisCursor))
 
         if pkg.model.description is not None or not pkg.model.is_application() or pkg.model.status == PackageStatus.READY:
             desc = pkg.model.description.split('\n')[0] if pkg.model.description else pkg.model.description
@@ -492,7 +488,6 @@ class PackagesTable(QTableWidget):
 
         lb_name = QLabel()
         lb_name.setObjectName('app_publisher')
-        lb_name.setCursor(QCursor(Qt.WhatsThisCursor))
 
         if not publisher:
             if not pkg.model.installed:
