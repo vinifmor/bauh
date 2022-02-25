@@ -79,13 +79,6 @@ class AppImageManager(SoftwareManager):
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
-        self.custom_app_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
-                                                        i18n_status_key='appimage.custom_action.manual_update.status',
-                                                        i18n_description_key='appimage.custom_action.manual_update.desc',
-                                                        manager_method='update_file',
-                                                        requires_root=False,
-                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
-                                                        requires_confirmation=False),)
 
     def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
@@ -199,7 +192,7 @@ class AppImageManager(SoftwareManager):
 
             idx = 0
             for r in cursor.fetchall():
-                app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                app = AppImage(*r, i18n=self.i18n)
                 not_installed.append(app)
                 found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                 idx += 1
@@ -251,7 +244,7 @@ class AppImageManager(SoftwareManager):
                 for path in installed:
                     if path:
                         with open(path) as f:
-                            app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
+                            app = AppImage(installed=True, i18n=self.i18n, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
                         installed_apps.append(app)

@@ -1,6 +1,6 @@
 import re
 from io import StringIO
-from typing import List, Optional, Iterable
+from typing import Optional, Iterable, Tuple
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
@@ -15,11 +15,26 @@ CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'lic
 
 class AppImage(SoftwarePackage):
 
+    __actions_local_installation: Optional[Tuple[CustomSoftwareAction, ...]] = None
+
+    @classmethod
+    def actions_local_installation(cls) -> Tuple[CustomSoftwareAction, ...]:
+        if cls.__actions_local_installation is None:
+            cls.__actions_local_installation = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
+                                                                     i18n_status_key='appimage.custom_action.manual_update.status',
+                                                                     i18n_description_key='appimage.custom_action.manual_update.desc',
+                                                                     manager_method='update_file',
+                                                                     requires_root=False,
+                                                                     icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
+                                                                     requires_confirmation=False),)
+
+        return cls.__actions_local_installation
+
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
-                 i18n: I18n = None, install_dir: str = None, custom_actions: Optional[Iterable[CustomSoftwareAction]] = None, updates_ignored: bool = False,
+                 i18n: I18n = None, install_dir: str = None, updates_ignored: bool = False,
                  symlink: str = None, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
@@ -36,7 +51,6 @@ class AppImage(SoftwarePackage):
         self.imported = imported
         self.i18n = i18n
         self.install_dir = install_dir
-        self.custom_actions = custom_actions
         self.updates_ignored = updates_ignored
         self.symlink = symlink
 
@@ -109,8 +123,8 @@ class AppImage(SoftwarePackage):
         return self.name
 
     def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
-        if self.imported:
-            return self.custom_actions
+        if self.installed and self.imported:
+            return self.actions_local_installation()
 
     def supports_backup(self) -> bool:
         return False
