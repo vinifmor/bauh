@@ -1,15 +1,19 @@
 appimage.config.database.expiration=Database expiration
 appimage.config.database.expiration.tip=It defines the period (in minutes) in which the database will be considered up to date during the initialization process. Use 0 if you always want to update it.
 appimage.config.suggestions.expiration=Suggestions expiration
-appimage.config.suggestions.expiration.tip=It defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.appimage.custom_action.install_file=Installer fichier AppImage
+appimage.config.suggestions.expiration.tip=It defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them
+appimage.custom_action.install_file=Installer fichier AppImage
+appimage.custom_action.install_file.desc=Installs an AppImage file on the system
 appimage.custom_action.install_file.details=Détails d'installation d'AppImage
 appimage.custom_action.install_file.invalid_file=Vous devez définir un fichier AppImage valide
 appimage.custom_action.install_file.invalid_name=Vous devez choisir un nom à l'application
 appimage.custom_action.install_file.status=Installation du fichier AppImage
 appimage.custom_action.manual_update=Mettre fichier à jour
+appimage.custom_action.manual_update.desc=Replaces the installed AppImage file by another one
 appimage.custom_action.manual_update.details=Détails de mise à jour
 appimage.custom_action.manual_update.status=Mise à jour
 appimage.custom_action.update_db=Update database
+appimage.custom_action.update_db.desc=Downloads updated files from the AppImage applications database
 appimage.custom_action.update_db.status=Updating database
 appimage.downgrade.first_version={} est à sa première version publiée
 appimage.downgrade.impossible.body={} a une seule version publiée.

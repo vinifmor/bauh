@@ -81,6 +81,7 @@ class AppImageManager(SoftwareManager):
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
         self.custom_app_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
                                                         i18n_status_key='appimage.custom_action.manual_update.status',
+                                                        i18n_description_key='appimage.custom_action.manual_update.desc',
                                                         manager_method='update_file',
                                                         requires_root=False,
                                                         icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
@@ -853,6 +854,7 @@ class AppImageManager(SoftwareManager):
         if self._custom_actions is None:
             self._custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                          i18n_status_key='appimage.custom_action.install_file.status',
+                                                         i18n_description_key='appimage.custom_action.install_file.desc',
                                                          manager=self,
                                                          manager_method='install_file',
                                                          icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
@@ -860,6 +862,7 @@ class AppImageManager(SoftwareManager):
                                                          requires_confirmation=False),
                                     CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
                                                          i18n_status_key='appimage.custom_action.update_db.status',
+                                                         i18n_description_key='appimage.custom_action.update_db.desc',
                                                          manager=self,
                                                          manager_method='update_database',
                                                          icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
