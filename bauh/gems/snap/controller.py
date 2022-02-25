@@ -46,6 +46,7 @@ class SnapManager(SoftwareManager):
         self.custom_actions = (
             CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
                                  i18n_label_key='snap.action.refresh.label',
+                                 i18n_description_key='snap.action.refresh.desc',
                                  icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                  manager_method='refresh',
                                  requires_root=True,
@@ -53,6 +54,7 @@ class SnapManager(SoftwareManager):
             CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
                                  i18n_label_key='snap.action.channel.label',
                                  i18n_confirm_key='snap.action.channel.confirm',
+                                 i18n_description_key='snap.action.channel.desc',
                                  icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                  manager_method='change_channel',
                                  requires_root=True,

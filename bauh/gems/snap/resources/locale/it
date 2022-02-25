@@ -1,9 +1,11 @@
 gem.snap.info=Applicazioni pubblicate su https://snapcraft.io/store
 snap.action.channel.confirm=Cambia canale di {} ?
+snap.action.channel.desc=Allows to change the application channel (if available)
 snap.action.channel.error.no_channel=Nessun canale disponibile per {}
 snap.action.channel.label=Cambia canale
 snap.action.channel.status=Cambiare canale di
 snap.action.refresh.confirm=Ripristina {} ?
+snap.action.refresh.desc=Updates the application for the latest version
 snap.action.refresh.label=Ripristina
 snap.action.refresh.status=Ripristinare
 snap.config.categories_exp=Scadenza delle categorie
