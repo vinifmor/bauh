@@ -10,6 +10,7 @@ CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_ent
 ACTION_AUR_ENABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
                                                           i18n_status_key='arch.action.enable_pkgbuild_edition.status',
                                                           i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
+                                                          i18n_description_key='arch.action.enable_pkgbuild_edition.desc',
                                                           requires_root=False,
                                                           manager_method='enable_pkgbuild_edition',
                                                           icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))
@@ -17,6 +18,7 @@ ACTION_AUR_ENABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.a
 ACTION_AUR_DISABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
                                                            i18n_status_key='arch.action.disable_pkgbuild_edition',
                                                            i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
+                                                           i18n_description_key='arch.action.disable_pkgbuild_edition.desc',
                                                            requires_root=False,
                                                            manager_method='disable_pkgbuild_edition',
                                                            icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))
@@ -24,6 +26,7 @@ ACTION_AUR_DISABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.
 ACTION_AUR_REINSTALL = CustomSoftwareAction(i18n_label_key='arch.action.reinstall',
                                             i18n_status_key='arch.action.reinstall.status',
                                             i18n_confirm_key='arch.action.reinstall.confirm',
+                                            i18n_description_key='arch.action.reinstall.desc',
                                             requires_root=True,
                                             manager_method='reinstall',
                                             icon_path=resource.get_path('img/build.svg', ROOT_DIR))
@@ -31,6 +34,7 @@ ACTION_AUR_REINSTALL = CustomSoftwareAction(i18n_label_key='arch.action.reinstal
 ACTION_IGNORE_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.ignore',
                                                    i18n_status_key='arch.action.rebuild_check.ignore.status',
                                                    i18n_confirm_key='arch.action.rebuild_check.ignore.confirm',
+                                                   i18n_description_key='arch.action.rebuild_check.ignore.desc',
                                                    requires_root=False,
                                                    manager_method='set_rebuild_check',
                                                    icon_path=resource.get_path('img/check_disabled.svg', ROOT_DIR))
@@ -38,6 +42,7 @@ ACTION_IGNORE_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.r
 ACTION_ALLOW_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.allow',
                                                   i18n_status_key='arch.action.rebuild_check.allow.status',
                                                   i18n_confirm_key='arch.action.rebuild_check.allow.confirm',
+                                                  i18n_description_key='arch.action.rebuild_check.allow.desc',
                                                   requires_root=False,
                                                   manager_method='set_rebuild_check',
                                                   icon_path=resource.get_path('img/check.svg', ROOT_DIR))
