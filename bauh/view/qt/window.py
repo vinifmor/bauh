@@ -1508,9 +1508,11 @@ class ManageWindow(QWidget):
         else:
             icon = None
 
+        tip = self.i18n[action.i18n_description_key] if action.i18n_description_key else None
         return QCustomMenuAction(parent=parent,
                                  label=self.i18n[action.i18n_label_key],
                                  action=lambda: self.begin_execute_custom_action(None, action),
+                                 tooltip=tip,
                                  icon=icon)
 
     def show_custom_actions(self):

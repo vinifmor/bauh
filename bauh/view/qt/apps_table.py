@@ -176,9 +176,11 @@ class PackagesTable(QTableWidget):
                                                                       i18n=self.i18n).ask():
                 self.window.begin_execute_custom_action(pkg, action)
 
+        tip = self.i18n[action.i18n_description_key] if action.i18n_description_key else None
         return QCustomMenuAction(parent=parent,
                                  label=self.i18n[action.i18n_label_key],
                                  icon=QIcon(action.icon_path) if action.icon_path else None,
+                                 tooltip=tip,
                                  action=custom_action)
 
     def refresh(self, pkg: PackageView):

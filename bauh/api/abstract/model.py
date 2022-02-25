@@ -12,7 +12,8 @@ class CustomSoftwareAction:
                  backup: bool = False, refresh: bool = True,
                  i18n_confirm_key: str = None,
                  requires_internet: bool = False,
-                 requires_confirmation: bool = True):
+                 requires_confirmation: bool = True,
+                 i18n_description_key: Optional[str] = None):
         """
         :param i18n_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
@@ -21,10 +22,11 @@ class CustomSoftwareAction:
         :param manager: the instance that will execute the action ( optional )
         :param backup: if a system backup should be performed before executing the action
         :param requires_root:
-        :param refresh: if the a full app refresh should be done if the action succeeds
+        :param refresh: if all displayed apps on the view should be refreshed if the action succeeds
         :param i18n_confirm_key: action confirmation message
         :param requires_internet: if the action requires internet connection to be executed
         :param requires_confirmation: if a confirmation popup should be displayed to the user before calling the action
+        :param i18n_description_key: the i18n key for the action description
         """
         self.i18n_label_key = i18n_label_key
         self.i18n_status_key = i18n_status_key
@@ -37,12 +39,19 @@ class CustomSoftwareAction:
         self.i18n_confirm_key = i18n_confirm_key
         self.requires_internet = requires_internet
         self.requires_confirmation = requires_confirmation
+        self.i18n_description_key = i18n_description_key
 
-    def __hash__(self):
-        return self.i18n_label_key.__hash__() + self.i18n_status_key.__hash__() + self.manager_method.__hash__()
+    def __hash__(self) -> int:
+        return sum(hash(val) for val in self.__dict__.values())
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, CustomSoftwareAction):
+            return self.__dict__ == other.__dict__
+
+        return False
 
     def __repr__(self):
-        return "CustomAction (label={}, method={})".format(self.i18n_label_key, self.manager_method)
+        return f"{self.__class__.__name__} (label={self.i18n_label_key}, method={self.manager_method})"
 
 
 class PackageStatus(Enum):
