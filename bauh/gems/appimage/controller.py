@@ -115,7 +115,7 @@ class AppImageManager(SoftwareManager):
             else:
                 return False
 
-        appim = AppImage(i18n=self.i18n, imported=True, custom_actions=self.custom_app_actions)
+        appim = AppImage(i18n=self.i18n, imported=True)
         appim.name = input_name.get_value().strip()
         appim.local_file_path = file_chooser.file_path
         appim.version = input_version.get_value()
@@ -762,7 +762,7 @@ class AppImageManager(SoftwareManager):
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join([f"'{s}'" for s in sugs_map.keys()])))
 
                     for t in cursor.fetchall():
-                        app = AppImage(*t, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                        app = AppImage(*t, i18n=self.i18n)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
                     self.logger.info(f"Mapped {len(res)} suggestions")
                 except:
