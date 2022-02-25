@@ -1162,6 +1162,7 @@ class WebApplicationManager(SoftwareManager):
             self._custom_actions = (
                 CustomSoftwareAction(i18n_label_key='web.custom_action.install_app',
                                      i18n_status_key='web.custom_action.install_app.status',
+                                     i18n_description_key='web.custom_action.install_app.desc',
                                      manager=self,
                                      manager_method='install_app',
                                      icon_path=resource.get_path('img/web.svg', ROOT_DIR),
@@ -1170,6 +1171,7 @@ class WebApplicationManager(SoftwareManager):
                                      requires_confirmation=False),
                 CustomSoftwareAction(i18n_label_key='web.custom_action.clean_env',
                                      i18n_status_key='web.custom_action.clean_env.status',
+                                     i18n_description_key='web.custom_action.clean_env.desc',
                                      manager=self,
                                      manager_method='clean_environment',
                                      icon_path=resource.get_path('img/web.svg', ROOT_DIR),
