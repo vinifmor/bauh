@@ -54,23 +54,38 @@ class GenericSoftwareManager(SoftwareManager):
         self.settings_manager = settings_manager
         self.http_client = context.http_client
         self.configman = CoreConfigManager()
-        self.extra_actions = (CustomSoftwareAction(i18n_label_key='action.reset',
-                                                   i18n_status_key='action.reset.status',
-                                                   i18n_description_key='action.reset.desc',
-                                                   manager_method='reset',
-                                                   manager=self,
-                                                   icon_path=resource.get_path('img/logo.svg'),
-                                                   requires_root=False,
-                                                   refresh=False),)
-        self.dynamic_extra_actions: Dict[CustomSoftwareAction, Callable[[dict], bool]] = {
-            CustomSoftwareAction(i18n_label_key='action.backups',
-                                 i18n_status_key='action.backups.status',
-                                 i18n_description_key='action.backups.desc',
-                                 manager_method='launch_timeshift',
-                                 manager=self,
-                                 icon_path='timeshift',
-                                 requires_root=False,
-                                 refresh=False): self.is_backups_action_available}
+        self._action_reset: Optional[CustomSoftwareAction] = None
+        self._dynamic_extra_actions: Optional[Dict[CustomSoftwareAction, Callable[[dict], bool]]] = None
+
+    @property
+    def dynamic_extra_actions(self) -> Dict[CustomSoftwareAction, Callable[[dict], bool]]:
+        if self._dynamic_extra_actions is None:
+            self._dynamic_extra_actions = {
+                CustomSoftwareAction(i18n_label_key='action.backups',
+                                     i18n_status_key='action.backups.status',
+                                     i18n_description_key='action.backups.desc',
+                                     manager_method='launch_timeshift',
+                                     manager=self,
+                                     icon_path='timeshift',
+                                     requires_root=False,
+                                     refresh=False): self.is_backups_action_available
+            }
+
+        return self._dynamic_extra_actions
+
+    @property
+    def action_reset(self) -> CustomSoftwareAction:
+        if self._action_reset is None:
+            self._action_reset = CustomSoftwareAction(i18n_label_key='action.reset',
+                                                      i18n_status_key='action.reset.status',
+                                                      i18n_description_key='action.reset.desc',
+                                                      manager_method='reset',
+                                                      icon_path=resource.get_path('img/logo.svg'),
+                                                      requires_root=False,
+                                                      manager=self,
+                                                      refresh=False)
+
+        return self._action_reset
 
     def _is_timeshift_launcher_available(self) -> bool:
         return bool(shutil.which('timeshift-launcher'))
@@ -635,8 +650,7 @@ class GenericSoftwareManager(SoftwareManager):
             if available(app_config):
                 yield action
 
-        for action in self.extra_actions:
-            yield action
+        yield self.action_reset
 
     def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
         ti = time.time()
