@@ -7,48 +7,79 @@ from bauh.view.util.translation import I18n
 
 CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified', 'commit'}
 
-ACTION_AUR_ENABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
-                                                          i18n_status_key='arch.action.enable_pkgbuild_edition.status',
-                                                          i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
-                                                          i18n_description_key='arch.action.enable_pkgbuild_edition.desc',
-                                                          requires_root=False,
-                                                          manager_method='enable_pkgbuild_edition',
-                                                          icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))
-
-ACTION_AUR_DISABLE_PKGBUILD_EDITION = CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
-                                                           i18n_status_key='arch.action.disable_pkgbuild_edition',
-                                                           i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
-                                                           i18n_description_key='arch.action.disable_pkgbuild_edition.desc',
-                                                           requires_root=False,
-                                                           manager_method='disable_pkgbuild_edition',
-                                                           icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))
-
-ACTION_AUR_REINSTALL = CustomSoftwareAction(i18n_label_key='arch.action.reinstall',
-                                            i18n_status_key='arch.action.reinstall.status',
-                                            i18n_confirm_key='arch.action.reinstall.confirm',
-                                            i18n_description_key='arch.action.reinstall.desc',
-                                            requires_root=True,
-                                            manager_method='reinstall',
-                                            icon_path=resource.get_path('img/build.svg', ROOT_DIR))
-
-ACTION_IGNORE_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.ignore',
-                                                   i18n_status_key='arch.action.rebuild_check.ignore.status',
-                                                   i18n_confirm_key='arch.action.rebuild_check.ignore.confirm',
-                                                   i18n_description_key='arch.action.rebuild_check.ignore.desc',
-                                                   requires_root=False,
-                                                   manager_method='set_rebuild_check',
-                                                   icon_path=resource.get_path('img/check_disabled.svg', ROOT_DIR))
-
-ACTION_ALLOW_REBUILD_CHECK = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.allow',
-                                                  i18n_status_key='arch.action.rebuild_check.allow.status',
-                                                  i18n_confirm_key='arch.action.rebuild_check.allow.confirm',
-                                                  i18n_description_key='arch.action.rebuild_check.allow.desc',
-                                                  requires_root=False,
-                                                  manager_method='set_rebuild_check',
-                                                  icon_path=resource.get_path('img/check.svg', ROOT_DIR))
-
 
 class ArchPackage(SoftwarePackage):
+
+    __action_allow_rebuild_check: Optional[CustomSoftwareAction] = None
+    __action_enable_pkgbuild_edition: Optional[CustomSoftwareAction] = None
+    __action_disable_pkgbuild_edition: Optional[CustomSoftwareAction] = None
+    __action_reinstall: Optional[CustomSoftwareAction] = None
+    __action_ignore_rebuild_check: Optional[CustomSoftwareAction] = None
+
+    @classmethod
+    def action_allow_rebuild_check(cls) -> CustomSoftwareAction:
+        if not cls.__action_allow_rebuild_check:
+            cls.__action_allow_rebuild_check = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.allow',
+                                                                    i18n_status_key='arch.action.rebuild_check.allow.status',
+                                                                    i18n_confirm_key='arch.action.rebuild_check.allow.confirm',
+                                                                    i18n_description_key='arch.action.rebuild_check.allow.desc',
+                                                                    requires_root=False,
+                                                                    manager_method='set_rebuild_check',
+                                                                    icon_path=resource.get_path('img/check.svg', ROOT_DIR))
+
+        return cls.__action_allow_rebuild_check
+
+    @classmethod
+    def action_enable_pkgbuild_edition(cls) -> CustomSoftwareAction:
+        if not cls.__action_enable_pkgbuild_edition:
+            cls.__action_enable_pkgbuild_edition = CustomSoftwareAction(i18n_label_key='arch.action.enable_pkgbuild_edition',
+                                                                        i18n_status_key='arch.action.enable_pkgbuild_edition.status',
+                                                                        i18n_confirm_key='arch.action.enable_pkgbuild_edition.confirm',
+                                                                        i18n_description_key='arch.action.enable_pkgbuild_edition.desc',
+                                                                        requires_root=False,
+                                                                        manager_method='enable_pkgbuild_edition',
+                                                                        icon_path=resource.get_path('img/mark_pkgbuild.svg', ROOT_DIR))
+
+        return cls.__action_enable_pkgbuild_edition
+
+    @classmethod
+    def action_disable_pkgbuild_edition(cls) -> CustomSoftwareAction:
+        if not cls.__action_disable_pkgbuild_edition:
+            cls.__action_disable_pkgbuild_edition = CustomSoftwareAction(i18n_label_key='arch.action.disable_pkgbuild_edition',
+                                                                         i18n_status_key='arch.action.disable_pkgbuild_edition',
+                                                                         i18n_confirm_key='arch.action.disable_pkgbuild_edition.confirm',
+                                                                         i18n_description_key='arch.action.disable_pkgbuild_edition.desc',
+                                                                         requires_root=False,
+                                                                         manager_method='disable_pkgbuild_edition',
+                                                                         icon_path=resource.get_path('img/unmark_pkgbuild.svg', ROOT_DIR))
+
+        return cls.__action_disable_pkgbuild_edition
+
+    @classmethod
+    def action_reinstall(cls) -> CustomSoftwareAction:
+        if not cls.__action_reinstall:
+            cls.__action_reinstall = CustomSoftwareAction(i18n_label_key='arch.action.reinstall',
+                                                          i18n_status_key='arch.action.reinstall.status',
+                                                          i18n_confirm_key='arch.action.reinstall.confirm',
+                                                          i18n_description_key='arch.action.reinstall.desc',
+                                                          requires_root=True,
+                                                          manager_method='reinstall',
+                                                          icon_path=resource.get_path('img/build.svg', ROOT_DIR))
+
+        return cls.__action_reinstall
+
+    @classmethod
+    def action_ignore_rebuild_check(cls) -> CustomSoftwareAction:
+        if not cls.__action_ignore_rebuild_check:
+            cls.__action_ignore_rebuild_check = CustomSoftwareAction(i18n_label_key='arch.action.rebuild_check.ignore',
+                                                                     i18n_status_key='arch.action.rebuild_check.ignore.status',
+                                                                     i18n_confirm_key='arch.action.rebuild_check.ignore.confirm',
+                                                                     i18n_description_key='arch.action.rebuild_check.ignore.desc',
+                                                                     requires_root=False,
+                                                                     manager_method='set_rebuild_check',
+                                                                     icon_path=resource.get_path('img/check_disabled.svg', ROOT_DIR))
+
+        return cls.__action_ignore_rebuild_check
 
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
@@ -207,13 +238,13 @@ class ArchPackage(SoftwarePackage):
 
     def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         if self.installed and self.repository == 'aur':
-            actions = [ACTION_AUR_REINSTALL]
+            actions = [self.action_reinstall()]
 
             if self.pkgbuild_editable is not None:
-                actions.append(ACTION_AUR_DISABLE_PKGBUILD_EDITION if self.pkgbuild_editable else ACTION_AUR_ENABLE_PKGBUILD_EDITION)
+                actions.append(self.action_disable_pkgbuild_edition() if self.pkgbuild_editable else self.action_enable_pkgbuild_edition())
 
             if self.allow_rebuild is not None:
-                actions.append(ACTION_IGNORE_REBUILD_CHECK if self.allow_rebuild else ACTION_ALLOW_REBUILD_CHECK)
+                actions.append(self.action_ignore_rebuild_check() if self.allow_rebuild else self.action_allow_rebuild_check())
 
             return actions
 
