@@ -1,4 +1,4 @@
-from typing import Optional, Set, Iterable
+from typing import Optional, Set, Iterable, Tuple
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
@@ -7,10 +7,34 @@ from bauh.gems.snap import ROOT_DIR
 
 class SnapApplication(SoftwarePackage):
 
+    __actions: Optional[Tuple[CustomSoftwareAction, CustomSoftwareAction]] = None
+
+    @classmethod
+    def actions(cls) -> Tuple[CustomSoftwareAction, CustomSoftwareAction]:
+        if cls.__actions is None:
+            cls.__actions = (
+                CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
+                                     i18n_label_key='snap.action.refresh.label',
+                                     i18n_description_key='snap.action.refresh.desc',
+                                     icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
+                                     manager_method='refresh',
+                                     requires_root=True,
+                                     i18n_confirm_key='snap.action.refresh.confirm'),
+                CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
+                                     i18n_label_key='snap.action.channel.label',
+                                     i18n_confirm_key='snap.action.channel.confirm',
+                                     i18n_description_key='snap.action.channel.desc',
+                                     icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
+                                     manager_method='change_channel',
+                                     requires_root=True,
+                                     requires_confirmation=False)
+            )
+
+        return cls.__actions
+
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, publisher: str = None, rev: str = None, notes: str = None,
                  confinement: str = None, verified_publisher: bool = False,
-                 extra_actions: Optional[Iterable[CustomSoftwareAction]] = None,
                  screenshots: Optional[Set[str]] = None,
                  license: Optional[str] = None,
                  installed: bool = False,
@@ -31,7 +55,6 @@ class SnapApplication(SoftwarePackage):
         self.notes = notes
         self.confinement = confinement
         self.verified_publisher = verified_publisher
-        self.extra_actions = extra_actions
         self.screenshots = screenshots
         self.download_size = download_size
         self.developer = developer
@@ -94,7 +117,7 @@ class SnapApplication(SoftwarePackage):
 
     def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
         if self.installed:
-            return self.extra_actions
+            return self.actions()
 
     def supports_backup(self) -> bool:
         return True

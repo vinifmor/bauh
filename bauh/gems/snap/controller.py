@@ -9,18 +9,17 @@ from bauh.api.abstract.controller import SoftwareManager, SearchResult, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
-    SuggestionPriority, CustomSoftwareAction, PackageStatus
+    SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
     FormComponent, TextInputComponent
 from bauh.api.exception import NoInternetException
-from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
 from bauh.commons.view_utils import new_select
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
-    get_icon_path, snapd, ROOT_DIR
+    get_icon_path, snapd
 from bauh.gems.snap.config import SnapConfigManager
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.snapd import SnapdClient
@@ -43,23 +42,6 @@ class SnapManager(SoftwareManager):
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
         self.configman = SnapConfigManager()
-        self.custom_actions = (
-            CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
-                                 i18n_label_key='snap.action.refresh.label',
-                                 i18n_description_key='snap.action.refresh.desc',
-                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                                 manager_method='refresh',
-                                 requires_root=True,
-                                 i18n_confirm_key='snap.action.refresh.confirm'),
-            CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
-                                 i18n_label_key='snap.action.channel.label',
-                                 i18n_confirm_key='snap.action.channel.confirm',
-                                 i18n_description_key='snap.action.channel.desc',
-                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                                 manager_method='change_channel',
-                                 requires_root=True,
-                                 requires_confirmation=False)
-        )
 
     def _fill_categories(self, app: SnapApplication):
         categories = self.categories.get(app.name.lower())
@@ -369,8 +351,7 @@ class SnapManager(SoftwareManager):
                               confinement=app_json.get('confinement'),
                               app_type=app_json.get('type'),
                               app=is_application,
-                              installed_size=app_json.get('installed-size'),
-                              extra_actions=self.custom_actions)
+                              installed_size=app_json.get('installed-size'))
 
         if disk_loader and app.installed:
             disk_loader.fill(app)
