@@ -56,6 +56,7 @@ class GenericSoftwareManager(SoftwareManager):
         self.configman = CoreConfigManager()
         self.extra_actions = (CustomSoftwareAction(i18n_label_key='action.reset',
                                                    i18n_status_key='action.reset.status',
+                                                   i18n_description_key='action.reset.desc',
                                                    manager_method='reset',
                                                    manager=self,
                                                    icon_path=resource.get_path('img/logo.svg'),
@@ -64,6 +65,7 @@ class GenericSoftwareManager(SoftwareManager):
         self.dynamic_extra_actions: Dict[CustomSoftwareAction, Callable[[dict], bool]] = {
             CustomSoftwareAction(i18n_label_key='action.backups',
                                  i18n_status_key='action.backups.status',
+                                 i18n_description_key='action.backups.desc',
                                  manager_method='launch_timeshift',
                                  manager=self,
                                  icon_path='timeshift',
