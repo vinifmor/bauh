@@ -23,7 +23,7 @@ class AppImage(SoftwarePackage):
                                                                      i18n_description_key='appimage.custom_action.manual_update.desc',
                                                                      manager_method='update_file',
                                                                      requires_root=False,
-                                                                     icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
+                                                                     icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
                                                                      requires_confirmation=False),)
 
         return cls.__actions_local_installation

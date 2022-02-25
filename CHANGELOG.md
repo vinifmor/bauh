@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - displaying tips for some custom actions (on mouse hover)
   - screenshots: displaying the current image index as a label in the button bar (e.g: 1/3)
   - some unneeded cursor icons removed from the apps table
+  - some icons replaced
 
 ## [0.9.28] 2022-02-14
 
