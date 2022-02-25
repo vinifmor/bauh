@@ -1,5 +1,6 @@
 import re
 from io import StringIO
+from re import Pattern
 from typing import Optional, Iterable, Tuple
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
@@ -7,15 +8,12 @@ from bauh.commons import resource
 from bauh.gems.appimage import ROOT_DIR, INSTALLATION_DIR
 from bauh.view.util.translation import I18n
 
-RE_MANY_SPACES = re.compile(r'\s+')
-
-CACHED_ATTRS = {'name', 'description', 'version', 'url_download', 'author', 'license', 'source',
-                'icon_path', 'github', 'categories', 'imported', 'install_dir', 'symlink'}
-
 
 class AppImage(SoftwarePackage):
 
     __actions_local_installation: Optional[Tuple[CustomSoftwareAction, ...]] = None
+    __cached_attrs: Optional[Tuple[str, ...]] = None
+    __re_many_spaces: Optional[Pattern] = None
 
     @classmethod
     def actions_local_installation(cls) -> Tuple[CustomSoftwareAction, ...]:
@@ -29,6 +27,21 @@ class AppImage(SoftwarePackage):
                                                                      requires_confirmation=False),)
 
         return cls.__actions_local_installation
+
+    @classmethod
+    def cached_attrs(cls) -> Tuple[str, ...]:
+        if cls.__cached_attrs is None:
+            cls.__cached_attrs = ('name', 'description', 'version', 'url_download', 'author', 'license', 'source',
+                                  'icon_path', 'github', 'categories', 'imported', 'install_dir', 'symlink')
+
+        return cls.__cached_attrs
+
+    @classmethod
+    def re_many_spaces(cls) -> Pattern:
+        if cls.__re_many_spaces is None:
+            cls.__re_many_spaces = re.compile(r'\s+')
+
+        return cls.__re_many_spaces
 
     def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
@@ -84,7 +97,7 @@ class AppImage(SoftwarePackage):
     def get_data_to_cache(self) -> dict:
         data = {}
 
-        for a in CACHED_ATTRS:
+        for a in self.cached_attrs():
             val = getattr(self, a)
             if val:
                 data[a] = val
@@ -92,7 +105,7 @@ class AppImage(SoftwarePackage):
         return data
 
     def fill_cached_data(self, data: dict):
-        for a in CACHED_ATTRS:
+        for a in self.cached_attrs():
             val = data.get(a)
 
             if val:
@@ -141,7 +154,7 @@ class AppImage(SoftwarePackage):
 
     def get_clean_name(self) -> Optional[str]:
         if self.name:
-            return RE_MANY_SPACES.sub('-', self.name.lower().strip())
+            return self.re_many_spaces().sub('-', self.name.lower().strip())
 
     def to_desktop_entry(self) -> str:
         de = StringIO()
