@@ -1,11 +1,9 @@
-from typing import List, Set, Optional, Iterable
+from typing import List, Set, Optional, Iterable, Tuple
 
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction
 from bauh.commons import resource
 from bauh.gems.arch import ROOT_DIR, ARCH_CACHE_DIR
 from bauh.view.util.translation import I18n
-
-CACHED_ATTRS = {'command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories', 'last_modified', 'commit'}
 
 
 class ArchPackage(SoftwarePackage):
@@ -15,6 +13,7 @@ class ArchPackage(SoftwarePackage):
     __action_disable_pkgbuild_edition: Optional[CustomSoftwareAction] = None
     __action_reinstall: Optional[CustomSoftwareAction] = None
     __action_ignore_rebuild_check: Optional[CustomSoftwareAction] = None
+    __cached_attrs: Optional[Tuple[str, ...]] = None
 
     @classmethod
     def action_allow_rebuild_check(cls) -> CustomSoftwareAction:
@@ -80,6 +79,14 @@ class ArchPackage(SoftwarePackage):
                                                                      icon_path=resource.get_path('img/check_disabled.svg', ROOT_DIR))
 
         return cls.__action_ignore_rebuild_check
+
+    @classmethod
+    def cached_attrs(cls) -> Tuple[str, ...]:
+        if cls.__cached_attrs is None:
+            cls.__cached_attrs = ('command', 'icon_path', 'repository', 'maintainer', 'desktop_entry', 'categories',
+                                  'last_modified', 'commit')
+
+        return cls.__cached_attrs
 
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
@@ -169,7 +176,7 @@ class ArchPackage(SoftwarePackage):
         cache = {}
 
         # required attrs to cache
-        for a in CACHED_ATTRS:
+        for a in self.cached_attrs():
             val = getattr(self, a)
 
             if val:
@@ -179,7 +186,7 @@ class ArchPackage(SoftwarePackage):
 
     def fill_cached_data(self, data: dict):
         if data:
-            for a in CACHED_ATTRS:
+            for a in self.cached_attrs():
                 val = data.get(a)
                 if val:
                     setattr(self, a, val)
