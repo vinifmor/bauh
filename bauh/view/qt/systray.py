@@ -176,7 +176,7 @@ class TrayIcon(QSystemTrayIcon):
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
-        self.recheck_thread = UpdateCheck(check_interval=2, check_file=True, lock=self.check_lock, logger=logger)
+        self.recheck_thread = UpdateCheck(check_interval=5, check_file=True, lock=self.check_lock, logger=logger)
         self.recheck_thread.signal.connect(self.notify_updates)
         self.recheck_thread.start()
 
