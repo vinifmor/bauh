@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - minor memory improvements
   - code refactoring
+  - update checking interval on tray mode is now measured in minutes instead of seconds (default: 30)
 
 - Arch
   - info dialog: 

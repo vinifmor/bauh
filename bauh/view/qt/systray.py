@@ -85,7 +85,7 @@ class UpdateCheck(QThread):
             if updates is not None:
                 self.signal.emit(updates)
 
-        self.sleep(self.check_interval)
+        self.sleep(int(self.check_interval * 60))
 
     def run(self):
         while True:
