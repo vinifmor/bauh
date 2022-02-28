@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - removing the "%U" parameter before launching applications to prevent error messages
   - minor code refactoring
 
+- Flatpak
+  - cli/tray: removed some unneeded API calls when listing updates [#234](https://github.com/vinifmor/bauh/issues/234)
+
 - UI
   - upgrade summary dialog size
   - displaying tips for some custom actions (on mouse hover)

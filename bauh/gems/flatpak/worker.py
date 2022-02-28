@@ -6,7 +6,6 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.model import PackageStatus
-from bauh.api.http import HttpClient
 from bauh.gems.flatpak.constants import FLATHUB_API_URL, FLATHUB_URL
 from bauh.gems.flatpak.model import FlatpakApplication
 
@@ -14,7 +13,7 @@ from bauh.gems.flatpak.model import FlatpakApplication
 class FlatpakAsyncDataLoader(Thread):
 
     def __init__(self, app: FlatpakApplication, manager: SoftwareManager, context: ApplicationContext, api_cache: MemoryCache, category_cache: MemoryCache):
-        super(FlatpakAsyncDataLoader, self).__init__(daemon=True)
+        super(FlatpakAsyncDataLoader, self).__init__()
         self.app = app
         self.manager = manager
         self.http_client = context.http_client
@@ -96,21 +95,3 @@ class FlatpakAsyncDataLoader(Thread):
 
             if self.persist:
                 self.manager.cache_to_disk(pkg=self.app, icon_bytes=None, only_icon=False)
-
-
-class FlatpakUpdateLoader(Thread):
-
-    def __init__(self, app: FlatpakApplication, http_client: HttpClient):
-        super(FlatpakUpdateLoader, self).__init__(daemon=True)
-        self.app = app
-        self.http_client = http_client
-
-    def run(self):
-        try:
-            data = self.http_client.get_json('{}/apps/{}'.format(FLATHUB_API_URL, self.app.id))
-
-            if data and data.get('currentReleaseVersion'):
-                self.app.version = data['currentReleaseVersion']
-                self.app.latest_version = self.app.version
-        except:
-            traceback.print_exc()
