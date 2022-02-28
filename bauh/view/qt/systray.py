@@ -79,14 +79,11 @@ class UpdateCheck(QThread):
         self.logger = logger
 
     def _notify_updates(self):
-        self.lock.acquire()
-        try:
+        with self.lock:
             updates = list_updates(self.logger)
 
             if updates is not None:
                 self.signal.emit(updates)
-        finally:
-            self.lock.release()
 
         self.sleep(self.check_interval)
 
