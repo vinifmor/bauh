@@ -143,7 +143,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def downgrade(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         """
         downgrades a package version
         :param pkg:
@@ -162,7 +162,7 @@ class SoftwareManager(ABC):
         if pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         """
         return additional required software that needs to be installed / removed / updated before updating a list of packages
         :param pkgs:
@@ -172,7 +172,7 @@ class SoftwareManager(ABC):
         return UpgradeRequirements(None, None, [UpgradeRequirement(p) for p in pkgs], None)
 
     @abstractmethod
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         """
         :param requirements:
         :param root_password: the root user password (if required)
@@ -182,7 +182,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: Optional[DiskCacheLoader]) -> TransactionResult:
+    def uninstall(self, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: Optional[DiskCacheLoader]) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -217,7 +217,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def install(self, pkg: SoftwarePackage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: SoftwarePackage, root_password: Optional[str], disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -334,7 +334,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         """
         At the moment the GUI implements this action. No need to implement it yourself.
         :param action:

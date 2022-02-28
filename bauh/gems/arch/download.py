@@ -4,7 +4,7 @@ import os
 import time
 import traceback
 from threading import Lock, Thread
-from typing import List, Iterable, Dict
+from typing import List, Iterable, Dict, Optional
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -38,7 +38,7 @@ class MultiThreadedDownloader:
         self.async_downloads = []
         self.async_downloads_lock = Lock()
 
-    def download_package_signature(self, pkg: dict, file_url: str, output_path: str, root_password: str, watcher: ProcessWatcher):
+    def download_package_signature(self, pkg: dict, file_url: str, output_path: str, root_password: Optional[str], watcher: ProcessWatcher):
         try:
             self.logger.info("Downloading package '{}' signature".format(pkg['n']))
 
@@ -60,7 +60,7 @@ class MultiThreadedDownloader:
             self.logger.warning("An error occurred while download package '{}' signature".format(pkg['n']))
             traceback.print_exc()
 
-    def download_package(self, pkg: Dict[str, str], root_password: str, substatus_prefix: str, watcher: ProcessWatcher, size: int) -> bool:
+    def download_package(self, pkg: Dict[str, str], root_password: Optional[str], substatus_prefix: str, watcher: ProcessWatcher, size: int) -> bool:
         if self.mirrors and self.branch:
             pkgname = '{}-{}{}.pkg'.format(pkg['n'], pkg['v'], ('-{}'.format(pkg['a']) if pkg['a'] else ''))
 
@@ -117,7 +117,7 @@ class MultithreadedDownloadService:
         self.logger = logger
         self.i18n = i18n
 
-    def download_packages(self, pkgs: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None) -> int:
+    def download_packages(self, pkgs: List[str], handler: ProcessHandler, root_password: Optional[str], sizes: Dict[str, int] = None) -> int:
         ti = time.time()
         watcher = handler.watcher
         mirrors = pacman.list_available_mirrors()

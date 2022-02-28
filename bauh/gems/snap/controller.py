@@ -98,7 +98,7 @@ class SnapManager(SoftwareManager):
         else:
             return SearchResult([], None, 0)
 
-    def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not snap.is_installed():
             watcher.print("'snap' seems not to be installed")
             return False
@@ -108,10 +108,10 @@ class SnapManager(SoftwareManager):
 
         return ProcessHandler(watcher).handle_simple(snap.downgrade_and_stream(pkg.name, root_password))[0]
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> SystemProcess:
         raise Exception(f"'upgrade' is not supported by {SnapManager.__class__.__name__}")
 
-    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         if snap.is_installed() and snapd.is_running():
             uninstalled = ProcessHandler(watcher).handle_simple(snap.uninstall_and_stream(pkg.name, root_password))[0]
 
@@ -160,7 +160,7 @@ class SnapManager(SoftwareManager):
     def get_history(self, pkg: SnapApplication) -> PackageHistory:
         raise Exception(f"'get_history' is not supported by {pkg.__class__.__name__}")
 
-    def install(self, pkg: SnapApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: SnapApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
         if not snap.is_installed():
             watcher.print("'snap' seems not to be installed")
@@ -244,10 +244,10 @@ class SnapManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: SnapApplication) -> bool:
         return action not in (SoftwareAction.PREPARE, SoftwareAction.SEARCH)
 
-    def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def refresh(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]
 
-    def change_channel(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def change_channel(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not self.context.internet_checker.is_available():
             raise NoInternetException()
 
@@ -283,7 +283,7 @@ class SnapManager(SoftwareManager):
             taskman.update_progress('snap_cats', 100, None)
             taskman.finish_task('snap_cats')
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()

@@ -98,7 +98,7 @@ class GenericSoftwareManager(SoftwareManager):
             self._available_cache = {}
             self.working_managers.clear()
 
-    def launch_timeshift(self, root_password: str, watcher: ProcessWatcher):
+    def launch_timeshift(self, root_password: Optional[str], watcher: ProcessWatcher):
         if self._is_timeshift_launcher_available():
             try:
                 Popen(['timeshift-launcher'], stderr=STDOUT)
@@ -281,7 +281,7 @@ class GenericSoftwareManager(SoftwareManager):
         self.logger.info(f'Took {tf - ti:.2f} seconds')
         return res
 
-    def downgrade(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade(self, app: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
@@ -299,7 +299,7 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             return man.clean_cache_for(app)
 
-    def upgrade(self, requirements: GenericUpgradeRequirements, root_password: str, handler: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: GenericUpgradeRequirements, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         for man, man_reqs in requirements.sub_requirements.items():
             res = man.upgrade(man_reqs, root_password, handler)
 
@@ -324,7 +324,7 @@ class GenericSoftwareManager(SoftwareManager):
                 for p in res.removed:
                     self._fill_post_transaction_status(p, False)
 
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+    def uninstall(self, pkg: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         man = self._get_manager_for(pkg)
 
         if man:
@@ -345,7 +345,7 @@ class GenericSoftwareManager(SoftwareManager):
                 tf = time.time()
                 self.logger.info(f'Uninstallation of {pkg} took {(tf - ti) / 60:.2f} minutes')
 
-    def install(self, app: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
+    def install(self, app: SoftwarePackage, root_password: Optional[str], disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
         man = self._get_manager_for(app)
 
         if man:
@@ -418,7 +418,7 @@ class GenericSoftwareManager(SoftwareManager):
             if man:
                 return man.requires_root(action, app)
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         ti = time.time()
         self.logger.info("Initializing")
         taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
@@ -516,7 +516,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return suggestions
         return []
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher):
         if action.requires_internet and not self.context.is_internet_available():
             raise NoInternetException()
 
@@ -582,7 +582,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         return by_manager
 
-    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
         res = GenericUpgradeRequirements([], [], [], [], {})
 
@@ -612,7 +612,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         return res
 
-    def reset(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def reset(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         body = f"<p>{self.i18n['action.reset.body_1'].format(bold(self.context.app_name))}</p>" \
                f"<p>{self.i18n['action.reset.body_2']}</p>"
 

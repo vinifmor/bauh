@@ -83,7 +83,7 @@ class WebApplicationManager(SoftwareManager):
         except:
             return 'en_US'
 
-    def clean_environment(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def clean_environment(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
 
         success = True
@@ -368,13 +368,13 @@ class WebApplicationManager(SoftwareManager):
 
         return res
 
-    def downgrade(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         pass
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         pass
 
-    def uninstall(self, pkg: WebApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: WebApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.logger.info("Checking if {} installation directory {} exists".format(pkg.name, pkg.installation_dir))
 
         if not os.path.exists(pkg.installation_dir):
@@ -842,7 +842,7 @@ class WebApplicationManager(SoftwareManager):
 
         return TransactionResult(success=True, installed=[pkg], removed=[])
 
-    def install(self, pkg: WebApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: WebApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=True)
 
         if not continue_install:
@@ -850,7 +850,7 @@ class WebApplicationManager(SoftwareManager):
 
         return self._install(pkg, install_options, watcher)
 
-    def install_app(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install_app(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         pkg = WebApplication()
         continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=False)
 
@@ -908,7 +908,7 @@ class WebApplicationManager(SoftwareManager):
     def _assign_suggestions(self, suggestions: dict):
         self.suggestions = suggestions
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()
@@ -1063,7 +1063,7 @@ class WebApplicationManager(SoftwareManager):
 
             return res
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         pass
 
     def is_default_enabled(self) -> bool:

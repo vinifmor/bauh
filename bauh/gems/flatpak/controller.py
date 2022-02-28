@@ -190,7 +190,7 @@ class FlatpakManager(SoftwareManager):
 
         return SearchResult([*models.values()], None, len(models))
 
-    def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: FlatpakApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not self._make_exports_dir(watcher):
             return False
 
@@ -220,7 +220,7 @@ class FlatpakManager(SoftwareManager):
         super(FlatpakManager, self).clean_cache_for(pkg)
         self.api_cache.delete(pkg.id)
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         flatpak_version = flatpak.get_version()
 
         if not self._make_exports_dir(watcher):
@@ -260,7 +260,7 @@ class FlatpakManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: FlatpakApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
 
         if not self._make_exports_dir(watcher):
             return TransactionResult.fail()
@@ -375,7 +375,7 @@ class FlatpakManager(SoftwareManager):
 
         return True
 
-    def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: FlatpakApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         if not self.context.root_user:
             flatpak_config = self.configman.get_config()
             install_level = flatpak_config['installation_level']
@@ -493,7 +493,7 @@ class FlatpakManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: FlatpakApplication) -> bool:
         return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                          task_icon_path=get_icon_path(), logger=self.logger).start()
 
@@ -626,7 +626,7 @@ class FlatpakManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         flatpak_version = flatpak.get_version()
 
         user_pkgs, system_pkgs = [], []

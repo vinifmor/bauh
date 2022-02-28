@@ -65,7 +65,7 @@ class SystemProcess:
 class SimpleProcess:
 
     def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
-                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
+                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
                  custom_user: Optional[str] = None):
@@ -75,7 +75,7 @@ class SimpleProcess:
 
         if custom_user:
             final_cmd.extend(['runuser', '-u', custom_user, '--'])
-        elif root_password is not None:
+        elif isinstance(root_password, str):
             final_cmd.extend(['sudo', '-S'])
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
 
@@ -279,12 +279,12 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
     return subprocess.Popen(final_cmd, **args)
 
 
-def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
+def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str = '.',
                         global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
                         extra_paths: Set[str] = None) -> subprocess.Popen:
     pwdin, final_cmd = None, []
 
-    if root_password is not None:
+    if isinstance(root_password, str):
         final_cmd.extend(['sudo', '-S'])
         pwdin = new_subprocess(['echo', root_password], global_interpreter=global_interpreter, lang=lang).stdout
 

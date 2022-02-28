@@ -70,7 +70,7 @@ RE_PKG_ENDS_WITH_BIN = re.compile(r'.+[\-_]bin$')
 class TransactionContext:
 
     def __init__(self, aur_supported: bool, name: str = None, base: str = None, maintainer: str = None, watcher: ProcessWatcher = None,
-                 handler: ProcessHandler = None, dependency: bool = None, skip_opt_deps: bool = False, root_password: str = None,
+                 handler: ProcessHandler = None, dependency: bool = None, skip_opt_deps: bool = False, root_password: Optional[str] = None,
                  build_dir: str = None, project_dir: str = None, change_progress: bool = False, arch_config: dict = None,
                  install_files: Set[str] = None, repository: str = None, pkg: ArchPackage = None,
                  remote_repo_map: Dict[str, str] = None, provided_map: Dict[str, Set[str]] = None,
@@ -115,7 +115,7 @@ class TransactionContext:
         self.update_aur_index = update_aur_index
 
     @classmethod
-    def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: str, handler: ProcessHandler, aur_supported: Optional[bool] = None) -> "TransactionContext":
+    def gen_context_from(cls, pkg: ArchPackage, arch_config: dict, root_password: Optional[str], handler: ProcessHandler, aur_supported: Optional[bool] = None) -> "TransactionContext":
         return cls(name=pkg.name, base=pkg.get_base_name(), maintainer=pkg.maintainer, repository=pkg.repository,
                    arch_config=arch_config, watcher=handler.watcher, handler=handler, skip_opt_deps=True,
                    change_progress=True, root_password=root_password, dependency=False,
@@ -216,7 +216,7 @@ class ArchManager(SoftwareManager):
         self.disk_cache_updater = disk_cache_updater
         self.pkgbuilder_user: Optional[str] = f'{__app_name__}-aur' if context.root_user else None
 
-    def refresh_mirrors(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def refresh_mirrors(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
 
         if self._is_database_locked(handler, root_password):
@@ -285,7 +285,7 @@ class ArchManager(SoftwareManager):
         watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
         return self.sync_databases(root_password=root_password, watcher=watcher)
 
-    def sync_databases(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def sync_databases(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
 
         if self._is_database_locked(handler, root_password):
@@ -797,7 +797,7 @@ class ArchManager(SoftwareManager):
 
         return self._install(context)
 
-    def downgrade(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not self.check_action_allowed(pkg, watcher):
             return False
 
@@ -831,7 +831,7 @@ class ArchManager(SoftwareManager):
         if os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def _is_database_locked(self, handler: ProcessHandler, root_password: str) -> bool:
+    def _is_database_locked(self, handler: ProcessHandler, root_password: Optional[str]) -> bool:
         if os.path.exists('/var/lib/pacman/db.lck'):
             handler.watcher.print('pacman database is locked')
             msg = '<p>{}</p><p>{}</p><br/>'.format(self.i18n['arch.action.db_locked.body.l1'],
@@ -928,7 +928,7 @@ class ArchManager(SoftwareManager):
 
         return related
 
-    def _upgrade_repo_pkgs(self, to_upgrade: List[str], to_remove: Optional[Set[str]], handler: ProcessHandler, root_password: str,
+    def _upgrade_repo_pkgs(self, to_upgrade: List[str], to_remove: Optional[Set[str]], handler: ProcessHandler, root_password: Optional[str],
                            multithread_download: bool, pkgs_data: Dict[str, dict], overwrite_files: bool = False,
                            status_handler: TransactionStatusHandler = None, sizes: Dict[str, int] = None, download: bool = True,
                            check_syncfirst: bool = True, skip_dependency_checks: bool = False) -> bool:
@@ -1069,7 +1069,7 @@ class ArchManager(SoftwareManager):
             traceback.print_exc()
             return False
 
-    def _remove_transaction_packages(self, to_remove: Set[str], handler: ProcessHandler, root_password: str) -> bool:
+    def _remove_transaction_packages(self, to_remove: Set[str], handler: ProcessHandler, root_password: Optional[str]) -> bool:
         output_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
                                                   names=set(),
@@ -1101,7 +1101,7 @@ class ArchManager(SoftwareManager):
                              body=self.i18n['arch.upgrade.mthreaddownload.fail'],
                              type_=MessageType.ERROR)
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         self.aur_client.clean_caches()
         watcher.change_status("{}...".format(self.i18n['manage_window.status.upgrading']))
 
@@ -1193,7 +1193,7 @@ class ArchManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: str, handler: ProcessHandler, ignore_dependencies: bool = False) -> bool:
+    def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: Optional[str], handler: ProcessHandler, ignore_dependencies: bool = False) -> bool:
         status_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
                                                   names={*pkgs},
@@ -1419,7 +1419,7 @@ class ArchManager(SoftwareManager):
                             if not exp_provided:
                                 del context.provided_map[exp]
 
-    def uninstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         self.aur_client.clean_caches()
 
         handler = ProcessHandler(watcher)
@@ -2282,7 +2282,7 @@ class ArchManager(SoftwareManager):
                and self.context.file_downloader.is_multithreaded() \
                and pacman.is_mirrors_available()
 
-    def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: str, sizes: Dict[str, int] = None, multithreaded: bool = True) -> int:
+    def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: Optional[str], sizes: Dict[str, int] = None, multithreaded: bool = True) -> int:
         if multithreaded:
             download_service = MultithreadedDownloadService(file_downloader=self.context.file_downloader,
                                                             http_client=self.http_client,
@@ -2493,7 +2493,7 @@ class ArchManager(SoftwareManager):
         if context.change_progress:
             context.watcher.change_progress(val)
 
-    def _import_pgp_keys(self, pkgname: str, root_password: str, handler: ProcessHandler):
+    def _import_pgp_keys(self, pkgname: str, root_password: Optional[str], handler: ProcessHandler):
         srcinfo = self.aur_client.get_src_info(pkgname)
 
         if srcinfo.get('validpgpkeys'):
@@ -2560,7 +2560,7 @@ class ArchManager(SoftwareManager):
 
         return False
 
-    def _sync_databases(self, arch_config: dict, aur_supported: bool, root_password: str, handler: ProcessHandler, change_substatus: bool = True):
+    def _sync_databases(self, arch_config: dict, aur_supported: bool, root_password: Optional[str], handler: ProcessHandler, change_substatus: bool = True):
         if bool(arch_config['sync_databases']) and database.should_sync(arch_config, aur_supported, handler, self.logger):
             if change_substatus:
                 handler.watcher.change_substatus(self.i18n['arch.sync_databases.substatus'])
@@ -2577,7 +2577,7 @@ class ArchManager(SoftwareManager):
             watcher.change_substatus(self.i18n['arch.makepkg.optimizing'])
             ArchCompilationOptimizer(i18n=self.i18n, logger=self.context.logger, taskman=TaskManager()).optimize()
 
-    def install(self, pkg: ArchPackage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher, context: TransactionContext = None) -> TransactionResult:
+    def install(self, pkg: ArchPackage, root_password: Optional[str], disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher, context: TransactionContext = None) -> TransactionResult:
         if not self.check_action_allowed(pkg, watcher):
             return TransactionResult.fail()
 
@@ -2701,7 +2701,7 @@ class ArchManager(SoftwareManager):
         taskman.update_progress('arch_aur_cats', 100, None)
         taskman.finish_task('arch_aur_cats')
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()
@@ -3012,7 +3012,7 @@ class ArchManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_upgrade_requirements(self, pkgs: List[ArchPackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[ArchPackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         self.aur_client.clean_caches()
         arch_config = self.configman.get_config()
 
@@ -3123,7 +3123,7 @@ class ArchManager(SoftwareManager):
                     elif new_size is not None:
                         p.size = new_size - p.size
 
-    def upgrade_system(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade_system(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         # repo_map = pacman.map_repositories()
         net_available = self.context.internet_checker.is_available()
         installed = self.read_installed(limit=-1, only_apps=False, pkg_types=None, internet_available=net_available, disk_loader=None).installed
@@ -3198,7 +3198,7 @@ class ArchManager(SoftwareManager):
             watcher.request_reboot(msg)
             return True
 
-    def clean_cache(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def clean_cache(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
 
         cache_dir = pacman.get_cache_dir()
 
@@ -3331,15 +3331,15 @@ class ArchManager(SoftwareManager):
 
         return set()
 
-    def enable_pkgbuild_edition(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher):
+    def enable_pkgbuild_edition(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher):
         if self._add_as_editable_pkgbuild(pkg.name):
             pkg.pkgbuild_editable = True
 
-    def disable_pkgbuild_edition(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher):
+    def disable_pkgbuild_edition(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher):
         if self._remove_from_editable_pkgbuilds(pkg.name):
             pkg.pkgbuild_editable = False
 
-    def setup_snapd(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def setup_snapd(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         # checking services
         missing_items = []
         for serv, active in system.check_enabled_services('snapd.service', 'snapd.socket').items():
@@ -3521,7 +3521,7 @@ class ArchManager(SoftwareManager):
 
         return res
 
-    def reinstall(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:  # only available for AUR packages
+    def reinstall(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:  # only available for AUR packages
         if not self.context.internet_checker.is_available():
             raise NoInternetException()
 
@@ -3550,7 +3550,7 @@ class ArchManager(SoftwareManager):
                             context=context,
                             disk_loader=self.context.disk_loader_factory.new()).success
 
-    def set_rebuild_check(self, pkg: ArchPackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def set_rebuild_check(self, pkg: ArchPackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if pkg.repository != 'aur':
             return False
 

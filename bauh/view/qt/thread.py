@@ -320,7 +320,7 @@ class UpgradeSelected(AsyncAction):
     def _ask_for_trim(self) -> bool:
         return self.request_confirmation(title=self.i18n['confirmation'].capitalize(), body=self.i18n['action.trim_disk.ask'])
 
-    def _trim_disk(self, root_password: str):
+    def _trim_disk(self, root_password: Optional[str]):
         self.change_status('{}...'.format(self.i18n['action.disk_trim'].capitalize()))
         self.change_substatus('')
 
@@ -1016,7 +1016,7 @@ class ApplyFilters(AsyncAction):
 
 class CustomAction(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: CustomSoftwareAction = None, pkg: PackageView = None, root_password: str = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: CustomSoftwareAction = None, pkg: PackageView = None, root_password: Optional[str] = None):
         super(CustomAction, self).__init__()
         self.manager = manager
         self.pkg = pkg

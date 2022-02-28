@@ -24,7 +24,7 @@ def current_governors() -> Dict[str, Set[int]]:
     return governors
 
 
-def set_governor(governor: str, root_password: str, cpu_idxs: Optional[Set[int]] = None):
+def set_governor(governor: str, root_password: Optional[str], cpu_idxs: Optional[Set[int]] = None):
     new_gov_file = f'{TEMP_DIR}/bauh_scaling_governor'
     with open(new_gov_file, 'w+') as f:
         f.write(governor)
@@ -39,7 +39,7 @@ def set_governor(governor: str, root_password: str, cpu_idxs: Optional[Set[int]]
             traceback.print_exc()
 
 
-def _change_governor(cpu_idx: int, new_gov_file_path: str, root_password: str):
+def _change_governor(cpu_idx: int, new_gov_file_path: str, root_password: Optional[str]):
     try:
         gov_file = '/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor'.format(cpu_idx)
         replace = new_root_subprocess(['cp', new_gov_file_path, gov_file], root_password=root_password)
@@ -48,7 +48,7 @@ def _change_governor(cpu_idx: int, new_gov_file_path: str, root_password: str):
         traceback.print_exc()
 
 
-def set_all_cpus_to(governor: str, root_password: str, logger: Optional[Logger] = None) -> Tuple[bool, Optional[Dict[str, Set[int]]]]:
+def set_all_cpus_to(governor: str, root_password: Optional[str], logger: Optional[Logger] = None) -> Tuple[bool, Optional[Dict[str, Set[int]]]]:
     """
     """
     cpus_changed, cpu_governors = False, current_governors()
@@ -69,7 +69,7 @@ def set_all_cpus_to(governor: str, root_password: str, logger: Optional[Logger] 
     return cpus_changed, cpu_governors
 
 
-def set_cpus(governors: Dict[str, Set[int]], root_password: str, ignore_governors: Optional[Set[str]] = None, logger: Optional[Logger] = None):
+def set_cpus(governors: Dict[str, Set[int]], root_password: Optional[str], ignore_governors: Optional[Set[str]] = None, logger: Optional[Logger] = None):
     for gov, cpus in governors.items():
         if not ignore_governors or gov not in ignore_governors:
             if logger:

@@ -409,7 +409,7 @@ class ArchCompilationOptimizer(Thread):
 
 class RefreshMirrors(Thread):
 
-    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger,
+    def __init__(self, taskman: TaskManager, root_password: Optional[str], i18n: I18n, logger: logging.Logger,
                  create_config: CreateConfigFile):
         super(RefreshMirrors, self).__init__(daemon=True)
         self.taskman = taskman
@@ -488,7 +488,7 @@ class RefreshMirrors(Thread):
 
 class SyncDatabases(Thread):
 
-    def __init__(self, taskman: TaskManager, root_password: str, i18n: I18n, logger: logging.Logger,
+    def __init__(self, taskman: TaskManager, root_password: Optional[str], i18n: I18n, logger: logging.Logger,
                  refresh_mirrors: RefreshMirrors, create_config: CreateConfigFile):
         super(SyncDatabases, self).__init__(daemon=True)
         self.task_man = taskman

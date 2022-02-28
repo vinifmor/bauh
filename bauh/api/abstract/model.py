@@ -18,7 +18,7 @@ class CustomSoftwareAction:
         :param i18n_label_key: the i18n key that will be used to display the action name
         :param i18n_status_key: the i18n key that will be used to display the action name being executed
         :param icon_path: the action icon path. Use None for no icon
-        :param manager_method: the SoftwareManager method name that should be called. The method must has the following parameters: (pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher)
+        :param manager_method: the SoftwareManager method name that should be called. The method must has the following parameters: (pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher)
         :param manager: the instance that will execute the action ( optional )
         :param backup: if a system backup should be performed before executing the action
         :param requires_root:

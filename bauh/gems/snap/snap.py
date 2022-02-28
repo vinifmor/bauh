@@ -13,13 +13,13 @@ def is_installed() -> bool:
     return bool(shutil.which(BASE_CMD))
 
 
-def uninstall_and_stream(app_name: str, root_password: str) -> SimpleProcess:
+def uninstall_and_stream(app_name: str, root_password: Optional[str]) -> SimpleProcess:
     return SimpleProcess(cmd=[BASE_CMD, 'remove', app_name],
                          root_password=root_password,
                          shell=True)
 
 
-def install_and_stream(app_name: str, confinement: str, root_password: str, channel: Optional[str] = None) -> SimpleProcess:
+def install_and_stream(app_name: str, confinement: str, root_password: Optional[str], channel: Optional[str] = None) -> SimpleProcess:
 
     install_cmd = [BASE_CMD, 'install', app_name]  # default
 
@@ -32,13 +32,13 @@ def install_and_stream(app_name: str, confinement: str, root_password: str, chan
     return SimpleProcess(install_cmd, root_password=root_password, shell=True)
 
 
-def downgrade_and_stream(app_name: str, root_password: str) -> SimpleProcess:
+def downgrade_and_stream(app_name: str, root_password: Optional[str]) -> SimpleProcess:
     return SimpleProcess(cmd=[BASE_CMD, 'revert', app_name],
                          root_password=root_password,
                          shell=True)
 
 
-def refresh_and_stream(app_name: str, root_password: str, channel: Optional[str] = None) -> SimpleProcess:
+def refresh_and_stream(app_name: str, root_password: Optional[str], channel: Optional[str] = None) -> SimpleProcess:
     cmd = [BASE_CMD, 'refresh', app_name]
 
     if channel:

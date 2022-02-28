@@ -24,7 +24,7 @@ class UpdateRequirementsContext:
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
                  to_remove: Dict[str, UpgradeRequirement], installed_names: Set[str], provided_map: Dict[str, Set[str]],
                  aur_index: Set[str], arch_config: dict, remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
-                 root_password: str, aur_supported: bool):
+                 root_password: Optional[str], aur_supported: bool):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
         self.aur_to_update = aur_to_update
@@ -367,7 +367,7 @@ class UpdatesSummarizer:
 
         return requirement
 
-    def summarize(self, pkgs: List[ArchPackage], root_password: str, arch_config: dict) -> Optional[UpgradeRequirements]:
+    def summarize(self, pkgs: List[ArchPackage], root_password: Optional[str], arch_config: dict) -> Optional[UpgradeRequirements]:
         res = UpgradeRequirements([], [], [], [])
 
         remote_provided_map = pacman.map_provided(remote=True)

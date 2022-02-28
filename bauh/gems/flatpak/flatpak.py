@@ -229,7 +229,7 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
     return res
 
 
-def downgrade(app_ref: str, commit: str, installation: str, root_password: str) -> SimpleProcess:
+def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str]) -> SimpleProcess:
     cmd = ['flatpak', 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     return SimpleProcess(cmd=cmd,
@@ -366,7 +366,7 @@ def install(app_id: str, origin: str, installation: str) -> SimpleProcess:
                          shell=True)
 
 
-def set_default_remotes(installation: str, root_password: str = None) -> SimpleProcess:
+def set_default_remotes(installation: str, root_password: Optional[str] = None) -> SimpleProcess:
     cmd = ['flatpak', 'remote-add', '--if-not-exists', 'flathub', 'https://flathub.org/repo/flathub.flatpakrepo', '--{}'.format(installation)]
     return SimpleProcess(cmd, root_password=root_password)
 

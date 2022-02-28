@@ -80,7 +80,7 @@ class AppImageManager(SoftwareManager):
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
 
-    def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install_file(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
@@ -134,7 +134,7 @@ class AppImageManager(SoftwareManager):
 
         return res
 
-    def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
+    def update_file(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher):
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
@@ -298,7 +298,7 @@ class AppImageManager(SoftwareManager):
         res.total = len(res.installed)
         return res
 
-    def downgrade(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         versions = self.get_history(pkg)
 
         if len(versions.history) == 1:
@@ -342,7 +342,7 @@ class AppImageManager(SoftwareManager):
 
             return False
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         not_upgraded = []
 
         for req in requirements.to_upgrade:
@@ -381,7 +381,7 @@ class AppImageManager(SoftwareManager):
         watcher.change_substatus('')
         return not all_failed
 
-    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+    def uninstall(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         if os.path.exists(pkg.get_disk_cache_path()):
             handler = ProcessHandler(watcher)
 
@@ -530,7 +530,7 @@ class AppImageManager(SoftwareManager):
 
         return file_name, file_path
 
-    def install(self, pkg: AppImage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: AppImage, root_password: Optional[str], disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         return self._install(pkg=pkg, watcher=watcher)
 
     def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None):
@@ -690,7 +690,7 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: AppImage) -> bool:
         return False
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()
@@ -863,7 +863,7 @@ class AppImageManager(SoftwareManager):
                                                          requires_internet=True))
         yield from self._custom_actions
 
-    def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         to_update = []
 
         for pkg in pkgs:
@@ -925,7 +925,7 @@ class AppImageManager(SoftwareManager):
 
         pkg.updates_ignored = False
 
-    def update_database(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def update_database(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         db_updater = DatabaseUpdater(i18n=self.i18n, http_client=self.context.http_client,
                                      logger=self.context.logger, watcher=watcher, taskman=TaskManager())
 

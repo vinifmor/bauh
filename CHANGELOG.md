@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - some unneeded cursor icons removed from the apps table
   - some icons replaced
 
+### Fixes
+- General
+  - not accepting blank root passwords [#235](https://github.com/vinifmor/bauh/issues/235)
+
+
 ## [0.9.28] 2022-02-14
 
 ### Fixes

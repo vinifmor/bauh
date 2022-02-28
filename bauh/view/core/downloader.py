@@ -8,7 +8,7 @@ from io import StringIO
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -42,7 +42,7 @@ class AdaptableFileDownloader(FileDownloader):
     def is_wget_available() -> bool:
         return bool(shutil.which('wget'))
 
-    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
+    def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str], threads: int) -> SimpleProcess:
         cmd = ['aria2c', url,
                '--no-conf',
                '-x', '16',
@@ -71,7 +71,7 @@ class AdaptableFileDownloader(FileDownloader):
 
         return SimpleProcess(cmd=cmd, root_password=root_password, cwd=cwd)
 
-    def _get_axel_process(self, url: str, output_path: str, cwd: str, root_password: str, threads: int) -> SimpleProcess:
+    def _get_axel_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str], threads: int) -> SimpleProcess:
         cmd = ['axel', url, '-n', str(threads), '-4', '-c', '-T', '5']
 
         if output_path:
@@ -79,7 +79,7 @@ class AdaptableFileDownloader(FileDownloader):
 
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: str) -> SimpleProcess:
+    def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str]) -> SimpleProcess:
         cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '--no-config', '-nc']
 
         if output_path:
@@ -88,7 +88,7 @@ class AdaptableFileDownloader(FileDownloader):
 
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
-    def _rm_bad_file(self, file_name: str, output_path: str, cwd, handler: ProcessHandler, root_password: str):
+    def _rm_bad_file(self, file_name: str, output_path: str, cwd, handler: ProcessHandler, root_password: Optional[str]):
         to_delete = output_path if output_path else f'{cwd}/{file_name}'
 
         if to_delete and os.path.exists(to_delete):
@@ -121,7 +121,7 @@ class AdaptableFileDownloader(FileDownloader):
 
         return threads
 
-    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
+    def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: Optional[str] = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
         self.logger.info(f'Downloading {file_url}')
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]
