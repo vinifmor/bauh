@@ -167,7 +167,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: Optional[str], fi
                          root_password=root_password,
                          cwd=pkgdir,
                          error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'},
-                         shell=True)
+                         shell=False)
 
 
 def map_desktop_files(*pkgnames) -> Dict[str, List[str]]:
