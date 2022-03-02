@@ -151,7 +151,9 @@ def install_as_process(pkgpaths: Iterable[str], root_password: Optional[str], fi
     cmd = ['pacman', '-U'] if file else ['pacman', '-S']
     cmd.extend(pkgpaths)
 
-    if not simulate:
+    if simulate:
+        cmd.append('--confirm')
+    else:
         cmd.append('--noconfirm')
         cmd.append('-dd')
 
@@ -162,7 +164,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: Optional[str], fi
         cmd.append('--asdeps')
 
     return SimpleProcess(cmd=cmd,
-                         root_password=None if simulate else root_password,
+                         root_password=root_password,
                          cwd=pkgdir,
                          error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'},
                          shell=True)

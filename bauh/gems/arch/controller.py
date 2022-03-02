@@ -2315,7 +2315,7 @@ class ArchManager(SoftwareManager):
         self.logger.info("Checking for possible conflicts with '{}'".format(context.name))
 
         _, output = context.handler.handle_simple(pacman.install_as_process(pkgpaths=pkgpaths,
-                                                                            root_password=None,
+                                                                            root_password=context.root_password,
                                                                             pkgdir=context.project_dir or '.',
                                                                             file=bool(context.install_files),
                                                                             simulate=True),
