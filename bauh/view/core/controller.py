@@ -273,13 +273,21 @@ class GenericSoftwareManager(SoftwareManager):
                     if p.categories is None:
                         p.categories = ['updates_ignored']
                     elif 'updates_ignored' not in p.categories:
-                        p.categories.append('updates_ignored')
+                        self._add_category(p, 'updates_ignored')
 
             res.installed.sort(key=self._get_package_lower_name)
 
         tf = time.time()
         self.logger.info(f'Took {tf - ti:.2f} seconds')
         return res
+
+    def _add_category(self, pkg: SoftwarePackage,  category: str):
+        if isinstance(pkg.categories, tuple):
+            pkg.categories = tuple((*pkg.categories, category))
+        elif isinstance(pkg.categories, list):
+            pkg.categories.append(category)
+        elif isinstance(pkg.categories, set):
+            pkg.categories.add(category)
 
     def downgrade(self, app: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
@@ -682,7 +690,7 @@ class GenericSoftwareManager(SoftwareManager):
                 if pkg.categories is None:
                     pkg.categories = ['updates_ignored']
                 elif 'updates_ignored' not in pkg.categories:
-                    pkg.categories.append('updates_ignored')
+                    self._add_category(pkg, 'updates_ignored')
 
     def revert_ignored_update(self, pkg: SoftwarePackage):
         manager = self._get_manager_for(pkg)
@@ -691,4 +699,7 @@ class GenericSoftwareManager(SoftwareManager):
             manager.revert_ignored_update(pkg)
 
             if not pkg.is_update_ignored() and pkg.categories and 'updates_ignored' in pkg.categories:
-                pkg.categories.remove('updates_ignored')
+                if isinstance(pkg.categories, tuple):
+                    pkg.categories = tuple(c for c in pkg.categories if c != 'updates_ignored')
+                else:
+                    pkg.categories.remove('updates_ignored')
