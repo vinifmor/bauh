@@ -546,7 +546,8 @@ class ManageWindow(QWidget):
                                   deny_button=msg['deny_button'],
                                   window_cancel=msg['window_cancel'],
                                   confirmation_button=msg.get('confirmation_button', True),
-                                  min_width=msg.get('min_width'))
+                                  min_width=msg.get('min_width'),
+                                  min_height=msg.get('min_height'))
         diag.ask()
         res = diag.confirmed
         self.thread_animate_progress.animate()

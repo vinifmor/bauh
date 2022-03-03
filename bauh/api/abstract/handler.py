@@ -20,7 +20,8 @@ class ProcessWatcher:
     def request_confirmation(self, title: str, body: Optional[str], components: List[ViewComponent] = None,
                              confirmation_label: str = None, deny_label: str = None, deny_button: bool = True,
                              window_cancel: bool = False, confirmation_button: bool = True,
-                             min_width: Optional[int] = None) -> bool:
+                             min_width: Optional[int] = None,
+                             min_height: Optional[int] = None) -> bool:
         """
         request a user confirmation. In the current GUI implementation, it shows a popup to the user.
         :param title: popup title
@@ -32,6 +33,7 @@ class ProcessWatcher:
         :param window_cancel: if the window cancel button should be visible
         :param confirmation_button: if the confirmation button should be displayed
         :param min_width: minimum width for the confirmation dialog
+        :param min_height: minimum height for the confirmation dialog
         :return: if the request was confirmed by the user
         """
         pass
