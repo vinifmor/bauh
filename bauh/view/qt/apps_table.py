@@ -408,7 +408,7 @@ class PackagesTable(QTableWidget):
 
                     if icon.isNull():
                         icon = QIcon(pkg.model.get_default_icon_path())
-                    else:
+                    elif pkg.model.icon_url:
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
                 except:
