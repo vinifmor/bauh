@@ -263,7 +263,17 @@ class PackageUpdate:
         self.type = pkg_type
 
     def __str__(self):
-        return '{} (id={}, name={}, version={}, type={})'.format(self.__class__.__name__, self.id, self.name, self.version, self.type)
+        attrs = ', '.join(f'{p}={v}' for p, v in sorted(self.__dict__.items()))
+        return f'{self.__class__.__name__} ({attrs})'
+
+    def __eq__(self, other):
+        if isinstance(other, PackageUpdate):
+            return self.__dict__ == other.__dict__
+
+        return False
+
+    def __hash__(self):
+        return sum(hash(v) for v in self.__dict__.values())
 
 
 class PackageHistory:
