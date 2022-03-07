@@ -22,8 +22,6 @@ if GLOBAL_PY_LIBS not in PATH:
 
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
-SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
-
 
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
@@ -309,18 +307,42 @@ def get_dir_size(start_path='.'):
     return total_size
 
 
-def get_human_size_str(size) -> str:
-    int_size = int(size)
+def get_human_size_str(size) -> Optional[str]:
+    if type(size) in (int, float, str):
+        int_size = int(size)
 
-    if int_size == 0:
-        return '0'
+        if int_size == 0:
+            return '0'
 
-    for m in SIZE_MULTIPLIERS:
-        size_str = str(int_size * m[0])
+        if size < 1024:
+            return f'{size} B'
 
-        if len(size_str.split('.')[0]) < 4:
-            return '{0:.2f}'.format(float(size_str)) + ' ' + m[1]
-    return str(int_size)
+        size_unit = size / 1024
+
+        if size_unit < 1024:
+            return f'{size_unit:.2f} Kb'
+
+        size_unit = size / 1048576
+
+        if size_unit < 1024:
+            return f'{size_unit:.2f} Mb'
+
+        size_unit = size / 1073741824
+
+        if size_unit < 1024:
+            return f'{size_unit:.2f} Gb'
+
+        size_unit = size / 1099511627776
+
+        if size_unit < 1024:
+            return f'{size_unit:.2f} Tb'
+
+        size_unit = size / 1125899906842624
+
+        if size_unit < 1024:
+            return f'{size_unit:.2f} Pb'
+
+        return str(int_size)
 
 
 def run(cmd: List[str], success_code: int = 0, custom_user: Optional[str] = None) -> Tuple[bool, str]:

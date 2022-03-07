@@ -32,7 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - General
   - not accepting blank root passwords [#235](https://github.com/vinifmor/bauh/issues/235)
-
+  - human-readable sizes (packages, files, updates, ...)
+  
 - UI
   - some package icons would not appear if there is no URL associated with them
 
