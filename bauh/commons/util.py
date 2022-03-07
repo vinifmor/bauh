@@ -17,15 +17,17 @@ def size_to_byte(size: float, unit: str) -> int:
     if lower_unit[0] == 'b':
         final_size = size
     elif lower_unit[0] == 'k':
-        final_size = size * 1000
+        final_size = size * 1024
     elif lower_unit[0] == 'm':
-        final_size = size * 1000000
+        final_size = size * (1024 ** 2)
+    elif lower_unit[0] == 'g':
+        final_size = size * (1024 ** 3)
     elif lower_unit[0] == 't':
-        final_size = size * 1000000000000
+        final_size = size * (1024 ** 4)
     else:
-        final_size = size * 1000000000000000
+        final_size = size * (1024 ** 5)
 
-    return int(final_size)
+    return round(final_size)
 
 
 def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:
