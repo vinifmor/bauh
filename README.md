@@ -409,7 +409,7 @@ ui:
   theme: defines the path to the theme/stylesheet file with a .qss extension (e.g: /path/to/my/theme.qss). For themes provided by bauh, only a string key is needed (e.g: light). Default: light
   system_theme: merges the system's theme/stylesheet with bauh's. Default: false.
 updates:
-  check_interval: 30  # the updates checking interval in MINUTES
+  check_interval: 5  # the updates checking interval in minutes
   ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade
 disk:
     trim:

@@ -18,7 +18,7 @@ class CoreConfigManager(YAMLConfigManager):
             },
             'locale': None,
             'updates': {
-                'check_interval': 30,
+                'check_interval': 5,
                 'ask_for_reboot': True
             },
             'system': {
