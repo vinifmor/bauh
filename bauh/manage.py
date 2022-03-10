@@ -4,7 +4,7 @@ from typing import Tuple
 
 from PyQt5.QtWidgets import QApplication, QWidget
 
-from bauh import ROOT_DIR, __app_name__
+from bauh import ROOT_DIR, __app_name__, __version__
 from bauh.api import user
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
@@ -42,6 +42,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
                                  app_name=__app_name__,
+                                 app_version=__version__,
                                  internet_checker=InternetChecker(offline=app_args.offline),
                                  root_user=user.is_root())
 
