@@ -1,7 +1,7 @@
 appimage.config.database.expiration=Expiração do banco de dados
 appimage.config.database.expiration.tip=Define o período (em minutos) no qual o banco de dados será considerado atualizado durante o processo de inicialização. Use 0 se quiser que ele sempre seja atualizado.
 appimage.config.suggestions.expiration=Expiração das sugestões
-appimage.config.suggestions.expiration.tip=Define o período (em horas) no qual as sugestões armazenadas em disco serão consideradas atualizadas. Use 0 se quiser que elas sempre seja atualizadas.
+appimage.config.suggestions.expiration.tip=Define o período (em horas) no qual as sugestões armazenadas em disco serão consideradas atualizadas. Use 0 se quiser que elas sempre sejam atualizadas.
 appimage.custom_action.install_file=Instalar arquivo AppImage
 appimage.custom_action.install_file.desc=Instala um arquivo AppImage no sistema
 appimage.custom_action.install_file.details=Detalhes de instalação de AppImage
@@ -44,7 +44,6 @@ appimage.update_database.uncompressing=Descomprimindo arquivos
 appimage.upgrade.failed=Não foi possível atualizar as seguintes aplicações: {apps}
 appimage.task.db_update=Atualizando base de dados
 appimage.task.db_update.checking=Checando atualizações
-appimage.task.suggestions=Baixando sugestões
 appimage.task.symlink_check=Verificando links simbólicos
 appimage.uninstall.error.remove_folder=Não foi possível remover o diretóri ode instalação do aplicativo {}
 appimage.warning.missing_db_files=Arquivos do banco de dados {appimage} não foram encontrados. Algumas ações não funcionarão corretamente.

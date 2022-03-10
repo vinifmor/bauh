@@ -163,7 +163,7 @@ class GenericSoftwareManager(SoftwareManager):
     def _search(self, word: str, is_url: bool, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):
             mti = time.time()
-            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
+            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url, limit=-1)
             mtf = time.time()
             self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.8f} seconds')
 
@@ -650,6 +650,7 @@ class GenericSoftwareManager(SoftwareManager):
 
                 for man in working_managers:
                     for action in man.gen_custom_actions():
+                        action.manager = man
                         yield action
 
         app_config = self.configman.get_config()

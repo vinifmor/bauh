@@ -30,7 +30,7 @@ class SuggestionsLoader(Thread):
         self.suggestions = suggestions
         self.create_config = create_config
         self.internet_connection = internet_connection
-        self.task_name = self.i18n['web.task.suggestions']
+        self.task_name = self.i18n['task.download_suggestions']
         self.taskman.register_task(self.task_id, self.task_name, get_icon_path())
 
     def run(self):

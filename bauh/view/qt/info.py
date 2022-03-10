@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
@@ -53,8 +55,9 @@ class InfoDialog(QDialog):
         for idx, attr in enumerate(sorted(pkg_info.keys())):
             if attr not in IGNORED_ATTRS and pkg_info[attr]:
                 i18n_key = pkg_info['__app__'].model.gem_name + '.info.' + attr.lower()
+                val = pkg_info[attr]
 
-                if isinstance(pkg_info[attr], list):
+                if not isinstance(val, str) and isinstance(pkg_info[attr], Iterable):
                     val = ' '.join([str(e).strip() for e in pkg_info[attr] if e])
                     show_val = '\n'.join(['* ' + str(e).strip() for e in pkg_info[attr] if e])
                 else:

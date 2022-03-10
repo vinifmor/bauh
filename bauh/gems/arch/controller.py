@@ -635,7 +635,7 @@ class ArchManager(SoftwareManager):
             if ignored:
                 for p in pkgs:
                     if p.name in ignored:
-                        p.update_ignored = True
+                        p.updates_ignored = True
 
         return SearchResult(pkgs, None, len(pkgs))
 

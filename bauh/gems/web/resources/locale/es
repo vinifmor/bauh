@@ -81,7 +81,6 @@ web.settings.suggestions.cache_exp=Expiración de sugerencias
 web.settings.suggestions.cache_exp.tip=Define el período (en HORAS) en el que las sugerencias almacenadas en el disco son consideradas actualizadas durante el proceso de inicialización. Utilice 0 para que siempre sean actualizadas.
 web.task.download_settings=Actualizando configuraciones de ambiente
 web.task.search_index=Indexando sugerencias
-web.task.suggestions=Descargando sugerencias
 web.task.suggestions.saving=Guardando en disco
 web.uninstall.error.install_dir.not_found=No se encontró el directorio de instalación {}
 web.uninstall.error.remove_dir=No fue posible eliminar {}

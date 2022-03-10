@@ -1,4 +1,21 @@
+import logging
+from abc import ABC
 from datetime import datetime
+from logging import Logger
+from typing import Optional
+
+
+class NullLoggerFactory(ABC):
+
+    __instance: Optional[Logger] = None
+
+    @classmethod
+    def logger(cls) -> Logger:
+        if cls.__instance is None:
+            cls.__instance = logging.getLogger('__null__')
+            cls.__instance.addHandler(logging.NullHandler())
+
+        return cls.__instance
 
 
 def deep_update(source: dict, overrides: dict):

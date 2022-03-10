@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.X.X]
+## [0.10.0]
+### Features
+- Debian
+  - allowing Debian packages to be managed
+    - required dependencies: **aptitude** 
+    - basic actions supported: **search**, **install**, **uninstall**, **upgrade**
+    - custom actions supported:
+      - **synchronize packages**: synchronize the available packages on the repository (`aptitude update`)
+      - **index applications**: maps runnable installed packages (automatically done during initialization)
+      - **software sources**: launches the application responsible for managing software sources (at the moment only `software-properties-gtk` is supported)
+    - custom package actions supported: 
+      - **purge**: removes the packages and all related configuration files 
 
 ### Improvements
 - General

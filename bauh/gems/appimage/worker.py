@@ -295,7 +295,7 @@ class AppImageSuggestionsDownloader(Thread):
         self.taskman = taskman
         self.config = appimage_config
         self.task_id = 'appim.suggestions'
-        self.taskman.register_task(id_=self.task_id, label=i18n['appimage.task.suggestions'], icon_path=get_icon_path())
+        self.taskman.register_task(id_=self.task_id, label=i18n['task.download_suggestions'], icon_path=get_icon_path())
 
     def should_download(self, appimage_config: dict) -> bool:
         try:

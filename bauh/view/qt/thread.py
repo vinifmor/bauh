@@ -529,8 +529,9 @@ class UpgradeSelected(AsyncAction):
         self.change_substatus('')
 
         if success:
-            updated = len(requirements.to_upgrade)
-            updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
+            if requirements.to_upgrade:
+                updated = len(requirements.to_upgrade)
+                updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
 
             if should_trim:
                 self._trim_disk(root_password)

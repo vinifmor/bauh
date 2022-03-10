@@ -4,7 +4,7 @@ import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List, Set, Type, Tuple, Optional, Generator
+from typing import List, Set, Type, Tuple, Optional, Generator, TypeVar
 
 import yaml
 
@@ -15,10 +15,12 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
     CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent
 
+P = TypeVar('P', bound=SoftwarePackage)
+
 
 class SearchResult:
 
-    def __init__(self, installed: Optional[List[SoftwarePackage]], new: Optional[List[SoftwarePackage]], total: int):
+    def __init__(self, installed: Optional[List[P]], new: Optional[List[P]], total: int):
         """
         :param installed: already installed packages
         :param new: new packages found
@@ -40,8 +42,18 @@ class SearchResult:
         self.total = total
 
     @classmethod
-    def empty(cls):
+    def empty(cls) -> "SearchResult":
         return cls(installed=[], new=[], total=0)
+
+    def __eq__(self, other):
+        if isinstance(other, SearchResult):
+            if self.installed == other.installed:
+                return self.new == other.new
+
+        return False
+
+    def __hash__(self):
+        return hash(self.installed) + hash(self.new)
 
 
 class UpgradeRequirement:
@@ -69,7 +81,7 @@ class UpgradeRequirement:
 class UpgradeRequirements:
 
     def __init__(self, to_install: Optional[List[UpgradeRequirement]], to_remove: Optional[List[UpgradeRequirement]],
-                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: Optional[List[UpgradeRequirement]]):
+                 to_upgrade: Optional[List[UpgradeRequirement]], cannot_upgrade: Optional[List[UpgradeRequirement]]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages

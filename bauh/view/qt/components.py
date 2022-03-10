@@ -996,6 +996,12 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
     elif isinstance(comp, TextComponent):
         label = QLabel(comp.value)
 
+        if comp.min_width is not None and comp.min_width > 0:
+            label.setMinimumWidth(comp.min_width)
+
+        if comp.max_width is not None and comp.max_width > 0:
+            label.setMinimumWidth(comp.max_width)
+
         if comp.size is not None:
             label.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
 

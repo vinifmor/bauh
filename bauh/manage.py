@@ -56,21 +56,24 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
 
     app = new_qt_application(app_config=app_config, logger=logger, quit_on_last_closed=True)
 
+    screen_size = app.primaryScreen().size()
+    context.screen_width, context.screen_height = screen_size.width(), screen_size.height()
+
     if app_args.settings:  # only settings window
         manager.cache_available_managers()
-        return app, SettingsWindow(manager=manager, i18n=i18n, screen_size=app.primaryScreen().size(), window=None)
+        return app, SettingsWindow(manager=manager, i18n=i18n, screen_size=screen_size, window=None)
     else:
         manage_window = ManageWindow(i18n=i18n,
                                      manager=manager,
                                      icon_cache=icon_cache,
-                                     screen_size=app.primaryScreen().size(),
+                                     screen_size=screen_size,
                                      config=app_config,
                                      context=context,
                                      http_client=http_client,
                                      icon=util.get_default_icon()[1],
                                      logger=logger)
 
-        prepare = PreparePanel(screen_size=app.primaryScreen().size(),
+        prepare = PreparePanel(screen_size=screen_size,
                                context=context,
                                manager=manager,
                                i18n=i18n,

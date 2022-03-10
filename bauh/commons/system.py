@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set, Dict, Optional
+from typing import List, Tuple, Set, Dict, Optional, Iterable
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -26,7 +26,7 @@ USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
 
-    if lang:
+    if lang is not None:
         custom_env['LANG'] = lang
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
@@ -62,7 +62,7 @@ class SystemProcess:
 
 class SimpleProcess:
 
-    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
+    def __init__(self, cmd: Iterable[str], cwd: str = '.', expected_code: int = 0,
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
@@ -117,9 +117,12 @@ class ProcessHandler:
     def __init__(self, watcher: ProcessWatcher = None):
         self.watcher = watcher
 
-    def _notify_watcher(self, msg: str):
+    def _notify_watcher(self, msg: str, as_substatus: bool = False):
         if self.watcher:
             self.watcher.print(msg)
+
+            if as_substatus:
+                self.watcher.change_substatus(msg)
 
     def handle(self, process: SystemProcess, error_output: StringIO = None, output_handler=None) -> bool:
         self._notify_watcher(' '.join(process.subproc.args) + '\n')
@@ -181,7 +184,8 @@ class ProcessHandler:
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
-    def handle_simple(self, proc: SimpleProcess, output_handler=None, notify_watcher: bool = True) -> Tuple[bool, str]:
+    def handle_simple(self, proc: SimpleProcess, output_handler=None, notify_watcher: bool = True,
+                      output_as_substatus: bool = False) -> Tuple[bool, str]:
         if notify_watcher:
             self._notify_watcher((proc.instance.args if isinstance(proc.instance.args, str) else ' '.join(proc.instance.args)) + '\n')
 
@@ -205,7 +209,7 @@ class ProcessHandler:
                         output_handler(line)
 
                     if notify_watcher:
-                        self._notify_watcher(line)
+                        self._notify_watcher(line, as_substatus=output_as_substatus)
 
         proc.instance.wait()
         output.seek(0)
