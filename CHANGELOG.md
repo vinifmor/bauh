@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - cli/tray: removed some unneeded API calls when listing updates [#234](https://github.com/vinifmor/bauh/issues/234)
 
 - UI
+  - search: sorting packages by closest match instead of considering installed first  
   - upgrade summary dialog size
   - displaying tips for some custom actions (on mouse hover)
   - screenshots: displaying the current image index as a label in the button bar (e.g: 1/3)

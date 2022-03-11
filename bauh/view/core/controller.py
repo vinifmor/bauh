@@ -115,27 +115,6 @@ class GenericSoftwareManager(SoftwareManager):
                                  type_=MessageType.ERROR)
             return False
 
-    def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
-
-        exact_name_matches, contains_name_matches, others = [], [], []
-
-        for app in apps:
-            lower_name = app.name.lower()
-
-            if word == lower_name:
-                exact_name_matches.append(app)
-            elif word in lower_name:
-                contains_name_matches.append(app)
-            else:
-                others.append(app)
-
-        res = []
-        for app_list in (exact_name_matches, contains_name_matches, others):
-            app_list.sort(key=lambda a: a.name.lower())
-            res.extend(app_list)
-
-        return res
-
     def _can_work(self, man: SoftwareManager):
         if self._available_cache is not None:
             available = False
@@ -197,8 +176,8 @@ class GenericSoftwareManager(SoftwareManager):
                 disk_loader.stop_working()
                 disk_loader.join()
 
-            res.installed = self._sort(res.installed, norm_word)
-            res.new = self._sort(res.new, norm_word)
+            # res.installed = self._sort(res.installed, norm_word)
+            # res.new = self._sort(res.new, norm_word)
         else:
             raise NoInternetException()
 
