@@ -336,6 +336,7 @@ manage_window.bt_settings.tooltip=Fai clic qui per visualizzare le impostazioni
 manage_window.bt_themes.tip=Click here to choose a theme
 manage_window.bt_themes.option.invalid=Invalid
 manage_window.checkbox.only_apps=Apps
+manage_window.checkbox.only_installed=Installate
 manage_window.checkbox.show_details=Mostra dettagli
 manage_window.columns.installed=Installed
 manage_window.columns.latest_version=Ultima Versione

@@ -69,16 +69,17 @@ BT_INSTALLED = 2
 BT_REFRESH = 3
 BT_SUGGESTIONS = 4
 BT_UPGRADE = 5
-CHECK_UPDATES = 6
-CHECK_APPS = 7
-COMBO_TYPES = 8
-COMBO_CATEGORIES = 9
-INP_NAME = 10
-CHECK_DETAILS = 11
-BT_SETTINGS = 12
-BT_CUSTOM_ACTIONS = 13
-BT_ABOUT = 14
-BT_THEMES = 15
+CHECK_INSTALLED = 6
+CHECK_UPDATES = 7
+CHECK_APPS = 8
+COMBO_TYPES = 9
+COMBO_CATEGORIES = 10
+INP_NAME = 11
+CHECK_DETAILS = 12
+BT_SETTINGS = 13
+BT_CUSTOM_ACTIONS = 14
+BT_ABOUT = 15
+BT_THEMES = 16
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -152,6 +153,16 @@ class ManageWindow(QWidget):
         self.check_updates.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_updates)
         self.comp_manager.register_component(CHECK_UPDATES, self.check_updates)
+
+        self.check_installed = QCheckBox()
+        self.check_installed.setObjectName('check_installed')
+        self.check_installed.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_installed.setText(self.i18n['manage_window.checkbox.only_installed'])
+        self.check_installed.setChecked(False)
+        self.check_installed.stateChanged.connect(self._handle_filter_only_installed)
+        self.check_installed.sizePolicy().setRetainSizeWhenHidden(True)
+        self.toolbar_filters.layout().addWidget(self.check_installed)
+        self.comp_manager.register_component(CHECK_INSTALLED, self.check_installed)
 
         self.check_apps = QCheckBox()
         self.check_apps.setObjectName('check_apps')
@@ -421,6 +432,7 @@ class ManageWindow(QWidget):
         self.type_filter = self.any_type_filter
         self.category_filter = self.any_category_filter
         self.filter_updates = False
+        self.filter_installed = False
         self._maximized = False
         self.progress_controll_enabled = True
         self.recent_uninstall = False
@@ -445,16 +457,16 @@ class ManageWindow(QWidget):
         self._register_groups()
 
     def _register_groups(self):
-        filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
-        self.comp_manager.register_group(GROUP_FILTERS, False, *filters)
+        common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
+        self.comp_manager.register_group(GROUP_FILTERS, False, CHECK_INSTALLED, *common_filters)
 
         self.comp_manager.register_group(GROUP_VIEW_SEARCH, False,
                                          COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,  # filters
-                                         BT_INSTALLED, BT_SUGGESTIONS)  # buttons
+                                         BT_INSTALLED, BT_SUGGESTIONS, CHECK_INSTALLED)  # buttons
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
                                          BT_REFRESH, BT_UPGRADE,  # buttons
-                                         *filters)
+                                         *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
                                          CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
@@ -624,6 +636,10 @@ class ManageWindow(QWidget):
 
     def _handle_filter_only_apps(self, status: int):
         self.filter_only_apps = status == 2
+        self.begin_apply_filters()
+
+    def _handle_filter_only_installed(self, status: int):
+        self.filter_installed = status == 2
         self.begin_apply_filters()
 
     def _handle_type_filter(self, idx: int):
@@ -906,13 +922,17 @@ class ManageWindow(QWidget):
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name.text().lower() if self.input_name.text() else None,
-            'display_limit': None if self.filter_updates else self.display_limit
+            'display_limit': None if self.filter_updates else self.display_limit,
+            'only_installed': self.filter_installed
         }
 
     def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
+
+        if not keep_filters:
+            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
 
         if new_pkgs is not None:
             old_installed = None
@@ -949,6 +969,7 @@ class ManageWindow(QWidget):
                 if not keep_filters:
                     self._change_checkbox(self.check_apps, False, 'filter_only_apps', trigger=False)
                     self.check_apps.setCheckable(False)
+
         else:
             if not keep_filters:
                 self.check_apps.setCheckable(True)
@@ -1287,6 +1308,7 @@ class ManageWindow(QWidget):
 
     def _begin_search(self, word, action_id: int = None):
         self.filter_updates = False
+        self.filter_installed = False
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.searching'], word if word else ''), action_id=action_id)
 
     def search(self):

@@ -336,6 +336,7 @@ manage_window.bt_settings.tooltip=Pulse aquí para exhibir las configuraciones
 manage_window.bt_themes.tip=Pulse aquí para elegir un tema
 manage_window.bt_themes.option.invalid=Inválido
 manage_window.checkbox.only_apps=Aplicaciones
+manage_window.checkbox.only_installed=Instalados
 manage_window.checkbox.show_details=Mostrar detalles
 manage_window.columns.installed=Instaladas
 manage_window.columns.latest_version=Versión más reciente

@@ -334,6 +334,7 @@ manage_window.bt_settings.tooltip=Görünüm ayarları için burayı tıkla
 manage_window.bt_themes.tip=Click here to choose a theme
 manage_window.bt_themes.option.invalid=Invalid
 manage_window.checkbox.only_apps=Uygulamalar
+manage_window.checkbox.only_installed=Yüklü
 manage_window.checkbox.show_details=Detayları göster
 manage_window.columns.installed=Yüklü
 manage_window.columns.latest_version=Son sürüm

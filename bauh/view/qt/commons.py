@@ -61,7 +61,10 @@ def sum_updates_displayed(info: dict) -> int:
 
 
 def is_package_hidden(pkg: PackageView, filters: dict) -> bool:
-    hidden = filters['only_apps'] and pkg.model.installed and not pkg.model.is_application()
+    hidden = filters['only_installed'] and not pkg.model.installed
+
+    if not hidden and filters['only_apps']:
+        hidden = pkg.model.installed and not pkg.model.is_application()
 
     if not hidden and filters['updates']:
         hidden = not pkg.model.update or pkg.model.is_update_ignored()
