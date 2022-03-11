@@ -79,6 +79,7 @@ class AppImageManager(SoftwareManager):
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
+        self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
 
     def install_file(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
@@ -217,6 +218,11 @@ class AppImageManager(SoftwareManager):
                     new_found = found_map.get(key)
 
                     if new_found:
+                        if not appim.imported:
+                            for attr in self.search_unfilled_attrs:
+                                if getattr(appim, attr) is None:
+                                    setattr(appim, attr, getattr(new_found['app'], attr))
+
                         del not_installed[new_found['idx']]
                         installed_found.append(appim)
                         found = True
@@ -936,3 +942,12 @@ class AppImageManager(SoftwareManager):
 
         res = db_updater.download_databases()
         return res
+
+    @property
+    def search_unfilled_attrs(self) -> Tuple[str, ...]:
+        if self._search_unfilled_attrs is None:
+            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'github',
+                                           'source', 'url_screenshot')
+
+        return self._search_unfilled_attrs
+
