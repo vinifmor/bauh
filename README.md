@@ -204,6 +204,7 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
     - `Install AppImage file`: allows to install an external AppImage file
     - `Upgrade file`: allows to upgrade a manually installed AppImage file
     - `Update database`: manually synchronize the AppImage database
+    - `Install bauh`: installs bauh if it is running as an AppImage
 
 - Installed applications are store at `~/.local/share/bauh/appimage/installed` (or `/usr/local/share/bauh/installed` for **root**)
 - Desktop entries (menu shortcuts) of the installed applications are stored at `~/.local/share/applications` (or `/usr/share/applications` for **root**). Name pattern: `bauh_appimage_appname.desktop`

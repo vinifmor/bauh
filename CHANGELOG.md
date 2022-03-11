@@ -15,7 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       - **index applications**: maps runnable installed packages (automatically done during initialization)
       - **software sources**: launches the application responsible for managing software sources (at the moment only `software-properties-gtk` is supported)
     - custom package actions supported: 
-      - **purge**: removes the packages and all related configuration files 
+      - **purge**: removes the packages and all related configuration files
+
+- AppImage
+  - new custom action to self install bauh if it is running as an AppImage 
 
 ### Improvements
 - General

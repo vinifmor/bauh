@@ -1465,6 +1465,7 @@ class ManageWindow(QWidget):
         if res['success']:
             if res['action'].refresh:
                 self.comp_manager.remove_saved_state(ACTION_CUSTOM_ACTION)
+                self.update_custom_actions()
                 self.begin_refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
             else:
                 self.comp_manager.restore_state(ACTION_CUSTOM_ACTION)
