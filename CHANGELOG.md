@@ -58,6 +58,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - some unneeded cursor icons removed from the apps table
   - some icons replaced
 
+- Distribution
+  - AppImage: -~9% size reduction (96.32 MB ->  88.16 MB) 
+
 ### Fixes
 - General
   - not accepting blank root passwords [#235](https://github.com/vinifmor/bauh/issues/235)
@@ -68,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - UI
   - some package icons would not appear if there is no URL associated with them
+  
 
 ## [0.9.28] 2022-02-14
 
