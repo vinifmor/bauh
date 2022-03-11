@@ -419,6 +419,11 @@ class AppImageManager(SoftwareManager):
     def get_info(self, pkg: AppImage) -> dict:
         data = pkg.get_data_to_cache()
 
+        if not pkg.installed:
+            for key in ('install_dir', 'symlink', 'icon_path'):
+                if key in data:
+                    del data[key]
+
         if data.get('url_download'):
             size = self.http_client.get_content_length(data['url_download'])
             if size:

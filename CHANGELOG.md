@@ -44,7 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - not accepting blank root passwords [#235](https://github.com/vinifmor/bauh/issues/235)
   - human-readable sizes (packages, files, updates, ...)
-  
+
+- AppImage
+  - info: displaying attributes related to the installation after the application has been removed (search)
+
 - UI
   - some package icons would not appear if there is no URL associated with them
 
