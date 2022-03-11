@@ -82,3 +82,4 @@ debian.transaction.to_remove=Los siguientes paquetes ({no}) serán eliminados (E
 debian.uninstall.failed_to_remove=No fue posible eliminar los siguientes {no} paquetes: {pkgs}
 debian.uninstall.removing=Removendo paquetes
 debian.uninstall.validating=Validando paquetes eliminados
+gem.debian.info=Paquetes de software para sistemas basados en Debian
