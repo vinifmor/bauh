@@ -51,6 +51,7 @@ Key features
 
 ##### Required dependencies
 - `fuse`: the package name may vary from distribution
+- `qt5dxcb-plugin` (or equivalent): the package name may vary from distribution
 
 ##### Steps
 - Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases.
