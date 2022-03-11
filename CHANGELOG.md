@@ -16,15 +16,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       - **software sources**: launches the application responsible for managing software sources (at the moment only `software-properties-gtk` is supported)
     - custom package actions supported: 
       - **purge**: removes the packages and all related configuration files
+    
+    <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/deb_man.png">
+    </p>
 
 - AppImage
-  - new custom action to self install bauh if it is running as an AppImage 
+  - new custom action to self install bauh if it is running as an AppImage
+  
+  <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png">
+  </p>
 
 ### Improvements
 - General
   - minor memory improvements
   - code refactoring
-  - update checking interval on tray mode is now measured in minutes instead of seconds (default: 5)
+  - update checking interval on tray mode is now measured **in minutes** instead of seconds (default: 5)
 
 - Arch
   - info dialog: 
