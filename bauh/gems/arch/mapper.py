@@ -71,10 +71,13 @@ class AURDataMapper:
             with open(cached_pkgbuild) as f:
                 pkg.pkgbuild = f.read()
         else:
-            res = self.http_client.get(pkg.get_pkg_build_url())
+            url = pkg.get_pkg_build_url()
 
-            if res and res.status_code == 200 and res.text:
-                pkg.pkgbuild = res.text
+            if url:
+                res = self.http_client.get(url)
+
+                if res and res.status_code == 200 and res.text:
+                    pkg.pkgbuild = res.text
 
     def map_api_data(self, apidata: dict, pkgs_installed: Optional[dict], categories: dict) -> ArchPackage:
         data = pkgs_installed.get(apidata.get('Name')) if pkgs_installed else None

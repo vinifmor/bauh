@@ -69,6 +69,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - AppImage
   - info: displaying attributes related to the installation after the application has been removed (search)
 
+- Arch:
+  - AUR:
+    - info: exception when trying to retrieve the PKGBUILD of a package without a base defined
+
 - UI
   - some package icons would not appear if there is no URL associated with them
   
