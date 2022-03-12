@@ -53,7 +53,7 @@ class InfoDialog(QDialog):
         self.setWindowIcon(QIcon(pkg_info['__app__'].model.get_type_icon_path()))
 
         for idx, attr in enumerate(sorted(pkg_info.keys())):
-            if attr not in IGNORED_ATTRS and pkg_info[attr]:
+            if attr not in IGNORED_ATTRS and pkg_info[attr] is not None:
                 i18n_key = pkg_info['__app__'].model.gem_name + '.info.' + attr.lower()
                 val = pkg_info[attr]
 
