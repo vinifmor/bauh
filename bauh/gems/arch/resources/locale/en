@@ -305,6 +305,7 @@ arch_repo.history.3_date=date
 aur.history.1_version=version
 aur.history.2_release=release
 aur.history.3_date=date
+category.orphan=orphan
 gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Repository

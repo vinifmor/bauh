@@ -305,6 +305,7 @@ arch_repo.history.3_date=tarih
 aur.history.1_version=sürüm
 aur.history.2_release=sürüm inşa
 aur.history.3_date=tarih
+category.orphan=orphan
 gem.arch.info=Arch Linux tabanlı dağıtımlar için mevcut yazılım paketleri
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Depoları

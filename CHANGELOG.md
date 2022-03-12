@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
           <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png">
   </p>
 
+- Arch
+  - AUR:
+    - able to filter orphan packages by the new "orphan" category [#236](https://github.com/vinifmor/bauh/issues/236)
+
 ### Improvements
 - General
   - minor memory improvements

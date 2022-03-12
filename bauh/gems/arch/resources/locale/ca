@@ -302,6 +302,7 @@ arch.warning.aur_missing_dep={} seems not to be installed. It will not be possib
 arch_repo.history.1_version=versió
 arch_repo.history.2_release=publicació
 arch_repo.history.3_date=data
+category.orphan=orphan
 aur.history.1_version=versió
 aur.history.2_release=publicació
 aur.history.3_date=data

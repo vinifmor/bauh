@@ -189,6 +189,9 @@ class ArchPackage(SoftwarePackage):
             for a in self.cached_attrs():
                 val = data.get(a)
                 if val:
+                    if a == 'categories' and isinstance(val, list) and 'orphan' in val:
+                        val.remove('orphan')
+
                     setattr(self, a, val)
 
                     if a == 'icon_path':

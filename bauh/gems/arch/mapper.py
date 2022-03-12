@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
@@ -80,7 +80,7 @@ class AURDataMapper:
                 if res and res.status_code == 200 and res.text:
                     pkg.pkgbuild = res.text
 
-    def map_api_data(self, apidata: dict, pkgs_installed: Optional[dict], categories: dict) -> ArchPackage:
+    def map_api_data(self, apidata: dict, pkgs_installed: Optional[dict], categories: Dict[str, List[str]]) -> ArchPackage:
         data = pkgs_installed.get(apidata.get('Name')) if pkgs_installed else None
         app = ArchPackage(name=apidata.get('Name'), installed=bool(data), repository='aur', i18n=self.i18n)
         app.status = PackageStatus.LOADING_DATA
@@ -93,6 +93,13 @@ class AURDataMapper:
             app.description = data.get('description')
 
         self.fill_api_data(app, apidata, fill_version=not data)
+
+        if app.orphan:
+            if app.categories is None:
+                app.categories = []
+
+            app.categories.append('orphan')
+
         return app
 
     def check_update(self, pkg: ArchPackage, last_modified: Optional[int]) -> bool:
