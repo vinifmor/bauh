@@ -40,6 +40,7 @@ class AURDataMapper:
         pkg.votes = api_data.get('NumVotes')
         pkg.maintainer = api_data.get('Maintainer')
         pkg.url_download = URL_PKG_DOWNLOAD.format(api_data['URLPath']) if api_data.get('URLPath') else None
+        pkg.out_of_date = bool(api_data.get('OutOfDate'))
 
         if api_data['FirstSubmitted'] and isinstance(api_data['FirstSubmitted'], int):
             pkg.first_submitted = api_data['FirstSubmitted']

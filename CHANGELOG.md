@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - info dialog: 
     - displaying the "executable" field if the package is recognized as an application
     - displaying "description" and "version" as primary fields for repository packages
+    - displaying the "out of date" field for AUR packages [#236](https://github.com/vinifmor/bauh/issues/236)
   - removing the "%U" parameter before launching applications to prevent error messages
   - minor code refactoring
 

@@ -1466,6 +1466,8 @@ class ArchManager(SoftwareManager):
             if info is not None:
                 self._parse_dates_string_from_info(pkg.name, info)
 
+                info['04_out_of_date'] = pkg.out_of_date
+
                 if pkg.commit:
                     info['commit'] = pkg.commit
 
@@ -1487,6 +1489,7 @@ class ArchManager(SoftwareManager):
                 '02_name': pkg.name,
                 '03_description': pkg.description,
                 '03_version': pkg.version,
+                '04_out_of_date': pkg.out_of_date,
                 '04_popularity': pkg.popularity,
                 '05_votes': pkg.votes,
                 '06_package_base': pkg.package_base,

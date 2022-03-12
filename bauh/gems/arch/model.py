@@ -95,9 +95,8 @@ class ArchPackage(SoftwarePackage):
                  desktop_entry: str = None, installed: bool = False, srcinfo: dict = None, dependencies: Set[str] = None,
                  categories: List[str] = None, i18n: I18n = None, update_ignored: bool = False, arch: str = None,
                  pkgbuild_editable: bool = None, install_date: Optional[int] = None, commit: Optional[str] = None,
-                 require_rebuild: bool = False,
-                 allow_rebuild: Optional[bool] = None,
-                 aur_update: bool = False):
+                 require_rebuild: bool = False, allow_rebuild: Optional[bool] = None, aur_update: bool = False,
+                 out_of_date: Optional[bool] = None):
 
         super(ArchPackage, self).__init__(name=name, version=version, latest_version=latest_version, description=description,
                                           installed=installed, categories=categories)
@@ -125,6 +124,7 @@ class ArchPackage(SoftwarePackage):
         self.require_rebuild = require_rebuild
         self.allow_rebuild = allow_rebuild
         self.aur_update = aur_update
+        self.out_of_date = out_of_date
 
     @staticmethod
     def disk_cache_path(pkgname: str):
