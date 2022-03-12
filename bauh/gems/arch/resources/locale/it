@@ -306,6 +306,7 @@ aur.history.1_version=versione
 aur.history.2_release=rilascio
 aur.history.3_date=data
 category.orphan=orphan
+category.out_of_date=out of date
 gem.arch.info=Software packages available for distributions based on Arch Linux
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Deposito

@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - AUR:
     - able to filter orphan packages by the new "orphan" category [#236](https://github.com/vinifmor/bauh/issues/236)
+    - able to filter outdated packages by the new "out of date" category [#236](https://github.com/vinifmor/bauh/issues/236)
 
 ### Improvements
 - General

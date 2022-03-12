@@ -306,6 +306,7 @@ aur.history.1_version=Версия
 aur.history.2_release=Выпуск
 aur.history.3_date=Дата
 category.orphan=orphan
+category.out_of_date=out of date
 gem.arch.info=Пакеты программного обеспечения, доступные для дистрибутивов на базе Arch Linux
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Repository

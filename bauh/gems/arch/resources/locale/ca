@@ -303,6 +303,7 @@ arch_repo.history.1_version=versió
 arch_repo.history.2_release=publicació
 arch_repo.history.3_date=data
 category.orphan=orphan
+category.out_of_date=out of date
 aur.history.1_version=versió
 aur.history.2_release=publicació
 aur.history.3_date=data

@@ -94,11 +94,15 @@ class AURDataMapper:
 
         self.fill_api_data(app, apidata, fill_version=not data)
 
-        if app.orphan:
+        if app.orphan or app.out_of_date:
             if app.categories is None:
                 app.categories = []
 
-            app.categories.append('orphan')
+            if app.orphan:
+                app.categories.append('orphan')
+
+            if app.out_of_date:
+                app.categories.append('out_of_date')
 
         return app
 

@@ -14,6 +14,7 @@ class ArchPackage(SoftwarePackage):
     __action_reinstall: Optional[CustomSoftwareAction] = None
     __action_ignore_rebuild_check: Optional[CustomSoftwareAction] = None
     __cached_attrs: Optional[Tuple[str, ...]] = None
+    __dynamic_categories: Optional[Tuple[str, ...]] = None
 
     @classmethod
     def action_allow_rebuild_check(cls) -> CustomSoftwareAction:
@@ -87,6 +88,13 @@ class ArchPackage(SoftwarePackage):
                                   'last_modified', 'commit')
 
         return cls.__cached_attrs
+
+    @classmethod
+    def dynamic_categories(cls) -> Tuple[str, ...]:
+        if cls.__dynamic_categories is None:
+            cls.__dynamic_categories = ('orphan', 'out_of_date')
+
+        return cls.__dynamic_categories
 
     def __init__(self, name: str = None, version: str = None, latest_version: str = None, description: str = None,
                  package_base: str = None, votes: int = None, popularity: float = None,
@@ -180,6 +188,11 @@ class ArchPackage(SoftwarePackage):
             val = getattr(self, a)
 
             if val:
+                if a == 'categories' and isinstance(val, list):
+                    for cat in self.dynamic_categories():
+                        if cat in val:
+                            val.remove(cat)
+
                 cache[a] = val
 
         return cache
@@ -189,9 +202,6 @@ class ArchPackage(SoftwarePackage):
             for a in self.cached_attrs():
                 val = data.get(a)
                 if val:
-                    if a == 'categories' and isinstance(val, list) and 'orphan' in val:
-                        val.remove('orphan')
-
                     setattr(self, a, val)
 
                     if a == 'icon_path':
