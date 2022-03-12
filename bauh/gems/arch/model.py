@@ -271,3 +271,7 @@ class ArchPackage(SoftwarePackage):
             return hash((self.view_name, self.repository))
         else:
             return hash((self.name, self.repository))
+
+    @property
+    def orphan(self) -> bool:
+        return self.maintainer is None
