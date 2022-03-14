@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QSize, QMargins
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout, QDialog, QVBoxLayout, QSizePolicy, QApplication, \
-    QStyle, QPushButton, QScrollArea, QFrame
+from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout, QDialog, QVBoxLayout, QSizePolicy, QPushButton, \
+    QScrollArea, QFrame
 
 from bauh.api.abstract.view import MessageType
 from bauh.view.qt.components import new_spacer
@@ -34,7 +34,8 @@ class ConfirmationDialog(QDialog):
     def __init__(self, title: str, body: Optional[str], i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')),
                  widgets: Optional[List[QWidget]] = None, confirmation_button: bool = True, deny_button: bool = True,
                  window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None,
-                 confirmation_icon: bool = True):
+                 confirmation_icon: bool = True, min_width: Optional[int] = None,
+                 min_height: Optional[int] = None):
         super(ConfirmationDialog, self).__init__()
 
         if not window_cancel:
@@ -43,7 +44,11 @@ class ConfirmationDialog(QDialog):
         self.setLayout(QVBoxLayout())
         self.setWindowTitle(title)
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
-        self.setMinimumWidth(250)
+        self.setMinimumWidth(min_width if min_width and min_width > 0 else 250)
+
+        if isinstance(min_height, int) and min_height > 0:
+            self.setMinimumHeight(min_height)
+
         self.confirmed = False
 
         if icon:
@@ -52,6 +57,9 @@ class ConfirmationDialog(QDialog):
         container_body = QWidget()
         container_body.setObjectName('confirm_container_body')
         container_body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+
+        if isinstance(min_height, int) and min_height > 0:
+            container_body.setMinimumWidth(min_height)
 
         if widgets:
             container_body.setLayout(QVBoxLayout())

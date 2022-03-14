@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional
 
 from bauh.api.abstract.handler import ProcessWatcher
 
@@ -7,7 +7,7 @@ from bauh.api.abstract.handler import ProcessWatcher
 class FileDownloader(ABC):
 
     @abstractmethod
-    def download(self, file_url: str, watcher: Optional[ProcessWatcher], output_path: str, cwd: str, root_password: str = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
+    def download(self, file_url: str, watcher: Optional[ProcessWatcher], output_path: str, cwd: str, root_password: Optional[str] = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
         """
         :param file_url:
         :param watcher:

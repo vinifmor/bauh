@@ -5,7 +5,7 @@ import traceback
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
@@ -69,16 +69,17 @@ BT_INSTALLED = 2
 BT_REFRESH = 3
 BT_SUGGESTIONS = 4
 BT_UPGRADE = 5
-CHECK_UPDATES = 6
-CHECK_APPS = 7
-COMBO_TYPES = 8
-COMBO_CATEGORIES = 9
-INP_NAME = 10
-CHECK_DETAILS = 11
-BT_SETTINGS = 12
-BT_CUSTOM_ACTIONS = 13
-BT_ABOUT = 14
-BT_THEMES = 15
+CHECK_INSTALLED = 6
+CHECK_UPDATES = 7
+CHECK_APPS = 8
+COMBO_TYPES = 9
+COMBO_CATEGORIES = 10
+INP_NAME = 11
+CHECK_DETAILS = 12
+BT_SETTINGS = 13
+BT_CUSTOM_ACTIONS = 14
+BT_ABOUT = 15
+BT_THEMES = 16
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -94,7 +95,7 @@ class ManageWindow(QWidget):
     signal_table_update = pyqtSignal()
     signal_stop_notifying = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size, config: dict,
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size: QSize, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
         super(ManageWindow, self).__init__()
         self.setObjectName('manage_window')
@@ -152,6 +153,16 @@ class ManageWindow(QWidget):
         self.check_updates.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_updates)
         self.comp_manager.register_component(CHECK_UPDATES, self.check_updates)
+
+        self.check_installed = QCheckBox()
+        self.check_installed.setObjectName('check_installed')
+        self.check_installed.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_installed.setText(self.i18n['manage_window.checkbox.only_installed'])
+        self.check_installed.setChecked(False)
+        self.check_installed.stateChanged.connect(self._handle_filter_only_installed)
+        self.check_installed.sizePolicy().setRetainSizeWhenHidden(True)
+        self.toolbar_filters.layout().addWidget(self.check_installed)
+        self.comp_manager.register_component(CHECK_INSTALLED, self.check_installed)
 
         self.check_apps = QCheckBox()
         self.check_apps.setObjectName('check_apps')
@@ -316,7 +327,10 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.toolbar_substatus)
         self._change_label_substatus('')
 
-        self.thread_update = self._bind_async_action(UpgradeSelected(self.manager, context.internet_checker, self.i18n), finished_call=self._finish_upgrade_selected)
+        self.thread_update = self._bind_async_action(UpgradeSelected(manager=self.manager, i18n=self.i18n,
+                                                                     internet_checker=context.internet_checker,
+                                                                     screen_width=screen_size.width()),
+                                                     finished_call=self._finish_upgrade_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
         self.thread_show_info = self._bind_async_action(ShowPackageInfo(self.manager), finished_call=self._finish_show_info)
@@ -418,6 +432,7 @@ class ManageWindow(QWidget):
         self.type_filter = self.any_type_filter
         self.category_filter = self.any_category_filter
         self.filter_updates = False
+        self.filter_installed = False
         self._maximized = False
         self.progress_controll_enabled = True
         self.recent_uninstall = False
@@ -442,16 +457,16 @@ class ManageWindow(QWidget):
         self._register_groups()
 
     def _register_groups(self):
-        filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
-        self.comp_manager.register_group(GROUP_FILTERS, False, *filters)
+        common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
+        self.comp_manager.register_group(GROUP_FILTERS, False, CHECK_INSTALLED, *common_filters)
 
         self.comp_manager.register_group(GROUP_VIEW_SEARCH, False,
                                          COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,  # filters
-                                         BT_INSTALLED, BT_SUGGESTIONS)  # buttons
+                                         BT_INSTALLED, BT_SUGGESTIONS, CHECK_INSTALLED)  # buttons
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
                                          BT_REFRESH, BT_UPGRADE,  # buttons
-                                         *filters)
+                                         *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
                                          CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
@@ -542,7 +557,9 @@ class ManageWindow(QWidget):
                                   deny_label=msg['deny_label'],
                                   deny_button=msg['deny_button'],
                                   window_cancel=msg['window_cancel'],
-                                  confirmation_button=msg.get('confirmation_button', True))
+                                  confirmation_button=msg.get('confirmation_button', True),
+                                  min_width=msg.get('min_width'),
+                                  min_height=msg.get('min_height'))
         diag.ask()
         res = diag.confirmed
         self.thread_animate_progress.animate()
@@ -619,6 +636,10 @@ class ManageWindow(QWidget):
 
     def _handle_filter_only_apps(self, status: int):
         self.filter_only_apps = status == 2
+        self.begin_apply_filters()
+
+    def _handle_filter_only_installed(self, status: int):
+        self.filter_installed = status == 2
         self.begin_apply_filters()
 
     def _handle_type_filter(self, idx: int):
@@ -784,6 +805,7 @@ class ManageWindow(QWidget):
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
+            self.begin_apply_filters()
             notify_tray()
         else:
             self._show_console_errors()
@@ -901,13 +923,17 @@ class ManageWindow(QWidget):
             'category': self.category_filter,
             'updates': False if ignore_updates else self.filter_updates,
             'name': self.input_name.text().lower() if self.input_name.text() else None,
-            'display_limit': None if self.filter_updates else self.display_limit
+            'display_limit': None if self.filter_updates else self.display_limit,
+            'only_installed': self.filter_installed
         }
 
     def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
+
+        if not keep_filters:
+            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
 
         if new_pkgs is not None:
             old_installed = None
@@ -944,6 +970,7 @@ class ManageWindow(QWidget):
                 if not keep_filters:
                     self._change_checkbox(self.check_apps, False, 'filter_only_apps', trigger=False)
                     self.check_apps.setCheckable(False)
+
         else:
             if not keep_filters:
                 self.check_apps.setCheckable(True)
@@ -1282,6 +1309,7 @@ class ManageWindow(QWidget):
 
     def _begin_search(self, word, action_id: int = None):
         self.filter_updates = False
+        self.filter_installed = False
         self._begin_action('{} {}'.format(self.i18n['manage_window.status.searching'], word if word else ''), action_id=action_id)
 
     def search(self):
@@ -1437,8 +1465,15 @@ class ManageWindow(QWidget):
             if not valid:
                 return
 
-        self._begin_action(action_label='{}{}'.format(self.i18n[action.i18n_status_key], ' {}'.format(pkg.model.name) if pkg else ''),
-                           action_id=ACTION_CUSTOM_ACTION)
+        action_label = self.i18n[action.i18n_status_key]
+
+        if pkg:
+            if '{}' in action_label:
+                action_label = action_label.format(pkg.model.name)
+            else:
+                action_label += f' {pkg.model.name}'
+
+        self._begin_action(action_label=action_label, action_id=ACTION_CUSTOM_ACTION)
         self.comp_manager.set_components_visible(False)
         self._handle_console_option(True)
 
@@ -1453,6 +1488,7 @@ class ManageWindow(QWidget):
         if res['success']:
             if res['action'].refresh:
                 self.comp_manager.remove_saved_state(ACTION_CUSTOM_ACTION)
+                self.update_custom_actions()
                 self.begin_refresh_packages(pkg_types={res['pkg'].model.__class__} if res['pkg'] else None)
             else:
                 self.comp_manager.restore_state(ACTION_CUSTOM_ACTION)
@@ -1497,9 +1533,11 @@ class ManageWindow(QWidget):
         else:
             icon = None
 
+        tip = self.i18n[action.i18n_description_key] if action.i18n_description_key else None
         return QCustomMenuAction(parent=parent,
                                  label=self.i18n[action.i18n_label_key],
                                  action=lambda: self.begin_execute_custom_action(None, action),
+                                 tooltip=tip,
                                  icon=icon)
 
     def show_custom_actions(self):

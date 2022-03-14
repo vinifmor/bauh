@@ -2,7 +2,7 @@ import os
 
 import urllib3
 
-from bauh import ROOT_DIR
+from bauh import ROOT_DIR, __version__
 from bauh.api import user
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
@@ -46,6 +46,7 @@ def main():
                                  file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
                                                                          i18n, http_client, app_config['download']['multithreaded_client']),
                                  app_name=__app_name__,
+                                 app_version=__version__,
                                  internet_checker=InternetChecker(offline=False),
                                  root_user=user.is_root())
 

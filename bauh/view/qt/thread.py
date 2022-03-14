@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Iterable
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
@@ -23,10 +23,12 @@ from bauh.api.exception import NoInternetException
 from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
-from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
+from bauh.commons.system import ProcessHandler, SimpleProcess
+from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.qt import commons
+from bauh.view.qt.commons import sort_packages
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
@@ -55,12 +57,15 @@ class AsyncAction(QThread, ProcessWatcher):
     def request_confirmation(self, title: str, body: str, components: List[ViewComponent] = None,
                              confirmation_label: str = None, deny_label: str = None, deny_button: bool = True,
                              window_cancel: bool = False,
-                             confirmation_button: bool = True) -> bool:
+                             confirmation_button: bool = True,
+                             min_width: Optional[int] = None,
+                             min_height: Optional[int] = None) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components,
                                        'confirmation_label': confirmation_label, 'deny_label': deny_label,
                                        'deny_button': deny_button, 'window_cancel': window_cancel,
-                                       'confirmation_button': confirmation_button})
+                                       'confirmation_button': confirmation_button, 'min_width': min_width,
+                                       'min_height': min_height})
         self.wait_user()
         return self.confirmation_res
 
@@ -203,12 +208,14 @@ class UpgradeSelected(AsyncAction):
     UPGRADE_LOGS_DIR = f'{LOGS_DIR}/upgrade'
     SUMMARY_FILE = UPGRADE_LOGS_DIR + '/{}_summary.txt'
 
-    def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n, pkgs: List[PackageView] = None):
+    def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n,
+                 screen_width: int, pkgs: List[PackageView] = None):
         super(UpgradeSelected, self).__init__()
         self.pkgs = pkgs
         self.manager = manager
         self.i18n = i18n
         self.internet_checker = internet_checker
+        self.screen_width = screen_width
 
     def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
         if req.pkg.installed:
@@ -317,7 +324,7 @@ class UpgradeSelected(AsyncAction):
     def _ask_for_trim(self) -> bool:
         return self.request_confirmation(title=self.i18n['confirmation'].capitalize(), body=self.i18n['action.trim_disk.ask'])
 
-    def _trim_disk(self, root_password: str):
+    def _trim_disk(self, root_password: Optional[str]):
         self.change_status('{}...'.format(self.i18n['action.disk_trim'].capitalize()))
         self.change_substatus('')
 
@@ -469,7 +476,7 @@ class UpgradeSelected(AsyncAction):
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
                                          confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize(),
-                                         confirmation_button=can_upgrade):
+                                         confirmation_button=can_upgrade, min_width=int(0.45 * self.screen_width)):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return
@@ -524,8 +531,9 @@ class UpgradeSelected(AsyncAction):
         self.change_substatus('')
 
         if success:
-            updated = len(requirements.to_upgrade)
-            updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
+            if requirements.to_upgrade:
+                updated = len(requirements.to_upgrade)
+                updated_types.update((req.pkg.__class__ for req in requirements.to_upgrade))
 
             if should_trim:
                 self._trim_disk(root_password)
@@ -698,8 +706,7 @@ class SearchPackages(AsyncAction):
         if self.word:
             try:
                 res = self.manager.search(words=self.word, disk_loader=None, limit=-1, is_url=False)
-                search_res['pkgs_found'].extend(res.installed)
-                search_res['pkgs_found'].extend(res.new)
+                search_res['pkgs_found'] = sort_packages((*(res.installed or ()), *(res.new or ())), self.word)
             except NoInternetException:
                 search_res['error'] = 'internet.required'
             finally:
@@ -945,48 +952,6 @@ class ApplyFilters(AsyncAction):
     def stop_waiting(self):
         self.wait_table_update = False
 
-    def _sort_by_word(self, word: str, pkgs: List[PackageView], limit: int) -> List[PackageView]:
-        norm_word = word.strip().lower()
-        exact_installed, exact_not_installed = [], []
-        starts_installed, starts_not_installed = [], []
-        contains_installed, contains_not_installed = [], []
-
-        for p in pkgs:
-            lower_name = p.model.name.lower()
-
-            if norm_word == lower_name:
-                if p.model.installed:
-                    exact_installed.append(p)
-                else:
-                    exact_not_installed.append(p)
-            elif lower_name.startswith(norm_word):
-                if p.model.installed:
-                    starts_installed.append(p)
-                else:
-                    starts_not_installed.append(p)
-            else:
-                if p.model.installed:
-                    contains_installed.append(p)
-                else:
-                    contains_not_installed.append(p)
-
-        res = []
-        for matches in (exact_installed, exact_not_installed,
-                        starts_installed, starts_not_installed,
-                        contains_installed, contains_not_installed):
-            if matches:
-                matches.sort(key=lambda p: p.model.name.lower())
-
-                if limit:
-                    res.extend(matches[0:limit - len(res)])
-
-                    if len(res) == limit:
-                        break
-                else:
-                    res.extend(matches)
-
-        return res
-
     def run(self):
         if self.pkgs:
             pkgs_info = commons.new_pkgs_info()
@@ -998,9 +963,9 @@ class ApplyFilters(AsyncAction):
                 commons.apply_filters(pkgv, self.filters, pkgs_info, limit=not name_filtering)
 
             if name_filtering and pkgs_info['pkgs_displayed']:
-                pkgs_info['pkgs_displayed'] = self._sort_by_word(word=self.filters['name'],
-                                                                 pkgs=pkgs_info['pkgs_displayed'],
-                                                                 limit=self.filters['display_limit'])
+                pkgs_info['pkgs_displayed'] = sort_packages(word=self.filters['name'],
+                                                            pkgs=pkgs_info['pkgs_displayed'],
+                                                            limit=self.filters['display_limit'])
 
             self.wait_table_update = True
             self.signal_table.emit(pkgs_info)
@@ -1013,7 +978,7 @@ class ApplyFilters(AsyncAction):
 
 class CustomAction(AsyncAction):
 
-    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: CustomSoftwareAction = None, pkg: PackageView = None, root_password: str = None):
+    def __init__(self, manager: SoftwareManager, i18n: I18n, custom_action: CustomSoftwareAction = None, pkg: PackageView = None, root_password: Optional[str] = None):
         super(CustomAction, self).__init__()
         self.manager = manager
         self.pkg = pkg
@@ -1063,7 +1028,7 @@ class ShowScreenshots(AsyncAction):
 
     def run(self):
         if self.pkg:
-            self.notify_finished({'pkg': self.pkg, 'screenshots': self.manager.get_screenshots(self.pkg.model)})
+            self.notify_finished({'pkg': self.pkg, 'screenshots': tuple(self.manager.get_screenshots(self.pkg.model))})
 
         self.pkg = None
 

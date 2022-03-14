@@ -1,0 +1,17 @@
+{
+    "firefox": {
+        "categories": [
+            "GNOME",
+            "GTK",
+            "Network",
+            "WebBrowser"
+        ],
+        "exe_path": "firefox %u",
+        "icon_path": "firefox"
+    },
+
+    "synaptic": {
+        "exe_path": "synaptic-pkexec",
+        "icon_path": "synaptic"
+    }
+}

@@ -2,25 +2,24 @@ import re
 import time
 import traceback
 from threading import Thread
-from typing import List, Set, Type, Optional, Tuple
+from typing import List, Set, Type, Optional, Tuple, Generator
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
-    SuggestionPriority, CustomSoftwareAction, PackageStatus
+    SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
     FormComponent, TextInputComponent
 from bauh.api.exception import NoInternetException
-from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
-from bauh.commons.view_utils import new_select
+from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
+from bauh.commons.view_utils import new_select, get_human_size_str
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
-    get_icon_path, snapd, ROOT_DIR
+    get_icon_path, snapd
 from bauh.gems.snap.config import SnapConfigManager
 from bauh.gems.snap.model import SnapApplication
 from bauh.gems.snap.snapd import SnapdClient
@@ -43,21 +42,6 @@ class SnapManager(SoftwareManager):
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
         self.configman = SnapConfigManager()
-        self.custom_actions = (
-            CustomSoftwareAction(i18n_status_key='snap.action.refresh.status',
-                                 i18n_label_key='snap.action.refresh.label',
-                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                                 manager_method='refresh',
-                                 requires_root=True,
-                                 i18n_confirm_key='snap.action.refresh.confirm'),
-            CustomSoftwareAction(i18n_status_key='snap.action.channel.status',
-                                 i18n_label_key='snap.action.channel.label',
-                                 i18n_confirm_key='snap.action.channel.confirm',
-                                 icon_path=resource.get_path('img/refresh.svg', ROOT_DIR),
-                                 manager_method='change_channel',
-                                 requires_root=True,
-                                 requires_confirmation=False)
-        )
 
     def _fill_categories(self, app: SnapApplication):
         categories = self.categories.get(app.name.lower())
@@ -114,7 +98,7 @@ class SnapManager(SoftwareManager):
         else:
             return SearchResult([], None, 0)
 
-    def downgrade(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not snap.is_installed():
             watcher.print("'snap' seems not to be installed")
             return False
@@ -124,10 +108,10 @@ class SnapManager(SoftwareManager):
 
         return ProcessHandler(watcher).handle_simple(snap.downgrade_and_stream(pkg.name, root_password))[0]
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> SystemProcess:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> SystemProcess:
         raise Exception(f"'upgrade' is not supported by {SnapManager.__class__.__name__}")
 
-    def uninstall(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
         if snap.is_installed() and snapd.is_running():
             uninstalled = ProcessHandler(watcher).handle_simple(snap.uninstall_and_stream(pkg.name, root_password))[0]
 
@@ -176,7 +160,7 @@ class SnapManager(SoftwareManager):
     def get_history(self, pkg: SnapApplication) -> PackageHistory:
         raise Exception(f"'get_history' is not supported by {pkg.__class__.__name__}")
 
-    def install(self, pkg: SnapApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: SnapApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         # retrieving all installed so it will be possible to know the additional installed runtimes after the operation succeeds
         if not snap.is_installed():
             watcher.print("'snap' seems not to be installed")
@@ -260,10 +244,10 @@ class SnapManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: SnapApplication) -> bool:
         return action not in (SoftwareAction.PREPARE, SoftwareAction.SEARCH)
 
-    def refresh(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def refresh(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(pkg.name, root_password))[0]
 
-    def change_channel(self, pkg: SnapApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def change_channel(self, pkg: SnapApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not self.context.internet_checker.is_available():
             raise NoInternetException()
 
@@ -299,7 +283,7 @@ class SnapManager(SoftwareManager):
             taskman.update_progress('snap_cats', 100, None)
             taskman.finish_task('snap_cats')
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()
@@ -367,8 +351,7 @@ class SnapManager(SoftwareManager):
                               confinement=app_json.get('confinement'),
                               app_type=app_json.get('type'),
                               app=is_application,
-                              installed_size=app_json.get('installed-size'),
-                              extra_actions=self.custom_actions)
+                              installed_size=app_json.get('installed-size'))
 
         if disk_loader and app.installed:
             disk_loader.fill(app)
@@ -440,8 +423,9 @@ class SnapManager(SoftwareManager):
             self.logger.info(f"Running '{pkg.name}': {cmd}")
             snap.run(cmd)
 
-    def get_screenshots(self, pkg: SnapApplication) -> List[str]:
-        return pkg.screenshots if pkg.has_screenshots() else []
+    def get_screenshots(self, pkg: SnapApplication) -> Generator[str, None, None]:
+        if pkg.screenshots:
+            yield from pkg.screenshots
 
     def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         snap_config = self.configman.get_config()

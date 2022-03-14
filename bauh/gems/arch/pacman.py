@@ -146,12 +146,14 @@ def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with w
     return pkgs
 
 
-def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, pkgdir: str = '.',
+def install_as_process(pkgpaths: Iterable[str], root_password: Optional[str], file: bool, pkgdir: str = '.',
                        overwrite_conflicting_files: bool = False, simulate: bool = False, as_deps: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-U'] if file else ['pacman', '-S']
     cmd.extend(pkgpaths)
 
-    if not simulate:
+    if simulate:
+        cmd.append('--confirm')
+    else:
         cmd.append('--noconfirm')
         cmd.append('-dd')
 
@@ -165,7 +167,7 @@ def install_as_process(pkgpaths: Iterable[str], root_password: str, file: bool, 
                          root_password=root_password,
                          cwd=pkgdir,
                          error_phrases={"error: failed to prepare transaction", 'error: failed to commit transaction', 'error: target not found'},
-                         shell=True)
+                         shell=False)
 
 
 def map_desktop_files(*pkgnames) -> Dict[str, List[str]]:
@@ -211,11 +213,11 @@ def verify_pgp_key(key: str) -> bool:
     return False
 
 
-def receive_key(key: str, root_password: str) -> SystemProcess:
+def receive_key(key: str, root_password: Optional[str]) -> SystemProcess:
     return SystemProcess(new_root_subprocess(['pacman-key', '-r', key], root_password=root_password), check_error_output=False)
 
 
-def sign_key(key: str, root_password: str) -> SystemProcess:
+def sign_key(key: str, root_password: Optional[str]) -> SystemProcess:
     return SystemProcess(new_root_subprocess(['pacman-key', '--lsign-key', key], root_password=root_password), check_error_output=False)
 
 
@@ -361,7 +363,7 @@ def read_dependencies(name: str) -> Set[str]:
     return depends_on
 
 
-def sync_databases(root_password: str, force: bool = False) -> SimpleProcess:
+def sync_databases(root_password: Optional[str], force: bool = False) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Sy{}'.format('y' if force else '')],
                          root_password=root_password)
 
@@ -469,15 +471,15 @@ def can_refresh_mirrors() -> bool:
     return is_mirrors_available()
 
 
-def refresh_mirrors(root_password: str) -> SimpleProcess:
+def refresh_mirrors(root_password: Optional[str]) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman-mirrors', '-g'], root_password=root_password)
 
 
-def update_mirrors(root_password: str, countries: List[str]) -> SimpleProcess:
+def update_mirrors(root_password: Optional[str], countries: List[str]) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman-mirrors', '-c', ','.join(countries)], root_password=root_password)
 
 
-def sort_fastest_mirrors(root_password: str, limit: int) -> SimpleProcess:
+def sort_fastest_mirrors(root_password: Optional[str], limit: int) -> SimpleProcess:
     cmd = ['pacman-mirrors', '--fasttrack']
 
     if limit > 0:
@@ -529,7 +531,7 @@ def get_installed_size(pkgs: List[str]) -> Dict[str, int]:  # bytes
     return {}
 
 
-def upgrade_system(root_password: str) -> SimpleProcess:
+def upgrade_system(root_password: Optional[str]) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
 
@@ -717,7 +719,7 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
     return res
 
 
-def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
+def upgrade_several(pkgnames: Iterable[str], root_password: Optional[str], overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-S', *pkgnames, '--noconfirm']
 
     if overwrite_conflicting_files:
@@ -732,14 +734,14 @@ def upgrade_several(pkgnames: Iterable[str], root_password: str, overwrite_confl
                          shell=True)
 
 
-def download(root_password: str, *pkgnames: str) -> SimpleProcess:
+def download(root_password: Optional[str], *pkgnames: str) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Swdd', *pkgnames, '--noconfirm', '--noprogressbar'],
                          root_password=root_password,
                          error_phrases={'error: failed to prepare transaction', 'error: failed to commit transaction', 'error: target not found'},
                          shell=True)
 
 
-def remove_several(pkgnames: Iterable[str], root_password: str, skip_checks: bool = False) -> SimpleProcess:
+def remove_several(pkgnames: Iterable[str], root_password: Optional[str], skip_checks: bool = False) -> SimpleProcess:
     cmd = ['pacman', '-R', *pkgnames, '--noconfirm']
 
     if skip_checks:

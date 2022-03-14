@@ -4,7 +4,7 @@ import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import List, Set, Type, Tuple, Optional, Generator
+from typing import List, Set, Type, Tuple, Optional, Generator, TypeVar
 
 import yaml
 
@@ -15,10 +15,12 @@ from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHisto
     CustomSoftwareAction
 from bauh.api.abstract.view import ViewComponent
 
+P = TypeVar('P', bound=SoftwarePackage)
+
 
 class SearchResult:
 
-    def __init__(self, installed: Optional[List[SoftwarePackage]], new: Optional[List[SoftwarePackage]], total: int):
+    def __init__(self, installed: Optional[List[P]], new: Optional[List[P]], total: int):
         """
         :param installed: already installed packages
         :param new: new packages found
@@ -40,8 +42,18 @@ class SearchResult:
         self.total = total
 
     @classmethod
-    def empty(cls):
+    def empty(cls) -> "SearchResult":
         return cls(installed=[], new=[], total=0)
+
+    def __eq__(self, other):
+        if isinstance(other, SearchResult):
+            if self.installed == other.installed:
+                return self.new == other.new
+
+        return False
+
+    def __hash__(self):
+        return hash(self.installed) + hash(self.new)
 
 
 class UpgradeRequirement:
@@ -69,7 +81,7 @@ class UpgradeRequirement:
 class UpgradeRequirements:
 
     def __init__(self, to_install: Optional[List[UpgradeRequirement]], to_remove: Optional[List[UpgradeRequirement]],
-                 to_upgrade: List[UpgradeRequirement], cannot_upgrade: Optional[List[UpgradeRequirement]]):
+                 to_upgrade: Optional[List[UpgradeRequirement]], cannot_upgrade: Optional[List[UpgradeRequirement]]):
         """
         :param to_install: additional packages that must be installed with the upgrade
         :param to_remove: non upgrading packages that should be removed due to conflicts with upgrading packages
@@ -143,7 +155,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def downgrade(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         """
         downgrades a package version
         :param pkg:
@@ -162,7 +174,7 @@ class SoftwareManager(ABC):
         if pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
             shutil.rmtree(pkg.get_disk_cache_path())
 
-    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         """
         return additional required software that needs to be installed / removed / updated before updating a list of packages
         :param pkgs:
@@ -172,7 +184,7 @@ class SoftwareManager(ABC):
         return UpgradeRequirements(None, None, [UpgradeRequirement(p) for p in pkgs], None)
 
     @abstractmethod
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         """
         :param requirements:
         :param root_password: the root user password (if required)
@@ -182,7 +194,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher, disk_loader: Optional[DiskCacheLoader]) -> TransactionResult:
+    def uninstall(self, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: Optional[DiskCacheLoader]) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -217,7 +229,7 @@ class SoftwareManager(ABC):
         pass
 
     @abstractmethod
-    def install(self, pkg: SoftwarePackage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: SoftwarePackage, root_password: Optional[str], disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         """
         :param pkg:
         :param root_password: the root user password (if required)
@@ -334,7 +346,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         """
         At the moment the GUI implements this action. No need to implement it yourself.
         :param action:
@@ -355,10 +367,9 @@ class SoftwareManager(ABC):
     def launch(self, pkg: SoftwarePackage):
         pass
 
-    @abstractmethod
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
+    def get_screenshots(self, pkg: SoftwarePackage) -> Generator[str, None, None]:
         """
-        :return: screenshot urls for the given package
+        :return: yields screenshot urls for the given package
         """
         pass
 

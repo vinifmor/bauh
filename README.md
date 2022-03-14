@@ -1,6 +1,6 @@
 [![GitHub release](https://img.shields.io/github/release/vinifmor/bauh.svg?label=Release)](https://github.com/vinifmor/bauh/releases/) [![PyPI](https://img.shields.io/pypi/v/bauh?label=PyPI)](https://pypi.org/project/bauh) [![AUR](https://img.shields.io/aur/version/bauh?label=AUR)](https://aur.archlinux.org/packages/bauh) [![AUR-staging](https://img.shields.io/aur/version/bauh-staging?label=AUR-staging)](https://aur.archlinux.org/packages/bauh-staging) [![License](https://img.shields.io/github/license/vinifmor/bauh?label=License)](https://github.com/vinifmor/bauh/blob/master/LICENSE) [![kofi](https://img.shields.io/badge/Ko--Fi-Donate-orange?style=flat&logo=ko-fi)](https://ko-fi.com/vinifmor) [![Follow on Twitter](https://img.shields.io/twitter/follow/bauh4linux?style=social&label=Twitter)](https://twitter.com/bauh4linux)
 
-**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux repositories/AUR, Flatpak, Snap and Web applications.
+**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux repositories/AUR, Debian packages, Flatpak, Snap and Web applications.
 
 Key features
 - A management panel where you can: search, install, uninstall, upgrade, downgrade and launch you applications (and more...)
@@ -26,6 +26,7 @@ Key features
 6. [Supported types](#types)
     - [AppImage](#type_appimage)
     - [Arch packages/AUR](#type_arch)
+    - [Debian](#type_deb)
     - [Flatpak](#type_flatpak)
     - [Snap](#type_snap)
     - [Native Web applications](#type_web)
@@ -50,6 +51,7 @@ Key features
 
 ##### Required dependencies
 - `fuse`: the package name may vary from distribution
+- `qt5dxcb-plugin` (or equivalent): the package name may vary from distribution
 
 ##### Steps
 - Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases.
@@ -69,6 +71,7 @@ Key features
 
 ##### Optional dependencies (they should be installed with apt-get/apt)
 
+- `aptitude`: Debian package management
 - `timeshift`: system backup
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
@@ -202,6 +205,7 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
     - `Install AppImage file`: allows to install an external AppImage file
     - `Upgrade file`: allows to upgrade a manually installed AppImage file
     - `Update database`: manually synchronize the AppImage database
+    - `Install bauh`: installs bauh if it is running as an AppImage
 
 - Installed applications are store at `~/.local/share/bauh/appimage/installed` (or `/usr/local/share/bauh/installed` for **root**)
 - Desktop entries (menu shortcuts) of the installed applications are stored at `~/.local/share/applications` (or `/usr/share/applications` for **root**). Name pattern: `bauh_appimage_appname.desktop`
@@ -285,6 +289,22 @@ aur_rebuild_detector: true # it checks if packages built with old library versio
 prefer_repository_provider: true  # when there is just one repository provider for a given a dependency and several from AUR, it will be automatically picked.
 ```
 
+##### <a name="type_deb">Debian packages<a>
+- Basic actions supported: **search**, **install**, **uninstall**, **upgrade**
+- Custom actions supported:
+   - **synchronize packages**: synchronize the available packages on the repository (`aptitude update`)
+   - **index applications**: maps runnable installed packages (automatically done during initialization)
+   - **software sources**: launches the application responsible for managing software sources (at the moment only `software-properties-gtk` is supported) 
+- Custom package actions supported: 
+  - **purge**: removes the packages and all related configuration files
+- Files:
+  - runnable applications index: `~/.cache/bauh/debian/apps_idx.json` (or `/var/cache/bauh/debian/apps_idx.json` for **root**)
+  - package suggestions: `~/.cache/bauh/debian/suggestions.txt` (or `/var/cache/bauh/debian/suggestions.txt` for **root**)
+  - configuration: `~/.config/bauh/debian.yml` or `/etc/bauh/debian.yml`
+    - `index_apps.exp`: time period (**in minutes**) in which the installed applications cache is considered up-to-date during startup (default: `1440` -> 24 hours)
+    - `sync_pkgs.time`: time period (**in minutes**) in which the packages synchronization must be done on startup (default: `1440` -> 24 hours)
+    - `suggestions.exp`: it defines the period (**in hours**) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
+    - `pkg_sources.app`: it defines the application for managing the software sources. A `null` value detects one of the supported applications automatically.
 
 ##### <a name="type_flatpak">Flatpak</a>
 
@@ -409,7 +429,7 @@ ui:
   theme: defines the path to the theme/stylesheet file with a .qss extension (e.g: /path/to/my/theme.qss). For themes provided by bauh, only a string key is needed (e.g: light). Default: light
   system_theme: merges the system's theme/stylesheet with bauh's. Default: false.
 updates:
-  check_interval: 30  # the updates checking interval in SECONDS
+  check_interval: 5  # the updates checking interval in minutes
   ask_for_reboot: true  # if a dialog asking for a system reboot should be displayed after a successful upgrade
 disk:
     trim:

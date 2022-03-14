@@ -26,7 +26,7 @@ class ValidatePassword(QThread):
         self.password = password
 
     def run(self):
-        if self.password is not None:
+        if isinstance(self.password, str):
             try:
                 valid = validate_password(self.password)
             except:
@@ -91,9 +91,9 @@ class RootDialog(QDialog):
         self.validate_password.signal_valid.connect(self._handle_password_validated)
 
     def _validate_password(self):
-        password = self.input_password.text().strip()
+        password = self.input_password.text()
 
-        if password:
+        if isinstance(password, str):
             self.password = password
             self.tries += 1
             self.bt_ok.setEnabled(False)
@@ -135,7 +135,7 @@ class RootDialog(QDialog):
 
         store_password = bool(current_config['store_root_password'])
 
-        if store_password and context.root_password and validate_password(context.root_password):
+        if store_password and isinstance(context.root_password, str) and validate_password(context.root_password):
             return True, context.root_password
 
         if comp_manager:
@@ -149,7 +149,7 @@ class RootDialog(QDialog):
         if comp_manager:
             comp_manager.restore_state(ACTION_ASK_ROOT)
 
-        if password is not None and store_password:
+        if isinstance(password, str) and store_password:
             context.root_password = password
 
         return (True, password) if diag.valid else (False, None)

@@ -4,6 +4,89 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.0] 2022-03-14
+
+### Features
+- Debian
+  - allowing Debian packages to be managed
+    - required dependencies: **aptitude** 
+    - basic actions supported: **search**, **install**, **uninstall**, **upgrade**
+    - custom actions supported:
+      - **synchronize packages**: synchronize the available packages on the repository (`aptitude update`)
+      - **index applications**: maps runnable installed packages (automatically done during initialization)
+      - **software sources**: launches the application responsible for managing software sources (at the moment only `software-properties-gtk` is supported)
+    - custom package actions supported: 
+      - **purge**: removes the packages and all related configuration files
+    
+    <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/deb_man.png">
+    </p>
+
+- AppImage
+  - new custom action to self install bauh if it is running as an AppImage
+  
+  <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png">
+  </p>
+
+- Arch
+  - AUR:
+    - able to filter orphan packages by the new "orphan" category [#236](https://github.com/vinifmor/bauh/issues/236)
+    - able to filter outdated packages by the new "out of date" category [#236](https://github.com/vinifmor/bauh/issues/236)
+
+### Improvements
+- General
+  - minor memory improvements
+  - code refactoring
+  - update checking interval on tray mode is now measured **in minutes** instead of seconds (default: 5)
+
+- Arch
+  - info dialog: 
+    - displaying the "executable" field if the package is recognized as an application
+    - displaying "description" and "version" as primary fields for repository packages
+    - displaying the "out of date" field for AUR packages [#236](https://github.com/vinifmor/bauh/issues/236)
+    - displaying the "orphan" field for AUR packages [#236](https://github.com/vinifmor/bauh/issues/236)
+  - removing the "%U" parameter before launching applications to prevent error messages
+  - minor code refactoring
+
+- Flatpak
+  - cli/tray: removed some unneeded API calls when listing updates [#234](https://github.com/vinifmor/bauh/issues/234)
+
+- UI
+  - search: 
+    - sorting packages by closest match instead of considering installed first
+    - new "Installed" filter
+    <p align="center">
+          <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/installed_filter.png">
+    </p>
+
+  - upgrade summary dialog size
+  - displaying tips for some custom actions (on mouse hover)
+  - screenshots: displaying the current image index as a label in the button bar (e.g: 1/3)
+  - some unneeded cursor icons removed from the apps table
+  - some icons replaced
+
+- Distribution
+  - AppImage: -~9% size reduction (96.32 MB ->  88.16 MB) 
+
+### Fixes
+- General
+  - not accepting blank root passwords [#235](https://github.com/vinifmor/bauh/issues/235)
+  - human-readable sizes (packages, files, updates, ...)
+
+- AppImage
+  - info: displaying attributes related to the installation after the application has been removed (search)
+  - history: not properly sorting releases by version
+
+- Arch:
+  - AUR:
+    - info: exception when trying to retrieve the PKGBUILD of a package without a base defined
+
+- UI
+  - some package icons would not appear if there is no URL associated with them
+  - info: not displaying boolean fields
+  
+
 ## [0.9.28] 2022-02-14
 
 ### Fixes

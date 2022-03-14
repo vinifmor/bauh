@@ -79,16 +79,13 @@ class UpdateCheck(QThread):
         self.logger = logger
 
     def _notify_updates(self):
-        self.lock.acquire()
-        try:
+        with self.lock:
             updates = list_updates(self.logger)
 
             if updates is not None:
                 self.signal.emit(updates)
-        finally:
-            self.lock.release()
 
-        self.sleep(self.check_interval)
+        self.sleep(int(self.check_interval * 60))
 
     def run(self):
         while True:
@@ -179,7 +176,7 @@ class TrayIcon(QSystemTrayIcon):
         self.check_thread.signal.connect(self.notify_updates)
         self.check_thread.start()
 
-        self.recheck_thread = UpdateCheck(check_interval=2, check_file=True, lock=self.check_lock, logger=logger)
+        self.recheck_thread = UpdateCheck(check_interval=5, check_file=True, lock=self.check_lock, logger=logger)
         self.recheck_thread.signal.connect(self.notify_updates)
         self.recheck_thread.start()
 

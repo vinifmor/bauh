@@ -54,21 +54,38 @@ class GenericSoftwareManager(SoftwareManager):
         self.settings_manager = settings_manager
         self.http_client = context.http_client
         self.configman = CoreConfigManager()
-        self.extra_actions = (CustomSoftwareAction(i18n_label_key='action.reset',
-                                                   i18n_status_key='action.reset.status',
-                                                   manager_method='reset',
-                                                   manager=self,
-                                                   icon_path=resource.get_path('img/logo.svg'),
-                                                   requires_root=False,
-                                                   refresh=False),)
-        self.dynamic_extra_actions: Dict[CustomSoftwareAction, Callable[[dict], bool]] = {
-            CustomSoftwareAction(i18n_label_key='action.backups',
-                                 i18n_status_key='action.backups.status',
-                                 manager_method='launch_timeshift',
-                                 manager=self,
-                                 icon_path='timeshift',
-                                 requires_root=False,
-                                 refresh=False): self.is_backups_action_available}
+        self._action_reset: Optional[CustomSoftwareAction] = None
+        self._dynamic_extra_actions: Optional[Dict[CustomSoftwareAction, Callable[[dict], bool]]] = None
+
+    @property
+    def dynamic_extra_actions(self) -> Dict[CustomSoftwareAction, Callable[[dict], bool]]:
+        if self._dynamic_extra_actions is None:
+            self._dynamic_extra_actions = {
+                CustomSoftwareAction(i18n_label_key='action.backups',
+                                     i18n_status_key='action.backups.status',
+                                     i18n_description_key='action.backups.desc',
+                                     manager_method='launch_timeshift',
+                                     manager=self,
+                                     icon_path='timeshift',
+                                     requires_root=False,
+                                     refresh=False): self.is_backups_action_available
+            }
+
+        return self._dynamic_extra_actions
+
+    @property
+    def action_reset(self) -> CustomSoftwareAction:
+        if self._action_reset is None:
+            self._action_reset = CustomSoftwareAction(i18n_label_key='action.reset',
+                                                      i18n_status_key='action.reset.status',
+                                                      i18n_description_key='action.reset.desc',
+                                                      manager_method='reset',
+                                                      icon_path=resource.get_path('img/logo.svg'),
+                                                      requires_root=False,
+                                                      manager=self,
+                                                      refresh=False)
+
+        return self._action_reset
 
     def _is_timeshift_launcher_available(self) -> bool:
         return bool(shutil.which('timeshift-launcher'))
@@ -81,7 +98,7 @@ class GenericSoftwareManager(SoftwareManager):
             self._available_cache = {}
             self.working_managers.clear()
 
-    def launch_timeshift(self, root_password: str, watcher: ProcessWatcher):
+    def launch_timeshift(self, root_password: Optional[str], watcher: ProcessWatcher):
         if self._is_timeshift_launcher_available():
             try:
                 Popen(['timeshift-launcher'], stderr=STDOUT)
@@ -97,27 +114,6 @@ class GenericSoftwareManager(SoftwareManager):
                                  body=self.i18n['action.backups.tool_error'].format(bold('Timeshift')),
                                  type_=MessageType.ERROR)
             return False
-
-    def _sort(self, apps: List[SoftwarePackage], word: str) -> List[SoftwarePackage]:
-
-        exact_name_matches, contains_name_matches, others = [], [], []
-
-        for app in apps:
-            lower_name = app.name.lower()
-
-            if word == lower_name:
-                exact_name_matches.append(app)
-            elif word in lower_name:
-                contains_name_matches.append(app)
-            else:
-                others.append(app)
-
-        res = []
-        for app_list in (exact_name_matches, contains_name_matches, others):
-            app_list.sort(key=lambda a: a.name.lower())
-            res.extend(app_list)
-
-        return res
 
     def _can_work(self, man: SoftwareManager):
         if self._available_cache is not None:
@@ -146,7 +142,7 @@ class GenericSoftwareManager(SoftwareManager):
     def _search(self, word: str, is_url: bool, man: SoftwareManager, disk_loader, res: SearchResult):
         if self._can_work(man):
             mti = time.time()
-            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url)
+            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url, limit=-1)
             mtf = time.time()
             self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.8f} seconds')
 
@@ -180,8 +176,8 @@ class GenericSoftwareManager(SoftwareManager):
                 disk_loader.stop_working()
                 disk_loader.join()
 
-            res.installed = self._sort(res.installed, norm_word)
-            res.new = self._sort(res.new, norm_word)
+            # res.installed = self._sort(res.installed, norm_word)
+            # res.new = self._sort(res.new, norm_word)
         else:
             raise NoInternetException()
 
@@ -256,7 +252,7 @@ class GenericSoftwareManager(SoftwareManager):
                     if p.categories is None:
                         p.categories = ['updates_ignored']
                     elif 'updates_ignored' not in p.categories:
-                        p.categories.append('updates_ignored')
+                        self._add_category(p, 'updates_ignored')
 
             res.installed.sort(key=self._get_package_lower_name)
 
@@ -264,7 +260,15 @@ class GenericSoftwareManager(SoftwareManager):
         self.logger.info(f'Took {tf - ti:.2f} seconds')
         return res
 
-    def downgrade(self, app: SoftwarePackage, root_password: str, handler: ProcessWatcher) -> bool:
+    def _add_category(self, pkg: SoftwarePackage,  category: str):
+        if isinstance(pkg.categories, tuple):
+            pkg.categories = tuple((*pkg.categories, category))
+        elif isinstance(pkg.categories, list):
+            pkg.categories.append(category)
+        elif isinstance(pkg.categories, set):
+            pkg.categories.add(category)
+
+    def downgrade(self, app: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         man = self._get_manager_for(app)
 
         if man and app.can_be_downgraded():
@@ -282,7 +286,7 @@ class GenericSoftwareManager(SoftwareManager):
         if man:
             return man.clean_cache_for(app)
 
-    def upgrade(self, requirements: GenericUpgradeRequirements, root_password: str, handler: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: GenericUpgradeRequirements, root_password: Optional[str], handler: ProcessWatcher) -> bool:
         for man, man_reqs in requirements.sub_requirements.items():
             res = man.upgrade(man_reqs, root_password, handler)
 
@@ -307,7 +311,7 @@ class GenericSoftwareManager(SoftwareManager):
                 for p in res.removed:
                     self._fill_post_transaction_status(p, False)
 
-    def uninstall(self, pkg: SoftwarePackage, root_password: str, handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+    def uninstall(self, pkg: SoftwarePackage, root_password: Optional[str], handler: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         man = self._get_manager_for(pkg)
 
         if man:
@@ -328,7 +332,7 @@ class GenericSoftwareManager(SoftwareManager):
                 tf = time.time()
                 self.logger.info(f'Uninstallation of {pkg} took {(tf - ti) / 60:.2f} minutes')
 
-    def install(self, app: SoftwarePackage, root_password: str, disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
+    def install(self, app: SoftwarePackage, root_password: Optional[str], disk_loader: DiskCacheLoader, handler: ProcessWatcher) -> TransactionResult:
         man = self._get_manager_for(app)
 
         if man:
@@ -401,7 +405,7 @@ class GenericSoftwareManager(SoftwareManager):
             if man:
                 return man.requires_root(action, app)
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         ti = time.time()
         self.logger.info("Initializing")
         taskman = task_manager if task_manager else TaskManager()  # empty task manager to prevent null pointers
@@ -499,7 +503,7 @@ class GenericSoftwareManager(SoftwareManager):
                 return suggestions
         return []
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: str, watcher: ProcessWatcher):
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher):
         if action.requires_internet and not self.context.is_internet_available():
             raise NoInternetException()
 
@@ -520,11 +524,11 @@ class GenericSoftwareManager(SoftwareManager):
             self.logger.info(f'Launching {pkg}')
             man.launch(pkg)
 
-    def get_screenshots(self, pkg: SoftwarePackage):
+    def get_screenshots(self, pkg: SoftwarePackage) -> Generator[str, None, None]:
         man = self._get_manager_for(pkg)
 
         if man:
-            return man.get_screenshots(pkg)
+            yield from man.get_screenshots(pkg)
 
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
@@ -565,7 +569,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         return by_manager
 
-    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[SoftwarePackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         by_manager = self._map_pkgs_by_manager(pkgs)
         res = GenericUpgradeRequirements([], [], [], [], {})
 
@@ -595,7 +599,7 @@ class GenericSoftwareManager(SoftwareManager):
 
         return res
 
-    def reset(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def reset(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         body = f"<p>{self.i18n['action.reset.body_1'].format(bold(self.context.app_name))}</p>" \
                f"<p>{self.i18n['action.reset.body_2']}</p>"
 
@@ -625,6 +629,7 @@ class GenericSoftwareManager(SoftwareManager):
 
                 for man in working_managers:
                     for action in man.gen_custom_actions():
+                        action.manager = man
                         yield action
 
         app_config = self.configman.get_config()
@@ -633,8 +638,7 @@ class GenericSoftwareManager(SoftwareManager):
             if available(app_config):
                 yield action
 
-        for action in self.extra_actions:
-            yield action
+        yield self.action_reset
 
     def _fill_sizes(self, man: SoftwareManager, pkgs: List[SoftwarePackage]):
         ti = time.time()
@@ -666,7 +670,7 @@ class GenericSoftwareManager(SoftwareManager):
                 if pkg.categories is None:
                     pkg.categories = ['updates_ignored']
                 elif 'updates_ignored' not in pkg.categories:
-                    pkg.categories.append('updates_ignored')
+                    self._add_category(pkg, 'updates_ignored')
 
     def revert_ignored_update(self, pkg: SoftwarePackage):
         manager = self._get_manager_for(pkg)
@@ -675,4 +679,7 @@ class GenericSoftwareManager(SoftwareManager):
             manager.revert_ignored_update(pkg)
 
             if not pkg.is_update_ignored() and pkg.categories and 'updates_ignored' in pkg.categories:
-                pkg.categories.remove('updates_ignored')
+                if isinstance(pkg.categories, tuple):
+                    pkg.categories = tuple(c for c in pkg.categories if c != 'updates_ignored')
+                else:
+                    pkg.categories.remove('updates_ignored')

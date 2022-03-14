@@ -1,4 +1,21 @@
+import logging
+from abc import ABC
 from datetime import datetime
+from logging import Logger
+from typing import Optional
+
+
+class NullLoggerFactory(ABC):
+
+    __instance: Optional[Logger] = None
+
+    @classmethod
+    def logger(cls) -> Logger:
+        if cls.__instance is None:
+            cls.__instance = logging.getLogger('__null__')
+            cls.__instance.addHandler(logging.NullHandler())
+
+        return cls.__instance
 
 
 def deep_update(source: dict, overrides: dict):
@@ -17,15 +34,17 @@ def size_to_byte(size: float, unit: str) -> int:
     if lower_unit[0] == 'b':
         final_size = size
     elif lower_unit[0] == 'k':
-        final_size = size * 1000
+        final_size = size * 1024
     elif lower_unit[0] == 'm':
-        final_size = size * 1000000
+        final_size = size * (1024 ** 2)
+    elif lower_unit[0] == 'g':
+        final_size = size * (1024 ** 3)
     elif lower_unit[0] == 't':
-        final_size = size * 1000000000000
+        final_size = size * (1024 ** 4)
     else:
-        final_size = size * 1000000000000000
+        final_size = size * (1024 ** 5)
 
-    return int(final_size)
+    return round(final_size)
 
 
 def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:

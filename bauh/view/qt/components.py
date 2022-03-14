@@ -521,6 +521,9 @@ class MultipleSelectQt(QGroupBox):
         self._layout = QGridLayout()
         self.setLayout(self._layout)
 
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(int(model.min_width))
+
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
 
@@ -578,6 +581,9 @@ class FormMultipleSelectQt(QWidget):
         super(FormMultipleSelectQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(int(model.min_width))
 
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
@@ -707,6 +713,9 @@ class FormQt(QGroupBox):
         self.i18n = i18n
         self.setLayout(QFormLayout())
 
+        if model.min_width and model.min_width > 0:
+            self.setMinimumWidth(model.min_width)
+
         if model.spaces:
             self.layout().addRow(QLabel(), QLabel())
 
@@ -759,6 +768,9 @@ class FormQt(QGroupBox):
         label.setLayout(QHBoxLayout())
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
+
+        if hasattr(comp, 'min_width') and comp.min_width is not None and comp.min_width > 0:
+            label_comp.setMinimumWidth(comp.min_width)
 
         if hasattr(comp, 'size') and comp.size is not None:
             label_comp.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
@@ -983,6 +995,12 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         return TwoStateButtonQt(comp)
     elif isinstance(comp, TextComponent):
         label = QLabel(comp.value)
+
+        if comp.min_width is not None and comp.min_width > 0:
+            label.setMinimumWidth(comp.min_width)
+
+        if comp.max_width is not None and comp.max_width > 0:
+            label.setMinimumWidth(comp.max_width)
 
         if comp.size is not None:
             label.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")

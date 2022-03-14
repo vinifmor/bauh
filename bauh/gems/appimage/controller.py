@@ -13,6 +13,7 @@ from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
 from packaging.version import parse as parse_version
+from packaging.version import LegacyVersion
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
@@ -79,14 +80,11 @@ class AppImageManager(SoftwareManager):
         self.file_downloader = context.file_downloader
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
-        self.custom_app_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.manual_update',
-                                                        i18n_status_key='appimage.custom_action.manual_update.status',
-                                                        manager_method='update_file',
-                                                        requires_root=False,
-                                                        icon_path=resource.get_path('img/upgrade.svg', ROOT_DIR),
-                                                        requires_confirmation=False),)
+        self._action_self_install: Optional[CustomSoftwareAction] = None
+        self._app_github: Optional[str] = None
+        self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
 
-    def install_file(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def install_file(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
@@ -121,7 +119,7 @@ class AppImageManager(SoftwareManager):
             else:
                 return False
 
-        appim = AppImage(i18n=self.i18n, imported=True, custom_actions=self.custom_app_actions)
+        appim = AppImage(i18n=self.i18n, imported=True)
         appim.name = input_name.get_value().strip()
         appim.local_file_path = file_chooser.file_path
         appim.version = input_version.get_value()
@@ -140,7 +138,7 @@ class AppImageManager(SoftwareManager):
 
         return res
 
-    def update_file(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher):
+    def update_file(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher):
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
                                             search_path=get_default_manual_installation_file_dir())
@@ -198,7 +196,7 @@ class AppImageManager(SoftwareManager):
 
             idx = 0
             for r in cursor.fetchall():
-                app = AppImage(*r, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                app = AppImage(*r, i18n=self.i18n)
                 not_installed.append(app)
                 found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                 idx += 1
@@ -223,6 +221,11 @@ class AppImageManager(SoftwareManager):
                     new_found = found_map.get(key)
 
                     if new_found:
+                        if not appim.imported:
+                            for attr in self.search_unfilled_attrs:
+                                if getattr(appim, attr) is None:
+                                    setattr(appim, attr, getattr(new_found['app'], attr))
+
                         del not_installed[new_found['idx']]
                         installed_found.append(appim)
                         found = True
@@ -250,7 +253,7 @@ class AppImageManager(SoftwareManager):
                 for path in installed:
                     if path:
                         with open(path) as f:
-                            app = AppImage(installed=True, i18n=self.i18n, custom_actions=self.custom_app_actions, **json.loads(f.read()))
+                            app = AppImage(installed=True, i18n=self.i18n, **json.loads(f.read()))
                             app.icon_url = app.icon_path
 
                         installed_apps.append(app)
@@ -304,7 +307,7 @@ class AppImageManager(SoftwareManager):
         res.total = len(res.installed)
         return res
 
-    def downgrade(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         versions = self.get_history(pkg)
 
         if len(versions.history) == 1:
@@ -348,7 +351,7 @@ class AppImageManager(SoftwareManager):
 
             return False
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         not_upgraded = []
 
         for req in requirements.to_upgrade:
@@ -387,7 +390,7 @@ class AppImageManager(SoftwareManager):
         watcher.change_substatus('')
         return not all_failed
 
-    def uninstall(self, pkg: AppImage, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
+    def uninstall(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader = None) -> TransactionResult:
         if os.path.exists(pkg.get_disk_cache_path()):
             handler = ProcessHandler(watcher)
 
@@ -414,7 +417,21 @@ class AppImageManager(SoftwareManager):
                 if watcher:
                     watcher.print(f"[error] {msg}")
 
+        self._add_self_latest_version(pkg)  # only for self installation
         return TransactionResult(success=True, installed=None, removed=[pkg])
+
+    def _add_self_latest_version(self, app: AppImage):
+        if app.name == self.context.app_name and app.github == self.app_github and not app.url_download_latest_version:
+            history = self.get_history(app)
+
+            if not history or not history.history:
+                self.logger.warning(f"Could not retrieve '{app.name}' versions. "
+                                    f"It will not be possible to determine the current latest version")
+            else:
+                app.version = history.history[0]['0_version']
+                app.latest_version = app.version
+                app.url_download = history.history[0]['2_url_download']
+                app.url_download_latest_version = app.url_download
 
     def get_managed_types(self) -> Set[Type[SoftwarePackage]]:
         return {AppImage}
@@ -424,6 +441,11 @@ class AppImageManager(SoftwareManager):
 
     def get_info(self, pkg: AppImage) -> dict:
         data = pkg.get_data_to_cache()
+
+        if not pkg.installed:
+            for key in ('install_dir', 'symlink', 'icon_path'):
+                if key in data:
+                    del data[key]
 
         if data.get('url_download'):
             size = self.http_client.get_content_length(data['url_download'])
@@ -439,6 +461,9 @@ class AppImageManager(SoftwareManager):
             del data['symlink']
 
         return data
+
+    def _sort_release(self, rel: tuple):
+        return rel[0]
 
     def get_history(self, pkg: AppImage) -> PackageHistory:
         history = []
@@ -477,12 +502,16 @@ class AppImageManager(SoftwareManager):
             releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
 
             if releases:
-                for idx, tup in enumerate(releases):
-                    history.append({'0_version': tup[0],
+                treated_releases = [(LegacyVersion(r[0]), *r[1:]) for r in releases]
+                treated_releases.sort(key=self._sort_release, reverse=True)
+
+                for idx, tup in enumerate(treated_releases):
+                    ver = str(tup[0])
+                    history.append({'0_version': ver,
                                     '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[
                                         2] else '', '2_url_download': tup[1]})
 
-                    if res.pkg_status_idx == -1 and pkg.version == tup[0]:
+                    if res.pkg_status_idx == -1 and pkg.version == ver:
                         res.pkg_status_idx = idx
 
                 return res
@@ -536,10 +565,11 @@ class AppImageManager(SoftwareManager):
 
         return file_name, file_path
 
-    def install(self, pkg: AppImage, root_password: str, disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: AppImage, root_password: Optional[str], disk_loader: Optional[DiskCacheLoader], watcher: ProcessWatcher) -> TransactionResult:
         return self._install(pkg=pkg, watcher=watcher)
 
-    def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None):
+    def _install(self, pkg: AppImage, watcher: ProcessWatcher, pre_downloaded_file: Optional[Tuple[str, str]] = None) \
+            -> TransactionResult:
 
         handler = ProcessHandler(watcher)
         out_dir = f'{INSTALLATION_DIR}/{pkg.get_clean_name()}'
@@ -696,7 +726,7 @@ class AppImageManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: AppImage) -> bool:
         return False
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         create_config = CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                                          task_icon_path=get_icon_path(), logger=self.logger)
         create_config.start()
@@ -768,7 +798,7 @@ class AppImageManager(SoftwareManager):
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join([f"'{s}'" for s in sugs_map.keys()])))
 
                     for t in cursor.fetchall():
-                        app = AppImage(*t, i18n=self.i18n, custom_actions=self.custom_app_actions)
+                        app = AppImage(*t, i18n=self.i18n)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
                     self.logger.info(f"Mapped {len(res)} suggestions")
                 except:
@@ -795,11 +825,9 @@ class AppImageManager(SoftwareManager):
     def cache_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         self.serialize_to_disk(pkg, icon_bytes, only_icon)
 
-    def get_screenshots(self, pkg: AppImage) -> List[str]:
-        if pkg.has_screenshots():
-            return [pkg.url_screenshot]
-
-        return []
+    def get_screenshots(self, pkg: AppImage) -> Generator[str, None, None]:
+        if pkg.url_screenshot:
+            yield pkg.url_screenshot
 
     def clear_data(self, logs: bool = True):
         for f in glob.glob(f'{APPIMAGE_SHARED_DIR}/*.db'):
@@ -855,6 +883,7 @@ class AppImageManager(SoftwareManager):
         if self._custom_actions is None:
             self._custom_actions = (CustomSoftwareAction(i18n_label_key='appimage.custom_action.install_file',
                                                          i18n_status_key='appimage.custom_action.install_file.status',
+                                                         i18n_description_key='appimage.custom_action.install_file.desc',
                                                          manager=self,
                                                          manager_method='install_file',
                                                          icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
@@ -862,14 +891,19 @@ class AppImageManager(SoftwareManager):
                                                          requires_confirmation=False),
                                     CustomSoftwareAction(i18n_label_key='appimage.custom_action.update_db',
                                                          i18n_status_key='appimage.custom_action.update_db.status',
+                                                         i18n_description_key='appimage.custom_action.update_db.desc',
                                                          manager=self,
                                                          manager_method='update_database',
                                                          icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
                                                          requires_root=False,
                                                          requires_internet=True))
+
+        if self._get_self_appimage_running() and not self._is_self_installed():
+            yield self.action_self_install
+
         yield from self._custom_actions
 
-    def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[AppImage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         to_update = []
 
         for pkg in pkgs:
@@ -931,9 +965,114 @@ class AppImageManager(SoftwareManager):
 
         pkg.updates_ignored = False
 
-    def update_database(self, root_password: str, watcher: ProcessWatcher) -> bool:
+    def update_database(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         db_updater = DatabaseUpdater(i18n=self.i18n, http_client=self.context.http_client,
                                      logger=self.context.logger, watcher=watcher, taskman=TaskManager())
 
         res = db_updater.download_databases()
         return res
+
+    @property
+    def search_unfilled_attrs(self) -> Tuple[str, ...]:
+        if self._search_unfilled_attrs is None:
+            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'github',
+                                           'source', 'url_screenshot')
+
+        return self._search_unfilled_attrs
+
+    def self_install(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
+        file_path = self._get_self_appimage_running()
+
+        if not file_path:
+            return False
+
+        if self._is_self_installed():
+            return False
+
+        app = AppImage(name=self.context.app_name, version=self.context.app_version,
+                       categories=['system'], author=self.context.app_name, github=self.app_github,
+                       license='zlib/libpng')
+
+        res = self._install(pkg=app, watcher=watcher,
+                            pre_downloaded_file=(os.path.basename(file_path), file_path))
+        if res.success:
+            app.installed = True
+
+            de_path = self._gen_desktop_entry_path(app)
+
+            if de_path and os.path.exists(de_path):
+                with open(de_path) as f:
+                    bauh_entry = f.read()
+
+                if bauh_entry:
+                    comments = re.compile(r'Comment(\[\w+])?\s*=\s*(.+)').findall(bauh_entry)
+
+                    if comments:
+                        locale = f'{self.i18n.current_key}' if self.i18n.current_key != self.i18n.default_key else None
+
+                        for key, desc in comments:
+                            if desc:
+                                if not key:
+                                    app.description = desc  # default description
+
+                                    if not locale:
+                                        break
+
+                                elif key == locale:
+                                    app.description = desc  # localized description
+                                    break
+                    else:
+                        self.context.logger.warning(f"Could not find the 'Comment' fields from {self.context.app_name}'s desktop entry")
+                else:
+                    self.context.logger.warning(f"{self.context.app_name} desktop entry is empty. Is is not possible to determine the 'description' field")
+
+            else:
+                self.context.logger.warning(f"{self.context.app_name} desktop file not found ({de_path}). It is not possible to determine the 'description' field")
+
+            self.cache_to_disk(app, None, False)
+
+        return res.success
+
+    def _is_self_installed(self) -> bool:
+        return os.path.exists(f'{INSTALLATION_DIR}/{self.context.app_name}/data.json')
+
+    def _get_self_appimage_running(self) -> Optional[str]:
+        file = os.getenv('APPIMAGE')
+
+        if not file:
+            return
+
+        app_exec = os.getenv('APPRUN_STARTUP_EXEC_ARGS')
+
+        if not app_exec:
+            return
+
+        if os.path.basename(app_exec).split(' ')[0] != self.context.app_name:
+            return
+
+        if not os.path.exists(file):
+            return
+
+        return file
+
+    @property
+    def action_self_install(self) -> CustomSoftwareAction:
+        if self._action_self_install is None:
+            self._action_self_install = CustomSoftwareAction(i18n_label_key='appimage.custom_action.self_install',
+                                                             i18n_status_key='appimage.custom_action.self_install.status',
+                                                             i18n_description_key='appimage.custom_action.self_install.desc',
+                                                             manager=self,
+                                                             manager_method='self_install',
+                                                             icon_path=resource.get_path('img/appimage.svg', ROOT_DIR),
+                                                             requires_root=False,
+                                                             refresh=True,
+                                                             requires_internet=False)
+
+        return self._action_self_install
+
+    @property
+    def app_github(self) -> str:
+        if self._app_github is None:
+            self._app_github = f'vinifmor/{self.context.app_name}'
+
+        return self._app_github

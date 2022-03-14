@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
@@ -40,6 +40,7 @@ class AURDataMapper:
         pkg.votes = api_data.get('NumVotes')
         pkg.maintainer = api_data.get('Maintainer')
         pkg.url_download = URL_PKG_DOWNLOAD.format(api_data['URLPath']) if api_data.get('URLPath') else None
+        pkg.out_of_date = bool(api_data.get('OutOfDate'))
 
         if api_data['FirstSubmitted'] and isinstance(api_data['FirstSubmitted'], int):
             pkg.first_submitted = api_data['FirstSubmitted']
@@ -71,12 +72,15 @@ class AURDataMapper:
             with open(cached_pkgbuild) as f:
                 pkg.pkgbuild = f.read()
         else:
-            res = self.http_client.get(pkg.get_pkg_build_url())
+            url = pkg.get_pkg_build_url()
 
-            if res and res.status_code == 200 and res.text:
-                pkg.pkgbuild = res.text
+            if url:
+                res = self.http_client.get(url)
 
-    def map_api_data(self, apidata: dict, pkgs_installed: Optional[dict], categories: dict) -> ArchPackage:
+                if res and res.status_code == 200 and res.text:
+                    pkg.pkgbuild = res.text
+
+    def map_api_data(self, apidata: dict, pkgs_installed: Optional[dict], categories: Dict[str, List[str]]) -> ArchPackage:
         data = pkgs_installed.get(apidata.get('Name')) if pkgs_installed else None
         app = ArchPackage(name=apidata.get('Name'), installed=bool(data), repository='aur', i18n=self.i18n)
         app.status = PackageStatus.LOADING_DATA
@@ -89,6 +93,17 @@ class AURDataMapper:
             app.description = data.get('description')
 
         self.fill_api_data(app, apidata, fill_version=not data)
+
+        if app.orphan or app.out_of_date:
+            if app.categories is None:
+                app.categories = []
+
+            if app.orphan:
+                app.categories.append('orphan')
+
+            if app.out_of_date:
+                app.categories.append('out_of_date')
+
         return app
 
     def check_update(self, pkg: ArchPackage, last_modified: Optional[int]) -> bool:

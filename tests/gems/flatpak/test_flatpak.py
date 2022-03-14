@@ -20,4 +20,4 @@ class FlatpakTest(TestCase):
         SimpleProcess.assert_called_once()
         handle_simple.assert_called_once()
 
-        self.assertEqual({'org.xpto.Xnote': 4300000}, download_size)
+        self.assertEqual({'org.xpto.Xnote': 4508877}, download_size)

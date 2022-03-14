@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set, Dict, Optional
+from typing import List, Tuple, Set, Dict, Optional, Iterable
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -22,13 +22,11 @@ if GLOBAL_PY_LIBS not in PATH:
 
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
-SIZE_MULTIPLIERS = ((0.001, 'Kb'), (0.000001, 'Mb'), (0.000000001, 'Gb'), (0.000000000001, 'Tb'))
-
 
 def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
 
-    if lang:
+    if lang is not None:
         custom_env['LANG'] = lang
 
     if global_interpreter:  # to avoid subprocess calls to the virtualenv python interpreter instead of the global one.
@@ -64,8 +62,8 @@ class SystemProcess:
 
 class SimpleProcess:
 
-    def __init__(self, cmd: List[str], cwd: str = '.', expected_code: int = 0,
-                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: str = None,
+    def __init__(self, cmd: Iterable[str], cwd: str = '.', expected_code: int = 0,
+                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
                  custom_user: Optional[str] = None):
@@ -75,7 +73,7 @@ class SimpleProcess:
 
         if custom_user:
             final_cmd.extend(['runuser', '-u', custom_user, '--'])
-        elif root_password is not None:
+        elif isinstance(root_password, str):
             final_cmd.extend(['sudo', '-S'])
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
 
@@ -119,9 +117,12 @@ class ProcessHandler:
     def __init__(self, watcher: ProcessWatcher = None):
         self.watcher = watcher
 
-    def _notify_watcher(self, msg: str):
+    def _notify_watcher(self, msg: str, as_substatus: bool = False):
         if self.watcher:
             self.watcher.print(msg)
+
+            if as_substatus:
+                self.watcher.change_substatus(msg)
 
     def handle(self, process: SystemProcess, error_output: StringIO = None, output_handler=None) -> bool:
         self._notify_watcher(' '.join(process.subproc.args) + '\n')
@@ -183,7 +184,8 @@ class ProcessHandler:
 
         return process.subproc.returncode is None or process.subproc.returncode == 0
 
-    def handle_simple(self, proc: SimpleProcess, output_handler=None, notify_watcher: bool = True) -> Tuple[bool, str]:
+    def handle_simple(self, proc: SimpleProcess, output_handler=None, notify_watcher: bool = True,
+                      output_as_substatus: bool = False) -> Tuple[bool, str]:
         if notify_watcher:
             self._notify_watcher((proc.instance.args if isinstance(proc.instance.args, str) else ' '.join(proc.instance.args)) + '\n')
 
@@ -195,6 +197,9 @@ class ProcessHandler:
                 except UnicodeDecodeError:
                     continue
 
+                if line.startswith('[sudo] password'):
+                    continue
+
                 output.write(line)
 
                 line = line.strip()
@@ -204,7 +209,7 @@ class ProcessHandler:
                         output_handler(line)
 
                     if notify_watcher:
-                        self._notify_watcher(line)
+                        self._notify_watcher(line, as_substatus=output_as_substatus)
 
         proc.instance.wait()
         output.seek(0)
@@ -276,12 +281,12 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
     return subprocess.Popen(final_cmd, **args)
 
 
-def new_root_subprocess(cmd: List[str], root_password: str, cwd: str = '.',
+def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str = '.',
                         global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
                         extra_paths: Set[str] = None) -> subprocess.Popen:
     pwdin, final_cmd = None, []
 
-    if root_password is not None:
+    if isinstance(root_password, str):
         final_cmd.extend(['sudo', '-S'])
         pwdin = new_subprocess(['echo', root_password], global_interpreter=global_interpreter, lang=lang).stdout
 
@@ -304,20 +309,6 @@ def get_dir_size(start_path='.'):
                 total_size += os.path.getsize(fp)
 
     return total_size
-
-
-def get_human_size_str(size) -> str:
-    int_size = int(size)
-
-    if int_size == 0:
-        return '0'
-
-    for m in SIZE_MULTIPLIERS:
-        size_str = str(int_size * m[0])
-
-        if len(size_str.split('.')[0]) < 4:
-            return '{0:.2f}'.format(float(size_str)) + ' ' + m[1]
-    return str(int_size)
 
 
 def run(cmd: List[str], success_code: int = 0, custom_user: Optional[str] = None) -> Tuple[bool, str]:

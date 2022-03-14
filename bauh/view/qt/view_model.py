@@ -32,6 +32,10 @@ class PackageView:
         self.update_checked = model.update
         self.status = PackageViewStatus.LOADING if model.status == PackageStatus.LOADING_DATA else PackageViewStatus.READY
 
+    @property
+    def name(self) -> str:
+        return self.model.name
+
     def __repr__(self):
         return '{} ({})'.format(self.model.name, self.get_type_label())
 

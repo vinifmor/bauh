@@ -5,10 +5,11 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Optional
+from typing import List, Set, Type, Tuple, Optional, Generator
 
 from packaging.version import Version
 
+from bauh.api import user
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction
 from bauh.api.abstract.disk import DiskCacheLoader
@@ -17,16 +18,16 @@ from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePacka
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
-from bauh.api import user
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, EXPORTS_PATH, \
+from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
+    EXPORTS_PATH, \
     get_icon_path, VERSION_1_5, VERSION_1_2
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
-from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader, FlatpakUpdateLoader
+from bauh.gems.flatpak.worker import FlatpakAsyncDataLoader
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 RE_INSTALL_REFS = re.compile(r'\d+\)\s+(.+)')
@@ -49,13 +50,18 @@ class FlatpakManager(SoftwareManager):
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
 
-    def _map_to_model(self, app_json: dict, installed: bool, disk_loader: DiskCacheLoader, internet: bool = True) -> FlatpakApplication:
+    def _map_to_model(self, app_json: dict, installed: bool, disk_loader: Optional[DiskCacheLoader], internet: bool = True) -> Tuple[FlatpakApplication, Optional[FlatpakAsyncDataLoader]]:
 
         app = FlatpakApplication(**app_json, i18n=self.i18n)
         app.installed = installed
         api_data = self.api_cache.get(app_json['id'])
 
+        if app.runtime and app.latest_version is None:
+            app.latest_version = app.version
+
         expired_data = api_data and api_data.get('expires_at') and api_data['expires_at'] <= datetime.utcnow()
+
+        data_loader: Optional[FlatpakAsyncDataLoader] = None
 
         if not api_data or expired_data:
             if not app.runtime:
@@ -63,14 +69,15 @@ class FlatpakManager(SoftwareManager):
                     disk_loader.fill(app)  # preloading cached disk data
 
                 if internet:
-                    FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self,
-                                           context=self.context, category_cache=self.category_cache).start()
+                    data_loader = FlatpakAsyncDataLoader(app=app, api_cache=self.api_cache, manager=self,
+                                                         context=self.context, category_cache=self.category_cache)
+                    data_loader.start()
 
         else:
             app.fill_cached_data(api_data)
             app.status = PackageStatus.READY
 
-        return app
+        return app, data_loader
 
     def _get_search_remote(self) -> str:
         remotes = flatpak.list_remotes()
@@ -108,7 +115,7 @@ class FlatpakManager(SoftwareManager):
             if len(apps_found) > len(already_read):
                 for app_found in apps_found:
                     if app_found['id'] not in already_read:
-                        res.new.append(self._map_to_model(app_found, False, disk_loader))
+                        res.new.append(self._map_to_model(app_found, False, disk_loader)[0])
 
         res.total = len(res.installed) + len(res.new)
         return res
@@ -116,7 +123,8 @@ class FlatpakManager(SoftwareManager):
     def _add_updates(self, version: Version, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
-    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None,
+                       internet_available: bool = None, wait_async_data: bool = False) -> SearchResult:
         version = flatpak.get_version()
 
         updates = []
@@ -135,13 +143,17 @@ class FlatpakManager(SoftwareManager):
             update_map = updates[0]
 
         models = {}
+        data_loaders: Optional[List[FlatpakAsyncDataLoader]] = [] if wait_async_data else None
 
         if installed:
             for app_json in installed:
-                model = self._map_to_model(app_json=app_json, installed=True,
-                                           disk_loader=disk_loader, internet=internet_available)
+                model, loader = self._map_to_model(app_json=app_json, installed=True,
+                                                   disk_loader=disk_loader, internet=internet_available)
                 model.update = False
                 models[model.get_update_id(version)] = model
+
+                if loader and data_loaders is not None:
+                    data_loaders.append(loader)
 
         if update_map:
             for update_id in update_map['full']:
@@ -187,9 +199,13 @@ class FlatpakManager(SoftwareManager):
                     if model.get_update_ignore_key() in ignored:
                         model.updates_ignored = True
 
+        if data_loaders:
+            for loader in data_loaders:
+                loader.join()
+
         return SearchResult([*models.values()], None, len(models))
 
-    def downgrade(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher) -> bool:
+    def downgrade(self, pkg: FlatpakApplication, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         if not self._make_exports_dir(watcher):
             return False
 
@@ -219,7 +235,7 @@ class FlatpakManager(SoftwareManager):
         super(FlatpakManager, self).clean_cache_for(pkg)
         self.api_cache.delete(pkg.id)
 
-    def upgrade(self, requirements: UpgradeRequirements, root_password: str, watcher: ProcessWatcher) -> bool:
+    def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         flatpak_version = flatpak.get_version()
 
         if not self._make_exports_dir(watcher):
@@ -259,7 +275,7 @@ class FlatpakManager(SoftwareManager):
         watcher.change_substatus('')
         return True
 
-    def uninstall(self, pkg: FlatpakApplication, root_password: str, watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: FlatpakApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
 
         if not self._make_exports_dir(watcher):
             return TransactionResult.fail()
@@ -374,7 +390,7 @@ class FlatpakManager(SoftwareManager):
 
         return True
 
-    def install(self, pkg: FlatpakApplication, root_password: str, disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: FlatpakApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
         if not self.context.root_user:
             flatpak_config = self.configman.get_config()
             install_level = flatpak_config['installation_level']
@@ -474,7 +490,7 @@ class FlatpakManager(SoftwareManager):
                     current_key = '{}:{}:{}'.format(p['id'], p['name'], p['branch'])
                     if current_key != pkg_key and (not installed_by_level or current_key not in installed_by_level):
                         new_installed.append(self._map_to_model(app_json=p, installed=True,
-                                                                disk_loader=disk_loader, internet=net_available))
+                                                                disk_loader=disk_loader, internet=net_available)[0])
 
             return TransactionResult(success=installed, installed=new_installed, removed=[])
         else:
@@ -492,33 +508,21 @@ class FlatpakManager(SoftwareManager):
     def requires_root(self, action: SoftwareAction, pkg: FlatpakApplication) -> bool:
         return action == SoftwareAction.DOWNGRADE and pkg.installation == 'system'
 
-    def prepare(self, task_manager: TaskManager, root_password: str, internet_available: bool):
+    def prepare(self, task_manager: TaskManager, root_password: Optional[str], internet_available: bool):
         CreateConfigFile(taskman=task_manager, configman=self.configman, i18n=self.i18n,
                          task_icon_path=get_icon_path(), logger=self.logger).start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         updates = []
-        installed = self.read_installed(None, internet_available=internet_available).installed
+        installed = self.read_installed(None, internet_available=internet_available, wait_async_data=True).installed
 
-        to_update = [p for p in installed if p.update and not p.is_update_ignored()]
-
-        if to_update:
-            loaders = []
-
-            for app in to_update:
-                if app.is_application():
-                    loader = FlatpakUpdateLoader(app=app, http_client=self.context.http_client)
-                    loader.start()
-                    loaders.append(loader)
-
-            for loader in loaders:
-                loader.join()
-
-            for app in to_update:
-                updates.append(PackageUpdate(pkg_id='{}:{}:{}'.format(app.id, app.branch, app.installation),
-                                             pkg_type='Flatpak',
-                                             name=app.name,
-                                             version=app.version))
+        if installed:
+            for p in installed:
+                if isinstance(p, FlatpakApplication) and p.update and not p.is_update_ignored():
+                    updates.append(PackageUpdate(pkg_id=f'{p.id}:{p.branch}:{p.installation}',
+                                                 pkg_type='Flatpak',
+                                                 name=p.name,
+                                                 version=p.latest_version))
 
         return updates
 
@@ -559,7 +563,7 @@ class FlatpakManager(SoftwareManager):
                             app_json = flatpak.search(cli_version, appid, remote_level, app_id=True)
 
                             if app_json:
-                                model = PackageSuggestion(self._map_to_model(app_json[0], False, None), priority)
+                                model = PackageSuggestion(self._map_to_model(app_json[0], False, None)[0], priority)
                                 self.suggestions_cache.add(appid, model)
                                 res.append(model)
                     else:
@@ -574,24 +578,22 @@ class FlatpakManager(SoftwareManager):
     def launch(self, pkg: FlatpakApplication):
         flatpak.run(str(pkg.id))
 
-    def get_screenshots(self, pkg: SoftwarePackage) -> List[str]:
-        screenshots_url = '{}/apps/{}'.format(FLATHUB_API_URL, pkg.id)
-        urls = []
+    def get_screenshots(self, pkg: FlatpakApplication) -> Generator[str, None, None]:
+        screenshots_url = f'{FLATHUB_API_URL}/apps/{pkg.id}'
+
         try:
             res = self.http_client.get_json(screenshots_url)
 
             if res and res.get('screenshots'):
                 for s in res['screenshots']:
                     if s.get('imgDesktopUrl'):
-                        urls.append(s['imgDesktopUrl'])
+                        yield s['imgDesktopUrl']
 
         except Exception as e:
             if e.__class__.__name__ == 'JSONDecodeError':
                 self.context.logger.error("Could not decode json from '{}'".format(screenshots_url))
             else:
                 traceback.print_exc()
-
-        return urls
 
     def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
         if not self.context.root_user:
@@ -627,7 +629,7 @@ class FlatpakManager(SoftwareManager):
         except:
             return False, [traceback.format_exc()]
 
-    def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: str, watcher: ProcessWatcher) -> UpgradeRequirements:
+    def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
         flatpak_version = flatpak.get_version()
 
         user_pkgs, system_pkgs = [], []
