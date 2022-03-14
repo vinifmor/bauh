@@ -3,13 +3,18 @@ from unittest import TestCase
 from bauh.commons import system
 
 
-class GetHumanSizeStr(TestCase):
+class GetHumanSizeStrTest(TestCase):
+
+    def test__must_properly_display_B(self):
+        self.assertEqual('1023 B', system.get_human_size_str(1023))
+        self.assertEqual('-1023 B', system.get_human_size_str(-1023))
 
     def test__must_properly_convert_to_Kb(self):
         self.assertEqual('1.00 Kb', system.get_human_size_str(1024))
         self.assertEqual('1.50 Kb', system.get_human_size_str(1536))
         self.assertEqual('1.75 Kb', system.get_human_size_str(1792))
         self.assertEqual('57.30 Kb', system.get_human_size_str(58675.2))
+        self.assertEqual('-1.00 Kb', system.get_human_size_str(-1024))
 
     def test__must_properly_convert_to_Mb(self):
         self.assertEqual('1.00 Mb', system.get_human_size_str(1048576))
