@@ -5,7 +5,7 @@ from bauh.api.abstract.view import MultipleSelectComponent, InputOption, FormCom
     SelectViewType
 from bauh.commons import resource
 from bauh.commons.html import bold
-from bauh.commons.system import get_human_size_str
+from bauh.commons.view_utils import get_human_size_str
 from bauh.gems.arch import ROOT_DIR, get_repo_icon_path, get_icon_path, pacman
 from bauh.view.util.translation import I18n
 

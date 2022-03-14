@@ -19,8 +19,9 @@ from bauh.api.abstract.view import ViewComponent, TextInputComponent, PanelCompo
     SingleSelectComponent, InputOption, SelectViewType
 from bauh.api.paths import CONFIG_DIR
 from bauh.commons.html import bold
-from bauh.commons.system import get_human_size_str, ProcessHandler
+from bauh.commons.system import ProcessHandler
 from bauh.commons.util import NullLoggerFactory
+from bauh.commons.view_utils import get_human_size_str
 from bauh.gems.debian import DEBIAN_ICON_PATH
 from bauh.gems.debian.aptitude import Aptitude, AptitudeOutputHandlerFactory, AptitudeAction
 from bauh.gems.debian.common import fill_show_data

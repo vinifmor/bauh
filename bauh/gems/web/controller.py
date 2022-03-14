@@ -30,7 +30,8 @@ from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
-from bauh.commons.system import ProcessHandler, get_dir_size, get_human_size_str, SimpleProcess
+from bauh.commons.system import ProcessHandler, get_dir_size, SimpleProcess
+from bauh.commons.view_utils import get_human_size_str
 from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
     SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, \
     get_icon_path, URL_PROPS_PATTERN

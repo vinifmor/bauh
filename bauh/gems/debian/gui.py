@@ -4,7 +4,7 @@ from typing import Collection, Optional, Tuple, List
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.view import InputOption, MultipleSelectComponent, TextComponent
 from bauh.commons.html import bold
-from bauh.commons.system import get_human_size_str
+from bauh.commons.view_utils import get_human_size_str
 from bauh.gems.debian import DEBIAN_ICON_PATH
 from bauh.gems.debian.model import DebianPackage
 from bauh.view.util.translation import I18n

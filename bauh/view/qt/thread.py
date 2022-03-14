@@ -23,7 +23,8 @@ from bauh.api.exception import NoInternetException
 from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
-from bauh.commons.system import get_human_size_str, ProcessHandler, SimpleProcess
+from bauh.commons.system import ProcessHandler, SimpleProcess
+from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.qt import commons

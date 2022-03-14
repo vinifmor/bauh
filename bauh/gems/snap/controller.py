@@ -16,8 +16,8 @@ from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
-from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess, get_human_size_str
-from bauh.commons.view_utils import new_select
+from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
+from bauh.commons.view_utils import new_select, get_human_size_str
 from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
     get_icon_path, snapd
 from bauh.gems.snap.config import SnapConfigManager
