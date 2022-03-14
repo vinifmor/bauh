@@ -75,6 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - AppImage
   - info: displaying attributes related to the installation after the application has been removed (search)
+  - history: not ordering by release date
 
 - Arch:
   - AUR:
