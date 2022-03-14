@@ -7,4 +7,4 @@ FIND_APP_ID_BY_NAME_AND_GITHUB = "SELECT id FROM apps WHERE lower(name) = '{}' a
 FIND_APPS_BY_NAME = "SELECT name, github, version, url_download FROM apps WHERE lower(name) IN ({})"
 FIND_APPS_BY_NAME_ONLY_NAME = "SELECT name FROM apps WHERE lower(name) IN ({})"
 FIND_APPS_BY_NAME_FULL = "SELECT {} FROM apps".format(','.join(APP_ATTRS)) + " WHERE lower(name) IN ({})"
-FIND_RELEASES_BY_APP_ID = "SELECT {} FROM releases".format(','.join(RELEASE_ATTRS)) + " WHERE app_id = {} ORDER BY published_at desc"
+FIND_RELEASES_BY_APP_ID = "SELECT {} FROM releases".format(','.join(RELEASE_ATTRS)) + " WHERE app_id = {}"

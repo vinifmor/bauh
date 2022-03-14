@@ -13,6 +13,7 @@ from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
 from packaging.version import parse as parse_version
+from packaging.version import LegacyVersion
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
@@ -461,6 +462,9 @@ class AppImageManager(SoftwareManager):
 
         return data
 
+    def _sort_release(self, rel: tuple):
+        return rel[0]
+
     def get_history(self, pkg: AppImage) -> PackageHistory:
         history = []
         res = PackageHistory(pkg, history, -1)
@@ -498,12 +502,16 @@ class AppImageManager(SoftwareManager):
             releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
 
             if releases:
-                for idx, tup in enumerate(releases):
-                    history.append({'0_version': tup[0],
+                treated_releases = [(LegacyVersion(r[0]), *r[1:]) for r in releases]
+                treated_releases.sort(key=self._sort_release, reverse=True)
+
+                for idx, tup in enumerate(treated_releases):
+                    ver = str(tup[0])
+                    history.append({'0_version': ver,
                                     '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[
                                         2] else '', '2_url_download': tup[1]})
 
-                    if res.pkg_status_idx == -1 and pkg.version == tup[0]:
+                    if res.pkg_status_idx == -1 and pkg.version == ver:
                         res.pkg_status_idx = idx
 
                 return res
