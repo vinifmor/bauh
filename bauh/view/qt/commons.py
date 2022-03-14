@@ -99,7 +99,7 @@ def sort_packages(pkgs: Iterable[SoftwarePackage], word: str, limit: int = 0) ->
     res = []
     for app_list in (exact, starts_with, contains, others):
         if app_list:
-            last = limit - len(res) if limit > 0 else None
+            last = limit - len(res) if limit is not None and limit > 0 else None
 
             if last is not None and last <= 0:
                 break
