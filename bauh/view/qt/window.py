@@ -805,6 +805,7 @@ class ManageWindow(QWidget):
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
+            self.begin_apply_filters()
             notify_tray()
         else:
             self._show_console_errors()
