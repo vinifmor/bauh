@@ -29,3 +29,4 @@ The way to go here is to ask yourself if the improvement would be useful for mor
 - `bauh/gems/flatpak/resources/locale`
 - `bauh/gems/snap/resources/locale`
 - `bauh/gems/web/resources/locale`
+- `bauh/gems/debian/resources/locale`
