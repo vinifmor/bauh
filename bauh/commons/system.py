@@ -13,7 +13,7 @@ PY_VERSION = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 GLOBAL_PY_LIBS = '/usr/lib/python{}'.format(PY_VERSION)
 
 PATH = os.getenv('PATH')
-DEFAULT_LANG = 'en_US.UTF-8'
+DEFAULT_LANG = ''
 
 GLOBAL_INTERPRETER_PATH = ':'.join(PATH.split(':')[1:])
 
