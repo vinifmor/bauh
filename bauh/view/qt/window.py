@@ -659,7 +659,7 @@ class ManageWindow(QWidget):
         self._reorganize()
 
     def _update_package_data(self, idx: int):
-        if self.table_apps.isEnabled():
+        if self.table_apps.isEnabled() and self.pkgs is not None and 0 <= idx < len(self.pkgs):
             pkg = self.pkgs[idx]
             pkg.status = PackageViewStatus.READY
             self.table_apps.update_package(pkg)
