@@ -13,7 +13,7 @@ PY_VERSION = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 GLOBAL_PY_LIBS = '/usr/lib/python{}'.format(PY_VERSION)
 
 PATH = os.getenv('PATH')
-DEFAULT_LANG = 'en'
+DEFAULT_LANG = ''
 
 GLOBAL_INTERPRETER_PATH = ':'.join(PATH.split(':')[1:])
 
@@ -23,7 +23,7 @@ if GLOBAL_PY_LIBS not in PATH:
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
 
-def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
+def gen_env(global_interpreter: bool, lang: Optional[str] = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
 
     if lang is not None:
