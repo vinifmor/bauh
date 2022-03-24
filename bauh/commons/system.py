@@ -63,7 +63,7 @@ class SystemProcess:
 class SimpleProcess:
 
     def __init__(self, cmd: Iterable[str], cwd: str = '.', expected_code: int = 0,
-                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: Optional[str] = None,
+                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
                  custom_user: Optional[str] = None):
@@ -79,16 +79,17 @@ class SimpleProcess:
 
         final_cmd.extend(cmd)
 
-        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths, extra_env=extra_env)
+        self.instance = self._new(final_cmd, cwd, global_interpreter, lang=lang, stdin=pwdin,
+                                  extra_paths=extra_paths, extra_env=extra_env)
         self.expected_code = expected_code
         self.error_phrases = error_phrases
         self.wrong_error_phrases = wrong_error_phrases
         self.success_phrases = success_phrases
 
-    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None,
+    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: Optional[str], stdin = None,
              extra_paths: Set[str] = None, extra_env: Optional[Dict[str, str]] = None) -> subprocess.Popen:
 
-        env = gen_env(global_interpreter, lang, extra_paths=extra_paths)
+        env = gen_env(global_interpreter=global_interpreter, lang=lang, extra_paths=extra_paths)
 
         if extra_env:
             for var, val in extra_env.items():
@@ -240,7 +241,7 @@ class ProcessHandler:
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
             cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None,
-            custom_user: Optional[str] = None) -> Optional[str]:
+            custom_user: Optional[str] = None, lang: Optional[str] = DEFAULT_LANG) -> Optional[str]:
     """
     runs a given command and returns its default output
     :return:
@@ -248,7 +249,7 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
     args = {
         "shell": True,
         "stdout": PIPE,
-        "env": gen_env(global_interpreter, extra_paths=extra_paths),
+        "env": gen_env(global_interpreter=global_interpreter, lang=lang, extra_paths=extra_paths),
         'cwd': cwd
     }
 
@@ -266,7 +267,7 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
 
 
 def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
-                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG,
                    extra_paths: Set[str] = None, custom_user: Optional[str] = None) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
