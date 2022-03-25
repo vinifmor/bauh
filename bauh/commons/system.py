@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import time
@@ -21,6 +22,8 @@ if GLOBAL_PY_LIBS not in PATH:
     PATH = '{}:{}'.format(GLOBAL_PY_LIBS, PATH)
 
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
+
+RE_SUDO_OUTPUT = re.compile(r'[sudo]\s*[\w\s]+:\s*')
 
 
 def gen_env(global_interpreter: bool, lang: Optional[str] = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
@@ -198,8 +201,8 @@ class ProcessHandler:
                 except UnicodeDecodeError:
                     continue
 
-                if line.startswith('[sudo] password'):
-                    continue
+                if line.startswith('[sudo]'):
+                    line = RE_SUDO_OUTPUT.split(line)[1]
 
                 output.write(line)
 
