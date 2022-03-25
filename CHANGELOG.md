@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - regression: not displaying ignored updates
 
+- Flatpak:
+  - executed commands are not displayed on the system default language and encoding (requires Flatpak >= 1.12) [#242](https://github.com/vinifmor/bauh/issues/242)
+  - applications and runtimes descriptions are not displayed on the system default language (when available) [#242](https://github.com/vinifmor/bauh/issues/242)
+
 - UI:
   - fix: rare crash when updating table items
 

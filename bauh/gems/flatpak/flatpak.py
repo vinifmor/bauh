@@ -9,9 +9,9 @@ from packaging.version import Version
 from packaging.version import parse as parse_version
 
 from bauh.api.exception import NoInternetException
-from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler
+from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler, DEFAULT_LANG
 from bauh.commons.util import size_to_byte
-from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5
+from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5, VERSION_1_12
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
@@ -95,7 +95,7 @@ def list_installed(version: Version) -> List[dict]:
     apps = []
 
     if version < VERSION_1_2:
-        app_list = new_subprocess(['flatpak', 'list', '-d'])
+        app_list = new_subprocess(['flatpak', 'list', '-d'], lang=None)
 
         for o in app_list.stdout:
             if o:
@@ -118,7 +118,7 @@ def list_installed(version: Version) -> List[dict]:
 
     else:
         cols = 'application,ref,arch,branch,description,origin,options,{}version'.format('' if version < VERSION_1_3 else 'name,')
-        app_list = new_subprocess(['flatpak', 'list', '--columns=' + cols])
+        app_list = new_subprocess(['flatpak', 'list', '--columns=' + cols], lang=None)
 
         for o in app_list.stdout:
             if o:
@@ -157,7 +157,7 @@ def list_installed(version: Version) -> List[dict]:
     return apps
 
 
-def update(app_ref: str, installation: str, related: bool = False, deps: bool = False) -> SimpleProcess:
+def update(app_ref: str, installation: str, version: Version, related: bool = False, deps: bool = False) -> SimpleProcess:
     cmd = ['flatpak', 'update', '-y', app_ref, '--{}'.format(installation)]
 
     if not related:
@@ -166,12 +166,14 @@ def update(app_ref: str, installation: str, related: bool = False, deps: bool = 
     if not deps:
         cmd.append('--no-deps')
 
-    return SimpleProcess(cmd=cmd, extra_paths={EXPORTS_PATH}, shell=True)
+    return SimpleProcess(cmd=cmd, extra_paths={EXPORTS_PATH}, shell=True,
+                         lang=DEFAULT_LANG if version < VERSION_1_12 else None)
 
 
-def uninstall(app_ref: str, installation: str) -> SimpleProcess:
+def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProcess:
     return SimpleProcess(cmd=['flatpak', 'uninstall', app_ref, '-y', '--{}'.format(installation)],
                          extra_paths={EXPORTS_PATH},
+                         lang=DEFAULT_LANG if version < VERSION_1_12 else None,
                          shell=True)
 
 
@@ -229,14 +231,15 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
     return res
 
 
-def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str]) -> SimpleProcess:
+def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Version) -> SimpleProcess:
     cmd = ['flatpak', 'update', '--no-related', '--no-deps', '--commit={}'.format(commit), app_ref, '-y', '--{}'.format(installation)]
 
     return SimpleProcess(cmd=cmd,
-                         root_password=root_password if installation=='system' else None,
+                         root_password=root_password if installation == 'system' else None,
                          extra_paths={EXPORTS_PATH},
-                         success_phrases={'Changes complete.', 'Updates complete.'},
-                         wrong_error_phrases={'Warning'})
+                         lang=DEFAULT_LANG if version < VERSION_1_12 else None,
+                         success_phrases={'Changes complete.', 'Updates complete.'} if version < VERSION_1_12 else None,
+                         wrong_error_phrases={'Warning'} if version < VERSION_1_12 else None)
 
 
 def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> Optional[List[str]]:
@@ -282,13 +285,13 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str, full_str:
 
 def search(version: Version, word: str, installation: str, app_id: bool = False) -> List[dict]:
 
-    res = run_cmd('{} search {} --{}'.format('flatpak', word, installation))
+    res = run_cmd('{} search {} --{}'.format('flatpak', word, installation), lang=None)
 
     found = []
 
-    split_res = res.split('\n')
+    split_res = res.strip().split('\n')
 
-    if split_res and split_res[0].lower() != 'no matches found':
+    if split_res and '\t' in split_res[0]:
         for info in split_res:
             if info:
                 info_list = info.split('\t')
@@ -359,10 +362,11 @@ def search(version: Version, word: str, installation: str, app_id: bool = False)
     return found
 
 
-def install(app_id: str, origin: str, installation: str) -> SimpleProcess:
+def install(app_id: str, origin: str, installation: str, version: Version) -> SimpleProcess:
     return SimpleProcess(cmd=['flatpak', 'install', origin, app_id, '-y', '--{}'.format(installation)],
                          extra_paths={EXPORTS_PATH},
-                         wrong_error_phrases={'Warning'},
+                         lang=DEFAULT_LANG if version < VERSION_1_12 else None,
+                         wrong_error_phrases={'Warning'} if version < VERSION_1_12 else None,
                          shell=True)
 
 

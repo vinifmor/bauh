@@ -224,10 +224,11 @@ class FlatpakManager(SoftwareManager):
         commit = history.history[history.pkg_status_idx + 1]['commit']
         watcher.change_substatus(self.i18n['flatpak.downgrade.reverting'])
         watcher.change_progress(50)
-        success, _ = ProcessHandler(watcher).handle_simple(flatpak.downgrade(pkg.ref,
-                                                                             commit,
-                                                                             pkg.installation,
-                                                                             root_password))
+        success, _ = ProcessHandler(watcher).handle_simple(flatpak.downgrade(app_ref=pkg.ref,
+                                                                             commit=commit,
+                                                                             installation=pkg.installation,
+                                                                             root_password=root_password,
+                                                                             version=flatpak.get_version()))
         watcher.change_progress(100)
         return success
 
@@ -254,13 +255,15 @@ class FlatpakManager(SoftwareManager):
                 if req.pkg.update_component:
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=ref,
                                                                                    installation=req.pkg.installation,
-                                                                                   origin=req.pkg.origin))
+                                                                                   origin=req.pkg.origin,
+                                                                                   version=flatpak_version))
 
                 else:
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
                                                                                   installation=req.pkg.installation,
                                                                                   related=related,
-                                                                                  deps=deps))
+                                                                                  deps=deps,
+                                                                                  version=flatpak_version))
 
                 watcher.change_substatus('')
                 if not res:
@@ -280,7 +283,9 @@ class FlatpakManager(SoftwareManager):
         if not self._make_exports_dir(watcher):
             return TransactionResult.fail()
 
-        uninstalled, _ = ProcessHandler(watcher).handle_simple(flatpak.uninstall(pkg.ref, pkg.installation))
+        flatpak_version = flatpak.get_version()
+        uninstalled, _ = ProcessHandler(watcher).handle_simple(flatpak.uninstall(pkg.ref, pkg.installation,
+                                                                                 flatpak_version))
 
         if uninstalled:
             if self.suggestions_cache:
@@ -445,7 +450,8 @@ class FlatpakManager(SoftwareManager):
         if not self._make_exports_dir(handler.watcher):
             return TransactionResult(success=False, installed=[], removed=[])
 
-        installed, output = handler.handle_simple(flatpak.install(str(pkg.id), pkg.origin, pkg.installation))
+        installed, output = handler.handle_simple(flatpak.install(str(pkg.id), pkg.origin, pkg.installation,
+                                                                  flatpak_version))
 
         if not installed and 'error: No ref chosen to resolve matches' in output:
             ref_opts = RE_INSTALL_REFS.findall(output)
@@ -459,7 +465,8 @@ class FlatpakManager(SoftwareManager):
                                                 confirmation_label=self.i18n['proceed'].capitalize(),
                                                 deny_label=self.i18n['cancel'].capitalize()):
                     ref = ref_select.get_selected()
-                    installed, output = handler.handle_simple(flatpak.install(ref, pkg.origin, pkg.installation))
+                    installed, output = handler.handle_simple(flatpak.install(ref, pkg.origin, pkg.installation,
+                                                                              flatpak_version))
                     pkg.ref = ref
                     pkg.runtime = 'runtime' in ref
                 else:
