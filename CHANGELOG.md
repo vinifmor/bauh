@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - using the wrong locale format for the Accept-Language header
 
 - UI:
-  - fix: rare crash when updating table items
+  - rare crash when updating table items
   - some action errors not being displayed on the details component when they are concatenated with sudo output 
 
 ## [0.10.0] 2022-03-14
