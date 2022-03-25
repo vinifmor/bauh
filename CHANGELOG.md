@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - code refactoring
 
+- Snap
+  - allowing the actions output locale to be decided by the Snap client
+
 ### Fixes
 - Arch
   - regression: not displaying ignored updates
