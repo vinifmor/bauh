@@ -58,7 +58,7 @@ def get_fields(app_id: str, branch: str, fields: List[str]) -> List[str]:
     info = new_subprocess(cmd).stdout
 
     res = []
-    for o in new_subprocess(['grep', '-E', '({}):.+'.format('|'.join(fields)), '-o'], stdin=info).stdout:
+    for o in new_subprocess(('grep', '-E', '({}):.+'.format('|'.join(fields)), '-o'), stdin=info).stdout:
         if o:
             res.append(o.decode().split(':')[-1].strip())
 
@@ -96,7 +96,7 @@ def list_installed(version: Version) -> List[dict]:
     apps = []
 
     if version < VERSION_1_2:
-        app_list = new_subprocess(['flatpak', 'list', '-d'], lang=None)
+        app_list = new_subprocess(('flatpak', 'list', '-d'), lang=None)
 
         for o in app_list.stdout:
             if o:
@@ -120,7 +120,7 @@ def list_installed(version: Version) -> List[dict]:
     else:
         name_col = '' if version < VERSION_1_3 else 'name,'
         cols = f'application,ref,arch,branch,description,origin,options,{name_col}version'
-        app_list = new_subprocess(['flatpak', 'list', f'--columns={cols}'], lang=None)
+        app_list = new_subprocess(('flatpak', 'list', f'--columns={cols}'), lang=None)
 
         for o in app_list.stdout:
             if o:
@@ -173,7 +173,7 @@ def update(app_ref: str, installation: str, version: Version, related: bool = Fa
 
 
 def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProcess:
-    return SimpleProcess(cmd=['flatpak', 'uninstall', app_ref, '-y', f'--{installation}'],
+    return SimpleProcess(cmd=('flatpak', 'uninstall', app_ref, '-y', f'--{installation}'),
                          extra_paths={EXPORTS_PATH},
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None,
                          shell=True)
@@ -202,12 +202,12 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
         except:
             traceback.print_exc()
     else:
-        updates = new_subprocess(['flatpak', 'update', f'--{installation}']).stdout
+        updates = new_subprocess(('flatpak', 'update', f'--{installation}')).stdout
 
         reg = r'[0-9]+\.\s+.+'
 
         try:
-            for o in new_subprocess(['grep', '-E', reg, '-o', '--color=never'], stdin=updates).stdout:
+            for o in new_subprocess(('grep', '-E', reg, '-o', '--color=never'), stdin=updates).stdout:
                 if o:
                     line_split = o.decode().strip().split('\t')
 
@@ -234,7 +234,7 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Version) -> SimpleProcess:
-    cmd = ['flatpak', 'update', '--no-related', '--no-deps', f'--commit={commit}', app_ref, '-y', f'--{installation}']
+    cmd = ('flatpak', 'update', '--no-related', '--no-deps', f'--commit={commit}', app_ref, '-y', f'--{installation}')
 
     return SimpleProcess(cmd=cmd,
                          root_password=root_password if installation == 'system' else None,
@@ -246,7 +246,7 @@ def downgrade(app_ref: str, commit: str, installation: str, root_password: Optio
 
 def get_app_commits(app_ref: str, origin: str, installation: str, handler: ProcessHandler) -> Optional[List[str]]:
     try:
-        p = SimpleProcess(['flatpak', 'remote-info', '--log', origin, app_ref, f'--{installation}'])
+        p = SimpleProcess(('flatpak', 'remote-info', '--log', origin, app_ref, f'--{installation}'))
         success, output = handler.handle_simple(p)
         if output.startswith('error:'):
             return
@@ -365,7 +365,7 @@ def search(version: Version, word: str, installation: str, app_id: bool = False)
 
 
 def install(app_id: str, origin: str, installation: str, version: Version) -> SimpleProcess:
-    return SimpleProcess(cmd=['flatpak', 'install', origin, app_id, '-y', f'--{installation}'],
+    return SimpleProcess(cmd=('flatpak', 'install', origin, app_id, '-y', f'--{installation}'),
                          extra_paths={EXPORTS_PATH},
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None,
                          wrong_error_phrases={'Warning'} if version < VERSION_1_12 else None,
@@ -373,8 +373,8 @@ def install(app_id: str, origin: str, installation: str, version: Version) -> Si
 
 
 def set_default_remotes(installation: str, root_password: Optional[str] = None) -> SimpleProcess:
-    cmd = ['flatpak', 'remote-add', '--if-not-exists', 'flathub', f'{FLATHUB_URL}/repo/flathub.flatpakrepo',
-           f'--{installation}']
+    cmd = ('flatpak', 'remote-add', '--if-not-exists', 'flathub', f'{FLATHUB_URL}/repo/flathub.flatpakrepo',
+           f'--{installation}')
 
     return SimpleProcess(cmd, root_password=root_password)
 
@@ -402,11 +402,11 @@ def list_remotes() -> Dict[str, Set[str]]:
 
 
 def run(app_id: str):
-    subprocess.Popen([f'flatpak run {app_id}'], shell=True, env={**os.environ})
+    subprocess.Popen((f'flatpak run {app_id}',), shell=True, env={**os.environ})
 
 
 def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, int]:
-    success, output = ProcessHandler().handle_simple(SimpleProcess(['flatpak', 'update', f'--{installation}']))
+    success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}')))
     if version >= VERSION_1_2:
         res = {}
         p = re.compile(r'^\d+.\t')
