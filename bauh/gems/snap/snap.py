@@ -12,7 +12,7 @@ def is_installed() -> bool:
 
 
 def uninstall_and_stream(app_name: str, root_password: Optional[str]) -> SimpleProcess:
-    return SimpleProcess(cmd=['snap', 'remove', app_name],
+    return SimpleProcess(cmd=('snap', 'remove', app_name),
                          root_password=root_password,
                          shell=True)
 
@@ -31,7 +31,7 @@ def install_and_stream(app_name: str, confinement: str, root_password: Optional[
 
 
 def downgrade_and_stream(app_name: str, root_password: Optional[str]) -> SimpleProcess:
-    return SimpleProcess(cmd=['snap', 'revert', app_name],
+    return SimpleProcess(cmd=('snap', 'revert', app_name),
                          root_password=root_password,
                          shell=True)
 
@@ -49,12 +49,12 @@ def refresh_and_stream(app_name: str, root_password: Optional[str], channel: Opt
 
 
 def run(cmd: str):
-    subprocess.Popen([f'snap run {cmd}'], shell=True, env={**os.environ})
+    subprocess.Popen((f'snap run {cmd}',), shell=True, env={**os.environ})
 
 
 def is_api_available() -> Tuple[bool, str]:
     output = StringIO()
-    for o in SimpleProcess(['snap', 'search']).instance.stdout:
+    for o in SimpleProcess(('snap', 'search')).instance.stdout:
         if o:
             output.write(o.decode())
 
