@@ -172,6 +172,11 @@ def update(app_ref: str, installation: str, version: Version, related: bool = Fa
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None)
 
 
+def full_update(version: VERSION_1_12) -> SimpleProcess:
+    return SimpleProcess(cmd=('flatpak', 'update', '-y'), extra_paths={EXPORTS_PATH}, shell=True,
+                         lang=DEFAULT_LANG if version < VERSION_1_12 else None)
+
+
 def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProcess:
     return SimpleProcess(cmd=('flatpak', 'uninstall', app_ref, '-y', f'--{installation}'),
                          extra_paths={EXPORTS_PATH},

@@ -313,6 +313,8 @@ prefer_repository_provider: true  # when there is just one repository provider f
 ```
 installation_level: null # defines a default installation level: "user" or "system". (null will display a popup asking the level)
 ```
+- Custom actions supported:
+  - **Full update**: it completely updates the Flatpak apps and components. Useful if you are having issues with runtime updates.
 
 
 #### <a name="type_snap">Snap</a>

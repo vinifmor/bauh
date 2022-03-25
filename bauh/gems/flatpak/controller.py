@@ -15,7 +15,7 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
-    SuggestionPriority, PackageStatus
+    SuggestionPriority, PackageStatus, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
     ViewComponent, PanelComponent
 from bauh.commons.boot import CreateConfigFile
@@ -46,6 +46,7 @@ class FlatpakManager(SoftwareManager):
         self.suggestions_cache = context.cache_factory.new(None)
         self.logger = context.logger
         self.configman = FlatpakConfigManager()
+        self._action_full_update: Optional[CustomSoftwareAction] = None
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -734,3 +735,25 @@ class FlatpakManager(SoftwareManager):
                 self._write_ignored_updates(ignored_keys)
 
         pkg.updates_ignored = False
+
+    def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
+        yield self.action_full_update
+
+    def full_update(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
+        handler = ProcessHandler(watcher)
+        return handler.handle_simple(flatpak.full_update(flatpak.get_version()))[0]
+
+    @property
+    def action_full_update(self) -> CustomSoftwareAction:
+        if self._action_full_update is None:
+            self._action_full_update = CustomSoftwareAction(i18n_label_key='flatpak.action.full_update',
+                                                            i18n_description_key='flatpak.action.full_update.description',
+                                                            i18n_status_key='flatpak.action.full_update.status',
+                                                            backup=True,
+                                                            manager=self,
+                                                            requires_internet=True,
+                                                            icon_path=get_icon_path(),
+                                                            manager_method='full_update',
+                                                            requires_root=False)
+
+        return self._action_full_update

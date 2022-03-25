@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.10.1]
+### Features
+- Flatpak
+  - new custom action "Full update": fully updates all installed Flatpak apps and components (useful if you are having issues with runtime updates)
+
+  <p align="center">
+      <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.1/flatpak_full_update.png">
+  </p>
+
+
 ### Improvements
 - General
   - code refactoring
