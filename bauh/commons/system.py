@@ -4,7 +4,7 @@ import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set, Dict, Optional, Iterable
+from typing import List, Tuple, Set, Dict, Optional, Iterable, Union, IO, Any
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -266,7 +266,7 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
             pass
 
 
-def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
+def new_subprocess(cmd: Iterable[str], cwd: str = '.', shell: bool = False, stdin: Optional[Union[None, int, IO[Any]]] = None,
                    global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG,
                    extra_paths: Set[str] = None, custom_user: Optional[str] = None) -> subprocess.Popen:
     args = {
