@@ -18,6 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - code refactoring
 
+- Arch
+  - text length of some popups reduced
+
 - Snap
   - allowing the actions output locale to be decided by the Snap client
 

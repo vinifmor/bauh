@@ -1,4 +1,4 @@
-from typing import Set, List, Tuple, Dict, Optional
+from typing import Set, Tuple, Dict, Collection
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption, FormComponent, SingleSelectComponent, \
@@ -44,8 +44,8 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname) if pkgname else '', deps=bold(str(len(deps)))))
+def request_install_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
+    msg = f"<p>{i18n['arch.missing_deps.body'].format(deps=bold(str(len(deps))))}:</p>"
 
     opts = []
 
@@ -65,7 +65,7 @@ def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, s
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
     return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize(),
-                                        min_width=672)
+                                        min_width=600)
 
 
 def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, str], watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
