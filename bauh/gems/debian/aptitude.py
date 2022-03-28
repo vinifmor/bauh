@@ -46,6 +46,7 @@ class Aptitude:
         self._size_attrs: Optional[Tuple[str]] = None
         self._default_lang = ''
         self._ignored_fields: Optional[Set[str]] = None
+        self._re_none: Optional[Pattern] = None
 
     def show(self, pkgs: Iterable[str], attrs: Optional[Collection[str]] = None, verbose: bool = False) \
             -> Optional[Dict[str, Dict[str, object]]]:
@@ -135,11 +136,10 @@ class Aptitude:
 
     def upgrade(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('upgrade', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, lang=self._default_lang,
-                             root_password=root_password)
+        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password)
 
     def update(self, root_password: Optional[str]) -> SimpleProcess:
-        return SimpleProcess(('aptitude', 'update'), root_password=root_password, shell=True, lang=self._default_lang)
+        return SimpleProcess(('aptitude', 'update'), root_password=root_password, shell=True)
 
     def simulate_installation(self, packages: Iterable[str]) -> Optional[DebianTransaction]:
         code, output = system.execute(self.gen_transaction_cmd('install', packages, simulate=True),
@@ -150,7 +150,7 @@ class Aptitude:
 
     def install(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('install', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, lang=self._default_lang, root_password=root_password)
+        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password)
 
     def read_installed(self) -> Generator[DebianPackage, None, None]:
         yield from self.search(query='~i')
@@ -169,9 +169,7 @@ class Aptitude:
 
     def search(self, query: str, fill_size: bool = False) -> Generator[DebianPackage, None, None]:
         attrs = f"%p^%v^%V^%m^%s^{'%I^' if fill_size else ''}%d"
-        _, output = system.execute(f"aptitude search {query} -q -F '{attrs}' --disable-columns",
-                                   shell=True,
-                                   custom_env=self.env)
+        _, output = system.execute(f"aptitude search {query} -q -F '{attrs}' --disable-columns", shell=True)
 
         if output:
             no_attrs = 7 if fill_size else 6
@@ -180,7 +178,7 @@ class Aptitude:
                 line_split = line.strip().split('^', maxsplit=no_attrs - 1)
 
                 if len(line_split) == no_attrs:
-                    latest_version = line_split[2] if line_split[2] != '<none>' else None
+                    latest_version = line_split[2] if not self.re_none.match(line_split[2]) else None
 
                     size = None
 
@@ -195,7 +193,7 @@ class Aptitude:
                             traceback.print_exc()
 
                     if latest_version is not None:
-                        installed_version = line_split[1] if line_split[1] != '<none>' else None
+                        installed_version = line_split[1] if not self.re_none.match(line_split[1]) else None
                         section = strip_section(line_split[4])
 
                         yield DebianPackage(name=line_split[0],
@@ -214,7 +212,7 @@ class Aptitude:
 
     def remove(self, packages: Iterable[str], root_password: Optional[str],  purge: bool = False) -> SimpleProcess:
         return SimpleProcess(cmd=self.gen_remove_cmd(packages, purge).split(' '), shell=True,
-                             lang=self._default_lang, root_password=root_password)
+                             root_password=root_password)
 
     def read_installed_names(self) -> Generator[str, None, None]:
         code, output = system.execute("aptitude search ~i -q -F '%p' --disable-columns",
@@ -236,8 +234,7 @@ class Aptitude:
     @property
     def env(self) -> Dict[str, str]:
         if self._env is None:
-            self._env = system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER,
-                                       lang=self._default_lang)
+            self._env = system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER)
 
         return self._env
 
@@ -281,6 +278,13 @@ class Aptitude:
                f" -o Aptitude::ProblemResolver::RemoveScore=9999999" \
                f" -o Aptitude::ProblemResolver::EssentialRemoveScore=9999999" \
                f"{' -V -s -Z' if simulate else ''}"
+
+    @property
+    def re_none(self) -> Pattern:
+        if self._re_none is None:
+            self._re_none = re.compile(r'^<\w+>$')
+
+        return self._re_none
 
 
 class AptitudeOutputHandler(Thread):
