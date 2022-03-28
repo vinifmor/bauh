@@ -64,7 +64,8 @@ def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, s
         opts.append(op)
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
-    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize())
+    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize(),
+                                        min_width=672)
 
 
 def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, str], watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
