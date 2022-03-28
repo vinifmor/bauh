@@ -335,7 +335,7 @@ class UpdatesSummarizer:
     
                 current_size = installed_sizes.get(pkg.name) if installed_sizes else None
 
-                if current_size is not None and pkgdata['s']:
+                if current_size is not None and pkgdata['s'] is not None:
                     requirement.extra_size = pkgdata['s'] - current_size
 
             required_by = set()

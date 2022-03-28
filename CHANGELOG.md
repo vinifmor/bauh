@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - Arch
   - regression: not displaying ignored updates
+  - dependency size: display a '?' instead of '0' ('?' should only be displayed when the size is unknown)
 
 - Debian
   - packages descriptions are not displayed on the system's default language (when available)

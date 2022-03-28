@@ -26,7 +26,7 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
                                                          i18n['repository'],
                                                          d['repository'].lower(),
                                                          i18n['size'].capitalize(),
-                                                         get_human_size_str(size) if size else '?'), p)
+                                                         get_human_size_str(size) if size is not None else '?'), p)
         op.icon_path = _get_repo_icon(d['repository'])
         opts.append(op)
 
@@ -58,7 +58,7 @@ def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, s
                                                        i18n['repository'],
                                                        dep[1].lower(),
                                                        i18n['size'].capitalize(),
-                                                       get_human_size_str(size) if size else '?'), dep[0])
+                                                       get_human_size_str(size) if size is not None else '?'), dep[0])
         op.read_only = True
         op.icon_path = _get_repo_icon(dep[1])
         opts.append(op)
