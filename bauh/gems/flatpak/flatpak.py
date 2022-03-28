@@ -438,12 +438,12 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
 
                                     if size and len(size) > 1:
                                         try:
-                                            res[related_id[0].strip()] = size_to_byte(float(size[0]), size[1].strip())
+                                            res[related_id[0].strip()] = size_to_byte(float(size[0].replace(',', '.')), size[1].strip())
                                         except:
                                             traceback.print_exc()
                                 else:
                                     try:
-                                        res[related_id[0].strip()] = size_to_byte(float(size_tuple[0]), size_tuple[1].strip())
+                                        res[related_id[0].strip()] = size_to_byte(float(size_tuple[0].replace(',', '.')), size_tuple[1].strip())
                                     except:
                                         traceback.print_exc()
         return res
