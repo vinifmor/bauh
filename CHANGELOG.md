@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - code refactoring
+  - backup: 
+    - single mode: only removing self generated snapshots (now the snapshots are associated with the comment "<bauh>") [#244](https://github.com/vinifmor/bauh/issues/244)
 
 - Arch
   - text length of some popups reduced

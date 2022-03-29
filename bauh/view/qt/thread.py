@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional, Iterable
+from typing import List, Type, Set, Tuple, Optional
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
@@ -140,16 +140,26 @@ class AsyncAction(QThread, ProcessWatcher):
 
         handler = ProcessHandler(self)
         if app_config['backup']['mode'] == 'only_one':
-            self.change_substatus('[{}] {}'.format(self.i18n['core.config.tab.backup'].lower(), self.i18n['action.backup.substatus.delete']))
-            deleted, _ = handler.handle_simple(timeshift.delete_all_snapshots(root_password))
+            previous_snapshots = tuple(timeshift.read_created_snapshots(root_password))
 
-            if not deleted and not self.request_confirmation(title=self.i18n['core.config.tab.backup'],
-                                                             body='{}. {}'.format(self.i18n['action.backup.error.delete'],
-                                                                                  self.i18n['action.backup.error.proceed']),
-                                                             confirmation_label=self.i18n['yes'].capitalize(),
-                                                             deny_label=self.i18n['no'].capitalize()):
-                self.change_substatus('')
-                return False
+            if previous_snapshots:
+                substatus = f"[{self.i18n['core.config.tab.backup'].lower()}] {self.i18n['action.backup.substatus.delete']}"
+                self.change_substatus(substatus)
+
+                delete_failed = False
+                for snapshot in reversed(previous_snapshots):
+                    deleted, _ = handler.handle_simple(timeshift.delete(snapshot, root_password))
+
+                    if not deleted:
+                        delete_failed = True
+
+                if delete_failed and not self.request_confirmation(title=self.i18n['core.config.tab.backup'],
+                                                                   body=f"{self.i18n['action.backup.error.delete']}. "
+                                                                        f"{self.i18n['action.backup.error.proceed']}",
+                                                                   confirmation_label=self.i18n['yes'].capitalize(),
+                                                                   deny_label=self.i18n['no'].capitalize()):
+                    self.change_substatus('')
+                    return False
 
         self.change_substatus('[{}] {}'.format(self.i18n['core.config.tab.backup'].lower(), self.i18n['action.backup.substatus.create']))
         created, _ = handler.handle_simple(timeshift.create_snapshot(root_password, app_config['backup']['type']))
