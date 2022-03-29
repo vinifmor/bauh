@@ -331,18 +331,18 @@ class ManageWindow(QWidget):
                                                                      internet_checker=context.internet_checker,
                                                                      screen_width=screen_size.width()),
                                                      finished_call=self._finish_upgrade_selected)
-        self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
+        self.thread_refresh = self._bind_async_action(RefreshApps(i18n, self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
-        self.thread_show_info = self._bind_async_action(ShowPackageInfo(self.manager), finished_call=self._finish_show_info)
+        self.thread_show_info = self._bind_async_action(ShowPackageInfo(i18n, self.manager), finished_call=self._finish_show_info)
         self.thread_show_history = self._bind_async_action(ShowPackageHistory(self.manager, self.i18n), finished_call=self._finish_show_history)
-        self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
+        self.thread_search = self._bind_async_action(SearchPackages(i18n, self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_downgrade = self._bind_async_action(DowngradePackage(self.manager, self.i18n), finished_call=self._finish_downgrade)
-        self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_load_suggestions, only_finished=True)
-        self.thread_launch = self._bind_async_action(LaunchPackage(self.manager), finished_call=self._finish_launch_package, only_finished=False)
+        self.thread_suggestions = self._bind_async_action(FindSuggestions(i18n=i18n, man=self.manager), finished_call=self._finish_load_suggestions, only_finished=True)
+        self.thread_launch = self._bind_async_action(LaunchPackage(i18n, self.manager), finished_call=self._finish_launch_package, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager, i18n=self.i18n), finished_call=self._finish_execute_custom_action)
-        self.thread_screenshots = self._bind_async_action(ShowScreenshots(self.manager), finished_call=self._finish_show_screenshots)
+        self.thread_screenshots = self._bind_async_action(ShowScreenshots(i18n, self.manager), finished_call=self._finish_show_screenshots)
 
-        self.thread_apply_filters = ApplyFilters()
+        self.thread_apply_filters = ApplyFilters(i18n)
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters)
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
@@ -358,7 +358,7 @@ class ManageWindow(QWidget):
         self.thread_notify_pkgs_ready.signal_finished.connect(self._update_state_when_pkgs_ready)
         self.signal_stop_notifying.connect(self.thread_notify_pkgs_ready.stop_working)
 
-        self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
+        self.thread_ignore_updates = IgnorePackageUpdates(i18n=i18n, manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
 
         self.thread_reload = StartAsyncAction(delay_in_milis=5)
