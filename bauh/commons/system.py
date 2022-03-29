@@ -285,10 +285,10 @@ def new_subprocess(cmd: Iterable[str], cwd: str = '.', shell: bool = False, stdi
     return subprocess.Popen(final_cmd, **args)
 
 
-def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str = '.',
+def new_root_subprocess(cmd: Iterable[str], root_password: Optional[str], cwd: str = '.',
                         global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
-                        extra_paths: Set[str] = None) -> subprocess.Popen:
-    pwdin, final_cmd = None, []
+                        extra_paths: Set[str] = None, shell: bool = False) -> subprocess.Popen:
+    pwdin, final_cmd = subprocess.DEVNULL, []
 
     if isinstance(root_password, str):
         final_cmd.extend(['sudo', '-S'])
@@ -296,7 +296,11 @@ def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str =
 
     final_cmd.extend(cmd)
 
-    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang, extra_paths))
+    if shell:
+        final_cmd = ' '.join(final_cmd)
+
+    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd,
+                            env=gen_env(global_interpreter, lang, extra_paths), shell=shell)
 
 
 def notify_user(msg: str, app_name: str, icon_path: str):
