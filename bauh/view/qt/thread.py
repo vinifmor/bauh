@@ -26,7 +26,7 @@ from bauh.commons.internet import InternetChecker
 from bauh.commons.system import ProcessHandler, SimpleProcess
 from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
-from bauh.view.core.config import CoreConfigManager
+from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.qt import commons
 from bauh.view.qt.commons import sort_packages
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
@@ -140,26 +140,36 @@ class AsyncAction(QThread, ProcessWatcher):
 
         handler = ProcessHandler(self)
         if app_config['backup']['mode'] == 'only_one':
-            previous_snapshots = tuple(timeshift.read_created_snapshots(root_password))
+            remove_method = app_config['backup']['remove_method']
 
-            if previous_snapshots:
-                substatus = f"[{self.i18n['core.config.tab.backup'].lower()}] {self.i18n['action.backup.substatus.delete']}"
-                self.change_substatus(substatus)
+            if remove_method not in BACKUP_REMOVE_METHODS:
+                remove_method = BACKUP_DEFAULT_REMOVE_METHOD
 
-                delete_failed = False
-                for snapshot in reversed(previous_snapshots):
-                    deleted, _ = handler.handle_simple(timeshift.delete(snapshot, root_password))
+            delete_failed = False
 
-                    if not deleted:
-                        delete_failed = True
+            if remove_method == 'self':
+                previous_snapshots = tuple(timeshift.read_created_snapshots(root_password))
 
-                if delete_failed and not self.request_confirmation(title=self.i18n['core.config.tab.backup'],
-                                                                   body=f"{self.i18n['action.backup.error.delete']}. "
-                                                                        f"{self.i18n['action.backup.error.proceed']}",
-                                                                   confirmation_label=self.i18n['yes'].capitalize(),
-                                                                   deny_label=self.i18n['no'].capitalize()):
-                    self.change_substatus('')
-                    return False
+                if previous_snapshots:
+                    substatus = f"[{self.i18n['core.config.tab.backup'].lower()}] {self.i18n['action.backup.substatus.delete']}"
+                    self.change_substatus(substatus)
+
+                    for snapshot in reversed(previous_snapshots):
+                        deleted, _ = handler.handle_simple(timeshift.delete(snapshot, root_password))
+
+                        if not deleted:
+                            delete_failed = True
+            else:
+                deleted, _ = handler.handle_simple(timeshift.delete_all_snapshots(root_password))
+                delete_failed = not deleted
+
+            if delete_failed and not self.request_confirmation(title=self.i18n['core.config.tab.backup'],
+                                                               body=f"{self.i18n['action.backup.error.delete']}. "
+                                                                    f"{self.i18n['action.backup.error.proceed']}",
+                                                               confirmation_label=self.i18n['yes'].capitalize(),
+                                                               deny_label=self.i18n['no'].capitalize()):
+                self.change_substatus('')
+                return False
 
         self.change_substatus('[{}] {}'.format(self.i18n['core.config.tab.backup'].lower(), self.i18n['action.backup.substatus.create']))
         created, _ = handler.handle_simple(timeshift.create_snapshot(root_password, app_config['backup']['type']))

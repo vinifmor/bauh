@@ -18,7 +18,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - code refactoring
   - backup: 
-    - single mode: only removing self generated snapshots (now the snapshots are associated with the comment "<bauh>") [#244](https://github.com/vinifmor/bauh/issues/244)
+    - single mode: now supports two remove methods [#244](https://github.com/vinifmor/bauh/issues/244)
+      - self: it removes only self generated backups/snapshots (default)
+      - all: it removes all existing backup/snapshots on the disc
+      
+      <p align="center">
+           <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.1/bkp_remove.png">
+      </p>
 
 - Arch
   - text length of some popups reduced

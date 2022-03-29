@@ -3,6 +3,9 @@ from bauh.commons.config import YAMLConfigManager
 
 FILE_PATH = f'{CONFIG_DIR}/config.yml'
 
+BACKUP_DEFAULT_REMOVE_METHOD = 'self'
+BACKUP_REMOVE_METHODS = {BACKUP_DEFAULT_REMOVE_METHOD, 'all'}
+
 
 class CoreConfigManager(YAMLConfigManager):
 
@@ -63,7 +66,8 @@ class CoreConfigManager(YAMLConfigManager):
                 'downgrade': None,
                 'upgrade': None,
                 'mode': 'incremental',
-                'type': 'rsync'
+                'type': 'rsync',
+                'remove_method': 'self'
             },
             'boot': {
                 'load_apps': True
