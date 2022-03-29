@@ -469,7 +469,7 @@ class ManageWindow(QWidget):
                                          *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
-                                         CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
+                                         CHECK_APPS, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
                                          BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
 
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
@@ -805,6 +805,7 @@ class ManageWindow(QWidget):
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
+            self._update_installed_filter()
             self.begin_apply_filters()
             notify_tray()
         else:
@@ -932,9 +933,6 @@ class ManageWindow(QWidget):
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
 
-        if not keep_filters:
-            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
-
         if new_pkgs is not None:
             old_installed = None
 
@@ -988,6 +986,9 @@ class ManageWindow(QWidget):
             self.pkgs_installed = pkgs_info['pkgs']
 
         self.pkgs = pkgs_info['pkgs_displayed']
+        self._update_installed_filter(installed_available=pkgs_info['installed'] > 0,
+                                      keep_state=keep_filters,
+                                      hide=as_installed)
         self._update_table(pkgs_info=pkgs_info)
 
         if new_pkgs:
@@ -1006,6 +1007,27 @@ class ManageWindow(QWidget):
             self.installed_loaded = True
 
         return True
+
+    def _update_installed_filter(self, keep_state: bool = True, hide: bool = False, installed_available: Optional[bool] = None):
+        if installed_available is not None:
+            has_installed = installed_available
+        elif self.pkgs_available == self.pkgs_installed:  # it means the "installed" view is loaded
+            has_installed = False
+        else:
+            has_installed = False
+            if self.pkgs_available:
+                for p in self.pkgs_available:
+                    if p.model.installed:
+                        has_installed = True
+                        break
+
+        if not keep_state or not has_installed:
+            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
+
+        if hide:
+            self.comp_manager.set_component_visible(CHECK_INSTALLED, False)
+        else:
+            self.comp_manager.set_component_visible(CHECK_INSTALLED, has_installed)
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
@@ -1438,6 +1460,7 @@ class ManageWindow(QWidget):
                     self.pkgs_installed.insert(idx, PackageView(model, self.i18n))
 
             self.update_custom_actions()
+            self._update_installed_filter(installed_available=True, keep_state=True)
             self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
             self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=False)

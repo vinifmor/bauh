@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Snap
   - allowing the actions output locale to be decided by the Snap client
 
+- UI
+  - only displaying the "Installed" filter when installed packages are available on the table
+
 ### Fixes
 - Arch
   - regression: not displaying ignored updates
