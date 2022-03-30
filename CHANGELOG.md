@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       <p align="center">
            <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.1/bkp_remove.png">
       </p>
+  
+- AppImage
+  - Limiting the UI components width of the file installation and upgrade windows 
 
 - Arch
   - text length of some popups reduced
