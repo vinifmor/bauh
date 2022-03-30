@@ -13,7 +13,7 @@ def is_available() -> bool:
 
 
 def delete_all_snapshots(root_password: Optional[str]) -> SimpleProcess:
-    return SimpleProcess(['timeshift', '--delete-all', '--scripted'], root_password=root_password)
+    return SimpleProcess(('timeshift', '--delete-all', '--scripted'), root_password=root_password)
 
 
 def delete(snapshot_name: str, root_password: Optional[str]) -> SimpleProcess:
