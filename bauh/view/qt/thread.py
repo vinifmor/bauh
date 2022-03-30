@@ -60,13 +60,14 @@ class AsyncAction(QThread, ProcessWatcher):
                              window_cancel: bool = False,
                              confirmation_button: bool = True,
                              min_width: Optional[int] = None,
-                             min_height: Optional[int] = None) -> bool:
+                             min_height: Optional[int] = None,
+                             max_width: Optional[int] = None) -> bool:
         self.wait_confirmation = True
         self.signal_confirmation.emit({'title': title, 'body': body, 'components': components,
                                        'confirmation_label': confirmation_label, 'deny_label': deny_label,
                                        'deny_button': deny_button, 'window_cancel': window_cancel,
                                        'confirmation_button': confirmation_button, 'min_width': min_width,
-                                       'min_height': min_height})
+                                       'min_height': min_height, 'max_width': max_width})
         self.wait_user()
         return self.confirmation_res
 
