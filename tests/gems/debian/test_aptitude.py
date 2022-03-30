@@ -35,8 +35,7 @@ gimp-help^<none>^<none>^<none>^^
         query = 'gimp'
         res = [p for p in self.aptitude.search(query=query)]
 
-        execute.assert_called_once_with(f"aptitude search {query} -q -F '%p^%v^%V^%m^%s^%d' --disable-columns",
-                                        shell=True, custom_env=system.gen_env(USE_GLOBAL_INTERPRETER, lang=''))
+        execute.assert_called_once_with(f"aptitude search {query} -q -F '%p^%v^%V^%m^%s^%d' --disable-columns", shell=True)
 
         exp = [
             DebianPackage(name='gimp-cbmplugs', version='1.2.2-1build1', latest_version='1.2.2-1build1',
