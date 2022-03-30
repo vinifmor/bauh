@@ -407,6 +407,7 @@ publisher.verified=vérifié
 publisher=publier
 repository=dépôt
 screenshots.bt_back.label=précédant
+screenshots.bt_close=Fermer
 screenshots.bt_next.label=suivant
 screenshots.download.no_content=Rien à afficher
 screenshots.download.no_response=Pas d'image

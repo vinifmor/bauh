@@ -47,7 +47,22 @@ class ScreenshotsDialog(QDialog):
         self.setWindowIcon(QIcon(pkg.model.get_type_icon_path()))
         self.setLayout(QVBoxLayout())
 
+        self.bt_close = QPushButton(self.i18n['screenshots.bt_close'])
+        self.bt_close.setObjectName('close')
+        self.bt_close.clicked.connect(self.close)
+        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+
+        self.upper_buttons = QWidget()
+        self.upper_buttons.setObjectName('upper_buttons')
+        self.upper_buttons.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.upper_buttons.setContentsMargins(0, 0, 0, 0)
+        self.upper_buttons.setLayout(QHBoxLayout())
+        self.upper_buttons.layout().setAlignment(Qt.AlignRight)
+        self.upper_buttons.layout().addWidget(self.bt_close)
+        self.layout().addWidget(self.upper_buttons)
+
         self.layout().addWidget(new_spacer())
+
         self.img = QLabel()
         self.img.setObjectName('image')
         self.layout().addWidget(self.img)

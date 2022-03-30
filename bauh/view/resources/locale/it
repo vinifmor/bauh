@@ -413,6 +413,7 @@ publisher=editore
 publisher.verified=verificato
 repository=deposito
 screenshots.bt_back.label=precedente
+screenshots.bt_close=Chiudere
 screenshots.bt_next.label=prossimo
 screenshots.download.no_content=Nessun contenuto da visualizzare
 screenshots.download.no_response=Immagine non trovata

@@ -410,6 +410,7 @@ publisher.verified=doğrula
 publisher=yayımcı
 repository=depo
 screenshots.bt_back.label=önceki
+screenshots.bt_close=Kapatmak
 screenshots.bt_next.label=sonraki
 screenshots.download.no_content=Görüntülenecek içerik yok
 screenshots.download.no_response=İmaj bulunamadı

@@ -410,6 +410,7 @@ publisher=издатель
 publisher.verified=Проверенный
 repository=Репозиторий
 screenshots.bt_back.label=Предыдущий
+screenshots.bt_close=закрыть
 screenshots.bt_next.label=Следующий
 screenshots.download.no_content=Нет материалов для отображени
 screenshots.download.no_response=Изображение не найдено

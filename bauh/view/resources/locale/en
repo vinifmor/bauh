@@ -413,6 +413,7 @@ publisher.verified=verified
 publisher=publisher
 repository=repository
 screenshots.bt_back.label=previous
+screenshots.bt_close=Close
 screenshots.bt_next.label=next
 screenshots.download.no_content=No content to display
 screenshots.download.no_response=Image not found

@@ -411,6 +411,7 @@ publisher.verified=verificado
 publisher=publicador
 repository=repositório
 screenshots.bt_back.label=anterior
+screenshots.bt_close=Fechar
 screenshots.bt_next.label=próxima
 screenshots.download.no_content=Sem conteúdo para exibir
 screenshots.download.no_response=Imagem não encontrada

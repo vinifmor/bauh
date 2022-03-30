@@ -410,6 +410,7 @@ publisher=Herausgeber
 publisher.verified=Geprüft
 repository=Repository
 screenshots.bt_back.label=Zurück
+screenshots.bt_close=Schließen
 screenshots.bt_next.label=Fortfahren
 screenshots.download.no_content=Kein Inhalt
 screenshots.download.no_response=Screenshot nicht gefunden

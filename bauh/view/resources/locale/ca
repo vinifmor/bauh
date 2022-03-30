@@ -411,6 +411,7 @@ publisher=proveïdor
 publisher.verified=verificat
 repository=dipòsit
 screenshots.bt_back.label=anterior
+screenshots.bt_close=Tancar
 screenshots.bt_next.label=següent
 screenshots.download.no_content=No hi ha contingut a mostrar
 screenshots.image.loading=Loading

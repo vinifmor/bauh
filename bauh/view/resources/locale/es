@@ -413,6 +413,7 @@ publisher.verified=verificado
 removing=removing
 repository=repositorio
 screenshots.bt_back.label=anterior
+screenshots.bt_close=Cerrar
 screenshots.bt_next.label=siguiente
 screenshots.download.no_content=No hay contenido para mostrar
 screenshots.download.no_response=No se encontró la imagen
