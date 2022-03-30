@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - UI
   - only displaying the "Installed" filter when installed packages are available on the table
+  - settings: margin between components reduced [#241](https://github.com/vinifmor/bauh/issues/241)
 
 ### Fixes
 - Arch
