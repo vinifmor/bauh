@@ -55,10 +55,6 @@ def get_repositories(pkgs: Iterable[str]) -> dict:
     return repositories
 
 
-def is_available_in_repositories(pkg_name: str) -> bool:
-    return bool(run_cmd('pacman -Ss ' + pkg_name))
-
-
 def get_info(pkg_name, remote: bool = False) -> str:
     return run_cmd('pacman -{}i {}'.format('Q' if not remote else 'S', pkg_name), print_error=False)
 
@@ -397,32 +393,6 @@ def list_repository_updates() -> Dict[str, str]:
     return res
 
 
-def map_sorting_data(pkgnames: List[str]) -> Dict[str, dict]:
-    allinfo = new_subprocess(['pacman', '-Qi', *pkgnames]).stdout
-
-    pkgs, current_pkg = {}, {}
-    mapped_attrs = 0
-    for out in new_subprocess(["grep", "-Po", "(Name|Provides|Depends On)\s*:\s*\K(.+)"], stdin=allinfo).stdout:
-        if out:
-            line = out.decode().strip()
-
-            if line:
-                if mapped_attrs == 0:
-                    current_pkg['name'] = line
-                elif mapped_attrs == 1:
-                    provides = set() if line == 'None' else set(line.split(' '))
-                    provides.add(current_pkg['name'])
-                    current_pkg['provides'] = provides
-                elif mapped_attrs == 2:
-                    current_pkg['depends'] = line.split(':')[1].strip()
-                    pkgs[current_pkg['name']] = current_pkg
-                    del current_pkg['name']
-
-                    mapped_attrs = 0
-                    current_pkg = {}
-    return pkgs
-
-
 def get_build_date(pkgname: str) -> str:
     output = run_cmd('pacman -Qi {}'.format(pkgname))
 
@@ -508,7 +478,7 @@ def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
 
     return {}
 
@@ -517,7 +487,7 @@ def map_download_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_DOWNLOAD_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_DOWNLOAD_SIZE.findall(output))}
 
     return {}
 
@@ -526,7 +496,7 @@ def get_installed_size(pkgs: List[str]) -> Dict[str, int]:  # bytes
     output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0]), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
 
     return {}
 
@@ -688,11 +658,11 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
                         latest_field = 'c'
                     elif field == 'Download Size':
                         size = val.split(' ')
-                        data['ds'] = size_to_byte(float(size[0]), size[1])
+                        data['ds'] = size_to_byte(float(size[0].replace(',', '.')), size[1])
                         latest_field = 'ds'
                     elif field == 'Installed Size':
                         size = val.split(' ')
-                        data['s'] = size_to_byte(float(size[0]), size[1])
+                        data['s'] = size_to_byte(float(size[0].replace(',', '.')), size[1])
                         latest_field = 's'
                     elif latest_name and latest_field == 's':
                         res[latest_name] = data
@@ -799,67 +769,6 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
                         deps.update(sev_deps)
 
     return res
-
-
-def map_all_deps(names: Iterable[str], only_installed: bool = False) -> Dict[str, Set[str]]:
-    output = run_cmd('pacman -Qi {}'.format(' '.join(names)))
-
-    if output:
-        res = {}
-        deps_fields = {'Depends On', 'Optional Deps'}
-        latest_name, deps, latest_field = None, None, None
-
-        for l in output.split('\n'):
-            if l:
-                if l[0] != ' ':
-                    line = l.strip()
-                    field_sep_idx = line.index(':')
-                    field = line[0:field_sep_idx].strip()
-
-                    if field == 'Name':
-                        latest_field = field
-                        val = line[field_sep_idx + 1:].strip()
-                        latest_name = val
-                        deps = None
-                    elif field in deps_fields:
-                        latest_field = field
-                        val = line[field_sep_idx + 1:].strip()
-                        opt_deps = latest_field == 'Optional Deps'
-
-                        if deps is None:
-                            deps = set()
-
-                        if val != 'None':
-                            if ':' in val:
-                                dep_info = val.split(':')
-                                desc = dep_info[1].strip()
-
-                                if desc and opt_deps and only_installed and '[installed]' not in desc:
-                                    continue
-
-                                deps.add(dep_info[0].strip())
-                            else:
-                                deps.update({dep.strip() for dep in val.split(' ') if dep})
-
-                    elif latest_name and deps is not None:
-                        res[latest_name] = deps
-                        latest_name, deps, latest_field = None, None, None
-
-                elif latest_name and deps is not None:
-                    opt_deps = latest_field == 'Optional Deps'
-
-                    if ':' in l:
-                        dep_info = l.split(':')
-                        desc = dep_info[1].strip()
-
-                        if desc and opt_deps and only_installed and '[installed]' not in desc:
-                            continue
-
-                        deps.add(dep_info[0].strip())
-                    else:
-                        deps.update({dep.strip() for dep in l.split(' ') if dep})
-
-        return res
 
 
 def map_required_dependencies(*names: str) -> Dict[str, Set[str]]:
@@ -1033,114 +942,6 @@ def map_replaces(names: Iterable[str], remote: bool = False) -> Dict[str, Set[st
                     replaces.update((d for d in l.strip().split(' ') if d))
 
         return res
-
-
-def _list_unnecessary_deps(pkgs: Iterable[str], already_checked: Set[str], all_provided: Dict[str, Set[str]], recursive: bool = False) -> Set[str]:
-    output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
-
-    if output:
-        res = set()
-        deps_field = False
-
-        for l in output.split('\n'):
-            if l:
-                if l[0] != ' ':
-                    line = l.strip()
-                    field_sep_idx = line.index(':')
-                    field = line[0:field_sep_idx].strip()
-
-                    if field == 'Depends On':
-                        deps_field = True
-                        val = line[field_sep_idx + 1:].strip()
-
-                        if val != 'None':
-                            if ':' in val:
-                                dep_info = val.split(':')
-
-                                real_deps = all_provided.get(dep_info[0].strip())
-
-                                if real_deps:
-                                    res.update(real_deps)
-                            else:
-                                for dep in val.split(' '):
-                                    if dep:
-                                        real_deps = all_provided.get(dep.strip())
-
-                                        if real_deps:
-                                            res.update(real_deps)
-
-                    elif deps_field:
-                        latest_field = False
-
-                elif deps_field:
-                    if ':' in l:
-                        dep_info = l.split(':')
-
-                        real_deps = all_provided.get(dep_info[0].strip())
-
-                        if real_deps:
-                            res.update(real_deps)
-                    else:
-                        for dep in l.split(' '):
-                            if dep:
-                                real_deps = all_provided.get(dep.strip())
-
-                                if real_deps:
-                                    res.update(real_deps)
-
-        if res:
-            res = {dep for dep in res if dep not in already_checked}
-            already_checked.update(res)
-
-            if recursive and res:
-                subdeps = _list_unnecessary_deps(res, already_checked, all_provided)
-
-                if subdeps:
-                    res.update(subdeps)
-
-        return res
-
-
-def list_unnecessary_deps(pkgs: Iterable[str], all_provided: Dict[str, Set[str]] = None) -> Set[str]:
-    all_checked = set(pkgs)
-    all_deps = _list_unnecessary_deps(pkgs, all_checked, map_provided(remote=False) if not all_provided else all_provided, recursive=True)
-
-    unnecessary = set(pkgs)
-    if all_deps:
-        requirements_map = map_required_by(all_deps)
-
-        to_clean = set()
-        for dep, required_by in requirements_map.items():
-            if not required_by or not required_by.difference(unnecessary):
-                unnecessary.add(dep)
-                to_clean.add(dep)
-            elif required_by.difference(all_checked):  # checking if there are requirements outside the context
-                to_clean.add(dep)
-
-        if to_clean:
-            for dep in to_clean:
-                del requirements_map[dep]
-
-        if requirements_map:
-            while True:
-                to_clean = set()
-                for dep, required_by in requirements_map.items():
-                    if not required_by.difference(unnecessary):
-                        unnecessary.add(dep)
-                        to_clean.add(dep)
-
-                if to_clean:
-                    for dep in to_clean:
-                        del requirements_map[dep]
-                else:
-                    break
-
-            if requirements_map:  # if it reaches this points it is possible to exist mutual dependent packages
-                for dep, required_by in requirements_map.items():
-                    if not required_by.difference({*requirements_map.keys(), *unnecessary}):
-                        unnecessary.add(dep)
-
-    return unnecessary.difference(pkgs)
 
 
 def list_installed_names() -> Set[str]:

@@ -55,7 +55,9 @@ class FlatpakAsyncDataLoader(Thread):
                         if not self.app.name:
                             self.app.name = data.get('name')
 
-                        self.app.description = data.get('description', data.get('summary', None))
+                        if not self.app.description:
+                            self.app.description = data.get('description', data.get('summary', None))
+
                         self.app.icon_url = data.get('iconMobileUrl', None)
                         self.app.latest_version = data.get('currentReleaseVersion', self.app.version)
 

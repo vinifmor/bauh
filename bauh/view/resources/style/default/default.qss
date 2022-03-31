@@ -391,6 +391,10 @@ ScreenshotsDialog QAbstractButton[control = "true"] {
     min-width: 100px;
 }
 
+ScreenshotsDialog QPushButton#close {
+    min-width: 25px;
+}
+
 SettingsWindow TabGroupQt#settings {
     min-width: 400px;
 }

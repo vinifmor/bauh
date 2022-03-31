@@ -1,10 +1,11 @@
 import os
+import re
 import subprocess
 import sys
 import time
 from io import StringIO
 from subprocess import PIPE
-from typing import List, Tuple, Set, Dict, Optional, Iterable
+from typing import List, Tuple, Set, Dict, Optional, Iterable, Union, IO, Any
 
 # default environment variables for subprocesses.
 from bauh.api.abstract.handler import ProcessWatcher
@@ -13,7 +14,7 @@ PY_VERSION = "{}.{}".format(sys.version_info.major, sys.version_info.minor)
 GLOBAL_PY_LIBS = '/usr/lib/python{}'.format(PY_VERSION)
 
 PATH = os.getenv('PATH')
-DEFAULT_LANG = 'en'
+DEFAULT_LANG = ''
 
 GLOBAL_INTERPRETER_PATH = ':'.join(PATH.split(':')[1:])
 
@@ -22,8 +23,10 @@ if GLOBAL_PY_LIBS not in PATH:
 
 USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 
+RE_SUDO_OUTPUT = re.compile(r'[sudo]\s*[\w\s]+:\s*')
 
-def gen_env(global_interpreter: bool, lang: str = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
+
+def gen_env(global_interpreter: bool, lang: Optional[str] = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
     custom_env = dict(os.environ)
 
     if lang is not None:
@@ -63,7 +66,7 @@ class SystemProcess:
 class SimpleProcess:
 
     def __init__(self, cmd: Iterable[str], cwd: str = '.', expected_code: int = 0,
-                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG, root_password: Optional[str] = None,
+                 global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
                  custom_user: Optional[str] = None):
@@ -79,16 +82,17 @@ class SimpleProcess:
 
         final_cmd.extend(cmd)
 
-        self.instance = self._new(final_cmd, cwd, global_interpreter, lang, stdin=pwdin, extra_paths=extra_paths, extra_env=extra_env)
+        self.instance = self._new(final_cmd, cwd, global_interpreter, lang=lang, stdin=pwdin,
+                                  extra_paths=extra_paths, extra_env=extra_env)
         self.expected_code = expected_code
         self.error_phrases = error_phrases
         self.wrong_error_phrases = wrong_error_phrases
         self.success_phrases = success_phrases
 
-    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: str, stdin = None,
+    def _new(self, cmd: List[str], cwd: str, global_interpreter: bool, lang: Optional[str], stdin = None,
              extra_paths: Set[str] = None, extra_env: Optional[Dict[str, str]] = None) -> subprocess.Popen:
 
-        env = gen_env(global_interpreter, lang, extra_paths=extra_paths)
+        env = gen_env(global_interpreter=global_interpreter, lang=lang, extra_paths=extra_paths)
 
         if extra_env:
             for var, val in extra_env.items():
@@ -197,8 +201,8 @@ class ProcessHandler:
                 except UnicodeDecodeError:
                     continue
 
-                if line.startswith('[sudo] password'):
-                    continue
+                if line.startswith('[sudo]'):
+                    line = RE_SUDO_OUTPUT.split(line)[1]
 
                 output.write(line)
 
@@ -240,7 +244,7 @@ class ProcessHandler:
 
 def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, print_error: bool = True,
             cwd: str = '.', global_interpreter: bool = USE_GLOBAL_INTERPRETER, extra_paths: Set[str] = None,
-            custom_user: Optional[str] = None) -> Optional[str]:
+            custom_user: Optional[str] = None, lang: Optional[str] = DEFAULT_LANG) -> Optional[str]:
     """
     runs a given command and returns its default output
     :return:
@@ -248,7 +252,7 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
     args = {
         "shell": True,
         "stdout": PIPE,
-        "env": gen_env(global_interpreter, extra_paths=extra_paths),
+        "env": gen_env(global_interpreter=global_interpreter, lang=lang, extra_paths=extra_paths),
         'cwd': cwd
     }
 
@@ -265,8 +269,8 @@ def run_cmd(cmd: str, expected_code: int = 0, ignore_return_code: bool = False, 
             pass
 
 
-def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = None,
-                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
+def new_subprocess(cmd: Iterable[str], cwd: str = '.', shell: bool = False, stdin: Optional[Union[None, int, IO[Any]]] = None,
+                   global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG,
                    extra_paths: Set[str] = None, custom_user: Optional[str] = None) -> subprocess.Popen:
     args = {
         "stdout": PIPE,
@@ -281,10 +285,10 @@ def new_subprocess(cmd: List[str], cwd: str = '.', shell: bool = False, stdin = 
     return subprocess.Popen(final_cmd, **args)
 
 
-def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str = '.',
+def new_root_subprocess(cmd: Iterable[str], root_password: Optional[str], cwd: str = '.',
                         global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: str = DEFAULT_LANG,
-                        extra_paths: Set[str] = None) -> subprocess.Popen:
-    pwdin, final_cmd = None, []
+                        extra_paths: Set[str] = None, shell: bool = False) -> subprocess.Popen:
+    pwdin, final_cmd = subprocess.DEVNULL, []
 
     if isinstance(root_password, str):
         final_cmd.extend(['sudo', '-S'])
@@ -292,7 +296,11 @@ def new_root_subprocess(cmd: List[str], root_password: Optional[str], cwd: str =
 
     final_cmd.extend(cmd)
 
-    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd, env=gen_env(global_interpreter, lang, extra_paths))
+    if shell:
+        final_cmd = ' '.join(final_cmd)
+
+    return subprocess.Popen(final_cmd, stdin=pwdin, stdout=PIPE, stderr=PIPE, cwd=cwd,
+                            env=gen_env(global_interpreter, lang, extra_paths), shell=shell)
 
 
 def notify_user(msg: str, app_name: str, icon_path: str):

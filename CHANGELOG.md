@@ -4,6 +4,62 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.1] 2022-03-31
+
+### Features
+- Flatpak
+  - new custom action "Full update": fully updates all installed Flatpak apps and components (useful if you are having issues with runtime updates)
+
+  <p align="center">
+      <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.1/flatpak_full_update.png">
+  </p>
+
+
+### Improvements
+- General
+  - code refactoring
+  - backup: 
+    - single mode: now supports two remove methods [#244](https://github.com/vinifmor/bauh/issues/244)
+      - self: it removes only self generated backups/snapshots (default)
+      - all: it removes all existing backup/snapshots on the disc
+      
+      <p align="center">
+           <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.1/bkp_remove.png">
+      </p>
+  
+- AppImage
+  - Limiting the UI components width of the file installation and upgrade windows 
+
+- Arch
+  - text length of some popups reduced
+
+- Snap
+  - allowing the actions output locale to be decided by the Snap client
+
+- UI
+  - only displaying the "Installed" filter when installed packages are available on the table
+  - settings: margin between components reduced [#241](https://github.com/vinifmor/bauh/issues/241)
+  - "close" button added to the screenshots window (some distributions hide the default "x" on the dialog frame) [#246](https://github.com/vinifmor/bauh/issues/246)
+
+### Fixes
+- Arch
+  - regression: not displaying ignored updates
+  - dependency size: display a '?' instead of '0' ('?' should only be displayed when the size is unknown)
+
+- Debian
+  - packages descriptions are not displayed on the system's default language (when available)
+
+- Flatpak:
+  - executed commands are not displayed on the system default language and encoding (requires Flatpak >= 1.12) [#242](https://github.com/vinifmor/bauh/issues/242)
+  - applications and runtimes descriptions are not displayed on the system default language (when available) [#242](https://github.com/vinifmor/bauh/issues/242)
+
+- Web
+  - using the wrong locale format for the Accept-Language header
+
+- UI:
+  - rare crash when updating table items
+  - some action errors not being displayed on the details component when they are concatenated with sudo output 
+
 ## [0.10.0] 2022-03-14
 
 ### Features

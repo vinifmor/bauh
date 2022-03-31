@@ -313,6 +313,8 @@ prefer_repository_provider: true  # when there is just one repository provider f
 ```
 installation_level: null # defines a default installation level: "user" or "system". (null will display a popup asking the level)
 ```
+- Custom actions supported:
+  - **Full update**: it completely updates the Flatpak apps and components. Useful if you are having issues with runtime updates.
 
 
 #### <a name="type_snap">Snap</a>
@@ -436,12 +438,13 @@ disk:
         after_upgrade: false # it trims the disk after a successful packages upgrade (`fstrim -a -v`). 'true' will automatically perform the trim and 'null' will display a confirmation dialog
 backup:
     enabled: true  # generate timeshift snapshots before an action (if timeshift is installed on the system)
-    mode: 'incremental' # incremental=generates a new snapshot based on another pre-exising one. 'only_one'=deletes all pre-existing snapshots and generates a fresh one.
+    mode: 'incremental' # incremental=generates a new snapshot based on another pre-exising one. 'only_one'=deletes all pre-existing self created snapshots and generates a fresh one.
     install: null  # defines if the backup should be performed before installing a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     uninstall: null  # defines if the backup should be performed before uninstalling a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     upgrade: null  # defines if the backup should be performed before upgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     downgrade: null  # defines if the backup should be performed before downgrading a package. Allowed values: null (a dialog will be displayed asking if a snapshot should be generated), true: generates the backup without asking. false: disables the backup for this operation
     type: rsync  # defines the Timeshift backup mode -> 'rsync' (default) or 'btrfs'
+    remove_method: self  # define which backups should be removed in the 'only_one' mode. 'self': only self generated copies. 'all': all existing backups on the disc.
 boot:
     load_apps: true  # if the installed applications or suggestions should be loaded on the management panel after the initialization process. Default: true.
 ```

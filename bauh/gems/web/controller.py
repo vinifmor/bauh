@@ -59,6 +59,8 @@ RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
+DEFAULT_LANGUAGE_HEADER = 'en-US, en'
+
 
 class WebApplicationManager(SoftwareManager):
 
@@ -77,12 +79,28 @@ class WebApplicationManager(SoftwareManager):
         self.idxman = SearchIndexManager(logger=context.logger)
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
 
-    def _get_lang_header(self) -> str:
+    def get_accept_language_header(self) -> str:
         try:
-            system_locale = locale.getdefaultlocale()
-            return system_locale[0] if system_locale else 'en_US'
+            syslocale = locale.getdefaultlocale()
+
+            if syslocale:
+                locale_split = syslocale[0].split('_')
+
+                if len(locale_split) == 2:
+                    sys_lang = f'{locale_split[0]}-{locale_split[1]}, {locale_split[0]}'
+
+                    if DEFAULT_LANGUAGE_HEADER.split(',')[1].strip() not in sys_lang:
+                        return f'{sys_lang}, {DEFAULT_LANGUAGE_HEADER}'
+
+                    return sys_lang
+
+                else:
+                    return f'{syslocale[0]}, {DEFAULT_LANGUAGE_HEADER}'
+            else:
+                return DEFAULT_LANGUAGE_HEADER
+
         except:
-            return 'en_US'
+            return DEFAULT_LANGUAGE_HEADER
 
     def clean_environment(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
@@ -221,7 +239,7 @@ class WebApplicationManager(SoftwareManager):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
 
     def _request_url(self, url: str) -> Optional[Response]:
-        headers = {'Accept-language': self._get_lang_header(), 'User-Agent': UA_CHROME}
+        headers = {'Accept-language': self.get_accept_language_header(), 'User-Agent': UA_CHROME}
 
         try:
             return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)

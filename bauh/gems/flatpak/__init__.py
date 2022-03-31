@@ -18,6 +18,7 @@ VERSION_1_2 = parse_version('1.2')
 VERSION_1_3 = parse_version('1.3')
 VERSION_1_4 = parse_version('1.4')
 VERSION_1_5 = parse_version('1.5')
+VERSION_1_12 = parse_version('1.12')
 
 
 def get_icon_path() -> str:

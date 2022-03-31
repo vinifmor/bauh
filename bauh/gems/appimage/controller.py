@@ -85,27 +85,31 @@ class AppImageManager(SoftwareManager):
         self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
 
     def install_file(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
+        max_width = 350
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
-                                            search_path=get_default_manual_installation_file_dir())
-        input_name = TextInputComponent(label=self.i18n['name'].capitalize())
-        input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+                                            search_path=get_default_manual_installation_file_dir(),
+                                            max_width=max_width)
+        input_name = TextInputComponent(label=self.i18n['name'].capitalize(), max_width=max_width)
+        input_version = TextInputComponent(label=self.i18n['version'].capitalize(), max_width=max_width)
         file_chooser.observers.append(ManualInstallationFileObserver(input_name, input_version))
 
-        input_description = TextInputComponent(label=self.i18n['description'].capitalize())
+        input_description = TextInputComponent(label=self.i18n['description'].capitalize(), max_width=max_width)
 
         cat_ops = [InputOption(label=self.i18n['category.none'].capitalize(), value=0)]
         cat_ops.extend([InputOption(label=self.i18n.get(f'category.{c.lower()}', c.lower()).capitalize(), value=c) for c in self.context.default_categories])
         inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
-                                        default_option=cat_ops[0])
+                                        default_option=cat_ops[0], max_width=max_width)
 
-        form = FormComponent(label='', components=[file_chooser, input_name, input_version, input_description, inp_cat], spaces=False)
+        form = FormComponent(label='', components=[file_chooser, input_name, input_version, input_description, inp_cat],
+                             spaces=False)
 
         while True:
             if watcher.request_confirmation(title=self.i18n['appimage.custom_action.install_file.details'], body=None,
                                             components=[form],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
-                                            deny_label=self.i18n['cancel'].capitalize()):
+                                            deny_label=self.i18n['cancel'].capitalize(),
+                                            min_height=100, max_width=max_width + 150):
                 if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path) or not file_chooser.file_path.lower().strip().endswith('.appimage'):
                     watcher.request_confirmation(title=self.i18n['error'].capitalize(),
                                                  body=self.i18n['appimage.custom_action.install_file.invalid_file'],
@@ -139,17 +143,20 @@ class AppImageManager(SoftwareManager):
         return res
 
     def update_file(self, pkg: AppImage, root_password: Optional[str], watcher: ProcessWatcher):
+        max_width = 350
         file_chooser = FileChooserComponent(label=self.i18n['file'].capitalize(),
                                             allowed_extensions={'AppImage', '*'},
-                                            search_path=get_default_manual_installation_file_dir())
-        input_version = TextInputComponent(label=self.i18n['version'].capitalize())
+                                            search_path=get_default_manual_installation_file_dir(),
+                                            max_width=max_width)
+        input_version = TextInputComponent(label=self.i18n['version'].capitalize(), max_width=max_width)
         file_chooser.observers.append(ManualInstallationFileObserver(None, input_version))
 
         while True:
             if watcher.request_confirmation(title=self.i18n['appimage.custom_action.manual_update.details'], body=None,
                                             components=[FormComponent(label='', components=[file_chooser, input_version], spaces=False)],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
-                                            deny_label=self.i18n['cancel'].capitalize()):
+                                            deny_label=self.i18n['cancel'].capitalize(),
+                                            min_height=100, max_width=max_width + 150):
 
                 if not file_chooser.file_path or not os.path.isfile(file_chooser.file_path) or not file_chooser.file_path.lower().strip().endswith('.appimage'):
                     watcher.request_confirmation(title=self.i18n['error'].capitalize(),

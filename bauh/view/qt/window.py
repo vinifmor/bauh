@@ -331,18 +331,18 @@ class ManageWindow(QWidget):
                                                                      internet_checker=context.internet_checker,
                                                                      screen_width=screen_size.width()),
                                                      finished_call=self._finish_upgrade_selected)
-        self.thread_refresh = self._bind_async_action(RefreshApps(self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
+        self.thread_refresh = self._bind_async_action(RefreshApps(i18n, self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
-        self.thread_show_info = self._bind_async_action(ShowPackageInfo(self.manager), finished_call=self._finish_show_info)
+        self.thread_show_info = self._bind_async_action(ShowPackageInfo(i18n, self.manager), finished_call=self._finish_show_info)
         self.thread_show_history = self._bind_async_action(ShowPackageHistory(self.manager, self.i18n), finished_call=self._finish_show_history)
-        self.thread_search = self._bind_async_action(SearchPackages(self.manager), finished_call=self._finish_search, only_finished=True)
+        self.thread_search = self._bind_async_action(SearchPackages(i18n, self.manager), finished_call=self._finish_search, only_finished=True)
         self.thread_downgrade = self._bind_async_action(DowngradePackage(self.manager, self.i18n), finished_call=self._finish_downgrade)
-        self.thread_suggestions = self._bind_async_action(FindSuggestions(man=self.manager), finished_call=self._finish_load_suggestions, only_finished=True)
-        self.thread_launch = self._bind_async_action(LaunchPackage(self.manager), finished_call=self._finish_launch_package, only_finished=False)
+        self.thread_suggestions = self._bind_async_action(FindSuggestions(i18n=i18n, man=self.manager), finished_call=self._finish_load_suggestions, only_finished=True)
+        self.thread_launch = self._bind_async_action(LaunchPackage(i18n, self.manager), finished_call=self._finish_launch_package, only_finished=False)
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager, i18n=self.i18n), finished_call=self._finish_execute_custom_action)
-        self.thread_screenshots = self._bind_async_action(ShowScreenshots(self.manager), finished_call=self._finish_show_screenshots)
+        self.thread_screenshots = self._bind_async_action(ShowScreenshots(i18n, self.manager), finished_call=self._finish_show_screenshots)
 
-        self.thread_apply_filters = ApplyFilters()
+        self.thread_apply_filters = ApplyFilters(i18n)
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters)
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)
@@ -358,7 +358,7 @@ class ManageWindow(QWidget):
         self.thread_notify_pkgs_ready.signal_finished.connect(self._update_state_when_pkgs_ready)
         self.signal_stop_notifying.connect(self.thread_notify_pkgs_ready.stop_working)
 
-        self.thread_ignore_updates = IgnorePackageUpdates(manager=self.manager)
+        self.thread_ignore_updates = IgnorePackageUpdates(i18n=i18n, manager=self.manager)
         self._bind_async_action(self.thread_ignore_updates, finished_call=self.finish_ignore_updates)
 
         self.thread_reload = StartAsyncAction(delay_in_milis=5)
@@ -469,7 +469,7 @@ class ManageWindow(QWidget):
                                          *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
-                                         CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
+                                         CHECK_APPS, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
                                          BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
 
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
@@ -559,7 +559,8 @@ class ManageWindow(QWidget):
                                   window_cancel=msg['window_cancel'],
                                   confirmation_button=msg.get('confirmation_button', True),
                                   min_width=msg.get('min_width'),
-                                  min_height=msg.get('min_height'))
+                                  min_height=msg.get('min_height'),
+                                  max_width=msg.get('max_width'))
         diag.ask()
         res = diag.confirmed
         self.thread_animate_progress.animate()
@@ -659,7 +660,7 @@ class ManageWindow(QWidget):
         self._reorganize()
 
     def _update_package_data(self, idx: int):
-        if self.table_apps.isEnabled():
+        if self.table_apps.isEnabled() and self.pkgs is not None and 0 <= idx < len(self.pkgs):
             pkg = self.pkgs[idx]
             pkg.status = PackageViewStatus.READY
             self.table_apps.update_package(pkg)
@@ -805,6 +806,7 @@ class ManageWindow(QWidget):
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
+            self._update_installed_filter()
             self.begin_apply_filters()
             notify_tray()
         else:
@@ -932,9 +934,6 @@ class ManageWindow(QWidget):
         pkgs_info = commons.new_pkgs_info()
         filters = self._gen_filters(ignore_updates=ignore_updates)
 
-        if not keep_filters:
-            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
-
         if new_pkgs is not None:
             old_installed = None
 
@@ -988,6 +987,9 @@ class ManageWindow(QWidget):
             self.pkgs_installed = pkgs_info['pkgs']
 
         self.pkgs = pkgs_info['pkgs_displayed']
+        self._update_installed_filter(installed_available=pkgs_info['installed'] > 0,
+                                      keep_state=keep_filters,
+                                      hide=as_installed)
         self._update_table(pkgs_info=pkgs_info)
 
         if new_pkgs:
@@ -1006,6 +1008,27 @@ class ManageWindow(QWidget):
             self.installed_loaded = True
 
         return True
+
+    def _update_installed_filter(self, keep_state: bool = True, hide: bool = False, installed_available: Optional[bool] = None):
+        if installed_available is not None:
+            has_installed = installed_available
+        elif self.pkgs_available == self.pkgs_installed:  # it means the "installed" view is loaded
+            has_installed = False
+        else:
+            has_installed = False
+            if self.pkgs_available:
+                for p in self.pkgs_available:
+                    if p.model.installed:
+                        has_installed = True
+                        break
+
+        if not keep_state or not has_installed:
+            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
+
+        if hide:
+            self.comp_manager.set_component_visible(CHECK_INSTALLED, False)
+        else:
+            self.comp_manager.set_component_visible(CHECK_INSTALLED, has_installed)
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []
@@ -1438,6 +1461,7 @@ class ManageWindow(QWidget):
                     self.pkgs_installed.insert(idx, PackageView(model, self.i18n))
 
             self.update_custom_actions()
+            self._update_installed_filter(installed_available=True, keep_state=True)
             self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
             self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=False)

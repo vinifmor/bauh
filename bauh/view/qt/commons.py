@@ -13,6 +13,7 @@ def new_pkgs_info() -> dict:
             'napp_updates': 0,
             'pkgs_displayed': [],
             'not_installed': 0,
+            'installed': 0,
             'categories': set(),
             'pkgs': []}  # total packages
 
@@ -41,7 +42,11 @@ def update_info(pkgv: PackageView, pkgs_info: dict):
                     pkgs_info['categories'].add(cat)
 
     pkgs_info['pkgs'].append(pkgv)
-    pkgs_info['not_installed'] += 1 if not pkgv.model.installed else 0
+
+    if pkgv.model.installed:
+        pkgs_info['installed'] += 1
+    else:
+        pkgs_info['not_installed'] += 1
 
 
 def apply_filters(pkg: PackageView, filters: dict, info: dict, limit: bool = True):

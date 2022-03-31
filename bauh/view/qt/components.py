@@ -865,6 +865,7 @@ class FormQt(QGroupBox):
     def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
         field_container = QWidget()
         field_container.setLayout(QHBoxLayout())
+        field_container.layout().setContentsMargins(0, 0, 0, 0)
 
         if model.max_width > 0:
             field_container.setMaximumWidth(int(model.max_width))

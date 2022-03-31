@@ -35,7 +35,7 @@ class ConfirmationDialog(QDialog):
                  widgets: Optional[List[QWidget]] = None, confirmation_button: bool = True, deny_button: bool = True,
                  window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None,
                  confirmation_icon: bool = True, min_width: Optional[int] = None,
-                 min_height: Optional[int] = None):
+                 min_height: Optional[int] = None, max_width: Optional[int] = None):
         super(ConfirmationDialog, self).__init__()
 
         if not window_cancel:
@@ -45,6 +45,9 @@ class ConfirmationDialog(QDialog):
         self.setWindowTitle(title)
         self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
         self.setMinimumWidth(min_width if min_width and min_width > 0 else 250)
+
+        if max_width is not None and max_width > 0:
+            self.setMaximumWidth(max_width)
 
         if isinstance(min_height, int) and min_height > 0:
             self.setMinimumHeight(min_height)

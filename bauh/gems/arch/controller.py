@@ -635,7 +635,7 @@ class ArchManager(SoftwareManager):
             if ignored:
                 for p in pkgs:
                     if p.name in ignored:
-                        p.updates_ignored = True
+                        p.update_ignored = True
 
         return SearchResult(pkgs, None, len(pkgs))
 
@@ -2075,7 +2075,7 @@ class ArchManager(SoftwareManager):
     def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
 
-        if not confirmation.request_install_missing_deps(context.name, missing_deps, context.watcher, self.i18n):
+        if not confirmation.request_install_missing_deps(missing_deps, context.watcher, self.i18n):
             context.watcher.print(self.i18n['action.cancelled'])
             return False
 
@@ -2265,7 +2265,8 @@ class ArchManager(SoftwareManager):
 
                 sorted_deps = sorting.sort(to_sort, {**deps_data, **subdeps_data}, provided_map)
 
-                if display_deps_dialog and not confirmation.request_install_missing_deps(None, sorted_deps, context.watcher, self.i18n):
+                if display_deps_dialog and not confirmation.request_install_missing_deps(sorted_deps, context.watcher,
+                                                                                         self.i18n):
                     context.watcher.print(self.i18n['action.cancelled'])
                     return True  # because the main package installation was successful
 

@@ -16,7 +16,7 @@ from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, Tex
     FileChooserComponent, RangeInputComponent
 from bauh.commons.view_utils import new_select
 from bauh.view.core import timeshift
-from bauh.view.core.config import CoreConfigManager
+from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import translation
 from bauh.view.util.translation import I18n
@@ -327,7 +327,7 @@ class GenericSettingsManager:
         sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_load_apps, select_sugs, inp_sugs, inp_reboot], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
 
-    def _gen_bool_component(self, label: str, tooltip: str, value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
+    def _gen_bool_component(self, label: str, tooltip: Optional[str], value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
@@ -397,6 +397,7 @@ class GenericSettingsManager:
             core_config['backup']['enabled'] = bkp_form.get_component('enabled').get_selected()
             core_config['backup']['mode'] = bkp_form.get_component('mode').get_selected()
             core_config['backup']['type'] = bkp_form.get_component('type').get_selected()
+            core_config['backup']['remove_method'] = bkp_form.get_component('remove_method').get_selected()
             core_config['backup']['install'] = bkp_form.get_component('install').get_selected()
             core_config['backup']['uninstall'] = bkp_form.get_component('uninstall').get_selected()
             core_config['backup']['upgrade'] = bkp_form.get_component('upgrade').get_selected()
@@ -580,5 +581,25 @@ class GenericSettingsManager:
                                max_width=default_width,
                                id_='type')
 
-            sub_comps = [FormComponent([enabled_opt, mode, type_, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
+            remove_method = core_config['backup']['remove_method']
+
+            if not remove_method or remove_method not in BACKUP_REMOVE_METHODS:
+                remove_method = BACKUP_DEFAULT_REMOVE_METHOD
+
+            remove_i18n = 'core.config.backup.remove_method'
+            remove_opts = ((self.i18n[f'{remove_i18n}.{m}'], m, self.i18n[f'{remove_i18n}.{m}.tip'])
+                           for m in sorted(BACKUP_REMOVE_METHODS))
+
+            remove_label = f'{self.i18n[remove_i18n]} ({self.i18n["core.config.backup.mode"]} ' \
+                           f'"{self.i18n["core.config.backup.mode.only_one"].capitalize()}")'
+
+            sel_remove = new_select(label=remove_label,
+                                    tip=None,
+                                    value=remove_method,
+                                    opts=remove_opts,
+                                    max_width=default_width,
+                                    capitalize_label=False,
+                                    id_='remove_method')
+
+            sub_comps = [FormComponent([enabled_opt, type_, mode, sel_remove, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
             return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')

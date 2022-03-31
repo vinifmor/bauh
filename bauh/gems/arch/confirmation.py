@@ -1,4 +1,4 @@
-from typing import Set, List, Tuple, Dict, Optional
+from typing import Set, Tuple, Dict, Collection
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.api.abstract.view import MultipleSelectComponent, InputOption, FormComponent, SingleSelectComponent, \
@@ -26,7 +26,7 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
                                                          i18n['repository'],
                                                          d['repository'].lower(),
                                                          i18n['size'].capitalize(),
-                                                         get_human_size_str(size) if size else '?'), p)
+                                                         get_human_size_str(size) if size is not None else '?'), p)
         op.icon_path = _get_repo_icon(d['repository'])
         opts.append(op)
 
@@ -44,8 +44,8 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = '<p>{}</p>'.format(i18n['arch.missing_deps.body'].format(name=bold(pkgname) if pkgname else '', deps=bold(str(len(deps)))))
+def request_install_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
+    msg = f"<p>{i18n['arch.missing_deps.body'].format(deps=bold(str(len(deps))))}:</p>"
 
     opts = []
 
@@ -58,13 +58,14 @@ def request_install_missing_deps(pkgname: Optional[str], deps: List[Tuple[str, s
                                                        i18n['repository'],
                                                        dep[1].lower(),
                                                        i18n['size'].capitalize(),
-                                                       get_human_size_str(size) if size else '?'), dep[0])
+                                                       get_human_size_str(size) if size is not None else '?'), dep[0])
         op.read_only = True
         op.icon_path = _get_repo_icon(dep[1])
         opts.append(op)
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
-    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize())
+    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize(),
+                                        min_width=600)
 
 
 def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, str], watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
