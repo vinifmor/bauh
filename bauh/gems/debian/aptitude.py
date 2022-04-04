@@ -72,9 +72,14 @@ class Aptitude:
                                 size_split = final_val.split(' ')
 
                                 if len(size_split) >= 1:
-                                    number = float(size_split[0].replace(',', '.'))
-                                    measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
-                                    final_val = size_to_byte(number, measure)
+                                    try:
+                                        number = float(size_split[0].replace(',', '.'))
+                                        measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
+                                        final_val = size_to_byte(number, measure)
+                                    except ValueError:
+                                        self._log.warning(f"Could not parse the attribute '{final_field}' "
+                                                          f"value {final_val} to float")
+                                        final_val = None
                                 else:
                                     self._log.warning(f"Unhandled value ({val}) for attribute '{field}'")
                                     final_val = None

@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.2]
+
+### Fixes
+- Debian
+  - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
+
 ## [0.10.1] 2022-03-31
 
 ### Features
