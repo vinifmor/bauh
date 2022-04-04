@@ -238,7 +238,8 @@ class UpgradeSelected(AsyncAction):
         self.internet_checker = internet_checker
         self.screen_width = screen_width
 
-    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
+    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True,
+                       positive_size_symbol: bool = False) -> InputOption:
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
@@ -253,7 +254,7 @@ class UpgradeSelected(AsyncAction):
         size_str = None
         if display_sizes:
             size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
-                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size, positive_size_symbol))
             if required_size and req.extra_size != req.required_size:
                 size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
                                                  '?' if req.required_size is None else get_human_size_str(req.required_size))
@@ -317,7 +318,7 @@ class UpgradeSelected(AsyncAction):
         return FormComponent(label=lb, components=comps)
 
     def _gen_to_update_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
-        opts = [self._req_as_option(r, tooltip=False) for r in reqs]
+        opts = [self._req_as_option(r, tooltip=False, positive_size_symbol=True) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
@@ -325,7 +326,7 @@ class UpgradeSelected(AsyncAction):
                                                     self.i18n['amount'].capitalize(),
                                                     len(opts),
                                                     self.i18n['size'].capitalize(),
-                                                    '?' if extra_size is None else get_human_size_str(extra_size),
+                                                    '?' if extra_size is None else get_human_size_str(extra_size, True),
                                                     self.i18n['action.update.pkg.required_size'].capitalize(),
                                                     '?' if required_size is None else get_human_size_str(required_size))
 
@@ -489,7 +490,9 @@ class UpgradeSelected(AsyncAction):
             extra_size += updates_size[1]
             comps.append(updates_form)
 
-        extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
+        extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(),
+                                          get_human_size_str(extra_size, True))
+
         req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
                                         get_human_size_str(required_size))
         comps.insert(0, TextComponent('{}  |  {}'.format(extra_size_text, req_size_text), size=14))

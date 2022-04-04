@@ -21,7 +21,7 @@ def new_select(label: str, tip: Optional[str], id_: str, opts: Iterable[Tuple[Op
                                  capitalize_label=capitalize_label)
 
 
-def get_human_size_str(size) -> Optional[str]:
+def get_human_size_str(size, positive_sign: bool = False) -> Optional[str]:
     if type(size) in (int, float, str):
         int_size = abs(int(size))
 
@@ -34,4 +34,5 @@ def get_human_size_str(size) -> Optional[str]:
 
             if size_unit < 1024:
                 size_unit = size_unit if size > 0 else size_unit * -1
-                return f'{int(size_unit)} {unit}' if unit == 'B' else f'{size_unit:.2f} {unit}'
+                size_str = f'{int(size_unit)} {unit}' if unit == 'B' else f'{size_unit:.2f} {unit}'
+                return f'+{size_str}' if positive_sign and size_unit > 0 else size_str

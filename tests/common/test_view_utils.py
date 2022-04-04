@@ -33,3 +33,12 @@ class GetHumanSizeStrTest(TestCase):
     def test__must_properly_convert_to_Pb(self):
         self.assertEqual('1.00 Pb', get_human_size_str(1125899906842624))
         self.assertEqual('57.30 Pb', get_human_size_str(64514064662082350))
+
+    def test__must_concatenate_the_plus_sign_if_positive_sign_is_true_and_value_is_positive(self):
+        self.assertEqual('+1023 B', get_human_size_str(1023, positive_sign=True))
+        self.assertEqual('+1.00 Kb', get_human_size_str(1024, positive_sign=True))
+
+    def test__must_not_concatenate_the_plus_sign_if_positive_sign_is_true_and_value_is_negative(self):
+        self.assertEqual('-1023 B', get_human_size_str(-1023, positive_sign=True))
+        self.assertEqual('-1.00 Kb', get_human_size_str(-1024, positive_sign=True))
+
