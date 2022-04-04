@@ -10,10 +10,10 @@ def normalize_version(version: str) -> LegacyVersion:
     final_version = version.strip()
 
     if not RE_VERSION_WITH_EPOCH.match(final_version):
-        final_version = '0:{}'.format(final_version)
+        final_version = f'0:{final_version}'
 
     if not RE_VERSION_WITH_RELEASE.match(final_version):
-        final_version = '{}-1'.format(final_version)
+        final_version = f'{final_version}-1'
 
     return LegacyVersion(final_version)
 
@@ -25,7 +25,7 @@ def match_required_version(current_version: str, operator: str, required_version
     current_has_epoch = len(current_no_epoch) > 1
 
     if required_has_epoch and not current_has_epoch:
-        final_current = '0:{}'.format(final_current)
+        final_current = f'0:{final_current}'
     elif current_has_epoch and not required_has_epoch:
         final_current = current_no_epoch[1]
 
@@ -33,7 +33,7 @@ def match_required_version(current_version: str, operator: str, required_version
     current_has_release = len(current_no_release) > 1
 
     if required_has_release and not current_has_release:
-        final_current = '{}-1'.format(final_current)
+        final_current = f'{final_current}-1'
     elif current_has_release and not required_has_release:
         final_current = current_no_release[1]
 
