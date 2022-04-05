@@ -30,19 +30,23 @@ def deep_update(source: dict, overrides: dict):
 
 def size_to_byte(size: float, unit: str) -> int:
     lower_unit = unit.lower()
+    final_size = size
+
+    if unit == 'b' or len(lower_unit) > 1 and lower_unit.endswith('ib'):
+        final_size /= 8
 
     if lower_unit[0] == 'b':
-        final_size = size
+        pass
     elif lower_unit[0] == 'k':
-        final_size = size * 1024
+        final_size = final_size * 1024
     elif lower_unit[0] == 'm':
-        final_size = size * (1024 ** 2)
+        final_size = final_size * (1024 ** 2)
     elif lower_unit[0] == 'g':
-        final_size = size * (1024 ** 3)
+        final_size = final_size * (1024 ** 3)
     elif lower_unit[0] == 't':
-        final_size = size * (1024 ** 4)
+        final_size = final_size * (1024 ** 4)
     else:
-        final_size = size * (1024 ** 5)
+        final_size = final_size * (1024 ** 5)
 
     return round(final_size)
 
