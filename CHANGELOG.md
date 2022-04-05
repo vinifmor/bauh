@@ -11,7 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - code refactoring
 
 - UI
-  - update summary: displaying a '+' for positive sizes (previously the sign was only displayed for negative numbers) (#250)[https://github.com/vinifmor/bauh/issues/250]
+  - update summary: 
+    - displaying a '+' for positive sizes (previously the sign was only displayed for negative numbers) (#250)[https://github.com/vinifmor/bauh/issues/250]
+    - changing some words and symbols to improve readability and cohesion (#250)[https://github.com/vinifmor/bauh/issues/250]
   
 ### Fixes
 - Debian
