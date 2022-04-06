@@ -12,8 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - UI
   - update summary: 
-    - displaying a '+' for positive sizes (previously the sign was only displayed for negative numbers) (#250)[https://github.com/vinifmor/bauh/issues/250]
-    - changing some words and symbols to improve readability and cohesion (#250)[https://github.com/vinifmor/bauh/issues/250]
+    - displaying a '+' for positive sizes (previously the sign was only displayed for negative numbers) [#250](https://github.com/vinifmor/bauh/issues/250)
+    - changing some words and symbols to improve readability and cohesion [#250](https://github.com/vinifmor/bauh/issues/250)
     - displaying update sizes as localized numbers [#250](https://github.com/vinifmor/bauh/issues/250)
   
 ### Fixes
@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
 
 - UI
-  - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) (#250)[https://github.com/vinifmor/bauh/issues/250]
+  - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)
 
 
 ## [0.10.1] 2022-03-31
