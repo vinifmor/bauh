@@ -2,8 +2,8 @@ from typing import Tuple, Optional, Iterable
 
 from bauh.api.abstract.view import SelectViewType, InputOption, SingleSelectComponent
 
-SIZE_UNITS = ((1, 'B'), (1024, 'Kb'), (1048576, 'Mb'), (1073741824, 'Gb'),
-              (1099511627776, 'Tb'), (1125899906842624, 'Pb'))
+SIZE_UNITS = ((1, 'B'), (1024, 'kB'), (1048576, 'MB'), (1073741824, 'GB'),
+              (1099511627776, 'TB'), (1125899906842624, 'PB'))
 
 
 def new_select(label: str, tip: Optional[str], id_: str, opts: Iterable[Tuple[Optional[str], object, Optional[str]]], value: object, max_width: int,
