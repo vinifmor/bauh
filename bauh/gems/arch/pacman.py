@@ -95,7 +95,7 @@ def _fill_ignored(res: dict):
     res['pkgs'] = list_ignored_packages()
 
 
-def map_installed(names: Iterable[str] = None) -> dict:  # returns a dict with with package names as keys and versions as values
+def map_installed(names: Optional[Iterable[str]] = None) -> Dict[str, Dict[str, str]]:
     ignored = {}
     thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
     thread_ignored.start()
