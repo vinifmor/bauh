@@ -1252,7 +1252,7 @@ class ArchManager(SoftwareManager):
                                             components=[reqs_select],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize(),
-                                            min_width=500,
+                                            min_width=600,
                                             window_cancel=False):
             watcher.print("Aborted")
             return False
