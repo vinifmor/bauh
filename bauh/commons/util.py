@@ -29,7 +29,7 @@ def deep_update(source: dict, overrides: dict):
 
 
 def size_to_byte(size: Union[float, int, str], unit: str, logger: Optional[Logger] = None) -> Optional[float]:
-    lower_unit = unit.lower()
+    lower_unit = unit.strip().lower()
 
     if isinstance(size, str):
         try:

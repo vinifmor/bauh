@@ -41,4 +41,4 @@ class SizeToByteTest(TestCase):
         self.assertEqual(6383852471797678, size_to_byte('5.67', 'P'))
 
     def test_must_treat_string_sizes_before_converting(self):
-        self.assertEqual(58675.2, size_to_byte(' 57 , 3  ', 'K'))
+        self.assertEqual(58675.2, size_to_byte(' 57 , 3  ', ' K '))
