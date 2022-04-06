@@ -1242,10 +1242,10 @@ class ArchManager(SoftwareManager):
 
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
 
-        main_msg = self.i18n['arch.uninstall.required_by'].format(bold(str(len(required))),
-                                                                  ', '.join(bold(n)for n in to_uninstall)) + '.'
+        main_msg = self.i18n['arch.uninstall.required_by'].format(no=bold(str(len(required))),
+                                                                  pkgs=', '.join(bold(n)for n in to_uninstall)) + '.'
 
-        full_msg = f"<p>{main_msg}</p><p>{self.i18n['arch.uninstall.required_by.advice'] + '.'}</p>"
+        full_msg = f"<p>{main_msg}</p><p>{self.i18n['arch.uninstall.required_by.warn'] + '.'}</p>"
 
         if not watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
                                             body=full_msg,
