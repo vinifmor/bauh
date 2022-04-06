@@ -38,7 +38,7 @@ from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, message, confirmation, disk, git, \
     gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
-    ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, rebuild_detector, makepkg, sshell
+    ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, rebuild_detector, makepkg, sshell, get_repo_icon_path
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
 from bauh.gems.arch.dependencies import DependenciesAnalyser
@@ -1225,18 +1225,34 @@ class ArchManager(SoftwareManager):
 
         return all_uninstalled
 
-    def _request_uninstall_confirmation(self, to_uninstall: Collection[str], required: Collection[str], watcher: ProcessWatcher) -> bool:
-        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in required]
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1 if len(reqs) < 4 else 3)
+    def _request_uninstall_confirmation(self, to_uninstall: Collection[str], required: Collection[str],
+                                        data: Optional[Dict[str, str]], watcher: ProcessWatcher) -> bool:
 
-        msg = '<p>{}</p><p>{}</p>'.format(self.i18n['arch.uninstall.required_by'].format(bold(str(len(required))), ', '.join(bold(n)for n in to_uninstall)) + '.',
-                                          self.i18n['arch.uninstall.required_by.advice'] + '.')
+        reqs = []
+        for p in required:
+            pkgdata = data and data.get(p)
+            pkgver, pkgdesc, pkgrepo = None, None, None
+
+            if pkgdata:
+                pkgver, pkgdesc, pkgrepo = (pkgdata.get(k) for k in ('version', 'description', 'repository'))
+
+            reqs.append(InputOption(label=f"{p}{f' ({pkgver})' if pkgver else ''}", value=p, read_only=True,
+                                    icon_path=get_repo_icon_path() if pkgrepo == 'repo' else get_icon_path(),
+                                    tooltip=pkgdesc))
+
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
+
+        main_msg = self.i18n['arch.uninstall.required_by'].format(bold(str(len(required))),
+                                                                  ', '.join(bold(n)for n in to_uninstall)) + '.'
+
+        full_msg = f"<p>{main_msg}</p><p>{self.i18n['arch.uninstall.required_by.advice'] + '.'}</p>"
 
         if not watcher.request_confirmation(title=self.i18n['warning'].capitalize(),
-                                            body=msg,
+                                            body=full_msg,
                                             components=[reqs_select],
                                             confirmation_label=self.i18n['proceed'].capitalize(),
                                             deny_label=self.i18n['cancel'].capitalize(),
+                                            min_width=500,
                                             window_cancel=False):
             watcher.print("Aborted")
             return False
@@ -1297,9 +1313,19 @@ class ArchManager(SoftwareManager):
 
         if hard_requirements:
             to_uninstall.update(hard_requirements)
+            hard_reqs_data = pacman.map_installed(hard_requirements)
+            hard_reqs_mapped_data = None
+
+            if hard_reqs_data:
+                hard_reqs_mapped_data = {}
+                for key, pkgs in hard_reqs_data.items():
+                    repository = 'aur' if key == 'not_signed' else 'repo'
+                    for name, data in pkgs.items():
+                        hard_reqs_mapped_data[name] = {**data, 'repository': repository}
 
             if not self._request_uninstall_confirmation(to_uninstall=names,
                                                         required=hard_requirements,
+                                                        data=hard_reqs_mapped_data,
                                                         watcher=context.watcher):
                 return False
 
