@@ -72,8 +72,8 @@ class Aptitude:
                                 size_split = final_val.split(' ')
 
                                 if len(size_split) >= 1:
-                                    measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
-                                    final_val = size_to_byte(size_split[0], measure, self._log)
+                                    unit = size_split[1].upper() if len(size_split) >= 2 else 'B'
+                                    final_val = size_to_byte(size_split[0], unit, self._log)
                                 else:
                                     self._log.warning(f"Unhandled value ({val}) for attribute '{field}'")
                                     final_val = None
@@ -111,8 +111,8 @@ class Aptitude:
 
                     if size:
                         size_split = size.strip().split(' ')
-                        measure = size_split[1].strip()[0].lower() if len(size_split) >= 2 else 'b'
-                        pkg.transaction_size = size_to_byte(size_split[0], measure, self._log)
+                        unit = size_split[1][0].upper() if len(size_split) >= 2 else 'B'
+                        pkg.transaction_size = size_to_byte(size_split[0], unit, self._log)
 
                     current_collection.add(pkg)
 
@@ -177,8 +177,8 @@ class Aptitude:
 
                     if fill_size:
                         size_split = line_split[no_attrs - 2].split(' ')
-                        measure = size_split[1][0].lower() if len(size_split) >= 2 else 'b'
-                        size = size_to_byte(size_split[0], measure, self._log)
+                        unit = size_split[1][0].upper() if len(size_split) >= 2 else 'B'
+                        size = size_to_byte(size_split[0], unit, self._log)
 
                     if latest_version is not None:
                         installed_version = line_split[1] if not self.re_none.match(line_split[1]) else None
