@@ -474,7 +474,7 @@ def is_mirrors_available() -> bool:
     return bool(shutil.which('pacman-mirrors'))
 
 
-def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+def map_update_sizes(pkgs: List[str]) -> Dict[str, float]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
@@ -483,7 +483,7 @@ def map_update_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     return {}
 
 
-def map_download_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
+def map_download_sizes(pkgs: List[str]) -> Dict[str, float]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
@@ -492,7 +492,7 @@ def map_download_sizes(pkgs: List[str]) -> Dict[str, int]:  # bytes:
     return {}
 
 
-def get_installed_size(pkgs: List[str]) -> Dict[str, int]:  # bytes
+def get_installed_size(pkgs: List[str]) -> Dict[str, float]:  # bytes
     output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
 
     if output:

@@ -28,7 +28,7 @@ def deep_update(source: dict, overrides: dict):
     return source
 
 
-def size_to_byte(size: float, unit: str) -> int:
+def size_to_byte(size: float, unit: str) -> float:
     lower_unit = unit.lower()
     final_size = size
 
@@ -36,19 +36,17 @@ def size_to_byte(size: float, unit: str) -> int:
         final_size /= 8
 
     if lower_unit[0] == 'b':
-        pass
+        return final_size
     elif lower_unit[0] == 'k':
-        final_size = final_size * 1024
+        return final_size * 1024
     elif lower_unit[0] == 'm':
-        final_size = final_size * (1024 ** 2)
+        return final_size * (1024 ** 2)
     elif lower_unit[0] == 'g':
-        final_size = final_size * (1024 ** 3)
+        return final_size * (1024 ** 3)
     elif lower_unit[0] == 't':
-        final_size = final_size * (1024 ** 4)
+        return final_size * (1024 ** 4)
     else:
-        final_size = final_size * (1024 ** 5)
-
-    return round(final_size)
+        return final_size * (1024 ** 5)
 
 
 def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:

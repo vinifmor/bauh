@@ -270,7 +270,7 @@ class UpgradeSelected(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def _sum_pkgs_size(self, reqs: List[UpgradeRequirement]) -> Tuple[int, int]:
+    def _sum_pkgs_size(self, reqs: List[UpgradeRequirement]) -> Tuple[float, float]:
         required, extra = 0, 0
         for r in reqs:
             if r.required_size is not None:

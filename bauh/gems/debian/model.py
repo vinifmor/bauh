@@ -58,7 +58,7 @@ class DebianPackage(SoftwarePackage):
                  description: Optional[str] = None, maintainer: Optional[str] = None, installed: bool = False,
                  update: bool = False, app: Optional[DebianApplication] = None, compressed_size: Optional[int] = None,
                  uncompressed_size: Optional[int] = None, categories: Tuple[str] = None,
-                 updates_ignored: Optional[bool] = None, transaction_size: Optional[int] = None):
+                 updates_ignored: Optional[bool] = None, transaction_size: Optional[float] = None):
         super(DebianPackage, self).__init__(id=name, name=name, version=version, installed=installed,
                                             description=description, update=update,
                                             latest_version=latest_version if latest_version is not None else version)

@@ -410,7 +410,7 @@ def run(app_id: str):
     subprocess.Popen((f'flatpak run {app_id}',), shell=True, env={**os.environ})
 
 
-def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, int]:
+def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, float]:
     success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}')))
     if version >= VERSION_1_2:
         res = {}
