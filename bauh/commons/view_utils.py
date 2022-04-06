@@ -1,3 +1,4 @@
+import locale
 from typing import Tuple, Optional, Iterable
 
 from bauh.api.abstract.view import SelectViewType, InputOption, SingleSelectComponent
@@ -34,5 +35,6 @@ def get_human_size_str(size, positive_sign: bool = False) -> Optional[str]:
 
             if size_unit < 1024:
                 size_unit = size_unit if size > 0 else size_unit * -1
-                size_str = f'{int(size_unit)} {unit}' if unit == 'B' else f'{size_unit:.2f} {unit}'
+                localized_size = locale.format_string('%.2f', size_unit)
+                size_str = f'{int(size_unit)} {unit}' if unit == 'B' else f"{localized_size} {unit}"
                 return f'+{size_str}' if positive_sign and size_unit > 0 else size_str

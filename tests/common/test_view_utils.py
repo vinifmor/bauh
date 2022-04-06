@@ -1,9 +1,16 @@
+import locale
 from unittest import TestCase
 
 from bauh.commons.view_utils import get_human_size_str
 
 
 class GetHumanSizeStrTest(TestCase):
+
+    def setUp(self):
+        try:
+            locale.setlocale(locale.LC_NUMERIC, None)
+        except:
+            print("Error: could not set locale.LC_NUMERIC to None")
 
     def test__must_properly_display_B(self):
         self.assertEqual('1023 B', get_human_size_str(1023))
