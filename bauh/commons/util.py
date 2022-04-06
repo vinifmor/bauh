@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from logging import Logger
-from typing import Optional
+from typing import Optional, Union
 
 
 class NullLoggerFactory(ABC):
@@ -28,9 +28,18 @@ def deep_update(source: dict, overrides: dict):
     return source
 
 
-def size_to_byte(size: float, unit: str) -> float:
+def size_to_byte(size: Union[float, int, str], unit: str, logger: Optional[Logger] = None) -> Optional[float]:
     lower_unit = unit.lower()
-    final_size = size
+
+    if isinstance(size, str):
+        try:
+            final_size = float(size.strip().replace(',', '.').replace(' ', ''))
+        except ValueError:
+            if logger:
+                logger.error(f"Could not parse string size {size} to bytes")
+            return
+    else:
+        final_size = float(size)
 
     if unit == 'b' or len(lower_unit) > 1 and lower_unit.endswith('ib'):
         final_size /= 8

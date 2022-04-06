@@ -31,3 +31,14 @@ class SizeToByteTest(TestCase):
         self.assertEqual(6926923254988.8, size_to_byte(50.4, 'TiB'))
         self.assertEqual(140737488355328, size_to_byte(1, 'PiB'))
         self.assertEqual(330733097635020.8, size_to_byte(2.35, 'PiB'))
+
+    def test_must_return_converted_string_sizes(self):
+        self.assertEqual(1024, size_to_byte('1', 'K'))
+        self.assertEqual(58675.2, size_to_byte('57.3', 'K'))
+        self.assertEqual(60083404.8, size_to_byte('57.3', 'M'))
+        self.assertEqual(61525406515.2, size_to_byte('57.3', 'G'))
+        self.assertEqual(63002016271564.8, size_to_byte('57.3', 'T'))
+        self.assertEqual(6383852471797678, size_to_byte('5.67', 'P'))
+
+    def test_must_treat_string_sizes_before_converting(self):
+        self.assertEqual(58675.2, size_to_byte(' 57 , 3  ', 'K'))

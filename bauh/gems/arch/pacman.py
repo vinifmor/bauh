@@ -478,7 +478,7 @@ def map_update_sizes(pkgs: List[str]) -> Dict[str, float]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(size[0], size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
 
     return {}
 
@@ -487,7 +487,7 @@ def map_download_sizes(pkgs: List[str]) -> Dict[str, float]:  # bytes:
     output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_DOWNLOAD_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(size[0], size[1]) for idx, size in enumerate(RE_DOWNLOAD_SIZE.findall(output))}
 
     return {}
 
@@ -496,7 +496,7 @@ def get_installed_size(pkgs: List[str]) -> Dict[str, float]:  # bytes
     output = run_cmd('pacman -Qi {}'.format(' '.join(pkgs)))
 
     if output:
-        return {pkgs[idx]: size_to_byte(float(size[0].replace(',', '.')), size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
+        return {pkgs[idx]: size_to_byte(size[0], size[1]) for idx, size in enumerate(RE_INSTALLED_SIZE.findall(output))}
 
     return {}
 
@@ -658,11 +658,11 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
                         latest_field = 'c'
                     elif field == 'Download Size':
                         size = val.split(' ')
-                        data['ds'] = size_to_byte(float(size[0].replace(',', '.')), size[1])
+                        data['ds'] = size_to_byte(size[0], size[1])
                         latest_field = 'ds'
                     elif field == 'Installed Size':
                         size = val.split(' ')
-                        data['s'] = size_to_byte(float(size[0].replace(',', '.')), size[1])
+                        data['s'] = size_to_byte(size[0], size[1])
                         latest_field = 's'
                     elif latest_name and latest_field == 's':
                         res[latest_name] = data

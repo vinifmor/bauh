@@ -72,14 +72,8 @@ class Aptitude:
                                 size_split = final_val.split(' ')
 
                                 if len(size_split) >= 1:
-                                    try:
-                                        number = float(size_split[0].replace(',', '.'))
-                                        measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
-                                        final_val = size_to_byte(number, measure)
-                                    except ValueError:
-                                        self._log.warning(f"Could not parse the attribute '{final_field}' "
-                                                          f"value {final_val} to float")
-                                        final_val = None
+                                    measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
+                                    final_val = size_to_byte(size_split[0], measure, self._log)
                                 else:
                                     self._log.warning(f"Unhandled value ({val}) for attribute '{field}'")
                                     final_val = None
@@ -117,14 +111,8 @@ class Aptitude:
 
                     if size:
                         size_split = size.strip().split(' ')
-
-                        try:
-                            number = float(size_split[0].strip().replace(',', '.'))
-                            measure = size_split[1].strip()[0].lower() if len(size_split) >= 2 else 'b'
-                            pkg.transaction_size = size_to_byte(number, measure)
-                        except:
-                            traceback.print_exc()
-                            pass
+                        measure = size_split[1].strip()[0].lower() if len(size_split) >= 2 else 'b'
+                        pkg.transaction_size = size_to_byte(size_split[0], measure, self._log)
 
                     current_collection.add(pkg)
 
@@ -189,13 +177,8 @@ class Aptitude:
 
                     if fill_size:
                         size_split = line_split[no_attrs - 2].split(' ')
-                        number = float(size_split[0].replace(',', '.'))
                         measure = size_split[1][0].lower() if len(size_split) >= 2 else 'b'
-
-                        try:
-                            size = size_to_byte(number, measure)
-                        except:
-                            traceback.print_exc()
+                        size = size_to_byte(size_split[0], measure, self._log)
 
                     if latest_version is not None:
                         installed_version = line_split[1] if not self.re_none.match(line_split[1]) else None
