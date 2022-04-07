@@ -1,3 +1,4 @@
+from io import StringIO
 from typing import Set, Tuple, Dict, Collection
 
 from bauh.api.abstract.handler import ProcessWatcher
@@ -47,27 +48,64 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
         return {o.value for o in view_opts.values}
 
 
-def request_install_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
-    msg = f"<p>{i18n['arch.missing_deps.body'].format(deps=bold(str(len(deps))))}:</p>"
-
+def confirm_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatcher, i18n: I18n) -> bool:
     opts = []
 
-    repo_deps = [d[0] for d in deps if d[1] != 'aur']
-    sizes = pacman.map_update_sizes(repo_deps) if repo_deps else {}
+    total_isize, total_dsize = None, None
+    pkgs_data = pacman.map_updates_data(pkgs=tuple(d[0] for d in deps if d[1] != 'aur'), description=True) or dict()
 
     for dep in deps:
-        size = sizes.get(dep[0])
-        op = InputOption('{} ({}: {}) - {}: {}'.format(dep[0],
-                                                       i18n['repository'],
-                                                       dep[1].lower(),
-                                                       i18n['size'].capitalize(),
-                                                       get_human_size_str(size) if size is not None else '?'), dep[0])
+        ver, desc, isize, dsize = None, None, None, None
+        data = pkgs_data.get(dep[0])
+
+        if data:
+            desc, isize, dsize = (data.get(f) for f in ('des', 's', 'ds'))
+
+            if isize is not None:
+                if total_isize is None:
+                    total_isize = 0
+
+                total_isize += isize
+
+            if dsize is not None:
+                if total_dsize is None:
+                    total_dsize = 0
+
+                total_dsize += dsize
+
+        label = f"{dep[0]} ({i18n['repository']}: {dep[1].lower()}) | " \
+                f"{i18n['size'].capitalize()}: {get_human_size_str(isize) if isize is not None else '?'}" \
+                f"{' ({}: {})'.format(i18n['download'].capitalize(), get_human_size_str(dsize)) if dsize else ''}"
+
+        op = InputOption(label=label, value=dep[0], tooltip=desc)
         op.read_only = True
         op.icon_path = _get_repo_icon(dep[1])
         opts.append(op)
 
     comp = MultipleSelectComponent(label='', options=opts, default_options=set(opts))
-    return watcher.request_confirmation(i18n['arch.missing_deps.title'], msg, [comp], confirmation_label=i18n['continue'].capitalize(), deny_label=i18n['cancel'].capitalize(),
+
+    body = StringIO()
+    body.write('<p>')
+    body.write(i18n['arch.missing_deps.body'].format(deps=bold(str(len(deps)))))
+
+    if total_isize is not None or total_dsize is not None:
+        body.write(' (')
+
+        if total_isize is not None:
+            body.write(f"{i18n['size'].capitalize()}: {bold(get_human_size_str(total_isize))} | ")
+
+        if total_dsize is not None:
+            body.write(f"{i18n['download'].capitalize()}: {bold(get_human_size_str(total_dsize))}")
+
+        body.write(')')
+
+    body.write(':</p>')
+
+    return watcher.request_confirmation(title=i18n['arch.missing_deps.title'],
+                                        body=body.getvalue(),
+                                        components=[comp],
+                                        confirmation_label=i18n['continue'].capitalize(),
+                                        deny_label=i18n['cancel'].capitalize(),
                                         min_width=600)
 
 

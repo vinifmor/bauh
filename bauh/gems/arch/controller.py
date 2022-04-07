@@ -41,6 +41,7 @@ from bauh.gems.arch import aur, pacman, message, confirmation, disk, git, \
     ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, rebuild_detector, makepkg, sshell, get_repo_icon_path
 from bauh.gems.arch.aur import AURClient
 from bauh.gems.arch.config import get_build_dir, ArchConfigManager
+from bauh.gems.arch.confirmation import confirm_missing_deps
 from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.download import MultithreadedDownloadService, ArchDownloadException
 from bauh.gems.arch.exceptions import PackageNotFoundException, PackageInHoldException
@@ -2114,7 +2115,7 @@ class ArchManager(SoftwareManager):
     def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
 
-        if not confirmation.request_install_missing_deps(missing_deps, context.watcher, self.i18n):
+        if not confirm_missing_deps(missing_deps, context.watcher, self.i18n):
             context.watcher.print(self.i18n['action.cancelled'])
             return False
 
@@ -2304,8 +2305,7 @@ class ArchManager(SoftwareManager):
 
                 sorted_deps = sorting.sort(to_sort, {**deps_data, **subdeps_data}, provided_map)
 
-                if display_deps_dialog and not confirmation.request_install_missing_deps(sorted_deps, context.watcher,
-                                                                                         self.i18n):
+                if display_deps_dialog and not confirm_missing_deps(sorted_deps, context.watcher, self.i18n):
                     context.watcher.print(self.i18n['action.cancelled'])
                     return True  # because the main package installation was successful
 

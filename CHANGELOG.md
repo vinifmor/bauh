@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
   - install:
+    - missing dependencies dialog now displays the packages sizes and descriptions (only from repositories)
     - optional packages installation dialog appearance (aligned with other dependencies dialogs)
   - uninstall:
     - displaying hard and unnecessary requirements versions and descriptions

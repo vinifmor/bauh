@@ -599,40 +599,87 @@ def list_download_data(pkgs: Iterable[str]) -> List[Dict[str, str]]:
     return res
 
 
-def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
-    if files:
-        output = run_cmd('pacman -Qi -p {}'.format(' '.join(pkgs)))
-    else:
-        output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
+def map_updates_data(pkgs: Iterable[str], files: bool = False, description: bool = False) -> Optional[Dict[str, Dict[str, object]]]:
+    if pkgs:
+        if files:
+            output = run_cmd('pacman -Qi -p {}'.format(' '.join(pkgs)))
+        else:
+            output = run_cmd('pacman -Si {}'.format(' '.join(pkgs)))
 
-    res = {}
-    if output:
-        latest_name = None
-        data = {'ds': None, 's': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None}
-        latest_field = None
+        res = {}
+        if output:
+            latest_name = None
+            data = {'ds': None, 's': None, 'v': None, 'c': None, 'p': None, 'd': None, 'r': None, 'des': None}
+            latest_field = None
 
-        for l in output.split('\n'):
-            if l:
-                if l[0] != ' ':
-                    line = l.strip()
-                    field_sep_idx = line.index(':')
-                    field = line[0:field_sep_idx].strip()
-                    val = line[field_sep_idx + 1:].strip()
+            for l in output.split('\n'):
+                if l:
+                    if l[0] != ' ':
+                        line = l.strip()
+                        field_sep_idx = line.index(':')
+                        field = line[0:field_sep_idx].strip()
+                        val = line[field_sep_idx + 1:].strip()
 
-                    if field == 'Repository':
-                        data['r'] = val
-                        latest_field = 'r'
-                    elif field == 'Name':
-                        latest_name = val
-                        latest_field = 'n'
-                    elif field == 'Version':
-                        data['v'] = val.split('=')[0]
-                        latest_field = 'v'
-                    elif field == 'Provides':
-                        latest_field = 'p'
-                        data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'])}
-                        if val != 'None':
-                            for w in val.split(' '):
+                        if field == 'Repository':
+                            data['r'] = val
+                            latest_field = 'r'
+                        elif field == 'Name':
+                            latest_name = val
+                            latest_field = 'n'
+                        elif field == 'Version':
+                            data['v'] = val.split('=')[0]
+                            latest_field = 'v'
+                        elif description and field == 'Description':
+                            data['des'] = val
+                            latest_field = 'des'
+                        elif field == 'Provides':
+                            latest_field = 'p'
+                            data['p'] = {latest_name, '{}={}'.format(latest_name, data['v'])}
+                            if val != 'None':
+                                for w in val.split(' '):
+                                    if w:
+                                        word = w.strip()
+                                        data['p'].add(word)
+
+                                        word_split = word.split('=')
+
+                                        if word_split[0] != word:
+                                            data['p'].add(word_split[0])
+                        elif field == 'Depends On':
+                            val = val.strip()
+
+                            if val == 'None':
+                                data['d'] = None
+                            else:
+                                data['d'] = {w.strip() for w in val.split(' ') if w}
+                                latest_field = 'd'
+                        elif field == 'Conflicts With':
+                            if val == 'None':
+                                data['c'] = None
+                            else:
+                                data['c'] = {w.strip() for w in val.split(' ') if w}
+
+                            latest_field = 'c'
+                        elif field == 'Download Size':
+                            size = val.split(' ')
+                            data['ds'] = size_to_byte(size[0], size[1])
+                            latest_field = 'ds'
+                        elif field == 'Installed Size':
+                            size = val.split(' ')
+                            data['s'] = size_to_byte(size[0], size[1])
+                            latest_field = 's'
+                        elif latest_name and latest_field == 's':
+                            res[latest_name] = data
+                            latest_name = None
+                            latest_field = None
+                            data = {'ds': None, 's': None, 'c': None, 'p': None, 'd': None,
+                                    'r': None,  'v': None, 'des': None}
+                        else:
+                            latest_field = None
+
+                    elif latest_field and latest_field in ('p', 'c', 'd'):
+                        if latest_field == 'p':
+                            for w in l.split(' '):
                                 if w:
                                     word = w.strip()
                                     data['p'].add(word)
@@ -641,52 +688,10 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False) -> dict:
 
                                     if word_split[0] != word:
                                         data['p'].add(word_split[0])
-                    elif field == 'Depends On':
-                        val = val.strip()
-
-                        if val == 'None':
-                            data['d'] = None
                         else:
-                            data['d'] = {w.strip() for w in val.split(' ') if w}
-                            latest_field = 'd'
-                    elif field == 'Conflicts With':
-                        if val == 'None':
-                            data['c'] = None
-                        else:
-                            data['c'] = {w.strip() for w in val.split(' ') if w}
+                            data[latest_field].update((w.strip() for w in l.split(' ') if w))
 
-                        latest_field = 'c'
-                    elif field == 'Download Size':
-                        size = val.split(' ')
-                        data['ds'] = size_to_byte(size[0], size[1])
-                        latest_field = 'ds'
-                    elif field == 'Installed Size':
-                        size = val.split(' ')
-                        data['s'] = size_to_byte(size[0], size[1])
-                        latest_field = 's'
-                    elif latest_name and latest_field == 's':
-                        res[latest_name] = data
-                        latest_name = None
-                        latest_field = None
-                        data = {'ds': None, 's': None, 'c': None, 'p': None, 'd': None, 'r': None,  'v': None}
-                    else:
-                        latest_field = None
-
-                elif latest_field and latest_field in ('p', 'c', 'd'):
-                    if latest_field == 'p':
-                        for w in l.split(' '):
-                            if w:
-                                word = w.strip()
-                                data['p'].add(word)
-
-                                word_split = word.split('=')
-
-                                if word_split[0] != word:
-                                    data['p'].add(word_split[0])
-                    else:
-                        data[latest_field].update((w.strip() for w in l.split(' ') if w))
-
-    return res
+        return res
 
 
 def upgrade_several(pkgnames: Iterable[str], root_password: Optional[str], overwrite_conflicting_files: bool = False, skip_dependency_checks: bool = False) -> SimpleProcess:
