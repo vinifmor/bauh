@@ -1273,7 +1273,8 @@ class ArchManager(SoftwareManager):
                                             components=[reqs_select],
                                             deny_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
                                             confirmation_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
-                                            window_cancel=False):
+                                            window_cancel=False,
+                                            min_width=500):
             return {*reqs_select.get_selected_values()}
 
     def _confirm_all_unneeded_removal(self, pkgs: Collection[str], context: TransactionContext,
@@ -1287,7 +1288,8 @@ class ArchManager(SoftwareManager):
                                                     components=[reqs_select],
                                                     confirmation_label=self.i18n['proceed'].capitalize(),
                                                     deny_label=self.i18n['cancel'].capitalize(),
-                                                    window_cancel=False):
+                                                    window_cancel=False,
+                                                    min_width=500):
             context.watcher.print("Aborted")
             return False
 
