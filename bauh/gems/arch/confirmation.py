@@ -22,11 +22,9 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
 
     for p, d in pkg_repos.items():
         size = sizes.get(p)
-        op = InputOption('{}{} ({}: {}) - {}: {}'.format(p, ': ' + d['desc'] if d['desc'] else '',
-                                                         i18n['repository'],
-                                                         d['repository'].lower(),
-                                                         i18n['size'].capitalize(),
-                                                         get_human_size_str(size) if size is not None else '?'), p)
+        label = f"{p} ({i18n['repository']}: {d['repository'].lower()}) | " \
+                f"{i18n['size'].capitalize()}: {get_human_size_str(size) if size is not None else '?'}"
+        op = InputOption(label=label, value=p, tooltip=d.get('desc') or None)
         op.icon_path = _get_repo_icon(d['repository'])
         opts.append(op)
 
@@ -34,11 +32,16 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
                                         options=opts,
                                         default_options=set(opts))
 
+    msg = f"<p>{i18n['arch.install.optdeps.request.success'].format(pkg=bold(pkgname))}</p>" \
+          f"<p>{i18n['arch.install.optdeps.request.body']}:</p>"
+
     install = watcher.request_confirmation(title=i18n['arch.install.optdeps.request.title'],
-                                           body='<p>{}.</p><p>{}:</p>'.format(i18n['arch.install.optdeps.request.body'].format(bold(pkgname)), i18n['arch.install.optdeps.request.help']),
+                                           body=msg,
                                            components=[view_opts],
                                            confirmation_label=i18n['install'].capitalize(),
-                                           deny_label=i18n['do_not.install'].capitalize())
+                                           deny_label=i18n['do_not.install'].capitalize(),
+                                           min_width=600,
+                                           min_height=200)
 
     if install:
         return {o.value for o in view_opts.values}

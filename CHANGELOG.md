@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Improvements
 - Arch
+  - install:
+    - optional packages installation dialog appearance (aligned with other dependencies dialogs)
   - uninstall:
     - displaying hard and unnecessary requirements versions and descriptions
   
