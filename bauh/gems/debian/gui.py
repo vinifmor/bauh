@@ -17,7 +17,8 @@ class DebianViewBridge:
         self._width = screen_width
         self._height = screen_heigth
 
-    def _map_to_install(self, pkgs: Optional[Collection[DebianPackage]]) -> Optional[Tuple[List[InputOption], str, str]]:
+    @staticmethod
+    def _map_to_install(pkgs: Optional[Collection[DebianPackage]]) -> Optional[Tuple[List[InputOption], str, str]]:
         if pkgs:
             download_size, install_size = 0, 0
 
