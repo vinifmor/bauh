@@ -96,8 +96,7 @@ class SimpleProcess:
 
         if extra_env:
             for var, val in extra_env.items():
-                if var not in env:
-                    env[var] = val
+                env[var] = val
 
         args = {
             "stdout": subprocess.PIPE,
