@@ -1225,14 +1225,15 @@ class ArchManager(SoftwareManager):
 
         return all_uninstalled
 
-    def _request_uninstall_confirmation(self, to_uninstall: Collection[str], required: Collection[str],
-                                        data: Optional[Dict[str, Dict[str, str]]], watcher: ProcessWatcher) -> bool:
+    def _confirm_removal(self, to_remove: Collection[str], required: Collection[str],
+                         watcher: ProcessWatcher, data: Optional[Dict[str, Dict[str, str]]] = None) -> bool:
 
-        reqs = self._map_as_input_options(required, data, read_only=True)
+        required_data = data if data is not None else self._map_installed_data_for_removal(required)
+        reqs = self._map_as_input_options(required, required_data, read_only=True)
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="")
 
         main_msg = self.i18n['arch.uninstall.required_by'].format(no=bold(str(len(required))),
-                                                                  pkgs=', '.join(bold(n)for n in to_uninstall)) + '.'
+                                                                  pkgs=', '.join(bold(n) for n in to_remove)) + '.'
 
         full_msg = f"<p>{main_msg}</p><p>{self.i18n['arch.uninstall.required_by.warn'] + '.'}</p>"
 
@@ -1264,8 +1265,10 @@ class ArchManager(SoftwareManager):
 
         return opts
 
-    def _request_unncessary_uninstall_confirmation(self, unnecessary: Iterable[str], data: Optional[Dict[str, Dict[str, str]]], watcher: ProcessWatcher) -> Optional[Set[str]]:
-        reqs = self._map_as_input_options(unnecessary, data)
+    def _confirm_unneeded_removal(self, unnecessary: Iterable[str], watcher: ProcessWatcher,
+                                  data: Optional[Dict[str, Dict[str, str]]] = None) -> Optional[Set[str]]:
+        unneeded_data = data if data is not None else self._map_installed_data_for_removal(unnecessary)
+        reqs = self._map_as_input_options(unnecessary, unneeded_data)
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="")
 
         if not watcher.request_confirmation(title=self.i18n['arch.uninstall.unnecessary.l1'],
@@ -1281,7 +1284,7 @@ class ArchManager(SoftwareManager):
                                       data: Optional[Dict[str, Dict[str, str]]] = None) -> bool:
         unnecessary_data = data if data is not None else self._map_installed_data_for_removal(pkgs)
         reqs = self._map_as_input_options(pkgs, unnecessary_data, read_only=True)
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="")
 
         if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
                                                     body=self.i18n['arch.uninstall.unnecessary.all'].format(bold(str(len(pkgs)))),
@@ -1322,12 +1325,8 @@ class ArchManager(SoftwareManager):
 
         if hard_requirements:
             to_uninstall.update(hard_requirements)
-            hard_reqs_data = self._map_installed_data_for_removal(hard_requirements)
 
-            if not self._request_uninstall_confirmation(to_uninstall=names,
-                                                        required=hard_requirements,
-                                                        data=hard_reqs_data,
-                                                        watcher=context.watcher):
+            if not self._confirm_removal(to_remove=names, required=hard_requirements, watcher=context.watcher):
                 return False
 
         if not skip_requirements and remove_unneeded:
@@ -1368,10 +1367,8 @@ class ArchManager(SoftwareManager):
             self._update_progress(context, 70)
 
             if unnecessary_packages:
-                unnecessary_data = self._map_installed_data_for_removal(unnecessary_packages)
-                unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(unnecessary=unnecessary_packages,
-                                                                                           data=unnecessary_data,
-                                                                                           watcher=context.watcher)
+                unnecessary_to_uninstall = self._confirm_unneeded_removal(unnecessary=unnecessary_packages,
+                                                                          watcher=context.watcher)
 
                 if unnecessary_to_uninstall:
                     context.watcher.change_substatus(self.i18n['arch.checking_unnecessary_deps'])
