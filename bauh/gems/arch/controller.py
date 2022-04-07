@@ -1342,7 +1342,7 @@ class ArchManager(SoftwareManager):
 
         self._update_progress(context, 50)
 
-        if disk_loader and to_uninstall:  # loading package instances in case the uninstall succeeds
+        if disk_loader and to_uninstall:  # loading package instances in case the removal succeeds
             instances = self.read_installed(disk_loader=disk_loader,
                                             names={n for n in to_uninstall},
                                             internet_available=net_available).installed
