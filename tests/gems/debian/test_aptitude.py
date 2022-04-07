@@ -97,8 +97,8 @@ Description: GNU C compiler
     def test_show__all_attributes(self, execute: Mock):
         info = self.aptitude.show(('firefox', 'gcc'))
         execute.assert_called_once_with('aptitude show -q firefox gcc', shell=True,
-                                        custom_env=system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER,
-                                                                  lang=''))
+                                        custom_env={**system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER,
+                                                                     lang=''), 'LC_NUMERIC': ''})
 
         expected = {
             'firefox': {
