@@ -1359,7 +1359,7 @@ class ArchManager(SoftwareManager):
         if uninstalled:
             self._remove_uninstalled_from_context(provided_by_uninstalled, context)
 
-            if disk_loader:  # loading package instances in case the uninstall succeeds
+            if disk_loader:  # loading package instances in case the removal succeeds
                 if instances:
                     for p in instances:
                         context.removed[p.name] = p
