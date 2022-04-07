@@ -1226,21 +1226,10 @@ class ArchManager(SoftwareManager):
         return all_uninstalled
 
     def _request_uninstall_confirmation(self, to_uninstall: Collection[str], required: Collection[str],
-                                        data: Optional[Dict[str, str]], watcher: ProcessWatcher) -> bool:
+                                        data: Optional[Dict[str, Dict[str, str]]], watcher: ProcessWatcher) -> bool:
 
-        reqs = []
-        for p in required:
-            pkgdata = data and data.get(p)
-            pkgver, pkgdesc, pkgrepo = None, None, None
-
-            if pkgdata:
-                pkgver, pkgdesc, pkgrepo = (pkgdata.get(k) for k in ('version', 'description', 'repository'))
-
-            reqs.append(InputOption(label=f"{p}{f' ({pkgver})' if pkgver else ''}", value=p, read_only=True,
-                                    icon_path=get_repo_icon_path() if pkgrepo == 'repo' else get_icon_path(),
-                                    tooltip=pkgdesc))
-
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
+        reqs = self._map_as_input_options(required, data, read_only=True)
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="")
 
         main_msg = self.i18n['arch.uninstall.required_by'].format(no=bold(str(len(required))),
                                                                   pkgs=', '.join(bold(n)for n in to_uninstall)) + '.'
@@ -1259,12 +1248,28 @@ class ArchManager(SoftwareManager):
 
         return True
 
-    def _request_unncessary_uninstall_confirmation(self, unnecessary: Iterable[str], watcher: ProcessWatcher) -> Optional[Set[str]]:
-        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=False) for p in unnecessary]
-        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=3 if len(reqs) > 9 else 1)
+    def _map_as_input_options(self, names: Iterable[str], data: Optional[Dict[str, Dict[str, str]]],
+                              read_only: bool = False) -> List[InputOption]:
+        opts = []
+        for p in names:
+            pkgdata = data and data.get(p)
+            pkgver, pkgdesc, pkgrepo = None, None, None
 
-        if not watcher.request_confirmation(title=self.i18n['arch.uninstall.unnecessary.l1'].capitalize(),
-                                            body='<p>{}</p>'.format(self.i18n['arch.uninstall.unnecessary.l2'] + ':'),
+            if pkgdata:
+                pkgver, pkgdesc, pkgrepo = (pkgdata.get(k) for k in ('version', 'description', 'repository'))
+
+            opts.append(InputOption(label=f"{p}{f' ({pkgver})' if pkgver else ''}", value=p, read_only=read_only,
+                                    icon_path=get_repo_icon_path() if pkgrepo == 'repo' else get_icon_path(),
+                                    tooltip=pkgdesc))
+
+        return opts
+
+    def _request_unncessary_uninstall_confirmation(self, unnecessary: Iterable[str], data: Optional[Dict[str, Dict[str, str]]], watcher: ProcessWatcher) -> Optional[Set[str]]:
+        reqs = self._map_as_input_options(unnecessary, data)
+        reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="")
+
+        if not watcher.request_confirmation(title=self.i18n['arch.uninstall.unnecessary.l1'],
+                                            body=f"<p>{self.i18n['arch.uninstall.unnecessary.l2'] + ':'}</p>",
                                             components=[reqs_select],
                                             deny_label=self.i18n['arch.uninstall.unnecessary.proceed'].capitalize(),
                                             confirmation_label=self.i18n['arch.uninstall.unnecessary.cancel'].capitalize(),
@@ -1313,19 +1318,11 @@ class ArchManager(SoftwareManager):
 
         if hard_requirements:
             to_uninstall.update(hard_requirements)
-            hard_reqs_data = pacman.map_installed(hard_requirements)
-            hard_reqs_mapped_data = None
-
-            if hard_reqs_data:
-                hard_reqs_mapped_data = {}
-                for key, pkgs in hard_reqs_data.items():
-                    repository = 'aur' if key == 'not_signed' else 'repo'
-                    for name, data in pkgs.items():
-                        hard_reqs_mapped_data[name] = {**data, 'repository': repository}
+            hard_reqs_data = self._map_installed_data_for_removal(hard_requirements)
 
             if not self._request_uninstall_confirmation(to_uninstall=names,
                                                         required=hard_requirements,
-                                                        data=hard_reqs_mapped_data,
+                                                        data=hard_reqs_data,
                                                         watcher=context.watcher):
                 return False
 
@@ -1367,7 +1364,9 @@ class ArchManager(SoftwareManager):
             self._update_progress(context, 70)
 
             if unnecessary_packages:
+                unnecessary_data = self._map_installed_data_for_removal(unnecessary_packages)
                 unnecessary_to_uninstall = self._request_unncessary_uninstall_confirmation(unnecessary=unnecessary_packages,
+                                                                                           data=unnecessary_data,
                                                                                            watcher=context.watcher)
 
                 if unnecessary_to_uninstall:
@@ -1428,6 +1427,18 @@ class ArchManager(SoftwareManager):
 
         self._update_progress(context, 100)
         return uninstalled
+
+    def _map_installed_data_for_removal(self, names: Iterable[str]) -> Optional[Dict[str, Dict[str, str]]]:
+        data = pacman.map_installed(names)
+
+        if data:
+            remapped_data = {}
+            for key, pkgs in data.items():
+                repository = 'aur' if key == 'not_signed' else 'repo'
+                for name, data in pkgs.items():
+                    remapped_data[name] = {**data, 'repository': repository}
+
+            return remapped_data
 
     def _remove_uninstalled_from_context(self, provided_by_uninstalled: Dict[str, Set[str]], context: TransactionContext):
         if context.provided_map and provided_by_uninstalled:  # updating the current provided context
