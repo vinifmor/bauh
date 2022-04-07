@@ -1276,8 +1276,10 @@ class ArchManager(SoftwareManager):
                                             window_cancel=False):
             return {*reqs_select.get_selected_values()}
 
-    def _request_all_unncessary_uninstall_confirmation(self, pkgs: Collection[str], context: TransactionContext):
-        reqs = [InputOption(label=p, value=p, icon_path=get_icon_path(), read_only=True) for p in pkgs]
+    def _confirm_all_unneeded_removal(self, pkgs: Collection[str], context: TransactionContext,
+                                      data: Optional[Dict[str, Dict[str, str]]] = None) -> bool:
+        unnecessary_data = data if data is not None else self._map_installed_data_for_removal(pkgs)
+        reqs = self._map_as_input_options(pkgs, unnecessary_data, read_only=True)
         reqs_select = MultipleSelectComponent(options=reqs, default_options=set(reqs), label="", max_per_line=1)
 
         if not context.watcher.request_confirmation(title=self.i18n['confirmation'].capitalize(),
@@ -1387,7 +1389,8 @@ class ArchManager(SoftwareManager):
 
                     all_unnecessary_to_uninstall = {*unnecessary_to_uninstall, *unnecessary_requirements}
 
-                    if not unnecessary_requirements or self._request_all_unncessary_uninstall_confirmation(all_unnecessary_to_uninstall, context):
+                    if not unnecessary_requirements or self._confirm_all_unneeded_removal(all_unnecessary_to_uninstall,
+                                                                                          context):
                         if disk_loader:  # loading package instances in case the uninstall succeeds
                             unnecessary_instances = self.read_installed(disk_loader=disk_loader,
                                                                         internet_available=net_available,
