@@ -73,7 +73,7 @@ def confirm_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatc
 
                 total_dsize += dsize
 
-        label = f"{dep[0]} ({i18n['repository']}: {dep[1].lower()}) | " \
+        label = f"{dep[0]} | " \
                 f"{i18n['size'].capitalize()}: {get_human_size_str(isize) if isize is not None else '?'}" \
                 f"{' ({}: {})'.format(i18n['download'].capitalize(), get_human_size_str(dsize)) if dsize else ''}"
 
@@ -106,7 +106,7 @@ def confirm_missing_deps(deps: Collection[Tuple[str, str]], watcher: ProcessWatc
                                         components=[comp],
                                         confirmation_label=i18n['continue'].capitalize(),
                                         deny_label=i18n['cancel'].capitalize(),
-                                        min_width=600)
+                                        min_width=625)
 
 
 def request_providers(providers_map: Dict[str, Set[str]], repo_map: Dict[str, str], watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
