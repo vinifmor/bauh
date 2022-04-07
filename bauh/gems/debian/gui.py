@@ -131,6 +131,7 @@ class DebianViewBridge:
                                             components=[body_text, deps_container],
                                             confirmation_label=self._i18n['popup.button.continue'],
                                             deny_label=self._i18n['popup.button.cancel'],
+                                            min_height=200,
                                             body=None)
 
     def confirm_purge(self, pkg_name: str, watcher: ProcessWatcher) -> bool:

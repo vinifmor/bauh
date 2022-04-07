@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - uninstall:
     - displaying hard and unnecessary requirements versions and descriptions
   
+- Debian
+  - uninstall: dependencies dialog size
+
 - General
   - code refactoring
 
