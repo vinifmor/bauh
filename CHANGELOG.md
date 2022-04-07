@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   
 - Debian
   - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
+  - displaying wrong symbols among numbers in install/uninstall/upgrade outputs for systems without english encoding installed
 
 - UI
   - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)
