@@ -259,13 +259,16 @@ class Aptitude:
 
     @classmethod
     def gen_remove_cmd(cls, packages: Iterable[str], purge: bool, simulate: bool = False) -> str:
-        return cls.gen_transaction_cmd('purge' if purge else 'remove', packages, simulate)
+        return cls.gen_transaction_cmd(type_='purge' if purge else 'remove', packages=packages,
+                                       simulate=simulate)
 
     @staticmethod
-    def gen_transaction_cmd(type_: str, packages: Iterable[str], simulate: bool = False) -> str:
+    def gen_transaction_cmd(type_: str, packages: Iterable[str], simulate: bool = False,
+                            delete_unused: bool = False) -> str:
         return f"aptitude {type_} -q -y --no-gui --full-resolver {' '.join(packages)}" \
                f" -o Aptitude::ProblemResolver::RemoveScore=9999999" \
                f" -o Aptitude::ProblemResolver::EssentialRemoveScore=9999999" \
+               f" -o Aptitude::Delete-Unused={str(delete_unused).lower()}" \
                f"{' -V -s -Z' if simulate else ''}"
 
     @property
