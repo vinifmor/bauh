@@ -222,6 +222,7 @@ class Aptitude:
     def env(self) -> Dict[str, str]:
         if self._env is None:
             self._env = system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER)
+            self._env['LC_NUMERIC'] = ''
 
         return self._env
 
