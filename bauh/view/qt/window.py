@@ -796,7 +796,7 @@ class ManageWindow(QWidget):
                             for decrement, pkg_idx in enumerate(removed_idxs):
                                 del pkg_list[pkg_idx - decrement]
 
-                            if list_idx == 1:  # updates the rows if the current list reprents the displayed packages:
+                            if list_idx == 1:  # updates the rows if the current list represents the displayed packages:
                                 for decrement, idx in enumerate(removed_idxs):
                                     self.table_apps.removeRow(idx - decrement)
 
