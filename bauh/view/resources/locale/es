@@ -201,6 +201,7 @@ clean=limpiar
 close=cerrar
 confirmation=confirmación
 console.operation_log=Los registros de la operación se encuentran en {path}
+console.upgrade_summary=El resumen de actualización se encurentra en {path}
 continue=continuar
 copy=copiar
 core.config.backup=Habilitada

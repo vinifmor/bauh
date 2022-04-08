@@ -200,6 +200,7 @@ clean=vider
 close=fermer
 confirmation=confirmation
 console.operation_log=The operation logs can be found at {path}
+console.upgrade_summary=The upgrade summary can be found at {path}
 continue=continuer
 copy=copier
 core.config.backup.downgrade=Avant de downgrader

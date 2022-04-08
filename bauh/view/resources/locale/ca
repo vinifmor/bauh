@@ -201,6 +201,7 @@ clean=netejar
 close=tanca
 confirmation=confirmació
 console.operation_log=The operation logs can be found at {path}
+console.upgrade_summary=The upgrade summary can be found at {path}
 continue=continua
 copy=copia
 core.config.backup=Enabled

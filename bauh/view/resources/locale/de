@@ -200,6 +200,7 @@ clean=Bereinigen
 close=Schließen
 confirmation=Bestätigung
 console.operation_log=The operation logs can be found at {path}
+console.upgrade_summary=The upgrade summary can be found at {path}
 continue=Fortfahren
 copy=Kopieren
 core.config.backup=Enabled

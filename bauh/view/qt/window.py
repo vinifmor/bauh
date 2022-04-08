@@ -1,5 +1,6 @@
 import logging
 import operator
+import os.path
 import time
 import traceback
 from pathlib import Path
@@ -1154,20 +1155,10 @@ class ManageWindow(QWidget):
         self._finish_action()
 
         if res.get('id'):
-            output = self.textarea_details.toPlainText()
-
-            if output:
-                try:
-                    Path(UpgradeSelected.UPGRADE_LOGS_DIR).mkdir(parents=True, exist_ok=True)
-                    logs_path = '{}/{}.log'.format(UpgradeSelected.UPGRADE_LOGS_DIR, res['id'])
-                    with open(logs_path, 'w+') as f:
-                        f.write(output)
-
-                    self.textarea_details.appendPlainText('\n* Upgrade summary generated at: {}'.format(UpgradeSelected.SUMMARY_FILE.format(res['id'])))
-                    log_msg = '* ' + self.i18n['console.operation_log'].format(path=f'"{logs_path}"')
-                    self.textarea_details.appendPlainText(log_msg)
-                except:
-                    traceback.print_exc()
+            self._write_operation_logs('upgrade', custom_log_file=f"{UpgradeSelected.UPGRADE_LOGS_DIR}/{res['id']}.log")
+            sum_log_file = UpgradeSelected.SUMMARY_FILE.format(res['id'])
+            summ_msg = '* ' + self.i18n['console.upgrade_summary'].format(path=f'"{sum_log_file}"')
+            self.textarea_details.appendPlainText(summ_msg)
 
         if res['success']:
             self.comp_manager.remove_saved_state(ACTION_UPGRADE)
@@ -1388,27 +1379,36 @@ class ManageWindow(QWidget):
         self.thread_install.root_pwd = pwd
         self.thread_install.start()
 
-    def _write_operation_logs(self, type_: str, pkg: PackageView):
+    def _write_operation_logs(self, type_: str, pkg: Optional[PackageView] = None,
+                              custom_log_file: Optional[str] = None):
+
         console_output = self.textarea_details.toPlainText()
 
         if console_output:
-            log_path = f"{LOGS_DIR}/{type_}/{pkg.model.get_type()}/{pkg.model.name}"
-            try:
-                Path(log_path).mkdir(parents=True, exist_ok=True)
-            except OSError:
-                self.textarea_details.appendPlainText(f"[error] Could not create the operation log directory '{log_path}'")
-                return
+            if custom_log_file:
+                log_dir = os.path.dirname(custom_log_file)
+                log_file = custom_log_file
+            else:
+                log_dir = f"{LOGS_DIR}/{type_}"
+                if pkg:
+                    log_dir = f"{log_dir}/{pkg.model.get_type()}/{pkg.model.name}"
 
-            log_file = f'{log_path}/{int(time.time())}.log'
+                log_file = f'{log_dir}/{int(time.time())}.log'
+
+            try:
+                Path(log_dir).mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.logger.error(f"Could not create the operation log directory '{log_dir}'")
+                return
 
             try:
                 with open(log_file, 'w+') as f:
                     f.write(console_output)
             except OSError:
-                self.textarea_details.appendPlainText(f"[error] Could not write the operation log to file '{log_file}'")
+                self.logger.error(f"Could not write the operation log to file '{log_file}'")
                 return
 
-            log_msg = '* ' + self.i18n['console.operation_log'].format(path=f'"{log_file}"')
+            log_msg = '\n* ' + self.i18n['console.operation_log'].format(path=f'"{log_file}"')
             self.textarea_details.appendPlainText(log_msg)
 
     def _finish_install(self, res: dict):
