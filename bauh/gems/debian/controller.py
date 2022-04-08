@@ -568,10 +568,10 @@ class DebianPackageManager(SoftwareManager):
             final_cmd = pkg.app.exe_path.replace('%U', '')
             Popen(final_cmd, shell=True)
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[ViewComponent]:
         deb_config = self.configman.get_config()
 
-        comps_width = int(screen_width * 0.105)
+        comps_width = int(self.context.screen_width * 0.105)
 
         sources_app = deb_config.get('pkg_sources.app')
 

@@ -38,8 +38,7 @@ class GenericUpgradeRequirements(UpgradeRequirements):
 
 class GenericSoftwareManager(SoftwareManager):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict,
-                 settings_manager: GenericSettingsManager = None):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
@@ -51,7 +50,7 @@ class GenericSoftwareManager(SoftwareManager):
         self._already_prepared = []
         self.working_managers = []
         self.config = config
-        self.settings_manager = settings_manager
+        self.settings_manager: Optional[GenericSettingsManager] = None
         self.http_client = context.http_client
         self.configman = CoreConfigManager()
         self._action_reset: Optional[CustomSoftwareAction] = None
@@ -533,19 +532,17 @@ class GenericSoftwareManager(SoftwareManager):
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self) -> ViewComponent:
         if self.settings_manager is None:
             self.settings_manager = GenericSettingsManager(managers=self.managers,
                                                            working_managers=self.working_managers,
-                                                           logger=self.logger,
-                                                           i18n=self.i18n,
-                                                           file_downloader=self.context.file_downloader,
-                                                           configman=self.configman)
+                                                           configman=self.configman,
+                                                           context=self.context)
         else:
             self.settings_manager.managers = self.managers
             self.settings_manager.working_managers = self.working_managers
 
-        return self.settings_manager.get_settings(screen_width=screen_width, screen_height=screen_height)
+        return self.settings_manager.get_settings()
 
     def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
         return self.settings_manager.save_settings(component)

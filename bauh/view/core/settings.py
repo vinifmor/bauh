@@ -9,6 +9,7 @@ from typing import List, Tuple, Optional, Dict
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 from bauh import ROOT_DIR, __app_name__
+from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
@@ -24,16 +25,17 @@ from bauh.view.util.translation import I18n
 
 class GenericSettingsManager:
 
-    def __init__(self, managers: List[SoftwareManager], working_managers: List[SoftwareManager],
-                 logger: logging.Logger, i18n: I18n, file_downloader: FileDownloader, configman: CoreConfigManager):
-        self.i18n = i18n
+    def __init__(self, context: ApplicationContext, managers: List[SoftwareManager],
+                 working_managers: List[SoftwareManager], configman: CoreConfigManager):
+        self.context = context
+        self.i18n = context.i18n
         self.managers = managers
         self.working_managers = working_managers
-        self.logger = logger
-        self.file_downloader = file_downloader
+        self.logger = context.logger
+        self.file_downloader = self.context.file_downloader
         self.configman = configman
 
-    def get_settings(self, screen_width: int, screen_height: int) -> ViewComponent:
+    def get_settings(self) -> ViewComponent:
         tabs = list()
 
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
@@ -43,7 +45,7 @@ class GenericSettingsManager:
             modname = man.__module__.split('.')[-2]
             icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
-            man_comp = man.get_settings(screen_width, screen_height) if can_work else None
+            man_comp = man.get_settings() if can_work else None
             if man_comp:
                 tab_name = self.i18n.get('gem.{}.label'.format(modname), modname.capitalize())
                 gem_tabs.append(TabComponent(label=tab_name, content=man_comp, icon_path=icon_path, id_=modname))
@@ -68,19 +70,19 @@ class GenericSettingsManager:
             gem_selector = MultipleSelectComponent(label=None,
                                                    tooltip=None,
                                                    options=gem_opts,
-                                                   max_width=floor(screen_width * 0.22),
+                                                   max_width=floor(self.context.screen_width * 0.22),
                                                    default_options=def_gem_opts,
                                                    id_="gems")
             tabs.append(TabComponent(label=self.i18n['core.config.tab.types'],
                                      content=PanelComponent([type_help, FormComponent([gem_selector], spaces=False)]),
                                      id_='core.types'))
 
-        tabs.append(self._gen_general_settings(core_config, screen_width, screen_height))
-        tabs.append(self._gen_ui_settings(core_config, screen_width, screen_height))
-        tabs.append(self._gen_tray_settings(core_config, screen_width, screen_height))
-        tabs.append(self._gen_adv_settings(core_config, screen_width, screen_height))
+        tabs.append(self._gen_general_settings(core_config))
+        tabs.append(self._gen_ui_settings(core_config))
+        tabs.append(self._gen_tray_settings(core_config))
+        tabs.append(self._gen_adv_settings(core_config))
 
-        bkp_settings = self._gen_backup_settings(core_config, screen_width, screen_height)
+        bkp_settings = self._gen_backup_settings(core_config)
 
         if bkp_settings:
             tabs.append(bkp_settings)
@@ -90,8 +92,8 @@ class GenericSettingsManager:
 
         return TabGroupComponent(tabs)
 
-    def _gen_adv_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.22 * screen_width)
+    def _gen_adv_settings(self, core_config: dict) -> TabComponent:
+        default_width = floor(0.22 * self.context.screen_width)
 
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
@@ -155,8 +157,8 @@ class GenericSettingsManager:
                                 opts=mthread_client_opts,
                                 value=current_mthread_client)
 
-    def _gen_tray_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.22 * screen_width)
+    def _gen_tray_settings(self, core_config: dict) -> TabComponent:
+        default_width = floor(0.22 * self.context.screen_width)
 
         input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
                                                    tooltip=self.i18n['core.config.updates.interval.tip'],
@@ -183,8 +185,8 @@ class GenericSettingsManager:
         sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
 
-    def _gen_ui_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.15 * screen_width)
+    def _gen_ui_settings(self, core_config: dict) -> TabComponent:
+        default_width = floor(0.15 * self.context.screen_width)
 
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
                                                tooltip=self.i18n['core.config.ui.hdpi.tip'],
@@ -259,8 +261,8 @@ class GenericSettingsManager:
 
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
-    def _gen_general_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
-        default_width = floor(0.15 * screen_width)
+    def _gen_general_settings(self, core_config: dict) -> TabComponent:
+        default_width = floor(0.15 * self.context.screen_width)
 
         locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
 
@@ -521,9 +523,9 @@ class GenericSettingsManager:
         self.logger.info("Saving all settings took {0:.8f} seconds".format(tf - ti))
         return success, warnings
 
-    def _gen_backup_settings(self, core_config: dict, screen_width: int, screen_height: int) -> TabComponent:
+    def _gen_backup_settings(self, core_config: dict) -> TabComponent:
         if timeshift.is_available():
-            default_width = floor(0.22 * screen_width)
+            default_width = floor(0.22 * self.context.screen_width)
 
             enabled_opt = self._gen_bool_component(label=self.i18n['core.config.backup'],
                                                    tooltip=None,

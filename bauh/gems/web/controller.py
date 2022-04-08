@@ -1105,9 +1105,9 @@ class WebApplicationManager(SoftwareManager):
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[ViewComponent]:
         web_config = self.configman.get_config()
-        max_width = floor(screen_width * 0.15)
+        max_width = floor(self.context.screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
                                             value=web_config['environment']['electron']['version'],

@@ -1549,7 +1549,7 @@ class ManageWindow(QWidget):
         if self.settings_window:
             self.settings_window.handle_display()
         else:
-            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self)
+            self.settings_window = SettingsWindow(manager=self.manager, i18n=self.i18n, window=self)
             self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
             self.settings_window.resize(self.size())
             self.settings_window.adjustSize()

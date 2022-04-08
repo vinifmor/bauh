@@ -427,7 +427,7 @@ class SnapManager(SoftwareManager):
         if pkg.screenshots:
             yield from pkg.screenshots
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[ViewComponent]:
         snap_config = self.configman.get_config()
         max_width = 200
 

@@ -850,9 +850,9 @@ class AppImageManager(SoftwareManager):
                     print(f'{Fore.RED}[bauh][appimage] An exception has happened when deleting {f}{Fore.RESET}')
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[ViewComponent]:
         appimage_config = self.configman.get_config()
-        max_width = floor(screen_width * 0.15)
+        max_width = floor(self.context.screen_width * 0.15)
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],

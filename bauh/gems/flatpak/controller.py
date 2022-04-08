@@ -603,7 +603,7 @@ class FlatpakManager(SoftwareManager):
             else:
                 traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[ViewComponent]:
         if not self.context.root_user:
             fields = []
 
@@ -622,7 +622,7 @@ class FlatpakManager(SoftwareManager):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=floor(screen_width * 0.22),
+                                                max_width=floor(self.context.screen_width * 0.22),
                                                 type_=SelectViewType.RADIO))
 
             return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
