@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   
 ### Fixes
 - General
-  - not properly converting bibyte (KiB, MiB, ...) and byte (KB, MB, ...) based sizes to bytes
+  - not properly converting bibyte (KiB, MiB, ...) and byte (kB, MB, ...) based sizes to bytes
   - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
   
 - Debian
