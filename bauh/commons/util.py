@@ -41,21 +41,24 @@ def size_to_byte(size: Union[float, int, str], unit: str, logger: Optional[Logge
     else:
         final_size = float(size)
 
-    if unit == 'b' or len(lower_unit) > 1 and lower_unit.endswith('ib'):
-        final_size /= 8
+    if unit == 'b':
+        return final_size / 8
 
-    if lower_unit[0] == 'b':
+    if unit == 'B':
         return final_size
-    elif lower_unit[0] == 'k':
-        return final_size * 1024
+
+    base = 1024 if lower_unit.endswith('ib') else 1000
+
+    if lower_unit[0] == 'k':
+        return final_size * base
     elif lower_unit[0] == 'm':
-        return final_size * (1024 ** 2)
+        return final_size * (base ** 2)
     elif lower_unit[0] == 'g':
-        return final_size * (1024 ** 3)
+        return final_size * (base ** 3)
     elif lower_unit[0] == 't':
-        return final_size * (1024 ** 4)
+        return final_size * (base ** 4)
     else:
-        return final_size * (1024 ** 5)
+        return final_size * (base ** 5)
 
 
 def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:
