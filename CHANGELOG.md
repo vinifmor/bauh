@@ -13,6 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - optional packages installation dialog appearance (aligned with other dependencies dialogs)
   - uninstall:
     - displaying hard and unnecessary requirements versions and descriptions
+  - settings:
+    - displaying different tabs for general Arch configurations and AUR's
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/arch_aur_tabs.png">
+    </p>  
+
   
 - Debian
   - install: installation/download sizes order (to follow the upgrade dialog order) 

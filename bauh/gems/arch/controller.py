@@ -2860,52 +2860,20 @@ class ArchManager(SoftwareManager, SettingsController):
                                      id_=id_,
                                      capitalize_label=capitalize_label)
 
-    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
-        arch_config = self.configman.get_config()
-        max_width = floor(self.context.screen_width * 0.25)
-
+    def _get_general_settings(self, arch_config: dict, max_width: int) -> SettingsView:
         db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
                                                 label_key='arch.config.sync_dbs',
                                                 tooltip_key='arch.config.sync_dbs_start.tip',
                                                 value=bool(arch_config['sync_databases_startup']),
                                                 max_width=max_width)
 
-        db_sync_start.label += ' ({})'.format(self.i18n['initialization'].capitalize())
+        db_sync_start.label += f" ({self.i18n['initialization'].capitalize()})"
 
         fields = [
             self._gen_bool_selector(id_='repos',
                                     label_key='arch.config.repos',
                                     tooltip_key='arch.config.repos.tip',
                                     value=bool(arch_config['repositories']),
-                                    max_width=max_width),
-            self._gen_bool_selector(id_='aur',
-                                    label_key='arch.config.aur',
-                                    tooltip_key='arch.config.aur.tip',
-                                    value=arch_config['aur'],
-                                    max_width=max_width,
-                                    capitalize_label=False),
-            self._gen_bool_selector(id_='opts',
-                                    label_key='arch.config.optimize',
-                                    tooltip_key='arch.config.optimize.tip',
-                                    value=bool(arch_config['optimize']),
-                                    label_params=['(AUR)'],
-                                    capitalize_label=False,
-                                    max_width=max_width),
-            self._gen_bool_selector(id_='rebuild_detector',
-                                    label_key='arch.config.aur_rebuild_detector',
-                                    tooltip_key='arch.config.aur_rebuild_detector.tip',
-                                    value=bool(arch_config['aur_rebuild_detector']),
-                                    label_params=['(AUR)'],
-                                    tooltip_params=["'rebuild-detector'"],
-                                    capitalize_label=False,
-                                    max_width=max_width),
-            self._gen_bool_selector(id_='rebuild_detector_no_bin',
-                                    label_key='arch.config.aur_rebuild_detector_no_bin',
-                                    label_params=['rebuild-detector'],
-                                    tooltip_key='arch.config.aur_rebuild_detector_no_bin.tip',
-                                    tooltip_params=['rebuild-detector', self.i18n['arch.config.aur_rebuild_detector'].format('')],
-                                    value=bool(arch_config['aur_rebuild_detector_no_bin']),
-                                    capitalize_label=False,
                                     max_width=max_width),
             self._gen_bool_selector(id_='autoprovs',
                                     label_key='arch.config.automatch_providers',
@@ -2960,15 +2928,49 @@ class ArchManager(SoftwareManager, SettingsController):
                                label=self.i18n['arch.config.mirrors_sort_limit'],
                                tooltip=self.i18n['arch.config.mirrors_sort_limit.tip'],
                                only_int=True,
-                               max_width=max_width,
+                               max_width=50,
                                value=arch_config['mirrors_sort_limit'] if isinstance(arch_config['mirrors_sort_limit'], int) else ''),
-            TextInputComponent(id_='aur_idx_exp',
-                               label=self.i18n['arch.config.aur_idx_exp'] + ' (AUR)',
-                               tooltip=self.i18n['arch.config.aur_idx_exp.tip'],
-                               max_width=max_width,
+            TextInputComponent(id_='arch_cats_exp',
+                               label=self.i18n['arch.config.categories_exp'],
+                               tooltip=self.i18n['arch.config.categories_exp.tip'],
+                               max_width=50,
                                only_int=True,
                                capitalize_label=False,
-                               value=arch_config['aur_idx_exp'] if isinstance(arch_config['aur_idx_exp'], int) else ''),
+                               value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
+        ]
+
+        return SettingsView(self, PanelComponent([FormComponent(fields, spaces=False)], id_="repo"), icon_path=get_repo_icon_path())
+
+    def _get_aur_settings(self, arch_config: dict, max_width: int) -> SettingsView:
+        fields = [
+            self._gen_bool_selector(id_='aur',
+                                    label_key='arch.config.aur',
+                                    tooltip_key='arch.config.aur.tip',
+                                    value=arch_config['aur'],
+                                    max_width=max_width,
+                                    capitalize_label=False),
+            self._gen_bool_selector(id_='opts',
+                                    label_key='arch.config.optimize',
+                                    tooltip_key='arch.config.optimize.tip',
+                                    value=bool(arch_config['optimize']),
+                                    capitalize_label=False,
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector',
+                                    label_key='arch.config.aur_rebuild_detector',
+                                    tooltip_key='arch.config.aur_rebuild_detector.tip',
+                                    value=bool(arch_config['aur_rebuild_detector']),
+                                    tooltip_params=["'rebuild-detector'"],
+                                    capitalize_label=False,
+                                    max_width=max_width),
+            self._gen_bool_selector(id_='rebuild_detector_no_bin',
+                                    label_key='arch.config.aur_rebuild_detector_no_bin',
+                                    label_params=['rebuild-detector'],
+                                    tooltip_key='arch.config.aur_rebuild_detector_no_bin.tip',
+                                    tooltip_params=['rebuild-detector',
+                                                    self.i18n['arch.config.aur_rebuild_detector'].format('')],
+                                    value=bool(arch_config['aur_rebuild_detector_no_bin']),
+                                    capitalize_label=False,
+                                    max_width=max_width),
             new_select(id_='aur_build_only_chosen',
                        label=self.i18n['arch.config.aur_build_only_chosen'],
                        tip=self.i18n['arch.config.aur_build_only_chosen.tip'],
@@ -2999,33 +3001,33 @@ class ArchManager(SoftwareManager, SettingsController):
                                     capitalize_label=False),
             FileChooserComponent(id_='aur_build_dir',
                                  label=self.i18n['arch.config.aur_build_dir'],
-                                 tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(get_build_dir(arch_config, self.pkgbuilder_user)),
-                                 max_width=max_width,
+                                 tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(
+                                     get_build_dir(arch_config, self.pkgbuilder_user)),
+                                 max_width=round(max_width * 0.65),
                                  file_path=arch_config['aur_build_dir'],
                                  capitalize_label=False,
                                  directory=True),
-            TextInputComponent(id_='arch_cats_exp',
-                               label=self.i18n['arch.config.categories_exp'],
-                               tooltip=self.i18n['arch.config.categories_exp.tip'],
-                               max_width=max_width,
+            TextInputComponent(id_='aur_idx_exp',
+                               label=self.i18n['arch.config.aur_idx_exp'],
+                               tooltip=self.i18n['arch.config.aur_idx_exp.tip'],
+                               max_width=50,
                                only_int=True,
                                capitalize_label=False,
-                               value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
+                               value=arch_config['aur_idx_exp'] if isinstance(arch_config['aur_idx_exp'], int) else '')
         ]
 
-        yield SettingsView(self, PanelComponent([FormComponent(fields, spaces=False)]))
+        return SettingsView(self, PanelComponent([FormComponent(fields, spaces=False)], id_='aur'),
+                            label='AUR',
+                            icon_path=get_icon_path())
 
-    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         arch_config = self.configman.get_config()
+        max_width = floor(self.context.screen_width * 0.25)
+        yield self._get_general_settings(arch_config, max_width)
+        yield self._get_aur_settings(arch_config, max_width)
 
-        form = component.get_component_by_idx(0, FormComponent)
+    def _fill_general_settings(self, arch_config: dict, form: FormComponent):
         arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
-        arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
-        arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
-
-        rebuild_no_bin = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
-        arch_config['aur_rebuild_detector_no_bin'] = rebuild_no_bin
-
         arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
         arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
         arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
@@ -3036,12 +3038,6 @@ class ArchManager(SoftwareManager, SettingsController):
 
         prefer_repo_provider = form.get_single_select_component('prefer_repo_provider').get_selected()
         arch_config['prefer_repository_provider'] = prefer_repo_provider
-
-        arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
-        arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
-        arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
-        arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
-        arch_config['aur_idx_exp'] = form.get_text_input('aur_idx_exp').get_int_value()
 
         check_dep_break = form.get_single_select_component('check_dependency_breakage').get_selected()
         arch_config['check_dependency_breakage'] = check_dep_break
@@ -3054,6 +3050,19 @@ class ArchManager(SoftwareManager, SettingsController):
 
         arch_config['categories_exp'] = form.get_text_input('arch_cats_exp').get_int_value()
 
+    def _fill_aur_settings(self, arch_config: dict, form: FormComponent):
+        arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
+        arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
+
+        rebuild_no_bin = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
+        arch_config['aur_rebuild_detector_no_bin'] = rebuild_no_bin
+
+        arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
+        arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
+        arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
+        arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
+        arch_config['aur_idx_exp'] = form.get_text_input('aur_idx_exp').get_int_value()
+
         if not arch_config['aur_build_dir']:
             arch_config['aur_build_dir'] = None
 
@@ -3063,6 +3072,15 @@ class ArchManager(SoftwareManager, SettingsController):
         if aur_enabled_select.changed() and arch_config['aur']:
             self.index_aur = AURIndexUpdater(context=self.context, taskman=TaskManager(), arch_config=arch_config)
             self.index_aur.start()
+
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
+        arch_config = self.configman.get_config()
+        form = component.get_component_by_idx(0, FormComponent)
+
+        if component.id == 'repo':
+            self._fill_general_settings(arch_config, form)
+        elif component.id == 'aur':
+            self._fill_aur_settings(arch_config, form)
 
         try:
             self.configman.save_config(arch_config)
