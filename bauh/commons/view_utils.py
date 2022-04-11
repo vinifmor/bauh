@@ -3,9 +3,6 @@ from typing import Tuple, Optional, Iterable
 
 from bauh.api.abstract.view import SelectViewType, InputOption, SingleSelectComponent
 
-SIZE_UNITS = ((1, 'B'), (1024, 'kB'), (1048576, 'MB'), (1073741824, 'GB'),
-              (1099511627776, 'TB'), (1125899906842624, 'PB'))
-
 
 def new_select(label: str, tip: Optional[str], id_: str, opts: Iterable[Tuple[Optional[str], object, Optional[str]]], value: object, max_width: int,
                type_: SelectViewType = SelectViewType.RADIO, capitalize_label: bool = True):
@@ -29,11 +26,10 @@ def get_human_size_str(size, positive_sign: bool = False) -> Optional[str]:
         if int_size == 0:
             return '0'
 
-        for div, unit in SIZE_UNITS:
+        for power, unit in enumerate(('B', 'kB', 'MB', 'GB', 'TB', 'PB')):
+            size_unit = int_size / (1000 ** power)
 
-            size_unit = int_size / div
-
-            if size_unit < 1024:
+            if size_unit < 1000:
                 size_unit = size_unit if size > 0 else size_unit * -1
                 localized_size = locale.format_string('%.2f', size_unit)
                 size_str = f'{int(size_unit)} {unit}' if unit == 'B' else f"{localized_size} {unit}"
