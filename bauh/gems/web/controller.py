@@ -25,7 +25,7 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
@@ -1152,27 +1152,27 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         yield SettingsView(self, PanelComponent([form_env]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        web_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
-        form_env = component.get_component_by_idx(0, FormComponent)
+        form = component.get_component_by_idx(0, FormComponent)
 
-        electron_version = str(form_env.get_text_input('electron_branch').get_value()).strip()
-        web_config['environment']['electron']['version'] = electron_version
+        electron_version = str(form.get_component('electron_branch', TextInputComponent).get_value()).strip()
+        config_['environment']['electron']['version'] = electron_version
 
-        if len(web_config['environment']['electron']['version']) == 0:
-            web_config['environment']['electron']['version'] = None
+        if len(config_['environment']['electron']['version']) == 0:
+            config_['environment']['electron']['version'] = None
 
-        system_nativefier = form_env.get_single_select_component('nativefier').get_selected()
+        system_nativefier = form.get_component('nativefier', SingleSelectComponent).get_selected()
 
         if system_nativefier and not nativefier.is_available():
             return False, [self.i18n['web.settings.env.nativefier.system.not_installed'].format('Nativefier')]
 
-        web_config['environment']['system'] = system_nativefier
-        web_config['environment']['cache_exp'] = form_env.get_text_input('web_cache_exp').get_int_value()
-        web_config['suggestions']['cache_exp'] = form_env.get_text_input('web_sugs_exp').get_int_value()
+        config_['environment']['system'] = system_nativefier
+        config_['environment']['cache_exp'] = form.get_component('web_cache_exp', TextInputComponent).get_int_value()
+        config_['suggestions']['cache_exp'] = form.get_component('web_sugs_exp', TextInputComponent).get_int_value()
 
         try:
-            self.configman.save_config(web_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]

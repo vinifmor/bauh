@@ -631,7 +631,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         flatpak_config = self.configman.get_config()
         form = component.get_component_by_idx(0, FormComponent)
-        flatpak_config['installation_level'] = form.get_single_select_component('install').get_selected()
+        flatpak_config['installation_level'] = form.get_component('install', SingleSelectComponent).get_selected()
 
         try:
             self.configman.save_config(flatpak_config)

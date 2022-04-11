@@ -359,104 +359,131 @@ class GenericSettingsManager(SettingsController):
         # general
         gen_form = general.get_component_by_idx(0, FormComponent)
 
-        locale = gen_form.get_single_select_component('locale').get_selected()
+        locale = gen_form.get_component('locale', SingleSelectComponent).get_selected()
 
         if locale != self.i18n.current_key:
             core_config['locale'] = locale
 
-        core_config['system']['notifications'] = gen_form.get_single_select_component('sys_notify').get_selected()
-        core_config['suggestions']['enabled'] = gen_form.get_single_select_component('sugs_enabled').get_selected()
-        core_config['store_root_password'] = gen_form.get_single_select_component('store_pwd').get_selected()
+        notifications = gen_form.get_component('sys_notify', SingleSelectComponent).get_selected()
+        core_config['system']['notifications'] = notifications
 
-        sugs_by_type = gen_form.get_text_input('sugs_by_type').get_int_value()
+        suggestions = gen_form.get_component('sugs_enabled', SingleSelectComponent).get_selected()
+        core_config['suggestions']['enabled'] = suggestions
+
+        store_root_pwd = gen_form.get_component('store_pwd', SingleSelectComponent).get_selected()
+        core_config['store_root_password'] = store_root_pwd
+
+        sugs_by_type = gen_form.get_component('sugs_by_type', TextInputComponent).get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type
 
-        core_config['updates']['ask_for_reboot'] = gen_form.get_single_select_component('ask_for_reboot').get_selected()
-        core_config['boot']['load_apps'] = gen_form.get_single_select_component('boot.load_apps').get_selected()
+        ask_reboot = gen_form.get_component('ask_for_reboot', SingleSelectComponent).get_selected()
+        core_config['updates']['ask_for_reboot'] = ask_reboot
+
+        load_apps = gen_form.get_component('boot.load_apps', SingleSelectComponent).get_selected()
+        core_config['boot']['load_apps'] = load_apps
 
         # advanced
         adv_form = advanced.get_component_by_idx(0, FormComponent)
 
-        download_mthreaded = adv_form.get_single_select_component('down_mthread').get_selected()
+        download_mthreaded = adv_form.get_component('down_mthread', SingleSelectComponent).get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
 
-        mthread_client = adv_form.get_single_select_component('mthread_client').get_selected()
+        mthread_client = adv_form.get_component('mthread_client', SingleSelectComponent).get_selected()
         core_config['download']['multithreaded_client'] = mthread_client
 
         if isinstance(self.file_downloader, AdaptableFileDownloader):
             self.file_downloader.multithread_client = mthread_client
             self.file_downloader.multithread_enabled = download_mthreaded
 
-        single_dep_check = adv_form.get_single_select_component('dep_check').get_selected()
+        single_dep_check = adv_form.get_component('dep_check', SingleSelectComponent).get_selected()
         core_config['system']['single_dependency_checking'] = single_dep_check
 
-        data_exp = adv_form.get_text_input('data_exp').get_int_value()
+        data_exp = adv_form.get_component('data_exp', TextInputComponent).get_int_value()
         core_config['memory_cache']['data_expiration'] = data_exp
 
-        icon_exp = adv_form.get_text_input('icon_exp').get_int_value()
+        icon_exp = adv_form.get_component('icon_exp', TextInputComponent).get_int_value()
         core_config['memory_cache']['icon_expiration'] = icon_exp
 
-        trim_after_upgrade = adv_form.get_single_select_component('trim_after_upgrade').get_selected()
+        trim_after_upgrade = adv_form.get_component('trim_after_upgrade', SingleSelectComponent).get_selected()
         core_config['disk']['trim']['after_upgrade'] = trim_after_upgrade
 
         # backup
         if backup:
             bkp_form = backup.get_component_by_idx(0, FormComponent)
 
-            core_config['backup']['enabled'] = bkp_form.get_single_select_component('enabled').get_selected()
-            core_config['backup']['mode'] = bkp_form.get_single_select_component('mode').get_selected()
-            core_config['backup']['type'] = bkp_form.get_single_select_component('type').get_selected()
-            core_config['backup']['remove_method'] = bkp_form.get_single_select_component('remove_method').get_selected()
-            core_config['backup']['install'] = bkp_form.get_single_select_component('install').get_selected()
-            core_config['backup']['uninstall'] = bkp_form.get_single_select_component('uninstall').get_selected()
-            core_config['backup']['upgrade'] = bkp_form.get_single_select_component('upgrade').get_selected()
-            core_config['backup']['downgrade'] = bkp_form.get_single_select_component('downgrade').get_selected()
+            core_config['backup']['enabled'] = bkp_form.get_component('enabled', SingleSelectComponent).get_selected()
+            core_config['backup']['mode'] = bkp_form.get_component('mode', SingleSelectComponent).get_selected()
+            core_config['backup']['type'] = bkp_form.get_component('type', SingleSelectComponent).get_selected()
+            core_config['backup']['install'] = bkp_form.get_component('install', SingleSelectComponent).get_selected()
+            core_config['backup']['upgrade'] = bkp_form.get_component('upgrade', SingleSelectComponent).get_selected()
+
+            bkp_remove_method = bkp_form.get_component('remove_method', SingleSelectComponent).get_selected()
+            core_config['backup']['remove_method'] = bkp_remove_method
+
+            bkp_uninstall = bkp_form.get_component('uninstall', SingleSelectComponent).get_selected()
+            core_config['backup']['uninstall'] = bkp_uninstall
+
+            bkp_downgrade = bkp_form.get_component('downgrade', SingleSelectComponent).get_selected()
+            core_config['backup']['downgrade'] = bkp_downgrade
 
         # tray
         tray_form = tray.get_component_by_idx(0, FormComponent)
-        core_config['updates']['check_interval'] = tray_form.get_text_input('updates_interval').get_int_value()
 
-        def_icon_path = tray_form.get_component('def_icon').file_path
+        updates_interval = tray_form.get_component('updates_interval', TextInputComponent).get_int_value()
+        core_config['updates']['check_interval'] = updates_interval
+
+        def_icon_path = tray_form.get_component('def_icon', FileChooserComponent).file_path
         core_config['ui']['tray']['default_icon'] = def_icon_path if def_icon_path else None
 
-        up_icon_path = tray_form.get_component('up_icon').file_path
+        up_icon_path = tray_form.get_component('up_icon', FileChooserComponent).file_path
         core_config['ui']['tray']['updates_icon'] = up_icon_path if up_icon_path else None
 
         # ui
         ui_form = ui.get_component_by_idx(0, FormComponent)
 
-        core_config['download']['icons'] = ui_form.get_single_select_component('down_icons').get_selected()
-        core_config['ui']['hdpi'] = ui_form.get_single_select_component('hdpi').get_selected()
+        core_config['download']['icons'] = ui_form.get_component('down_icons', SingleSelectComponent).get_selected()
+        core_config['ui']['hdpi'] = ui_form.get_component('hdpi', SingleSelectComponent).get_selected()
 
         previous_autoscale = core_config['ui']['auto_scale']
 
-        core_config['ui']['auto_scale'] = ui_form.get_single_select_component('auto_scale').get_selected()
+        core_config['ui']['auto_scale'] = ui_form.get_component('auto_scale', SingleSelectComponent).get_selected()
 
         if previous_autoscale and not core_config['ui']['auto_scale']:
             self.logger.info("Deleting environment variable QT_AUTO_SCREEN_SCALE_FACTOR")
             del os.environ['QT_AUTO_SCREEN_SCALE_FACTOR']
 
         core_config['ui']['scale_factor'] = ui_form.get_component('scalef').value / 100
-        core_config['ui']['table']['max_displayed'] = ui_form.get_text_input('table_max').get_int_value()
 
-        style = ui_form.get_single_select_component('style').get_selected()
+        table_max = ui_form.get_component('table_max', TextInputComponent).get_int_value()
+        core_config['ui']['table']['max_displayed'] = table_max
 
-        cur_style = core_config['ui']['qt_style'] if core_config['ui']['qt_style'] else QApplication.instance().property('qt_style')
+        style = ui_form.get_component('style', SingleSelectComponent).get_selected()
+
+        if core_config['ui']['qt_style']:
+            cur_style = core_config['ui']['qt_style']
+        else:
+            cur_style = QApplication.instance().property('qt_style')
+
         if style != cur_style:
             core_config['ui']['qt_style'] = style
             QApplication.instance().setProperty('qt_style', style)
 
-        core_config['ui']['system_theme'] = ui_form.get_single_select_component('system_theme').get_selected()
+        core_config['ui']['system_theme'] = ui_form.get_component('system_theme', SingleSelectComponent).get_selected()
 
         # gems
-        checked_gems = gems_panel.components[1].get_component('gems').get_selected_values()
+        checked_gems = gems_panel.components[1].get_component('gems', MultipleSelectComponent).get_selected_values()
 
         for man in self.managers:
             modname = man.__module__.split('.')[-2]
             enabled = modname in checked_gems
             man.set_enabled(enabled)
 
-        core_config['gems'] = None if core_config['gems'] is None and len(checked_gems) == len(self.managers) else checked_gems
+        if core_config['gems'] is None and len(checked_gems) == len(self.managers):
+            sel_gems = None
+        else:
+            sel_gems = checked_gems
+
+        core_config['gems'] = sel_gems
 
         try:
             self.configman.save_config(core_config)

@@ -3026,47 +3026,59 @@ class ArchManager(SoftwareManager, SettingsController):
         yield self._get_general_settings(arch_config, max_width)
         yield self._get_aur_settings(arch_config, max_width)
 
-    def _fill_general_settings(self, arch_config: dict, form: FormComponent):
-        arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
-        arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
-        arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
-        arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
-        arch_config['refresh_mirrors_startup'] = form.get_single_select_component('ref_mirs').get_selected()
-        arch_config['mirrors_sort_limit'] = form.get_text_input('mirrors_sort_limit').get_int_value()
-        arch_config['repositories_mthread_download'] = form.get_single_select_component('mthread_download').get_selected()
-        arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
+    @staticmethod
+    def fill_general_settings(arch_config: dict, form: FormComponent):
+        arch_config['repositories'] = form.get_component('repos', SingleSelectComponent).get_selected()
+        arch_config['sync_databases'] = form.get_component('sync_dbs', SingleSelectComponent).get_selected()
+        arch_config['clean_cached'] = form.get_component('clean_cached', SingleSelectComponent).get_selected()
+        arch_config['refresh_mirrors_startup'] = form.get_component('ref_mirs', SingleSelectComponent).get_selected()
+        arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit', TextInputComponent).get_int_value()
+        arch_config['automatch_providers'] = form.get_component('autoprovs', SingleSelectComponent).get_selected()
 
-        prefer_repo_provider = form.get_single_select_component('prefer_repo_provider').get_selected()
+        sync_dbs_startup = form.get_component('sync_dbs_start', SingleSelectComponent).get_selected()
+        arch_config['sync_databases_startup'] = sync_dbs_startup
+
+        mthread_download = form.get_component('mthread_download', SingleSelectComponent).get_selected()
+        arch_config['repositories_mthread_download'] = mthread_download
+
+        prefer_repo_provider = form.get_component('prefer_repo_provider', SingleSelectComponent).get_selected()
         arch_config['prefer_repository_provider'] = prefer_repo_provider
 
-        check_dep_break = form.get_single_select_component('check_dependency_breakage').get_selected()
+        check_dep_break = form.get_component('check_dependency_breakage', SingleSelectComponent).get_selected()
         arch_config['check_dependency_breakage'] = check_dep_break
 
-        sug_opt_dep_uni = form.get_single_select_component('suggest_optdep_uninstall').get_selected()
+        sug_opt_dep_uni = form.get_component('suggest_optdep_uninstall', SingleSelectComponent).get_selected()
         arch_config['suggest_optdep_uninstall'] = sug_opt_dep_uni
 
-        sug_unneeded_uni = form.get_single_select_component('suggest_unneeded_uninstall').get_selected()
+        sug_unneeded_uni = form.get_component('suggest_unneeded_uninstall', SingleSelectComponent).get_selected()
         arch_config['suggest_unneeded_uninstall'] = sug_unneeded_uni
 
-        arch_config['categories_exp'] = form.get_text_input('arch_cats_exp').get_int_value()
+        arch_config['categories_exp'] = form.get_component('arch_cats_exp', TextInputComponent).get_int_value()
 
     def _fill_aur_settings(self, arch_config: dict, form: FormComponent):
-        arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
-        arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
+        arch_config['optimize'] = form.get_component('opts', SingleSelectComponent).get_selected()
 
-        rebuild_no_bin = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
+        rebuild_detect = form.get_component('rebuild_detector', SingleSelectComponent).get_selected()
+        arch_config['aur_rebuild_detector'] = rebuild_detect
+
+        rebuild_no_bin = form.get_component('rebuild_detector_no_bin', SingleSelectComponent).get_selected()
         arch_config['aur_rebuild_detector_no_bin'] = rebuild_no_bin
 
-        arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
-        arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
-        arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
-        arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
-        arch_config['aur_idx_exp'] = form.get_text_input('aur_idx_exp').get_int_value()
+        arch_config['edit_aur_pkgbuild'] = form.get_component('edit_aur_pkgbuild', SingleSelectComponent).get_selected()
+
+        remove_build_dir = form.get_component('aur_remove_build_dir', SingleSelectComponent).get_selected()
+        arch_config['aur_remove_build_dir'] = remove_build_dir
+
+        build_chosen = form.get_component('aur_build_only_chosen', SingleSelectComponent).get_selected()
+        arch_config['aur_build_only_chosen'] = build_chosen
+
+        arch_config['aur_build_dir'] = form.get_component('aur_build_dir', FileChooserComponent).file_path
+        arch_config['aur_idx_exp'] = form.get_component('aur_idx_exp', TextInputComponent).get_int_value()
 
         if not arch_config['aur_build_dir']:
             arch_config['aur_build_dir'] = None
 
-        aur_enabled_select = form.get_single_select_component('aur')
+        aur_enabled_select = form.get_component('aur', SingleSelectComponent)
         arch_config['aur'] = aur_enabled_select.get_selected()
 
         if aur_enabled_select.changed() and arch_config['aur']:
@@ -3078,7 +3090,7 @@ class ArchManager(SoftwareManager, SettingsController):
         form = component.get_component_by_idx(0, FormComponent)
 
         if component.id == 'repo':
-            self._fill_general_settings(arch_config, form)
+            self.fill_general_settings(arch_config, form)
         elif component.id == 'aur':
             self._fill_aur_settings(arch_config, form)
 

@@ -10,7 +10,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, PackageStatus
-from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, ViewComponent, PanelComponent, \
+from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, PanelComponent, \
     FormComponent, TextInputComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
@@ -439,8 +439,9 @@ class SnapManager(SoftwareManager, SettingsController):
                                      max_width=max_width,
                                      tip=self.i18n['snap.config.install_channel.tip'])
 
+        cat_exp_val = snap_config['categories_exp'] if isinstance(snap_config['categories_exp'], int) else ''
         categories_exp = TextInputComponent(id_='snap_cat_exp',
-                                            value=snap_config['categories_exp'] if isinstance(snap_config['categories_exp'], int) else '',
+                                            value=cat_exp_val,
                                             max_width=max_width,
                                             only_int=True,
                                             label=self.i18n['snap.config.categories_exp'],
@@ -450,14 +451,14 @@ class SnapManager(SoftwareManager, SettingsController):
         yield SettingsView(self, panel)
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        snap_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
         form = component.get_component_by_idx(0, FormComponent)
-        snap_config['install_channel'] = form.get_single_select_component('snap_install_channel').get_selected()
-        snap_config['categories_exp'] = form.get_text_input('snap_cat_exp').get_int_value()
+        config_['install_channel'] = form.get_component('snap_install_channel', SingleSelectComponent).get_selected()
+        config_['categories_exp'] = form.get_component('snap_cat_exp', TextInputComponent).get_int_value()
 
         try:
-            self.configman.save_config(snap_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]

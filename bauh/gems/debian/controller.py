@@ -636,16 +636,26 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         yield SettingsView(self, panel)
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        deb_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
         container = component.get_component_by_idx(0, FormComponent)
-        deb_config['pkg_sources.app'] = container.get_single_select_component('pkg_sources.app').get_selected()
-        deb_config['index_apps.exp'] = container.get_text_input('index_apps.exp').get_int_value()
-        deb_config['sync_pkgs.time'] = container.get_text_input('sync_pkgs.time').get_int_value()
-        deb_config['suggestions.exp'] = container.get_text_input('suggestions.exp').get_int_value()
+
+        for prop, type_ in {'pkg_sources.app': SingleSelectComponent,
+                            'index_apps.exp': TextInputComponent,
+                            'sync_pkgs.time': TextInputComponent,
+                            'suggestions.exp': TextInputComponent}.items():
+            comp = container.get_component(prop, type_)
+
+            val = None
+            if isinstance(comp, SingleSelectComponent):
+                val = comp.get_selected()
+            elif isinstance(comp, TextInputComponent):
+                val = comp.get_int_value()
+
+            config_[prop] = val
 
         try:
-            self.configman.save_config(deb_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]

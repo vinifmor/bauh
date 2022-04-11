@@ -851,20 +851,20 @@ class AppImageManager(SoftwareManager, SettingsController):
                     traceback.print_exc()
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
-        appimage_config = self.configman.get_config()
+        config_ = self.configman.get_config()
         max_width = floor(self.context.screen_width * 0.15)
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
-                               value=int(appimage_config['database']['expiration']) if isinstance(
-                                   appimage_config['database']['expiration'], int) else '',
+                               value=int(config_['database']['expiration']) if isinstance(
+                                   config_['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
                                id_='appim_db_exp'),
             TextInputComponent(label=self.i18n['appimage.config.suggestions.expiration'],
-                               value=int(appimage_config['suggestions']['expiration']) if isinstance(
-                                   appimage_config['suggestions']['expiration'], int) else '',
+                               value=int(config_['suggestions']['expiration']) if isinstance(
+                                   config_['suggestions']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.suggestions.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
@@ -874,14 +874,14 @@ class AppImageManager(SoftwareManager, SettingsController):
         yield SettingsView(self, PanelComponent([FormComponent(components=comps)]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        appimage_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
         form = component.get_component_by_idx(0, FormComponent)
-        appimage_config['database']['expiration'] = form.get_text_input('appim_db_exp').get_int_value()
-        appimage_config['suggestions']['expiration'] = form.get_text_input('appim_sugs_exp').get_int_value()
+        config_['database']['expiration'] = form.get_component('appim_db_exp', TextInputComponent).get_int_value()
+        config_['suggestions']['expiration'] = form.get_component('appim_sugs_exp', TextInputComponent).get_int_value()
 
         try:
-            self.configman.save_config(appimage_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]
