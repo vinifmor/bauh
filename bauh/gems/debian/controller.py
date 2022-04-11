@@ -10,12 +10,12 @@ from typing import List, Optional, Tuple, Set, Type, Dict, Iterable, Generator
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SoftwareAction, TransactionResult, UpgradeRequirements, \
-    SearchResult, UpgradeRequirement
+    SearchResult, UpgradeRequirement, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageSuggestion, PackageUpdate, PackageHistory, \
     CustomSoftwareAction
-from bauh.api.abstract.view import ViewComponent, TextInputComponent, PanelComponent, FormComponent, MessageType, \
+from bauh.api.abstract.view import TextInputComponent, PanelComponent, FormComponent, MessageType, \
     SingleSelectComponent, InputOption, SelectViewType
 from bauh.api.paths import CONFIG_DIR
 from bauh.commons.html import bold
@@ -33,7 +33,7 @@ from bauh.gems.debian.suggestions import DebianSuggestionsDownloader
 from bauh.gems.debian.tasks import UpdateApplicationIndex, MapApplications, SynchronizePackages
 
 
-class DebianPackageManager(SoftwareManager):
+class DebianPackageManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(DebianPackageManager, self).__init__(context)
@@ -568,7 +568,7 @@ class DebianPackageManager(SoftwareManager):
             final_cmd = pkg.app.exe_path.replace('%U', '')
             Popen(final_cmd, shell=True)
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         deb_config = self.configman.get_config()
 
         comps_width = int(self.context.screen_width * 0.105)
@@ -632,24 +632,23 @@ class DebianPackageManager(SoftwareManager):
                                                 value=str(suggestions_exp), only_int=True,
                                                 max_width=comps_width)
 
-        return PanelComponent([FormComponent([input_sources, ti_sync_pkgs, ti_index_apps_exp, ti_suggestions_exp])])
+        panel = PanelComponent([FormComponent([input_sources, ti_sync_pkgs, ti_index_apps_exp, ti_suggestions_exp])])
+        yield SettingsView(self, panel)
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         deb_config = self.configman.get_config()
 
-        container = component.components[0]
+        container = component.get_component_by_idx(0, FormComponent)
+        deb_config['pkg_sources.app'] = container.get_single_select_component('pkg_sources.app').get_selected()
+        deb_config['index_apps.exp'] = container.get_text_input('index_apps.exp').get_int_value()
+        deb_config['sync_pkgs.time'] = container.get_text_input('sync_pkgs.time').get_int_value()
+        deb_config['suggestions.exp'] = container.get_text_input('suggestions.exp').get_int_value()
 
-        if isinstance(container, FormComponent):
-            deb_config['pkg_sources.app'] = container.get_single_select_component('pkg_sources.app').get_selected()
-            deb_config['index_apps.exp'] = container.get_text_input('index_apps.exp').get_int_value()
-            deb_config['sync_pkgs.time'] = container.get_text_input('sync_pkgs.time').get_int_value()
-            deb_config['suggestions.exp'] = container.get_text_input('suggestions.exp').get_int_value()
-
-            try:
-                self.configman.save_config(deb_config)
-                return True, None
-            except:
-                return False, [traceback.format_exc()]
+        try:
+            self.configman.save_config(deb_config)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
         if self._default_actions is None:

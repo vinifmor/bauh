@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import List, Set, Optional, Dict
+from typing import List, Set, Optional, Dict, TypeVar, Type
 
 
 class MessageType(Enum):
@@ -27,6 +27,9 @@ class ViewComponent(ABC):
         self.observers.append(obs)
 
 
+V = TypeVar('V', bound=ViewComponent)
+
+
 class SpacerComponent(ViewComponent):
 
     def __init__(self):
@@ -35,7 +38,7 @@ class SpacerComponent(ViewComponent):
 
 class InputViewComponent(ViewComponent):
     """
-    Represents an component which needs a user interaction to provide its value
+    Represents a component which needs a user interaction to provide its value
     """
 
 
@@ -316,6 +319,15 @@ class PanelComponent(ViewComponent):
     def get_component(self, id_: str) -> Optional[ViewComponent]:
         if self.component_map:
             return self.component_map.get(id_)
+
+    def get_component_by_idx(self, idx: int, type_: Type[V]) -> Optional[V]:
+        if self.components and idx < len(self.components):
+            c = self.components[idx]
+            if isinstance(c, type_):
+                return c
+
+            raise Exception(f"The {ViewComponent.__class__.__name__} at index {idx} is not an "
+                            f"instance of '{type_.__name__}'")
 
     def get_form_component(self, id_: str) -> Optional[FormComponent]:
         comp = self.get_component(id_)

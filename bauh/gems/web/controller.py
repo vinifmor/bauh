@@ -18,7 +18,7 @@ from requests import Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult, \
-    SoftwareAction
+    SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
@@ -62,7 +62,7 @@ RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 DEFAULT_LANGUAGE_HEADER = 'en-US, en'
 
 
-class WebApplicationManager(SoftwareManager):
+class WebApplicationManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext, suggestions_loader: Optional[SuggestionsLoader] = None):
         super(WebApplicationManager, self).__init__(context=context)
@@ -1105,7 +1105,7 @@ class WebApplicationManager(SoftwareManager):
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                     traceback.print_exc()
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         web_config = self.configman.get_config()
         max_width = floor(self.context.screen_width * 0.15)
 
@@ -1149,26 +1149,27 @@ class WebApplicationManager(SoftwareManager):
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
                                  components=[input_electron, select_nativefier, env_settings_exp, sugs_exp])
 
-        return PanelComponent([form_env])
+        yield SettingsView(self, PanelComponent([form_env]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         web_config = self.configman.get_config()
 
-        form_env = component.components[0]
+        form_env = component.get_component_by_idx(0, FormComponent)
 
-        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_branch').get_value()).strip()
+        electron_version = str(form_env.get_text_input('electron_branch').get_value()).strip()
+        web_config['environment']['electron']['version'] = electron_version
 
         if len(web_config['environment']['electron']['version']) == 0:
             web_config['environment']['electron']['version'] = None
 
-        system_nativefier = form_env.get_component('nativefier').get_selected()
+        system_nativefier = form_env.get_single_select_component('nativefier').get_selected()
 
         if system_nativefier and not nativefier.is_available():
             return False, [self.i18n['web.settings.env.nativefier.system.not_installed'].format('Nativefier')]
 
         web_config['environment']['system'] = system_nativefier
-        web_config['environment']['cache_exp'] = form_env.get_component('web_cache_exp').get_int_value()
-        web_config['suggestions']['cache_exp'] = form_env.get_component('web_sugs_exp').get_int_value()
+        web_config['environment']['cache_exp'] = form_env.get_text_input('web_cache_exp').get_int_value()
+        web_config['suggestions']['cache_exp'] = form_env.get_text_input('web_sugs_exp').get_int_value()
 
         try:
             self.configman.save_config(web_config)

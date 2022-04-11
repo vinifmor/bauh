@@ -7,12 +7,12 @@ from threading import Thread
 from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement, TransactionResult, SoftwareAction
+    UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
     CustomSoftwareAction
-from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
+from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType, PanelComponent
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
@@ -36,7 +36,7 @@ class GenericUpgradeRequirements(UpgradeRequirements):
         self.sub_requirements = sub_requirements
 
 
-class GenericSoftwareManager(SoftwareManager):
+class GenericSoftwareManager(SoftwareManager, SettingsController):
 
     def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
         super(GenericSoftwareManager, self).__init__(context=context)
@@ -532,7 +532,7 @@ class GenericSoftwareManager(SoftwareManager):
     def get_working_managers(self):
         return [m for m in self.managers if self._can_work(m)]
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         if self.settings_manager is None:
             self.settings_manager = GenericSettingsManager(managers=self.managers,
                                                            working_managers=self.working_managers,
@@ -542,9 +542,9 @@ class GenericSoftwareManager(SoftwareManager):
             self.settings_manager.managers = self.managers
             self.settings_manager.working_managers = self.working_managers
 
-        return self.settings_manager.get_settings()
+        yield SettingsView(self, self.settings_manager.get_settings())
 
-    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, Optional[List[str]]]:
         return self.settings_manager.save_settings(component)
 
     def _map_pkgs_by_manager(self, pkgs: List[SoftwarePackage], pkg_filters: list = None) -> Dict[SoftwareManager, List[SoftwarePackage]]:

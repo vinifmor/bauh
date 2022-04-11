@@ -119,6 +119,29 @@ class SoftwareAction(Enum):
     DOWNGRADE = 5
 
 
+class SettingsController(ABC):
+
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
+        """
+        :return: a tuple with a bool informing if the settings were saved and a list of error messages
+        """
+        pass
+
+
+class SettingsView:
+
+    def __init__(self, controller: SettingsController, component: ViewComponent, label: Optional[str] = None,
+                 icon_path: Optional[str] = None):
+
+        self.controller = controller
+        self.component = component
+        self.label = label
+        self.icon_path = icon_path
+
+    def save(self) -> Tuple[bool, Optional[List[str]]]:
+        return self.controller.save_settings(self.component)
+
+
 class SoftwareManager(ABC):
 
     """
@@ -379,15 +402,9 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         """
-        :return: a form abstraction with all available settings
-        """
-        pass
-
-    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
-        """
-        :return: a tuple with a bool informing if the settings were saved and a list of error messages
+        :return: panel abstractions with optional icon paths associated with
         """
         pass
 

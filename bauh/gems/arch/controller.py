@@ -18,7 +18,7 @@ from dateutil.parser import parse as parse_date
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    TransactionResult, SoftwareAction
+    TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
@@ -194,7 +194,7 @@ class TransactionContext:
         self.previous_change_progress = self.change_progress
 
 
-class ArchManager(SoftwareManager):
+class ArchManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext, disk_cache_updater: Optional[ArchDiskCacheUpdater] = None):
         super(ArchManager, self).__init__(context=context)
@@ -2860,7 +2860,7 @@ class ArchManager(SoftwareManager):
                                      id_=id_,
                                      capitalize_label=capitalize_label)
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         arch_config = self.configman.get_config()
         max_width = floor(self.context.screen_width * 0.25)
 
@@ -3013,33 +3013,46 @@ class ArchManager(SoftwareManager):
                                value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
         ]
 
-        return PanelComponent([FormComponent(fields, spaces=False, id_='root')])
+        yield SettingsView(self, PanelComponent([FormComponent(fields, spaces=False)]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         arch_config = self.configman.get_config()
 
-        form = component.get_form_component('root')
+        form = component.get_component_by_idx(0, FormComponent)
         arch_config['repositories'] = form.get_single_select_component('repos').get_selected()
         arch_config['optimize'] = form.get_single_select_component('opts').get_selected()
         arch_config['aur_rebuild_detector'] = form.get_single_select_component('rebuild_detector').get_selected()
-        arch_config['aur_rebuild_detector_no_bin'] = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
+
+        rebuild_no_bin = form.get_single_select_component('rebuild_detector_no_bin').get_selected()
+        arch_config['aur_rebuild_detector_no_bin'] = rebuild_no_bin
+
         arch_config['sync_databases'] = form.get_single_select_component('sync_dbs').get_selected()
         arch_config['sync_databases_startup'] = form.get_single_select_component('sync_dbs_start').get_selected()
         arch_config['clean_cached'] = form.get_single_select_component('clean_cached').get_selected()
         arch_config['refresh_mirrors_startup'] = form.get_single_select_component('ref_mirs').get_selected()
-        arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit').get_int_value()
-        arch_config['repositories_mthread_download'] = form.get_component('mthread_download').get_selected()
+        arch_config['mirrors_sort_limit'] = form.get_text_input('mirrors_sort_limit').get_int_value()
+        arch_config['repositories_mthread_download'] = form.get_single_select_component('mthread_download').get_selected()
         arch_config['automatch_providers'] = form.get_single_select_component('autoprovs').get_selected()
-        arch_config['prefer_repository_provider'] = form.get_single_select_component('prefer_repo_provider').get_selected()
+
+        prefer_repo_provider = form.get_single_select_component('prefer_repo_provider').get_selected()
+        arch_config['prefer_repository_provider'] = prefer_repo_provider
+
         arch_config['edit_aur_pkgbuild'] = form.get_single_select_component('edit_aur_pkgbuild').get_selected()
         arch_config['aur_remove_build_dir'] = form.get_single_select_component('aur_remove_build_dir').get_selected()
         arch_config['aur_build_dir'] = form.get_component('aur_build_dir').file_path
         arch_config['aur_build_only_chosen'] = form.get_single_select_component('aur_build_only_chosen').get_selected()
-        arch_config['aur_idx_exp'] = form.get_component('aur_idx_exp').get_int_value()
-        arch_config['check_dependency_breakage'] = form.get_single_select_component('check_dependency_breakage').get_selected()
-        arch_config['suggest_optdep_uninstall'] = form.get_single_select_component('suggest_optdep_uninstall').get_selected()
-        arch_config['suggest_unneeded_uninstall'] = form.get_single_select_component('suggest_unneeded_uninstall').get_selected()
-        arch_config['categories_exp'] = form.get_component('arch_cats_exp').get_int_value()
+        arch_config['aur_idx_exp'] = form.get_text_input('aur_idx_exp').get_int_value()
+
+        check_dep_break = form.get_single_select_component('check_dependency_breakage').get_selected()
+        arch_config['check_dependency_breakage'] = check_dep_break
+
+        sug_opt_dep_uni = form.get_single_select_component('suggest_optdep_uninstall').get_selected()
+        arch_config['suggest_optdep_uninstall'] = sug_opt_dep_uni
+
+        sug_unneeded_uni = form.get_single_select_component('suggest_unneeded_uninstall').get_selected()
+        arch_config['suggest_unneeded_uninstall'] = sug_unneeded_uni
+
+        arch_config['categories_exp'] = form.get_text_input('arch_cats_exp').get_int_value()
 
         if not arch_config['aur_build_dir']:
             arch_config['aur_build_dir'] = None

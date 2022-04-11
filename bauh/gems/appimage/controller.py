@@ -12,17 +12,17 @@ from pathlib import Path
 from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
-from packaging.version import parse as parse_version
 from packaging.version import LegacyVersion
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
-    TransactionResult, SoftwareAction
+    TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
-from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
+from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
@@ -67,7 +67,7 @@ class ManualInstallationFileObserver(ViewObserver):
             self.version.set_value(None)
 
 
-class AppImageManager(SoftwareManager):
+class AppImageManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(AppImageManager, self).__init__(context=context)
@@ -850,7 +850,7 @@ class AppImageManager(SoftwareManager):
                     print(f'{Fore.RED}[bauh][appimage] An exception has happened when deleting {f}{Fore.RESET}')
                     traceback.print_exc()
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         appimage_config = self.configman.get_config()
         max_width = floor(self.context.screen_width * 0.15)
 
@@ -871,12 +871,12 @@ class AppImageManager(SoftwareManager):
                                id_='appim_sugs_exp')
         ]
 
-        return PanelComponent([FormComponent(components=comps, id_='form')])
+        yield SettingsView(self, PanelComponent([FormComponent(components=comps)]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         appimage_config = self.configman.get_config()
 
-        form = component.get_form_component('form')
+        form = component.get_component_by_idx(0, FormComponent)
         appimage_config['database']['expiration'] = form.get_text_input('appim_db_exp').get_int_value()
         appimage_config['suggestions']['expiration'] = form.get_text_input('appim_sugs_exp').get_int_value()
 

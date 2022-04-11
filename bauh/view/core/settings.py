@@ -1,18 +1,17 @@
-import logging
+import os
 import os
 import time
 import traceback
 from math import floor
 from threading import Thread
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Type, Iterable
 
 from PyQt5.QtWidgets import QApplication, QStyleFactory
 
 from bauh import ROOT_DIR, __app_name__
 from bauh.api.abstract.context import ApplicationContext
-from bauh.api.abstract.controller import SoftwareManager
-from bauh.api.abstract.download import FileDownloader
-from bauh.api.abstract.view import ViewComponent, TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
+from bauh.api.abstract.controller import SoftwareManager, SettingsController, SettingsView
+from bauh.api.abstract.view import TabComponent, InputOption, TextComponent, MultipleSelectComponent, \
     PanelComponent, FormComponent, TabGroupComponent, SingleSelectComponent, SelectViewType, TextInputComponent, \
     FileChooserComponent, RangeInputComponent
 from bauh.commons.view_utils import new_select
@@ -20,10 +19,9 @@ from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.core.downloader import AdaptableFileDownloader
 from bauh.view.util import translation
-from bauh.view.util.translation import I18n
 
 
-class GenericSettingsManager:
+class GenericSettingsManager(SettingsController):
 
     def __init__(self, context: ApplicationContext, managers: List[SoftwareManager],
                  working_managers: List[SoftwareManager], configman: CoreConfigManager):
@@ -34,27 +32,35 @@ class GenericSettingsManager:
         self.logger = context.logger
         self.file_downloader = self.context.file_downloader
         self.configman = configman
+        self._settings_views: Optional[Dict[Type, List[SettingsView]]] = None
 
-    def get_settings(self) -> ViewComponent:
+    def get_settings(self) -> TabGroupComponent:
         tabs = list()
 
         gem_opts, def_gem_opts, gem_tabs = [], set(), []
 
+        self._settings_views = dict()
+
         for man in self.managers:
             can_work, reason_not_work = man.can_work()
             modname = man.__module__.split('.')[-2]
-            icon_path = "{r}/gems/{n}/resources/img/{n}.svg".format(r=ROOT_DIR, n=modname)
 
-            man_comp = man.get_settings() if can_work else None
-            if man_comp:
-                tab_name = self.i18n.get('gem.{}.label'.format(modname), modname.capitalize())
-                gem_tabs.append(TabComponent(label=tab_name, content=man_comp, icon_path=icon_path, id_=modname))
+            man_settings = man.get_settings() if can_work else None
+            if man_settings:
+                for view in man_settings:
+                    icon_path = view.icon_path if view.icon_path else f"{ROOT_DIR}/gems/{modname}/resources/img/{modname}.svg"
+                    tab_name = view.label if view.label else self.i18n.get(f'gem.{modname}.label', modname.capitalize())
+                    gem_tabs.append(TabComponent(label=tab_name, content=view.component, icon_path=icon_path))
+
+                    views = self._settings_views.get(man.__class__, list())
+                    self._settings_views[man.__class__] = views
+                    views.append(view)
 
             help_tip = reason_not_work if not can_work and reason_not_work else self.i18n.get(f'gem.{modname}.info')
-            opt = InputOption(label=self.i18n.get('gem.{}.label'.format(modname), modname.capitalize()),
+            opt = InputOption(label=self.i18n.get(f'gem.{modname}.label', modname.capitalize()),
                               tooltip=help_tip,
                               value=modname,
-                              icon_path='{r}/gems/{n}/resources/img/{n}.svg'.format(r=ROOT_DIR, n=modname),
+                              icon_path=f'{ROOT_DIR}/gems/{modname}/resources/img/{modname}.svg',
                               read_only=not can_work,
                               extra_properties={'warning': 'true'} if not can_work else None)
             gem_opts.append(opt)
@@ -351,63 +357,64 @@ class GenericSettingsManager:
         core_config = self.configman.get_config()
 
         # general
-        general_form = general.components[0]
+        gen_form = general.get_component_by_idx(0, FormComponent)
 
-        locale = general_form.get_component('locale').get_selected()
+        locale = gen_form.get_single_select_component('locale').get_selected()
 
         if locale != self.i18n.current_key:
             core_config['locale'] = locale
 
-        core_config['system']['notifications'] = general_form.get_component('sys_notify').get_selected()
-        core_config['suggestions']['enabled'] = general_form.get_component('sugs_enabled').get_selected()
-        core_config['store_root_password'] = general_form.get_component('store_pwd').get_selected()
+        core_config['system']['notifications'] = gen_form.get_single_select_component('sys_notify').get_selected()
+        core_config['suggestions']['enabled'] = gen_form.get_single_select_component('sugs_enabled').get_selected()
+        core_config['store_root_password'] = gen_form.get_single_select_component('store_pwd').get_selected()
 
-        sugs_by_type = general_form.get_component('sugs_by_type').get_int_value()
+        sugs_by_type = gen_form.get_text_input('sugs_by_type').get_int_value()
         core_config['suggestions']['by_type'] = sugs_by_type
 
-        core_config['updates']['ask_for_reboot'] = general_form.get_component('ask_for_reboot').get_selected()
-        core_config['boot']['load_apps'] = general_form.get_component('boot.load_apps').get_selected()
+        core_config['updates']['ask_for_reboot'] = gen_form.get_single_select_component('ask_for_reboot').get_selected()
+        core_config['boot']['load_apps'] = gen_form.get_single_select_component('boot.load_apps').get_selected()
 
         # advanced
-        adv_form = advanced.components[0]
+        adv_form = advanced.get_component_by_idx(0, FormComponent)
 
-        download_mthreaded = adv_form.get_component('down_mthread').get_selected()
+        download_mthreaded = adv_form.get_single_select_component('down_mthread').get_selected()
         core_config['download']['multithreaded'] = download_mthreaded
 
-        mthread_client = adv_form.get_component('mthread_client').get_selected()
+        mthread_client = adv_form.get_single_select_component('mthread_client').get_selected()
         core_config['download']['multithreaded_client'] = mthread_client
 
         if isinstance(self.file_downloader, AdaptableFileDownloader):
             self.file_downloader.multithread_client = mthread_client
             self.file_downloader.multithread_enabled = download_mthreaded
 
-        single_dep_check = adv_form.get_component('dep_check').get_selected()
+        single_dep_check = adv_form.get_single_select_component('dep_check').get_selected()
         core_config['system']['single_dependency_checking'] = single_dep_check
 
-        data_exp = adv_form.get_component('data_exp').get_int_value()
+        data_exp = adv_form.get_text_input('data_exp').get_int_value()
         core_config['memory_cache']['data_expiration'] = data_exp
 
-        icon_exp = adv_form.get_component('icon_exp').get_int_value()
+        icon_exp = adv_form.get_text_input('icon_exp').get_int_value()
         core_config['memory_cache']['icon_expiration'] = icon_exp
 
-        core_config['disk']['trim']['after_upgrade'] = adv_form.get_component('trim_after_upgrade').get_selected()
+        trim_after_upgrade = adv_form.get_single_select_component('trim_after_upgrade').get_selected()
+        core_config['disk']['trim']['after_upgrade'] = trim_after_upgrade
 
         # backup
         if backup:
-            bkp_form = backup.components[0]
+            bkp_form = backup.get_component_by_idx(0, FormComponent)
 
-            core_config['backup']['enabled'] = bkp_form.get_component('enabled').get_selected()
-            core_config['backup']['mode'] = bkp_form.get_component('mode').get_selected()
-            core_config['backup']['type'] = bkp_form.get_component('type').get_selected()
-            core_config['backup']['remove_method'] = bkp_form.get_component('remove_method').get_selected()
-            core_config['backup']['install'] = bkp_form.get_component('install').get_selected()
-            core_config['backup']['uninstall'] = bkp_form.get_component('uninstall').get_selected()
-            core_config['backup']['upgrade'] = bkp_form.get_component('upgrade').get_selected()
-            core_config['backup']['downgrade'] = bkp_form.get_component('downgrade').get_selected()
+            core_config['backup']['enabled'] = bkp_form.get_single_select_component('enabled').get_selected()
+            core_config['backup']['mode'] = bkp_form.get_single_select_component('mode').get_selected()
+            core_config['backup']['type'] = bkp_form.get_single_select_component('type').get_selected()
+            core_config['backup']['remove_method'] = bkp_form.get_single_select_component('remove_method').get_selected()
+            core_config['backup']['install'] = bkp_form.get_single_select_component('install').get_selected()
+            core_config['backup']['uninstall'] = bkp_form.get_single_select_component('uninstall').get_selected()
+            core_config['backup']['upgrade'] = bkp_form.get_single_select_component('upgrade').get_selected()
+            core_config['backup']['downgrade'] = bkp_form.get_single_select_component('downgrade').get_selected()
 
         # tray
-        tray_form = tray.components[0]
-        core_config['updates']['check_interval'] = tray_form.get_component('updates_interval').get_int_value()
+        tray_form = tray.get_component_by_idx(0, FormComponent)
+        core_config['updates']['check_interval'] = tray_form.get_text_input('updates_interval').get_int_value()
 
         def_icon_path = tray_form.get_component('def_icon').file_path
         core_config['ui']['tray']['default_icon'] = def_icon_path if def_icon_path else None
@@ -416,30 +423,30 @@ class GenericSettingsManager:
         core_config['ui']['tray']['updates_icon'] = up_icon_path if up_icon_path else None
 
         # ui
-        ui_form = ui.components[0]
+        ui_form = ui.get_component_by_idx(0, FormComponent)
 
-        core_config['download']['icons'] = ui_form.get_component('down_icons').get_selected()
-        core_config['ui']['hdpi'] = ui_form.get_component('hdpi').get_selected()
+        core_config['download']['icons'] = ui_form.get_single_select_component('down_icons').get_selected()
+        core_config['ui']['hdpi'] = ui_form.get_single_select_component('hdpi').get_selected()
 
         previous_autoscale = core_config['ui']['auto_scale']
 
-        core_config['ui']['auto_scale'] = ui_form.get_component('auto_scale').get_selected()
+        core_config['ui']['auto_scale'] = ui_form.get_single_select_component('auto_scale').get_selected()
 
         if previous_autoscale and not core_config['ui']['auto_scale']:
             self.logger.info("Deleting environment variable QT_AUTO_SCREEN_SCALE_FACTOR")
             del os.environ['QT_AUTO_SCREEN_SCALE_FACTOR']
 
         core_config['ui']['scale_factor'] = ui_form.get_component('scalef').value / 100
-        core_config['ui']['table']['max_displayed'] = ui_form.get_component('table_max').get_int_value()
+        core_config['ui']['table']['max_displayed'] = ui_form.get_text_input('table_max').get_int_value()
 
-        style = ui_form.get_component('style').get_selected()
+        style = ui_form.get_single_select_component('style').get_selected()
 
         cur_style = core_config['ui']['qt_style'] if core_config['ui']['qt_style'] else QApplication.instance().property('qt_style')
         if style != cur_style:
             core_config['ui']['qt_style'] = style
             QApplication.instance().setProperty('qt_style', style)
 
-        core_config['ui']['system_theme'] = ui_form.get_component('system_theme').get_selected()
+        core_config['ui']['system_theme'] = ui_form.get_single_select_component('system_theme').get_selected()
 
         # gems
         checked_gems = gems_panel.components[1].get_component('gems').get_selected_values()
@@ -457,24 +464,26 @@ class GenericSettingsManager:
         except:
             return False, [traceback.format_exc()]
 
-    def _save_manager_settings(self, man: SoftwareManager, panel: ViewComponent, success_map: Dict[str, bool], warnings: List[str]):
+    def _save_views(self, views: Iterable[SettingsView], success_list: List[bool], warnings: List[str]):
         success = False
 
-        try:
-            res = man.save_settings(panel)
+        for view in views:
+            try:
+                res = view.save()
 
-            if res:
-                success, errors = res[0], res[1]
+                if res:
+                    success, errors = res[0], res[1]
 
-                if errors:
-                    warnings.extend(errors)
-        except:
-            self.logger.error("An exception happened while {} was trying to save its settings".format(man.__class__.__name__))
-            traceback.print_exc()
-        finally:
-            success_map[man.__class__.__name__] = success
+                    if errors:
+                        warnings.extend(errors)
+            except:
+                self.logger.error(f"An exception happened while {view.controller.__class__.__name__}"
+                                  f" was trying to save settings")
+                traceback.print_exc()
+            finally:
+                success_list.append(success)
 
-    def _save_core_settings(self, root_component: TabGroupComponent, success_map: Dict[str, bool], warnings: List[str]):
+    def _save_core_settings(self, root_component: TabGroupComponent, success_list: List[bool], warnings: List[str]):
         success = False
 
         try:
@@ -492,35 +501,29 @@ class GenericSettingsManager:
             self.logger.error("An exception happened while saving the core settings")
             traceback.print_exc()
         finally:
-            success_map[self.__class__.__name__] = success
+            success_list.append(success)
 
-    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, List[str]]:
+    def save_settings(self, component: TabGroupComponent) -> Tuple[bool, Optional[List[str]]]:
         ti = time.time()
-        save_threads, warnings, success_map = [], [], {}
+        save_threads, warnings, success_list = [], [], []
 
-        save_core = Thread(target=self._save_core_settings, args=(component, success_map, warnings), daemon=True)
+        save_core = Thread(target=self._save_core_settings, args=(component, success_list, warnings))
         save_core.start()
         save_threads.append(save_core)
 
-        for man in self.managers:
-            if man:
-                modname = man.__module__.split('.')[-2]
-                tab = component.get_tab(modname)
+        if self._settings_views:
 
-                if not tab:
-                    self.logger.warning("Tab for {} was not found".format(man.__class__.__name__))
-                else:
-                    save_man = Thread(target=self._save_manager_settings(man, tab.content, success_map, warnings), daemon=True)
-                    save_man.start()
-                    save_threads.append(save_man)
+            for views in self._settings_views.values():
+                save_view = Thread(target=self._save_views, args=(views, success_list, warnings))
+                save_view.start()
+                save_threads.append(save_view)
 
         for t in save_threads:
             t.join()
 
-        success = all(success_map.values())
-
+        success = all(success_list)
         tf = time.time()
-        self.logger.info("Saving all settings took {0:.8f} seconds".format(tf - ti))
+        self.logger.info(f"Saving all settings took {tf - ti:.8f} seconds")
         return success, warnings
 
     def _gen_backup_settings(self, core_config: dict) -> TabComponent:

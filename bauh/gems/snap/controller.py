@@ -5,7 +5,7 @@ from threading import Thread
 from typing import List, Set, Type, Optional, Tuple, Generator
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
-    TransactionResult, SoftwareAction
+    TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
@@ -27,7 +27,7 @@ from bauh.gems.snap.snapd import SnapdClient
 RE_AVAILABLE_CHANNELS = re.compile(re.compile(r'(\w+)\s+(snap install.+)'))
 
 
-class SnapManager(SoftwareManager):
+class SnapManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(SnapManager, self).__init__(context=context)
@@ -427,7 +427,7 @@ class SnapManager(SoftwareManager):
         if pkg.screenshots:
             yield from pkg.screenshots
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         snap_config = self.configman.get_config()
         max_width = 200
 
@@ -446,14 +446,15 @@ class SnapManager(SoftwareManager):
                                             label=self.i18n['snap.config.categories_exp'],
                                             tooltip=self.i18n['snap.config.categories_exp.tip'])
 
-        return PanelComponent([FormComponent([install_channel, categories_exp], self.i18n['installation'].capitalize())])
+        panel = PanelComponent([FormComponent([install_channel, categories_exp], self.i18n['installation'].capitalize())])
+        yield SettingsView(self, panel)
 
-    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
+    def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         snap_config = self.configman.get_config()
 
-        panel = component.components[0]
-        snap_config['install_channel'] = panel.get_component('snap_install_channel').get_selected()
-        snap_config['categories_exp'] = panel.get_component('snap_cat_exp').get_int_value()
+        form = component.get_component_by_idx(0, FormComponent)
+        snap_config['install_channel'] = form.get_single_select_component('snap_install_channel').get_selected()
+        snap_config['categories_exp'] = form.get_text_input('snap_cat_exp').get_int_value()
 
         try:
             self.configman.save_config(snap_config)

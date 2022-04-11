@@ -2,7 +2,7 @@ import gc
 from io import StringIO
 from typing import Optional
 
-from PyQt5.QtCore import QSize, Qt, QCoreApplication, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout, QApplication
 
@@ -45,7 +45,7 @@ class SettingsWindow(QWidget):
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.window = window
 
-        self.settings_model = self.manager.get_settings()
+        self.settings_model = tuple(v for v in self.manager.get_settings())[0].component
 
         self.tab_group = to_widget(self.settings_model, i18n)
         self.tab_group.setObjectName('settings')

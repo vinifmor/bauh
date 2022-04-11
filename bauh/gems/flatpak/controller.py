@@ -11,13 +11,13 @@ from packaging.version import Version
 
 from bauh.api import user
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement, TransactionResult, SoftwareAction
+    UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority, PackageStatus, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
-    ViewComponent, PanelComponent
+    PanelComponent
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
@@ -33,7 +33,7 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 RE_INSTALL_REFS = re.compile(r'\d+\)\s+(.+)')
 
 
-class FlatpakManager(SoftwareManager):
+class FlatpakManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(FlatpakManager, self).__init__(context=context)
@@ -603,7 +603,7 @@ class FlatpakManager(SoftwareManager):
             else:
                 traceback.print_exc()
 
-    def get_settings(self) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         if not self.context.root_user:
             fields = []
 
@@ -623,13 +623,15 @@ class FlatpakManager(SoftwareManager):
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
                                                 max_width=floor(self.context.screen_width * 0.22),
-                                                type_=SelectViewType.RADIO))
+                                                type_=SelectViewType.RADIO,
+                                                id_='install'))
 
-            return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+            yield SettingsView(self, PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         flatpak_config = self.configman.get_config()
-        flatpak_config['installation_level'] = component.components[0].components[0].get_selected()
+        form = component.get_component_by_idx(0, FormComponent)
+        flatpak_config['installation_level'] = form.get_single_select_component('install').get_selected()
 
         try:
             self.configman.save_config(flatpak_config)
