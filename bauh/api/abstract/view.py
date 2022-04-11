@@ -35,7 +35,7 @@ class ViewContainer(ViewComponent, ABC):
         Represents a GUI component composed by other components
     """
 
-    def __init__(self, components: Union[List[ViewComponent], Tuple[ViewComponent]],
+    def __init__(self, components: Union[List[V], Tuple[V]],
                  id_: Optional[str] = None,
                  observers: Optional[List[ViewObserver]] = None):
         super(ViewContainer, self).__init__(id_=id_, observers=observers)
@@ -282,20 +282,27 @@ class TabComponent(ViewComponent):
     def __init__(self, label: str, content: ViewComponent, icon_path: str = None, id_: str = None):
         super(TabComponent, self).__init__(id_=id_)
         self.label = label
-        self.content = content
+        self._content = content
         self.icon_path = icon_path
 
+    def get_content(self, type_: Type[V] = ViewComponent) -> V:
+        if isinstance(self._content, type_):
+            return self._content
 
-class TabGroupComponent(ViewComponent):
+        raise Exception(f"'content' is not an instance of '{type_.__name__}'")
+
+
+class TabGroupComponent(ViewContainer):
 
     def __init__(self, tabs: List[TabComponent], id_: str = None):
-        super(TabGroupComponent, self).__init__(id_=id_)
-        self.tabs = tabs
-        self.tab_map = {c.id: c for c in tabs if c.id} if tabs else None
+        super(TabGroupComponent, self).__init__(id_=id_, components=tabs)
 
-    def get_tab(self, id_: str) -> TabComponent:
-        if self.tab_map:
-            return self.tab_map.get(id_)
+    def get_tab(self, id_: str) -> Optional[TabComponent]:
+        return self.get_component(id_, TabComponent)
+
+    @property
+    def tabs(self) -> List[TabComponent]:
+        return self.components
 
 
 class RangeInputComponent(InputViewComponent):

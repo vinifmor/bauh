@@ -1,5 +1,4 @@
 import os
-import os
 import time
 import traceback
 from math import floor
@@ -510,17 +509,17 @@ class GenericSettingsManager(SettingsController):
             finally:
                 success_list.append(success)
 
-    def _save_core_settings(self, root_component: TabGroupComponent, success_list: List[bool], warnings: List[str]):
+    def _save_core_settings(self, tabs: TabGroupComponent, success_list: List[bool], warnings: List[str]):
         success = False
 
         try:
-            bkp = root_component.get_tab('core.bkp')
-            success, errors = self._save_settings(general=root_component.get_tab('core.gen').content,
-                                                  advanced=root_component.get_tab('core.adv').content,
-                                                  tray=root_component.get_tab('core.tray').content,
-                                                  backup=bkp.content if bkp else None,
-                                                  ui=root_component.get_tab('core.ui').content,
-                                                  gems_panel=root_component.get_tab('core.types').content)
+            bkp = tabs.get_tab('core.bkp')
+            success, errors = self._save_settings(general=tabs.get_tab('core.gen').get_content(PanelComponent),
+                                                  advanced=tabs.get_tab('core.adv').get_content(PanelComponent),
+                                                  tray=tabs.get_tab('core.tray').get_content(PanelComponent),
+                                                  backup=bkp.get_content(PanelComponent) if bkp else None,
+                                                  ui=tabs.get_tab('core.ui').get_content(PanelComponent),
+                                                  gems_panel=tabs.get_tab('core.types').get_content(PanelComponent))
             if errors:
                 warnings.extend(errors)
 

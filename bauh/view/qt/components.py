@@ -951,7 +951,7 @@ class TabGroupQt(QTabWidget):
             scroll = QScrollArea()
             scroll.setFrameShape(QFrame.NoFrame)
             scroll.setWidgetResizable(True)
-            scroll.setWidget(to_widget(c.content, i18n))
+            scroll.setWidget(to_widget(c.get_content(), i18n))
             self.addTab(scroll, icon, c.label)
 
         self.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
