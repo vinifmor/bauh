@@ -47,7 +47,11 @@ class GenericSettingsManager(SettingsController):
             man_settings = man.get_settings() if can_work else None
             if man_settings:
                 for view in man_settings:
-                    icon_path = view.icon_path if view.icon_path else f"{ROOT_DIR}/gems/{modname}/resources/img/{modname}.svg"
+                    icon_path = view.icon_path
+
+                    if not icon_path:
+                        icon_path = f"{ROOT_DIR}/gems/{modname}/resources/img/{modname}.svg"
+
                     tab_name = view.label if view.label else self.i18n.get(f'gem.{modname}.label', modname.capitalize())
                     gem_tabs.append(TabComponent(label=tab_name, content=view.component, icon_path=icon_path))
 
@@ -114,14 +118,14 @@ class GenericSettingsManager(SettingsController):
                                             max_width=default_width,
                                             id_="icon_exp")
 
-        select_trim_up = new_select(label=self.i18n['core.config.trim.after_upgrade'],
-                                    tip=self.i18n['core.config.trim.after_upgrade.tip'],
-                                    value=core_config['disk']['trim']['after_upgrade'],
-                                    max_width=default_width,
-                                    opts=[(self.i18n['yes'].capitalize(), True, None),
-                                          (self.i18n['no'].capitalize(), False, None),
-                                          (self.i18n['ask'].capitalize(), None, None)],
-                                    id_='trim_after_upgrade')
+        select_trim = new_select(label=self.i18n['core.config.trim.after_upgrade'],
+                                 tip=self.i18n['core.config.trim.after_upgrade.tip'],
+                                 value=core_config['disk']['trim']['after_upgrade'],
+                                 max_width=default_width,
+                                 opts=[(self.i18n['yes'].capitalize(), True, None),
+                                       (self.i18n['no'].capitalize(), False, None),
+                                       (self.i18n['ask'].capitalize(), None, None)],
+                                 id_='trim_after_upgrade')
 
         select_dep_check = self._gen_bool_component(label=self.i18n['core.config.system.dep_checking'],
                                                     tooltip=self.i18n['core.config.system.dep_checking.tip'],
@@ -137,8 +141,9 @@ class GenericSettingsManager(SettingsController):
 
         select_mthread_client = self._gen_multithread_client_select(core_config, default_width)
 
-        sub_comps = [FormComponent([select_dmthread, select_mthread_client, select_trim_up, select_dep_check, input_data_exp, input_icon_exp], spaces=False)]
-        return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), PanelComponent(sub_comps), None, 'core.adv')
+        inputs = [select_dmthread, select_mthread_client, select_trim, select_dep_check, input_data_exp, input_icon_exp]
+        panel = PanelComponent([FormComponent(inputs, spaces=False)])
+        return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), panel, None, 'core.adv')
 
     def _gen_multithread_client_select(self, core_config: dict, default_width: int) -> SingleSelectComponent:
         available_mthread_clients = self.file_downloader.list_available_multithreaded_clients()
@@ -156,11 +161,11 @@ class GenericSettingsManager(SettingsController):
             current_mthread_client = None
 
         return new_select(label=self.i18n['core.config.download.multithreaded_client'],
-                                tip=self.i18n['core.config.download.multithreaded_client.tip'],
-                                id_="mthread_client",
-                                max_width=default_width,
-                                opts=mthread_client_opts,
-                                value=current_mthread_client)
+                          tip=self.i18n['core.config.download.multithreaded_client.tip'],
+                          id_="mthread_client",
+                          max_width=default_width,
+                          opts=mthread_client_opts,
+                          value=current_mthread_client)
 
     def _gen_tray_settings(self, core_config: dict) -> TabComponent:
         default_width = floor(0.22 * self.context.screen_width)
@@ -173,22 +178,25 @@ class GenericSettingsManager(SettingsController):
                                                    id_="updates_interval")
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
+        de_path = str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None
         select_def_icon = FileChooserComponent(id_='def_icon',
                                                label=self.i18n["core.config.ui.tray.default_icon"],
                                                tooltip=self.i18n["core.config.ui.tray.default_icon.tip"],
-                                               file_path=str(core_config['ui']['tray']['default_icon']) if core_config['ui']['tray']['default_icon'] else None,
+                                               file_path=de_path,
                                                max_width=default_width,
                                                allowed_extensions=allowed_exts)
 
+        up_path = str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None
         select_up_icon = FileChooserComponent(id_='up_icon',
                                               label=self.i18n["core.config.ui.tray.updates_icon"].capitalize(),
                                               tooltip=self.i18n["core.config.ui.tray.updates_icon.tip"].capitalize(),
-                                              file_path=str(core_config['ui']['tray']['updates_icon']) if core_config['ui']['tray']['updates_icon'] else None,
+                                              file_path=up_path,
                                               max_width=default_width,
                                               allowed_extensions=allowed_exts)
 
         sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
-        return TabComponent(self.i18n['core.config.tab.tray'].capitalize(), PanelComponent(sub_comps), None, 'core.tray')
+        return TabComponent(self.i18n['core.config.tab.tray'].capitalize(),
+                            PanelComponent(sub_comps), None, 'core.tray')
 
     def _gen_ui_settings(self, core_config: dict) -> TabComponent:
         default_width = floor(0.15 * self.context.screen_width)
@@ -199,8 +207,9 @@ class GenericSettingsManager(SettingsController):
                                                max_width=default_width,
                                                id_='hdpi')
 
+        scale_tip = self.i18n['core.config.ui.auto_scale.tip'].format('QT_AUTO_SCREEN_SCALE_FACTOR')
         select_ascale = self._gen_bool_component(label=self.i18n['core.config.ui.auto_scale'],
-                                                 tooltip=self.i18n['core.config.ui.auto_scale.tip'].format('QT_AUTO_SCREEN_SCALE_FACTOR'),
+                                                 tooltip=scale_tip,
                                                  value=bool(core_config['ui']['auto_scale']),
                                                  max_width=default_width,
                                                  id_='auto_scale')
@@ -210,7 +219,7 @@ class GenericSettingsManager(SettingsController):
 
             if scale < 1.0:
                 scale = 1.0
-        except:
+        except ValueError:
             scale = 1.0
 
         select_scale = RangeInputComponent(id_="scalef", label=self.i18n['core.config.ui.scale_factor'] + ' (%)',
@@ -218,7 +227,10 @@ class GenericSettingsManager(SettingsController):
                                            min_value=100, max_value=400, step_value=5, value=int(scale * 100),
                                            max_width=default_width)
 
-        cur_style = QApplication.instance().property('qt_style') if not core_config['ui']['qt_style'] else core_config['ui']['qt_style']
+        if not core_config['ui']['qt_style']:
+            cur_style = QApplication.instance().property('qt_style')
+        else:
+            cur_style = core_config['ui']['qt_style']
 
         style_opts = [InputOption(label=s.capitalize(), value=s.lower()) for s in QStyleFactory.keys()]
 
@@ -241,8 +253,9 @@ class GenericSettingsManager(SettingsController):
                                              max_width=default_width,
                                              id_="style")
 
+        systheme_tip = self.i18n['core.config.ui.system_theme.tip'].format(app=__app_name__)
         select_system_theme = self._gen_bool_component(label=self.i18n['core.config.ui.system_theme'],
-                                                       tooltip=self.i18n['core.config.ui.system_theme.tip'].format(app=__app_name__),
+                                                       tooltip=systheme_tip,
                                                        value=bool(core_config['ui']['system_theme']),
                                                        max_width=default_width,
                                                        id_='system_theme')
@@ -269,52 +282,54 @@ class GenericSettingsManager(SettingsController):
     def _gen_general_settings(self, core_config: dict) -> TabComponent:
         default_width = floor(0.15 * self.context.screen_width)
 
-        locale_opts = [InputOption(label=self.i18n['locale.{}'.format(k)].capitalize(), value=k) for k in translation.get_available_keys()]
+        locale_keys = translation.get_available_keys()
+        locale_opts = [InputOption(label=self.i18n[f'locale.{k}'].capitalize(), value=k) for k in locale_keys]
 
         current_locale = None
 
         if core_config['locale']:
-            current_locale = [l for l in locale_opts if l.value == core_config['locale']]
+            current_locale = [loc for loc in locale_opts if loc.value == core_config['locale']]
 
         if not current_locale:
             if self.i18n.current_key:
-                current_locale = [l for l in locale_opts if l.value == self.i18n.current_key]
+                current_locale = [loc for loc in locale_opts if loc.value == self.i18n.current_key]
 
             if not current_locale:
-                current_locale = [l for l in locale_opts if l.value == self.i18n.default_key]
+                current_locale = [loc for loc in locale_opts if loc.value == self.i18n.default_key]
 
         current_locale = current_locale[0] if current_locale else None
 
-        select_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
-                                              options=locale_opts,
-                                              default_option=current_locale,
-                                              type_=SelectViewType.COMBO,
-                                              max_width=default_width,
-                                              id_='locale')
+        sel_locale = SingleSelectComponent(label=self.i18n['core.config.locale.label'],
+                                           options=locale_opts,
+                                           default_option=current_locale,
+                                           type_=SelectViewType.COMBO,
+                                           max_width=default_width,
+                                           id_='locale')
 
-        select_store_pwd = self._gen_bool_component(label=self.i18n['core.config.store_password'].capitalize(),
-                                                    tooltip=self.i18n['core.config.store_password.tip'].capitalize(),
-                                                    id_="store_pwd",
-                                                    max_width=default_width,
-                                                    value=bool(core_config['store_root_password']))
+        sel_store_pwd = self._gen_bool_component(label=self.i18n['core.config.store_password'].capitalize(),
+                                                 tooltip=self.i18n['core.config.store_password.tip'].capitalize(),
+                                                 id_="store_pwd",
+                                                 max_width=default_width,
+                                                 value=bool(core_config['store_root_password']))
 
-        select_sysnotify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
-                                                    tooltip=self.i18n['core.config.system.notifications.tip'].capitalize(),
-                                                    value=bool(core_config['system']['notifications']),
-                                                    max_width=default_width,
-                                                    id_="sys_notify")
+        notify_tip = self.i18n['core.config.system.notifications.tip'].capitalize()
+        sel_sys_notify = self._gen_bool_component(label=self.i18n['core.config.system.notifications'].capitalize(),
+                                                  tooltip=notify_tip,
+                                                  value=bool(core_config['system']['notifications']),
+                                                  max_width=default_width,
+                                                  id_="sys_notify")
 
-        select_load_apps = self._gen_bool_component(label=self.i18n['core.config.boot.load_apps'],
-                                                    tooltip=self.i18n['core.config.boot.load_apps.tip'],
-                                                    value=bool(core_config['boot']['load_apps']),
-                                                    id_='boot.load_apps',
-                                                    max_width=default_width)
+        sel_load_apps = self._gen_bool_component(label=self.i18n['core.config.boot.load_apps'],
+                                                 tooltip=self.i18n['core.config.boot.load_apps.tip'],
+                                                 value=bool(core_config['boot']['load_apps']),
+                                                 id_='boot.load_apps',
+                                                 max_width=default_width)
 
-        select_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
-                                               tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
-                                               id_="sugs_enabled",
-                                               max_width=default_width,
-                                               value=bool(core_config['suggestions']['enabled']))
+        sel_sugs = self._gen_bool_component(label=self.i18n['core.config.suggestions.activated'].capitalize(),
+                                            tooltip=self.i18n['core.config.suggestions.activated.tip'].capitalize(),
+                                            id_="sugs_enabled",
+                                            max_width=default_width,
+                                            value=bool(core_config['suggestions']['enabled']))
 
         inp_sugs = TextInputComponent(label=self.i18n['core.config.suggestions.by_type'],
                                       tooltip=self.i18n['core.config.suggestions.by_type.tip'],
@@ -331,10 +346,13 @@ class GenericSettingsManager(SettingsController):
                                 opts=[(self.i18n['ask'].capitalize(), True, None),
                                       (self.i18n['no'].capitalize(), False, None)])
 
-        sub_comps = [FormComponent([select_locale, select_store_pwd, select_sysnotify, select_load_apps, select_sugs, inp_sugs, inp_reboot], spaces=False)]
-        return TabComponent(self.i18n['core.config.tab.general'].capitalize(), PanelComponent(sub_comps), None, 'core.gen')
+        inputs = [sel_locale, sel_store_pwd, sel_sys_notify, sel_load_apps, sel_sugs, inp_sugs, inp_reboot]
+        panel = PanelComponent([FormComponent(inputs, spaces=False)])
+        return TabComponent(self.i18n['core.config.tab.general'].capitalize(), panel, None, 'core.gen')
 
-    def _gen_bool_component(self, label: str, tooltip: Optional[str], value: bool, id_: str, max_width: int = 200) -> SingleSelectComponent:
+    def _gen_bool_component(self, label: str, tooltip: Optional[str], value: bool, id_: str, max_width: int = 200) \
+            -> SingleSelectComponent:
+
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
 
@@ -487,7 +505,7 @@ class GenericSettingsManager(SettingsController):
         try:
             self.configman.save_config(core_config)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def _save_views(self, views: Iterable[SettingsView], success_list: List[bool], warnings: List[str]):
@@ -502,7 +520,7 @@ class GenericSettingsManager(SettingsController):
 
                     if errors:
                         warnings.extend(errors)
-            except:
+            except Exception:
                 self.logger.error(f"An exception happened while {view.controller.__class__.__name__}"
                                   f" was trying to save settings")
                 traceback.print_exc()
@@ -523,7 +541,7 @@ class GenericSettingsManager(SettingsController):
             if errors:
                 warnings.extend(errors)
 
-        except:
+        except Exception:
             self.logger.error("An exception happened while saving the core settings")
             traceback.print_exc()
         finally:
@@ -632,5 +650,6 @@ class GenericSettingsManager(SettingsController):
                                     capitalize_label=False,
                                     id_='remove_method')
 
-            sub_comps = [FormComponent([enabled_opt, type_, mode, sel_remove, install_mode, uninstall_mode, upgrade_mode, downgrade_mode], spaces=False)]
-            return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), PanelComponent(sub_comps), None, 'core.bkp')
+            inputs = [enabled_opt, type_, mode, sel_remove, install_mode, uninstall_mode, upgrade_mode, downgrade_mode]
+            panel = PanelComponent([FormComponent(inputs, spaces=False)])
+            return TabComponent(self.i18n['core.config.tab.backup'].capitalize(), panel, None, 'core.bkp')
