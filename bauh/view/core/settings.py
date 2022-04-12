@@ -102,20 +102,20 @@ class GenericSettingsManager(SettingsController):
         return TabGroupComponent(tabs)
 
     def _gen_adv_settings(self, core_config: dict) -> TabComponent:
-        default_width = floor(0.22 * self.context.screen_width)
+        default_width = 300
 
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
                                             value=str(core_config['memory_cache']['data_expiration']),
                                             only_int=True,
-                                            max_width=default_width,
+                                            max_width=60,
                                             id_="data_exp")
 
         input_icon_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.icon_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.icon_exp.tip'],
                                             value=str(core_config['memory_cache']['icon_expiration']),
                                             only_int=True,
-                                            max_width=default_width,
+                                            max_width=60,
                                             id_="icon_exp")
 
         select_trim = new_select(label=self.i18n['core.config.trim.after_upgrade'],
@@ -168,13 +168,13 @@ class GenericSettingsManager(SettingsController):
                           value=current_mthread_client)
 
     def _gen_tray_settings(self, core_config: dict) -> TabComponent:
-        default_width = floor(0.22 * self.context.screen_width)
+        default_width = 350
 
         input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
                                                    tooltip=self.i18n['core.config.updates.interval.tip'],
                                                    only_int=True,
                                                    value=str(core_config['updates']['check_interval']),
-                                                   max_width=default_width,
+                                                   max_width=60,
                                                    id_="updates_interval")
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
@@ -194,12 +194,12 @@ class GenericSettingsManager(SettingsController):
                                               max_width=default_width,
                                               allowed_extensions=allowed_exts)
 
-        sub_comps = [FormComponent([input_update_interval, select_def_icon, select_up_icon], spaces=False)]
+        sub_comps = [FormComponent([select_def_icon, select_up_icon, input_update_interval], spaces=False)]
         return TabComponent(self.i18n['core.config.tab.tray'].capitalize(),
                             PanelComponent(sub_comps), None, 'core.tray')
 
     def _gen_ui_settings(self, core_config: dict) -> TabComponent:
-        default_width = floor(0.15 * self.context.screen_width)
+        default_width = 200
 
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
                                                tooltip=self.i18n['core.config.ui.hdpi.tip'],
@@ -225,7 +225,7 @@ class GenericSettingsManager(SettingsController):
         select_scale = RangeInputComponent(id_="scalef", label=self.i18n['core.config.ui.scale_factor'] + ' (%)',
                                            tooltip=self.i18n['core.config.ui.scale_factor.tip'],
                                            min_value=100, max_value=400, step_value=5, value=int(scale * 100),
-                                           max_width=default_width)
+                                           max_width=60)
 
         if not core_config['ui']['qt_style']:
             cur_style = QApplication.instance().property('qt_style')
@@ -264,7 +264,7 @@ class GenericSettingsManager(SettingsController):
                                         tooltip=self.i18n['core.config.ui.max_displayed.tip'],
                                         only_int=True,
                                         id_="table_max",
-                                        max_width=default_width,
+                                        max_width=50,
                                         value=str(core_config['ui']['table']['max_displayed']))
 
         select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
@@ -335,7 +335,7 @@ class GenericSettingsManager(SettingsController):
                                       tooltip=self.i18n['core.config.suggestions.by_type.tip'],
                                       value=str(core_config['suggestions']['by_type']),
                                       only_int=True,
-                                      max_width=default_width,
+                                      max_width=50,
                                       id_="sugs_by_type")
 
         inp_reboot = new_select(label=self.i18n['core.config.updates.reboot'],
@@ -346,7 +346,7 @@ class GenericSettingsManager(SettingsController):
                                 opts=[(self.i18n['ask'].capitalize(), True, None),
                                       (self.i18n['no'].capitalize(), False, None)])
 
-        inputs = [sel_locale, sel_store_pwd, sel_sys_notify, sel_load_apps, sel_sugs, inp_sugs, inp_reboot]
+        inputs = [sel_locale, sel_store_pwd, sel_sys_notify, sel_load_apps, inp_reboot, sel_sugs, inp_sugs]
         panel = PanelComponent([FormComponent(inputs, spaces=False)])
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), panel, None, 'core.gen')
 
@@ -572,7 +572,7 @@ class GenericSettingsManager(SettingsController):
 
     def _gen_backup_settings(self, core_config: dict) -> TabComponent:
         if timeshift.is_available():
-            default_width = floor(0.22 * self.context.screen_width)
+            default_width = 350
 
             enabled_opt = self._gen_bool_component(label=self.i18n['core.config.backup'],
                                                    tooltip=None,

@@ -852,7 +852,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         config_ = self.configman.get_config()
-        max_width = floor(self.context.screen_width * 0.15)
+        max_width = 50
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],

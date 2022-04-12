@@ -1107,13 +1107,12 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         web_config = self.configman.get_config()
-        max_width = floor(self.context.screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
                                             value=web_config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
-                                            max_width=max_width,
+                                            max_width=150,
                                             id_='electron_branch')
 
         native_opts = [
@@ -1126,7 +1125,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                                   default_option=[o for o in native_opts if o.value == web_config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
-                                                  max_width=max_width,
+                                                  max_width=150,
                                                   id_='nativefier')
 
         env_settings_exp = TextInputComponent(label=self.i18n['web.settings.cache_exp'],
@@ -1134,7 +1133,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                               capitalize_label=False,
                                               value=int(web_config['environment']['cache_exp']) if isinstance(web_config['environment']['cache_exp'], int) else '',
                                               only_int=True,
-                                              max_width=max_width,
+                                              max_width=60,
                                               id_='web_cache_exp')
 
         sugs_exp = TextInputComponent(label=self.i18n['web.settings.suggestions.cache_exp'],
@@ -1143,11 +1142,11 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                       value=int(web_config['suggestions']['cache_exp']) if isinstance(
                                           web_config['suggestions']['cache_exp'], int) else '',
                                       only_int=True,
-                                      max_width=max_width,
+                                      max_width=60,
                                       id_='web_sugs_exp')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
-                                 components=[input_electron, select_nativefier, env_settings_exp, sugs_exp])
+                                 components=[select_nativefier, input_electron, env_settings_exp, sugs_exp])
 
         yield SettingsView(self, PanelComponent([form_env]))
 

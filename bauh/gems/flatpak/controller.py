@@ -622,8 +622,8 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=floor(self.context.screen_width * 0.22),
-                                                type_=SelectViewType.RADIO,
+                                                max_width=160,
+                                                type_=SelectViewType.COMBO,
                                                 id_='install'))
 
             yield SettingsView(self, PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())]))
