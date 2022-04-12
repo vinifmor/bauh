@@ -46,7 +46,8 @@ class Aptitude:
         self._default_lang = ''
         self._ignored_fields: Optional[Set[str]] = None
         self._re_none: Optional[Pattern] = None
-        self._vars_encoding_fix: Optional[Dict[str, str]] = None
+        self._vars_fixes: Optional[Dict[str, str]] = None
+        self._preserve_env = {'DEBIAN_FRONTEND'}
 
     def show(self, pkgs: Iterable[str], attrs: Optional[Collection[str]] = None, verbose: bool = False) \
             -> Optional[Dict[str, Dict[str, object]]]:
@@ -129,7 +130,8 @@ class Aptitude:
 
     def upgrade(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('upgrade', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password, extra_env=self.vars_encoding_fix)
+        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password, extra_env=self.vars_fixes,
+                             preserve_env=self._preserve_env)
 
     def update(self, root_password: Optional[str]) -> SimpleProcess:
         return SimpleProcess(('aptitude', 'update'), root_password=root_password, shell=True)
@@ -143,7 +145,8 @@ class Aptitude:
 
     def install(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('install', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password, extra_env=self.vars_encoding_fix)
+        return SimpleProcess(cmd=cmd, root_password=root_password, extra_env=self.vars_fixes,
+                             preserve_env=self._preserve_env)
 
     def read_installed(self) -> Generator[DebianPackage, None, None]:
         yield from self.search(query='~i')
@@ -200,7 +203,7 @@ class Aptitude:
 
     def remove(self, packages: Iterable[str], root_password: Optional[str],  purge: bool = False) -> SimpleProcess:
         return SimpleProcess(cmd=self.gen_remove_cmd(packages, purge).split(' '), shell=True,
-                             root_password=root_password, extra_env=self.vars_encoding_fix)
+                             root_password=root_password, extra_env=self.vars_fixes, preserve_env=self._preserve_env)
 
     def read_installed_names(self) -> Generator[str, None, None]:
         code, output = system.execute("aptitude search ~i -q -F '%p' --disable-columns",
@@ -279,11 +282,11 @@ class Aptitude:
         return self._re_none
 
     @property
-    def vars_encoding_fix(self) -> Dict[str, str]:
-        if self._vars_encoding_fix is None:
-            self._vars_encoding_fix = {'LC_NUMERIC': ''}
+    def vars_fixes(self) -> Dict[str, str]:
+        if self._vars_fixes is None:
+            self._vars_fixes = {'LC_NUMERIC': '', 'DEBIAN_FRONTEND': 'noninteractive'}
 
-        return self._vars_encoding_fix
+        return self._vars_fixes
 
 
 class AptitudeOutputHandler(Thread):

@@ -43,10 +43,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
   
 - Debian
+  - install/upgrade: hanging when packages require manual configuration
   - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
   - displaying wrong symbols among numbers in install/uninstall/upgrade outputs for systems without english encoding installed
   - removing unused packages on any type of transaction (this is the default behaviour for aptitude)
-
+  
 - Flatpak
   - some updates not being displayed when there are new required runtimes for installed Flatpaks
   - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
