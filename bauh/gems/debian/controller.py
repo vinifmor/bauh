@@ -571,8 +571,6 @@ class DebianPackageManager(SoftwareManager, SettingsController):
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         deb_config = self.configman.get_config()
 
-        comps_width = int(self.context.screen_width * 0.105)
-
         sources_app = deb_config.get('pkg_sources.app')
 
         if isinstance(sources_app, str) and sources_app not in self.known_sources_apps:
@@ -591,7 +589,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                               options=source_opts,
                                               default_option=next(o for o in source_opts if o.value == sources_app),
                                               type_=SelectViewType.COMBO,
-                                              max_width=comps_width)
+                                              max_width=200)
 
         try:
             app_cache_exp = int(deb_config.get('index_apps.exp', 0))
@@ -604,7 +602,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                                label=self._i18n['debian.config.index_apps.exp'],
                                                tooltip=self._i18n['debian.config.index_apps.exp.tip'],
                                                value=str(app_cache_exp), only_int=True,
-                                               max_width=comps_width)
+                                               max_width=60)
 
         try:
             sync_pkgs_time = int(deb_config.get('sync_pkgs.time', 0))
@@ -617,7 +615,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                           label=self._i18n['debian.config.sync_pkgs.time'],
                                           tooltip=self._i18n['debian.config.sync_pkgs.time.tip'],
                                           value=str(sync_pkgs_time), only_int=True,
-                                          max_width=comps_width)
+                                          max_width=60)
 
         try:
             suggestions_exp = int(deb_config.get('suggestions.exp', 0))
@@ -630,7 +628,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                                 label=self._i18n['debian.config.suggestions.exp'],
                                                 tooltip=self._i18n['debian.config.suggestions.exp.tip'],
                                                 value=str(suggestions_exp), only_int=True,
-                                                max_width=comps_width)
+                                                max_width=60)
 
         panel = PanelComponent([FormComponent([input_sources, ti_sync_pkgs, ti_index_apps_exp, ti_suggestions_exp])])
         yield SettingsView(self, panel)
