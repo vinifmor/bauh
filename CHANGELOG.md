@@ -18,7 +18,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/arch_aur_tabs.png">
     </p>  
-
+  
+- Flatpak
+  - faster updates reading (threaded)
   
 - Debian
   - install: installation/download sizes order (to follow the upgrade dialog order) 
@@ -47,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Flatpak
   - some updates not being displayed when there are new required runtimes for installed Flatpaks
+  - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
 
 - UI
   - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)

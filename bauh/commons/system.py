@@ -26,7 +26,9 @@ USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 RE_SUDO_OUTPUT = re.compile(r'[sudo]\s*[\w\s]+:\s*')
 
 
-def gen_env(global_interpreter: bool, lang: Optional[str] = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
+def gen_env(global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG,
+            extra_paths: Optional[Set[str]] = None) -> dict:
+
     custom_env = dict(os.environ)
 
     if lang is not None:

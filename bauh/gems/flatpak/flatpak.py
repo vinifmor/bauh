@@ -3,12 +3,14 @@ import re
 import subprocess
 import traceback
 from datetime import datetime
-from typing import List, Dict, Set, Iterable, Optional
+from threading import Thread
+from typing import List, Dict, Set, Iterable, Optional, Tuple
 
 from packaging.version import Version
 from packaging.version import parse as parse_version
 
 from bauh.api.exception import NoInternetException
+from bauh.commons import system
 from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler, DEFAULT_LANG
 from bauh.commons.util import size_to_byte
 from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5, VERSION_1_12
@@ -16,6 +18,7 @@ from bauh.gems.flatpak.constants import FLATHUB_URL
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
+RE_REQUIRED_RUNTIME = re.compile(f'Required\s+runtime\s+.+\(([\w./]+)\)\s*.+\s+remote\s+([\w+./]+)')
 OPERATION_UPDATE_SYMBOLS = {'i', 'u'}
 
 
@@ -184,18 +187,46 @@ def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProces
                          shell=True)
 
 
-def list_updates_as_str(version: Version) -> Dict[str, set]:
-    updates = read_updates(version, 'system')
-    user_updates = read_updates(version, 'user')
-
-    for attr in ('full', 'partial'):
-        updates[attr].update(user_updates[attr])
-
-    return updates
+def _new_updates() -> Dict[str, Set[str]]:
+    return {'full': set(), 'partial': set()}
 
 
-def read_updates(version: Version, installation: str) -> Dict[str, set]:
-    res = {'partial': set(), 'full': set()}
+def list_updates_as_str(version: Version) -> Dict[str, Set[str]]:
+    sys_updates, user_updates = _new_updates(), _new_updates()
+
+    threads = []
+    for type_, output in (('system', sys_updates), ('user', user_updates)):
+        fill = Thread(target=fill_updates, args=(version, type_, output))
+        fill.start()
+        threads.append(fill)
+
+    for t in threads:
+        t.join()
+
+    all_updates = _new_updates()
+
+    for updates in (sys_updates, user_updates):
+        if updates:
+            for key, val in updates.items():
+                if val:
+                    all_updates[key].update(val)
+
+    return all_updates
+
+
+def list_required_runtime_updates(installation: str) -> Optional[List[Tuple[str, str]]]:
+    """
+    Return a list of tuples composed by the reference and the origin.
+    e.g: ('runtime/org.gnome.Desktop/42/x86_64', 'flathub')
+    """
+    _, updates = system.execute(f'flatpak update --{installation}', shell=True,
+                                custom_env=system.gen_env())
+
+    if updates:
+        return RE_REQUIRED_RUNTIME.findall(updates)
+
+
+def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
     if version < VERSION_1_2:
         try:
             output = run_cmd(f'flatpak update --no-related --no-deps --{installation}', ignore_return_code=True)
@@ -234,8 +265,6 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
                             res['full'].add(update_id)
         except:
             traceback.print_exc()
-
-    return res
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Version) -> SimpleProcess:

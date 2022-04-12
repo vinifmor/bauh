@@ -5,7 +5,7 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Optional, Generator
+from typing import List, Set, Type, Tuple, Optional, Generator, Dict
 
 from packaging.version import Version
 
@@ -23,7 +23,7 @@ from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
     EXPORTS_PATH, \
-    get_icon_path, VERSION_1_5, VERSION_1_2
+    get_icon_path, VERSION_1_5, VERSION_1_2, VERSION_1_12
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -124,17 +124,38 @@ class FlatpakManager(SoftwareManager, SettingsController):
     def _add_updates(self, version: Version, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
+    def _fill_required_runtimes(self, installation: str, output: List[Tuple[str, str]]):
+        runtimes = flatpak.list_required_runtime_updates(installation=installation)
+
+        if runtimes:
+            output.extend(runtimes)
+
+    def _fill_required_runtime_updates(self, output: Dict[str, List[Tuple[str, str]]]):
+        threads = []
+        for installation in ('system', 'user'):
+            runtimes = list()
+            output[installation] = runtimes
+            t = Thread(target=self._fill_required_runtimes, args=(installation, runtimes))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None,
                        internet_available: bool = None, wait_async_data: bool = False) -> SearchResult:
         version = flatpak.get_version()
 
-        updates = []
+        updates, required_runtimes = list(), dict()
 
+        thread_updates, thread_runtimes = None, None
         if internet_available:
             thread_updates = Thread(target=self._add_updates, args=(version, updates))
             thread_updates.start()
-        else:
-            thread_updates = None
+
+            if version >= VERSION_1_12:
+                thread_runtimes = Thread(target=self._fill_required_runtime_updates, args=(required_runtimes,))
+                thread_runtimes.start()
 
         installed = flatpak.list_installed(version)
 
@@ -191,6 +212,28 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                 partial_model.update = True
                                 models[partial_update_id] = partial_model
                                 break
+
+        if thread_runtimes:
+            thread_runtimes.join()
+
+        if required_runtimes:
+            for installation in ('system', 'user'):
+                installation_runtimes = required_runtimes.get(installation)
+
+                if installation_runtimes:
+                    for ref, origin in installation_runtimes:
+                        ref_split = ref.split('/')
+                        models[f'{installation}.'] = FlatpakApplication(id=ref_split[1],
+                                                                        ref=ref,
+                                                                        origin=origin,
+                                                                        name=ref_split[1],
+                                                                        version=ref_split[-1],
+                                                                        latest_version=ref_split[-1],
+                                                                        runtime=True,
+                                                                        installation=installation,
+                                                                        installed=True,
+                                                                        update_component=True,
+                                                                        update=True)
 
         if models:
             ignored = self._read_ignored_updates()
@@ -307,7 +350,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                             'origin': app.origin,
                             'arch': app.arch,
                             'ref': app.ref,
-                            'type': self.i18n['unknown']}
+                            'type': 'runtime' if app.runtime else self.i18n['unknown']}
             else:
                 version = flatpak.get_version()
                 id_ = app.base_id if app.partial and version < VERSION_1_5 else app.id

@@ -8,11 +8,13 @@ from bauh.view.util.translation import I18n
 
 class FlatpakApplication(SoftwarePackage):
 
-    def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None, description: str = None,
-                 branch: str = None, arch: str = None, origin: str = None, runtime: bool = False, ref: str = None, commit: str = None,
-                 installation: str = None, i18n: I18n = None, partial: bool = False, updates_ignored: bool = False):
-        super(FlatpakApplication, self).__init__(id=id, name=name, version=version,
-                                                 latest_version=latest_version, description=description)
+    def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
+                 description: str = None, branch: str = None, arch: str = None, origin: str = None,
+                 runtime: bool = False, ref: str = None, commit: str = None, installation: str = None,
+                 i18n: I18n = None, partial: bool = False, updates_ignored: bool = False,  installed: bool = False,
+                 update: bool = False, update_component: bool = False):
+        super(FlatpakApplication, self).__init__(id=id, name=name, version=version, latest_version=latest_version,
+                                                 description=description, installed=installed, update=update)
         self.ref = ref
         self.branch = branch
         self.arch = arch
@@ -25,7 +27,7 @@ class FlatpakApplication(SoftwarePackage):
         self.base_id = None
         self.base_ref = None
         self.updates_ignored = updates_ignored
-        self.update_component = False  # if it is a new app/runtime that has come as an update
+        self.update_component = update_component  # if it is a new app/runtime that has come as an update
 
         if runtime:
             self.categories = ['runtime']
