@@ -45,6 +45,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - displaying wrong symbols among numbers in install/uninstall/upgrade outputs for systems without english encoding installed
   - removing unused packages on any type of transaction (this is the default behaviour for aptitude)
 
+- Flatpak
+  - some updates not being displayed when there are new required runtimes for installed Flatpaks
+
 - UI
   - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)
   - some components do not properly adjust the text size [#253](https://github.com/vinifmor/bauh/issues/253)

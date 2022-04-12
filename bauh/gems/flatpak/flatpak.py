@@ -207,7 +207,7 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
         except:
             traceback.print_exc()
     else:
-        updates = new_subprocess(('flatpak', 'update', f'--{installation}')).stdout
+        updates = new_subprocess(('flatpak', 'update', f'--{installation}', '--no-deps')).stdout
 
         reg = r'[0-9]+\.\s+.+'
 
