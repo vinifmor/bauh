@@ -537,7 +537,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
     def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         pass
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         cli_version = flatpak.get_version()
         res = []
 

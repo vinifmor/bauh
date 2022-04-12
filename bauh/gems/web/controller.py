@@ -1023,7 +1023,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
     def _fill_config_async(self, output: dict):
         output.update(self.configman.get_config())
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         web_config = {}
 
         thread_config = Thread(target=self._fill_config_async, args=(web_config,))

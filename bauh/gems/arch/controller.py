@@ -2797,7 +2797,7 @@ class ArchManager(SoftwareManager, SettingsController):
         if not git.is_installed():
             return [self.i18n['arch.warning.aur_missing_dep'].format(bold('git'))]
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
         file = self.http_client.get(SUGGESTIONS_FILE)
 

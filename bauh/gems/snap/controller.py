@@ -361,7 +361,7 @@ class SnapManager(SoftwareManager, SettingsController):
         app.status = PackageStatus.READY
         return app
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         res = []
 
         if snapd.is_running():

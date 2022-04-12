@@ -360,8 +360,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    @abstractmethod
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         """
         :param limit: max suggestions to be returned. If limit < 0, it should not be considered
         :param filter_installed: if the installed suggestions should not be retrieved

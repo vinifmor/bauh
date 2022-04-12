@@ -521,7 +521,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         if suggestions:
             output.update(suggestions)
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         name_priority = dict()
 
         fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,))
