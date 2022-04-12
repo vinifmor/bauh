@@ -36,7 +36,7 @@ from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, r
 from bauh.commons.util import datetime_as_milis
 from bauh.commons.view_utils import new_select
 from bauh.gems.arch import aur, pacman, message, confirmation, disk, git, \
-    gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, SUGGESTIONS_FILE, \
+    gpg, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, CUSTOM_MAKEPKG_FILE, \
     get_icon_path, database, mirrors, sorting, cpu_manager, UPDATES_IGNORED_FILE, \
     ARCH_CONFIG_DIR, EDITABLE_PKGBUILDS_FILE, URL_GPG_SERVERS, rebuild_detector, makepkg, sshell, get_repo_icon_path
 from bauh.gems.arch.aur import AURClient
@@ -2796,36 +2796,6 @@ class ArchManager(SoftwareManager, SettingsController):
     def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         if not git.is_installed():
             return [self.i18n['arch.warning.aur_missing_dep'].format(bold('git'))]
-
-    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
-        self.logger.info("Downloading suggestions file {}".format(SUGGESTIONS_FILE))
-        file = self.http_client.get(SUGGESTIONS_FILE)
-
-        if not file or not file.text:
-            self.logger.warning("No suggestion could be read from {}".format(SUGGESTIONS_FILE))
-        else:
-            self.logger.info("Mapping suggestions")
-            suggestions = {}
-
-            for l in file.text.split('\n'):
-                if l:
-                    if limit <= 0 or len(suggestions) < limit:
-                        lsplit = l.split('=')
-                        name = lsplit[1].strip()
-
-                        if not filter_installed or not pacman.check_installed(name):
-                            suggestions[name] = SuggestionPriority(int(lsplit[0]))
-
-            api_res = self.aur_client.get_info(suggestions.keys())
-
-            if api_res:
-                res = []
-                for pkg in api_res:
-                    if pkg.get('Name') in suggestions:
-                        res.append(PackageSuggestion(self.aur_mapper.map_api_data(pkg, {}, self.categories), suggestions[pkg['Name']]))
-
-                self.logger.info("Mapped {} suggestions".format(len(suggestions)))
-                return res
 
     def is_default_enabled(self) -> bool:
         return True
