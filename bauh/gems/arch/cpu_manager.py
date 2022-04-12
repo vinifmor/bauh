@@ -1,5 +1,6 @@
 import multiprocessing
 import os
+import shutil
 import traceback
 from logging import Logger
 from typing import Optional, Set, Tuple, Dict
@@ -42,7 +43,7 @@ def set_governor(governor: str, root_password: Optional[str], cpu_idxs: Optional
 def _change_governor(cpu_idx: int, new_gov_file_path: str, root_password: Optional[str]):
     try:
         gov_file = f'/sys/devices/system/cpu/cpu{cpu_idx}/cpufreq/scaling_governor'
-        replace = new_root_subprocess(['cp', new_gov_file_path, gov_file], root_password=root_password)
+        replace = new_root_subprocess((shutil.which('cp'), new_gov_file_path, gov_file), root_password=root_password)
         replace.wait()
     except Exception:
         traceback.print_exc()
