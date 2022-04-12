@@ -8,14 +8,14 @@ from bauh.api.paths import TEMP_DIR
 from bauh.commons.system import new_root_subprocess
 
 
-def supports_performance_mode():
+def supports_performance_mode() -> bool:
     return os.path.exists('/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor')
 
 
 def current_governors() -> Dict[str, Set[int]]:
     governors = {}
     for cpu in range(multiprocessing.cpu_count()):
-        with open('/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor'.format(cpu)) as f:
+        with open(f'/sys/devices/system/cpu/cpu{cpu}/cpufreq/scaling_governor') as f:
             gov = f.read().strip()
             cpus = governors.get(gov, set())
             cpus.add(cpu)
@@ -35,22 +35,21 @@ def set_governor(governor: str, root_password: Optional[str], cpu_idxs: Optional
     if os.path.exists(new_gov_file):
         try:
             os.remove(new_gov_file)
-        except:
+        except OSError:
             traceback.print_exc()
 
 
 def _change_governor(cpu_idx: int, new_gov_file_path: str, root_password: Optional[str]):
     try:
-        gov_file = '/sys/devices/system/cpu/cpu{}/cpufreq/scaling_governor'.format(cpu_idx)
+        gov_file = f'/sys/devices/system/cpu/cpu{cpu_idx}/cpufreq/scaling_governor'
         replace = new_root_subprocess(['cp', new_gov_file_path, gov_file], root_password=root_password)
         replace.wait()
-    except:
+    except Exception:
         traceback.print_exc()
 
 
-def set_all_cpus_to(governor: str, root_password: Optional[str], logger: Optional[Logger] = None) -> Tuple[bool, Optional[Dict[str, Set[int]]]]:
-    """
-    """
+def set_all_cpus_to(governor: str, root_password: Optional[str], logger: Optional[Logger] = None) \
+        -> Tuple[bool, Optional[Dict[str, Set[int]]]]:
     cpus_changed, cpu_governors = False, current_governors()
 
     if cpu_governors:
@@ -61,7 +60,7 @@ def set_all_cpus_to(governor: str, root_password: Optional[str], logger: Optiona
 
         if not_in_performance:
             if logger:
-                logger.info("Changing CPUs {} governors to '{}'".format(not_in_performance, governor))
+                logger.info(f"Changing CPUs {not_in_performance} governors to '{governor}'")
 
             set_governor(governor, root_password, not_in_performance)
             cpus_changed = True
@@ -69,10 +68,12 @@ def set_all_cpus_to(governor: str, root_password: Optional[str], logger: Optiona
     return cpus_changed, cpu_governors
 
 
-def set_cpus(governors: Dict[str, Set[int]], root_password: Optional[str], ignore_governors: Optional[Set[str]] = None, logger: Optional[Logger] = None):
+def set_cpus(governors: Dict[str, Set[int]], root_password: Optional[str], ignore_governors: Optional[Set[str]] = None,
+             logger: Optional[Logger] = None):
+
     for gov, cpus in governors.items():
         if not ignore_governors or gov not in ignore_governors:
             if logger:
-                logger.info("Changing CPUs {} governors to '{}'".format(cpus, gov))
+                logger.info(f"Changing CPUs {cpus} governors to '{gov}'")
 
             set_governor(gov, root_password, cpus)
