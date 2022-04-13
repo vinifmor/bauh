@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - some updates or download sizes not being displayed when there are new required runtimes for installed Flatpaks
   - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
   - upgrade: informing the download size as the additional installation size
+  - random index out of bounds exception when reading updates
 
 - UI
   - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)

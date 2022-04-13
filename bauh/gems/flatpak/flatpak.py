@@ -247,11 +247,18 @@ def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
                 if o:
                     line_split = o.decode().strip().split('\t')
 
-                    if len(line_split) > 2:
+                    if len(line_split) >= 5:
                         if version >= VERSION_1_5:
-                            update_id = f'{line_split[2]}/{line_split[3]}/{installation}/{line_split[5]}'
+                            update_id = f'{line_split[2]}/{line_split[3]}/{installation}'
+
+                            if len(line_split) >= 6:
+                                update_id = f'{update_id}/{line_split[5]}'
+
                         elif version >= VERSION_1_2:
-                            update_id = f'{line_split[2]}/{line_split[4]}/{installation}/{line_split[5]}'
+                            update_id = f'{line_split[2]}/{line_split[4]}/{installation}'
+
+                            if len(line_split) >= 6:
+                                update_id = f'{update_id}/{line_split[5]}'
                         else:
                             update_id = f'{line_split[2]}/{line_split[4]}/{installation}'
 
