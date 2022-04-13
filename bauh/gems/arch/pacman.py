@@ -725,16 +725,26 @@ def remove_several(pkgnames: Iterable[str], root_password: Optional[str], skip_c
     return SimpleProcess(cmd=cmd, root_password=root_password, wrong_error_phrases={'warning:'}, shell=True)
 
 
+def _map_optional_dep(line: str, not_installed: bool) -> Optional[Tuple[str, Optional[str]]]:
+    if not not_installed or not line.endswith('[installed]'):
+        pkg_desc = line.split(':')
+
+        if len(pkg_desc) == 1:
+            return pkg_desc[0].split('[installed]')[0].strip(), ''
+        elif len(pkg_desc) > 1:
+            return pkg_desc[0], pkg_desc[1].split('[installed]')[0].strip()
+
+
 def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = False) -> Dict[str, Dict[str, str]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(names)))
     res = {}
     if output:
         latest_name, deps = None, None
 
-        for l in output.split('\n'):
-            if l:
-                if l[0] != ' ':
-                    line = l.strip()
+        for raw_line in output.split('\n'):
+            if raw_line:
+                if raw_line[0] != ' ':
+                    line = raw_line.strip()
                     field_sep_idx = line.index(':')
                     field = line[0:field_sep_idx].strip()
 
@@ -745,33 +755,20 @@ def map_optional_deps(names: Iterable[str], remote: bool, not_installed: bool = 
                         val = line[field_sep_idx + 1:].strip()
                         deps = {}
                         if val != 'None':
-                            if ':' in val:
-                                dep_info = val.split(':')
-                                desc = dep_info[1].strip()
+                            dep_desc = _map_optional_dep(val, not_installed)
 
-                                if desc and not_installed and '[installed]' in desc:
-                                    continue
+                            if dep_desc:
+                                deps[dep_desc[0]] = dep_desc[1]
 
-                                deps[dep_info[0].strip()] = desc
-                            else:
-                                sev_deps = {dep.strip(): '' for dep in val.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
-                                deps.update(sev_deps)
                     elif latest_name and deps is not None:
                         res[latest_name] = deps
                         latest_name, deps = None, None
 
                 elif latest_name and deps is not None:
-                    if ':' in l:
-                        dep_info = l.split(':')
-                        desc = dep_info[1].strip()
+                    dep_desc = _map_optional_dep(raw_line.strip(), not_installed)
 
-                        if desc and not_installed and '[installed]' in desc:
-                            continue
-
-                        deps[dep_info[0].strip()] = desc
-                    else:
-                        sev_deps = {dep.strip(): '' for dep in l.split(' ') if dep and (not not_installed or '[installed]' not in dep)}
-                        deps.update(sev_deps)
+                    if dep_desc:
+                        deps[dep_desc[0]] = dep_desc[1]
 
     return res
 

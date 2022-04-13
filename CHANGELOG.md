@@ -47,6 +47,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - not properly converting bibyte (KiB, MiB, ...) and byte (kB, MB, ...) based sizes to bytes
   - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
   
+- Arch:
+  - displaying already installed packages when suggesting optional dependencies
+
 - Debian
   - install/upgrade: hanging when packages require manual configuration
   - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
