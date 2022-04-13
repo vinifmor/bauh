@@ -701,7 +701,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                     for p in apps_by_install[0]:
                         p.size = sizes.get(str(p.id))
 
-        to_update = [UpgradeRequirement(pkg=p, extra_size=p.size, required_size=p.size) for p in self.sort_update_order(pkgs)]
+        to_update = [UpgradeRequirement(pkg=p, extra_size=0, required_size=p.size) for p in self.sort_update_order(pkgs)]
         return UpgradeRequirements(None, None, to_update, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
