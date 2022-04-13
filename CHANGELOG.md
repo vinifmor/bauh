@@ -54,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - removing unused packages on any type of transaction (this is the default behaviour for aptitude)
   
 - Flatpak
-  - some updates not being displayed when there are new required runtimes for installed Flatpaks
+  - some updates or download sizes not being displayed when there are new required runtimes for installed Flatpaks
   - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
   - upgrade: informing the download size as the additional installation size
 

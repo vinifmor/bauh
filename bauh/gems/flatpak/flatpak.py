@@ -440,7 +440,8 @@ def run(app_id: str):
 
 
 def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, float]:
-    success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}')))
+    success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}',
+                                                                    '--no-deps')))
     if version >= VERSION_1_2:
         res = {}
         p = re.compile(r'^\d+.\t')
