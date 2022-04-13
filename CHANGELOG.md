@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - displaying hard and unnecessary requirements versions and descriptions
   - settings:
     - displaying different tabs for general Arch configurations and AUR's
+    
     <p align="center">
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/arch_aur_tabs.png">
     </p>  
@@ -48,7 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
   
 - Arch:
-  - displaying already installed packages when suggesting optional dependencies
+  - displaying already installed packages when suggesting optional dependencies (pacman >= 6.0)
 
 - Debian
   - install/upgrade: hanging when packages require manual configuration
