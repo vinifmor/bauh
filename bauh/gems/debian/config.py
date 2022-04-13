@@ -12,5 +12,6 @@ class DebianConfigManager(YAMLConfigManager):
                 'suggestions.exp': 24,  # hours
                 'index_apps.exp': 1440,  # 24 hours
                 'sync_pkgs.time': 1440,  # 24 hours
-                'pkg_sources.app': None
+                'pkg_sources.app': None,
+                'remove.purge': False
                 }

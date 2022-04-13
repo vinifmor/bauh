@@ -3,7 +3,7 @@ debian.action.index_apps.desc=Identifies all installed packages associated with 
 debian.action.purge=Remove completely
 debian.action.purge.confirmation=The complete removal of {pkg} will erase the software files and also the configuration ones
 debian.action.purge.desc=Removes all software and configuration files associated with the package
-debian.action.purge.status=Removing {} completely
+debian.action.purge.status=Removing {} completelydebian.config.pkg_sources.app.auto=
 debian.action.sync_pkgs=Synchronize packages
 debian.action.sync_pkgs.desc=Synchronizes the available software packages on the repositories
 debian.action.sync_pkgs.status=Synchronizing packages
@@ -19,6 +19,8 @@ debian.config.index_apps.exp.tip=Time period in MINUTES in which the installed a
 debian.config.pkg_sources.app=Software sources
 debian.config.pkg_sources.app.tip=Application for managing the software sources. {auto} detects one of the supported applications automatically.
 debian.config.pkg_sources.app.auto=Auto
+debian.config.remove.purge=Complete removal
+debian.config.remove.purge.tip=If the package configurations should be removed during the uninstallation process
 debian.config.suggestions.exp=Suggestions expiration
 debian.config.suggestions.exp.tip=It defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
 debian.config.sync_pkgs.time=Packages synchronization period

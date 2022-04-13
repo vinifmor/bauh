@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Debian
   - install: installation/download sizes order (to follow the upgrade dialog order) 
   - uninstall: dependencies dialog size
+  - settings: new property to enable "purge" as the default removal method
+  
+   <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/debian_purge_opt.png">
+   </p>
 
 - General
   - code refactoring
