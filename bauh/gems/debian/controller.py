@@ -67,12 +67,12 @@ class DebianPackageManager(SoftwareManager, SettingsController):
 
         if not is_url:
             for pkg in self.aptitude.search(words):
+                if fill_config.is_alive():
+                    fill_config.join()
+                    
+                pkg.global_purge = bool(config_.get('remove.purge', False))
                 if pkg.installed:
-                    if fill_config.is_alive():
-                        fill_config.join()
-
                     pkg.bind_app(self.apps_index.get(pkg.name))
-                    pkg.global_purge = bool(config_.get('remove.purge', False))
                     res.installed.append(pkg)
                 else:
                     res.new.append(pkg)
