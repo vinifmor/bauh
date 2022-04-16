@@ -3,12 +3,14 @@ import re
 import subprocess
 import traceback
 from datetime import datetime
-from typing import List, Dict, Set, Iterable, Optional
+from threading import Thread
+from typing import List, Dict, Set, Iterable, Optional, Tuple
 
 from packaging.version import Version
 from packaging.version import parse as parse_version
 
 from bauh.api.exception import NoInternetException
+from bauh.commons import system
 from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler, DEFAULT_LANG
 from bauh.commons.util import size_to_byte
 from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5, VERSION_1_12
@@ -16,6 +18,7 @@ from bauh.gems.flatpak.constants import FLATHUB_URL
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
+RE_REQUIRED_RUNTIME = re.compile(f'Required\s+runtime\s+.+\(([\w./]+)\)\s*.+\s+remote\s+([\w+./]+)')
 OPERATION_UPDATE_SYMBOLS = {'i', 'u'}
 
 
@@ -184,18 +187,46 @@ def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProces
                          shell=True)
 
 
-def list_updates_as_str(version: Version) -> Dict[str, set]:
-    updates = read_updates(version, 'system')
-    user_updates = read_updates(version, 'user')
-
-    for attr in ('full', 'partial'):
-        updates[attr].update(user_updates[attr])
-
-    return updates
+def _new_updates() -> Dict[str, Set[str]]:
+    return {'full': set(), 'partial': set()}
 
 
-def read_updates(version: Version, installation: str) -> Dict[str, set]:
-    res = {'partial': set(), 'full': set()}
+def list_updates_as_str(version: Version) -> Dict[str, Set[str]]:
+    sys_updates, user_updates = _new_updates(), _new_updates()
+
+    threads = []
+    for type_, output in (('system', sys_updates), ('user', user_updates)):
+        fill = Thread(target=fill_updates, args=(version, type_, output))
+        fill.start()
+        threads.append(fill)
+
+    for t in threads:
+        t.join()
+
+    all_updates = _new_updates()
+
+    for updates in (sys_updates, user_updates):
+        if updates:
+            for key, val in updates.items():
+                if val:
+                    all_updates[key].update(val)
+
+    return all_updates
+
+
+def list_required_runtime_updates(installation: str) -> Optional[List[Tuple[str, str]]]:
+    """
+    Return a list of tuples composed by the reference and the origin.
+    e.g: ('runtime/org.gnome.Desktop/42/x86_64', 'flathub')
+    """
+    _, updates = system.execute(f'flatpak update --{installation}', shell=True,
+                                custom_env=system.gen_env())
+
+    if updates:
+        return RE_REQUIRED_RUNTIME.findall(updates)
+
+
+def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
     if version < VERSION_1_2:
         try:
             output = run_cmd(f'flatpak update --no-related --no-deps --{installation}', ignore_return_code=True)
@@ -207,7 +238,7 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
         except:
             traceback.print_exc()
     else:
-        updates = new_subprocess(('flatpak', 'update', f'--{installation}')).stdout
+        updates = new_subprocess(('flatpak', 'update', f'--{installation}', '--no-deps')).stdout
 
         reg = r'[0-9]+\.\s+.+'
 
@@ -216,11 +247,18 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
                 if o:
                     line_split = o.decode().strip().split('\t')
 
-                    if len(line_split) > 2:
+                    if len(line_split) >= 5:
                         if version >= VERSION_1_5:
-                            update_id = f'{line_split[2]}/{line_split[3]}/{installation}/{line_split[5]}'
+                            update_id = f'{line_split[2]}/{line_split[3]}/{installation}'
+
+                            if len(line_split) >= 6:
+                                update_id = f'{update_id}/{line_split[5]}'
+
                         elif version >= VERSION_1_2:
-                            update_id = f'{line_split[2]}/{line_split[4]}/{installation}/{line_split[5]}'
+                            update_id = f'{line_split[2]}/{line_split[4]}/{installation}'
+
+                            if len(line_split) >= 6:
+                                update_id = f'{update_id}/{line_split[5]}'
                         else:
                             update_id = f'{line_split[2]}/{line_split[4]}/{installation}'
 
@@ -234,8 +272,6 @@ def read_updates(version: Version, installation: str) -> Dict[str, set]:
                             res['full'].add(update_id)
         except:
             traceback.print_exc()
-
-    return res
 
 
 def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Version) -> SimpleProcess:
@@ -410,8 +446,9 @@ def run(app_id: str):
     subprocess.Popen((f'flatpak run {app_id}',), shell=True, env={**os.environ})
 
 
-def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, int]:
-    success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}')))
+def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, float]:
+    success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}',
+                                                                    '--no-deps')))
     if version >= VERSION_1_2:
         res = {}
         p = re.compile(r'^\d+.\t')
@@ -438,12 +475,12 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
 
                                     if size and len(size) > 1:
                                         try:
-                                            res[related_id[0].strip()] = size_to_byte(float(size[0].replace(',', '.')), size[1].strip())
+                                            res[related_id[0].strip()] = size_to_byte(size[0], size[1].strip())
                                         except:
                                             traceback.print_exc()
                                 else:
                                     try:
-                                        res[related_id[0].strip()] = size_to_byte(float(size_tuple[0].replace(',', '.')), size_tuple[1].strip())
+                                        res[related_id[0].strip()] = size_to_byte(size_tuple[0], size_tuple[1].strip())
                                     except:
                                         traceback.print_exc()
         return res

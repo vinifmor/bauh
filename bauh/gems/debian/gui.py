@@ -17,7 +17,8 @@ class DebianViewBridge:
         self._width = screen_width
         self._height = screen_heigth
 
-    def _map_to_install(self, pkgs: Optional[Collection[DebianPackage]]) -> Optional[Tuple[List[InputOption], str, str]]:
+    @staticmethod
+    def _map_to_install(pkgs: Optional[Collection[DebianPackage]]) -> Optional[Tuple[List[InputOption], str, str]]:
         if pkgs:
             download_size, install_size = 0, 0
 
@@ -36,13 +37,13 @@ class DebianViewBridge:
                 else:
                     uncompressed = '?'
 
-                views.append(InputOption(label=f"{p.name} ({compressed} | {uncompressed})",
+                views.append(InputOption(label=f"{p.name} ({uncompressed} | {compressed})",
                                          value=p.name, read_only=True, icon_path=DEBIAN_ICON_PATH,
                                          tooltip=p.description if p.description else '?'))
 
             dsize = get_human_size_str(download_size) if download_size > 0 else '?'
             isize = get_human_size_str(install_size) if install_size > 0 else '?'
-            return views, dsize, isize
+            return views, isize, dsize
 
     def _map_to_remove(self, pkgs: Optional[Collection[DebianPackage]]) -> Optional[Tuple[List[InputOption], str]]:
         if pkgs:
@@ -88,8 +89,8 @@ class DebianViewBridge:
         if to_install_data:
             to_install_data[0].sort(key=attrgetter('label'))
             lb_deps = self._i18n['debian.transaction.to_install'].format(no=bold(str(len(to_install_data[0]))),
-                                                                         dsize=bold(to_install_data[1]),
-                                                                         isize=bold(to_install_data[2]))
+                                                                         dsize=bold(to_install_data[2]),
+                                                                         isize=bold(to_install_data[1]))
 
             components.append(TextComponent(html=f'<br/>{lb_deps}', min_width=text_width))
             components.append(MultipleSelectComponent(id_='inst', label='', options=to_install_data[0],
@@ -131,6 +132,7 @@ class DebianViewBridge:
                                             components=[body_text, deps_container],
                                             confirmation_label=self._i18n['popup.button.continue'],
                                             deny_label=self._i18n['popup.button.cancel'],
+                                            min_height=200,
                                             body=None)
 
     def confirm_purge(self, pkg_name: str, watcher: ProcessWatcher) -> bool:

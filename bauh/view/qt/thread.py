@@ -238,7 +238,8 @@ class UpgradeSelected(AsyncAction):
         self.internet_checker = internet_checker
         self.screen_width = screen_width
 
-    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True) -> InputOption:
+    def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True,
+                       positive_size_symbol: bool = False) -> InputOption:
         if req.pkg.installed:
             icon_path = req.pkg.get_disk_icon_path()
 
@@ -252,17 +253,16 @@ class UpgradeSelected(AsyncAction):
 
         size_str = None
         if display_sizes:
-            size_str = '{}: {}'.format(self.i18n['size'].capitalize(),
-                                       '?' if req.extra_size is None else get_human_size_str(req.extra_size))
+            storage_size = '?' if req.extra_size is None else get_human_size_str(req.extra_size, positive_size_symbol)
+            size_str = f"{self.i18n['action.update.storage_size']}: {storage_size}"
             if required_size and req.extra_size != req.required_size:
-                size_str += ' ( {}: {} )'.format(self.i18n['action.update.pkg.required_size'].capitalize(),
-                                                 '?' if req.required_size is None else get_human_size_str(req.required_size))
+                download_size = '?' if req.required_size is None else get_human_size_str(req.required_size)
+                size_str += f" ({self.i18n['action.update.download_size']}: {download_size})"
 
-        label = '{}{}'.format(req.pkg.name,
-                              ' ( {} )'.format(req.pkg.latest_version) if req.pkg.latest_version else '')
+        label = f"{req.pkg.name} {f' ({req.pkg.latest_version})' if req.pkg.latest_version else ''}"
 
         if size_str:
-            label += ' - {}'.format(size_str)
+            label += f' | {size_str}'
 
         return InputOption(label=label,
                            value=None,
@@ -270,7 +270,7 @@ class UpgradeSelected(AsyncAction):
                            read_only=True,
                            icon_path=icon_path)
 
-    def _sum_pkgs_size(self, reqs: List[UpgradeRequirement]) -> Tuple[int, int]:
+    def _sum_pkgs_size(self, reqs: List[UpgradeRequirement]) -> Tuple[float, float]:
         required, extra = 0, 0
         for r in reqs:
             if r.required_size is not None:
@@ -286,21 +286,21 @@ class UpgradeSelected(AsyncAction):
         opts = [self._req_as_option(req=r, tooltip=False, custom_tooltip=r.reason, display_sizes=False) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
 
-        return FormComponent(label='{} ( {}: {} )'.format(self.i18n['action.update.cannot_update_label'],
-                                                          self.i18n['amount'].capitalize(), len(opts)),
+        return FormComponent(label='{} ({}: {})'.format(self.i18n['action.update.cannot_update_label'],
+                                                        self.i18n['amount'].capitalize(), len(opts)),
                              components=comps)
 
     def _gen_to_install_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
-        opts = [self._req_as_option(r, custom_tooltip=r.reason) for r in reqs]
+        opts = [self._req_as_option(r, custom_tooltip=r.reason, positive_size_symbol=True) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {}. {}: {}. {}: {} )'.format(self.i18n['action.update.required_label'].capitalize(),
+        lb = '{} ({}: {} | {}: {} | {}: {})'.format(self.i18n['action.update.required_label'].capitalize(),
                                                     self.i18n['amount'].capitalize(),
                                                     len(opts),
-                                                    self.i18n['size'].capitalize(),
-                                                    '?' if extra_size is None else get_human_size_str(extra_size),
-                                                    self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                    self.i18n['action.update.storage_size'],
+                                                    '?' if extra_size is None else get_human_size_str(extra_size, True),
+                                                    self.i18n['action.update.download_size'],
                                                     '?' if required_size is None else get_human_size_str(required_size))
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
 
@@ -309,24 +309,24 @@ class UpgradeSelected(AsyncAction):
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {}. {}: {} )'.format(self.i18n['action.update.label_to_remove'].capitalize(),
-                                            self.i18n['amount'].capitalize(),
-                                            len(opts),
-                                            self.i18n['size'].capitalize(),
-                                            '?' if extra_size is None else get_human_size_str(-extra_size))
+        lb = '{} ({}: {} | {}: {})'.format(self.i18n['action.update.label_to_remove'].capitalize(),
+                                           self.i18n['amount'].capitalize(),
+                                           len(opts),
+                                           self.i18n['action.update.storage_size'],
+                                           '?' if extra_size is None else get_human_size_str(-extra_size))
         return FormComponent(label=lb, components=comps)
 
     def _gen_to_update_form(self, reqs: List[UpgradeRequirement]) -> Tuple[FormComponent, Tuple[int, int]]:
-        opts = [self._req_as_option(r, tooltip=False) for r in reqs]
+        opts = [self._req_as_option(r, tooltip=False, positive_size_symbol=True) for r in reqs]
         comps = [MultipleSelectComponent(label='', options=opts, default_options=set(opts))]
         required_size, extra_size = self._sum_pkgs_size(reqs)
 
-        lb = '{} ( {}: {}. {}: {}. {}: {} )'.format(self.i18n['action.update.label_to_upgrade'].capitalize(),
+        lb = '{} ({}: {} | {}: {} | {}: {})'.format(self.i18n['action.update.label_to_upgrade'].capitalize(),
                                                     self.i18n['amount'].capitalize(),
                                                     len(opts),
-                                                    self.i18n['size'].capitalize(),
-                                                    '?' if extra_size is None else get_human_size_str(extra_size),
-                                                    self.i18n['action.update.pkg.required_size'].capitalize(),
+                                                    self.i18n['action.update.storage_size'],
+                                                    '?' if extra_size is None else get_human_size_str(extra_size, True),
+                                                    self.i18n['action.update.download_size'],
                                                     '?' if required_size is None else get_human_size_str(required_size))
 
         return FormComponent(label=lb, components=comps), (required_size, extra_size)
@@ -489,10 +489,10 @@ class UpgradeSelected(AsyncAction):
             extra_size += updates_size[1]
             comps.append(updates_form)
 
-        extra_size_text = '{}: {}'.format(self.i18n['action.update.total_size'].capitalize(), get_human_size_str(extra_size))
-        req_size_text = '{}: {}'.format(self.i18n['action.update.required_size'].capitalize(),
-                                        get_human_size_str(required_size))
-        comps.insert(0, TextComponent('{}  |  {}'.format(extra_size_text, req_size_text), size=14))
+        disc_size_text = f"{self.i18n['action.update.total_storage_size']}: {get_human_size_str(extra_size, True)}"
+        download_size_text = f"{self.i18n['action.update.download_size']}: {get_human_size_str(required_size)}"
+
+        comps.insert(0, TextComponent(f'{disc_size_text} ({download_size_text})', size=14))
         comps.insert(1, TextComponent(''))
 
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,

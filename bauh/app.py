@@ -1,4 +1,5 @@
 import faulthandler
+import locale
 import os
 import sys
 import traceback
@@ -24,6 +25,12 @@ def main(tray: bool = False):
     args = app_args.read()
 
     logger = logs.new_logger(__app_name__, bool(args.logs))
+
+    try:
+        locale.setlocale(locale.LC_NUMERIC, '')
+    except:
+        logger.error("Could not set locale 'LC_NUMBERIC' to '' to display localized numbers")
+        traceback.print_exc()
 
     if args.offline:
         logger.warning("offline mode activated")

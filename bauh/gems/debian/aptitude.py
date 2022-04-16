@@ -1,6 +1,5 @@
 import re
 import time
-import traceback
 from contextlib import contextmanager
 from enum import Enum
 from logging import Logger
@@ -47,6 +46,8 @@ class Aptitude:
         self._default_lang = ''
         self._ignored_fields: Optional[Set[str]] = None
         self._re_none: Optional[Pattern] = None
+        self._vars_fixes: Optional[Dict[str, str]] = None
+        self._preserve_env = {'DEBIAN_FRONTEND'}
 
     def show(self, pkgs: Iterable[str], attrs: Optional[Collection[str]] = None, verbose: bool = False) \
             -> Optional[Dict[str, Dict[str, object]]]:
@@ -72,9 +73,8 @@ class Aptitude:
                                 size_split = final_val.split(' ')
 
                                 if len(size_split) >= 1:
-                                    number = float(size_split[0].replace(',', '.'))
-                                    measure = size_split[1].strip().lower() if len(size_split) >= 2 else 'b'
-                                    final_val = size_to_byte(number, measure)
+                                    unit = size_split[1].upper() if len(size_split) >= 2 else 'B'
+                                    final_val = size_to_byte(size_split[0], unit, self._log)
                                 else:
                                     self._log.warning(f"Unhandled value ({val}) for attribute '{field}'")
                                     final_val = None
@@ -112,14 +112,8 @@ class Aptitude:
 
                     if size:
                         size_split = size.strip().split(' ')
-
-                        try:
-                            number = float(size_split[0].strip().replace(',', '.'))
-                            measure = size_split[1].strip()[0].lower() if len(size_split) >= 2 else 'b'
-                            pkg.transaction_size = size_to_byte(number, measure)
-                        except:
-                            traceback.print_exc()
-                            pass
+                        unit = size_split[1][0].upper() if len(size_split) >= 2 else 'B'
+                        pkg.transaction_size = size_to_byte(size_split[0], unit, self._log)
 
                     current_collection.add(pkg)
 
@@ -136,7 +130,8 @@ class Aptitude:
 
     def upgrade(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('upgrade', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password)
+        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password, extra_env=self.vars_fixes,
+                             preserve_env=self._preserve_env)
 
     def update(self, root_password: Optional[str]) -> SimpleProcess:
         return SimpleProcess(('aptitude', 'update'), root_password=root_password, shell=True)
@@ -150,7 +145,8 @@ class Aptitude:
 
     def install(self, packages: Iterable[str], root_password: Optional[str]) -> SimpleProcess:
         cmd = self.gen_transaction_cmd('install', packages).split(' ')
-        return SimpleProcess(cmd=cmd, shell=True, root_password=root_password)
+        return SimpleProcess(cmd=cmd, root_password=root_password, extra_env=self.vars_fixes,
+                             preserve_env=self._preserve_env)
 
     def read_installed(self) -> Generator[DebianPackage, None, None]:
         yield from self.search(query='~i')
@@ -184,13 +180,8 @@ class Aptitude:
 
                     if fill_size:
                         size_split = line_split[no_attrs - 2].split(' ')
-                        number = float(size_split[0].replace(',', '.'))
-                        measure = size_split[1][0].lower() if len(size_split) >= 2 else 'b'
-
-                        try:
-                            size = size_to_byte(number, measure)
-                        except:
-                            traceback.print_exc()
+                        unit = size_split[1][0].upper() if len(size_split) >= 2 else 'B'
+                        size = size_to_byte(size_split[0], unit, self._log)
 
                     if latest_version is not None:
                         installed_version = line_split[1] if not self.re_none.match(line_split[1]) else None
@@ -212,7 +203,7 @@ class Aptitude:
 
     def remove(self, packages: Iterable[str], root_password: Optional[str],  purge: bool = False) -> SimpleProcess:
         return SimpleProcess(cmd=self.gen_remove_cmd(packages, purge).split(' '), shell=True,
-                             root_password=root_password)
+                             root_password=root_password, extra_env=self.vars_fixes, preserve_env=self._preserve_env)
 
     def read_installed_names(self) -> Generator[str, None, None]:
         code, output = system.execute("aptitude search ~i -q -F '%p' --disable-columns",
@@ -235,6 +226,7 @@ class Aptitude:
     def env(self) -> Dict[str, str]:
         if self._env is None:
             self._env = system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER)
+            self._env['LC_NUMERIC'] = ''
 
         return self._env
 
@@ -270,13 +262,16 @@ class Aptitude:
 
     @classmethod
     def gen_remove_cmd(cls, packages: Iterable[str], purge: bool, simulate: bool = False) -> str:
-        return cls.gen_transaction_cmd('purge' if purge else 'remove', packages, simulate)
+        return cls.gen_transaction_cmd(type_='purge' if purge else 'remove', packages=packages,
+                                       simulate=simulate)
 
     @staticmethod
-    def gen_transaction_cmd(type_: str, packages: Iterable[str], simulate: bool = False) -> str:
+    def gen_transaction_cmd(type_: str, packages: Iterable[str], simulate: bool = False,
+                            delete_unused: bool = False) -> str:
         return f"aptitude {type_} -q -y --no-gui --full-resolver {' '.join(packages)}" \
                f" -o Aptitude::ProblemResolver::RemoveScore=9999999" \
                f" -o Aptitude::ProblemResolver::EssentialRemoveScore=9999999" \
+               f" -o Aptitude::Delete-Unused={str(delete_unused).lower()}" \
                f"{' -V -s -Z' if simulate else ''}"
 
     @property
@@ -285,6 +280,13 @@ class Aptitude:
             self._re_none = re.compile(r'^<\w+>$')
 
         return self._re_none
+
+    @property
+    def vars_fixes(self) -> Dict[str, str]:
+        if self._vars_fixes is None:
+            self._vars_fixes = {'LC_NUMERIC': '', 'DEBIAN_FRONTEND': 'noninteractive'}
+
+        return self._vars_fixes
 
 
 class AptitudeOutputHandler(Thread):

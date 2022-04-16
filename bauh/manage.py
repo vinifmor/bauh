@@ -62,7 +62,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
 
     if app_args.settings:  # only settings window
         manager.cache_available_managers()
-        return app, SettingsWindow(manager=manager, i18n=i18n, screen_size=screen_size, window=None)
+        return app, SettingsWindow(manager=manager, i18n=i18n, window=None)
     else:
         manage_window = ManageWindow(i18n=i18n,
                                      manager=manager,

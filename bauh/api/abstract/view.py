@@ -1,6 +1,6 @@
 from abc import ABC
 from enum import Enum
-from typing import List, Set, Optional, Dict
+from typing import List, Set, Optional, Dict, TypeVar, Type, Union, Tuple
 
 
 class MessageType(Enum):
@@ -27,6 +27,42 @@ class ViewComponent(ABC):
         self.observers.append(obs)
 
 
+V = TypeVar('V', bound=ViewComponent)
+
+
+class ViewContainer(ViewComponent, ABC):
+    """
+        Represents a GUI component composed by other components
+    """
+
+    def __init__(self, components: Union[List[V], Tuple[V]],
+                 id_: Optional[str] = None,
+                 observers: Optional[List[ViewObserver]] = None):
+        super(ViewContainer, self).__init__(id_=id_, observers=observers)
+        self.components = components
+        self.component_map = {c.id: c for c in components if c.id is not None} if components else None
+
+    def get_component(self, id_: str, type_: Type[V] = ViewComponent) -> Optional[V]:
+        if self.component_map:
+            instance = self.component_map.get(id_)
+
+            if instance:
+                if isinstance(instance, type_):
+                    return instance
+
+                raise Exception(f"The {ViewComponent.__class__.__name__} (id={id_}) is not an "
+                                f"instance of '{type_.__name__}'")
+
+    def get_component_by_idx(self, idx: int, type_: Type[V]) -> Optional[V]:
+        if self.components and idx < len(self.components):
+            c = self.components[idx]
+            if isinstance(c, type_):
+                return c
+
+            raise Exception(f"The {ViewComponent.__class__.__name__} at index {idx} is not an "
+                            f"instance of '{type_.__name__}'")
+
+
 class SpacerComponent(ViewComponent):
 
     def __init__(self):
@@ -35,7 +71,7 @@ class SpacerComponent(ViewComponent):
 
 class InputViewComponent(ViewComponent):
     """
-    Represents an component which needs a user interaction to provide its value
+    Represents a component which needs a user interaction to provide its value
     """
 
 
@@ -104,7 +140,8 @@ class MultipleSelectComponent(InputViewComponent):
 
     def __init__(self, label: Optional[str], options: List[InputOption], default_options: Set[InputOption] = None,
                  max_per_line: int = 1, tooltip: str = None, spaces: bool = True, max_width: int = -1,
-                 max_height: int = -1, id_: str = None, min_width: Optional[int] = None):
+                 max_height: int = -1, id_: str = None, min_width: Optional[int] = None,
+                 opt_max_width: Optional[int] = None):
         super(MultipleSelectComponent, self).__init__(id_=id_)
 
         if not options:
@@ -119,6 +156,7 @@ class MultipleSelectComponent(InputViewComponent):
         self.min_width = min_width
         self.max_width = max_width
         self.max_height = max_height
+        self.opt_max_width = opt_max_width
 
     def get_selected_values(self) -> list:
         selected = []
@@ -202,44 +240,14 @@ class TextInputComponent(ViewComponent):
             return self.label.capitalize() if self.capitalize_label else self.label
 
 
-class FormComponent(ViewComponent):
+class FormComponent(ViewContainer):
 
     def __init__(self, components: List[ViewComponent], label: str = None, spaces: bool = True, id_: str = None,
                  min_width: Optional[int] = None):
-        super(FormComponent, self).__init__(id_=id_)
+        super(FormComponent, self).__init__(id_=id_, components=components)
         self.label = label
         self.spaces = spaces
-        self.components = components
-        self.component_map = {c.id: c for c in components if c.id} if components else None
         self.min_width = min_width
-
-    def get_component(self, id_: str) -> Optional[ViewComponent]:
-        if self.component_map:
-            return self.component_map.get(id_)
-
-    def get_single_select_component(self, id_: str) -> Optional[SingleSelectComponent]:
-        comp = self.get_component(id_)
-
-        if comp:
-            if not isinstance(comp, SingleSelectComponent):
-                raise Exception("'{}' is not a {}".format(id_, SingleSelectComponent.__class__.__name__))
-            return comp
-
-    def get_form_component(self, id_: str) -> Optional["FormComponent"]:
-        comp = self.get_component(id_)
-
-        if comp:
-            if not isinstance(comp, FormComponent):
-                raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
-            return comp
-
-    def get_text_input(self, id_) -> Optional[TextInputComponent]:
-        comp = self.get_component(id_)
-
-        if comp:
-            if not isinstance(comp, TextInputComponent):
-                raise Exception("'{}' is not a {}".format(id_, TextInputComponent.__class__.__name__))
-            return comp
 
 
 class FileChooserComponent(ViewComponent):
@@ -276,20 +284,27 @@ class TabComponent(ViewComponent):
     def __init__(self, label: str, content: ViewComponent, icon_path: str = None, id_: str = None):
         super(TabComponent, self).__init__(id_=id_)
         self.label = label
-        self.content = content
+        self._content = content
         self.icon_path = icon_path
 
+    def get_content(self, type_: Type[V] = ViewComponent) -> V:
+        if isinstance(self._content, type_):
+            return self._content
 
-class TabGroupComponent(ViewComponent):
+        raise Exception(f"'content' is not an instance of '{type_.__name__}'")
+
+
+class TabGroupComponent(ViewContainer):
 
     def __init__(self, tabs: List[TabComponent], id_: str = None):
-        super(TabGroupComponent, self).__init__(id_=id_)
-        self.tabs = tabs
-        self.tab_map = {c.id: c for c in tabs if c.id} if tabs else None
+        super(TabGroupComponent, self).__init__(id_=id_, components=tabs)
 
-    def get_tab(self, id_: str) -> TabComponent:
-        if self.tab_map:
-            return self.tab_map.get(id_)
+    def get_tab(self, id_: str) -> Optional[TabComponent]:
+        return self.get_component(id_, TabComponent)
+
+    @property
+    def tabs(self) -> List[TabComponent]:
+        return self.components
 
 
 class RangeInputComponent(InputViewComponent):
@@ -306,29 +321,7 @@ class RangeInputComponent(InputViewComponent):
         self.max_width = max_width
 
 
-class PanelComponent(ViewComponent):
+class PanelComponent(ViewContainer):
 
     def __init__(self, components: List[ViewComponent], id_: str = None):
-        super(PanelComponent, self).__init__(id_=id_)
-        self.components = components
-        self.component_map = {c.id: c for c in components if c.id is not None} if components else None
-
-    def get_component(self, id_: str) -> Optional[ViewComponent]:
-        if self.component_map:
-            return self.component_map.get(id_)
-
-    def get_form_component(self, id_: str) -> Optional[FormComponent]:
-        comp = self.get_component(id_)
-
-        if comp:
-            if not isinstance(comp, FormComponent):
-                raise Exception("'{}' is not a {}".format(id_, FormComponent.__class__.__name__))
-            return comp
-
-    def get_text_input(self, id_) -> Optional[TextInputComponent]:
-        comp = self.get_component(id_)
-
-        if comp:
-            if not isinstance(comp, TextInputComponent):
-                raise Exception("'{}' is not a {}".format(id_, TextInputComponent.__class__.__name__))
-            return comp
+        super(PanelComponent, self).__init__(id_=id_, components=components)

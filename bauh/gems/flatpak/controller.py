@@ -5,25 +5,25 @@ from datetime import datetime
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Set, Type, Tuple, Optional, Generator
+from typing import List, Set, Type, Tuple, Optional, Generator, Dict
 
 from packaging.version import Version
 
 from bauh.api import user
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
-    UpgradeRequirement, TransactionResult, SoftwareAction
+    UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority, PackageStatus, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
-    ViewComponent, PanelComponent
+    PanelComponent
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
 from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
     EXPORTS_PATH, \
-    get_icon_path, VERSION_1_5, VERSION_1_2
+    get_icon_path, VERSION_1_5, VERSION_1_2, VERSION_1_12
 from bauh.gems.flatpak.config import FlatpakConfigManager
 from bauh.gems.flatpak.constants import FLATHUB_API_URL
 from bauh.gems.flatpak.model import FlatpakApplication
@@ -33,7 +33,7 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M:%S.000Z'
 RE_INSTALL_REFS = re.compile(r'\d+\)\s+(.+)')
 
 
-class FlatpakManager(SoftwareManager):
+class FlatpakManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(FlatpakManager, self).__init__(context=context)
@@ -124,17 +124,38 @@ class FlatpakManager(SoftwareManager):
     def _add_updates(self, version: Version, output: list):
         output.append(flatpak.list_updates_as_str(version))
 
+    def _fill_required_runtimes(self, installation: str, output: List[Tuple[str, str]]):
+        runtimes = flatpak.list_required_runtime_updates(installation=installation)
+
+        if runtimes:
+            output.extend(runtimes)
+
+    def _fill_required_runtime_updates(self, output: Dict[str, List[Tuple[str, str]]]):
+        threads = []
+        for installation in ('system', 'user'):
+            runtimes = list()
+            output[installation] = runtimes
+            t = Thread(target=self._fill_required_runtimes, args=(installation, runtimes))
+            t.start()
+            threads.append(t)
+
+        for t in threads:
+            t.join()
+
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None,
                        internet_available: bool = None, wait_async_data: bool = False) -> SearchResult:
         version = flatpak.get_version()
 
-        updates = []
+        updates, required_runtimes = list(), dict()
 
+        thread_updates, thread_runtimes = None, None
         if internet_available:
             thread_updates = Thread(target=self._add_updates, args=(version, updates))
             thread_updates.start()
-        else:
-            thread_updates = None
+
+            if version >= VERSION_1_12:
+                thread_runtimes = Thread(target=self._fill_required_runtime_updates, args=(required_runtimes,))
+                thread_runtimes.start()
 
         installed = flatpak.list_installed(version)
 
@@ -191,6 +212,28 @@ class FlatpakManager(SoftwareManager):
                                 partial_model.update = True
                                 models[partial_update_id] = partial_model
                                 break
+
+        if thread_runtimes:
+            thread_runtimes.join()
+
+        if required_runtimes:
+            for installation in ('system', 'user'):
+                installation_runtimes = required_runtimes.get(installation)
+
+                if installation_runtimes:
+                    for ref, origin in installation_runtimes:
+                        ref_split = ref.split('/')
+                        models[f'{installation}.'] = FlatpakApplication(id=ref_split[1],
+                                                                        ref=ref,
+                                                                        origin=origin,
+                                                                        name=ref_split[1],
+                                                                        version=ref_split[-1],
+                                                                        latest_version=ref_split[-1],
+                                                                        runtime=True,
+                                                                        installation=installation,
+                                                                        installed=True,
+                                                                        update_component=True,
+                                                                        update=True)
 
         if models:
             ignored = self._read_ignored_updates()
@@ -307,7 +350,7 @@ class FlatpakManager(SoftwareManager):
                             'origin': app.origin,
                             'arch': app.arch,
                             'ref': app.ref,
-                            'type': self.i18n['unknown']}
+                            'type': 'runtime' if app.runtime else self.i18n['unknown']}
             else:
                 version = flatpak.get_version()
                 id_ = app.base_id if app.partial and version < VERSION_1_5 else app.id
@@ -537,7 +580,7 @@ class FlatpakManager(SoftwareManager):
     def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         pass
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         cli_version = flatpak.get_version()
         res = []
 
@@ -603,7 +646,7 @@ class FlatpakManager(SoftwareManager):
             else:
                 traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         if not self.context.root_user:
             fields = []
 
@@ -622,14 +665,16 @@ class FlatpakManager(SoftwareManager):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=floor(screen_width * 0.22),
-                                                type_=SelectViewType.RADIO))
+                                                max_width=160,
+                                                type_=SelectViewType.COMBO,
+                                                id_='install'))
 
-            return PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())])
+            yield SettingsView(self, PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
         flatpak_config = self.configman.get_config()
-        flatpak_config['installation_level'] = component.components[0].components[0].get_selected()
+        form = component.get_component_by_idx(0, FormComponent)
+        flatpak_config['installation_level'] = form.get_component('install', SingleSelectComponent).get_selected()
 
         try:
             self.configman.save_config(flatpak_config)
@@ -656,7 +701,7 @@ class FlatpakManager(SoftwareManager):
                     for p in apps_by_install[0]:
                         p.size = sizes.get(str(p.id))
 
-        to_update = [UpgradeRequirement(pkg=p, extra_size=p.size, required_size=p.size) for p in self.sort_update_order(pkgs)]
+        to_update = [UpgradeRequirement(pkg=p, extra_size=0, required_size=p.size) for p in self.sort_update_order(pkgs)]
         return UpgradeRequirements(None, None, to_update, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:

@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.2] 2022-04-16
+### Improvements
+- Arch
+  - install:
+    - missing dependencies dialog now displays the packages sizes and descriptions (only from repositories)
+    - optional packages installation dialog appearance (aligned with other dependencies dialogs)
+  - uninstall:
+    - displaying hard and unnecessary requirements versions and descriptions
+  - settings:
+    - displaying different tabs for general Arch configurations and AUR's
+    
+    <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/arch_aur_tabs.png">
+    </p>  
+  
+- Debian
+  - install: installation/download sizes order (to follow the upgrade dialog order) 
+  - uninstall: dependencies dialog size
+  - settings: new property to enable "purge" as the default removal method
+  
+   <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/debian_purge_opt.png">
+   </p>
+
+- Flatpak
+  - faster updates reading (threaded)
+
+- General
+  - code refactoring
+
+- UI
+  - update summary: 
+    - displaying a '+' for positive sizes (previously the sign was only displayed for negative numbers) [#250](https://github.com/vinifmor/bauh/issues/250)
+    - changing some words and symbols to improve readability and cohesion [#250](https://github.com/vinifmor/bauh/issues/250)
+    - displaying update sizes as localized numbers [#250](https://github.com/vinifmor/bauh/issues/250)
+  - settings: some components' width reduced
+
+- Web
+  - installation form width
+    
+  
+### Fixes
+- Arch:
+  - displaying already installed packages when suggesting optional dependencies (pacman >= 6.0)
+
+- Debian
+  - install/upgrade: hanging when packages require manual configuration
+  - info: crashing when the package size has unexpected symbols [#251](https://github.com/vinifmor/bauh/issues/251)
+  - displaying wrong symbols among numbers in install/uninstall/upgrade outputs for systems without english encoding installed
+  - removing unused packages on any type of transaction (this is the default behaviour for aptitude)
+  
+- Flatpak
+  - some updates or download sizes not being displayed when there are new required runtimes for installed Flatpaks
+  - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
+  - upgrade: informing the download size as the additional installation size
+  - random index out of bounds exception when reading updates
+
+- General
+  - not properly converting bibyte (KiB, MiB, ...) and byte (kB, MB, ...) based sizes to bytes
+  - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
+
+- UI
+  - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)
+  - some components do not properly adjust the text size [#253](https://github.com/vinifmor/bauh/issues/253)
+
+
 ## [0.10.1] 2022-03-31
 
 ### Features

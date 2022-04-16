@@ -39,26 +39,27 @@ class DebianApplication:
 
 class DebianPackage(SoftwarePackage):
 
-    __actions: Optional[Tuple[CustomSoftwareAction]] = None
+    __actions_purge: Optional[Tuple[CustomSoftwareAction, ...]] = None
 
     @classmethod
-    def custom_actions(cls) -> Tuple[CustomSoftwareAction]:
-        if cls.__actions is None:
-            cls.__actions = ((CustomSoftwareAction(i18n_label_key='debian.action.purge',
-                                                   i18n_status_key='debian.action.purge.status',
-                                                   i18n_description_key='debian.action.purge.desc',
-                                                   icon_path=resource.get_path('img/clean.svg', ROOT_DIR),
-                                                   manager_method='purge',
-                                                   requires_root=True,
-                                                   requires_confirmation=False),))
+    def actions_purge(cls) -> Tuple[CustomSoftwareAction, ...]:
+        if cls.__actions_purge is None:
+            cls.__actions_purge = (CustomSoftwareAction(i18n_label_key='debian.action.purge',
+                                                        i18n_status_key='debian.action.purge.status',
+                                                        i18n_description_key='debian.action.purge.desc',
+                                                        icon_path=resource.get_path('img/clean.svg', ROOT_DIR),
+                                                        manager_method='purge',
+                                                        requires_root=True,
+                                                        requires_confirmation=False),)
 
-        return cls.__actions
+        return cls.__actions_purge
 
     def __init__(self, name: str = None, version: Optional[str] = None, latest_version: Optional[str] = None,
                  description: Optional[str] = None, maintainer: Optional[str] = None, installed: bool = False,
                  update: bool = False, app: Optional[DebianApplication] = None, compressed_size: Optional[int] = None,
                  uncompressed_size: Optional[int] = None, categories: Tuple[str] = None,
-                 updates_ignored: Optional[bool] = None, transaction_size: Optional[int] = None):
+                 updates_ignored: Optional[bool] = None, transaction_size: Optional[float] = None,
+                 global_purge: bool = False):
         super(DebianPackage, self).__init__(id=name, name=name, version=version, installed=installed,
                                             description=description, update=update,
                                             latest_version=latest_version if latest_version is not None else version)
@@ -70,6 +71,7 @@ class DebianPackage(SoftwarePackage):
         self.bind_app(app)
         self.updates_ignored = updates_ignored
         self.transaction_size = transaction_size  # size in bytes related to a transaction (install, upgrade, remove)
+        self.global_purge = global_purge  # if global purge is already enabled
 
     def bind_app(self, app: Optional[DebianApplication]):
         self.app = app
@@ -121,8 +123,8 @@ class DebianPackage(SoftwarePackage):
             return self.app.icon_path
 
     def get_custom_actions(self) -> Optional[Iterable[CustomSoftwareAction]]:
-        if self.installed:
-            return self.custom_actions()
+        if self.installed and not self.global_purge:
+            return self.actions_purge()
 
     def is_update_ignored(self) -> bool:
         return bool(self.updates_ignored)

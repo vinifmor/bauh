@@ -18,14 +18,14 @@ from requests import Response
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, TransactionResult, \
-    SoftwareAction
+    SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, PackageSuggestion, PackageUpdate, \
     PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, PanelComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
@@ -62,7 +62,7 @@ RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 DEFAULT_LANGUAGE_HEADER = 'en-US, en'
 
 
-class WebApplicationManager(SoftwareManager):
+class WebApplicationManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext, suggestions_loader: Optional[SuggestionsLoader] = None):
         super(WebApplicationManager, self).__init__(context=context)
@@ -489,13 +489,17 @@ class WebApplicationManager(SoftwareManager):
     def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
-        inp_url = TextInputComponent(label=self.i18n['address'].capitalize() + ' (URL)', capitalize_label=False, value=app.url,
-                                     read_only=pre_validated, placeholder=f"({self.i18n['example.short']}: https://myapp123.com)")
-        inp_name = TextInputComponent(label=self.i18n['name'], value=app.name)
-        inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description)
+        max_width = 350
+
+        inp_url = TextInputComponent(label=self.i18n['address'].capitalize() + ' (URL)', capitalize_label=False,
+                                     value=app.url, read_only=pre_validated, max_width=max_width,
+                                     placeholder=f"({self.i18n['example.short']}: https://myapp123.com)")
+        inp_name = TextInputComponent(label=self.i18n['name'], value=app.name, max_width=max_width)
+        inp_desc = TextInputComponent(label=self.i18n['description'], value=app.description, max_width=max_width)
 
         cat_ops = [InputOption(label=self.i18n['web.install.option.category.none'].capitalize(), value=0)]
-        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c).capitalize(), value=c) for c in self.context.default_categories])
+        cat_ops.extend([InputOption(label=self.i18n.get('category.{}'.format(c.lower()), c).capitalize(), value=c)
+                        for c in self.context.default_categories])
 
         def_cat = cat_ops[0]
 
@@ -510,11 +514,16 @@ class WebApplicationManager(SoftwareManager):
                     def_cat = op
                     break
 
-        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops, default_option=def_cat)
-        op_wv = InputOption(id_='widevine', label=self.i18n['web.install.option.widevine.label'] + ' (DRM)', value="--widevine", tooltip=self.i18n['web.install.option.widevine.tip'])
-        tray_op_off = InputOption(id_='tray_off', label=self.i18n['web.install.option.tray.off.label'], value=0, tooltip=self.i18n['web.install.option.tray.off.tip'])
-        tray_op_default = InputOption(id_='tray_def', label=self.i18n['web.install.option.tray.default.label'], value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
-        tray_op_min = InputOption(id_='tray_min', label=self.i18n['web.install.option.tray.min.label'], value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
+        inp_cat = SingleSelectComponent(label=self.i18n['category'], type_=SelectViewType.COMBO, options=cat_ops,
+                                        default_option=def_cat, max_width=max_width)
+        op_wv = InputOption(id_='widevine', label=self.i18n['web.install.option.widevine.label'] + ' (DRM)',
+                            value="--widevine", tooltip=self.i18n['web.install.option.widevine.tip'])
+        tray_op_off = InputOption(id_='tray_off', label=self.i18n['web.install.option.tray.off.label'], value=0,
+                                  tooltip=self.i18n['web.install.option.tray.off.tip'])
+        tray_op_default = InputOption(id_='tray_def', label=self.i18n['web.install.option.tray.default.label'],
+                                      value='--tray', tooltip=self.i18n['web.install.option.tray.default.tip'])
+        tray_op_min = InputOption(id_='tray_min', label=self.i18n['web.install.option.tray.min.label'],
+                                  value='--tray=start-in-tray', tooltip=self.i18n['web.install.option.tray.min.tip'])
 
         tray_opts = [tray_op_off, tray_op_default, tray_op_min]
         def_tray_opt = None
@@ -525,10 +534,8 @@ class WebApplicationManager(SoftwareManager):
                     def_tray_opt = opt
                     break
 
-        inp_tray = SingleSelectComponent(type_=SelectViewType.COMBO,
-                                         options=tray_opts,
-                                         default_option=def_tray_opt,
-                                         label=self.i18n['web.install.option.tray.label'])
+        inp_tray = SingleSelectComponent(type_=SelectViewType.COMBO, options=tray_opts, default_option=def_tray_opt,
+                                         label=self.i18n['web.install.option.tray.label'], max_width=max_width)
 
         icon_op_ded = InputOption(id_='icon_ded', label=self.i18n['web.install.option.wicon.deducted.label'], value=0,
                                   tooltip=self.i18n['web.install.option.wicon.deducted.tip'].format('Nativefier'))
@@ -542,20 +549,32 @@ class WebApplicationManager(SoftwareManager):
         inp_icon = SingleSelectComponent(type_=SelectViewType.COMBO,
                                          options=[op for op in (icon_op_ded, icon_op_disp) if op],
                                          default_option=icon_op_disp if app.icon_url and app.save_icon else icon_op_ded,
-                                         label=self.i18n['web.install.option.wicon.label'])
+                                         label=self.i18n['web.install.option.wicon.label'],
+                                         max_width=max_width)
 
-        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico', 'jpg', 'jpeg'}, label=self.i18n['web.install.option.icon.label'])
+        icon_chooser = FileChooserComponent(allowed_extensions={'png', 'svg', 'ico', 'jpg', 'jpeg'},
+                                            label=self.i18n['web.install.option.icon.label'], max_width=max_width)
 
-        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray], label=self.i18n['web.install.options.basic'].capitalize())
+        form_1 = FormComponent(components=[inp_url, inp_name, inp_desc, inp_cat, inp_icon, icon_chooser, inp_tray],
+                               label=self.i18n['web.install.options.basic'].capitalize(), min_width=max_width)
 
-        op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'], value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
-        op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize", tooltip=self.i18n['web.install.option.max.tip'])
-        op_fs = InputOption(id_='fullscreen', label=self.i18n['web.install.option.fullscreen.label'], value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
-        op_nframe = InputOption(id_='no_frame', label=self.i18n['web.install.option.noframe.label'], value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
-        op_allow_urls = InputOption(id_='allow_urls', label=self.i18n['web.install.option.allow_urls.label'], value='--internal-urls=.*', tooltip=self.i18n['web.install.option.allow_urls.tip'])
-        op_ncache = InputOption(id_='no_cache', label=self.i18n['web.install.option.nocache.label'], value="--clear-cache", tooltip=self.i18n['web.install.option.nocache.tip'])
-        op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'], value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
-        op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'], value="--ignore-certificate", tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
+        op_single = InputOption(id_='single', label=self.i18n['web.install.option.single.label'],
+                                value="--single-instance", tooltip=self.i18n['web.install.option.single.tip'])
+        op_max = InputOption(id_='max', label=self.i18n['web.install.option.max.label'], value="--maximize",
+                             tooltip=self.i18n['web.install.option.max.tip'])
+        op_fs = InputOption(id_='fullscreen', label=self.i18n['web.install.option.fullscreen.label'],
+                            value="--full-screen", tooltip=self.i18n['web.install.option.fullscreen.tip'])
+        op_nframe = InputOption(id_='no_frame', label=self.i18n['web.install.option.noframe.label'],
+                                value="--hide-window-frame", tooltip=self.i18n['web.install.option.noframe.tip'])
+        op_allow_urls = InputOption(id_='allow_urls', label=self.i18n['web.install.option.allow_urls.label'],
+                                    value='--internal-urls=.*', tooltip=self.i18n['web.install.option.allow_urls.tip'])
+        op_ncache = InputOption(id_='no_cache', label=self.i18n['web.install.option.nocache.label'],
+                                value="--clear-cache", tooltip=self.i18n['web.install.option.nocache.tip'])
+        op_insecure = InputOption(id_='insecure', label=self.i18n['web.install.option.insecure.label'],
+                                  value="--insecure", tooltip=self.i18n['web.install.option.insecure.tip'])
+        op_igcert = InputOption(id_='ignore_certs', label=self.i18n['web.install.option.ignore_certificate.label'],
+                                value="--ignore-certificate",
+                                tooltip=self.i18n['web.install.option.ignore_certificate.tip'])
 
         adv_opts = [op_single, op_allow_urls, op_wv, op_max, op_fs, op_nframe, op_ncache, op_insecure, op_igcert]
         def_adv_opts = {op_single, op_allow_urls}
@@ -565,23 +584,29 @@ class WebApplicationManager(SoftwareManager):
                 if opt.id in app.preset_options:
                     def_adv_opts.add(opt)
 
-        check_options = MultipleSelectComponent(options=adv_opts, default_options=def_adv_opts, label=self.i18n['web.install.options.advanced'].capitalize())
+        check_options = MultipleSelectComponent(options=adv_opts, default_options=def_adv_opts, max_width=480,
+                                                min_width=max_width,
+                                                label=self.i18n['web.install.options.advanced'].capitalize(),
+                                                opt_max_width=450)
 
         install_ = watcher.request_confirmation(title=self.i18n['web.install.options_dialog.title'],
                                                 body=None,
                                                 components=[form_1, check_options],
                                                 confirmation_label=self.i18n['continue'].capitalize(),
-                                                deny_label=self.i18n['cancel'].capitalize())
+                                                deny_label=self.i18n['cancel'].capitalize(),
+                                                min_width=max_width + 100)
 
         if install_:
             if not pre_validated:
                 typed_url = inp_url.get_value().strip()
 
                 if not typed_url or not self._request_url(typed_url):
+                    url_ = inp_url.get_value()
+                    msg = self.i18n['web.custom_action.install_app.invalid_url'].format(URL='(URL)',
+                                                                                        url=bold(f'"{url_}"'))
                     watcher.show_message(title=self.i18n['error'].capitalize(),
                                          type_=MessageType.ERROR,
-                                         body=self.i18n['web.custom_action.install_app.invalid_url'].format(URL='(URL)',
-                                                                                                            url=bold(f'"{inp_url.get_value()}"')))
+                                         body=msg)
                     return False, []
                 else:
                     app.url = typed_url
@@ -1023,7 +1048,7 @@ class WebApplicationManager(SoftwareManager):
     def _fill_config_async(self, output: dict):
         output.update(self.configman.get_config())
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         web_config = {}
 
         thread_config = Thread(target=self._fill_config_async, args=(web_config,))
@@ -1105,15 +1130,14 @@ class WebApplicationManager(SoftwareManager):
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         web_config = self.configman.get_config()
-        max_width = floor(screen_width * 0.15)
 
         input_electron = TextInputComponent(label=self.i18n['web.settings.electron.version.label'],
                                             value=web_config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
-                                            max_width=max_width,
+                                            max_width=150,
                                             id_='electron_branch')
 
         native_opts = [
@@ -1126,7 +1150,7 @@ class WebApplicationManager(SoftwareManager):
                                                   default_option=[o for o in native_opts if o.value == web_config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
-                                                  max_width=max_width,
+                                                  max_width=150,
                                                   id_='nativefier')
 
         env_settings_exp = TextInputComponent(label=self.i18n['web.settings.cache_exp'],
@@ -1134,7 +1158,7 @@ class WebApplicationManager(SoftwareManager):
                                               capitalize_label=False,
                                               value=int(web_config['environment']['cache_exp']) if isinstance(web_config['environment']['cache_exp'], int) else '',
                                               only_int=True,
-                                              max_width=max_width,
+                                              max_width=60,
                                               id_='web_cache_exp')
 
         sugs_exp = TextInputComponent(label=self.i18n['web.settings.suggestions.cache_exp'],
@@ -1143,35 +1167,36 @@ class WebApplicationManager(SoftwareManager):
                                       value=int(web_config['suggestions']['cache_exp']) if isinstance(
                                           web_config['suggestions']['cache_exp'], int) else '',
                                       only_int=True,
-                                      max_width=max_width,
+                                      max_width=60,
                                       id_='web_sugs_exp')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
-                                 components=[input_electron, select_nativefier, env_settings_exp, sugs_exp])
+                                 components=[select_nativefier, input_electron, env_settings_exp, sugs_exp])
 
-        return PanelComponent([form_env])
+        yield SettingsView(self, PanelComponent([form_env]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        web_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
-        form_env = component.components[0]
+        form = component.get_component_by_idx(0, FormComponent)
 
-        web_config['environment']['electron']['version'] = str(form_env.get_component('electron_branch').get_value()).strip()
+        electron_version = str(form.get_component('electron_branch', TextInputComponent).get_value()).strip()
+        config_['environment']['electron']['version'] = electron_version
 
-        if len(web_config['environment']['electron']['version']) == 0:
-            web_config['environment']['electron']['version'] = None
+        if len(config_['environment']['electron']['version']) == 0:
+            config_['environment']['electron']['version'] = None
 
-        system_nativefier = form_env.get_component('nativefier').get_selected()
+        system_nativefier = form.get_component('nativefier', SingleSelectComponent).get_selected()
 
         if system_nativefier and not nativefier.is_available():
             return False, [self.i18n['web.settings.env.nativefier.system.not_installed'].format('Nativefier')]
 
-        web_config['environment']['system'] = system_nativefier
-        web_config['environment']['cache_exp'] = form_env.get_component('web_cache_exp').get_int_value()
-        web_config['suggestions']['cache_exp'] = form_env.get_component('web_sugs_exp').get_int_value()
+        config_['environment']['system'] = system_nativefier
+        config_['environment']['cache_exp'] = form.get_component('web_cache_exp', TextInputComponent).get_int_value()
+        config_['suggestions']['cache_exp'] = form.get_component('web_sugs_exp', TextInputComponent).get_int_value()
 
         try:
-            self.configman.save_config(web_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]

@@ -26,7 +26,9 @@ USE_GLOBAL_INTERPRETER = bool(os.getenv('VIRTUAL_ENV'))
 RE_SUDO_OUTPUT = re.compile(r'[sudo]\s*[\w\s]+:\s*')
 
 
-def gen_env(global_interpreter: bool, lang: Optional[str] = DEFAULT_LANG, extra_paths: Optional[Set[str]] = None) -> dict:
+def gen_env(global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG,
+            extra_paths: Optional[Set[str]] = None) -> dict:
+
     custom_env = dict(os.environ)
 
     if lang is not None:
@@ -69,7 +71,7 @@ class SimpleProcess:
                  global_interpreter: bool = USE_GLOBAL_INTERPRETER, lang: Optional[str] = DEFAULT_LANG, root_password: Optional[str] = None,
                  extra_paths: Set[str] = None, error_phrases: Set[str] = None, wrong_error_phrases: Set[str] = None,
                  shell: bool = False, success_phrases: Set[str] = None, extra_env: Optional[Dict[str, str]] = None,
-                 custom_user: Optional[str] = None):
+                 custom_user: Optional[str] = None, preserve_env: Optional[Set] = None):
         pwdin, final_cmd = None, []
 
         self.shell = shell
@@ -78,6 +80,11 @@ class SimpleProcess:
             final_cmd.extend(['runuser', '-u', custom_user, '--'])
         elif isinstance(root_password, str):
             final_cmd.extend(['sudo', '-S'])
+
+            if preserve_env:
+                for var in preserve_env:
+                    final_cmd.append(f'--preserve-env={var}')
+
             pwdin = self._new(['echo', root_password], cwd, global_interpreter, lang).stdout
 
         final_cmd.extend(cmd)
@@ -96,8 +103,7 @@ class SimpleProcess:
 
         if extra_env:
             for var, val in extra_env.items():
-                if var not in env:
-                    env[var] = val
+                env[var] = val
 
         args = {
             "stdout": subprocess.PIPE,

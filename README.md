@@ -305,6 +305,7 @@ prefer_repository_provider: true  # when there is just one repository provider f
     - `sync_pkgs.time`: time period (**in minutes**) in which the packages synchronization must be done on startup (default: `1440` -> 24 hours)
     - `suggestions.exp`: it defines the period (**in hours**) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
     - `pkg_sources.app`: it defines the application for managing the software sources. A `null` value detects one of the supported applications automatically.
+    - `remove.purge`: if the package configurations should be removed during the uninstallation process (purge). Default: false.
 
 ##### <a name="type_flatpak">Flatpak</a>
 

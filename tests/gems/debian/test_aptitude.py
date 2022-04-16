@@ -97,8 +97,8 @@ Description: GNU C compiler
     def test_show__all_attributes(self, execute: Mock):
         info = self.aptitude.show(('firefox', 'gcc'))
         execute.assert_called_once_with('aptitude show -q firefox gcc', shell=True,
-                                        custom_env=system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER,
-                                                                  lang=''))
+                                        custom_env={**system.gen_env(global_interpreter=system.USE_GLOBAL_INTERPRETER,
+                                                                     lang=''), 'LC_NUMERIC': ''})
 
         expected = {
             'firefox': {
@@ -109,7 +109,7 @@ Description: GNU C compiler
                 'section': 'web',
                 'maintainer': 'Distro Dev <root@distro.com>',
                 'architecture': 'amd64',
-                'uncompressed size': 247463936,
+                'uncompressed size': 236000000,
                 'predepends': ('distro-system-adjustments (>= 2021.12.16)', ),
                 'breaks': ('firefox-dbg (< 95.0.1+distro1+una)', 'firefox-dev (< 95.0.1+distro1+una)',
                            'firefox-geckodriver (< 95.0.1+distro1+una)', 'firefox-mozsymbols (< 95.0.1+distro1+una)'),
@@ -126,7 +126,7 @@ Description: GNU C compiler
                 'section': 'devel',
                 'maintainer': 'Distro Developers <distro-devel-discuss@lists.distro.com>',
                 'architecture': 'amd64',
-                'uncompressed size': 52429,
+                'uncompressed size': 51200,
                 'depends': ('cpp (= 4:9.3.0-1distro2)', 'gcc-9 (>= 9.3.0-3~)'),
                 'recommends': ('libc6-dev | libc-dev', ),
                 'suggests': ('gcc-multilib', 'make', 'manpages-dev', 'autoconf', 'automake',

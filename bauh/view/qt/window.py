@@ -1,5 +1,6 @@
 import logging
 import operator
+import os.path
 import time
 import traceback
 from pathlib import Path
@@ -764,6 +765,8 @@ class ManageWindow(QWidget):
     def _finish_uninstall(self, res: dict):
         self._finish_action(action_id=ACTION_UNINSTALL)
 
+        self._write_operation_logs('uninstall', res['pkg'])
+
         if res['success']:
             src_pkg = res['pkg']
             if self._can_notify_user():
@@ -796,7 +799,7 @@ class ManageWindow(QWidget):
                             for decrement, pkg_idx in enumerate(removed_idxs):
                                 del pkg_list[pkg_idx - decrement]
 
-                            if list_idx == 1:  # updates the rows if the current list reprents the displayed packages:
+                            if list_idx == 1:  # updates the rows if the current list represents the displayed packages:
                                 for decrement, idx in enumerate(removed_idxs):
                                     self.table_apps.removeRow(idx - decrement)
 
@@ -1152,19 +1155,10 @@ class ManageWindow(QWidget):
         self._finish_action()
 
         if res.get('id'):
-            output = self.textarea_details.toPlainText()
-
-            if output:
-                try:
-                    Path(UpgradeSelected.UPGRADE_LOGS_DIR).mkdir(parents=True, exist_ok=True)
-                    logs_path = '{}/{}.log'.format(UpgradeSelected.UPGRADE_LOGS_DIR, res['id'])
-                    with open(logs_path, 'w+') as f:
-                        f.write(output)
-
-                    self.textarea_details.appendPlainText('\n*Upgrade summary generated at: {}'.format(UpgradeSelected.SUMMARY_FILE.format(res['id'])))
-                    self.textarea_details.appendPlainText('*Upgrade logs generated at: {}'.format(logs_path))
-                except:
-                    traceback.print_exc()
+            self._write_operation_logs('upgrade', custom_log_file=f"{UpgradeSelected.UPGRADE_LOGS_DIR}/{res['id']}.log")
+            sum_log_file = UpgradeSelected.SUMMARY_FILE.format(res['id'])
+            summ_msg = '* ' + self.i18n['console.upgrade_summary'].format(path=f'"{sum_log_file}"')
+            self.textarea_details.appendPlainText(summ_msg)
 
         if res['success']:
             self.comp_manager.remove_saved_state(ACTION_UPGRADE)
@@ -1246,6 +1240,7 @@ class ManageWindow(QWidget):
 
     def _finish_downgrade(self, res: dict):
         self._finish_action()
+        self._write_operation_logs('downgrade', res['app'])
 
         if res['success']:
             self.comp_manager.remove_saved_state(ACTION_DOWNGRADE)
@@ -1384,24 +1379,41 @@ class ManageWindow(QWidget):
         self.thread_install.root_pwd = pwd
         self.thread_install.start()
 
-    def _finish_install(self, res: dict):
-        self._finish_action(action_id=ACTION_INSTALL)
+    def _write_operation_logs(self, type_: str, pkg: Optional[PackageView] = None,
+                              custom_log_file: Optional[str] = None):
 
         console_output = self.textarea_details.toPlainText()
 
         if console_output:
-            log_path = f"{LOGS_DIR}/install/{res['pkg'].model.get_type()}/{res['pkg'].model.name}"
+            if custom_log_file:
+                log_dir = os.path.dirname(custom_log_file)
+                log_file = custom_log_file
+            else:
+                log_dir = f"{LOGS_DIR}/{type_}"
+                if pkg:
+                    log_dir = f"{log_dir}/{pkg.model.get_type()}/{pkg.model.name}"
+
+                log_file = f'{log_dir}/{int(time.time())}.log'
+
             try:
-                Path(log_path).mkdir(parents=True, exist_ok=True)
+                Path(log_dir).mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.logger.error(f"Could not create the operation log directory '{log_dir}'")
+                return
 
-                log_file = f'{log_path}/{int(time.time())}.log'
-
+            try:
                 with open(log_file, 'w+') as f:
                     f.write(console_output)
+            except OSError:
+                self.logger.error(f"Could not write the operation log to file '{log_file}'")
+                return
 
-                self.textarea_details.appendPlainText(self.i18n['console.install_logs.path'].format('"{}"'.format(log_file)))
-            except:
-                self.textarea_details.appendPlainText("[warning] Could not write install log file to '{}'".format(log_path))
+            log_msg = '\n* ' + self.i18n['console.operation_log'].format(path=f'"{log_file}"')
+            self.textarea_details.appendPlainText(log_msg)
+
+    def _finish_install(self, res: dict):
+        self._finish_action(action_id=ACTION_INSTALL)
+        self._write_operation_logs('install', res['pkg'])
 
         if res['success']:
             if self._can_notify_user():
@@ -1537,7 +1549,7 @@ class ManageWindow(QWidget):
         if self.settings_window:
             self.settings_window.handle_display()
         else:
-            self.settings_window = SettingsWindow(self.manager, self.i18n, self.screen_size, self)
+            self.settings_window = SettingsWindow(manager=self.manager, i18n=self.i18n, window=self)
             self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
             self.settings_window.resize(self.size())
             self.settings_window.adjustSize()

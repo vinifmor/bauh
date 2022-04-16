@@ -10,12 +10,12 @@ from typing import List, Optional, Tuple, Set, Type, Dict, Iterable, Generator
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SoftwareAction, TransactionResult, UpgradeRequirements, \
-    SearchResult, UpgradeRequirement
+    SearchResult, UpgradeRequirement, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageSuggestion, PackageUpdate, PackageHistory, \
     CustomSoftwareAction
-from bauh.api.abstract.view import ViewComponent, TextInputComponent, PanelComponent, FormComponent, MessageType, \
+from bauh.api.abstract.view import TextInputComponent, PanelComponent, FormComponent, MessageType, \
     SingleSelectComponent, InputOption, SelectViewType
 from bauh.api.paths import CONFIG_DIR
 from bauh.commons.html import bold
@@ -33,7 +33,7 @@ from bauh.gems.debian.suggestions import DebianSuggestionsDownloader
 from bauh.gems.debian.tasks import UpdateApplicationIndex, MapApplications, SynchronizePackages
 
 
-class DebianPackageManager(SoftwareManager):
+class DebianPackageManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(DebianPackageManager, self).__init__(context)
@@ -59,10 +59,18 @@ class DebianPackageManager(SoftwareManager):
         self._apps_index = {app.name: app for app in apps} if apps else dict()
 
     def search(self, words: str, disk_loader: Optional[DiskCacheLoader], limit: int, is_url: bool) -> SearchResult:
+        config_ = dict()
+        fill_config = Thread(target=self._fill_config, args=(config_,))
+        fill_config.start()
+
         res = SearchResult.empty()
 
         if not is_url:
             for pkg in self.aptitude.search(words):
+                if fill_config.is_alive():
+                    fill_config.join()
+                    
+                pkg.global_purge = bool(config_.get('remove.purge', False))
                 if pkg.installed:
                     pkg.bind_app(self.apps_index.get(pkg.name))
                     res.installed.append(pkg)
@@ -86,21 +94,32 @@ class DebianPackageManager(SoftwareManager):
                 if line_clean:
                     output.add(line_clean)
 
+    def _fill_config(self, config_: dict):
+        config_.update(self.configman.get_config())
+
     def read_installed(self, disk_loader: Optional[DiskCacheLoader], pkg_types: Optional[Set[Type[SoftwarePackage]]],
                        internet_available: bool, limit: int = -1, only_apps: bool = False,
                        names: Optional[Iterable[str]] = None) -> SearchResult:
+
+        config_ = dict()
+        fill_config = Thread(target=self._fill_config, args=(config_,))
+        fill_config.start()
 
         ignored_updates = set()
         fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
         fill_ignored_updates.start()
 
+        threads = (fill_config, fill_ignored_updates)
+
         res = SearchResult(installed=[], new=None, total=0)
 
         for pkg in self.aptitude.read_installed():
-            if fill_ignored_updates.is_alive():
-                fill_ignored_updates.join()
+            for t in threads:
+                if t.is_alive():
+                    t.join()
 
             pkg.bind_app(self.apps_index.get(pkg.name))
+            pkg.global_purge = bool(config_.get('remove.purge', False))
             pkg.updates_ignored = bool(ignored_updates and pkg.name in ignored_updates)
             res.installed.append(pkg)
 
@@ -128,9 +147,12 @@ class DebianPackageManager(SoftwareManager):
     def uninstall(self, pkg: DebianPackage, root_password: str, watcher: ProcessWatcher,
                   disk_loader: Optional[DiskCacheLoader], purge: bool = False) -> TransactionResult:
 
+        config_ = self.configman.get_config()
+        purge_ = purge or config_.get('remove.purge', False)
+
         watcher.change_substatus(self._i18n['debian.simulate_operation'])
 
-        transaction = self.aptitude.simulate_removal((pkg.name,), purge=purge)
+        transaction = self.aptitude.simulate_removal((pkg.name,), purge=purge_)
 
         if not transaction or not transaction.to_remove:
             return TransactionResult.fail()
@@ -176,7 +198,7 @@ class DebianPackageManager(SoftwareManager):
         to_remove = tuple(p.name for p in transaction.to_remove)
         with self.output_handler.start(watcher=watcher, targets=to_remove, action=AptitudeAction.REMOVE) as handle:
             removed, _ = handler.handle_simple(self.aptitude.remove(packages=to_remove, root_password=root_password,
-                                                                    purge=purge),
+                                                                    purge=purge_),
                                                output_handler=handle)
 
         if not removed:
@@ -521,7 +543,7 @@ class DebianPackageManager(SoftwareManager):
         if suggestions:
             output.update(suggestions)
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         name_priority = dict()
 
         fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,))
@@ -568,12 +590,23 @@ class DebianPackageManager(SoftwareManager):
             final_cmd = pkg.app.exe_path.replace('%U', '')
             Popen(final_cmd, shell=True)
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
-        deb_config = self.configman.get_config()
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
+        config_ = self.configman.get_config()
 
-        comps_width = int(screen_width * 0.105)
+        purge_opts = [InputOption(label=self._i18n['yes'].capitalize(), value=True),
+                      InputOption(label=self._i18n['no'].capitalize(), value=False)]
 
-        sources_app = deb_config.get('pkg_sources.app')
+        purge_current = tuple(o for o in purge_opts if o.value == bool(config_['remove.purge']))[0]
+        sel_purge = SingleSelectComponent(id_='remove.purge',
+                                          label=self._i18n['debian.config.remove.purge'],
+                                          tooltip=self._i18n['debian.config.remove.purge.tip'],
+                                          options=purge_opts,
+                                          default_option=purge_current,
+                                          type_=SelectViewType.RADIO,
+                                          max_width=200,
+                                          max_per_line=2)
+
+        sources_app = config_.get('pkg_sources.app')
 
         if isinstance(sources_app, str) and sources_app not in self.known_sources_apps:
             self._log.warning(f"'pkg_sources.app' ({sources_app}) is not supported. A 'None' value will be considered")
@@ -591,25 +624,25 @@ class DebianPackageManager(SoftwareManager):
                                               options=source_opts,
                                               default_option=next(o for o in source_opts if o.value == sources_app),
                                               type_=SelectViewType.COMBO,
-                                              max_width=comps_width)
+                                              max_width=200)
 
         try:
-            app_cache_exp = int(deb_config.get('index_apps.exp', 0))
+            app_cache_exp = int(config_.get('index_apps.exp', 0))
         except ValueError:
             self._log.error(f"Unexpected value form Debian configuration property 'index_apps.exp': "
-                            f"{deb_config['index_apps.exp']}. Zero (0) will be considered instead.")
+                            f"{config_['index_apps.exp']}. Zero (0) will be considered instead.")
             app_cache_exp = 0
 
         ti_index_apps_exp = TextInputComponent(id_='index_apps.exp',
                                                label=self._i18n['debian.config.index_apps.exp'],
                                                tooltip=self._i18n['debian.config.index_apps.exp.tip'],
                                                value=str(app_cache_exp), only_int=True,
-                                               max_width=comps_width)
+                                               max_width=60)
 
         try:
-            sync_pkgs_time = int(deb_config.get('sync_pkgs.time', 0))
+            sync_pkgs_time = int(config_.get('sync_pkgs.time', 0))
         except ValueError:
-            self._log.error(f"Unexpected value form Debian configuration property 'sync_pkgs.time': {deb_config['sync_pkgs.time']}. "
+            self._log.error(f"Unexpected value form Debian configuration property 'sync_pkgs.time': {config_['sync_pkgs.time']}. "
                             f"Zero (0) will be considered instead.")
             sync_pkgs_time = 0
 
@@ -617,12 +650,12 @@ class DebianPackageManager(SoftwareManager):
                                           label=self._i18n['debian.config.sync_pkgs.time'],
                                           tooltip=self._i18n['debian.config.sync_pkgs.time.tip'],
                                           value=str(sync_pkgs_time), only_int=True,
-                                          max_width=comps_width)
+                                          max_width=60)
 
         try:
-            suggestions_exp = int(deb_config.get('suggestions.exp', 0))
+            suggestions_exp = int(config_.get('suggestions.exp', 0))
         except ValueError:
-            self._log.error(f"Unexpected value form Debian configuration property 'suggestions.exp': {deb_config['suggestions.exp']}. "
+            self._log.error(f"Unexpected value form Debian configuration property 'suggestions.exp': {config_['suggestions.exp']}. "
                             f"Zero (0) will be considered instead.")
             suggestions_exp = 0
 
@@ -630,26 +663,37 @@ class DebianPackageManager(SoftwareManager):
                                                 label=self._i18n['debian.config.suggestions.exp'],
                                                 tooltip=self._i18n['debian.config.suggestions.exp.tip'],
                                                 value=str(suggestions_exp), only_int=True,
-                                                max_width=comps_width)
+                                                max_width=60)
 
-        return PanelComponent([FormComponent([input_sources, ti_sync_pkgs, ti_index_apps_exp, ti_suggestions_exp])])
+        panel = PanelComponent([FormComponent([input_sources, sel_purge, ti_sync_pkgs, ti_index_apps_exp,
+                                               ti_suggestions_exp])])
+        yield SettingsView(self, panel)
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        deb_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
-        container = component.components[0]
+        container = component.get_component_by_idx(0, FormComponent)
 
-        if isinstance(container, FormComponent):
-            deb_config['pkg_sources.app'] = container.get_single_select_component('pkg_sources.app').get_selected()
-            deb_config['index_apps.exp'] = container.get_text_input('index_apps.exp').get_int_value()
-            deb_config['sync_pkgs.time'] = container.get_text_input('sync_pkgs.time').get_int_value()
-            deb_config['suggestions.exp'] = container.get_text_input('suggestions.exp').get_int_value()
+        for prop, type_ in {'remove.purge': SingleSelectComponent,
+                            'pkg_sources.app': SingleSelectComponent,
+                            'index_apps.exp': TextInputComponent,
+                            'sync_pkgs.time': TextInputComponent,
+                            'suggestions.exp': TextInputComponent}.items():
+            comp = container.get_component(prop, type_)
 
-            try:
-                self.configman.save_config(deb_config)
-                return True, None
-            except:
-                return False, [traceback.format_exc()]
+            val = None
+            if isinstance(comp, SingleSelectComponent):
+                val = comp.get_selected()
+            elif isinstance(comp, TextInputComponent):
+                val = comp.get_int_value()
+
+            config_[prop] = val
+
+        try:
+            self.configman.save_config(config_)
+            return True, None
+        except:
+            return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:
         if self._default_actions is None:

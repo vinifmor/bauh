@@ -58,7 +58,7 @@ class SearchResult:
 
 class UpgradeRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: int = None, extra_size: int = None, sorting_priority: int = 0):
+    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: float = None, extra_size: float = None, sorting_priority: int = 0):
         """
 
         :param pkg:
@@ -117,6 +117,29 @@ class SoftwareAction(Enum):
     UNINSTALL = 3
     UPGRADE = 4
     DOWNGRADE = 5
+
+
+class SettingsController(ABC):
+
+    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
+        """
+        :return: a tuple with a bool informing if the settings were saved and a list of error messages
+        """
+        pass
+
+
+class SettingsView:
+
+    def __init__(self, controller: SettingsController, component: ViewComponent, label: Optional[str] = None,
+                 icon_path: Optional[str] = None):
+
+        self.controller = controller
+        self.component = component
+        self.label = label
+        self.icon_path = icon_path
+
+    def save(self) -> Tuple[bool, Optional[List[str]]]:
+        return self.controller.save_settings(self.component)
 
 
 class SoftwareManager(ABC):
@@ -337,8 +360,7 @@ class SoftwareManager(ABC):
         """
         pass
 
-    @abstractmethod
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         """
         :param limit: max suggestions to be returned. If limit < 0, it should not be considered
         :param filter_installed: if the installed suggestions should not be retrieved
@@ -379,17 +401,9 @@ class SoftwareManager(ABC):
         """
         pass
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         """
-        :param screen_width
-        :param screen_height
-        :return: a form abstraction with all available settings
-        """
-        pass
-
-    def save_settings(self, component: ViewComponent) -> Tuple[bool, Optional[List[str]]]:
-        """
-        :return: a tuple with a bool informing if the settings were saved and a list of error messages
+        :return: panel abstractions with optional icon paths associated with
         """
         pass
 

@@ -49,6 +49,7 @@ QTableWidget QToolButton#bt_task {
 
 QTableWidget QToolButton[text_only = "true"] {
     min-width: 80px;
+    max-width: 150px;
 }
 
 QMenu QPushButton {
@@ -198,7 +199,7 @@ ManageWindow QSearchBar#name_filter QPushButton#search_button {
 
 ManageWindow QWidget#table_filters QPushButton[root = "true"] {
     min-width: 100px;
-    max-width: 100px;
+    max-width: 150px;
     min-height: 18px;
     max-height: 18px;
 }

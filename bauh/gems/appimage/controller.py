@@ -12,17 +12,17 @@ from pathlib import Path
 from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
-from packaging.version import parse as parse_version
 from packaging.version import LegacyVersion
+from packaging.version import parse as parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
-    TransactionResult, SoftwareAction
+    TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpdate, PackageSuggestion, \
     SuggestionPriority, CustomSoftwareAction
-from bauh.api.abstract.view import MessageType, ViewComponent, FormComponent, InputOption, SingleSelectComponent, \
+from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, \
     SelectViewType, TextInputComponent, PanelComponent, FileChooserComponent, ViewObserver
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
@@ -67,7 +67,7 @@ class ManualInstallationFileObserver(ViewObserver):
             self.version.set_value(None)
 
 
-class AppImageManager(SoftwareManager):
+class AppImageManager(SoftwareManager, SettingsController):
 
     def __init__(self, context: ApplicationContext):
         super(AppImageManager, self).__init__(context=context)
@@ -767,7 +767,7 @@ class AppImageManager(SoftwareManager):
         if not dbfiles or len({f for f in (DATABASE_APPS_FILE, DATABASE_RELEASES_FILE) if f in dbfiles}) != 2:
             return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         res = []
 
         connection = self._get_db_connection(DATABASE_APPS_FILE)
@@ -850,38 +850,38 @@ class AppImageManager(SoftwareManager):
                     print(f'{Fore.RED}[bauh][appimage] An exception has happened when deleting {f}{Fore.RESET}')
                     traceback.print_exc()
 
-    def get_settings(self, screen_width: int, screen_height: int) -> Optional[ViewComponent]:
-        appimage_config = self.configman.get_config()
-        max_width = floor(screen_width * 0.15)
+    def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
+        config_ = self.configman.get_config()
+        max_width = 50
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
-                               value=int(appimage_config['database']['expiration']) if isinstance(
-                                   appimage_config['database']['expiration'], int) else '',
+                               value=int(config_['database']['expiration']) if isinstance(
+                                   config_['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
                                id_='appim_db_exp'),
             TextInputComponent(label=self.i18n['appimage.config.suggestions.expiration'],
-                               value=int(appimage_config['suggestions']['expiration']) if isinstance(
-                                   appimage_config['suggestions']['expiration'], int) else '',
+                               value=int(config_['suggestions']['expiration']) if isinstance(
+                                   config_['suggestions']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.suggestions.expiration.tip'],
                                only_int=True,
                                max_width=max_width,
                                id_='appim_sugs_exp')
         ]
 
-        return PanelComponent([FormComponent(components=comps, id_='form')])
+        yield SettingsView(self, PanelComponent([FormComponent(components=comps)]))
 
     def save_settings(self, component: PanelComponent) -> Tuple[bool, Optional[List[str]]]:
-        appimage_config = self.configman.get_config()
+        config_ = self.configman.get_config()
 
-        form = component.get_form_component('form')
-        appimage_config['database']['expiration'] = form.get_text_input('appim_db_exp').get_int_value()
-        appimage_config['suggestions']['expiration'] = form.get_text_input('appim_sugs_exp').get_int_value()
+        form = component.get_component_by_idx(0, FormComponent)
+        config_['database']['expiration'] = form.get_component('appim_db_exp', TextInputComponent).get_int_value()
+        config_['suggestions']['expiration'] = form.get_component('appim_sugs_exp', TextInputComponent).get_int_value()
 
         try:
-            self.configman.save_config(appimage_config)
+            self.configman.save_config(config_)
             return True, None
         except:
             return False, [traceback.format_exc()]

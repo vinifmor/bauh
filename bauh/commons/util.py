@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from logging import Logger
-from typing import Optional
+from typing import Optional, Union
 
 
 class NullLoggerFactory(ABC):
@@ -28,23 +28,37 @@ def deep_update(source: dict, overrides: dict):
     return source
 
 
-def size_to_byte(size: float, unit: str) -> int:
-    lower_unit = unit.lower()
+def size_to_byte(size: Union[float, int, str], unit: str, logger: Optional[Logger] = None) -> Optional[float]:
+    lower_unit = unit.strip().lower()
 
-    if lower_unit[0] == 'b':
-        final_size = size
-    elif lower_unit[0] == 'k':
-        final_size = size * 1024
-    elif lower_unit[0] == 'm':
-        final_size = size * (1024 ** 2)
-    elif lower_unit[0] == 'g':
-        final_size = size * (1024 ** 3)
-    elif lower_unit[0] == 't':
-        final_size = size * (1024 ** 4)
+    if isinstance(size, str):
+        try:
+            final_size = float(size.strip().replace(',', '.').replace(' ', ''))
+        except ValueError:
+            if logger:
+                logger.error(f"Could not parse string size {size} to bytes")
+            return
     else:
-        final_size = size * (1024 ** 5)
+        final_size = float(size)
 
-    return round(final_size)
+    if unit == 'b':
+        return final_size / 8
+
+    if unit == 'B':
+        return final_size
+
+    base = 1024 if lower_unit.endswith('ib') else 1000
+
+    if lower_unit[0] == 'k':
+        return final_size * base
+    elif lower_unit[0] == 'm':
+        return final_size * (base ** 2)
+    elif lower_unit[0] == 'g':
+        return final_size * (base ** 3)
+    elif lower_unit[0] == 't':
+        return final_size * (base ** 4)
+    else:
+        return final_size * (base ** 5)
 
 
 def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:
