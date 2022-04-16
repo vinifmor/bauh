@@ -4,8 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.10.2]
-
+## [0.10.2] 2022-04-16
 ### Improvements
 - Arch
   - install:
@@ -20,9 +19,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/arch_aur_tabs.png">
     </p>  
   
-- Flatpak
-  - faster updates reading (threaded)
-  
 - Debian
   - install: installation/download sizes order (to follow the upgrade dialog order) 
   - uninstall: dependencies dialog size
@@ -32,8 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.2/debian_purge_opt.png">
    </p>
 
-- Web
-  - installation form width
+- Flatpak
+  - faster updates reading (threaded)
 
 - General
   - code refactoring
@@ -44,13 +40,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - changing some words and symbols to improve readability and cohesion [#250](https://github.com/vinifmor/bauh/issues/250)
     - displaying update sizes as localized numbers [#250](https://github.com/vinifmor/bauh/issues/250)
   - settings: some components' width reduced
+
+- Web
+  - installation form width
     
   
 ### Fixes
-- General
-  - not properly converting bibyte (KiB, MiB, ...) and byte (kB, MB, ...) based sizes to bytes
-  - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
-  
 - Arch:
   - displaying already installed packages when suggesting optional dependencies (pacman >= 6.0)
 
@@ -65,6 +60,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - not displaying new required runtimes as updates (requires Flatpak >= 1.12)
   - upgrade: informing the download size as the additional installation size
   - random index out of bounds exception when reading updates
+
+- General
+  - not properly converting bibyte (KiB, MiB, ...) and byte (kB, MB, ...) based sizes to bytes
+  - uninstall and downgrade logs are not available [#255](https://github.com/vinifmor/bauh/issues/255)
 
 - UI
   - not displaying the right unit symbol for byte based sizes (kB, MB, TB, ...) [#250](https://github.com/vinifmor/bauh/issues/250)
