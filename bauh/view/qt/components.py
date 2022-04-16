@@ -524,10 +524,10 @@ class MultipleSelectQt(QGroupBox):
         if model.min_width and model.min_width > 0:
             self.setMinimumWidth(int(model.min_width))
 
-        if model.max_width > 0:
+        if model.max_width and model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
 
-        if model.max_height > 0:
+        if model.max_height and model.max_height > 0:
             self.setMaximumHeight(int(model.max_height))
 
         if model.label:
@@ -547,8 +547,12 @@ class MultipleSelectQt(QGroupBox):
                 comp.setChecked(True)
 
             widget = QWidget()
+            widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
             widget.setLayout(QHBoxLayout())
             widget.layout().addWidget(comp)
+
+            if model.opt_max_width and model.opt_max_width > 0:
+                widget.setMinimumWidth(int(model.opt_max_width))
 
             if op.tooltip:
                 help_icon = QLabel()
@@ -585,10 +589,10 @@ class FormMultipleSelectQt(QWidget):
         if model.min_width and model.min_width > 0:
             self.setMinimumWidth(int(model.min_width))
 
-        if model.max_width > 0:
+        if model.max_width and model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
 
-        if model.max_height > 0:
+        if model.max_height and model.max_height > 0:
             self.setMaximumHeight(int(model.max_height))
 
         self._layout = QGridLayout()
@@ -610,8 +614,12 @@ class FormMultipleSelectQt(QWidget):
                 comp.setChecked(True)
 
             widget = QWidget()
+            widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
             widget.setLayout(QHBoxLayout())
             widget.layout().addWidget(comp)
+
+            if model.opt_max_width and model.opt_max_width > 0:
+                widget.setMinimumWidth(int(model.opt_max_width))
 
             if op.tooltip:
                 help_icon = QLabel()
