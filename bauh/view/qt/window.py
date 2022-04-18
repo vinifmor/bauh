@@ -811,6 +811,9 @@ class ManageWindow(QWidget):
             self._show_console_checkbox_if_output()
             self._update_installed_filter()
             self.begin_apply_filters()
+            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self._resize(accept_lower_width=True)
             notify_tray()
         else:
             self._show_console_errors()
@@ -1127,9 +1130,11 @@ class ManageWindow(QWidget):
 
         new_width = max(table_width, toolbar_width, topbar_width)
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
+        new_width = int(new_width)
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
-            self.resize(int(new_width), self.height())
+            self.resize(new_width, self.height())
+            self.setMinimumWidth(new_width)
 
     def set_progress_controll(self, enabled: bool):
         self.progress_controll_enabled = enabled
