@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.3]
+
+### Improvements
+- UI
+  - using pre-defined sizes for the main window (percentages do not work well with the current UI)
+
 ## [0.10.2] 2022-04-16
 ### Improvements
 - Arch
