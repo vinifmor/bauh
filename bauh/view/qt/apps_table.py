@@ -570,10 +570,10 @@ class PackagesTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             if maximized:
-                if i not in (4, 5, 8):
-                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-                else:
+                if i in (2, 3):
                     header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)
+                else:
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
             else:
                 header_horizontal.setSectionResizeMode(i, policy)
 

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - UI
   - using pre-defined sizes for the main window (percentages do not work well with the current UI)
+  - table columns width for maximized window
 
 ## [0.10.2] 2022-04-16
 ### Improvements
