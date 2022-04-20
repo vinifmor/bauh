@@ -2,7 +2,7 @@ from packaging.version import Version
 
 from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.commons import resource
-from bauh.gems.flatpak import ROOT_DIR, VERSION_1_2, VERSION_1_5
+from bauh.gems.flatpak import ROOT_DIR, VERSION_1_2
 from bauh.view.util.translation import I18n
 
 
@@ -136,6 +136,12 @@ class FlatpakApplication(SoftwarePackage):
             return f'{self.id}/{self.branch}/{self.installation}/{self.origin}'
         else:
             return f'{self.installation}/{self.ref}'
+
+    def can_be_installed(self) -> bool:
+        return not self.update_component and not self.installed
+
+    def can_be_updated(self) -> bool:
+        return self.update_component or super(FlatpakApplication, self).can_be_updated()
 
     def can_be_uninstalled(self) -> bool:
         return not self.update_component and super(FlatpakApplication, self).can_be_uninstalled()

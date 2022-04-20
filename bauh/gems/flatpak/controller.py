@@ -231,7 +231,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                                         latest_version=ref_split[-1],
                                                                         runtime=True,
                                                                         installation=installation,
-                                                                        installed=True,
+                                                                        installed=False,
                                                                         update_component=True,
                                                                         update=True)
 
