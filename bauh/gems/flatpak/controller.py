@@ -297,7 +297,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
 
             try:
                 if req.pkg.update_component:
-                    res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=ref,
+                    res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=req.pkg.id,
                                                                                    installation=req.pkg.installation,
                                                                                    origin=req.pkg.origin,
                                                                                    version=flatpak_version))
