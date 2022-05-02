@@ -5,10 +5,7 @@ from datetime import datetime
 from logging import Logger
 from typing import Optional, Union
 
-re_command_forbidden_symbols = re.compile(r'[\'\"%$#*<>|&]')
-re_several_spaces = re.compile(r'\s+')
-re_command_parameter = re.compile(r'(^|\s)-+\w+')
-
+re_command_forbidden_symbols = None
 
 class NullLoggerFactory(ABC):
 
@@ -76,13 +73,16 @@ def map_timestamp_file(file_path: str) -> str:
 
 
 def sanitize_command_input(input_: str) -> str:
+    global re_command_forbidden_symbols
+
+    if not re_command_forbidden_symbols:
+        # compiles only the first time if it is called
+        re_command_forbidden_symbols = re.compile(r'[^0-9a-zÀ-ú\s]') 
+
     final_input = input_
 
     for op in ('|', '&'):
         final_input = final_input.split(op)[0]
 
-    for remove_re in (re_command_forbidden_symbols, re_command_parameter):
-        final_input = remove_re.sub('', final_input)
-
-    final_input = re_several_spaces.sub(' ', final_input)
+    final_input = re.sub(re_command_forbidden_symbols, ' ', final_input)
     return final_input.strip()
