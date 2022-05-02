@@ -159,23 +159,24 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             norm_query = sanitize_command_input(words).lower()
             self.logger.info(f"Search query: {norm_query}")
 
-            is_url = bool(RE_IS_URL.match(norm_query))
-            disk_loader = self.disk_loader_factory.new()
-            disk_loader.start()
+            if norm_query:
+                is_url = bool(RE_IS_URL.match(norm_query))
+                disk_loader = self.disk_loader_factory.new()
+                disk_loader.start()
 
-            threads = []
+                threads = []
 
-            for man in self.managers:
-                t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
-                t.start()
-                threads.append(t)
+                for man in self.managers:
+                    t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
+                    t.start()
+                    threads.append(t)
 
-            for t in threads:
-                t.join()
+                for t in threads:
+                    t.join()
 
-            if disk_loader:
-                disk_loader.stop_working()
-                disk_loader.join()
+                if disk_loader:
+                    disk_loader.stop_working()
+                    disk_loader.join()
 
             # res.installed = self._sort(res.installed, norm_word)
             # res.new = self._sort(res.new, norm_word)
