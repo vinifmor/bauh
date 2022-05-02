@@ -4,7 +4,7 @@ import time
 import traceback
 from subprocess import Popen, STDOUT
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable
+from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable, Pattern
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
@@ -16,6 +16,7 @@ from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
+from bauh.commons.util import sanitize_command_input
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
@@ -155,16 +156,17 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         res = SearchResult.empty()
 
         if self.context.is_internet_available():
-            norm_word = words.strip().lower()
+            norm_query = sanitize_command_input(words).lower()
+            self.logger.info(f"Search query: {norm_query}")
 
-            is_url = bool(RE_IS_URL.match(norm_word))
+            is_url = bool(RE_IS_URL.match(norm_query))
             disk_loader = self.disk_loader_factory.new()
             disk_loader.start()
 
             threads = []
 
             for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, is_url, man, disk_loader, res))
+                t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
                 t.start()
                 threads.append(t)
 

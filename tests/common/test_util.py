@@ -1,6 +1,7 @@
+import time
 from unittest import TestCase
 
-from bauh.commons.util import size_to_byte
+from bauh.commons.util import size_to_byte, sanitize_command_input
 
 
 class SizeToByteTest(TestCase):
@@ -46,3 +47,46 @@ class SizeToByteTest(TestCase):
 
     def test_must_treat_string_sizes_before_converting(self):
         self.assertEqual(57300, size_to_byte(' 57 , 3  ', ' K '))
+
+
+class SanitizeCommandInputTest(TestCase):
+
+    def test__must_remove_any_forbidden_symbols(self):
+        input_ = ' #$%* abc-def@ #%<<>> '
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc-def@', res)
+
+    def test__must_remove_single_quotes(self):
+        input_ = " 'abc'-'xpto' "
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc-xpto', res)
+
+    def test__must_remove_double_quotes(self):
+        input_ = ' "abc"-"xpto" '
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc-xpto', res)
+
+    def test__must_remove_the_pipe_operator(self):
+        input_ = '  abc | ls /home/xpto | cat /home/xpto/secret.txt'
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc', res)
+
+    def test__must_remove_the_and_operator(self):
+        input_ = '  abc && ls /home/xpto & cat /home/xpto/secret.txt'
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc', res)
+
+    def test__must_remove_several_operator(self):
+        input_ = '  abc | ls /home/xpto && cat /home/xpto/secret.txt'
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc', res)
+
+    def test__must_remove_single_dash_parameters(self):
+        input_ = '-cat abc-def -user -system ghi--jkl -xpto '
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc-def ghi--jkl', res)
+
+    def test__must_remove_double_dash_parameters(self):
+        input_ = '--cat abc-def --user -system ghi--jkl --xpto '
+        res = sanitize_command_input(input_)
+        self.assertEqual('abc-def ghi--jkl', res)
