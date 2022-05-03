@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import Logger
 from typing import Optional, Union
 
-re_command_forbidden_symbols = re.compile(r'[\'\"%$#*<>|&]')
+re_command_forbidden_symbols = re.compile(r'[\'\"%$#*<>]')
 re_several_spaces = re.compile(r'\s+')
 re_command_parameter = re.compile(r'(^|\s)-+\w+')
 
