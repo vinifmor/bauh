@@ -85,7 +85,7 @@ class PackagesTable(QTableWidget):
         self.horizontalHeader().setVisible(False)
         self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setSelectionBehavior(QTableView.SelectRows)
-        self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
+        self.setHorizontalHeaderLabels(('' for _ in range(self.columnCount())))
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
@@ -156,8 +156,7 @@ class PackagesTable(QTableWidget):
 
         custom_actions = pkg.model.get_custom_actions()
         if custom_actions:
-            actions = [self._map_custom_action(pkg, a, menu_row) for a in custom_actions]
-            menu_row.addActions(actions)
+            menu_row.addActions((self._map_custom_action(pkg, a, menu_row) for a in custom_actions))
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
