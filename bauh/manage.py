@@ -8,6 +8,7 @@ from bauh import ROOT_DIR, __app_name__, __version__
 from bauh.api import user
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.http import HttpClient
+from bauh.api.scaling import MeasureScaler
 from bauh.commons.internet import InternetChecker
 from bauh.context import generate_i18n, DEFAULT_I18N_KEY, new_qt_application
 from bauh.view.core import gems
@@ -55,10 +56,11 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
 
     manager = GenericSoftwareManager(managers, context=context, config=app_config)
 
-    app = new_qt_application(app_config=app_config, logger=logger, quit_on_last_closed=True)
+    app, scaler = new_qt_application(app_config=app_config, logger=logger, quit_on_last_closed=True)
 
     screen_size = app.primaryScreen().size()
     context.screen_width, context.screen_height = screen_size.width(), screen_size.height()
+    context.scaler = scaler
 
     if app_args.settings:  # only settings window
         manager.cache_available_managers()

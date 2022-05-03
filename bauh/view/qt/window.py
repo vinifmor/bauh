@@ -114,6 +114,7 @@ class ManageWindow(QWidget):
         self.screen_size = screen_size
         self.config = config
         self.context = context
+        self.scaler = context.scaler
         self.http_client = http_client
 
         self.icon_app = icon
@@ -453,8 +454,8 @@ class ManageWindow(QWidget):
 
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
-        self.setMinimumHeight(550)
-        self.setMinimumWidth(1000)
+        self.setMinimumHeight(self.scaler.apply_margin_ratio(500))
+        self.setMinimumWidth(self.scaler.apply_margin_ratio(1000))
         self._register_groups()
 
     def _register_groups(self):
@@ -1663,7 +1664,9 @@ class ManageWindow(QWidget):
 
     def _map_theme_action(self, theme: ThemeMetadata, menu: QMenu) -> QCustomMenuAction:
         def _change_theme():
-            set_theme(theme_key=theme.key, app=QApplication.instance(), logger=self.context.logger)
+            set_theme(theme_key=theme.key, app=QApplication.instance(), logger=self.context.logger,
+                      scaler=self.context.scaler)
+
             self.thread_save_theme.theme_key = theme.key
             self.thread_save_theme.start()
 

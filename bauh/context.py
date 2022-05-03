@@ -7,6 +7,7 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QApplication
 
 from bauh import __app_name__, __version__
+from bauh.api.scaling import MeasureScaler
 from bauh.stylesheet import process_theme, read_default_themes, read_user_themes, read_theme_metada
 from bauh.view.util import util, translation
 from bauh.view.util.translation import I18n
@@ -15,7 +16,8 @@ DEFAULT_I18N_KEY = 'en'
 PROPERTY_HARDCODED_STYLESHEET = 'hcqss'
 
 
-def new_qt_application(app_config: dict, logger: Logger, quit_on_last_closed: bool = False, name: str = None) -> QApplication:
+def new_qt_application(app_config: dict, logger: Logger, quit_on_last_closed: bool = False, name: str = None) -> \
+        Tuple[QApplication, MeasureScaler]:
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(quit_on_last_closed)  # otherwise windows opened through the tray icon kill the application when closed
     app.setApplicationName(name if name else __app_name__)
@@ -30,12 +32,17 @@ def new_qt_application(app_config: dict, logger: Logger, quit_on_last_closed: bo
     app.setProperty('qt_style', app.style().objectName().lower())
 
     theme_key = app_config['ui']['theme'].strip() if app_config['ui']['theme'] else None
-    set_theme(theme_key=theme_key, app=app, logger=logger)
+
+    screen_size = app.primaryScreen().size()
+    scaler = MeasureScaler(screen_width=screen_size.width(), screen_height=screen_size.height(),
+                           screen_dpi=app.primaryScreen().logicalDotsPerInch(),
+                           enabled=app_config['ui']['auto_scale'])
+    set_theme(theme_key=theme_key, app=app, scaler=scaler, logger=logger)
 
     if not app_config['ui']['system_theme']:
         app.setPalette(app.style().standardPalette())
 
-    return app
+    return app, scaler
 
 
 def _gen_i18n_data(app_config: dict, locale_dir: str) -> Tuple[str, dict, str, dict]:
@@ -58,7 +65,7 @@ def update_i18n(app_config, locale_dir: str, i18n: I18n) -> I18n:
     return i18n
 
 
-def set_theme(theme_key: str, app: QCoreApplication, logger: Logger):
+def set_theme(theme_key: str, app: QCoreApplication, scaler: MeasureScaler, logger: Logger):
     if not theme_key:
         logger.warning("config: no theme defined")
     else:
@@ -85,20 +92,21 @@ def set_theme(theme_key: str, app: QCoreApplication, logger: Logger):
                 theme_str = f.read()
 
             if not theme_str:
-                logger.warning("theme file '{}' has no content".format(theme_file))
+                logger.warning(f"theme file '{theme_file}' has no content")
             else:
                 base_metadata = read_theme_metada(key=theme_key, file_path=theme_file)
 
                 if base_metadata.abstract:
-                    logger.warning("theme file '{}' is abstract (abstract = true) and cannot be loaded".format(theme_file))
+                    logger.warning(f"theme file '{theme_file}' is abstract (abstract = true) and cannot be loaded")
                 else:
                     processed = process_theme(file_path=theme_file,
                                               metadata=base_metadata,
                                               theme_str=theme_str,
-                                              available_themes=available_themes)
+                                              available_themes=available_themes,
+                                              scaler=scaler)
 
                     if processed:
                         app.setStyleSheet(processed[0])
-                        logger.info("theme file '{}' loaded".format(theme_file))
+                        logger.info(f"theme file '{theme_file}' loaded")
                     else:
-                        logger.warning("theme file '{}' could not be interpreted and processed".format(theme_file))
+                        logger.warning(f"theme file '{theme_file}' could not be interpreted and processed")

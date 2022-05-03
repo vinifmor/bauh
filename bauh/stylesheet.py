@@ -1,14 +1,17 @@
 import glob
 import os
 import re
-from typing import Optional, Dict, Tuple, Set
+import traceback
+from re import Pattern
+from typing import Optional, Dict, Tuple, Set, Callable, Union
 
 from bauh.api.paths import USER_THEMES_DIR
+from bauh.api.scaling import MeasureScaler
 from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
-# RE_WIDTH_PERCENT = re.compile(r'[\d\\.]+%w') TODO percentage measures disabled for the moment (requires more testing)
-# RE_HEIGHT_PERCENT = re.compile(r'[\d\\.]+%h') TODO percentage measures disabled for the moment (requires more testing)
+RE_SCALE_MARGIN = re.compile(r'[\d\\.]+%m')
+RE_SCALE_FONT = re.compile(r'[\d\\.]+%f')
 RE_META_I18N_FIELDS = re.compile(r'((name|description)(\[\w+])?)')
 RE_VAR_PATTERN = re.compile(r'^@[\w.\-_]+')
 RE_QSS_EXT = re.compile(r'\.qss$')
@@ -130,7 +133,9 @@ def read_all_themes_metadata() -> Set[ThemeMetadata]:
 
 
 def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
-                  available_themes: Optional[Dict[str, str]]) -> Optional[Tuple[str, ThemeMetadata]]:
+                  available_themes: Optional[Dict[str, str]], scaler: MeasureScaler) -> \
+        Optional[Tuple[str, ThemeMetadata]]:
+
     if theme_str and metadata:
         root_theme = None
         if metadata.root_theme and metadata.root_theme in available_themes:
@@ -145,7 +150,9 @@ def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
                     root_theme = process_theme(file_path=root_file,
                                                theme_str=root_theme_str,
                                                metadata=root_metadata,
-                                               available_themes=available_themes)
+                                               available_themes=available_themes,
+                                               scaler=scaler)
+                    print(root_theme[0])
 
         var_map = _read_var_file(file_path)
         var_map['images'] = resource.get_path('img')
@@ -158,10 +165,8 @@ def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
             for var in var_list:
                 theme_str = theme_str.replace('@' + var, var_map[var])
 
-        # TODO percentage measures disabled for the moment (requires more testing)
-        # screen_size = QApplication.primaryScreen().size()
-        # theme_str = process_width_percent_measures(theme_str, screen_size.width())
-        # theme_str = process_height_percent_measures(theme_str, screen_size.height())
+        for pattern, scale in ((RE_SCALE_MARGIN, scaler.apply_margin_ratio), (RE_SCALE_FONT, scaler.apply_font_ratio)):
+            theme_str = scale_measures(theme_str, pattern, scale, scaler.enabled)
 
         return theme_str if not root_theme else '{}\n{}'.format(root_theme[0], theme_str), metadata
 
@@ -227,32 +232,21 @@ def process_var_of_vars(var_map: dict):
             break
 
 
-# TODO percentage measures disabled for the moment (requires more testing)
-# def process_width_percent_measures(theme: str, screen_width: int) -> str:
-#     width_measures = RE_WIDTH_PERCENT.findall(theme)
-#
-#     final_theme = theme
-#     if width_measures:
-#         for m in width_measures:
-#             try:
-#                 percent = float(m.split('%')[0])
-#                 final_theme = final_theme.replace(m, '{}px'.format(round(screen_width * percent)))
-#             except ValueError:
-#                 traceback.print_exc()
-#
-#     return final_theme
+def scale_measures(theme: str, pattern: Pattern, scaler: Callable[[Union[int, float]], Union[int, float]],
+                   enabled: bool) -> str:
 
+    to_scale = pattern.findall(theme)
 
-# def process_height_percent_measures(theme: str, screen_height: int) -> str:
-#     width_measures = RE_HEIGHT_PERCENT.findall(theme)
-#
-#     final_sheet = theme
-#     if width_measures:
-#         for m in width_measures:
-#             try:
-#                 percent = float(m.split('%')[0])
-#                 final_sheet = final_sheet.replace(m, '{}px'.format(round(screen_height * percent)))
-#             except ValueError:
-#                 traceback.print_exc()
-#
-#     return final_sheet
+    final_theme = theme
+    if to_scale:
+        for measure in to_scale:
+            try:
+                number = float(measure.split('%')[0])
+                scaled = scaler(number) if enabled and number > 0 else number
+            except ValueError:
+                traceback.print_exc()
+                continue
+
+            final_theme = final_theme.replace(measure, f'{scaled}px')
+
+    return final_theme

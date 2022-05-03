@@ -1,10 +1,12 @@
 import logging
 import sys
+from typing import Optional
 
 from bauh.api.abstract.cache import MemoryCacheFactory
 from bauh.api.abstract.disk import DiskCacheLoaderFactory
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.http import HttpClient
+from bauh.api.scaling import MeasureScaler
 from bauh.commons.internet import InternetChecker
 from bauh.view.util.translation import I18n
 
@@ -15,7 +17,7 @@ class ApplicationContext:
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
                  logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str,
                  app_version: str, internet_checker: InternetChecker, root_user: bool, screen_width: int = -1,
-                 screen_height: int = -1):
+                 screen_height: int = -1, scaler: Optional[MeasureScaler] = None):
         """
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
@@ -51,6 +53,7 @@ class ApplicationContext:
         self.internet_checker = internet_checker
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self.scaler = scaler
 
     def is_system_x86_64(self):
         return self.arch_x86_64

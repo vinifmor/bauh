@@ -207,12 +207,22 @@ class GenericSettingsManager(SettingsController):
                                                max_width=default_width,
                                                id_='hdpi')
 
-        scale_tip = self.i18n['core.config.ui.auto_scale.tip'].format('QT_AUTO_SCREEN_SCALE_FACTOR')
-        select_ascale = self._gen_bool_component(label=self.i18n['core.config.ui.auto_scale'],
-                                                 tooltip=scale_tip,
+        ascale_label = f"{self.i18n['core.config.ui.auto_scale']} ({self.i18n['experimental']})"
+        ascale_tip = self.i18n['core.config.ui.auto_scale.tip']
+        select_ascale = self._gen_bool_component(label=ascale_label,
+                                                 tooltip=ascale_tip,
                                                  value=bool(core_config['ui']['auto_scale']),
                                                  max_width=default_width,
+                                                 capitalize=False,
                                                  id_='auto_scale')
+
+        qt_ascale_tip = self.i18n['core.config.ui.qt_auto_scale.tip'].format('QT_AUTO_SCREEN_SCALE_FACTOR')
+        select_qt_ascale = self._gen_bool_component(label=self.i18n['core.config.ui.auto_scale'] + ' (QT)',
+                                                    tooltip=qt_ascale_tip,
+                                                    value=bool(core_config['ui']['qt_auto_scale']),
+                                                    max_width=default_width,
+                                                    capitalize=False,
+                                                    id_='qt_auto_scale')
 
         try:
             scale = float(core_config['ui']['scale_factor'])
@@ -273,7 +283,7 @@ class GenericSettingsManager(SettingsController):
                                                  max_width=default_width,
                                                  value=core_config['download']['icons'])
 
-        sub_comps = [FormComponent([select_hdpi, select_ascale, select_scale,
+        sub_comps = [FormComponent([select_hdpi, select_ascale, select_qt_ascale, select_scale,
                                     select_dicons, select_system_theme,
                                     select_style, input_maxd], spaces=False)]
 
@@ -350,8 +360,8 @@ class GenericSettingsManager(SettingsController):
         panel = PanelComponent([FormComponent(inputs, spaces=False)])
         return TabComponent(self.i18n['core.config.tab.general'].capitalize(), panel, None, 'core.gen')
 
-    def _gen_bool_component(self, label: str, tooltip: Optional[str], value: bool, id_: str, max_width: int = 200) \
-            -> SingleSelectComponent:
+    def _gen_bool_component(self, label: str, tooltip: Optional[str], value: bool, id_: str, max_width: int = 200,
+                            capitalize: bool = True) -> SingleSelectComponent:
 
         opts = [InputOption(label=self.i18n['yes'].capitalize(), value=True),
                 InputOption(label=self.i18n['no'].capitalize(), value=False)]
@@ -363,6 +373,7 @@ class GenericSettingsManager(SettingsController):
                                      tooltip=tooltip,
                                      max_per_line=len(opts),
                                      max_width=max_width,
+                                     capitalize_label=capitalize,
                                      id_=id_)
 
     def _save_settings(self, general: PanelComponent,
@@ -461,11 +472,14 @@ class GenericSettingsManager(SettingsController):
         core_config['download']['icons'] = ui_form.get_component('down_icons', SingleSelectComponent).get_selected()
         core_config['ui']['hdpi'] = ui_form.get_component('hdpi', SingleSelectComponent).get_selected()
 
-        previous_autoscale = core_config['ui']['auto_scale']
-
         core_config['ui']['auto_scale'] = ui_form.get_component('auto_scale', SingleSelectComponent).get_selected()
 
-        if previous_autoscale and not core_config['ui']['auto_scale']:
+        previous_qt_autoscale = core_config['ui']['qt_auto_scale']
+
+        qt_auto_scale = ui_form.get_component('qt_auto_scale', SingleSelectComponent).get_selected()
+        core_config['ui']['qt_auto_scale'] = qt_auto_scale
+
+        if previous_qt_autoscale and not core_config['ui']['qt_auto_scale']:
             self.logger.info("Deleting environment variable QT_AUTO_SCREEN_SCALE_FACTOR")
             del os.environ['QT_AUTO_SCREEN_SCALE_FACTOR']
 

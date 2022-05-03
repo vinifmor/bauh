@@ -43,6 +43,7 @@ class CoreConfigManager(YAMLConfigManager):
                 'qt_style': 'fusion',
                 'hdpi': True,
                 "auto_scale": False,
+                "qt_auto_scale": False,
                 "scale_factor": 1.0,
                 'theme': 'light',
                 'system_theme': False
