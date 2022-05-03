@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - General
   - preventing command injection through the search mechanism [#266](https://github.com/vinifmor/bauh/issues/266)
+  - code refactoring
   
 - UI
   - manage window minimum width related to the table columns 
