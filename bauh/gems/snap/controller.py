@@ -435,13 +435,13 @@ class SnapManager(SoftwareManager, SettingsController):
                                            (self.i18n['no'].capitalize(), False, None)],
                                      value=bool(snap_config['install_channel']),
                                      id_='snap_install_channel',
-                                     max_width=200,
+                                     max_width=self.context.scaler.apply_font_ratio(200),
                                      tip=self.i18n['snap.config.install_channel.tip'])
 
         cat_exp_val = snap_config['categories_exp'] if isinstance(snap_config['categories_exp'], int) else ''
         categories_exp = TextInputComponent(id_='snap_cat_exp',
                                             value=cat_exp_val,
-                                            max_width=60,
+                                            max_width=self.context.scaler.apply_font_ratio(60),
                                             only_int=True,
                                             label=self.i18n['snap.config.categories_exp'],
                                             tooltip=self.i18n['snap.config.categories_exp.tip'])

@@ -346,6 +346,9 @@ class FormComboBoxQt(QComboBox):
         self.model = model
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.view().setCursor(QCursor(Qt.PointingHandCursor))
+        self.setEditable(True)
+        self.lineEdit().setReadOnly(True)
+        self.lineEdit().setAlignment(Qt.AlignCenter)
 
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
@@ -362,6 +365,9 @@ class FormComboBoxQt(QComboBox):
                 self.setToolTip(model.value.tooltip)
 
         self.currentIndexChanged.connect(self._set_selected)
+
+        if model.id:
+            self.setObjectName(model.id)
 
     def _set_selected(self, idx: int):
         self.model.value = self.model.options[idx]
@@ -444,6 +450,9 @@ class ComboSelectQt(QGroupBox):
         self.setLayout(self._layout)
         self._layout.addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
         self._layout.addWidget(FormComboBoxQt(model), 0, 1)
+
+        if model.id:
+            self.setObjectName(model.id)
 
 
 class QLineEditObserver(QLineEdit, ViewObserver):
@@ -578,6 +587,9 @@ class MultipleSelectQt(QGroupBox):
             pos_label = QLabel()
             self.layout().addWidget(pos_label, line + 1, 1)
 
+        if model.id:
+            self.setObjectName(model.id)
+
 
 class FormMultipleSelectQt(QWidget):
 
@@ -643,6 +655,9 @@ class FormMultipleSelectQt(QWidget):
 
         if model.label:
             self.layout().addWidget(QLabel(), line + 1, 1)
+
+        if model.id:
+            self.setObjectName(model.id)
 
 
 class InputFilter(QLineEdit):

@@ -35,7 +35,7 @@ def new_qt_application(app_config: dict, logger: Logger, quit_on_last_closed: bo
 
     screen_size = app.primaryScreen().size()
     scaler = MeasureScaler(screen_width=screen_size.width(), screen_height=screen_size.height(),
-                           screen_dpi=app.primaryScreen().logicalDotsPerInch(),
+                           screen_dpi=int(app.primaryScreen().logicalDotsPerInch()),
                            enabled=app_config['ui']['auto_scale'])
     set_theme(theme_key=theme_key, app=app, scaler=scaler, logger=logger)
 

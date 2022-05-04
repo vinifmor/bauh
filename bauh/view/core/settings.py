@@ -1,7 +1,6 @@
 import os
 import time
 import traceback
-from math import floor
 from threading import Thread
 from typing import List, Tuple, Optional, Dict, Type, Iterable
 
@@ -79,7 +78,6 @@ class GenericSettingsManager(SettingsController):
             gem_selector = MultipleSelectComponent(label=None,
                                                    tooltip=None,
                                                    options=gem_opts,
-                                                   max_width=floor(self.context.screen_width * 0.22),
                                                    default_options=def_gem_opts,
                                                    id_="gems")
             tabs.append(TabComponent(label=self.i18n['core.config.tab.types'],
@@ -102,20 +100,21 @@ class GenericSettingsManager(SettingsController):
         return TabGroupComponent(tabs)
 
     def _gen_adv_settings(self, core_config: dict) -> TabComponent:
-        default_width = 300
+        default_width = self.context.scaler.apply_font_ratio(500)
 
+        input_width = self.context.scaler.apply_font_ratio(60)
         input_data_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.data_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.data_exp.tip'],
                                             value=str(core_config['memory_cache']['data_expiration']),
                                             only_int=True,
-                                            max_width=60,
+                                            max_width=input_width,
                                             id_="data_exp")
 
         input_icon_exp = TextInputComponent(label=self.i18n['core.config.mem_cache.icon_exp'],
                                             tooltip=self.i18n['core.config.mem_cache.icon_exp.tip'],
                                             value=str(core_config['memory_cache']['icon_expiration']),
                                             only_int=True,
-                                            max_width=60,
+                                            max_width=input_width,
                                             id_="icon_exp")
 
         select_trim = new_select(label=self.i18n['core.config.trim.after_upgrade'],
@@ -168,13 +167,13 @@ class GenericSettingsManager(SettingsController):
                           value=current_mthread_client)
 
     def _gen_tray_settings(self, core_config: dict) -> TabComponent:
-        default_width = 350
+        default_width = self.context.scaler.apply_font_ratio(350)
 
         input_update_interval = TextInputComponent(label=self.i18n['core.config.updates.interval'].capitalize(),
                                                    tooltip=self.i18n['core.config.updates.interval.tip'],
                                                    only_int=True,
                                                    value=str(core_config['updates']['check_interval']),
-                                                   max_width=60,
+                                                   max_width=self.context.scaler.apply_font_ratio(60),
                                                    id_="updates_interval")
 
         allowed_exts = {'png', 'svg', 'jpg', 'jpeg', 'ico', 'xpm'}
@@ -199,7 +198,7 @@ class GenericSettingsManager(SettingsController):
                             PanelComponent(sub_comps), None, 'core.tray')
 
     def _gen_ui_settings(self, core_config: dict) -> TabComponent:
-        default_width = 200
+        default_width = self.context.scaler.apply_font_ratio(300)
 
         select_hdpi = self._gen_bool_component(label=self.i18n['core.config.ui.hdpi'],
                                                tooltip=self.i18n['core.config.ui.hdpi.tip'],
@@ -235,7 +234,7 @@ class GenericSettingsManager(SettingsController):
         select_scale = RangeInputComponent(id_="scalef", label=self.i18n['core.config.ui.scale_factor'] + ' (%)',
                                            tooltip=self.i18n['core.config.ui.scale_factor.tip'],
                                            min_value=100, max_value=400, step_value=5, value=int(scale * 100),
-                                           max_width=60)
+                                           max_width=self.context.scaler.apply_font_ratio(80))
 
         if not core_config['ui']['qt_style']:
             cur_style = QApplication.instance().property('qt_style')
@@ -260,7 +259,7 @@ class GenericSettingsManager(SettingsController):
                                              options=style_opts,
                                              default_option=default_style,
                                              type_=SelectViewType.COMBO,
-                                             max_width=default_width,
+                                             max_width=self.context.scaler.apply_font_ratio(250),
                                              id_="style")
 
         systheme_tip = self.i18n['core.config.ui.system_theme.tip'].format(app=__app_name__)
@@ -274,7 +273,7 @@ class GenericSettingsManager(SettingsController):
                                         tooltip=self.i18n['core.config.ui.max_displayed.tip'],
                                         only_int=True,
                                         id_="table_max",
-                                        max_width=50,
+                                        max_width=self.context.scaler.apply_font_ratio(80),
                                         value=str(core_config['ui']['table']['max_displayed']))
 
         select_dicons = self._gen_bool_component(label=self.i18n['core.config.download.icons'],
@@ -290,7 +289,7 @@ class GenericSettingsManager(SettingsController):
         return TabComponent(self.i18n['core.config.tab.ui'].capitalize(), PanelComponent(sub_comps), None, 'core.ui')
 
     def _gen_general_settings(self, core_config: dict) -> TabComponent:
-        default_width = floor(0.15 * self.context.screen_width)
+        default_width = self.context.scaler.apply_font_ratio(350)
 
         locale_keys = translation.get_available_keys()
         locale_opts = [InputOption(label=self.i18n[f'locale.{k}'].capitalize(), value=k) for k in locale_keys]
@@ -313,7 +312,7 @@ class GenericSettingsManager(SettingsController):
                                            options=locale_opts,
                                            default_option=current_locale,
                                            type_=SelectViewType.COMBO,
-                                           max_width=default_width,
+                                           max_width=self.context.scaler.apply_font_ratio(250),
                                            id_='locale')
 
         sel_store_pwd = self._gen_bool_component(label=self.i18n['core.config.store_password'].capitalize(),
@@ -345,7 +344,7 @@ class GenericSettingsManager(SettingsController):
                                       tooltip=self.i18n['core.config.suggestions.by_type.tip'],
                                       value=str(core_config['suggestions']['by_type']),
                                       only_int=True,
-                                      max_width=50,
+                                      max_width=self.context.scaler.apply_font_ratio(50),
                                       id_="sugs_by_type")
 
         inp_reboot = new_select(label=self.i18n['core.config.updates.reboot'],
@@ -586,7 +585,7 @@ class GenericSettingsManager(SettingsController):
 
     def _gen_backup_settings(self, core_config: dict) -> TabComponent:
         if timeshift.is_available():
-            default_width = 350
+            default_width = self.context.scaler.apply_font_ratio(500)
 
             enabled_opt = self._gen_bool_component(label=self.i18n['core.config.backup'],
                                                    tooltip=None,

@@ -665,7 +665,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=160,
+                                                max_width=self.context.scaler.apply_font_ratio(160),
                                                 type_=SelectViewType.COMBO,
                                                 id_='install'))
 

@@ -2831,6 +2831,8 @@ class ArchManager(SoftwareManager, SettingsController):
                                      capitalize_label=capitalize_label)
 
     def _get_general_settings(self, arch_config: dict, max_width: int) -> SettingsView:
+        input_width = self.context.scaler.apply_font_ratio(80)
+
         db_sync_start = self._gen_bool_selector(id_='sync_dbs_start',
                                                 label_key='arch.config.sync_dbs',
                                                 tooltip_key='arch.config.sync_dbs_start.tip',
@@ -2898,12 +2900,12 @@ class ArchManager(SoftwareManager, SettingsController):
                                label=self.i18n['arch.config.mirrors_sort_limit'],
                                tooltip=self.i18n['arch.config.mirrors_sort_limit.tip'],
                                only_int=True,
-                               max_width=50,
+                               max_width=input_width,
                                value=arch_config['mirrors_sort_limit'] if isinstance(arch_config['mirrors_sort_limit'], int) else ''),
             TextInputComponent(id_='arch_cats_exp',
                                label=self.i18n['arch.config.categories_exp'],
                                tooltip=self.i18n['arch.config.categories_exp.tip'],
-                               max_width=50,
+                               max_width=input_width,
                                only_int=True,
                                capitalize_label=False,
                                value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
@@ -2973,14 +2975,14 @@ class ArchManager(SoftwareManager, SettingsController):
                                  label=self.i18n['arch.config.aur_build_dir'],
                                  tooltip=self.i18n['arch.config.aur_build_dir.tip'].format(
                                      get_build_dir(arch_config, self.pkgbuilder_user)),
-                                 max_width=round(max_width * 0.65),
+                                 max_width=self.context.scaler.apply_font_ratio(300),
                                  file_path=arch_config['aur_build_dir'],
                                  capitalize_label=False,
                                  directory=True),
             TextInputComponent(id_='aur_idx_exp',
                                label=self.i18n['arch.config.aur_idx_exp'],
                                tooltip=self.i18n['arch.config.aur_idx_exp.tip'],
-                               max_width=50,
+                               max_width=self.context.scaler.apply_font_ratio(50),
                                only_int=True,
                                capitalize_label=False,
                                value=arch_config['aur_idx_exp'] if isinstance(arch_config['aur_idx_exp'], int) else '')
@@ -2992,7 +2994,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         arch_config = self.configman.get_config()
-        max_width = floor(self.context.screen_width * 0.25)
+        max_width = self.context.scaler.apply_font_ratio(480)
         yield self._get_general_settings(arch_config, max_width)
         yield self._get_aur_settings(arch_config, max_width)
 

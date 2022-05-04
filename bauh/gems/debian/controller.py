@@ -593,6 +593,9 @@ class DebianPackageManager(SoftwareManager, SettingsController):
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         config_ = self.configman.get_config()
 
+        select_width = self.context.scaler.apply_font_ratio(200)
+        input_width = self.context.scaler.apply_font_ratio(60)
+
         purge_opts = [InputOption(label=self._i18n['yes'].capitalize(), value=True),
                       InputOption(label=self._i18n['no'].capitalize(), value=False)]
 
@@ -603,7 +606,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                           options=purge_opts,
                                           default_option=purge_current,
                                           type_=SelectViewType.RADIO,
-                                          max_width=200,
+                                          max_width=select_width,
                                           max_per_line=2)
 
         sources_app = config_.get('pkg_sources.app')
@@ -624,7 +627,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                               options=source_opts,
                                               default_option=next(o for o in source_opts if o.value == sources_app),
                                               type_=SelectViewType.COMBO,
-                                              max_width=200)
+                                              max_width=select_width)
 
         try:
             app_cache_exp = int(config_.get('index_apps.exp', 0))
@@ -637,7 +640,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                                label=self._i18n['debian.config.index_apps.exp'],
                                                tooltip=self._i18n['debian.config.index_apps.exp.tip'],
                                                value=str(app_cache_exp), only_int=True,
-                                               max_width=60)
+                                               max_width=input_width)
 
         try:
             sync_pkgs_time = int(config_.get('sync_pkgs.time', 0))
@@ -650,7 +653,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                           label=self._i18n['debian.config.sync_pkgs.time'],
                                           tooltip=self._i18n['debian.config.sync_pkgs.time.tip'],
                                           value=str(sync_pkgs_time), only_int=True,
-                                          max_width=60)
+                                          max_width=input_width)
 
         try:
             suggestions_exp = int(config_.get('suggestions.exp', 0))
@@ -663,7 +666,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                                 label=self._i18n['debian.config.suggestions.exp'],
                                                 tooltip=self._i18n['debian.config.suggestions.exp.tip'],
                                                 value=str(suggestions_exp), only_int=True,
-                                                max_width=60)
+                                                max_width=input_width)
 
         panel = PanelComponent([FormComponent([input_sources, sel_purge, ti_sync_pkgs, ti_index_apps_exp,
                                                ti_suggestions_exp])])

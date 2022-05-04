@@ -1,12 +1,12 @@
 QPushButton, QToolButton {
-    padding: 5%f;
+    padding: 5%fpx;
 }
 
 QComboBox, QLineEdit, QSpinBox {
-    border-width: 1%f;
+    border-width: 1%fpx;
     border-style: solid;
-    border-radius: 5%f;
-    padding: 3%f;
+    border-radius: 5%fpx;
+    padding: 3%fpx;
 }
 
 QComboxBox:!editable, QComboBox::drop-down  {
@@ -14,9 +14,9 @@ QComboxBox:!editable, QComboBox::drop-down  {
 }
 
 QComboBox::down-arrow {
-    height: 8%f;
-    width: 8%f;
-    padding-right: 10%f;
+    height: 8%fpx;
+    width: 8%fpx;
+    padding-right: 10%fpx;
 }
 
 QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off, QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {
@@ -24,8 +24,8 @@ QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off, QSpinBox::down-arrow:disabl
 }
 
 QCheckBox::indicator {
-    width: 18%f;
-    height: 18%f;
+    width: 18%fpx;
+    height: 18%fpx;
 }
 
 QCheckBox[warning = "true"] {
@@ -33,29 +33,29 @@ QCheckBox[warning = "true"] {
 }
 
 QProgressBar {
-    max-height: 4%f;
+    max-height: 4%fpx;
 }
 
 QTableWidget QToolButton {
-    padding: 5%f;
-    margin-top: 3%m;
-    margin-bottom: 3%m;
+    padding: 5%fpx;
+    margin-top: 3%fpx;
+    margin-bottom: 3%fpx;
 }
 
 QTableWidget QToolButton#bt_task {
-    margin-top: 1%m;
-    margin-bottom: 1%m;
+    margin-top: 1%fpx;
+    margin-bottom: 1%fpx;
 }
 
 QTableWidget QToolButton[text_only = "true"] {
-    min-width: 80%f;
-    max-width: 150%f;
+    min-width: 80%fpx;
+    max-width: 150%fpx;
 }
 
 QMenu QPushButton {
     border: 0px;
     background: none;
-    padding: 5%f;
+    padding: 5%fpx;
     text-align: left;
 }
 
@@ -69,44 +69,44 @@ QLabel[help_icon = "true"], QLabel[warning_icon = "true"]  {
 
 QLabel[tip_icon = "true"] {
     qproperty-scaledContents: True;
-    min-height: 12%f;
-    max-height: 12%f;
-    min-width: 12%f;
-    max-width: 12%f;
+    min-height: 14%f;
+    max-height: 14%f;
+    min-width: 14%f;
+    max-width: 14%f;
 }
 
 QLabel#confirm_dialog_icon {
      qproperty-scaledContents: True;
-     min-width: 32%m;
-     max-width: 32%m;
-     min-height: 32%m;
-     max-height: 32%m;
+     min-width: 32%fpx;
+     max-width: 32%fpx;
+     min-height: 32%fpx;
+     max-height: 32%fpx;
 
 }
 
 QCustomToolbar QWidget[spacer = "true"] {
-    min-width: 5%f;
+    min-width: 5%fpx;
 }
 
 FormQt {
-    min-width: 600%f;
+    min-width: 600%fpx;
     font-weight: bold;
-    font-size: 12%f;
-    border-radius: 6%f;
-    margin-top: 6%f;
+    font-size: 12%fpx;
+    border-radius: 6%fpx;
+    margin-top: 6%fpx;
 }
 
 FormQt::title {
     subcontrol-origin: margin;
-    left: 7%m;
-    padding: 0px 5%f 0px 5%f;
+    left: 7%fpx;
+    padding: 0px 5%fpx 0px 5%fpx;
 }
 
 FormQt IconButton#clean_field {
-    min-width: 14%m;
-    max-width: 14%m;
-    min-height: 14%m;
-    max-height: 14%m;
+    min-width: 16%mpx;
+    max-width: 16%mpx;
+    min-height: 16%mpx;
+    max-height: 16%mpx;
 }
 
 QSearchBar QPushButton {
@@ -114,29 +114,29 @@ QSearchBar QPushButton {
 }
 
 QSearchBar QLabel#lb_left_corner {
-     border-top-left-radius: 5%f;
-     border-bottom-left-radius: 5%f;
-     border-left-width: 1%f;
+     border-top-left-radius: 5%fpx;
+     border-bottom-left-radius: 5%fpx;
+     border-left-width: 1%fpx;
      border-left-style: solid;
-     border-top-width: 1%f;
+     border-top-width: 1%fpx;
      border-top-style: solid;
-     border-bottom-width: 1%f;
+     border-bottom-width: 1%fpx;
      border-bottom-style: solid;
      border-right: 0px;
 }
 
 QSearchBar QPushButton#search_button {
-    qproperty-iconSize: 10%m 10%m;
-    padding-right: 10%f;
-    border-top-right-radius: 5%f;
-    border-bottom-right-radius: 5%f;
-    border-right-width: 1%f;
+    qproperty-iconSize: 10%fpx 10%fpx;
+    padding-right: 10%fpx;
+    border-top-right-radius: 5%fpx;
+    border-bottom-right-radius: 5%fpx;
+    border-right-width: 1%fpx;
     border-right-style: solid;
-    border-top-width: 1%f;
+    border-top-width: 1%fpx;
     border-top-style: solid;
-    border-bottom-width: 1%f;
+    border-bottom-width: 1%fpx;
     border-bottom-style: solid;
-    height: 30%f;
+    height: 30%fpx;
     border-left: none;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
@@ -144,12 +144,12 @@ QSearchBar QPushButton#search_button {
 
 QSearchBar QLineEdit#inp_search {
      spacing: 0;
-     height: 30%f;
-     font-size: 12%f;
-     width: 300%f;
-     border-top-width: 1%f;
+     height: 30%fpx;
+     font-size: 12%fpx;
+     width: 300%fpx;
+     border-top-width: 1%fpx;
      border-top-style: solid;
-     border-bottom-width: 1%f;
+     border-bottom-width: 1%fpx;
      border-bottom-style: solid;
      border-left: none;
      border-right: none;
@@ -162,7 +162,7 @@ RadioSelectQt {
 }
 
 RadioSelectQt#radio_select_notitle {
-    padding-top: 5%f;
+    padding-top: 5%fpx;
 }
 
 ComboSelectQt QGridLayout, RangeInputQt QGridLayout, TextInputQt QGridLayout {
@@ -175,56 +175,56 @@ ComboSelectQt QLabel, RangeInputQt QLabel, TextInputQt QLabel {
 
 MultipleSelectQt {
     font-weight: bold;
-    font-size: 12%f;
-    border: 1%f solid none;
-    border-radius: 6%f;
-    margin-top: 6%f;
+    font-size: 12%fpx;
+    border: 1%fpx solid none;
+    border-radius: 6%fpx;
+    margin-top: 6%fpx;
 }
 
 MultipleSelectQt::title {
     subcontrol-origin: margin;
-    left: 7%f;
-    padding: 0px 5%f 0px 5%f;
+    left: 7%fpx;
+    padding: 0px 5%fpx 0px 5%fpx;
 }
 
 ManageWindow QSearchBar#name_filter QLabel#lb_left_corner, ManageWindow QSearchBar#name_filter QLineEdit#inp_search, ManageWindow  QSearchBar#name_filter QPushButton#search_button  {
-    min-height: 27%f;
-    max-height: 27%f;
-    height: 27%f;
+    min-height: 27%fpx;
+    max-height: 27%fpx;
+    height: 27%fpx;
 }
 
 ManageWindow QSearchBar#name_filter QPushButton#search_button {
-    qproperty-iconSize: 9%f 9%f;
+    qproperty-iconSize: 9%fpx 9%fpx;
 }
 
 ManageWindow QWidget#table_filters QPushButton[root = "true"] {
-    min-width: 100%f;
-    max-width: 150%f;
-    min-height: 18%f;
-    max-height: 18%f;
+    min-width: 100%fpx;
+    max-width: 150%fpx;
+    min-height: 18%fpx;
+    max-height: 18%fpx;
 }
 
 ManageWindow QLabel#label_status {
     font-weight: bold;
-    letter-spacing: 0.7%f;
+    letter-spacing: 0.7%fpx;
 }
 
 ManageWindow QWidget#table_filters QCheckBox::indicator {
-    width: 22%m;
-    height: 22%m;
+    width: 22%fpx;
+    height: 22%fpx;
 }
 
 ConfirmationDialog QPushButton, QWidget[container = "true"] QPushButton, InfoDialog QPushButton {
-    min-width: 80%f;
+    min-width: 80%fpx;
 }
 
 ConfirmationDialog UpgradeToggleButton {
-    height: 10%f;
+    height: 10%fpx;
 }
 
 PreparePanel QLabel#prepare_status {
     font-weight: bold;
-    letter-spacing: 0.7%f;
+    letter-spacing: 0.7%fpx;
 }
 
 PreparePanel QPushButton#bt_hide_details {
@@ -238,28 +238,28 @@ PreparePanel QLabel#task_status[status = "done"], PreparePanel QLabel#task_progr
 }
 
 PreparePanel QTableWidget QToolButton {
-    min-width: 14%f;
-    max-width: 14%f;
-    min-height: 14%f;
-    max-height: 14%f;
+    min-width: 14%fpx;
+    max-width: 14%fpx;
+    min-height: 14%fpx;
+    max-height: 14%fpx;
 }
 
 ManageWindow QComboBox#combo_categories, ManageWindow QComboBox#combo_types {
-    height: 20%f;
-    min-width: 130%f;
+    height: 20%fpx;
+    min-width: 130%fpx;
 }
 
 ManageWindow QComboBox#combo_types {
-    qproperty-iconSize: 14px 14px;
+    qproperty-iconSize: 14%fpx 14%fpx;
 }
 
 ManageWindow QComboBox#combo_types > QLineEdit, ManageWindow QComboBox#combo_categories > QLineEdit {
-    height: 2px;
+    height: 2%fpx;
 }
 
 ManageWindow QSearchBar#name_filter {
-    min-width: 170;
-    max-width: 170;
+    min-width: 170%f;
+    max-width: 170%f;
 }
 
 ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, ManageWindow QPushButton#suggestions, ManageWindow QPushButton#bt_upgrade {
@@ -267,41 +267,41 @@ ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, Mana
 }
 
 PackagesTable QToolButton, PackagesTable UpgradeToggleButton {
-    min-width: 16px;
-    max-width: 16px;
-    min-height: 14px;
-    max-height: 14px;
+    min-width: 16%fpx;
+    max-width: 16%fpx;
+    min-height: 14%fpx;
+    max-height: 14%fpx;
 }
 
 PackagesTable QLabel#icon_publisher_verified {
     qproperty-scaledContents: True;
-    min-height: 10;
-    max-height: 10;
-    min-width: 10;
-    max-width: 10;
+    min-height: 10%f;
+    max-height: 10%f;
+    min-width: 10%f;
+    max-width: 10%f;
 }
 
 PackagesTable QLabel[icon = "true"]  {
     qproperty-scaledContents: True;
-    min-height: 16;
-    max-height: 16;
-    min-width: 16;
-    max-width: 16;
-    margin-left: 12px;
-    margin-right: 12px;
-    margin-top: 7px;
+    min-height: 16%f;
+    max-height: 16%f;
+    min-width: 16%f;
+    max-width: 16%f;
+    margin-left: 12%fpx;
+    margin-right: 12%fpx;
+    margin-top: 7%fpx;
 }
 
 PackagesTable QToolButton#bt_install {
-    font-size: 10px;
+    font-size: 10%fpx;
     font-weight: bold;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.6%fpx;
 }
 
 PackagesTable QToolButton#bt_uninstall {
-    font-size: 10px;
+    font-size: 10%fpx;
     font-weight: bold;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.6%fpx;
 }
 
 PackagesTable QLabel#app_version[ignored = "true"] {
@@ -315,39 +315,39 @@ AboutDialog QLabel {
 AboutDialog QLabel#logo {
     qproperty-pixmap: url("@images/logo.svg");
     qproperty-scaledContents: true;
-    min-height: 55px;
-    max-height: 55px;
-    min-width: 64px;
-    max-width: 64px;
+    min-height: 55%fpx;
+    max-height: 55%fpx;
+    min-width: 64%fpx;
+    max-width: 64%fpx;
 }
 
 AboutDialog QLabel#app_name {
-    font-size: 14px;
+    font-size: 14%fpx;
     font-weight: bold;
 }
 
 AboutDialog QLabel#app_version {
-    font-size: 11px;
+    font-size: 11%fpx;
     font-weight: bold;
 }
 
 AboutDialog QLabel#app_description {
-    min-width: 400px;
-    font-size: 12px;
+    min-width: 400%fpx;
+    font-size: 12%fpx;
     font-weight: bold;
 }
 
 AboutDialog QLabel#app_more_information, AboutDialog QLabel#app_license {
-    font-size: 11px;
+    font-size: 11%fpx;
 }
 
 AboutDialog > QLabel#app_trouble_question, AboutDialog > QLabel#app_rate_question {
-    font-size: 10px;
+    font-size: 10%fpx;
     font-weight: bold;
 }
 
 AboutDialog > QLabel#app_trouble_answer, AboutDialog > QLabel#app_rate_answer {
-    font-size: 10px;
+    font-size: 10%fpx;
 }
 
 RootDialog QLineEdit#password {
@@ -376,12 +376,12 @@ InfoDialog QLabel#field_name {
 }
 
 InfoDialog QLineEdit#field_value {
-    width: 400px;
+    width: 400%fpx;
 }
 
 InfoDialog QPushButton#show {
-    min-height: 16px;
-    max-height: 16px;
+    min-height: 16%fpx;
+    max-height: 16%fpx;
 }
 
 ScreenshotsDialog QLabel#image {
@@ -389,15 +389,34 @@ ScreenshotsDialog QLabel#image {
 }
 
 ScreenshotsDialog QAbstractButton[control = "true"] {
-    min-width: 100px;
+    min-width: 100%fpx;
 }
 
 ScreenshotsDialog QPushButton#close {
-    min-width: 25px;
+    min-width: 25%fpx;
+}
+
+SettingsWindow * {
+    font-size: 14%fpx;
 }
 
 SettingsWindow TabGroupQt#settings {
-    min-width: 400%m;
+    min-width: 400%fpx;
+}
+
+SettingsWindow FormMultipleSelectQt#gems {
+    max-width: 220%fpx;
+}
+
+SettingsWindow FormMultipleSelectQt#gems QCheckBox {
+    qproperty-iconSize: 18%fpx 18%fpx;
+}
+
+SettingsWindow FormMultipleSelectQt#gems QLabel[help_icon = "true"], SettingsWindow FormMultipleSelectQt#gems QLabel[warning_icon = "true"]  {
+    min-height: 18%f;
+    max-height: 18%f;
+    min-width: 18%f;
+    max-width: 18%f;
 }
 
 QMenu QPushButton[current = "true"] {

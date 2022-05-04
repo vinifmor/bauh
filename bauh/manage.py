@@ -62,6 +62,9 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
     context.screen_width, context.screen_height = screen_size.width(), screen_size.height()
     context.scaler = scaler
 
+    logger.info(f"Screen: {screen_size.width()} x {screen_size.height()} "
+                f"(DPI: {int(app.primaryScreen().logicalDotsPerInch())})")
+
     if app_args.settings:  # only settings window
         manager.cache_available_managers()
         return app, SettingsWindow(manager=manager, i18n=i18n, window=None)

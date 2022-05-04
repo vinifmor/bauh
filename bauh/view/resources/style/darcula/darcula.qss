@@ -38,8 +38,8 @@ QLineEdit:focus {
 }
 
 QPushButton {
-    border: 1px solid @pushbutton.border.color;
-    border-radius: 5px;
+    border: 1%fpx solid @pushbutton.border.color;
+    border-radius: 5%fpx;
     background-color: @pushbutton.background.color;
 }
 
@@ -54,16 +54,16 @@ QToolButton {
 
 QToolButton:hover {
     background-color: @toolbutton.hover.background.color;
-    border-radius: 3px;
+    border-radius: 3%fpx;
 }
 
 QLineEdit {
     selection-color: @menu.item.selected.font.color;
     selection-background-color: @menu.item.selected.background.color;
     background-color: @lineedit.background.color;
-    border: 1px solid @lineedit.border.color;
-    border-radius: 5px;
-    padding: 3px;
+    border: 1%fpx solid @lineedit.border.color;
+    border-radius: 5%fpx;
+    padding: 3%fpx;
 }
 
 QPlainTextEdit {
@@ -78,7 +78,7 @@ QScrollBar, QTableWidget QScrollBar {
 }
 
 QScrollBar::vertical{
-    max-width: 10px;
+    max-width: 10%fpx;
 }
 
 QScrollBar::handle {
@@ -99,9 +99,9 @@ QComboxBox:!editable, QComboBox::drop-down  {
 
 QComboBox::down-arrow {
     image: url("@style_dir/img/arrow_down.svg");
-    height: 10px;
-    width: 10px;
-    padding-right: 10px;
+    height: 10%fpx;
+    width: 10%fpx;
+    padding-right: 10%fpx;
 }
 
 QSpinBox {
@@ -171,12 +171,12 @@ QPlainTextEdit[console = 'true'] {
 
 QTabBar::tab:selected {
     color: @tab.font.color;
-    border: 1px solid @inner_widget.background.color;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    border-bottom: 2px solid @tab.underline.color;
+    border: 1%fpx solid @inner_widget.background.color;
+    border-top-left-radius: 5%fpx;
+    border-top-right-radius: 5%fpx;
+    border-bottom: 2%fpx solid @tab.underline.color;
     background-color: @tab.highlight.color;
-    padding: 5px;
+    padding: 5%fpx;
 }
 
 QProgressBar::chunk {
@@ -252,7 +252,7 @@ ManageWindow QSearchBar#name_filter {
 
 QPushButton#bt_upgrade {
     qproperty-icon: url("@style_dir/img/update.svg");
-    border: 0.5px solid @upgrade.color;
+    border: 0.5%fpx solid @upgrade.color;
     background: @outer_widget.background.color;
     color: @upgrade.color;
 }
@@ -286,8 +286,8 @@ PackagesTable QLabel#app_version:disabled[ignored = "true"] {
 
 PackagesTable UpgradeToggleButton, ConfirmationDialog UpgradeToggleButton {
     qproperty-icon: url("@style_dir/img/update.svg");
-    border: 0.5px solid @upgrade.color;
-    border-radius: 2px;
+    border: 0.5%fpx solid @upgrade.color;
+    border-radius: 2%fpx;
     background-color: @outer_widget.background.color;
 }
 
@@ -303,7 +303,7 @@ PackagesTable UpgradeToggleButton[enabled = "false"] {
 
 ManageWindow PackagesTable IconButton#app_info {
     qproperty-icon: url("@style_dir/img/about.svg");
-    qproperty-iconSize: 13px 13px;
+    qproperty-iconSize: 13%fpx 13%fpx;
 }
 
 QPushButton#bt_refresh {
@@ -348,12 +348,12 @@ ManageWindow PackagesTable IconButton#app_screenshots[_enabled = "false"] {
 
 ManageWindow IconButton#custom_actions {
     qproperty-icon: url("@style_dir/img/menu.svg");
-    qproperty-iconSize: 16px 16px;
+    qproperty-iconSize: 16%fpx 16%fpx;
 }
 
 ManageWindow IconButton#about {
     qproperty-icon: url("@style_dir/img/about.svg");
-    qproperty-iconSize: 16px 16px;
+    qproperty-iconSize: 16%fpx 16%fpx;
 }
 
 QMenu#app_actions QPushButton#app_history {
@@ -387,7 +387,7 @@ PackagesTable QLabel#icon_publisher_verified {
 PackagesTable QToolButton#bt_install {
     background-color: transparent;
     color: @table.bt_install.font.color;
-    font-size: 10.5px;
+    font-size: 10.5%fpx;
 }
 
 PackagesTable QToolButton#bt_install:hover, PackagesTable QToolButton#bt_uninstall:hover {
@@ -401,7 +401,7 @@ PackagesTable QToolButton#bt_install:disabled {
 PackagesTable QToolButton#bt_uninstall {
     background-color: transparent;
     color: @table.bt_uninstall.font.color;
-    font-size: 10.5px;
+    font-size: 10.5%fpx;
 }
 
 PackagesTable QToolButton#bt_uninstall:disabled {
@@ -447,5 +447,5 @@ HistoryDialog QTableWidget QLabel[outdated = "false"] {
 }
 
 InfoDialog QPushButton#show {
-    height: 16px;
+    height: 16%fpx;
 }

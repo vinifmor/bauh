@@ -152,7 +152,6 @@ def process_theme(file_path: str, theme_str: str, metadata: ThemeMetadata,
                                                metadata=root_metadata,
                                                available_themes=available_themes,
                                                scaler=scaler)
-                    print(root_theme[0])
 
         var_map = _read_var_file(file_path)
         var_map['images'] = resource.get_path('img')
@@ -242,11 +241,11 @@ def scale_measures(theme: str, pattern: Pattern, scaler: Callable[[Union[int, fl
         for measure in to_scale:
             try:
                 number = float(measure.split('%')[0])
-                scaled = scaler(number) if enabled and number > 0 else number
+                scaled = scaler(int(number) if number.is_integer() else number) if enabled and number > 0 else number
             except ValueError:
                 traceback.print_exc()
                 continue
 
-            final_theme = final_theme.replace(measure, f'{scaled}px')
+            final_theme = final_theme.replace(measure, str(scaled))
 
     return final_theme
