@@ -720,7 +720,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         for comps in (runtimes, apps):
             if comps:
                 comp_list = list(comps)
-                comp_list.sort(key=attrgetter('installation', 'name'))
+                comp_list.sort(key=attrgetter('installation', 'name', 'id'))
                 sorted_list.extend(comp_list)
 
         return sorted_list
