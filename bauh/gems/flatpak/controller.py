@@ -297,12 +297,14 @@ class FlatpakManager(SoftwareManager, SettingsController):
 
             try:
                 if req.pkg.update_component:
+                    self.logger.info(f"Installing {req.pkg}")
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=ref,
                                                                                    installation=req.pkg.installation,
                                                                                    origin=req.pkg.origin,
                                                                                    version=flatpak_version))
 
                 else:
+                    self.logger.info(f"Updating {req.pkg}")
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
                                                                                   installation=req.pkg.installation,
                                                                                   related=related,
