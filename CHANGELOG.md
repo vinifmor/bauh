@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - manage window minimum width related to the table columns 
   - table columns width for maximized window
 
+
+### Fixes
+- Flatpak
+  - not all selected runtime partials to upgrade are actually requested to be upgraded
+
 ## [0.10.2] 2022-04-16
 ### Improvements
 - Arch

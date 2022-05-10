@@ -125,7 +125,16 @@ class FlatpakApplication(SoftwarePackage):
 
     def __eq__(self, other):
         if isinstance(other, FlatpakApplication):
-            return self.id == other.id and self.installation == other.installation and self.branch == other.branch
+            return self.id == other.id and self.installation == other.installation and self.branch == other.branch \
+                   and self.runtime == other.runtime and self.partial == other.partial and \
+                   self.update_component == other.update_component
+
+    def __hash__(self) -> int:
+        hash_sum = 0
+        for attr in ('id', 'installation', 'branch', 'runtime', 'partial', 'update_component'):
+            hash_sum += hash(getattr(self, attr))
+
+        return hash_sum
 
     def get_disk_icon_path(self) -> str:
         if not self.runtime:

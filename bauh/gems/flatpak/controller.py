@@ -3,6 +3,7 @@ import re
 import traceback
 from datetime import datetime
 from math import floor
+from operator import attrgetter
 from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Optional, Generator, Dict
@@ -707,31 +708,22 @@ class FlatpakManager(SoftwareManager, SettingsController):
         return UpgradeRequirements(None, None, to_update, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
-        partials, runtimes, apps = [], [], []
+        runtimes, apps = set(), set()
 
         for p in pkgs:
             if p.runtime:
-                if p.partial:
-                    partials.append(p)
-                else:
-                    runtimes.append(p)
+                runtimes.add(p)
             else:
-                apps.append(p)
+                apps.add(p)
 
-        if not runtimes:
-            return [*partials, *apps]
-        elif partials:
-            all_runtimes = []
-            for runtime in runtimes:
-                for partial in partials:
-                    if partial.installation == runtime.installation and partial.base_id == runtime.id:
-                        all_runtimes.append(partial)
-                        break
+        sorted_list = []
+        for comps in (runtimes, apps):
+            if comps:
+                comp_list = list(comps)
+                comp_list.sort(key=attrgetter('installation', 'name'))
+                sorted_list.extend(comp_list)
 
-                all_runtimes.append(runtime)
-            return [*all_runtimes, *apps]
-        else:
-            return [*runtimes, *apps]
+        return sorted_list
 
     def _read_ignored_updates(self) -> Set[str]:
         ignored = set()
