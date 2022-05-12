@@ -9,6 +9,16 @@ class MessageType(Enum):
     ERROR = 2
 
 
+class ViewComponentAlignment(Enum):
+    CENTER = 0
+    LEFT = 1
+    RIGHT = 2
+    BOTTOM = 3
+    TOP = 4
+    HORIZONTAL_CENTER = 5
+    VERTICAL_CENTER = 6
+
+
 class ViewObserver:
 
     def on_change(self, change):
@@ -19,8 +29,10 @@ class ViewComponent(ABC):
     """
     Represents a GUI component
     """
-    def __init__(self, id_: Optional[str], observers: Optional[List[ViewObserver]] = None):
+    def __init__(self, id_: Optional[str], alignment: Optional[ViewComponentAlignment] = None,
+                 observers: Optional[List[ViewObserver]] = None):
         self.id = id_
+        self.alignment = alignment
         self.observers = observers if observers else []
 
     def add_observer(self, obs):
@@ -114,10 +126,11 @@ class SelectViewType(Enum):
 
 class SingleSelectComponent(InputViewComponent):
 
-    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption], default_option: InputOption = None,
-                 max_per_line: int = 1, tooltip: str = None, max_width: int = -1, id_: str = None,
-                 capitalize_label: bool = True):
-        super(SingleSelectComponent, self).__init__(id_=id_)
+    def __init__(self, type_: SelectViewType, label: str, options: List[InputOption],
+                 default_option: InputOption = None, max_per_line: int = 1, tooltip: str = None,
+                 max_width: Optional[int] = -1, id_: str = None, capitalize_label: bool = True,
+                 alignment: Optional[ViewComponentAlignment] = None):
+        super(SingleSelectComponent, self).__init__(id_=id_, alignment=alignment)
         self.type = type_
         self.label = label
         self.options = options

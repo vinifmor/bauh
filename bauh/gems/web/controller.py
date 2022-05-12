@@ -25,7 +25,7 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent, ViewComponentAlignment
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
@@ -1137,7 +1137,6 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                             value=web_config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
-                                            max_width=150,
                                             id_='electron_branch')
 
         native_opts = [
@@ -1150,7 +1149,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                                   default_option=[o for o in native_opts if o.value == web_config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
-                                                  max_width=150,
+                                                  alignment=ViewComponentAlignment.CENTER,
                                                   id_='nativefier')
 
         env_settings_exp = TextInputComponent(label=self.i18n['web.settings.cache_exp'],
@@ -1158,7 +1157,6 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                               capitalize_label=False,
                                               value=int(web_config['environment']['cache_exp']) if isinstance(web_config['environment']['cache_exp'], int) else '',
                                               only_int=True,
-                                              max_width=60,
                                               id_='web_cache_exp')
 
         sugs_exp = TextInputComponent(label=self.i18n['web.settings.suggestions.cache_exp'],
@@ -1167,7 +1165,6 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                       value=int(web_config['suggestions']['cache_exp']) if isinstance(
                                           web_config['suggestions']['cache_exp'], int) else '',
                                       only_int=True,
-                                      max_width=60,
                                       id_='web_sugs_exp')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),

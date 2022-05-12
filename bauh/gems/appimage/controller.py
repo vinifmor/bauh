@@ -852,7 +852,6 @@ class AppImageManager(SoftwareManager, SettingsController):
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         config_ = self.configman.get_config()
-        max_width = 50
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
@@ -860,14 +859,12 @@ class AppImageManager(SoftwareManager, SettingsController):
                                    config_['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
-                               max_width=max_width,
                                id_='appim_db_exp'),
             TextInputComponent(label=self.i18n['appimage.config.suggestions.expiration'],
                                value=int(config_['suggestions']['expiration']) if isinstance(
                                    config_['suggestions']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.suggestions.expiration.tip'],
                                only_int=True,
-                               max_width=max_width,
                                id_='appim_sugs_exp')
         ]
 

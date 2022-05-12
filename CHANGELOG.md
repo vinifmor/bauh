@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
   - manage window minimum width related to the table columns 
   - table columns width for maximized window
+  - settings window size rules moved to stylesheet files
 
 
 ### Fixes

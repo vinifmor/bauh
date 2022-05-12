@@ -18,7 +18,7 @@ from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
     SuggestionPriority, PackageStatus, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
-    PanelComponent
+    PanelComponent, ViewComponentAlignment
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
@@ -668,8 +668,8 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=160,
                                                 type_=SelectViewType.COMBO,
+                                                alignment=ViewComponentAlignment.CENTER,
                                                 id_='install'))
 
             yield SettingsView(self, PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())]))
