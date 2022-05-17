@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - manage window minimum width related to the table columns 
   - table columns width for maximized window
   - settings window size rules moved to stylesheet files
+  - enforcing maximum width and height for the management window based on the primary screen resolution [#261](https://github.com/vinifmor/bauh/issues/261)
 
 
 ### Fixes

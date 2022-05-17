@@ -453,8 +453,10 @@ class ManageWindow(QWidget):
 
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
-        self.setMinimumHeight(550)
-        self.setMinimumWidth(1000)
+        self.setMinimumHeight(int(screen_size.height() * 0.5))
+        self.setMaximumHeight(int(screen_size.height()))
+        self.setMinimumWidth(int(screen_size.width() * 0.5))
+        self.setMaximumWidth(int(screen_size.width() - screen_size.width() * 0.015))
         self._register_groups()
 
     def _register_groups(self):
@@ -1131,6 +1133,9 @@ class ManageWindow(QWidget):
         new_width = max(table_width, toolbar_width, topbar_width)
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
         new_width = int(new_width)
+
+        if new_width >= self.maximumWidth():
+            new_width = self.maximumWidth()
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
             self.resize(new_width, self.height())
