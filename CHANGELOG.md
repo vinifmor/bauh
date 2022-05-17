@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - settings window size rules moved to stylesheet files
   - enforcing maximum width and height for the management window based on the primary screen resolution [#261](https://github.com/vinifmor/bauh/issues/261)
   - updates: only displaying both the installed and latest versions on the "version" column if its width is no more than 22% of the primary screen width (otherwise just the latest version will be displayed)
+  - the app name displayed on the management window will be cut based on a percentage over the primary screen width (15%)
   - the app description displayed on the management window will be cut based on a percentage over the primary screen width (18%)
 
 ### Fixes

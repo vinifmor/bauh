@@ -18,7 +18,6 @@ from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
-NAME_MAX_SIZE = 30
 PUBLISHER_MAX_SIZE = 25
 
 
@@ -434,20 +433,20 @@ class PackagesTable(QTableWidget):
         col_name.setObjectName('app_name')
         col_name.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
 
-        name = pkg.model.get_display_name()
+        name = pkg.model.get_display_name().strip()
         if name:
             col_name.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
             col_name.setToolTip(self.i18n['app.name'].lower())
 
-        if len(name) > NAME_MAX_SIZE:
-            name = name[0:NAME_MAX_SIZE - 3] + '...'
-
-        if len(name) < NAME_MAX_SIZE:
-            name = name + ' ' * (NAME_MAX_SIZE - len(name))
-
         col_name.setText(name)
+        screen_perc = col_name.sizeHint().width() / self.screen_width
+
+        if screen_perc > 0.15:
+            max_chars = int(len(name) * 0.15 / screen_perc) - 3
+            col_name.setText(name[0:max_chars] + '...')
+
         self.setCellWidget(pkg.table_index, col, col_name)
 
     def _update_icon(self, label: QLabel, icon: QIcon):
