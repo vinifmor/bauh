@@ -18,8 +18,6 @@ from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
-PUBLISHER_MAX_SIZE = 25
-
 
 class UpgradeToggleButton(QToolButton):
 
@@ -487,15 +485,21 @@ class PackagesTable(QTableWidget):
         publisher = pkg.model.get_publisher()
         full_publisher = None
 
+        lb_name = QLabel()
+        lb_name.setObjectName('app_publisher')
+
         if publisher:
             publisher = publisher.strip()
             full_publisher = publisher
 
-            if len(publisher) > PUBLISHER_MAX_SIZE:
-                publisher = full_publisher[0: PUBLISHER_MAX_SIZE - 3] + '...'
+            if publisher:
+                lb_name.setText(publisher)
+                screen_perc = lb_name.sizeHint().width() / self.screen_width
 
-        lb_name = QLabel()
-        lb_name.setObjectName('app_publisher')
+                if screen_perc > 0.12:
+                    max_chars = int(len(publisher) * 0.12 / screen_perc) - 3
+                    publisher = publisher[0: max_chars] + '...'
+                    lb_name.setText(publisher)
 
         if not publisher:
             if not pkg.model.installed:
@@ -503,7 +507,7 @@ class PackagesTable(QTableWidget):
 
             publisher = self.i18n['unknown']
 
-        lb_name.setText('  {}'.format(publisher))
+        lb_name.setText(f'  {publisher}')
         item.addWidget(lb_name)
 
         if publisher and full_publisher:
