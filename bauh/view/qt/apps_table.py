@@ -19,7 +19,6 @@ from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
 NAME_MAX_SIZE = 30
-DESC_MAX_SIZE = 40
 PUBLISHER_MAX_SIZE = 25
 
 
@@ -467,10 +466,16 @@ class PackagesTable(QTableWidget):
         else:
             desc = '...'
 
-        if desc and desc != '...' and len(desc) > DESC_MAX_SIZE:
-            desc = strip_html(desc[0: DESC_MAX_SIZE - 1]) + '...'
+        if desc and desc != '...':
+            desc = strip_html(desc)
 
         item.setText(desc)
+
+        current_width_perc = item.sizeHint().width() / self.screen_width
+        if current_width_perc > 0.18:
+            max_width = int(len(desc) * 0.18 / current_width_perc) - 3
+            desc = desc[0:max_width] + '...'
+            item.setText(desc)
 
         if pkg.model.description:
             item.setToolTip(pkg.model.description)
