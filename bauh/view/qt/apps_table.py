@@ -72,8 +72,9 @@ class PackagesTable(QTableWidget):
     COL_NUMBER = 9
     DEFAULT_ICON_SIZE = QSize(16, 16)
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool, screen_width: int):
         super(PackagesTable, self).__init__()
+        self.screen_width = screen_width
         self.setObjectName('table_packages')
         self.setParent(parent)
         self.window = parent
@@ -382,8 +383,12 @@ class PackagesTable(QTableWidget):
             tooltip = self.i18n['version.updates_ignored']
 
         if pkg.model.installed and pkg.model.update and not pkg.model.is_update_ignored() and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
-            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], pkg.model.latest_version)
-            label_version.setText(label_version.text() + '  >  {}'.format(pkg.model.latest_version))
+            tooltip = f"{tooltip} ({self.i18n['version.installed']}: {pkg.model.version}  |  " \
+                      f"{self.i18n['version.latest']}: {pkg.model.latest_version})"
+            label_version.setText(f"{label_version.text()} > {pkg.model.latest_version}")
+
+            if label_version.sizeHint().width() / self.screen_width > 0.20:
+                label_version.setText(pkg.model.latest_version)
 
         item.setToolTip(tooltip)
         self.setCellWidget(pkg.table_index, col, item)

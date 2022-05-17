@@ -277,7 +277,9 @@ class ManageWindow(QWidget):
         self.table_container.setLayout(QVBoxLayout())
         self.table_container.layout().setContentsMargins(0, 0, 0, 0)
 
-        self.table_apps = PackagesTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
+        self.table_apps = PackagesTable(self, self.icon_cache,
+                                        download_icons=bool(self.config['download']['icons']),
+                                        screen_width=int(screen_size.width()))
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
 
