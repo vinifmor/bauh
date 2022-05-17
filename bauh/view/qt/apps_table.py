@@ -387,7 +387,7 @@ class PackagesTable(QTableWidget):
                       f"{self.i18n['version.latest']}: {pkg.model.latest_version})"
             label_version.setText(f"{label_version.text()} > {pkg.model.latest_version}")
 
-            if label_version.sizeHint().width() / self.screen_width > 0.20:
+            if label_version.sizeHint().width() / self.screen_width > 0.22:
                 label_version.setText(pkg.model.latest_version)
 
         item.setToolTip(tooltip)
