@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import shutil
+from io import StringIO
 from threading import Thread
 from typing import List, Set, Tuple, Dict, Iterable, Optional
 
@@ -514,7 +515,7 @@ def fill_provided_map(key: str, val: str, output: dict):
         current_val.add(val)
 
 
-def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Dict[str, Set[str]]:
+def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[Dict[str, Set[str]]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs) if pkgs else ''))
 
     if output:
@@ -982,8 +983,15 @@ def is_snapd_installed() -> bool:
     return bool(run_cmd('pacman -Qq snapd', print_error=False))
 
 
-def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None) -> Optional[Set[str]]:
-    code, output = system.execute('pacman -Rc {} --print-format=%n'.format(name), shell=True)
+def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None,
+                           assume_installed: Optional[Set[str]] = None) -> Optional[Set[str]]:
+    cmd = StringIO()
+    cmd.write(f'pacman -Rc {name} --print-format=%n ')
+
+    if assume_installed:
+        cmd.write(' '.join(f'--assume-installed={provider}' for provider in assume_installed))
+
+    code, output = system.execute(cmd.getvalue(), shell=True)
 
     if code != 0:
         if 'HoldPkg' in output:

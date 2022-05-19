@@ -294,7 +294,7 @@ class AURClient:
         provided.add(pkgname)
 
         if info:
-            provided.add('{}={}'.format(pkgname, info['pkgver']))
+            provided.add(f"{pkgname}={info['pkgver']}")
             if info.get('provides'):
                 provided.update(info.get('provides'))
 
@@ -303,7 +303,7 @@ class AURClient:
                     'b': info.get('pkgbase', pkgname)}
         else:
             if latest_version:
-                provided.add('{}={}'.format(pkgname, latest_version))
+                provided.add(f'{pkgname}={latest_version}')
 
             return {'c': None, 's': None, 'p': provided, 'r': 'aur', 'v': latest_version, 'd': set(), 'b': pkgname}
 

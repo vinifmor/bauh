@@ -23,8 +23,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - version: the limit for displaying both the installed and latest versions is 22% (otherwise just the latest version will be displayed)
 
 ### Fixes
+- Arch
+  - conflict resolution: removing hard dependencies that would be satisfied with the inclusion of the new package [#268](https://github.com/vinifmor/bauh/issues/268)
+    - e.g: `pipewire-pulse` conflicts with `pulseaudio`. `pulseaudio-alsa` (a dependency of pulseaudio) should not be removed, since `pipewire-pulse` provides `pulseaudio` 
+
 - Flatpak
   - not all selected runtime partials to upgrade are actually requested to be upgraded
+
 
 ## [0.10.2] 2022-04-16
 ### Improvements

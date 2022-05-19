@@ -8,7 +8,6 @@ import tarfile
 import time
 import traceback
 from datetime import datetime
-from math import floor
 from pathlib import Path
 from pwd import getpwnam
 from threading import Thread
@@ -21,8 +20,8 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
     TransactionResult, SoftwareAction, SettingsView, SettingsController
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
-from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageSuggestion, PackageStatus, \
-    SuggestionPriority, CustomSoftwareAction
+from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageStatus, \
+    CustomSoftwareAction
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
@@ -1194,7 +1193,10 @@ class ArchManager(SoftwareManager, SettingsController):
         watcher.change_substatus('')
         return True
 
-    def _uninstall_pkgs(self, pkgs: Iterable[str], root_password: Optional[str], handler: ProcessHandler, ignore_dependencies: bool = False) -> bool:
+    def _uninstall_pkgs(self, pkgs: Collection[str], root_password: Optional[str],
+                        handler: ProcessHandler, ignore_dependencies: bool = False,
+                        replacers: Optional[Set[str]] = None) -> bool:
+
         status_handler = TransactionStatusHandler(watcher=handler.watcher,
                                                   i18n=self.i18n,
                                                   names={*pkgs},
@@ -1205,6 +1207,9 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if ignore_dependencies:
             cmd.append('-dd')
+
+        if replacers:
+            cmd.extend(f'--assume-installed={r}' for r in replacers)
 
         status_handler.start()
         all_uninstalled, _ = handler.handle_simple(SimpleProcess(cmd=cmd,
@@ -1299,8 +1304,52 @@ class ArchManager(SoftwareManager, SettingsController):
 
         return True
 
-    def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False, disk_loader: Optional[DiskCacheLoader] = None, skip_requirements: bool = False):
+    def _fill_aur_providers(self, names: str,  output: Set[str]):
+        for _, data in self.aur_client.gen_updates_data(names):
+            providers = data.get('p')
+
+            if providers:
+                output.update(providers)
+
+    def _map_actual_replacers(self, names: Set[str], context: TransactionContext) -> Optional[Set[str]]:
+        if not names:
+            return
+
+        repo_replacers, aur_replacers = set(), set()
+
+        for r in names:
+            repo = context.remote_repo_map.get(r)
+
+            if repo and repo != 'aur':
+                repo_replacers.add(r)
+            elif repo == 'aur' or (context.aur_idx and r in context.aur_idx):
+                aur_replacers.add(r)
+
+        actual_replacers = set()
+
+        thread_fill_aur = None
+        if aur_replacers:
+            thread_fill_aur = Thread(target=self._fill_aur_providers, args=(aur_replacers, actual_replacers))
+            thread_fill_aur.start()
+
+        if repo_replacers:
+            repo_replace_providers = pacman.map_provided(remote=True, pkgs=repo_replacers)
+
+            if repo_replace_providers:
+                actual_replacers.update(repo_replace_providers)
+
+        if thread_fill_aur:
+            thread_fill_aur.join()
+
+        return actual_replacers
+
+    def _uninstall(self, context: TransactionContext, names: Set[str], remove_unneeded: bool = False,
+                   disk_loader: Optional[DiskCacheLoader] = None, skip_requirements: bool = False,
+                   replacers: Optional[Set[str]] = None):
+
         self._update_progress(context, 10)
+
+        actual_replacers = self._map_actual_replacers(replacers, context) if replacers else None
 
         net_available = self.context.internet_checker.is_available() if disk_loader else True
 
@@ -1309,13 +1358,14 @@ class ArchManager(SoftwareManager, SettingsController):
         if not skip_requirements:
             for n in names:
                 try:
-                    pkg_reqs = pacman.list_hard_requirements(n, self.logger)
+                    pkg_reqs = pacman.list_hard_requirements(name=n, logger=self.logger, assume_installed=actual_replacers)
 
                     if pkg_reqs:
                         hard_requirements.update(pkg_reqs)
+
                 except PackageInHoldException:
-                    context.watcher.show_message(title=self.i18n['error'].capitalize(),
-                                                 body=self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(n)),
+                    error_msg = self.i18n['arch.uninstall.error.hard_dep_in_hold'].format(bold(n))
+                    context.watcher.show_message(title=self.i18n['error'].capitalize(), body=error_msg,
                                                  type_=MessageType.ERROR)
                     return False
 
@@ -1355,7 +1405,8 @@ class ArchManager(SoftwareManager, SettingsController):
 
         provided_by_uninstalled = pacman.map_provided(pkgs=to_uninstall)
 
-        uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler, ignore_dependencies=skip_requirements)
+        uninstalled = self._uninstall_pkgs(to_uninstall, context.root_password, context.handler,
+                                           ignore_dependencies=skip_requirements, replacers=actual_replacers)
 
         if uninstalled:
             self._remove_uninstalled_from_context(provided_by_uninstalled, context)
@@ -1398,7 +1449,8 @@ class ArchManager(SoftwareManager, SettingsController):
                         else:
                             unnecessary_instances = None
 
-                        unneded_uninstalled = self._uninstall_pkgs(all_unnecessary_to_uninstall, context.root_password, context.handler)
+                        unneded_uninstalled = self._uninstall_pkgs(all_unnecessary_to_uninstall, context.root_password,
+                                                                   context.handler, replacers=actual_replacers)
 
                         if unneded_uninstalled:
                             to_uninstall.update(all_unnecessary_to_uninstall)
@@ -1769,10 +1821,13 @@ class ArchManager(SoftwareManager, SettingsController):
         else:
             return self._get_history_repo_pkg(pkg)
 
-    def _request_conflict_resolution(self, pkg: str, conflicting_pkg: str, context: TransactionContext, skip_requirements: bool = False) -> bool:
-        conflict_msg = '{} {} {}'.format(bold(pkg), self.i18n['and'], bold(conflicting_pkg))
-        if not context.watcher.request_confirmation(title=self.i18n['arch.install.conflict.popup.title'],
-                                                    body=self.i18n['arch.install.conflict.popup.body'].format(conflict_msg)):
+    def _request_conflict_resolution(self, pkg: str, conflicting_pkg: str, context: TransactionContext,
+                                     skip_requirements: bool = False) -> bool:
+
+        conflict_msg = f"{bold(pkg)} {self.i18n['and']} {bold(conflicting_pkg)}"
+        msg_body = self.i18n['arch.install.conflict.popup.body'].format(conflict_msg)
+
+        if not context.watcher.request_confirmation(title=self.i18n['arch.install.conflict.popup.title'], body=msg_body):
             context.watcher.print(self.i18n['action.cancelled'])
             return False
         else:
@@ -1783,8 +1838,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 context.removed = {}
 
             res = self._uninstall(context=context, names={conflicting_pkg}, disk_loader=context.disk_loader,
-                                  remove_unneeded=False, skip_requirements=skip_requirements)
-
+                                  remove_unneeded=False, skip_requirements=skip_requirements, replacers={pkg})
 
             context.restabilish_progress()
             return res
@@ -2389,25 +2443,12 @@ class ArchManager(SoftwareManager, SettingsController):
                     if context.removed is None:
                         context.removed = {}
 
-                    to_install_replacements = pacman.map_replaces(names_to_install)
-
-                    skip_requirement_checking = False
-                    if to_install_replacements:  # checking if the packages to be installed replace the installed packages
-                        all_replacements = set()
-
-                        for replacements in to_install_replacements:
-                            all_replacements.update(replacements)
-
-                        if all_replacements:
-                            for pkg in to_uninstall:
-                                if pkg not in all_replacements:
-                                    break
-
-                            skip_requirement_checking = True
-
                     context.disable_progress_if_changing()
+
                     if not self._uninstall(names=to_uninstall, context=context, remove_unneeded=False,
-                                           disk_loader=context.disk_loader, skip_requirements=skip_requirement_checking):
+                                           disk_loader=context.disk_loader,
+                                           replacers=names_to_install):
+
                         context.watcher.show_message(title=self.i18n['error'],
                                                      body=self.i18n['arch.uninstalling.conflict.fail'].format(', '.join((bold(p) for p in to_uninstall))),
                                                      type_=MessageType.ERROR)
