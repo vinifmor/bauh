@@ -128,6 +128,11 @@ class GenericSettingsManager(SettingsController):
                                                     value=core_config['system']['single_dependency_checking'],
                                                     id_='dep_check')
 
+        select_check_ssl = self._gen_bool_component(label=self.i18n['core.config.download.check_ssl'],
+                                                    tooltip=self.i18n['core.config.download.check_ssl.tip'],
+                                                    value=core_config['download']['check_ssl'],
+                                                    id_='download.check_ssl')
+
         select_dmthread = self._gen_bool_component(label=self.i18n['core.config.download.multithreaded'],
                                                    tooltip=self.i18n['core.config.download.multithreaded.tip'],
                                                    id_="down_mthread",
@@ -135,7 +140,8 @@ class GenericSettingsManager(SettingsController):
 
         select_mthread_client = self._gen_multithread_client_select(core_config)
 
-        inputs = [select_dmthread, select_mthread_client, select_trim, select_dep_check, input_data_exp, input_icon_exp]
+        inputs = [select_dmthread, select_mthread_client, select_check_ssl, select_trim, select_dep_check,
+                  input_data_exp, input_icon_exp]
         panel = PanelComponent([FormComponent(inputs, spaces=False)], id_='advanced')
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), panel, None, 'core.adv')
 
@@ -380,9 +386,13 @@ class GenericSettingsManager(SettingsController):
         mthread_client = adv_form.get_component('mthread_client', SingleSelectComponent).get_selected()
         core_config['download']['multithreaded_client'] = mthread_client
 
+        check_ssl = adv_form.get_component('download.check_ssl', SingleSelectComponent).get_selected()
+        core_config['download']['check_ssl'] = check_ssl
+
         if isinstance(self.file_downloader, AdaptableFileDownloader):
             self.file_downloader.multithread_client = mthread_client
             self.file_downloader.multithread_enabled = download_mthreaded
+            self.file_downloader.check_ssl = check_ssl
 
         single_dep_check = adv_form.get_component('dep_check', SingleSelectComponent).get_selected()
         core_config['system']['single_dependency_checking'] = single_dep_check

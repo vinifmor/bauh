@@ -31,6 +31,11 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
 
     http_client = HttpClient(logger)
 
+    downloader = AdaptableFileDownloader(logger=logger, multithread_enabled=app_config['download']['multithreaded'],
+                                         multithread_client=app_config['download']['multithreaded_client'],
+                                         i18n=i18n, http_client=http_client,
+                                         check_ssl=app_config['download']['check_ssl'])
+
     context = ApplicationContext(i18n=i18n,
                                  http_client=http_client,
                                  download_icons=bool(app_config['download']['icons']),
@@ -39,8 +44,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  disk_loader_factory=DefaultDiskCacheLoaderFactory(logger),
                                  logger=logger,
                                  distro=util.get_distro(),
-                                 file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
-                                                                         i18n, http_client, app_config['download']['multithreaded_client']),
+                                 file_downloader=downloader,
                                  app_name=__app_name__,
                                  app_version=__version__,
                                  internet_checker=InternetChecker(offline=app_args.offline),

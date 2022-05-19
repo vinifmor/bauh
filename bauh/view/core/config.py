@@ -51,7 +51,8 @@ class CoreConfigManager(YAMLConfigManager):
             'download': {
                 'multithreaded': False,
                 'multithreaded_client': None,
-                'icons': True
+                'icons': True,
+                'check_ssl': True
             },
             'store_root_password': True,
             'disk': {

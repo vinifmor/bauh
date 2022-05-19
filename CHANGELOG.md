@@ -22,6 +22,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - publisher limit: 12%
     - version: the limit for displaying both the installed and latest versions is 22% (otherwise just the latest version will be displayed)
 
+- Settings
+  - new property to disable SSL checking when downloading files (disabled by default)
+  
+  <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.3/check_ssl.png">
+  </p>
+
 ### Fixes
 - Arch
   - conflict resolution: removing hard dependencies that would be satisfied with the inclusion of the new package [#268](https://github.com/vinifmor/bauh/issues/268)
