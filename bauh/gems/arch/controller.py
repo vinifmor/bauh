@@ -3714,6 +3714,17 @@ class ArchManager(SoftwareManager, SettingsController):
         if suggestions:
             output.update(suggestions)
 
+    def _fill_cached_if_unset(self, pkg: ArchPackage, loader: DiskCacheLoader):
+        data = loader.read(pkg)
+
+        if data:
+            for attr, cached_val in data.items():
+                if cached_val:
+                    current_val = getattr(pkg, attr)
+
+                    if current_val is None:
+                        setattr(pkg, attr, cached_val)
+
     def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         if limit == 0:
             return []
@@ -3791,6 +3802,11 @@ class ArchManager(SoftwareManager, SettingsController):
         if full_data and full_data.get('signed'):
             full_data = full_data['signed']
 
+        disk_loader, caching_threads = None, None
+        if not filter_installed:
+            disk_loader = self.context.disk_loader_factory.new()
+            caching_threads = list()
+
         suggestions = []
         for name in suggestion_by_priority:
             pkg_data = available_suggestions[name]
@@ -3801,18 +3817,27 @@ class ArchManager(SoftwareManager, SettingsController):
                 description = pkg_full_data.get('description')
 
             pkg_updates_ignored = pkg_data['i'] and ignored_updates and name in ignored_updates
+            pkg = ArchPackage(name=name,
+                              version=pkg_data['v'],
+                              latest_version=pkg_data['v'],
+                              repository=pkg_data['r'],
+                              installed=pkg_data['i'],
+                              description=description,
+                              categories=self.categories.get(name),
+                              i18n=self.i18n,
+                              maintainer=pkg_data['r'],
+                              update_ignored=pkg_updates_ignored)
 
-            suggestions.append(PackageSuggestion(package=ArchPackage(name=name,
-                                                                     version=pkg_data['v'],
-                                                                     latest_version=pkg_data['v'],
-                                                                     repository=pkg_data['r'],
-                                                                     installed=pkg_data['i'],
-                                                                     description=description,
-                                                                     categories=self.categories.get(name),
-                                                                     i18n=self.i18n,
-                                                                     maintainer=pkg_data['r'],
-                                                                     update_ignored=pkg_updates_ignored),
-                                                 priority=name_priority[name]))
+            if disk_loader:
+                t = Thread(target=self._fill_cached_if_unset, args=(pkg, disk_loader))
+                t.start()
+                caching_threads.append(t)
+
+            suggestions.append(PackageSuggestion(package=pkg, priority=name_priority[name]))
+
+        if caching_threads:
+            for t in caching_threads:
+                t.join()
 
         return suggestions
 

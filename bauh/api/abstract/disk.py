@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Type, Optional, Any, Dict
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import SoftwarePackage
@@ -26,6 +26,12 @@ class DiskCacheLoader:
         :param pkg:
         :param sync: if the package data must be filled synchronously
         :return:
+        """
+        pass
+
+    def read(self, pkg: SoftwarePackage) -> Optional[Dict[str, Any]]:
+        """
+        returns the cached data from the given package
         """
         pass
 

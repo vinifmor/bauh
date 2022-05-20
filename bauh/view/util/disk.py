@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from threading import Thread, Lock
-from typing import Type, Dict
+from typing import Type, Dict, Any, Optional
 
 import yaml
 
@@ -37,6 +37,22 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
             else:
                 self.pkgs.append(pkg)
 
+    def read(self, pkg: SoftwarePackage) -> Optional[Dict[str, Any]]:
+        if pkg and pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
+            disk_path = pkg.get_disk_data_path()
+            ext = disk_path.split('.')[-1]
+
+            with open(disk_path) as f:
+                if ext == 'json':
+                    cached_data = json.loads(f.read())
+                elif ext in {'yml', 'yaml'}:
+                    cached_data = yaml.load(f.read())
+                else:
+                    raise Exception(f'The cached data file {disk_path} has an unsupported format')
+
+            if cached_data:
+                return cached_data
+
     def stop_working(self):
         self._work = False
 
@@ -58,26 +74,16 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
         self._working = False
 
     def _fill_cached_data(self, pkg: SoftwarePackage) -> bool:
-        if os.path.exists(pkg.get_disk_data_path()):
-            disk_path = pkg.get_disk_data_path()
-            ext = disk_path.split('.')[-1]
+        cached_data = self.read(pkg)
 
-            with open(disk_path) as f:
-                if ext == 'json':
-                    cached_data = json.loads(f.read())
-                elif ext in {'yml', 'yaml'}:
-                    cached_data = yaml.load(f.read())
-                else:
-                    raise Exception('The cached data file {} has an unsupported format'.format(disk_path))
+        if cached_data:
+            pkg.fill_cached_data(cached_data)
+            cache = self.cache_map.get(pkg.__class__)
 
-            if cached_data:
-                pkg.fill_cached_data(cached_data)
-                cache = self.cache_map.get(pkg.__class__)
+            if cache:
+                cache.add_non_existing(str(pkg.id), cached_data)
 
-                if cache:
-                    cache.add_non_existing(str(pkg.id), cached_data)
-
-                return True
+            return True
 
         return False
 
