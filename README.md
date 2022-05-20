@@ -287,6 +287,7 @@ suggest_optdep_uninstall: false  # if the optional dependencies associated with 
 categories_exp: 24  # It defines the expiration time (in HOURS) of the packages categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 aur_rebuild_detector: true # it checks if packages built with old library versions require to be rebuilt. If a package needs to be rebuilt, it will be marked for update ('rebuild-detector' must be installed). Default: true.
 prefer_repository_provider: true  # when there is just one repository provider for a given a dependency and several from AUR, it will be automatically picked.
+suggestions_exp: 24  # it defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
 ```
 
 ##### <a name="type_deb">Debian packages<a>

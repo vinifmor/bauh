@@ -40,4 +40,5 @@ class ArchConfigManager(YAMLConfigManager):
                 'categories_exp': 24,
                 'aur_rebuild_detector': False,
                 "aur_rebuild_detector_no_bin": True,
-                "prefer_repository_provider": True}
+                "prefer_repository_provider": True,
+                'suggestions_exp': 24}

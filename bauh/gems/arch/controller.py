@@ -21,7 +21,7 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageUpdate, PackageHistory, SoftwarePackage, PackageStatus, \
-    CustomSoftwareAction
+    CustomSoftwareAction, PackageSuggestion
 from bauh.api.abstract.view import MessageType, FormComponent, InputOption, SingleSelectComponent, SelectViewType, \
     ViewComponent, PanelComponent, MultipleSelectComponent, TextInputComponent, TextInputType, \
     FileChooserComponent, TextComponent
@@ -49,6 +49,7 @@ from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.output import TransactionStatusHandler
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
 from bauh.gems.arch.proc_util import write_as_user
+from bauh.gems.arch.suggestions import RepositorySuggestionsDownloader
 from bauh.gems.arch.updates import UpdatesSummarizer
 from bauh.gems.arch.worker import AURIndexUpdater, ArchDiskCacheUpdater, ArchCompilationOptimizer, RefreshMirrors, \
     SyncDatabases
@@ -215,6 +216,7 @@ class ArchManager(SoftwareManager, SettingsController):
         self.re_file_conflict = re.compile(r'[\w\d\-_.]+:')
         self.disk_cache_updater = disk_cache_updater
         self.pkgbuilder_user: Optional[str] = f'{__app_name__}-aur' if context.root_user else None
+        self._suggestions_downloader: Optional[RepositorySuggestionsDownloader] = None
 
     def refresh_mirrors(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         handler = ProcessHandler(watcher)
@@ -583,7 +585,7 @@ class ArchManager(SoftwareManager, SettingsController):
             rebuild_ignored = Thread(target=self.__fill_ignored_by_rebuild_detector, args=(rebuild_output, ), daemon=True)
             rebuild_ignored.start()
 
-        installed = pacman.map_installed(names=names)
+        installed = pacman.map_packages(names=names)
 
         aur_pkgs, repo_pkgs, aur_index = None, None, None
 
@@ -630,7 +632,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 t.join()
 
         if pkgs:
-            ignored = self._list_ignored_updates()
+            ignored = self._fill_ignored_updates(set())
 
             if ignored:
                 for p in pkgs:
@@ -1484,7 +1486,7 @@ class ArchManager(SoftwareManager, SettingsController):
         return uninstalled
 
     def _map_installed_data_for_removal(self, names: Iterable[str]) -> Optional[Dict[str, Dict[str, str]]]:
-        data = pacman.map_installed(names)
+        data = pacman.map_packages(names)
 
         if data:
             remapped_data = {}
@@ -2796,6 +2798,10 @@ class ArchManager(SoftwareManager, SettingsController):
             self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager, create_config=create_config)  # must always execute to properly determine the installed packages (even that AUR is disabled)
             self.index_aur.start()
 
+            self.suggestions_downloader.create_config = create_config
+            self.suggestions_downloader.register_task(task_manager)
+            self.suggestions_downloader.start()
+
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n, root_password=root_password,
                                              logger=self.logger, create_config=create_config)
             refresh_mirrors.start()
@@ -2938,6 +2944,12 @@ class ArchManager(SoftwareManager, SettingsController):
                                only_int=True,
                                capitalize_label=False,
                                value=arch_config['categories_exp'] if isinstance(arch_config['categories_exp'], int) else ''),
+            TextInputComponent(id_='arch_sugs_exp',
+                               label=self.i18n['arch.config.suggestions_exp'],
+                               tooltip=self.i18n['arch.config.suggestions_exp.tip'],
+                               only_int=True,
+                               capitalize_label=False,
+                               value=arch_config['suggestions_exp'] if isinstance(arch_config['suggestions_exp'], int) else '')
         ]
 
         return SettingsView(self, PanelComponent([FormComponent(fields, spaces=False)], id_="repo"), icon_path=get_repo_icon_path())
@@ -3045,6 +3057,7 @@ class ArchManager(SoftwareManager, SettingsController):
         arch_config['suggest_unneeded_uninstall'] = sug_unneeded_uni
 
         arch_config['categories_exp'] = form.get_component('arch_cats_exp', TextInputComponent).get_int_value()
+        arch_config['suggestions_exp'] = form.get_component('arch_sugs_exp', TextInputComponent).get_int_value()
 
     def _fill_aur_settings(self, arch_config: dict, form: FormComponent):
         arch_config['optimize'] = form.get_component('opts', SingleSelectComponent).get_selected()
@@ -3316,8 +3329,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         return True
 
-    def _list_ignored_updates(self) -> Set[str]:
-        ignored = set()
+    def _fill_ignored_updates(self, output: Set[str]) -> Set[str]:
         if os.path.exists(UPDATES_IGNORED_FILE):
             with open(UPDATES_IGNORED_FILE) as f:
                 ignored_lines = f.readlines()
@@ -3327,9 +3339,9 @@ class ArchManager(SoftwareManager, SettingsController):
                     line_clean = line.strip()
 
                     if line_clean:
-                        ignored.add(line_clean)
+                        output.add(line_clean)
 
-        return ignored
+        return output
 
     def _write_ignored(self, names: Set[str]):
         Path(ARCH_CONFIG_DIR).mkdir(parents=True, exist_ok=True)
@@ -3344,7 +3356,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 f.write('')
 
     def ignore_update(self, pkg: ArchPackage):
-        ignored = self._list_ignored_updates()
+        ignored = self._fill_ignored_updates(set())
 
         if pkg.name not in ignored:
             ignored.add(pkg.name)
@@ -3353,7 +3365,7 @@ class ArchManager(SoftwareManager, SettingsController):
         pkg.update_ignored = True
 
     def _revert_ignored_updates(self, pkgs: Iterable[str]):
-        ignored = self._list_ignored_updates()
+        ignored = self._fill_ignored_updates(set())
 
         for p in pkgs:
             if p in ignored:
@@ -3691,3 +3703,124 @@ class ArchManager(SoftwareManager, SettingsController):
                 return added
 
         return True
+
+    def _fill_available_packages(self, output: Dict[str, Set[str]]):
+        output.update(pacman.map_available_packages())
+
+    def _fill_suggestions(self, output: Dict[str, int]):
+        self.suggestions_downloader.register_task(None)
+        suggestions = self.suggestions_downloader.read(self.configman.read_config())
+
+        if suggestions:
+            output.update(suggestions)
+
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
+        if limit == 0:
+            return []
+
+        arch_config = self.configman.get_config()
+
+        if not arch_config['repositories']:
+            return
+
+        name_priority = dict()
+
+        fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,))
+        fill_suggestions.start()
+
+        available_packages = dict()
+        fill_available = Thread(target=self._fill_available_packages, args=(available_packages,))
+        fill_available.start()
+
+        ignored_pkgs = set()
+        fill_ignored = Thread(target=pacman.fill_ignored_packages, args=(ignored_pkgs,))
+        fill_ignored.start()
+
+        fill_suggestions.join()
+
+        if not name_priority:
+            self.logger.info("No Arch package suggestions found")
+            return []
+
+        self.logger.info(f"Found {len(name_priority)} named Arch package suggestions")
+
+        if fill_available:
+            fill_available.join()
+
+        if not available_packages:
+            self.logger.error("No available Arch package found. It will not be possible to return suggestions")
+            return []
+
+        fill_ignored.join()
+
+        available_suggestions = dict()
+
+        for n in name_priority:
+            if n not in ignored_pkgs:
+                data = available_packages.get(n)
+
+                if data and (not filter_installed or not data['i']):
+                    available_suggestions[n] = data
+
+        if not available_suggestions:
+            self.logger.info("No Arch package suggestion to return")
+            return []
+
+        if filter_installed:
+            ignored_updates = set()
+            thread_fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
+            thread_fill_ignored_updates.start()
+        else:
+            ignored_updates, thread_fill_ignored_updates = None, None
+
+        # sorting by priority
+        suggestion_by_priority = tuple(pair[1] for pair in sorted(((name_priority[n], n) for n in available_suggestions),
+                                                                  reverse=True))
+
+        if 0 < limit < len(available_suggestions):
+            suggestion_by_priority = suggestion_by_priority[0:limit]
+
+        self.logger.info(f'Available Arch package suggestions: {len(suggestion_by_priority)}')
+
+        if thread_fill_ignored_updates:
+            thread_fill_ignored_updates.join()
+
+        full_data = pacman.map_packages(names=suggestion_by_priority, remote=filter_installed, not_signed=False,
+                                        skip_ignored=True)
+
+        if full_data and full_data.get('signed'):
+            full_data = full_data['signed']
+
+        suggestions = []
+        for name in suggestion_by_priority:
+            pkg_data = available_suggestions[name]
+            pkg_full_data = full_data.get(name)
+            description = None
+
+            if pkg_full_data:
+                description = pkg_full_data.get('description')
+
+            pkg_updates_ignored = pkg_data['i'] and ignored_updates and name in ignored_updates
+
+            suggestions.append(PackageSuggestion(package=ArchPackage(name=name,
+                                                                     version=pkg_data['v'],
+                                                                     latest_version=pkg_data['v'],
+                                                                     repository=pkg_data['r'],
+                                                                     installed=pkg_data['i'],
+                                                                     description=description,
+                                                                     categories=self.categories.get(name),
+                                                                     i18n=self.i18n,
+                                                                     maintainer=pkg_data['r'],
+                                                                     update_ignored=pkg_updates_ignored),
+                                                 priority=name_priority[name]))
+
+        return suggestions
+
+    @property
+    def suggestions_downloader(self) -> RepositorySuggestionsDownloader:
+        if not self._suggestions_downloader:
+            self._suggestions_downloader = RepositorySuggestionsDownloader(logger=self.logger,
+                                                                           http_client=self.http_client,
+                                                                           i18n=self.i18n)
+
+        return self._suggestions_downloader

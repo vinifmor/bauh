@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - new parameter `--suggestions`: forces loading software suggestions after the initialization process [#260](https://github.com/vinifmor/bauh/issues/260)
 
 ### Improvements
+- Arch
+  - suggestions available for repository packages (and the associated caching expiration property `suggestions_exp`. Default: 24 hours)
+  
 - General
   - preventing command injection through the search mechanism [#266](https://github.com/vinifmor/bauh/issues/266)
   - code refactoring
