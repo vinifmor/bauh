@@ -969,12 +969,12 @@ class ManageWindow(QWidget):
                 commons.update_info(pkgv, pkgs_info)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
-        if pkgs_info['apps_count'] == 0:
+        if pkgs_info['apps_count'] == 0 and not self.suggestions_requested:
             if self.load_suggestions or self.types_changed:
                 if as_installed:
                     self.pkgs_installed = pkgs_info['pkgs']
 
-                self.begin_load_suggestions(filter_installed=False)
+                self.begin_load_suggestions(filter_installed=True)
                 self.load_suggestions = False
                 return False
             else:
