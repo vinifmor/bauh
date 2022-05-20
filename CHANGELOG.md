@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.10.3]
 
+### Features
+- General
+  - new parameter `--suggestions`: forces loading software suggestions after the initialization process [#260](https://github.com/vinifmor/bauh/issues/260)
+
 ### Improvements
 - General
   - preventing command injection through the search mechanism [#266](https://github.com/vinifmor/bauh/issues/266)

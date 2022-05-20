@@ -39,7 +39,9 @@ class GenericUpgradeRequirements(UpgradeRequirements):
 
 class GenericSoftwareManager(SoftwareManager, SettingsController):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict,
+                 force_suggestions: bool = False):
+
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
@@ -56,6 +58,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         self.configman = CoreConfigManager()
         self._action_reset: Optional[CustomSoftwareAction] = None
         self._dynamic_extra_actions: Optional[Dict[CustomSoftwareAction, Callable[[dict], bool]]] = None
+        self.force_suggestions = force_suggestions
 
     @property
     def dynamic_extra_actions(self) -> Dict[CustomSoftwareAction, Callable[[dict], bool]]:
@@ -488,11 +491,12 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
-        if bool(self.config['suggestions']['enabled']):
+        if self.force_suggestions or bool(self.config['suggestions']['enabled']):
             if self.managers and self.context.is_internet_available():
                 suggestions, threads = [], []
                 for man in self.managers:
-                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
+                    t = Thread(target=self._fill_suggestions,
+                               args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
                     t.start()
                     threads.append(t)
 

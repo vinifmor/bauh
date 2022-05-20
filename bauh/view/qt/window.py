@@ -97,7 +97,8 @@ class ManageWindow(QWidget):
     signal_stop_notifying = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size: QSize, config: dict,
-                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon,
+                 force_suggestions: bool = False):
         super(ManageWindow, self).__init__()
         self.setObjectName('manage_window')
         self.comp_manager = QtComponentsManager()
@@ -375,8 +376,11 @@ class ManageWindow(QWidget):
 
         self.container_bottom.layout().addWidget(new_spacer())
 
-        if config['suggestions']['enabled']:
-            bt_sugs = IconButton(action=lambda: self._begin_load_suggestions(filter_installed=True),
+        self.load_suggestions = force_suggestions or bool(config['suggestions']['enabled'])
+        self.suggestions_requested = False
+
+        if self.load_suggestions:
+            bt_sugs = IconButton(action=lambda: self.begin_load_suggestions(filter_installed=True),
                                  i18n=i18n,
                                  tooltip=self.i18n['manage_window.bt.suggestions.tooltip'])
             bt_sugs.setObjectName('suggestions')
@@ -442,8 +446,6 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
         self.dialog_about = None
-        self.load_suggestions = bool(config['suggestions']['enabled'])
-        self.suggestions_requested = False
         self.first_refresh = True
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
@@ -739,7 +741,7 @@ class ManageWindow(QWidget):
         self._handle_console_option(False)
         self._finish_refresh_packages({'installed': None, 'types': None}, as_installed=False)
 
-    def _begin_load_suggestions(self, filter_installed: bool):
+    def begin_load_suggestions(self, filter_installed: bool):
         self.search_bar.clear()
         self._begin_action(self.i18n['manage_window.status.suggestions'])
         self._handle_console_option(False)
@@ -972,7 +974,7 @@ class ManageWindow(QWidget):
                 if as_installed:
                     self.pkgs_installed = pkgs_info['pkgs']
 
-                self._begin_load_suggestions(filter_installed=False)
+                self.begin_load_suggestions(filter_installed=False)
                 self.load_suggestions = False
                 return False
             else:

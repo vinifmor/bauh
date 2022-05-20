@@ -53,6 +53,9 @@ def main(tray: bool = False):
         QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
+    if bool(args.suggestions):
+        logger.info("Forcing loading software suggestions after the initialization process")
+
     if tray or bool(args.tray):
         from bauh.tray import new_tray_icon
         app, widget = new_tray_icon(app_config, logger)

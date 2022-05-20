@@ -57,7 +57,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
         util.clean_app_files(managers)
         exit(0)
 
-    manager = GenericSoftwareManager(managers, context=context, config=app_config)
+    force_suggestions = bool(app_args.suggestions)
+    manager = GenericSoftwareManager(managers, context=context, config=app_config, force_suggestions=force_suggestions)
 
     app = new_qt_application(app_config=app_config, logger=logger, quit_on_last_closed=True)
 
@@ -78,6 +79,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                      context=context,
                                      http_client=http_client,
                                      icon=util.get_default_icon()[1],
+                                     force_suggestions=force_suggestions,
                                      logger=logger)
 
         prepare = PreparePanel(screen_size=screen_size,
@@ -85,7 +87,8 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                manager=manager,
                                i18n=i18n,
                                manage_window=manage_window,
-                               app_config=app_config)
+                               app_config=app_config,
+                               force_suggestions=force_suggestions)
         cache_cleaner.start()
 
         return app, prepare

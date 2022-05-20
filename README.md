@@ -398,6 +398,7 @@ You can change some application settings via environment variables or arguments 
 - `--reset`: it cleans all configurations and cached data stored in the HOME directory.
 - `--logs`: it enables logs (for debugging purposes).
 - `--offline`: it assumes the internet connection is off.
+- `--suggestions`: it forces loading software suggestions after the initialization process.
 
 
 ##### Configuration file (**~/.config/bauh/config.yml**)
