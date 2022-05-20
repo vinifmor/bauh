@@ -416,7 +416,7 @@ memory_cache:
   data_expiration: 3600 # the interval in SECONDS that data cached in memory will live
   icon_expiration: 300  # the interval in SECONDS that icons cached in memory will live
 suggestions:
-  by_type: 10  # the maximum number of application suggestions that must be retrieved per type
+  by_type: 20  # the maximum number of application suggestions that must be retrieved per type
   enabled: true  # if suggestions must be displayed when no application is installed
 system:
   notifications: true  # if system popup should be displayed for some events. e.g: when there are updates, bauh will display a system popup
