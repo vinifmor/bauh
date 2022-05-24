@@ -38,20 +38,31 @@ class AsyncDiskCacheLoader(Thread, DiskCacheLoader):
                 self.pkgs.append(pkg)
 
     def read(self, pkg: SoftwarePackage) -> Optional[Dict[str, Any]]:
-        if pkg and pkg.supports_disk_cache() and os.path.exists(pkg.get_disk_cache_path()):
-            disk_path = pkg.get_disk_data_path()
-            ext = disk_path.split('.')[-1]
+        if pkg and pkg.supports_disk_cache():
+            data_path = pkg.get_disk_data_path()
 
-            with open(disk_path) as f:
-                if ext == 'json':
-                    cached_data = json.loads(f.read())
-                elif ext in {'yml', 'yaml'}:
-                    cached_data = yaml.load(f.read())
+            if data_path and os.path.isfile(data_path):
+                ext = data_path.split('.')[-1]
+
+                try:
+                    with open(data_path) as f:
+                        file_content = f.read()
+                except FileNotFoundError:
+                    return
+
+                if file_content:
+                    if ext == 'json':
+                        cached_data = json.loads(file_content)
+                    elif ext in {'yml', 'yaml'}:
+                        cached_data = yaml.load(file_content)
+                    else:
+                        raise Exception(f'The cached data file {data_path} has an unsupported format')
+
+                    if cached_data:
+                        return cached_data
+
                 else:
-                    raise Exception(f'The cached data file {disk_path} has an unsupported format')
-
-            if cached_data:
-                return cached_data
+                    self.logger.warning(f"No cached content in file {data_path}")
 
     def stop_working(self):
         self._work = False
