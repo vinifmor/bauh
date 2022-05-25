@@ -432,6 +432,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             for t in prepare_tasks:
                 t.join()
 
+        create_config.join()
         tf = time.time()
         self.logger.info(f'Finished ({tf - ti:.2f} seconds)')
 
