@@ -477,7 +477,7 @@ appimage
   - [snap](https://github.com/vinifmor/bauh-files/blob/master/snap/suggestions.txt)
   - [web](https://github.com/vinifmor/bauh-files/blob/master/web/env/v2/suggestions.yml)
   
-- Most of the files follow the pattern: `{priority_number}:${id or name}`
+- Most of the files follow the pattern: `{priority_number}=${id or name}`
   - Priority numbers: 0 (LOW), 1 (MEDIUM), 2 (HIGH), 3 (TOP)
   - The priority number is used to sort the retrieved suggestions
 
