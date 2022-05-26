@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
 from threading import Thread
-from typing import Optional, List
+from typing import Optional, Generator
 
 import requests
 
@@ -17,8 +17,7 @@ from bauh.api.http import HttpClient
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.gems.appimage import get_icon_path, INSTALLATION_DIR, SYMLINKS_DIR, util, DATABASES_TS_FILE, \
-    APPIMAGE_CACHE_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES, SUGGESTIONS_FILE, \
-    SUGGESTIONS_CACHED_TS_FILE, SUGGESTIONS_CACHED_FILE
+    APPIMAGE_CACHE_DIR, DATABASE_APPS_FILE, DATABASE_RELEASES_FILE, URL_COMPRESSED_DATABASES
 from bauh.gems.appimage.model import AppImage
 from bauh.view.util.translation import I18n
 
@@ -286,7 +285,9 @@ class SymlinksVerifier(Thread):
 
 class AppImageSuggestionsDownloader(Thread):
 
-    def __init__(self, logger: logging.Logger, http_client: HttpClient, i18n: I18n, taskman: TaskManager, create_config: Optional[CreateConfigFile] = None,  appimage_config: Optional[dict] = None):
+    def __init__(self, logger: logging.Logger, http_client: HttpClient, i18n: I18n, file_url: Optional[str],
+                 create_config: Optional[CreateConfigFile] = None, appimage_config: Optional[dict] = None,
+                 taskman: Optional[TaskManager] = None):
         super(AppImageSuggestionsDownloader, self).__init__(daemon=True)
         self.create_config = create_config
         self.logger = logger
@@ -295,133 +296,189 @@ class AppImageSuggestionsDownloader(Thread):
         self.taskman = taskman
         self.config = appimage_config
         self.task_id = 'appim.suggestions'
-        self.taskman.register_task(id_=self.task_id, label=i18n['task.download_suggestions'], icon_path=get_icon_path())
+        self._cached_file_path: Optional[str] = None
+        self._cached_ts_file_path: Optional[str] = None
+
+        if file_url:
+            self._file_url = file_url
+        else:
+            self._file_url = f'https://raw.githubusercontent.com/vinifmor/bauh-files/master/appimage/suggestions.txt'
+
+    @property
+    def cached_file_path(self) -> str:
+        if not self._cached_file_path:
+            self._cached_file_path = f'{APPIMAGE_CACHE_DIR}/suggestions.txt'
+
+        return self._cached_file_path
+
+    @property
+    def cached_ts_file_path(self) -> str:
+        if not self._cached_ts_file_path:
+            self._cached_ts_file_path = f'{APPIMAGE_CACHE_DIR}/suggestions.ts'
+
+        return self._cached_ts_file_path
+
+    def register_task(self):
+        self.taskman.register_task(id_=self.task_id,
+                                   label=self.i18n['task.download_suggestions'], icon_path=get_icon_path())
+
+    def is_custom_local_file_mapped(self) -> bool:
+        return self._file_url and self._file_url.startswith('/')
 
     def should_download(self, appimage_config: dict) -> bool:
+        if not self._file_url:
+            self.logger.error("No AppImage suggestions file URL defined")
+            return False
+
+        if self.is_custom_local_file_mapped():
+            return False
+
         try:
             exp_hours = int(appimage_config['suggestions']['expiration'])
         except:
-            self.logger.error("An exception happened while trying to parse 'suggestions.expiration'")
+            self.logger.error("An exception happened while trying to parse the AppImage 'suggestions.expiration'")
             traceback.print_exc()
             return True
 
         if exp_hours <= 0:
-            self.logger.info("Suggestions cache is disabled")
+            self.logger.info("The AppImage suggestions cache is disabled")
             return True
 
-        if not os.path.exists(SUGGESTIONS_CACHED_FILE):
-            self.logger.info("'{}' not found. It must be downloaded".format(SUGGESTIONS_CACHED_FILE))
+        if not os.path.exists(self.cached_file_path):
+            self.logger.info(f"File {self.cached_file_path} not found. It must be downloaded")
             return True
 
-        if not os.path.exists(SUGGESTIONS_CACHED_TS_FILE):
-            self.logger.info("'{}' not found. The suggestions file must be downloaded.")
+        if not os.path.exists(self.cached_ts_file_path):
+            self.logger.info(f"File {self.cached_ts_file_path}  not found. The suggestions file must be downloaded.")
             return True
 
-        with open(SUGGESTIONS_CACHED_TS_FILE) as f:
+        with open(self.cached_ts_file_path) as f:
             timestamp_str = f.read()
 
         try:
             suggestions_timestamp = datetime.fromtimestamp(float(timestamp_str))
         except:
-            self.logger.error('Could not parse the cached suggestions timestamp: {}'.format(timestamp_str))
+            self.logger.error(f'Could not parse the cached AppImage suggestions timestamp: {timestamp_str}')
             traceback.print_exc()
             return True
 
         update = suggestions_timestamp + timedelta(hours=exp_hours) <= datetime.utcnow()
         return update
 
-    def read(self) -> Optional[List[str]]:
-        self.logger.info("Checking if suggestions should be downloaded")
+    def read(self) -> Generator[str, None, None]:
+        if not self._file_url:
+            self.logger.error("No AppImage suggestions file URL defined")
+            yield from ()
+
+        self.logger.info("Checking if AppImage suggestions should be downloaded")
         if self.should_download(self.config):
             suggestions_timestamp = datetime.utcnow().timestamp()
             suggestions_str = self.download()
 
             Thread(target=self.cache_suggestions, args=(suggestions_str, suggestions_timestamp), daemon=True).start()
         else:
-            self.logger.info("Reading cached suggestions from '{}'".format(SUGGESTIONS_CACHED_FILE))
-            with open(SUGGESTIONS_CACHED_FILE) as f:
+            if self.is_custom_local_file_mapped():
+                file_path, log_ref = self._file_url, 'local'
+            else:
+                file_path, log_ref = self.cached_file_path, 'cached'
+
+            self.logger.info(f"Reading {log_ref} AppImage suggestions from {file_path}")
+            with open(file_path) as f:
                 suggestions_str = f.read()
 
-        return self.map_suggestions(suggestions_str) if suggestions_str else None
+        yield from self.map_suggestions(suggestions_str) if suggestions_str else ()
 
     def cache_suggestions(self, text: str, timestamp: float):
-        self.logger.info("Caching suggestions to '{}'".format(SUGGESTIONS_FILE))
+        self.logger.info(f"Caching AppImage suggestions to {self.cached_file_path}")
 
-        cache_dir = os.path.dirname(SUGGESTIONS_CACHED_FILE)
+        cache_dir = os.path.dirname(self.cached_file_path)
 
         try:
             Path(cache_dir).mkdir(parents=True, exist_ok=True)
             cache_dir_ok = True
         except OSError:
-            self.logger.error("Could not create cache directory '{}'".format(cache_dir))
+            self.logger.error(f"Could not create the caching directory {cache_dir}")
             traceback.print_exc()
             cache_dir_ok = False
 
         if cache_dir_ok:
             try:
-                with open(SUGGESTIONS_CACHED_FILE, 'w+') as f:
+                with open(self.cached_file_path, 'w+') as f:
                     f.write(text)
             except:
-                self.logger.error("An exception happened while writing the file '{}'".format(SUGGESTIONS_FILE))
+                self.logger.error(f"An exception happened while writing AppImage suggestions to {self.cached_file_path}")
                 traceback.print_exc()
 
             try:
-                with open(SUGGESTIONS_CACHED_TS_FILE, 'w+') as f:
+                with open(self.cached_ts_file_path, 'w+') as f:
                     f.write(str(timestamp))
             except:
-                self.logger.error("An exception happened while writing the file '{}'".format(SUGGESTIONS_CACHED_TS_FILE))
+                self.logger.error(f"An exception happened while writing the cached AppImage suggestions timestamp "
+                                  f"to {self.cached_ts_file_path}")
                 traceback.print_exc()
 
     def download(self) -> Optional[str]:
-        self.logger.info("Downloading suggestions from {}".format(SUGGESTIONS_FILE))
+        if not self._file_url:
+            self.logger.error("No AppImage suggestions file URL defined")
+            return
+
+        if self.is_custom_local_file_mapped():
+            self.logger.warning("Local AppImage suggestions file mapped. Nothing will be downloaded")
+            return
+
+        self.logger.info(f"Downloading AppImage suggestions from {self._file_url}")
 
         try:
-            res = self.http_client.get(SUGGESTIONS_FILE)
+            res = self.http_client.get(self._file_url)
         except requests.exceptions.ConnectionError:
-            self.logger.warning("Could not download suggestion from '{}'".format(SUGGESTIONS_FILE))
+            self.logger.warning(f"Could not download suggestion from {self._file_url}")
             return
 
         if not res:
-            self.logger.warning("Could not download suggestion from '{}'".format(SUGGESTIONS_FILE))
+            self.logger.warning(f"Could not download suggestion from {self._file_url}")
             return
 
         if not res.text:
-            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
+            self.logger.warning(f"No AppImage suggestion found in {self._file_url}")
             return
 
         return res.text
 
-    def map_suggestions(self, text: str) -> List[str]:
-        return [line for line in text.split('\n') if line]
+    def map_suggestions(self, text: str) -> Generator[str, None, None]:
+        return (line for line in text.split('\n') if line)
 
     def run(self):
-        if self.create_config:
-            self.taskman.update_progress(self.task_id, 0, self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
-            self.create_config.join()
-            self.config = self.create_config.config
-
         ti = time.time()
-        self.taskman.update_progress(self.task_id, 1, None)
 
-        self.logger.info("Checking if suggestions should be downloaded")
-        should_download = self.should_download(self.config)
-        self.taskman.update_progress(self.task_id, 30, None)
+        if not self.is_custom_local_file_mapped():
+            if  self.create_config:
+                wait_msg = self.i18n['task.waiting_task'].format(bold(self.create_config.task_name))
+                self.taskman.update_progress(self.task_id, 0, wait_msg)
+                self.create_config.join()
+                self.config = self.create_config.config
 
-        try:
-            if should_download:
-                suggestions_timestamp = datetime.utcnow().timestamp()
-                suggestions_str = self.download()
-                self.taskman.update_progress(self.task_id, 70, None)
+            ti = time.time()
+            self.taskman.update_progress(self.task_id, 1, None)
 
-                if suggestions_str:
-                    self.cache_suggestions(suggestions_str, suggestions_timestamp)
-            else:
-                self.logger.info("Cached suggestions are up-to-date")
-        except:
-            self.logger.error("An unexpected exception happened")
-            traceback.print_exc()
+            self.logger.info("Checking if AppImage suggestions should be downloaded")
+            should_download = self.should_download(self.config)
+            self.taskman.update_progress(self.task_id, 30, None)
+
+            try:
+                if should_download:
+                    suggestions_timestamp = datetime.utcnow().timestamp()
+                    suggestions_str = self.download()
+                    self.taskman.update_progress(self.task_id, 70, None)
+
+                    if suggestions_str:
+                        self.cache_suggestions(suggestions_str, suggestions_timestamp)
+                else:
+                    self.logger.info("Cached AppImage suggestions are up-to-date")
+            except:
+                self.logger.error("An unexpected exception happened while downloading AppImage suggestions")
+                traceback.print_exc()
 
         self.taskman.update_progress(self.task_id, 100, None)
         self.taskman.finish_task(self.task_id)
         tf = time.time()
-        self.logger.info("Took {0:.9f} seconds to download suggestions".format(tf - ti))
+        self.logger.info(f"Took {tf - ti:.9f} seconds to download suggestions")

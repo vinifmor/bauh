@@ -32,6 +32,7 @@ Key features
     - [Native Web applications](#type_web)
 7. [General settings](#settings)
    - [Forbidden packaging formats](#forbidden_gems)
+   - [Custom suggestions / curated software](#suggestions)
 8. [Directory structure, caching and logs](#dirs)
 9. [Custom themes](#custom_themes)
 10. [Tray icons](#tray_icons)
@@ -213,7 +214,6 @@ bauh is officially distributed through [PyPi](https://pypi.org/project/bauh) and
 - Downloaded database files are stored at `~/.cache/bauh/appimage` (or `/var/cache/bauh/appimage` for **root**) as **apps.db** and **releases.db**
 - Databases are updated during the initialization process if they are considered outdated
 - The configuration file is located at `~/.config/bauh/appimage.yml` (or `/etc/bauh/appimage.yml` for **root**) and it allows the following customizations:
-- Applications with ignored updates are defined at `~/.config/bauh/appimage/updates_ignored.txt` (or `/etc/bauh/appimage/updates_ignored.txt` for **root**) 
 
 ```
 database:
@@ -221,6 +221,9 @@ database:
 suggestions:
     expiration: 24  # defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them. Default: 24.
 ```
+
+- Applications with ignored updates are defined at `~/.config/bauh/appimage/updates_ignored.txt` (or `/etc/bauh/appimage/updates_ignored.txt` for **root**) 
+- Cached package suggestions: `~/.cache/bauh/web/suggestions.txt` (or `/var/cache/bauh/web/suggestions.yml` for **root**)
 
 
 ##### <a name="type_arch">Arch packages/AUR<a>
@@ -289,6 +292,7 @@ aur_rebuild_detector: true # it checks if packages built with old library versio
 prefer_repository_provider: true  # when there is just one repository provider for a given a dependency and several from AUR, it will be automatically picked.
 suggestions_exp: 24  # it defines the period (in hours) in which the suggestions stored in disc will be considered up to date. Use 0 if you always want to update them.
 ```
+- Cached package suggestions: `~/.cache/bauh/arch/suggestions.txt` (or `/var/cache/bauh/arch/suggestions.yml` for **root**)
 
 ##### <a name="type_deb">Debian packages<a>
 - Basic actions supported: **search**, **install**, **uninstall**, **upgrade**
@@ -300,7 +304,7 @@ suggestions_exp: 24  # it defines the period (in hours) in which the suggestions
   - **purge**: removes the packages and all related configuration files
 - Files:
   - runnable applications index: `~/.cache/bauh/debian/apps_idx.json` (or `/var/cache/bauh/debian/apps_idx.json` for **root**)
-  - package suggestions: `~/.cache/bauh/debian/suggestions.txt` (or `/var/cache/bauh/debian/suggestions.txt` for **root**)
+  - cached package suggestions: `~/.cache/bauh/debian/suggestions.txt` (or `/var/cache/bauh/debian/suggestions.txt` for **root**)
   - configuration: `~/.config/bauh/debian.yml` or `/etc/bauh/debian.yml`
     - `index_apps.exp`: time period (**in minutes**) in which the installed applications cache is considered up-to-date during startup (default: `1440` -> 24 hours)
     - `sync_pkgs.time`: time period (**in minutes**) in which the packages synchronization must be done on startup (default: `1440` -> 24 hours)
@@ -317,7 +321,7 @@ installation_level: null # defines a default installation level: "user" or "syst
 ```
 - Custom actions supported:
   - **Full update**: it completely updates the Flatpak apps and components. Useful if you are having issues with runtime updates.
-
+- Cached package suggestions: `~/.cache/bauh/flatpak/suggestions.txt` (or `/var/cache/bauh/flatpak/suggestions.txt` for **root**)
 
 #### <a name="type_snap">Snap</a>
 
@@ -330,6 +334,7 @@ installation_level: null # defines a default installation level: "user" or "syst
 install_channel: false  # it allows to select an available channel during the application installation. Default: false
 categories_exp: 24  # It defines the expiration time (in HOURS) of the Snaps categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 ```
+- Cached package suggestions: `~/.cache/bauh/snap/suggestions.txt` (or `/var/cache/bauh/snap/suggestions.txt` for **root**)
 
 
 #### <a name="type_web">Native Web applications</a>
@@ -387,7 +392,7 @@ environment:
 suggestions:
     cache_exp: 24  # defines the period (in HOURS) in which suggestions stored on the disk are considered up to date during the initialization process. Use 0 so that they are always updated. Default: 24.
 ```
-
+- Cached package suggestions: `~/.cache/bauh/web/suggestions.txt` (or `/var/cache/bauh/web/suggestions.yml` for **root**)
 
 #### <a name="settings">General settings</a>
 
@@ -462,6 +467,30 @@ arch
 appimage
 # flatpak  # 'sharps' can be used to ignore a given line (comment)
 ```
+
+##### <a name="suggestions">Custom suggestions / curated software</a>
+- The software suggestions are download from [bauh-files](https://github.com/vinifmor/bauh-files) by default
+  - [appimage](https://github.com/vinifmor/bauh-files/blob/master/appimage/suggestions.txt)
+  - [arch](https://github.com/vinifmor/bauh-files/blob/master/appimage/suggestions.txt)
+  - [debian](https://github.com/vinifmor/bauh-files/blob/master/debian/suggestions_v1.txt)
+  - [flatpak](https://github.com/vinifmor/bauh-files/blob/master/flatpak/suggestions.txt)
+  - [snap](https://github.com/vinifmor/bauh-files/blob/master/snap/suggestions.txt)
+  - [web](https://github.com/vinifmor/bauh-files/blob/master/web/env/v2/suggestions.yml)
+  
+- Most of the files follow the pattern: `{priority_number}:${id or name}`
+  - Priority numbers: 0 (LOW), 1 (MEDIUM), 2 (HIGH), 3 (TOP)
+  - The priority number is used to sort the retrieved suggestions
+
+- If Linux distributions want to provide their custom suggestions files:
+  - Create the file `/etc/bauh/suggestions.conf`
+  - The content is basically a mapping for each gem to a url or local file (absolute path).
+    - Example:
+    ```
+       arch=https://mydomain.com/arch/suggestions.txt  # remote file
+       appimage=/etc/bauh/appimage/suggestions.txt  # local file (absolute path)
+       # snap = my mapping  # comments with a '#' are allowed
+    ```
+  - If a given gem name is omitted, its suggestions will be downloaded from the default location.
 
 #### <a name="dirs">Directory structure, caching and logs</a>
 - `~/.config/bauh` (or `/etc/bauh` for **root**): stores configuration files

@@ -31,6 +31,7 @@ from bauh.commons import system
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
+from bauh.commons.suggestions import sort_by_priority
 from bauh.commons.system import SystemProcess, ProcessHandler, new_subprocess, run_cmd, SimpleProcess
 from bauh.commons.util import datetime_as_milis
 from bauh.commons.view_utils import new_select
@@ -2798,9 +2799,10 @@ class ArchManager(SoftwareManager, SettingsController):
             self.index_aur = AURIndexUpdater(context=self.context, taskman=task_manager, create_config=create_config)  # must always execute to properly determine the installed packages (even that AUR is disabled)
             self.index_aur.start()
 
-            self.suggestions_downloader.create_config = create_config
-            self.suggestions_downloader.register_task(task_manager)
-            self.suggestions_downloader.start()
+            if not self.suggestions_downloader.is_custom_local_file_mapped():
+                self.suggestions_downloader.create_config = create_config
+                self.suggestions_downloader.register_task(task_manager)
+                self.suggestions_downloader.start()
 
             refresh_mirrors = RefreshMirrors(taskman=task_manager, i18n=self.i18n, root_password=root_password,
                                              logger=self.logger, create_config=create_config)
@@ -3727,7 +3729,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
         if limit == 0:
-            return []
+            return
 
         arch_config = self.configman.get_config()
 
@@ -3751,7 +3753,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if not name_priority:
             self.logger.info("No Arch package suggestions found")
-            return []
+            return
 
         self.logger.info(f"Found {len(name_priority)} named Arch package suggestions")
 
@@ -3760,7 +3762,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if not available_packages:
             self.logger.error("No available Arch package found. It will not be possible to return suggestions")
-            return []
+            return
 
         fill_ignored.join()
 
@@ -3775,7 +3777,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if not available_suggestions:
             self.logger.info("No Arch package suggestion to return")
-            return []
+            return
 
         if filter_installed:
             ignored_updates = set()
@@ -3784,11 +3786,9 @@ class ArchManager(SoftwareManager, SettingsController):
         else:
             ignored_updates, thread_fill_ignored_updates = None, None
 
-        # sorting by priority
-        suggestion_by_priority = tuple(pair[1] for pair in sorted(((name_priority[n], n) for n in available_suggestions),
-                                                                  reverse=True))
+        suggestion_by_priority = sort_by_priority({n: name_priority[n] for n in available_suggestions})
 
-        if 0 < limit < len(available_suggestions):
+        if available_suggestions and 0 < limit < len(available_suggestions):
             suggestion_by_priority = suggestion_by_priority[0:limit]
 
         self.logger.info(f'Available Arch package suggestions: {len(suggestion_by_priority)}')
@@ -3844,8 +3844,14 @@ class ArchManager(SoftwareManager, SettingsController):
     @property
     def suggestions_downloader(self) -> RepositorySuggestionsDownloader:
         if not self._suggestions_downloader:
+            file_url = self.context.get_suggestion_url(self.__module__)
+
             self._suggestions_downloader = RepositorySuggestionsDownloader(logger=self.logger,
                                                                            http_client=self.http_client,
-                                                                           i18n=self.i18n)
+                                                                           i18n=self.i18n,
+                                                                           file_url=file_url)
+
+            if self._suggestions_downloader.is_custom_local_file_mapped():
+                self.logger.info(f"Local Arch suggestions file mapped: {file_url}")
 
         return self._suggestions_downloader

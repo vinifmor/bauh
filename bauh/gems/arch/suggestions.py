@@ -12,13 +12,13 @@ from bauh.api.http import HttpClient
 from bauh.commons.boot import CreateConfigFile
 from bauh.gems.arch import ARCH_CACHE_DIR, get_icon_path
 from bauh.view.util.translation import I18n
+from bauh.commons.suggestions import parse
 
 
 class RepositorySuggestionsDownloader(Thread):
 
     _file_suggestions: Optional[str] = None
     _file_suggestions_ts: Optional[str] = None
-    _url_suggestions: Optional[str] = None
 
     @classmethod
     def file_suggestions(cls) -> str:
@@ -34,22 +34,16 @@ class RepositorySuggestionsDownloader(Thread):
 
         return cls._file_suggestions_ts
 
-    @classmethod
-    def url_suggestions(cls) -> str:
-        if cls._url_suggestions is None:
-            cls._url_suggestions = 'https://raw.githubusercontent.com/vinifmor/bauh-files' \
-                                   '/master/arch/suggestions.txt'
-
-        return cls._url_suggestions
-
     def __init__(self, logger: Logger, http_client: HttpClient, i18n: I18n,
-                 create_config: Optional[CreateConfigFile] = None):
+                 create_config: Optional[CreateConfigFile] = None, file_url: Optional[str] = None):
         super(RepositorySuggestionsDownloader, self).__init__()
         self._log = logger
         self.i18n = i18n
         self.http_client = http_client
         self._taskman: Optional[TaskManager] = None
         self.create_config = create_config
+        self._file_url = file_url if file_url else 'https://raw.githubusercontent.com/vinifmor/bauh-files' \
+                                                   '/master/arch/suggestions.txt'
         self.task_id = 'arch.suggs'
 
     def register_task(self, taskman: Optional[TaskManager]):
@@ -65,38 +59,50 @@ class RepositorySuggestionsDownloader(Thread):
 
         return self._taskman
 
-    @classmethod
-    def should_download(cls, arch_config: dict, logger: Logger, only_positive_exp: bool = False) -> bool:
+    def should_download(self, arch_config: dict, only_positive_exp: bool = False) -> bool:
+        if not self._file_url:
+            self._log.error("No Arch suggestions file URL defined")
+            return False
+
+        if self._file_url.startswith('/'):
+            return False
+
         try:
             exp_hours = int(arch_config['suggestions_exp'])
         except ValueError:
-            logger.error(f"The Arch configuration property 'suggestions_exp' has a non int value set: "
-                         f"{arch_config['suggestions']['expiration']}")
+            self._log.error(f"The Arch configuration property 'suggestions_exp' has a non int value set: "
+                            f"{arch_config['suggestions']['expiration']}")
             return not only_positive_exp
 
         if exp_hours <= 0:
-            logger.info("Suggestions cache is disabled")
+            self._log.info("Suggestions cache is disabled")
             return not only_positive_exp
 
-        if not os.path.exists(cls.file_suggestions()):
-            logger.info(f"'{cls.file_suggestions()}' not found. It must be downloaded")
+        if not os.path.exists(self.file_suggestions()):
+            self._log.info(f"'{self.file_suggestions()}' not found. It must be downloaded")
             return True
 
-        if not os.path.exists(cls.file_suggestions()):
-            logger.info(f"'{cls.file_suggestions()}' not found. The suggestions file must be downloaded.")
+        if not os.path.exists(self.file_suggestions_timestamp()):
+            self._log.info(f"'{self.file_suggestions()}' not found. The suggestions file must be downloaded.")
             return True
 
-        with open(cls.file_suggestions_timestamp()) as f:
+        with open(self.file_suggestions_timestamp()) as f:
             timestamp_str = f.read()
 
         try:
             suggestions_timestamp = datetime.fromtimestamp(float(timestamp_str))
         except:
-            logger.error(f'Could not parse the Arch cached suggestions timestamp: {timestamp_str}')
+            self._log.error(f'Could not parse the Arch cached suggestions timestamp: {timestamp_str}')
             traceback.print_exc()
             return True
 
         update = suggestions_timestamp + timedelta(hours=exp_hours) <= datetime.utcnow()
+
+        if update:
+            self._log.info("The cached suggestions file is no longer valid")
+        else:
+            self._log.info("The cached suggestions file is up-to-date")
+
         return update
 
     def _save(self, text: str, timestamp: float):
@@ -127,56 +133,42 @@ class RepositorySuggestionsDownloader(Thread):
                 self._log.error(f"An exception happened while writing the file '{self.file_suggestions_timestamp()}'")
                 traceback.print_exc()
 
-    def parse_suggestions(self, suggestions_str: str) -> Dict[str, SuggestionPriority]:
-        output = dict()
-        for line in suggestions_str.split('\n'):
-            clean_line = line.strip()
+    def read_cached(self, custom_file: Optional[str] = None) -> Optional[Dict[str, SuggestionPriority]]:
+        if custom_file:
+            file_path, log_ref = custom_file, 'local'
+        else:
+            file_path, log_ref = self.file_suggestions(), 'cached'
 
-            if clean_line:
-                line_split = clean_line.split(':', 1)
-
-                if len(line_split) == 2:
-                    try:
-                        prio = int(line_split[0])
-                    except ValueError:
-                        self._log.warning(f"Could not parse Arch package suggestion: {line}")
-                        continue
-
-                    output[line_split[1]] = SuggestionPriority(prio)
-
-        return output
-
-    def read_cached(self) -> Optional[Dict[str, SuggestionPriority]]:
-        self._log.info(f"Reading cached suggestions file '{self.file_suggestions()}'")
+        self._log.info(f"Reading {log_ref} Arch suggestions file '{file_path}'")
 
         try:
-            with open(self.file_suggestions()) as f:
+            with open(file_path) as f:
                 sugs_str = f.read()
         except FileNotFoundError:
-            self._log.warning(f"Cached suggestions file does not exist ({self.file_suggestions()})")
+            self._log.warning(f"{log_ref.capitalize()} suggestions file does not exist ({file_path})")
             return
 
         if not sugs_str:
-            self._log.warning(f"Cached suggestions file '{self.file_suggestions()}' is empty")
+            self._log.warning(f"{log_ref.capitalize()} suggestions file '{file_path}' is empty")
             return
 
-        return self.parse_suggestions(sugs_str)
+        return parse(sugs_str, self._log, 'Arch')
 
     def download(self) -> Optional[Dict[str, SuggestionPriority]]:
         self.taskman.update_progress(self.task_id, progress=1, substatus=None)
 
-        self._log.info(f"Downloading suggestions from {self.url_suggestions()}")
-        res = self.http_client.get(self.url_suggestions())
+        self._log.info(f"Downloading suggestions from {self._file_url}")
+        res = self.http_client.get(self._file_url)
 
         suggestions = None
         if res.status_code == 200 and res.text:
             self.taskman.update_progress(self.task_id, progress=50, substatus=None)
-            suggestions = self.parse_suggestions(res.text)
+            suggestions = parse(res.text, self._log, 'Arch')
 
             if suggestions:
                 self._save(text=res.text, timestamp=datetime.utcnow().timestamp())
             else:
-                self._log.warning("No Arch suggestions to cache")
+                self._log.warning(f"Could not parse any Arch suggestion from {self._file_suggestions_ts}")
         else:
             self._log.warning(f"Could not retrieve Arch suggestions. "
                               f"Response (status={res.status_code}, text={res.text})")
@@ -186,10 +178,17 @@ class RepositorySuggestionsDownloader(Thread):
         return suggestions
 
     def read(self, arch_config: dict) -> Optional[Dict[str, int]]:
-        if self.should_download(arch_config=arch_config, logger=self._log):
-            return self.download()
+        if self._file_url:
+            if self.is_custom_local_file_mapped():
+                return self.read_cached(custom_file=self._file_url)
 
-        return self.read_cached()
+            if self.should_download(arch_config=arch_config):
+                return self.download()
+
+            return self.read_cached()
+
+    def is_custom_local_file_mapped(self) -> bool:
+        return self._file_url and self._file_url.startswith('/')
 
     def run(self):
         if self.create_config:
@@ -198,8 +197,7 @@ class RepositorySuggestionsDownloader(Thread):
                                              self.i18n['task.waiting_task'].format(self.create_config.task_name))
                 self.create_config.join()
 
-            if not self.should_download(arch_config=self.create_config.config, logger=self._log,
-                                        only_positive_exp=False):
+            if not self.should_download(arch_config=self.create_config.config, only_positive_exp=False):
                 self.taskman.update_progress(self.task_id, 100, self.i18n['task.canceled'])
                 self.taskman.finish_task(self.task_id)
                 return

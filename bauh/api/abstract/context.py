@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Optional, Dict
 
 from bauh.api.abstract.cache import MemoryCacheFactory
 from bauh.api.abstract.disk import DiskCacheLoaderFactory
@@ -15,7 +16,7 @@ class ApplicationContext:
                  cache_factory: MemoryCacheFactory, disk_loader_factory: DiskCacheLoaderFactory,
                  logger: logging.Logger, file_downloader: FileDownloader, distro: str, app_name: str,
                  app_version: str, internet_checker: InternetChecker, root_user: bool, screen_width: int = -1,
-                 screen_height: int = -1):
+                 screen_height: int = -1, suggestions_mapping: Optional[Dict[str, str]] = None):
         """
         :param download_icons: if packages icons should be downloaded
         :param http_client: a shared instance of http client
@@ -31,6 +32,7 @@ class ApplicationContext:
         :param internet_checker
         :param screen_width
         :param screen_height
+        :param suggestions_mapping
         """
         self.download_icons = download_icons
         self.http_client = http_client
@@ -51,6 +53,7 @@ class ApplicationContext:
         self.internet_checker = internet_checker
         self.screen_width = screen_width
         self.screen_height = screen_height
+        self._suggestions_mapping = suggestions_mapping
 
     def is_system_x86_64(self):
         return self.arch_x86_64
@@ -60,3 +63,13 @@ class ApplicationContext:
 
     def is_internet_available(self) -> bool:
         return self.internet_checker.is_available()
+
+    def get_suggestion_url(self, module: str, default: Optional[str] = None) -> Optional[str]:
+        if self._suggestions_mapping:
+            module_split = module.split(f'{self.app_name}.gems.')
+
+            if len(module_split) > 1:
+                gem_name = module_split[1].split('.')[0]
+                return self._suggestions_mapping.get(gem_name, default)
+
+        return default

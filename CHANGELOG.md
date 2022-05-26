@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Features
 - General
   - new parameter `--suggestions`: forces loading software suggestions after the initialization process [#260](https://github.com/vinifmor/bauh/issues/260)
+  - allowing custom suggestions / curated software to be mapped by Linux distributions (more on [README.md](https://github.com/vinifmor/bauh#suggestions)) [#260](https://github.com/vinifmor/bauh/issues/260)
 
 ### Improvements
 - Arch
@@ -45,6 +46,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Flatpak
   - not all selected runtime partials to upgrade are actually requested to be upgraded
+
+- Web
+  - not reading from the cached suggestions file after the first request
+  - not detecting some generated apps as installed
 
 - UI
   - double suggestions loading call when no app is returned

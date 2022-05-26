@@ -52,6 +52,7 @@ def main():
                                  app_name=__app_name__,
                                  app_version=__version__,
                                  internet_checker=InternetChecker(offline=False),
+                                 suggestions_mapping=None,  # TODO not needed at the moment
                                  root_user=user.is_root())
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config,

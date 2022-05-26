@@ -13,12 +13,13 @@ from bauh.api.abstract.model import SoftwarePackage, PackageHistory, PackageUpda
 from bauh.api.abstract.view import SingleSelectComponent, SelectViewType, InputOption, PanelComponent, \
     FormComponent, TextInputComponent
 from bauh.api.exception import NoInternetException
+from bauh.commons import suggestions
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.category import CategoriesDownloader
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, ProcessHandler, new_root_subprocess
 from bauh.commons.view_utils import new_select, get_human_size_str
-from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, SUGGESTIONS_FILE, \
+from bauh.gems.snap import snap, URL_CATEGORIES_FILE, CATEGORIES_FILE_PATH, \
     get_icon_path, snapd
 from bauh.gems.snap.config import SnapConfigManager
 from bauh.gems.snap.model import SnapApplication
@@ -42,6 +43,7 @@ class SnapManager(SoftwareManager, SettingsController):
         self.suggestions_cache = context.cache_factory.new()
         self.info_path = None
         self.configman = SnapConfigManager()
+        self._suggestions_url: Optional[str] = None
 
     def _fill_categories(self, app: SnapApplication):
         categories = self.categories.get(app.name.lower())
@@ -315,7 +317,8 @@ class SnapManager(SoftwareManager, SettingsController):
                 self.logger.warning(f'It seems Snap API is not available. Search output: {output}')
                 return [self.i18n['snap.notifications.api.unavailable'].format(bold('Snaps'), bold('Snap'))]
 
-    def _fill_suggestion(self, name: str, priority: SuggestionPriority, snapd_client: SnapdClient, out: List[PackageSuggestion]):
+    def _fill_suggestion(self, name: str, priority: SuggestionPriority, snapd_client: SnapdClient,
+                         out: List[PackageSuggestion]):
         res = snapd_client.find_by_name(name)
 
         if res:
@@ -361,46 +364,87 @@ class SnapManager(SoftwareManager, SettingsController):
         app.status = PackageStatus.READY
         return app
 
+    def _read_local_suggestions_file(self) -> Optional[str]:
+        try:
+            with open(self.suggestions_url) as f:
+                suggestions_str = f.read()
+
+            return suggestions_str
+        except FileNotFoundError:
+            self.logger.error(f"Local Snap suggestions file not found: {self.suggestions_url}")
+        except OSError:
+            self.logger.error(f"Could not read local Snap suggestions file: {self.suggestions_url}")
+            traceback.print_exc()
+
+    def _download_remote_suggestions_file(self) -> Optional[str]:
+        self.logger.info(f"Downloading the Snap suggestions from {self.suggestions_url}")
+        file = self.http_client.get(self.suggestions_url)
+
+        if file:
+            return file.text
+
     def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
-        res = []
+        if limit == 0 or not snapd.is_running():
+            return
 
-        if snapd.is_running():
-            self.logger.info(f'Downloading suggestions file {SUGGESTIONS_FILE}')
-            file = self.http_client.get(SUGGESTIONS_FILE)
+        if self.is_local_suggestions_file_mapped():
+            suggestions_str = self._read_local_suggestions_file()
+        else:
+            suggestions_str = self._download_remote_suggestions_file()
 
-            if not file or not file.text:
-                self.logger.warning(f"No suggestion found in {SUGGESTIONS_FILE}")
-                return res
+        if suggestions_str is None:
+            return
+
+        if not suggestions_str:
+            self.logger.warning(f"No Snap suggestion found in {self.suggestions_url}")
+            return
+
+        ids_prios = suggestions.parse(suggestions_str, self.logger, 'Snap')
+
+        if not ids_prios:
+            self.logger.warning(f"No Snap suggestion could be parsed from {self.suggestions_url}")
+            return
+
+        suggestion_by_priority = suggestions.sort_by_priority(ids_prios)
+        snapd_client = SnapdClient(self.logger)
+
+        if filter_installed:
+            installed = {s['name'].lower() for s in snapd_client.list_all_snaps()}
+
+            if installed:
+                suggestion_by_priority = tuple(n for n in suggestion_by_priority if n not in installed)
+
+        if suggestion_by_priority and 0 < limit < len(suggestion_by_priority):
+            suggestion_by_priority = suggestion_by_priority[0:limit]
+
+        self.logger.info(f'Available Snap suggestions: {len(suggestion_by_priority)}')
+
+        if not suggestion_by_priority:
+            return
+
+        self.logger.info("Mapping Snap suggestions")
+
+        instances, threads = [], []
+
+        res, cached_count = [], 0
+        for name in suggestion_by_priority:
+            cached_sug = self.suggestions_cache.get(name)
+
+            if cached_sug:
+                res.append(cached_sug)
+                cached_count += 1
             else:
-                self.logger.info('Mapping suggestions')
+                t = Thread(target=self._fill_suggestion, args=(name, ids_prios[name], snapd_client, res))
+                t.start()
+                threads.append(t)
+                time.sleep(0.001)  # to avoid being blocked
 
-                suggestions, threads = [], []
-                snapd_client = SnapdClient(self.logger)
-                installed = {s['name'].lower() for s in snapd_client.list_all_snaps()}
+        for t in threads:
+            t.join()
 
-                for l in file.text.split('\n'):
-                    if l:
-                        if limit <= 0 or len(suggestions) < limit:
-                            sug = l.strip().split('=')
-                            name = sug[1]
+        if cached_count > 0:
+            self.logger.info(f"Returning {cached_count} cached Snap suggestions")
 
-                            if not installed or name not in installed:
-                                cached_sug = self.suggestions_cache.get(name)
-
-                                if cached_sug:
-                                    res.append(cached_sug)
-                                else:
-                                    t = Thread(target=self._fill_suggestion, args=(name, SuggestionPriority(int(sug[0])), snapd_client, res))
-                                    t.start()
-                                    threads.append(t)
-                                    time.sleep(0.001)  # to avoid being blocked
-                        else:
-                            break
-
-                for t in threads:
-                    t.join()
-
-                res.sort(key=lambda s: s.priority.value, reverse=True)
         return res
 
     def is_default_enabled(self) -> bool:
@@ -509,3 +553,21 @@ class SnapManager(SoftwareManager, SettingsController):
                         raise Exception('aborted')
                     else:
                         return select.get_selected()
+
+    @property
+    def suggestions_url(self) -> str:
+        if not self._suggestions_url:
+            file_url = self.context.get_suggestion_url(self.__module__)
+
+            if not file_url:
+                file_url = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/suggestions.txt'
+
+            self._suggestions_url = file_url
+
+            if file_url.startswith('/'):
+                self.logger.info(f"Local Snap suggestions file mapped: {file_url}")
+
+        return self._suggestions_url
+
+    def is_local_suggestions_file_mapped(self) -> bool:
+        return self.suggestions_url.startswith('/')

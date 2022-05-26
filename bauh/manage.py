@@ -13,6 +13,7 @@ from bauh.context import generate_i18n, DEFAULT_I18N_KEY, new_qt_application
 from bauh.view.core import gems
 from bauh.view.core.controller import GenericSoftwareManager
 from bauh.view.core.downloader import AdaptableFileDownloader
+from bauh.view.core.suggestions import read_suggestions_mapping
 from bauh.view.qt.prepare import PreparePanel
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.window import ManageWindow
@@ -48,6 +49,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                  app_name=__app_name__,
                                  app_version=__version__,
                                  internet_checker=InternetChecker(offline=app_args.offline),
+                                 suggestions_mapping=read_suggestions_mapping(),
                                  root_user=user.is_root())
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config,

@@ -508,7 +508,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                             root_password=root_password, aptitude=self.aptitude)
             sync_pkgs.start()
 
-        if DebianSuggestionsDownloader.should_download(deb_config, self._log, only_positive_exp=True):
+        if self.suggestions_downloader.should_download(deb_config, only_positive_exp=True):
             self.suggestions_downloader.register_task(task_manager)
             self.suggestions_downloader.start()
 
@@ -887,8 +887,13 @@ class DebianPackageManager(SoftwareManager, SettingsController):
     @property
     def suggestions_downloader(self) -> DebianSuggestionsDownloader:
         if not self._suggestions_downloader:
+            file_url = self.context.get_suggestion_url(self.__module__)
             self._suggestions_downloader = DebianSuggestionsDownloader(i18n=self._i18n, logger=self._log,
-                                                                       http_client=self.context.http_client)
+                                                                       http_client=self.context.http_client,
+                                                                       file_url=file_url)
+
+            if self._suggestions_downloader.is_local_suggestions_file():
+                self._log.info(f"Local Debian suggestions file mapped: {file_url}")
 
         return self._suggestions_downloader
 
