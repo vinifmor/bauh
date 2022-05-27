@@ -1,9 +1,9 @@
 [![GitHub release](https://img.shields.io/github/release/vinifmor/bauh.svg?label=Release)](https://github.com/vinifmor/bauh/releases/) [![PyPI](https://img.shields.io/pypi/v/bauh?label=PyPI)](https://pypi.org/project/bauh) [![AUR](https://img.shields.io/aur/version/bauh?label=AUR)](https://aur.archlinux.org/packages/bauh) [![AUR-staging](https://img.shields.io/aur/version/bauh-staging?label=AUR-staging)](https://aur.archlinux.org/packages/bauh-staging) [![License](https://img.shields.io/github/license/vinifmor/bauh?label=License)](https://github.com/vinifmor/bauh/blob/master/LICENSE) [![kofi](https://img.shields.io/badge/Ko--Fi-Donate-orange?style=flat&logo=ko-fi)](https://ko-fi.com/vinifmor) [![Follow on Twitter](https://img.shields.io/twitter/follow/bauh4linux?style=social&label=Twitter)](https://twitter.com/bauh4linux)
 
-**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, ArchLinux packages (including AUR), Debian packages, Flatpak, Snap and Web applications.
+**bauh** (ba-oo), formerly known as **fpakman**, is a graphical interface for managing your Linux software (packages/applications). It currently supports the following formats: AppImage, Debian and Arch Linux packages (including AUR), Flatpak, Snap and Web applications.
 
 Key features
-- A management panel where you can: search, install, uninstall, upgrade, downgrade and launch you applications (and more...)
+- A management panel where you can: search, install, uninstall, upgrade, downgrade and launch your applications
 - Tray mode: it launches attached to the system tray and publishes notifications when there are software updates available
 - System backup: it integrates with [Timeshift](https://github.com/teejee2008/timeshift) to provide a simple and safe backup process before applying changes to your system
 - Custom themes: it's possible to customize the tool's style/appearance. More at [Custom themes](#custom_themes) 
@@ -321,7 +321,6 @@ installation_level: null # defines a default installation level: "user" or "syst
 ```
 - Custom actions supported:
   - **Full update**: it completely updates the Flatpak apps and components. Useful if you are having issues with runtime updates.
-- Cached package suggestions: `~/.cache/bauh/flatpak/suggestions.txt` (or `/var/cache/bauh/flatpak/suggestions.txt` for **root**)
 
 #### <a name="type_snap">Snap</a>
 
@@ -334,7 +333,6 @@ installation_level: null # defines a default installation level: "user" or "syst
 install_channel: false  # it allows to select an available channel during the application installation. Default: false
 categories_exp: 24  # It defines the expiration time (in HOURS) of the Snaps categories mapping file stored in disc. Use 0 so that it is always updated during initialization.
 ```
-- Cached package suggestions: `~/.cache/bauh/snap/suggestions.txt` (or `/var/cache/bauh/snap/suggestions.txt` for **root**)
 
 
 #### <a name="type_web">Native Web applications</a>
