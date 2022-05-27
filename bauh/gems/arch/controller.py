@@ -1859,7 +1859,7 @@ class ArchManager(SoftwareManager, SettingsController):
             if dep[1] == 'aur':
                 dep_context = context.gen_dep_context(dep[0], dep[1])
                 dep_src = self.aur_client.get_src_info(dep[0])
-                dep_context.base = dep_src['pkgbase']
+                dep_context.base = dep_src['pkgbase'] if dep_src['pkgbase'] else dep[0]
                 aur_deps_context.append(dep_context)
             else:
                 repo_deps.append(dep)
@@ -1914,7 +1914,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 return repo_dep_names
 
         if aur_deps_context:
-            aur_deps_info = self.aur_client.get_info((c.name for c in aur_deps_context))
+            aur_deps_info = self.aur_client.get_info((c.base for c in aur_deps_context))
             aur_deps_data = None
 
             if aur_deps_info:
@@ -1922,7 +1922,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
             for aur_context in aur_deps_context:
                 if aur_deps_data:
-                    dep_data = aur_deps_data.get(aur_context.name)
+                    dep_data = aur_deps_data.get(aur_context.base)
 
                     if dep_data:
                         last_modified = dep_data.get('LastModified')
