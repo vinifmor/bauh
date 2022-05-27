@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - AUR: 
     - build: error raised when the temporary directory does not exist (when changing the CPUs governors)
     - date parsing when checking for updates
+    - not caching the 'LastModified' field of installed AUR dependencies (could lead to wrong display updates)
 
 - Flatpak
   - not all selected runtime partials to upgrade are actually requested to be upgraded

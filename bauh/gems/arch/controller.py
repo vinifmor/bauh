@@ -1913,14 +1913,33 @@ class ArchManager(SoftwareManager, SettingsController):
             else:
                 return repo_dep_names
 
-        for aur_context in aur_deps_context:
-            installed = self._install_from_aur(aur_context)
+        if aur_deps_context:
+            aur_deps_info = self.aur_client.get_info((c.name for c in aur_deps_context))
+            aur_deps_data = None
 
-            if not installed:
-                return {aur_context.name}
-            else:
-                progress += progress_increment
-                self._update_progress(context, progress)
+            if aur_deps_info:
+                aur_deps_data = {data['Name']: data for data in aur_deps_info}
+
+            for aur_context in aur_deps_context:
+                if aur_deps_data:
+                    dep_data = aur_deps_data.get(aur_context.name)
+
+                    if dep_data:
+                        last_modified = dep_data.get('LastModified')
+
+                        if last_modified and isinstance(last_modified, int):
+                            aur_context.last_modified = last_modified
+                        else:
+                            self.logger.warning(f"No valid 'LastModified' field returned for AUR package "
+                                                f"'{context.name}': {last_modified}")
+
+                installed = self._install_from_aur(aur_context)
+
+                if not installed:
+                    return {aur_context.name}
+                else:
+                    progress += progress_increment
+                    self._update_progress(context, progress)
 
         self._update_progress(context, 100)
 
