@@ -674,7 +674,7 @@ class ArchManager(SoftwareManager, SettingsController):
                         context.project_dir = clone_dir
                         srcinfo_path = f'{clone_dir}/.SRCINFO'
 
-                        logs = git.log_shas_and_timestamps(clone_dir)
+                        logs = git.list_commits(clone_dir)
                         context.watcher.change_progress(40)
 
                         if not logs or len(logs) == 1:
@@ -1699,7 +1699,7 @@ class ArchManager(SoftwareManager, SettingsController):
             if not os.path.exists(srcinfo_path):
                 return PackageHistory.empyt(pkg)
 
-            logs = git.log_shas_and_timestamps(clone_dir)
+            logs = git.list_commits(clone_dir)
 
             if logs:
                 srcfields = {'epoch', 'pkgver', 'pkgrel'}
@@ -2083,11 +2083,14 @@ class ArchManager(SoftwareManager, SettingsController):
         if pkgbuilt:
             self.__fill_aur_output_files(context)
 
-            self.logger.info("Reading '{}' cloned repository current commit".format(context.name))
-            context.commit = git.get_current_commit(context.project_dir)
+            self.logger.info(f"Reading '{context.name}' cloned repository current commit")
+            commits = git.list_commits(context.project_dir, limit=1)
 
-            if not context.commit:
-                self.logger.error("Could not read '{}' cloned repository current commit".format(context.name))
+            if commits:
+                context.commit = commits[0][0]
+
+            else:
+                self.logger.error(f"Could not read '{context.name}' cloned repository current commit")
 
             if self._install(context=context):
                 self._save_pkgbuild(context)
