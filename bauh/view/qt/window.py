@@ -518,6 +518,7 @@ class ManageWindow(QWidget):
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
         self.update_bt_upgrade()
+        self._resize()
 
     def stop_notifying_package_states(self):
         if self.thread_notify_pkgs_ready.isRunning():

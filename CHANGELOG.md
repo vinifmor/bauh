@@ -29,7 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - description limit: 18%
     - publisher limit: 12%
     - version: the limit for displaying both the installed and latest versions is 22% (otherwise just the latest version will be displayed)
-
+  - auto-resizing the management panel when filters are applied
+  
 - Settings
   - new property to disable SSL checking when downloading files (disabled by default)
   
