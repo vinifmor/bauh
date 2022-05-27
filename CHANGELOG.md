@@ -37,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
         <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.3/check_ssl.png">
   </p>
   
-  - the default value for `suggestions.by_type` is now `20`.
+  - the default value for `suggestions.by_type` is now `15`.
 
 ### Fixes
 - Arch

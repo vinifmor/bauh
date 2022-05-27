@@ -30,7 +30,7 @@ class CoreConfigManager(YAMLConfigManager):
             },
             'suggestions': {
                 'enabled': True,
-                'by_type': 20
+                'by_type': 15
             },
             'ui': {
                 'table': {
