@@ -2062,7 +2062,10 @@ class ArchManager(SoftwareManager, SettingsController):
         cpus_changed, cpu_prev_governors = False, None
 
         if optimize:
-            cpus_changed, cpu_prev_governors = cpu_manager.set_all_cpus_to('performance', context.root_password, self.logger)
+            cpus_changed, cpu_prev_governors = cpu_manager.set_all_cpus_to('performance', context.root_password,
+                                                                           self.logger)
+
+        pkgbuilt = False
 
         try:
             pkgbuilt, output = makepkg.build(pkgdir=context.project_dir,
@@ -2073,7 +2076,7 @@ class ArchManager(SoftwareManager, SettingsController):
         finally:
             if cpus_changed and cpu_prev_governors:
                 self.logger.info("Restoring CPU governors")
-                cpu_manager.set_cpus(cpu_prev_governors, context.root_password, {'performance'}, self.logger)
+                cpu_manager.set_cpus(cpu_prev_governors, context.root_password, self.logger, {'performance'})
 
         self._update_progress(context, 65)
 
