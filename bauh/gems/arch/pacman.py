@@ -108,12 +108,17 @@ def map_packages(names: Optional[Iterable[str]] = None, remote: bool = False, si
         thread_ignored = Thread(target=fill_ignored_packages, args=(ignored,), daemon=True)
         thread_ignored.start()
 
-    allinfo = run_cmd(f"pacman -{'S' if remote else 'Q'}i {' '.join(names) if names else ''}", print_error=False)
+    env = system.gen_env()
+    env['LC_TIME'] = ''
+
+    code, allinfo = system.execute(f"pacman -{'S' if remote else 'Q'}i {' '.join(names) if names else ''}",
+                                   shell=True, custom_env=env)
 
     pkgs = {'signed': {}, 'not_signed': {}}
-    current_pkg = {}
 
-    if allinfo:
+    if code == 0 and allinfo:
+        current_pkg = {}
+
         for idx, field_tuple in enumerate(RE_REPOSITORY_FIELDS.findall(allinfo)):
             if field_tuple[0].startswith('R'):
                 current_pkg['repository'] = field_tuple[1].strip()

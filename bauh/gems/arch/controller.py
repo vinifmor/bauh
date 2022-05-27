@@ -492,9 +492,9 @@ class ArchManager(SoftwareManager, SettingsController):
                 try:
                     pkg.install_date = datetime_as_milis(parse_date(install_date))
                 except ValueError:
-                    self.logger.error("Could not parse 'install_date' ({}) from AUR package '{}'".format(install_date, pkg.name))
+                    self.logger.error(f"Could not parse 'install_date' ({install_date}) from AUR package '{pkg.name}'")
             else:
-                self.logger.error("AUR package '{}' install_date was not retrieved".format(pkg.name))
+                self.logger.error(f"AUR package '{pkg.name}' install_date was not retrieved")
 
         return self.aur_mapper.check_update(pkg=pkg, last_modified=api_data['LastModified'])
 

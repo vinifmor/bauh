@@ -43,7 +43,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Arch
   - conflict resolution: removing hard dependencies that would be satisfied with the inclusion of the new package [#268](https://github.com/vinifmor/bauh/issues/268)
     - e.g: `pipewire-pulse` conflicts with `pulseaudio`. `pulseaudio-alsa` (a dependency of pulseaudio) should not be removed, since `pipewire-pulse` provides `pulseaudio` 
-  - AUR build: error raised when the temporary directory does not exist (when changing the CPUs governors) 
+  - AUR: 
+    - build: error raised when the temporary directory does not exist (when changing the CPUs governors)
+    - date parsing when checking for updates
 
 - Flatpak
   - not all selected runtime partials to upgrade are actually requested to be upgraded
