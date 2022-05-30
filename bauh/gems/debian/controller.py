@@ -16,7 +16,7 @@ from bauh.api.abstract.handler import TaskManager, ProcessWatcher
 from bauh.api.abstract.model import SoftwarePackage, PackageSuggestion, PackageUpdate, PackageHistory, \
     CustomSoftwareAction
 from bauh.api.abstract.view import TextInputComponent, PanelComponent, FormComponent, MessageType, \
-    SingleSelectComponent, InputOption, SelectViewType
+    SingleSelectComponent, InputOption, SelectViewType, ViewComponentAlignment
 from bauh.api.paths import CONFIG_DIR
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler
@@ -508,7 +508,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                             root_password=root_password, aptitude=self.aptitude)
             sync_pkgs.start()
 
-        if DebianSuggestionsDownloader.should_download(deb_config, self._log, only_positive_exp=True):
+        if self.suggestions_downloader.should_download(deb_config, only_positive_exp=True):
             self.suggestions_downloader.register_task(task_manager)
             self.suggestions_downloader.start()
 
@@ -603,7 +603,6 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                           options=purge_opts,
                                           default_option=purge_current,
                                           type_=SelectViewType.RADIO,
-                                          max_width=200,
                                           max_per_line=2)
 
         sources_app = config_.get('pkg_sources.app')
@@ -623,8 +622,8 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                                               tooltip=source_auto_tip,
                                               options=source_opts,
                                               default_option=next(o for o in source_opts if o.value == sources_app),
-                                              type_=SelectViewType.COMBO,
-                                              max_width=200)
+                                              alignment=ViewComponentAlignment.CENTER,
+                                              type_=SelectViewType.COMBO)
 
         try:
             app_cache_exp = int(config_.get('index_apps.exp', 0))
@@ -636,8 +635,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         ti_index_apps_exp = TextInputComponent(id_='index_apps.exp',
                                                label=self._i18n['debian.config.index_apps.exp'],
                                                tooltip=self._i18n['debian.config.index_apps.exp.tip'],
-                                               value=str(app_cache_exp), only_int=True,
-                                               max_width=60)
+                                               value=str(app_cache_exp), only_int=True)
 
         try:
             sync_pkgs_time = int(config_.get('sync_pkgs.time', 0))
@@ -649,8 +647,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         ti_sync_pkgs = TextInputComponent(id_='sync_pkgs.time',
                                           label=self._i18n['debian.config.sync_pkgs.time'],
                                           tooltip=self._i18n['debian.config.sync_pkgs.time.tip'],
-                                          value=str(sync_pkgs_time), only_int=True,
-                                          max_width=60)
+                                          value=str(sync_pkgs_time), only_int=True)
 
         try:
             suggestions_exp = int(config_.get('suggestions.exp', 0))
@@ -662,8 +659,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         ti_suggestions_exp = TextInputComponent(id_='suggestions.exp',
                                                 label=self._i18n['debian.config.suggestions.exp'],
                                                 tooltip=self._i18n['debian.config.suggestions.exp.tip'],
-                                                value=str(suggestions_exp), only_int=True,
-                                                max_width=60)
+                                                value=str(suggestions_exp), only_int=True)
 
         panel = PanelComponent([FormComponent([input_sources, sel_purge, ti_sync_pkgs, ti_index_apps_exp,
                                                ti_suggestions_exp])])
@@ -891,8 +887,13 @@ class DebianPackageManager(SoftwareManager, SettingsController):
     @property
     def suggestions_downloader(self) -> DebianSuggestionsDownloader:
         if not self._suggestions_downloader:
+            file_url = self.context.get_suggestion_url(self.__module__)
             self._suggestions_downloader = DebianSuggestionsDownloader(i18n=self._i18n, logger=self._log,
-                                                                       http_client=self.context.http_client)
+                                                                       http_client=self.context.http_client,
+                                                                       file_url=file_url)
+
+            if self._suggestions_downloader.is_local_suggestions_file():
+                self._log.info(f"Local Debian suggestions file mapped: {file_url}")
 
         return self._suggestions_downloader
 

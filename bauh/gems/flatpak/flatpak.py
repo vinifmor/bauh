@@ -326,15 +326,18 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str, full_str:
     return commits
 
 
-def search(version: Version, word: str, installation: str, app_id: bool = False) -> List[dict]:
+def search(version: Version, word: str, installation: str, app_id: bool = False) -> Optional[List[dict]]:
 
     res = run_cmd(f'flatpak search {word} --{installation}', lang=None)
 
-    found = []
+    if not res:
+        return
 
+    found = None
     split_res = res.strip().split('\n')
 
     if split_res and '\t' in split_res[0]:
+        found = []
         for info in split_res:
             if info:
                 info_list = info.split('\t')

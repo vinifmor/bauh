@@ -299,6 +299,14 @@ class SuggestionPriority(Enum):
     HIGH = 2
     TOP = 3
 
+    def __gt__(self, other):
+        if isinstance(other, SuggestionPriority):
+            return self.value > other.value
+
+    def __lt__(self, other):
+        if isinstance(other, SuggestionPriority):
+            return self.value < other.value
+
 
 class PackageSuggestion:
 

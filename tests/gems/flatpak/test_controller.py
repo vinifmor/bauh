@@ -96,7 +96,7 @@ class FlatpakManagerSortUpdateOrderTest(TestCase):
         gnome_locale = FlatpakApplication(id="org.gnome.Platform.Locale", name="Locale", runtime=True, partial=True)
         gnome_locale.base_id = gnome_platform.id
 
-        platform_default = FlatpakApplication(id="org.freedesktop.Platform.GL.default", name='default', runtime=True)
+        platform_default = FlatpakApplication(id="org.freedesktop.Platform.GL.default", name='Default', runtime=True)
         platform_locale = FlatpakApplication(id="org.freedesktop.Platform.GL.Locale", name='Locale', runtime=True, partial=True)
         platform_locale.base_id = platform_default.id
 
@@ -113,9 +113,9 @@ class FlatpakManagerSortUpdateOrderTest(TestCase):
         self.assertIsInstance(sorted_list, list)
         self.assertEqual(len(pkgs), len(sorted_list))
 
-        self.assertEqual(gnome_locale.id, sorted_list[0].id)
-        self.assertEqual(gnome_platform.id, sorted_list[1].id)
-        self.assertEqual(platform_locale.id, sorted_list[2].id)
-        self.assertEqual(platform_default.id, sorted_list[3].id)
+        self.assertEqual(platform_default.id, sorted_list[0].id)
+        self.assertEqual(platform_locale.id, sorted_list[1].id)
+        self.assertEqual(gnome_locale.id, sorted_list[2].id)
+        self.assertEqual(gnome_platform.id, sorted_list[3].id)
         self.assertEqual('org.gnome.gedit', sorted_list[4].id)
         self.assertEqual('com.spotify.Client', sorted_list[5].id)

@@ -8,7 +8,6 @@ SNAP_CACHE_DIR = f'{CACHE_DIR}/snap'
 CONFIG_FILE = f'{CONFIG_DIR}/snap.yml'
 CATEGORIES_FILE_PATH = f'{SNAP_CACHE_DIR}/categories.txt'
 URL_CATEGORIES_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/categories.txt'
-SUGGESTIONS_FILE = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/snap/suggestions.txt'
 
 
 def get_icon_path() -> str:

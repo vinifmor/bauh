@@ -83,6 +83,7 @@ class SettingsWindow(QWidget):
     def show(self):
         super(SettingsWindow, self).show()
         centralize(self)
+        self.setMinimumWidth(int(self.sizeHint().width()))
 
     def closeEvent(self, event):
         if self.window and self.window.settings_window == self:

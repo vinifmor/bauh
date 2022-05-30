@@ -7,7 +7,6 @@ import sqlite3
 import subprocess
 import traceback
 from datetime import datetime
-from math import floor
 from pathlib import Path
 from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
@@ -83,6 +82,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         self._action_self_install: Optional[CustomSoftwareAction] = None
         self._app_github: Optional[str] = None
         self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
+        self._suggestions_downloader: Optional[AppImageSuggestionsDownloader] = None
 
     def install_file(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         max_width = 350
@@ -746,9 +746,11 @@ class AppImageManager(SoftwareManager, SettingsController):
                             create_config=create_config, http_client=self.context.http_client,
                             logger=self.context.logger).start()
 
-            AppImageSuggestionsDownloader(taskman=task_manager, i18n=self.context.i18n,
-                                          http_client=self.context.http_client, logger=self.context.logger,
-                                          create_config=create_config).start()
+            if not self.suggestions_downloader.is_custom_local_file_mapped():
+                self.suggestions_downloader.taskman = task_manager
+                self.suggestions_downloader.create_config = create_config
+                self.suggestions_downloader.register_task()
+                self.suggestions_downloader.start()
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         res = self.read_installed(disk_loader=None, internet_available=internet_available)
@@ -768,23 +770,24 @@ class AppImageManager(SoftwareManager, SettingsController):
             return [self.i18n['appimage.warning.missing_db_files'].format(appimage=bold('AppImage'))]
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
-        res = []
+        if limit == 0:
+            return
 
         connection = self._get_db_connection(DATABASE_APPS_FILE)
 
         if connection:
-            suggestions = AppImageSuggestionsDownloader(appimage_config=self.configman.get_config(), logger=self.logger,
-                                                        i18n=self.i18n, http_client=self.http_client,
-                                                        taskman=TaskManager()).read()
+            self.suggestions_downloader.taskman = TaskManager()
+            suggestions = tuple(self.suggestions_downloader.read())
 
             if not suggestions:
-                self.logger.warning("Could not read suggestions")
-                return res
+                self.logger.warning("Could not read AppImage suggestions")
+                return
             else:
-                self.logger.info("Mapping suggestions")
+                self.logger.info("Mapping AppImage suggestions")
                 try:
                     if filter_installed:
-                        installed = {i.name.lower() for i in self.read_installed(disk_loader=None, connection=connection).installed}
+                        installed = {i.name.lower() for i in self.read_installed(disk_loader=None,
+                                                                                 connection=connection).installed}
                     else:
                         installed = None
 
@@ -795,7 +798,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                         name = lsplit[1].strip()
 
-                        if limit <= 0 or len(sugs_map) < limit:
+                        if limit < 0 or len(sugs_map) < limit:
                             if not installed or not name.lower() in installed:
                                 sugs_map[name] = SuggestionPriority(int(lsplit[0]))
                         else:
@@ -804,16 +807,17 @@ class AppImageManager(SoftwareManager, SettingsController):
                     cursor = connection.cursor()
                     cursor.execute(query.FIND_APPS_BY_NAME_FULL.format(','.join([f"'{s}'" for s in sugs_map.keys()])))
 
+                    res = []
                     for t in cursor.fetchall():
                         app = AppImage(*t, i18n=self.i18n)
                         res.append(PackageSuggestion(app, sugs_map[app.name.lower()]))
-                    self.logger.info(f"Mapped {len(res)} suggestions")
+
+                    self.logger.info(f"Mapped {len(res)} AppImage suggestions")
+                    return res
                 except:
                     traceback.print_exc()
                 finally:
                     connection.close()
-
-        return res
 
     def is_default_enabled(self) -> bool:
         return True
@@ -852,7 +856,6 @@ class AppImageManager(SoftwareManager, SettingsController):
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
         config_ = self.configman.get_config()
-        max_width = 50
 
         comps = [
             TextInputComponent(label=self.i18n['appimage.config.database.expiration'],
@@ -860,14 +863,12 @@ class AppImageManager(SoftwareManager, SettingsController):
                                    config_['database']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.database.expiration.tip'],
                                only_int=True,
-                               max_width=max_width,
                                id_='appim_db_exp'),
             TextInputComponent(label=self.i18n['appimage.config.suggestions.expiration'],
                                value=int(config_['suggestions']['expiration']) if isinstance(
                                    config_['suggestions']['expiration'], int) else '',
                                tooltip=self.i18n['appimage.config.suggestions.expiration.tip'],
                                only_int=True,
-                               max_width=max_width,
                                id_='appim_sugs_exp')
         ]
 
@@ -1083,3 +1084,18 @@ class AppImageManager(SoftwareManager, SettingsController):
             self._app_github = f'vinifmor/{self.context.app_name}'
 
         return self._app_github
+
+    @property
+    def suggestions_downloader(self) -> AppImageSuggestionsDownloader:
+        if not self._suggestions_downloader:
+            file_url = self.context.get_suggestion_url(self.__module__)
+            self._suggestions_downloader = AppImageSuggestionsDownloader(taskman=TaskManager(),
+                                                                         i18n=self.context.i18n,
+                                                                         http_client=self.context.http_client,
+                                                                         logger=self.context.logger,
+                                                                         file_url=file_url)
+
+            if self._suggestions_downloader.is_custom_local_file_mapped():
+                self.logger.info(f"Local AppImage suggestions file mapped: {file_url}")
+
+        return self._suggestions_downloader

@@ -6,10 +6,9 @@ import re
 import shutil
 import subprocess
 import traceback
-from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import List, Type, Set, Tuple, Optional, Dict, Generator, Iterable
+from typing import List, Type, Set, Tuple, Optional, Dict, Generator, Iterable, Pattern
 
 import requests
 import yaml
@@ -25,16 +24,15 @@ from bauh.api.abstract.model import SoftwarePackage, CustomSoftwareAction, Packa
     PackageHistory, \
     SuggestionPriority, PackageStatus
 from bauh.api.abstract.view import MessageType, MultipleSelectComponent, InputOption, SingleSelectComponent, \
-    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent
+    SelectViewType, TextInputComponent, FormComponent, FileChooserComponent, PanelComponent, ViewComponentAlignment
 from bauh.api.paths import DESKTOP_ENTRIES_DIR
 from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import ProcessHandler, get_dir_size, SimpleProcess
 from bauh.commons.view_utils import get_human_size_str
-from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, UA_CHROME, \
-    SUGGESTIONS_CACHE_FILE, ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, \
-    get_icon_path, URL_PROPS_PATTERN
+from bauh.gems.web import INSTALLED_PATH, nativefier, DESKTOP_ENTRY_PATH_PATTERN, URL_FIX_PATTERN, ENV_PATH, \
+    ROOT_DIR, TEMP_PATH, FIX_FILE_PATH, ELECTRON_CACHE_DIR, UA_CHROME, get_icon_path, URL_PROPS_PATTERN
 from bauh.gems.web.config import WebConfigManager
 from bauh.gems.web.environment import EnvironmentUpdater, EnvironmentComponent
 from bauh.gems.web.model import WebApplication
@@ -44,18 +42,18 @@ from bauh.gems.web.worker import SuggestionsManager, UpdateEnvironmentSettings, 
 
 try:
     from bs4 import BeautifulSoup, SoupStrainer
+
     BS4_AVAILABLE = True
 except:
     BS4_AVAILABLE = False
 
-
 try:
     import lxml
+
     LXML_AVAILABLE = True
 except:
     LXML_AVAILABLE = False
 
-RE_PROTOCOL_STRIP = re.compile(r'[a-zA-Z]+://')
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_SYMBOLS_SPLIT = re.compile(r'[\-|_\s:.]')
 
@@ -64,7 +62,7 @@ DEFAULT_LANGUAGE_HEADER = 'en-US, en'
 
 class WebApplicationManager(SoftwareManager, SettingsController):
 
-    def __init__(self, context: ApplicationContext, suggestions_loader: Optional[SuggestionsLoader] = None):
+    def __init__(self, context: ApplicationContext):
         super(WebApplicationManager, self).__init__(context=context)
         self.http_client = context.http_client
         self.env_updater = EnvironmentUpdater(logger=context.logger, http_client=context.http_client,
@@ -73,11 +71,13 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         self.i18n = context.i18n
         self.logger = context.logger
         self.env_thread = None
-        self.suggestions_loader = suggestions_loader
+        self.suggestions_loader: Optional[SuggestionsLoader] = None
+        self._suggestions_manager: Optional[SuggestionsManager] = None
         self.suggestions = {}
         self.configman = WebConfigManager()
         self.idxman = SearchIndexManager(logger=context.logger)
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
+        self._re_protocol_strip: Optional[Pattern] = None
 
     def get_accept_language_header(self) -> str:
         try:
@@ -174,7 +174,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             if icon_url:
                 return icon_url
 
-    def _get_app_description(self, url: str,  soup: "BeautifulSoup") -> str:
+    def _get_app_description(self, url: str, soup: "BeautifulSoup") -> str:
         description = None
         desc_tag = soup.head.find('meta', attrs={'name': 'description'})
 
@@ -227,13 +227,17 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                 return props
 
         except Exception as e:
-            self.logger.warning(f"Error when trying to retrieve custom installation properties for {props_url}: {e.__class__.__name__}")
+            self.logger.warning(
+                f"Error when trying to retrieve custom installation properties for {props_url}: {e.__class__.__name__}")
 
     def _map_electron_branch(self, version: str) -> str:
         return f"electron_{'_'.join(version.split('.')[0:-1])}_X"
 
-    def _strip_url_protocol(self, url: str) -> str:
-        return RE_PROTOCOL_STRIP.split(url)[1].strip().lower()
+    def strip_url_protocol(self, url: str) -> str:
+        if not self._re_protocol_strip:
+            self._re_protocol_strip = re.compile(r'^[a-zA-Z]+://(www\.)?')
+
+        return self._re_protocol_strip.split(url)[-1].strip().lower()
 
     def serialize_to_disk(self, pkg: SoftwarePackage, icon_bytes: Optional[bytes], only_icon: bool):
         super(WebApplicationManager, self).serialize_to_disk(pkg=pkg, icon_bytes=None, only_icon=False)
@@ -242,7 +246,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         headers = {'Accept-language': self.get_accept_language_header(), 'User-Agent': UA_CHROME}
 
         try:
-            return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False, allow_redirects=True)
+            return self.http_client.get(url, headers=headers, ignore_ssl=True, single_call=True, session=False,
+                                        allow_redirects=True)
         except Exception as e:
             self.logger.warning(f"Could not GET '{url}'. Exception: {e.__class__.__name__}")
 
@@ -263,9 +268,9 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         if is_url:
             url = words[0:-1] if words.endswith('/') else words
 
-            url_no_protocol = self._strip_url_protocol(url)
+            url_no_protocol = self.strip_url_protocol(url)
 
-            installed_matches = [app for app in installed if self._strip_url_protocol(app.url) == url_no_protocol]
+            installed_matches = [app for app in installed if self.strip_url_protocol(app.url) == url_no_protocol]
 
             if installed_matches:
                 res.installed.extend(installed_matches)
@@ -320,25 +325,28 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                     self.logger.info("Query '{}' was not found in the suggestion's index".format(words))
                     res.installed.extend(installed_matches)
                 else:
-                    if not os.path.exists(SUGGESTIONS_CACHE_FILE):
+                    cached_file_path = self.suggestions_manager.get_cached_file_path()
+
+                    if not os.path.exists(cached_file_path):
                         # if the suggestions cache was not found, it will not be possible to retrieve the matched apps
                         # so only the installed matches will be returned
-                        self.logger.warning("Suggestion cached file {} was not found".format(SUGGESTIONS_CACHE_FILE))
+                        self.logger.warning(f"Suggestion file {cached_file_path} was not found")
                         res.installed.extend(installed_matches)
                     else:
-                        with open(SUGGESTIONS_CACHE_FILE) as f:
+                        with open(cached_file_path) as f:
                             cached_suggestions = yaml.safe_load(f.read())
 
                         if not cached_suggestions:
                             # if no suggestion is found, it will not be possible to retrieve the matched apps
                             # so only the installed matches will be returned
-                            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_CACHE_FILE))
+                            self.logger.warning(f"No suggestion found in {cached_file_path}")
                             res.installed.extend(installed_matches)
                         else:
-                            matched_suggestions = [cached_suggestions[key] for key in index_match_keys if cached_suggestions.get(key)]
+                            matched_suggestions = [cached_suggestions[key] for key in index_match_keys if
+                                                   cached_suggestions.get(key)]
 
                             if not matched_suggestions:
-                                self.logger.warning("No suggestion found for the search index keys: {}".format(index_match_keys))
+                                self.logger.warning(f"No suggestion found for the query index keys: {index_match_keys}")
                                 res.installed.extend(installed_matches)
                             else:
                                 matched_suggestions.sort(key=lambda s: s.get('priority', 0), reverse=True)
@@ -376,7 +384,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
         return res
 
-    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
+    def read_installed(self, disk_loader: Optional[DiskCacheLoader], limit: int = -1, only_apps: bool = False,
+                       pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = True) -> SearchResult:
         res = SearchResult([], [], 0)
 
         if os.path.exists(INSTALLED_PATH):
@@ -393,12 +402,14 @@ class WebApplicationManager(SoftwareManager, SettingsController):
     def upgrade(self, requirements: UpgradeRequirements, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
         pass
 
-    def uninstall(self, pkg: WebApplication, root_password: Optional[str], watcher: ProcessWatcher, disk_loader: DiskCacheLoader) -> TransactionResult:
+    def uninstall(self, pkg: WebApplication, root_password: Optional[str], watcher: ProcessWatcher,
+                  disk_loader: DiskCacheLoader) -> TransactionResult:
         self.logger.info("Checking if {} installation directory {} exists".format(pkg.name, pkg.installation_dir))
 
         if not os.path.exists(pkg.installation_dir):
             watcher.show_message(title=self.i18n['error'],
-                                 body=self.i18n['web.uninstall.error.install_dir.not_found'].format(bold(pkg.installation_dir)),
+                                 body=self.i18n['web.uninstall.error.install_dir.not_found'].format(
+                                     bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
             return TransactionResult.fail()
 
@@ -464,7 +475,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
     def get_info(self, pkg: WebApplication) -> dict:
         if pkg.installed:
-            info = {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories', 'installation_dir', 'desktop_entry'))}
+            info = {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in
+                    enumerate(('url', 'description', 'version', 'categories', 'installation_dir', 'desktop_entry'))}
             info['07_exec_file'] = pkg.get_exec_path()
             info['08_icon_path'] = pkg.get_disk_icon_path()
 
@@ -481,12 +493,14 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
             return info
         else:
-            return {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in enumerate(('url', 'description', 'version', 'categories'))}
+            return {'0{}_{}'.format(idx + 1, att): getattr(pkg, att) for idx, att in
+                    enumerate(('url', 'description', 'version', 'categories'))}
 
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
+    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[
+        bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
         max_width = 350
@@ -703,9 +717,11 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                     self.logger.error("An exception has happened when downloading {}".format(pkg.icon_url))
                     traceback.print_exc()
             else:
-                self.logger.warning('Could no retrieve the icon {} defined for the suggestion {}'.format(pkg.icon_url, pkg.name))
+                self.logger.warning(
+                    'Could no retrieve the icon {} defined for the suggestion {}'.format(pkg.icon_url, pkg.name))
         except:
-            self.logger.warning('An exception happened when trying to retrieve the icon {} for the suggestion {}'.format(pkg.icon_url,
+            self.logger.warning(
+                'An exception happened when trying to retrieve the icon {} for the suggestion {}'.format(pkg.icon_url,
                                                                                                          pkg.name))
             traceback.print_exc()
 
@@ -749,7 +765,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
         electron_version = str(next((c for c in env_components if c.id == 'electron')).version)
 
-        url_domain, electron_branch = self._strip_url_protocol(pkg.url), self._map_electron_branch(electron_version)
+        url_domain, electron_branch = self.strip_url_protocol(pkg.url), self._map_electron_branch(electron_version)
         fix = self._get_fix_for(url_domain=url_domain, electron_branch=electron_branch)
 
         if fix:
@@ -886,7 +902,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
         return TransactionResult(success=True, installed=[pkg], removed=[])
 
-    def install(self, pkg: WebApplication, root_password: Optional[str], disk_loader: DiskCacheLoader, watcher: ProcessWatcher) -> TransactionResult:
+    def install(self, pkg: WebApplication, root_password: Optional[str], disk_loader: DiskCacheLoader,
+                watcher: ProcessWatcher) -> TransactionResult:
         continue_install, install_options = self._ask_install_options(pkg, watcher, pre_validated=True)
 
         if not continue_install:
@@ -967,9 +984,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                       create_config=create_config,
                                       i18n=self.i18n).start()
 
-        self.suggestions_loader = SuggestionsLoader(manager=SuggestionsManager(logger=self.logger,
-                                                                               http_client=self.http_client,
-                                                                               i18n=self.i18n),
+        self.suggestions_loader = SuggestionsLoader(manager=self.suggestions_manager,
                                                     logger=self.logger,
                                                     i18n=self.i18n,
                                                     taskman=task_manager,
@@ -1008,7 +1023,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                 app.description = self._get_app_description(app.url, soup)
 
             try:
-                find_url = not app.icon_url or (app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+                find_url = not app.icon_url or (
+                            app.icon_url and not self.http_client.exists(app.icon_url, session=False))
             except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
                 find_url = None
 
@@ -1049,6 +1065,9 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         output.update(self.configman.get_config())
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
+        if limit == 0:
+            return
+
         web_config = {}
 
         thread_config = Thread(target=self._fill_config_async, args=(web_config,))
@@ -1057,10 +1076,19 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         if self.suggestions:
             suggestions = self.suggestions
         elif self.suggestions_loader:
-            self.suggestions_loader.join(5)
+            if self.suggestions_loader.is_alive():
+                self.suggestions_loader.join(5)
+
             suggestions = self.suggestions
+        elif self.suggestions_manager.is_custom_local_file_mapped():
+            suggestions = self.suggestions_manager.read_cached()
         else:
-            suggestions = SuggestionsManager(logger=self.logger, http_client=self.http_client, i18n=self.i18n).download()
+            thread_config.join()
+
+            if self.suggestions_manager.should_download(web_config):
+                suggestions = self.suggestions_manager.download()
+            else:
+                suggestions = self.suggestions_manager.read_cached()
 
         # cleaning memory
         self.suggestions_loader = None
@@ -1071,22 +1099,24 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             suggestion_list.sort(key=lambda s: s.get('priority', 0), reverse=True)
 
             if filter_installed:
-                installed = {self._strip_url_protocol(i.url) for i in self.read_installed(disk_loader=None).installed}
+                installed = {self.strip_url_protocol(i.url) for i in self.read_installed(disk_loader=None).installed}
             else:
                 installed = None
 
             env_settings, res = None, []
 
             for s in suggestion_list:
-                if limit <= 0 or len(res) < limit:
+                if limit < 0 or len(res) < limit:
                     if installed:
-                        surl = self._strip_url_protocol(s['url'])
+                        surl = self.strip_url_protocol(s['url'])
 
                         if surl in installed:
                             continue
 
                     if env_settings is None:  # reading settings if not already loaded
-                        thread_config.join()
+                        if thread_config.is_alive():
+                            thread_config.join()
+
                         env_settings = self.env_updater.read_settings(web_config=web_config)
 
                     res.append(self._map_suggestion(s, env_settings))
@@ -1107,7 +1137,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
             return res
 
-    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
+    def execute_custom_action(self, action: CustomSoftwareAction, pkg: SoftwarePackage, root_password: Optional[str],
+                              watcher: ProcessWatcher) -> bool:
         pass
 
     def is_default_enabled(self) -> bool:
@@ -1127,7 +1158,8 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                     print('{}[bauh][web] Directory {} deleted{}'.format(Fore.YELLOW, ENV_PATH, Fore.RESET))
             except:
                 if logs:
-                    print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH, Fore.RESET))
+                    print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH,
+                                                                                              Fore.RESET))
                     traceback.print_exc()
 
     def get_settings(self) -> Optional[Generator[SettingsView, None, None]]:
@@ -1137,28 +1169,30 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                             value=web_config['environment']['electron']['version'],
                                             tooltip=self.i18n['web.settings.electron.version.tooltip'],
                                             placeholder='{}: 7.1.0'.format(self.i18n['example.short']),
-                                            max_width=150,
                                             id_='electron_branch')
 
         native_opts = [
-            InputOption(label=self.i18n['web.settings.nativefier.env'].capitalize(), value=False, tooltip=self.i18n['web.settings.nativefier.env.tooltip'].format(app=self.context.app_name)),
-            InputOption(label=self.i18n['web.settings.nativefier.system'].capitalize(), value=True, tooltip=self.i18n['web.settings.nativefier.system.tooltip'])
+            InputOption(label=self.i18n['web.settings.nativefier.env'].capitalize(), value=False,
+                        tooltip=self.i18n['web.settings.nativefier.env.tooltip'].format(app=self.context.app_name)),
+            InputOption(label=self.i18n['web.settings.nativefier.system'].capitalize(), value=True,
+                        tooltip=self.i18n['web.settings.nativefier.system.tooltip'])
         ]
 
         select_nativefier = SingleSelectComponent(label="Nativefier",
                                                   options=native_opts,
-                                                  default_option=[o for o in native_opts if o.value == web_config['environment']['system']][0],
+                                                  default_option=[o for o in native_opts if
+                                                                  o.value == web_config['environment']['system']][0],
                                                   type_=SelectViewType.COMBO,
                                                   tooltip=self.i18n['web.settings.nativefier.tip'],
-                                                  max_width=150,
+                                                  alignment=ViewComponentAlignment.CENTER,
                                                   id_='nativefier')
 
         env_settings_exp = TextInputComponent(label=self.i18n['web.settings.cache_exp'],
                                               tooltip=self.i18n['web.settings.cache_exp.tip'],
                                               capitalize_label=False,
-                                              value=int(web_config['environment']['cache_exp']) if isinstance(web_config['environment']['cache_exp'], int) else '',
+                                              value=int(web_config['environment']['cache_exp']) if isinstance(
+                                                  web_config['environment']['cache_exp'], int) else '',
                                               only_int=True,
-                                              max_width=60,
                                               id_='web_cache_exp')
 
         sugs_exp = TextInputComponent(label=self.i18n['web.settings.suggestions.cache_exp'],
@@ -1167,7 +1201,6 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                                       value=int(web_config['suggestions']['cache_exp']) if isinstance(
                                           web_config['suggestions']['cache_exp'], int) else '',
                                       only_int=True,
-                                      max_width=60,
                                       id_='web_sugs_exp')
 
         form_env = FormComponent(label=self.i18n['web.settings.nativefier.env'].capitalize(),
@@ -1224,3 +1257,13 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             )
 
         yield from self._custom_actions
+
+    @property
+    def suggestions_manager(self):
+        if self._suggestions_manager is None:
+            self._suggestions_manager = SuggestionsManager(logger=self.logger,
+                                                           http_client=self.http_client,
+                                                           i18n=self.i18n,
+                                                           file_url=self.context.get_suggestion_url(self.__module__))
+
+        return self._suggestions_manager

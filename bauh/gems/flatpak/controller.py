@@ -2,7 +2,7 @@ import os
 import re
 import traceback
 from datetime import datetime
-from math import floor
+from operator import attrgetter
 from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Optional, Generator, Dict
@@ -15,13 +15,14 @@ from bauh.api.abstract.controller import SearchResult, SoftwareManager, Applicat
 from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import PackageHistory, PackageUpdate, SoftwarePackage, PackageSuggestion, \
-    SuggestionPriority, PackageStatus, CustomSoftwareAction
+    PackageStatus, CustomSoftwareAction, SuggestionPriority
 from bauh.api.abstract.view import MessageType, FormComponent, SingleSelectComponent, InputOption, SelectViewType, \
-    PanelComponent
+    PanelComponent, ViewComponentAlignment
+from bauh.commons import suggestions
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import strip_html, bold
 from bauh.commons.system import ProcessHandler
-from bauh.gems.flatpak import flatpak, SUGGESTIONS_FILE, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
+from bauh.gems.flatpak import flatpak, CONFIG_FILE, UPDATES_IGNORED_FILE, FLATPAK_CONFIG_DIR, \
     EXPORTS_PATH, \
     get_icon_path, VERSION_1_5, VERSION_1_2, VERSION_1_12
 from bauh.gems.flatpak.config import FlatpakConfigManager
@@ -47,6 +48,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         self.logger = context.logger
         self.configman = FlatpakConfigManager()
         self._action_full_update: Optional[CustomSoftwareAction] = None
+        self._suggestions_file_url: Optional[str] = None
 
     def get_managed_types(self) -> Set["type"]:
         return {FlatpakApplication}
@@ -231,7 +233,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                                         latest_version=ref_split[-1],
                                                                         runtime=True,
                                                                         installation=installation,
-                                                                        installed=True,
+                                                                        installed=False,
                                                                         update_component=True,
                                                                         update=True)
 
@@ -297,12 +299,14 @@ class FlatpakManager(SoftwareManager, SettingsController):
 
             try:
                 if req.pkg.update_component:
+                    self.logger.info(f"Installing {req.pkg}")
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.install(app_id=ref,
                                                                                    installation=req.pkg.installation,
                                                                                    origin=req.pkg.origin,
                                                                                    version=flatpak_version))
 
                 else:
+                    self.logger.info(f"Updating {req.pkg}")
                     res, _ = ProcessHandler(watcher).handle_simple(flatpak.update(app_ref=ref,
                                                                                   installation=req.pkg.installation,
                                                                                   related=related,
@@ -580,47 +584,99 @@ class FlatpakManager(SoftwareManager, SettingsController):
     def list_warnings(self, internet_available: bool) -> Optional[List[str]]:
         pass
 
-    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
-        cli_version = flatpak.get_version()
-        res = []
+    def _read_local_suggestions_file(self) -> Optional[str]:
+        try:
+            with open(self.suggestions_file_url) as f:
+                suggestions_str = f.read()
 
-        self.logger.info("Downloading the suggestions file {}".format(SUGGESTIONS_FILE))
-        file = self.http_client.get(SUGGESTIONS_FILE)
+            return suggestions_str
+        except FileNotFoundError:
+            self.logger.error(f"Local Flatpak suggestions file not found: {self.suggestions_file_url}")
+        except OSError:
+            self.logger.error(f"Could not read local Flatpak suggestions file: {self.suggestions_file_url}")
+            traceback.print_exc()
 
-        if not file or not file.text:
-            self.logger.warning("No suggestion found in {}".format(SUGGESTIONS_FILE))
-            return res
+    def _download_remote_suggestions_file(self) -> Optional[str]:
+        self.logger.info(f"Downloading the Flatpak suggestions from {self.suggestions_file_url}")
+        file = self.http_client.get(self.suggestions_file_url)
+
+        if file:
+            return file.text
+
+    def _fill_suggestion(self, appid: str, priority: SuggestionPriority, flatpak_version: Version, remote: str,
+                         output: List[PackageSuggestion]):
+        app_json = flatpak.search(flatpak_version, appid, remote, app_id=True)
+
+        if app_json:
+            model = PackageSuggestion(self._map_to_model(app_json[0], False, None)[0], priority)
+            self.suggestions_cache.add(appid, model)
+            output.append(model)
         else:
-            self.logger.info("Mapping suggestions")
-            remote_level = self._get_search_remote()
-            installed = {i.id for i in self.read_installed(disk_loader=None).installed} if filter_installed else None
+            self.logger.warning(f"Could not find Flatpak suggestions '{appid}'")
 
-            for line in file.text.split('\n'):
-                if line:
-                    if limit <= 0 or len(res) < limit:
-                        sug = line.split('=')
-                        appid = sug[1].strip()
+    def list_suggestions(self, limit: int, filter_installed: bool) -> Optional[List[PackageSuggestion]]:
+        if limit == 0:
+            return
 
-                        if installed and appid in installed:
-                            continue
+        if self.is_local_suggestions_file_mapped():
+            suggestions_str = self._read_local_suggestions_file()
+        else:
+            suggestions_str = self._download_remote_suggestions_file()
 
-                        priority = SuggestionPriority(int(sug[0]))
+        if suggestions_str is None:
+            return
 
-                        cached_sug = self.suggestions_cache.get(appid)
+        if not suggestions_str:
+            self.logger.warning(f"No Flatpak suggestion found in {self.suggestions_file_url}")
+            return
 
-                        if cached_sug:
-                            res.append(cached_sug)
-                        else:
-                            app_json = flatpak.search(cli_version, appid, remote_level, app_id=True)
+        ids_prios = suggestions.parse(suggestions_str, self.logger, 'Flatpak')
 
-                            if app_json:
-                                model = PackageSuggestion(self._map_to_model(app_json[0], False, None)[0], priority)
-                                self.suggestions_cache.add(appid, model)
-                                res.append(model)
-                    else:
-                        break
+        if not ids_prios:
+            self.logger.warning(f"No Flatpak suggestion could be parsed from {self.suggestions_file_url}")
+            return
 
-            res.sort(key=lambda s: s.priority.value, reverse=True)
+        suggestion_by_priority = suggestions.sort_by_priority(ids_prios)
+
+        if filter_installed:
+            installed = {i.id for i in self.read_installed(disk_loader=None).installed}
+
+            if installed:
+                suggestion_by_priority = tuple(id_ for id_ in suggestion_by_priority if id_ not in installed)
+
+        if suggestion_by_priority and 0 < limit < len(suggestion_by_priority):
+            suggestion_by_priority = suggestion_by_priority[0:limit]
+
+        self.logger.info(f'Available Flatpak suggestions: {len(suggestion_by_priority)}')
+
+        if not suggestion_by_priority:
+            return
+
+        flatpak_version = flatpak.get_version()
+        remote = self._get_search_remote()
+
+        self.logger.info("Mapping Flatpak suggestions")
+        res, fill_suggestions = [], []
+        cached_count = 0
+
+        for appid in suggestion_by_priority:
+            cached_instance = self.suggestions_cache.get(appid)
+
+            if cached_instance:
+                res.append(cached_instance)
+                cached_count += 1
+            else:
+                fill = Thread(target=self._fill_suggestion, args=(appid, ids_prios[appid], flatpak_version,
+                                                                  remote, res))
+                fill.start()
+                fill_suggestions.append(fill)
+
+        for fill in fill_suggestions:
+            fill.join()
+
+        if cached_count > 0:
+            self.logger.info(f"Returning {cached_count} cached Flatpak suggestions")
+
         return res
 
     def is_default_enabled(self) -> bool:
@@ -665,8 +721,8 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                 options=install_opts,
                                                 default_option=[o for o in install_opts if o.value == flatpak_config['installation_level']][0],
                                                 max_per_line=len(install_opts),
-                                                max_width=160,
                                                 type_=SelectViewType.COMBO,
+                                                alignment=ViewComponentAlignment.CENTER,
                                                 id_='install'))
 
             yield SettingsView(self, PanelComponent([FormComponent(fields, self.i18n['installation'].capitalize())]))
@@ -705,31 +761,22 @@ class FlatpakManager(SoftwareManager, SettingsController):
         return UpgradeRequirements(None, None, to_update, [])
 
     def sort_update_order(self, pkgs: List[FlatpakApplication]) -> List[FlatpakApplication]:
-        partials, runtimes, apps = [], [], []
+        runtimes, apps = set(), set()
 
         for p in pkgs:
             if p.runtime:
-                if p.partial:
-                    partials.append(p)
-                else:
-                    runtimes.append(p)
+                runtimes.add(p)
             else:
-                apps.append(p)
+                apps.add(p)
 
-        if not runtimes:
-            return [*partials, *apps]
-        elif partials:
-            all_runtimes = []
-            for runtime in runtimes:
-                for partial in partials:
-                    if partial.installation == runtime.installation and partial.base_id == runtime.id:
-                        all_runtimes.append(partial)
-                        break
+        sorted_list = []
+        for comps in (runtimes, apps):
+            if comps:
+                comp_list = list(comps)
+                comp_list.sort(key=attrgetter('installation', 'name', 'id'))
+                sorted_list.extend(comp_list)
 
-                all_runtimes.append(runtime)
-            return [*all_runtimes, *apps]
-        else:
-            return [*runtimes, *apps]
+        return sorted_list
 
     def _read_ignored_updates(self) -> Set[str]:
         ignored = set()
@@ -802,3 +849,21 @@ class FlatpakManager(SoftwareManager, SettingsController):
                                                             requires_root=False)
 
         return self._action_full_update
+
+    @property
+    def suggestions_file_url(self) -> str:
+        if self._suggestions_file_url is None:
+            file_url = self.context.get_suggestion_url(self.__module__)
+
+            if not file_url:
+                file_url = 'https://raw.githubusercontent.com/vinifmor/bauh-files/master/flatpak/suggestions.txt'
+
+            self._suggestions_file_url = file_url
+
+            if file_url.startswith('/'):
+                self.logger.info(f"Local Flatpak suggestions file mapped: {file_url}")
+
+        return self._suggestions_file_url
+
+    def is_local_suggestions_file_mapped(self) -> bool:
+        return self.suggestions_file_url.startswith('/')

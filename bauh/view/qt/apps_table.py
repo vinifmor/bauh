@@ -18,10 +18,6 @@ from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
-NAME_MAX_SIZE = 30
-DESC_MAX_SIZE = 40
-PUBLISHER_MAX_SIZE = 25
-
 
 class UpgradeToggleButton(QToolButton):
 
@@ -72,8 +68,9 @@ class PackagesTable(QTableWidget):
     COL_NUMBER = 9
     DEFAULT_ICON_SIZE = QSize(16, 16)
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool, screen_width: int):
         super(PackagesTable, self).__init__()
+        self.screen_width = screen_width
         self.setObjectName('table_packages')
         self.setParent(parent)
         self.window = parent
@@ -85,7 +82,7 @@ class PackagesTable(QTableWidget):
         self.horizontalHeader().setVisible(False)
         self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.setSelectionBehavior(QTableView.SelectRows)
-        self.setHorizontalHeaderLabels(['' for _ in range(self.columnCount())])
+        self.setHorizontalHeaderLabels(('' for _ in range(self.columnCount())))
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
@@ -156,8 +153,7 @@ class PackagesTable(QTableWidget):
 
         custom_actions = pkg.model.get_custom_actions()
         if custom_actions:
-            actions = [self._map_custom_action(pkg, a, menu_row) for a in custom_actions]
-            menu_row.addActions(actions)
+            menu_row.addActions((self._map_custom_action(pkg, a, menu_row) for a in custom_actions))
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
@@ -383,8 +379,12 @@ class PackagesTable(QTableWidget):
             tooltip = self.i18n['version.updates_ignored']
 
         if pkg.model.installed and pkg.model.update and not pkg.model.is_update_ignored() and pkg.model.version and pkg.model.latest_version and pkg.model.version != pkg.model.latest_version:
-            tooltip = '{}. {}: {}'.format(tooltip, self.i18n['version.latest'], pkg.model.latest_version)
-            label_version.setText(label_version.text() + '  >  {}'.format(pkg.model.latest_version))
+            tooltip = f"{tooltip} ({self.i18n['version.installed']}: {pkg.model.version}  |  " \
+                      f"{self.i18n['version.latest']}: {pkg.model.latest_version})"
+            label_version.setText(f"{label_version.text()} > {pkg.model.latest_version}")
+
+            if label_version.sizeHint().width() / self.screen_width > 0.22:
+                label_version.setText(pkg.model.latest_version)
 
         item.setToolTip(tooltip)
         self.setCellWidget(pkg.table_index, col, item)
@@ -431,20 +431,20 @@ class PackagesTable(QTableWidget):
         col_name.setObjectName('app_name')
         col_name.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
 
-        name = pkg.model.get_display_name()
+        name = pkg.model.get_display_name().strip()
         if name:
             col_name.setToolTip('{}: {}'.format(self.i18n['app.name'].lower(), pkg.model.get_name_tooltip()))
         else:
             name = '...'
             col_name.setToolTip(self.i18n['app.name'].lower())
 
-        if len(name) > NAME_MAX_SIZE:
-            name = name[0:NAME_MAX_SIZE - 3] + '...'
-
-        if len(name) < NAME_MAX_SIZE:
-            name = name + ' ' * (NAME_MAX_SIZE - len(name))
-
         col_name.setText(name)
+        screen_perc = col_name.sizeHint().width() / self.screen_width
+
+        if screen_perc > 0.15:
+            max_chars = int(len(name) * 0.15 / screen_perc) - 3
+            col_name.setText(name[0:max_chars] + '...')
+
         self.setCellWidget(pkg.table_index, col, col_name)
 
     def _update_icon(self, label: QLabel, icon: QIcon):
@@ -463,10 +463,16 @@ class PackagesTable(QTableWidget):
         else:
             desc = '...'
 
-        if desc and desc != '...' and len(desc) > DESC_MAX_SIZE:
-            desc = strip_html(desc[0: DESC_MAX_SIZE - 1]) + '...'
+        if desc and desc != '...':
+            desc = strip_html(desc)
 
         item.setText(desc)
+
+        current_width_perc = item.sizeHint().width() / self.screen_width
+        if current_width_perc > 0.18:
+            max_width = int(len(desc) * 0.18 / current_width_perc) - 3
+            desc = desc[0:max_width] + '...'
+            item.setText(desc)
 
         if pkg.model.description:
             item.setToolTip(pkg.model.description)
@@ -479,15 +485,21 @@ class PackagesTable(QTableWidget):
         publisher = pkg.model.get_publisher()
         full_publisher = None
 
+        lb_name = QLabel()
+        lb_name.setObjectName('app_publisher')
+
         if publisher:
             publisher = publisher.strip()
             full_publisher = publisher
 
-            if len(publisher) > PUBLISHER_MAX_SIZE:
-                publisher = full_publisher[0: PUBLISHER_MAX_SIZE - 3] + '...'
+            if publisher:
+                lb_name.setText(publisher)
+                screen_perc = lb_name.sizeHint().width() / self.screen_width
 
-        lb_name = QLabel()
-        lb_name.setObjectName('app_publisher')
+                if screen_perc > 0.12:
+                    max_chars = int(len(publisher) * 0.12 / screen_perc) - 3
+                    publisher = publisher[0: max_chars] + '...'
+                    lb_name.setText(publisher)
 
         if not publisher:
             if not pkg.model.installed:
@@ -495,7 +507,7 @@ class PackagesTable(QTableWidget):
 
             publisher = self.i18n['unknown']
 
-        lb_name.setText('  {}'.format(publisher))
+        lb_name.setText(f'  {publisher}')
         item.addWidget(lb_name)
 
         if publisher and full_publisher:
@@ -570,10 +582,10 @@ class PackagesTable(QTableWidget):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             if maximized:
-                if i not in (4, 5, 8):
-                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-                else:
+                if i in (2, 3):
                     header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)
+                else:
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
             else:
                 header_horizontal.setSectionResizeMode(i, policy)
 

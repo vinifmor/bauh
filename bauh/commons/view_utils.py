@@ -4,7 +4,7 @@ from typing import Tuple, Optional, Iterable
 from bauh.api.abstract.view import SelectViewType, InputOption, SingleSelectComponent
 
 
-def new_select(label: str, tip: Optional[str], id_: str, opts: Iterable[Tuple[Optional[str], object, Optional[str]]], value: object, max_width: int,
+def new_select(label: str, tip: Optional[str], id_: str, opts: Iterable[Tuple[Optional[str], object, Optional[str]]], value: object, max_width: Optional[int] = None,
                type_: SelectViewType = SelectViewType.RADIO, capitalize_label: bool = True):
     inp_opts = [InputOption(label=o[0].capitalize(), value=o[1], tooltip=o[2]) for o in opts]
     def_opt = [o for o in inp_opts if o.value == value]

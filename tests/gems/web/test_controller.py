@@ -45,3 +45,20 @@ class WebApplicationManagerTest(TestCase):
         returned = self.manager.get_accept_language_header()
         self.assertEqual(f'en-IN, en', returned)
         getdefaultlocale.assert_called_once()
+
+    def test_strip_url_protocol__http_no_www(self):
+        res = self.manager.strip_url_protocol('http://test.com')
+        self.assertEqual('test.com', res)
+
+    def test_strip_url_protocol__http_with_www(self):
+        res = self.manager.strip_url_protocol('http://www.test.com')
+        self.assertEqual('test.com', res)
+
+    def test_strip_url_protocol__https_no_www(self):
+        res = self.manager.strip_url_protocol('https://test.com')
+        self.assertEqual('test.com', res)
+
+    def test_strip_url_protocol__https_with_www(self):
+        res = self.manager.strip_url_protocol('https://www.test.com')
+        self.assertEqual('test.com', res)
+

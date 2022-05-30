@@ -4,6 +4,62 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.3] 2022-05-30
+
+### Features
+- General
+  - new parameter `--suggestions`: forces loading software suggestions after the initialization process [#260](https://github.com/vinifmor/bauh/issues/260)
+  - allowing custom suggestions / curated software to be mapped by Linux distributions (more on [README.md](https://github.com/vinifmor/bauh#suggestions)) [#260](https://github.com/vinifmor/bauh/issues/260)
+
+### Improvements
+- Arch
+  - suggestions available for repository packages (and the associated caching expiration property `suggestions_exp`. Default: 24 hours)
+  
+- General
+  - preventing command injection through the search mechanism [#266](https://github.com/vinifmor/bauh/issues/266)
+  - code refactoring
+  
+- UI
+  - manage window minimum width related to the table columns 
+  - table columns width for maximized window
+  - settings window size rules moved to stylesheet files
+  - enforcing maximum width and height for the management window based on the primary screen resolution [#261](https://github.com/vinifmor/bauh/issues/261)
+  - some columns of the management window now have their widths limit based on a percentage of the primary screen's width:
+    - name limit: 15%
+    - description limit: 18%
+    - publisher limit: 12%
+    - version: the limit for displaying both the installed and latest versions is 22% (otherwise just the latest version will be displayed)
+  - auto-resizing the management panel when filters are applied
+  
+- Settings
+  - new property to disable SSL checking when downloading files (disabled by default)
+  
+  <p align="center">
+        <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.3/check_ssl.png">
+  </p>
+  
+  - the default value for `suggestions.by_type` is now `15`.
+
+### Fixes
+- Arch
+  - conflict resolution: removing hard dependencies that would be satisfied with the inclusion of the new package [#268](https://github.com/vinifmor/bauh/issues/268)
+    - e.g: `pipewire-pulse` conflicts with `pulseaudio`. `pulseaudio-alsa` (a dependency of pulseaudio) should not be removed, since `pipewire-pulse` provides `pulseaudio` 
+  - AUR: 
+    - build: error raised when the temporary directory does not exist (when changing the CPUs governors)
+    - date parsing when checking for updates
+    - not caching the 'LastModified' field of installed AUR dependencies (could lead to wrong display updates)
+
+- Flatpak
+  - not all selected runtime partials to upgrade are actually requested to be upgraded
+
+- Web
+  - not reading from the cached suggestions file after the first request
+  - not detecting some generated apps as installed
+
+- UI
+  - double suggestions loading call when no app is returned
+
+
 ## [0.10.2] 2022-04-16
 ### Improvements
 - Arch

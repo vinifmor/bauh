@@ -2,8 +2,10 @@ import logging
 import os
 import re
 import shutil
+import traceback
+from io import StringIO
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable, Optional
+from typing import List, Set, Tuple, Dict, Iterable, Optional, Any
 
 from colorama import Fore
 
@@ -16,7 +18,7 @@ RE_DEPS = re.compile(r'[\w\-_]+:[\s\w_\-.]+\s+\[\w+]')
 RE_OPTDEPS = re.compile(r'[\w._\-]+\s*:')
 RE_DEP_NOTFOUND = re.compile(r'error:.+\'(.+)\'')
 RE_DEP_OPERATORS = re.compile(r'[<>=]')
-RE_INSTALLED_FIELDS = re.compile(r'(Name|Description|Version|Install Date|Validated By)\s*:\s*(.+)')
+RE_REPOSITORY_FIELDS = re.compile(r'(Repository|Name|Description|Version|Install Date|Validated By)\s*:\s*(.+)')
 RE_INSTALLED_SIZE = re.compile(r'Installed Size\s*:\s*([0-9,.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_DOWNLOAD_SIZE = re.compile(r'Download Size\s*:\s*([0-9,.]+)\s(\w+)\n?', re.IGNORECASE)
 RE_UPDATE_REQUIRED_FIELDS = re.compile(r'(\bProvides\b|\bInstalled Size\b|\bConflicts With\b)\s*:\s(.+)\n')
@@ -91,23 +93,36 @@ def check_installed(pkg: str) -> bool:
     return bool(res)
 
 
-def _fill_ignored(res: dict):
-    res['pkgs'] = list_ignored_packages()
+def fill_ignored_packages(output: Set[str]):
+    output.update(list_ignored_packages())
 
 
-def map_installed(names: Optional[Iterable[str]] = None) -> Dict[str, Dict[str, str]]:
-    ignored = {}
-    thread_ignored = Thread(target=_fill_ignored, args=(ignored,), daemon=True)
-    thread_ignored.start()
+def map_packages(names: Optional[Iterable[str]] = None, remote: bool = False, signed: bool = True,
+                 not_signed: bool = True, skip_ignored: bool = False) -> Dict[str, Dict[str, Dict[str, str]]]:
+    if not signed and not not_signed:
+        return {}
 
-    allinfo = run_cmd('pacman -Qi{}'.format(' ' + ' '.join(names) if names else ''), print_error=False)
+    ignored, thread_ignored = None, None
+    if not skip_ignored:
+        ignored = set()
+        thread_ignored = Thread(target=fill_ignored_packages, args=(ignored,), daemon=True)
+        thread_ignored.start()
+
+    env = system.gen_env()
+    env['LC_TIME'] = ''
+
+    code, allinfo = system.execute(f"pacman -{'S' if remote else 'Q'}i {' '.join(names) if names else ''}",
+                                   shell=True, custom_env=env)
 
     pkgs = {'signed': {}, 'not_signed': {}}
-    current_pkg = {}
 
-    if allinfo:
-        for idx, field_tuple in enumerate(RE_INSTALLED_FIELDS.findall(allinfo)):
-            if field_tuple[0].startswith('N'):
+    if code == 0 and allinfo:
+        current_pkg = {}
+
+        for idx, field_tuple in enumerate(RE_REPOSITORY_FIELDS.findall(allinfo)):
+            if field_tuple[0].startswith('R'):
+                current_pkg['repository'] = field_tuple[1].strip()
+            elif field_tuple[0].startswith('N'):
                 current_pkg['name'] = field_tuple[1].strip()
             elif field_tuple[0].startswith('Ve'):
                 current_pkg['version'] = field_tuple[1].strip()
@@ -116,25 +131,25 @@ def map_installed(names: Optional[Iterable[str]] = None) -> Dict[str, Dict[str, 
             elif field_tuple[0].startswith('I'):
                 current_pkg['install_date'] = field_tuple[1].strip()
             elif field_tuple[0].startswith('Va'):
-                if field_tuple[1].strip().lower() == 'none':
+                if not_signed and field_tuple[1].strip().lower() == 'none':
                     pkgs['not_signed'][current_pkg['name']] = current_pkg
                     del current_pkg['name']
-                else:
+                elif signed:
                     pkgs['signed'][current_pkg['name']] = current_pkg
                     del current_pkg['name']
 
                 current_pkg = {}
 
-    if pkgs['signed'] or pkgs['not_signed']:
+    if thread_ignored and (pkgs['signed'] or pkgs['not_signed']):
         thread_ignored.join()
 
-        if ignored['pkgs']:
+        if ignored:
             to_del = set()
 
             for key in ('signed', 'not_signed'):
                 if pkgs.get(key):
                     for pkg in pkgs[key].keys():
-                        if pkg in ignored['pkgs']:
+                        if pkg in ignored:
                             to_del.add(pkg)
 
                 for pkg in to_del:
@@ -218,20 +233,23 @@ def sign_key(key: str, root_password: Optional[str]) -> SystemProcess:
 
 
 def list_ignored_packages(config_path: str = '/etc/pacman.conf') -> Set[str]:
-    pacman_conf = new_subprocess(['cat', config_path])
-
     ignored = set()
-    grep = new_subprocess(['grep', '-Eo', r'\s*#*\s*ignorepkg\s*=\s*.+'], stdin=pacman_conf.stdout)
-    for o in grep.stdout:
-        if o:
-            line = o.decode().strip()
+    try:
+        pacman_conf = new_subprocess(['cat', config_path])
+        grep = new_subprocess(['grep', '-Eo', r'\s*#*\s*ignorepkg\s*=\s*.+'], stdin=pacman_conf.stdout)
+        for o in grep.stdout:
+            if o:
+                line = o.decode().strip()
 
-            if not line.startswith('#'):
-                ignored.add(line.split('=')[1].strip())
+                if not line.startswith('#'):
+                    ignored.add(line.split('=')[1].strip())
 
-    pacman_conf.terminate()
-    grep.terminate()
-    return ignored
+        pacman_conf.terminate()
+        grep.terminate()
+        return ignored
+    except:
+        traceback.print_exc()
+        return ignored
 
 
 def check_missing(names: Set[str]) -> Set[str]:
@@ -514,7 +532,7 @@ def fill_provided_map(key: str, val: str, output: dict):
         current_val.add(val)
 
 
-def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Dict[str, Set[str]]:
+def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[Dict[str, Set[str]]]:
     output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs) if pkgs else ''))
 
     if output:
@@ -982,8 +1000,15 @@ def is_snapd_installed() -> bool:
     return bool(run_cmd('pacman -Qq snapd', print_error=False))
 
 
-def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None) -> Optional[Set[str]]:
-    code, output = system.execute('pacman -Rc {} --print-format=%n'.format(name), shell=True)
+def list_hard_requirements(name: str, logger: Optional[logging.Logger] = None,
+                           assume_installed: Optional[Set[str]] = None) -> Optional[Set[str]]:
+    cmd = StringIO()
+    cmd.write(f'pacman -Rc {name} --print-format=%n ')
+
+    if assume_installed:
+        cmd.write(' '.join(f'--assume-installed={provider}' for provider in assume_installed))
+
+    code, output = system.execute(cmd.getvalue(), shell=True)
 
     if code != 0:
         if 'HoldPkg' in output:
@@ -1029,3 +1054,24 @@ def find_one_match(name: str) -> Optional[str]:
 
         if matches and len(matches) == 1:
             return matches[0]
+
+
+def map_available_packages() -> Optional[Dict[str, Any]]:
+    output = run_cmd('pacman -Sl')
+
+    if output:
+        res = dict()
+        for line in output.split('\n'):
+            line_strip = line.strip()
+
+            if line_strip:
+                package_data = line.split(' ')
+
+                if len(package_data) >= 3:
+                    pkgname = package_data[1].strip()
+
+                    if pkgname:
+                        res[pkgname] = {'v': package_data[2].strip(),
+                                        'r': package_data[0].strip(),
+                                        'i': len(package_data) == 4 and 'installed' in package_data[3]}
+        return res

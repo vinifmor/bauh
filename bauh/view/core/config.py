@@ -30,7 +30,7 @@ class CoreConfigManager(YAMLConfigManager):
             },
             'suggestions': {
                 'enabled': True,
-                'by_type': 10
+                'by_type': 15
             },
             'ui': {
                 'table': {
@@ -51,7 +51,8 @@ class CoreConfigManager(YAMLConfigManager):
             'download': {
                 'multithreaded': False,
                 'multithreaded_client': None,
-                'icons': True
+                'icons': True,
+                'check_ssl': True
             },
             'store_root_password': True,
             'disk': {

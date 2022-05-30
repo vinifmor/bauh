@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGrid
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
-    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver, TextInputType
+    TwoStateButtonComponent, TextComponent, SpacerComponent, RangeInputComponent, ViewObserver, TextInputType, \
+    ViewComponentAlignment
 from bauh.view.util.translation import I18n
 
 
@@ -256,6 +257,25 @@ class QtComponentsManager:
             del self._saved_states[state_id]
 
 
+def map_alignment(alignment: ViewComponentAlignment) -> Optional[int]:
+    if alignment == ViewComponentAlignment.CENTER:
+        return Qt.AlignCenter
+    elif alignment == ViewComponentAlignment.LEFT:
+        return Qt.AlignLeft
+    elif alignment == ViewComponentAlignment.RIGHT:
+        return Qt.AlignRight
+    elif alignment == ViewComponentAlignment.HORIZONTAL_CENTER:
+        return Qt.AlignHCenter
+    elif alignment == ViewComponentAlignment.VERTICAL_CENTER:
+        return Qt.AlignVCenter
+    elif alignment == ViewComponentAlignment.BOTTOM:
+        return Qt.AlignBottom
+    elif alignment == ViewComponentAlignment.TOP:
+        return Qt.AlignTop
+    else:
+        return
+
+
 class RadioButtonQt(QRadioButton):
 
     def __init__(self, model: InputOption, model_parent: SingleSelectComponent):
@@ -264,6 +284,9 @@ class RadioButtonQt(QRadioButton):
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
         self.setCursor(QCursor(Qt.PointingHandCursor))
+
+        if model_parent.id:
+            self.setProperty('parent', model_parent.id)
 
         if model.icon_path:
             if model.icon_path.startswith('/'):
@@ -344,8 +367,17 @@ class FormComboBoxQt(QComboBox):
     def __init__(self, model: SingleSelectComponent):
         super(FormComboBoxQt, self).__init__()
         self.model = model
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.view().setCursor(QCursor(Qt.PointingHandCursor))
+        self.setEditable(True)
+        self.lineEdit().setReadOnly(True)
+
+        if model.alignment:
+            comp_alignment = map_alignment(model.alignment)
+
+            if comp_alignment is not None:
+                self.lineEdit().setAlignment(comp_alignment)
 
         if model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
@@ -363,6 +395,9 @@ class FormComboBoxQt(QComboBox):
 
         self.currentIndexChanged.connect(self._set_selected)
 
+        if model.id:
+            self.setObjectName(model.id)
+
     def _set_selected(self, idx: int):
         self.model.value = self.model.options[idx]
         self.setToolTip(self.model.value.tooltip)
@@ -373,9 +408,13 @@ class FormRadioSelectQt(QWidget):
     def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
         super(FormRadioSelectQt, self).__init__(parent=parent)
         self.model = model
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        self.setProperty('opts', str(len(self.model.options) if self.model.options else 0))
 
-        if model.max_width > 0:
+        if model.id:
+            self.setObjectName(model.id)
+
+        if model.max_width and model.max_width > 0:
             self.setMaximumWidth(int(model.max_width))
 
         grid = QGridLayout()
@@ -400,7 +439,7 @@ class FormRadioSelectQt(QWidget):
             else:
                 col += 1
 
-        if model.max_width <= 0:
+        if model.max_width is not None and model.max_width <= 0:
             self.setMaximumWidth(int(self.sizeHint().width()))
 
 
@@ -408,13 +447,19 @@ class RadioSelectQt(QGroupBox):
 
     def __init__(self, model: SingleSelectComponent):
         super(RadioSelectQt, self).__init__(model.label + ' :' if model.label else None)
+
+        if model.id:
+            self.setObjectName(model.id)
+
         if not model.label:
-            self.setObjectName('radio_select_notitle')
+            self.setProperty('no_label', 'true')
 
         self.model = model
 
         grid = QGridLayout()
         self.setLayout(grid)
+
+        self.setProperty('opts', str(len(model.options)) if model.options else '0')
 
         line, col = 0, 0
         for op in model.options:
@@ -444,6 +489,9 @@ class ComboSelectQt(QGroupBox):
         self.setLayout(self._layout)
         self._layout.addWidget(QLabel(model.label + ' :' if model.label else ''), 0, 0)
         self._layout.addWidget(FormComboBoxQt(model), 0, 1)
+
+        if model.id:
+            self.setObjectName(model.id)
 
 
 class QLineEditObserver(QLineEdit, ViewObserver):
@@ -479,7 +527,10 @@ class TextInputQt(QGroupBox):
         self.model = model
         self.setLayout(QGridLayout())
 
-        if self.model.max_width > 0:
+        if model.id:
+            self.setObjectName(model.id)
+
+        if self.model.max_width and self.model.max_width > 0:
             self.setMaximumWidth(int(self.model.max_width))
 
         self.text_input = QLineEditObserver() if model.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
@@ -578,6 +629,9 @@ class MultipleSelectQt(QGroupBox):
             pos_label = QLabel()
             self.layout().addWidget(pos_label, line + 1, 1)
 
+        if model.id:
+            self.setObjectName(model.id)
+
 
 class FormMultipleSelectQt(QWidget):
 
@@ -644,6 +698,9 @@ class FormMultipleSelectQt(QWidget):
         if model.label:
             self.layout().addWidget(QLabel(), line + 1, 1)
 
+        if model.id:
+            self.setObjectName(model.id)
+
 
 class InputFilter(QLineEdit):
 
@@ -705,6 +762,10 @@ class PanelQt(QWidget):
         super(PanelQt, self).__init__(parent=parent)
         self.model = model
         self.i18n = i18n
+
+        if model.id:
+            self.setObjectName(model.id)
+
         self.setLayout(QVBoxLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
@@ -720,6 +781,9 @@ class FormQt(QGroupBox):
         self.model = model
         self.i18n = i18n
         self.setLayout(QFormLayout())
+
+        if model.id:
+            self.setObjectName(model.id)
 
         if model.min_width and model.min_width > 0:
             self.setMinimumWidth(model.min_width)
@@ -809,6 +873,10 @@ class FormQt(QGroupBox):
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
+        view.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+
+        if c.id:
+            view.setObjectName(c.id)
 
         if c.min_width >= 0:
             view.setMinimumWidth(int(c.min_width))
@@ -855,11 +923,15 @@ class FormQt(QGroupBox):
 
     def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
         spinner = QSpinBox()
+        spinner.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
         spinner.setCursor(QCursor(Qt.PointingHandCursor))
         spinner.setMinimum(model.min)
         spinner.setMaximum(model.max)
         spinner.setSingleStep(model.step)
         spinner.setValue(model.value if model.value is not None else model.min)
+
+        if model.id:
+            spinner.setObjectName(model.id)
 
         if model.tooltip:
             spinner.setToolTip(model.tooltip)
@@ -872,10 +944,18 @@ class FormQt(QGroupBox):
 
     def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
         field_container = QWidget()
+        field_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         field_container.setLayout(QHBoxLayout())
         field_container.layout().setContentsMargins(0, 0, 0, 0)
+        field_container.layout().setSpacing(0)
+        field_container.layout().setAlignment(Qt.AlignLeft)
+        field_container.setProperty('wrapper', 'true')
+        field_container.setProperty('wrapped_type', comp.__class__.__name__)
 
-        if model.max_width > 0:
+        if model.id:
+            field_container.setProperty('wrapped', model.id)
+
+        if model.max_width and model.max_width > 0:
             field_container.setMaximumWidth(int(model.max_width))
 
         field_container.layout().addWidget(comp)
@@ -883,9 +963,14 @@ class FormQt(QGroupBox):
 
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
         chooser = QLineEditObserver()
+        chooser.setProperty('file_chooser', 'true')
+        chooser.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
         chooser.setReadOnly(True)
 
-        if c.max_width > 0:
+        if c.id:
+            chooser.setObjectName(c.id)
+
+        if c.max_width and c.max_width > 0:
             chooser.setMaximumWidth(int(c.max_width))
 
         if c.file_path:
@@ -957,6 +1042,7 @@ class TabGroupQt(QTabWidget):
                 icon = QIcon()
 
             scroll = QScrollArea()
+            scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             scroll.setFrameShape(QFrame.NoFrame)
             scroll.setWidgetResizable(True)
             scroll.setWidget(to_widget(c.get_content(), i18n))
@@ -974,12 +1060,18 @@ def new_single_select(model: SingleSelectComponent) -> QWidget:
         raise Exception("Unsupported type {}".format(model.type))
 
 
-def new_spacer(min_width: int = None) -> QWidget:
+def new_spacer(min_width: Optional[int] = None, min_height: Optional[int] = None, max_width: Optional[int] = None) -> QWidget:
     spacer = QWidget()
     spacer.setProperty('spacer', 'true')
 
-    if min_width:
+    if min_width is not None and min_width >= 0:
         spacer.setMinimumWidth(int(min_width))
+
+    if max_width is not None and max_width >= 0:
+        spacer.setMaximumWidth(max_width)
+
+    if min_height is not None and min_height >= 0:
+        spacer.setMaximumHeight(int(min_height))
 
     spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     return spacer

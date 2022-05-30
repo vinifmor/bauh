@@ -35,6 +35,11 @@ def main():
 
     cache_factory = DefaultMemoryCacheFactory(expiration_time=0)
 
+    downloader = AdaptableFileDownloader(logger=logger, multithread_enabled=app_config['download']['multithreaded'],
+                                         multithread_client=app_config['download']['multithreaded_client'],
+                                         i18n=i18n, http_client=http_client,
+                                         check_ssl=app_config['download']['check_ssl'])
+
     context = ApplicationContext(i18n=i18n,
                                  http_client=http_client,
                                  download_icons=bool(app_config['download']['icons']),
@@ -43,11 +48,11 @@ def main():
                                  disk_loader_factory=DefaultDiskCacheLoaderFactory(logger),
                                  logger=logger,
                                  distro=util.get_distro(),
-                                 file_downloader=AdaptableFileDownloader(logger, bool(app_config['download']['multithreaded']),
-                                                                         i18n, http_client, app_config['download']['multithreaded_client']),
+                                 file_downloader=downloader,
                                  app_name=__app_name__,
                                  app_version=__version__,
                                  internet_checker=InternetChecker(offline=False),
+                                 suggestions_mapping=None,  # TODO not needed at the moment
                                  root_user=user.is_root())
 
     managers = gems.load_managers(context=context, locale=i18n.current_key, config=app_config,

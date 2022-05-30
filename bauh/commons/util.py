@@ -1,8 +1,13 @@
 import logging
+import re
 from abc import ABC
 from datetime import datetime
 from logging import Logger
 from typing import Optional, Union
+
+re_command_forbidden_symbols = re.compile(r'[\'\"%$#*<>]')
+re_several_spaces = re.compile(r'\s+')
+re_command_parameter = re.compile(r'(^|\s)-+\w+')
 
 
 class NullLoggerFactory(ABC):
@@ -68,3 +73,16 @@ def datetime_as_milis(date: datetime = datetime.utcnow()) -> int:
 def map_timestamp_file(file_path: str) -> str:
     path_split = file_path.split('/')
     return '/'.join(path_split[0:-1]) + '/' + path_split[-1].split('.')[0] + '.ts'
+
+
+def sanitize_command_input(input_: str) -> str:
+    final_input = input_
+
+    for op in ('|', '&'):
+        final_input = final_input.split(op)[0]
+
+    for remove_re in (re_command_forbidden_symbols, re_command_parameter):
+        final_input = remove_re.sub('', final_input)
+
+    final_input = re_several_spaces.sub(' ', final_input)
+    return final_input.strip()

@@ -161,7 +161,7 @@ RadioSelectQt {
     font-weight: bold;
 }
 
-RadioSelectQt#radio_select_notitle {
+RadioSelectQt[no_label = "true"] {
     padding-top: 5px;
 }
 
@@ -396,8 +396,57 @@ ScreenshotsDialog QPushButton#close {
     min-width: 25px;
 }
 
+SettingsWindow * {
+    font-size: 14px;
+}
+
+SettingsWindow QLabel[tip_icon = "true"] {
+    qproperty-scaledContents: True;
+    min-height: 14px;
+    max-height: 14px;
+    min-width: 14px;
+    max-width: 14px;
+}
+
 SettingsWindow TabGroupQt#settings {
     min-width: 400px;
+}
+
+SettingsWindow PanelQt FormComboBoxQt {
+    max-width: 190px;
+}
+
+SettingsWindow PanelQt QLineEdit, SettingsWindow PanelQt QSpinBox  {
+    max-width: 60px;
+}
+
+SettingsWindow PanelQt QLineEdit[file_chooser = 'true'] {
+    max-width: 300px;
+}
+
+SettingsWindow PanelQt FormRadioSelectQt[opts = '2'] {
+  min-width: 280px;
+  max-width: 280px;
+}
+
+SettingsWindow PanelQt FormRadioSelectQt[opts = '3'] {
+  min-width: 280px;
+  max-width: 400px;
+}
+
+SettingsWindow FormMultipleSelectQt#gems {
+    max-width: 220px;
+}
+
+SettingsWindow FormMultipleSelectQt#gems QCheckBox {
+    qproperty-iconSize: 18px 18px;
+}
+
+SettingsWindow FormMultipleSelectQt#gems QLabel[help_icon = "true"], SettingsWindow FormMultipleSelectQt#gems QLabel[warning_icon = "true"]  {
+    min-height: 18px;
+    max-height: 18px;
+    min-width: 18px;
+    max-width: 18px;
 }
 
 QMenu QPushButton[current = "true"] {

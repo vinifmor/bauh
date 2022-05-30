@@ -1,10 +1,11 @@
+import os
 import re
 import shutil
 import time
 import traceback
 from subprocess import Popen, STDOUT
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable
+from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable, Pattern
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
@@ -16,6 +17,7 @@ from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
+from bauh.commons.util import sanitize_command_input
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.settings import GenericSettingsManager
 from bauh.view.core.update import check_for_update
@@ -38,7 +40,9 @@ class GenericUpgradeRequirements(UpgradeRequirements):
 
 class GenericSoftwareManager(SoftwareManager, SettingsController):
 
-    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict):
+    def __init__(self, managers: List[SoftwareManager], context: ApplicationContext, config: dict,
+                 force_suggestions: bool = False):
+
         super(GenericSoftwareManager, self).__init__(context=context)
         self.managers = managers
         self.map = {t: m for m in self.managers for t in m.get_managed_types()}
@@ -55,6 +59,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         self.configman = CoreConfigManager()
         self._action_reset: Optional[CustomSoftwareAction] = None
         self._dynamic_extra_actions: Optional[Dict[CustomSoftwareAction, Callable[[dict], bool]]] = None
+        self.force_suggestions = force_suggestions
 
     @property
     def dynamic_extra_actions(self) -> Dict[CustomSoftwareAction, Callable[[dict], bool]]:
@@ -155,25 +160,27 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         res = SearchResult.empty()
 
         if self.context.is_internet_available():
-            norm_word = words.strip().lower()
+            norm_query = sanitize_command_input(words).lower()
+            self.logger.info(f"Search query: {norm_query}")
 
-            is_url = bool(RE_IS_URL.match(norm_word))
-            disk_loader = self.disk_loader_factory.new()
-            disk_loader.start()
+            if norm_query:
+                is_url = bool(RE_IS_URL.match(norm_query))
+                disk_loader = self.disk_loader_factory.new()
+                disk_loader.start()
 
-            threads = []
+                threads = []
 
-            for man in self.managers:
-                t = Thread(target=self._search, args=(norm_word, is_url, man, disk_loader, res))
-                t.start()
-                threads.append(t)
+                for man in self.managers:
+                    t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
+                    t.start()
+                    threads.append(t)
 
-            for t in threads:
-                t.join()
+                for t in threads:
+                    t.join()
 
-            if disk_loader:
-                disk_loader.stop_working()
-                disk_loader.join()
+                if disk_loader:
+                    disk_loader.stop_working()
+                    disk_loader.join()
 
             # res.installed = self._sort(res.installed, norm_word)
             # res.new = self._sort(res.new, norm_word)
@@ -426,6 +433,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             for t in prepare_tasks:
                 t.join()
 
+        create_config.join()
         tf = time.time()
         self.logger.info(f'Finished ({tf - ti:.2f} seconds)')
 
@@ -485,11 +493,12 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 suggestions.extend(man_sugs)
 
     def list_suggestions(self, limit: int, filter_installed: bool) -> List[PackageSuggestion]:
-        if bool(self.config['suggestions']['enabled']):
+        if self.force_suggestions or bool(self.config['suggestions']['enabled']):
             if self.managers and self.context.is_internet_available():
                 suggestions, threads = [], []
                 for man in self.managers:
-                    t = Thread(target=self._fill_suggestions, args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
+                    t = Thread(target=self._fill_suggestions,
+                               args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
                     t.start()
                     threads.append(t)
 

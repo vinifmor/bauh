@@ -23,13 +23,15 @@ RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient, multithread_client: str):
+    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient,
+                 multithread_client: str, check_ssl: bool):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
         self.i18n = i18n
         self.http_client = http_client
         self.supported_multithread_clients = ['aria2', 'axel']
         self.multithread_client = multithread_client
+        self.check_ssl = check_ssl
 
     @staticmethod
     def is_aria2c_available() -> bool:
@@ -75,6 +77,9 @@ class AdaptableFileDownloader(FileDownloader):
     def _get_axel_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str], threads: int) -> SimpleProcess:
         cmd = ['axel', url, '-n', str(threads), '-4', '-c', '-T', '5']
 
+        if not self.check_ssl:
+            cmd.append('-k')
+
         if output_path:
             cmd.append(f'--output={output_path}')
 
@@ -82,6 +87,9 @@ class AdaptableFileDownloader(FileDownloader):
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str]) -> SimpleProcess:
         cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '--no-config', '-nc']
+
+        if not self.check_ssl:
+            cmd.append('--no-check-certificate')
 
         if output_path:
             cmd.append('-O')

@@ -97,7 +97,8 @@ class ManageWindow(QWidget):
     signal_stop_notifying = pyqtSignal()
 
     def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size: QSize, config: dict,
-                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon):
+                 context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon,
+                 force_suggestions: bool = False):
         super(ManageWindow, self).__init__()
         self.setObjectName('manage_window')
         self.comp_manager = QtComponentsManager()
@@ -277,7 +278,9 @@ class ManageWindow(QWidget):
         self.table_container.setLayout(QVBoxLayout())
         self.table_container.layout().setContentsMargins(0, 0, 0, 0)
 
-        self.table_apps = PackagesTable(self, self.icon_cache, download_icons=bool(self.config['download']['icons']))
+        self.table_apps = PackagesTable(self, self.icon_cache,
+                                        download_icons=bool(self.config['download']['icons']),
+                                        screen_width=int(screen_size.width()))
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
 
@@ -373,8 +376,11 @@ class ManageWindow(QWidget):
 
         self.container_bottom.layout().addWidget(new_spacer())
 
-        if config['suggestions']['enabled']:
-            bt_sugs = IconButton(action=lambda: self._begin_load_suggestions(filter_installed=True),
+        self.load_suggestions = force_suggestions or bool(config['suggestions']['enabled'])
+        self.suggestions_requested = False
+
+        if self.load_suggestions:
+            bt_sugs = IconButton(action=lambda: self.begin_load_suggestions(filter_installed=True),
                                  i18n=i18n,
                                  tooltip=self.i18n['manage_window.bt.suggestions.tooltip'])
             bt_sugs.setObjectName('suggestions')
@@ -440,8 +446,6 @@ class ManageWindow(QWidget):
         self.types_changed = False
 
         self.dialog_about = None
-        self.load_suggestions = bool(config['suggestions']['enabled'])
-        self.suggestions_requested = False
         self.first_refresh = True
 
         self.thread_warnings = ListWarnings(man=manager, i18n=i18n)
@@ -454,7 +458,9 @@ class ManageWindow(QWidget):
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self.setMinimumHeight(int(screen_size.height() * 0.5))
-        self.setMinimumWidth(int(screen_size.width() * 0.6))
+        self.setMaximumHeight(int(screen_size.height()))
+        self.setMinimumWidth(int(screen_size.width() * 0.5))
+        self.setMaximumWidth(int(screen_size.width() - screen_size.width() * 0.015))
         self._register_groups()
 
     def _register_groups(self):
@@ -512,6 +518,7 @@ class ManageWindow(QWidget):
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
         self.update_bt_upgrade()
+        self._resize()
 
     def stop_notifying_package_states(self):
         if self.thread_notify_pkgs_ready.isRunning():
@@ -735,7 +742,7 @@ class ManageWindow(QWidget):
         self._handle_console_option(False)
         self._finish_refresh_packages({'installed': None, 'types': None}, as_installed=False)
 
-    def _begin_load_suggestions(self, filter_installed: bool):
+    def begin_load_suggestions(self, filter_installed: bool):
         self.search_bar.clear()
         self._begin_action(self.i18n['manage_window.status.suggestions'])
         self._handle_console_option(False)
@@ -811,6 +818,9 @@ class ManageWindow(QWidget):
             self._show_console_checkbox_if_output()
             self._update_installed_filter()
             self.begin_apply_filters()
+            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self._resize(accept_lower_width=True)
             notify_tray()
         else:
             self._show_console_errors()
@@ -960,12 +970,12 @@ class ManageWindow(QWidget):
                 commons.update_info(pkgv, pkgs_info)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
-        if pkgs_info['apps_count'] == 0:
+        if pkgs_info['apps_count'] == 0 and not self.suggestions_requested:
             if self.load_suggestions or self.types_changed:
                 if as_installed:
                     self.pkgs_installed = pkgs_info['pkgs']
 
-                self._begin_load_suggestions(filter_installed=False)
+                self.begin_load_suggestions(filter_installed=True)
                 self.load_suggestions = False
                 return False
             else:
@@ -1127,9 +1137,14 @@ class ManageWindow(QWidget):
 
         new_width = max(table_width, toolbar_width, topbar_width)
         new_width *= 1.05  # this extra size is not because of the toolbar button, but the table upgrade buttons
+        new_width = int(new_width)
+
+        if new_width >= self.maximumWidth():
+            new_width = self.maximumWidth()
 
         if (self.pkgs and accept_lower_width) or new_width > self.width():
-            self.resize(int(new_width), self.height())
+            self.resize(new_width, self.height())
+            self.setMinimumWidth(new_width)
 
     def set_progress_controll(self, enabled: bool):
         self.progress_controll_enabled = enabled
