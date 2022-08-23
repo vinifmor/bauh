@@ -58,7 +58,7 @@ class SearchResult:
 
 class UpgradeRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: float = None, extra_size: float = None, sorting_priority: int = 0):
+    def __init__(self, pkg: SoftwarePackage, reason: Optional[str] = None, required_size: Optional[float] = None, extra_size: Optional[float] = None, sorting_priority: int = 0):
         """
 
         :param pkg:
