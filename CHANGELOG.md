@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [STAGING]
+
+### Fixes
+- AppImage
+  - some desktop entries not being displayed on the desktop environment menu (requires the AppImage to be reinstalled) [#287](https://github.com/vinifmor/bauh/issues/287)
+
 ## [0.10.3] 2022-05-30
 
 ### Features

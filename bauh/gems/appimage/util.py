@@ -2,7 +2,7 @@ import os
 import re
 from typing import Optional
 
-RE_DESKTOP_EXEC = re.compile(r'(Exec\s*=(.+)(\n?))')
+RE_DESKTOP_EXEC = re.compile(r'(\w*Exec\s*=(.+)(\n?))')
 RE_MANY_SPACES = re.compile(r'\s+')
 
 
@@ -24,6 +24,11 @@ def replace_desktop_entry_exec_command(desktop_entry: str, appname: str, file_pa
 
     for exec_groups in execs:
         full_match = exec_groups[0]
+
+        if full_match.startswith("TryExec"):  # TryExec cause issues in some DE to display the app icon
+            final_entry = final_entry.replace(full_match, "")
+            continue
+
         cmd = RE_MANY_SPACES.sub(' ', exec_groups[1].strip())
         if cmd:
             words = cmd.split(' ')
