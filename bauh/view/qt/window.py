@@ -459,7 +459,6 @@ class ManageWindow(QWidget):
         self.setMinimumHeight(int(screen_size.height() * 0.5))
         self.setMaximumHeight(int(screen_size.height()))
         self.setMinimumWidth(int(screen_size.width() * 0.5))
-        self.setMaximumWidth(int(screen_size.width() - screen_size.width() * 0.015))
         self._register_groups()
 
     def _register_groups(self):
