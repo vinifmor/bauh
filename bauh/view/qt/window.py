@@ -2,7 +2,6 @@ import logging
 import operator
 import os.path
 import time
-import traceback
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
