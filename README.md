@@ -554,6 +554,7 @@ the `view` code is only attached to them (it does not know how the `gems` handle
 - Separate modules for each packaging technology
 - Memory and performance improvements
 - Improve user experience
+- The current development changes can be checked [here](https://github.com/vinifmor/bauh/blob/staging/CHANGELOG.md)
     
 #### <a name="donations">Donations</a>
 - You can support this project through [ko-fi](https://ko-fi.com/vinifmor).
