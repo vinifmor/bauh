@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - GUI
   - management panel not fully maximizing
 
+### Localization (i18n)
+- Italian ([@albanobattistella](https://github.com/albanobattistella), [@luca-digrazia](https://github.com/luca-digrazia))
+- Turkish ([@agahemir](https://github.com/agahemir))
+
 ## [0.10.3] 2022-05-30
 
 ### Features
