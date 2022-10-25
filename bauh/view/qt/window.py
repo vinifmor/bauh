@@ -457,7 +457,6 @@ class ManageWindow(QWidget):
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self.setMinimumHeight(int(screen_size.height() * 0.5))
-        self.setMaximumHeight(int(screen_size.height()))
         self.setMinimumWidth(int(screen_size.width() * 0.5))
         self._register_groups()
 
