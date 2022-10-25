@@ -8,7 +8,7 @@ class GetHumanSizeStrTest(TestCase):
 
     def setUp(self):
         try:
-            locale.setlocale(locale.LC_NUMERIC, None)
+            locale.setlocale(locale.LC_NUMERIC, "C")
         except:
             print("Error: could not set locale.LC_NUMERIC to None")
 
