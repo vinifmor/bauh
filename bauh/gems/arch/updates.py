@@ -149,12 +149,14 @@ class UpdatesSummarizer:
         for p, data in context.pkgs_data.items():
             if data['c']:
                 for c in data['c']:
-                    if c and c != p and c in context.installed_names:
-                        # source = provided_map[c]
-                        root_conflict[c] = p
+                    if c:
+                        pkg_name = DependenciesAnalyser.re_dep_operator().split(c)[0]
+                        if pkg_name != p and pkg_name in context.installed_names:
+                            # source = provided_map[c]
+                            root_conflict[pkg_name] = p
 
-                        if (p, c) in root_conflict.items():
-                            mutual_conflicts[c] = p
+                            if (p, pkg_name) in root_conflict.items():
+                                mutual_conflicts[pkg_name] = p
 
         if mutual_conflicts:
             for pkg1, pkg2 in mutual_conflicts.items():
