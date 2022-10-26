@@ -5,7 +5,7 @@ import shutil
 import traceback
 from io import StringIO
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable, Optional, Any
+from typing import List, Set, Tuple, Dict, Iterable, Optional, Any, Pattern
 
 from colorama import Fore
 
@@ -26,6 +26,7 @@ RE_REMOVE_TRANSITIVE_DEPS = re.compile(r'removing\s([\w\-_]+)\s.+required\sby\s(
 RE_AVAILABLE_MIRRORS = re.compile(r'.+\s+OK\s+.+\s+(\d+:\d+)\s+.+(http.+)')
 RE_PACMAN_SYNC_FIRST = re.compile(r'SyncFirst\s*=\s*(.+)')
 RE_DESKTOP_FILES = re.compile(r'\n?([\w\-_]+)\s+(/usr/share/.+\.desktop)')
+RE_IGNORED_PACKAGES: Optional[Pattern] = None
 
 
 def is_available() -> bool:
@@ -234,22 +235,27 @@ def sign_key(key: str, root_password: Optional[str]) -> SystemProcess:
 
 def list_ignored_packages(config_path: str = '/etc/pacman.conf') -> Set[str]:
     ignored = set()
+
     try:
-        pacman_conf = new_subprocess(['cat', config_path])
-        grep = new_subprocess(['grep', '-Eo', r'\s*#*\s*ignorepkg\s*=\s*.+'], stdin=pacman_conf.stdout)
-        for o in grep.stdout:
-            if o:
-                line = o.decode().strip()
+        with open(config_path, 'r') as f:
+            file_content = f.read()
 
-                if not line.startswith('#'):
-                    ignored.add(line.split('=')[1].strip())
+        global RE_IGNORED_PACKAGES
 
-        pacman_conf.terminate()
-        grep.terminate()
-        return ignored
-    except:
+        if not RE_IGNORED_PACKAGES:
+            RE_IGNORED_PACKAGES = re.compile(r'[\s#]*ignorepkg\s*=\s*.+', re.IGNORECASE)
+
+        for raw_line in RE_IGNORED_PACKAGES.findall(file_content):
+            line = raw_line.strip()
+
+            if line and not line.startswith("#"):
+                ignored.add(line.split("=")[1].strip())
+    except (FileNotFoundError, OSError):
+        pass
+    except Exception:
         traceback.print_exc()
-        return ignored
+
+    return ignored
 
 
 def check_missing(names: Set[str]) -> Set[str]:

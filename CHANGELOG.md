@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [STAGING]
 
+### Improvements
+- Arch
+  - replaced some system calls by Python calls
+
 ### Fixes
 - AppImage
   - some desktop entries not being displayed on the desktop environment menu (requires the AppImage to be reinstalled) [#287](https://github.com/vinifmor/bauh/issues/287)
