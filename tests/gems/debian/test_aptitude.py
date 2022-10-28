@@ -166,3 +166,33 @@ Description: GNU C compiler
                     ]
 
         self.assertEqual([p.__dict__ for p in expected], [p.__dict__ for p in returned])
+
+    def test_map_transaction_output__it_should_map_i386_packages(self):
+        output = "\nThe following NEW packages will be installed:\n" \
+                 " gcc-12-base:i386{a} [12.1.0-2distro~22.04] <+272 kB>  glib-networking:i386{a} [2.72.0-1] <+242 kB>\n" \
+                "\nThe following packages will be REMOVED:\n" \
+                 " celluloid{a} [0.21-linux+distro] <-1066 kB> libpcre3:i386{a} [2:8.39-13distro0.22.04.1] <-714 kB>"
+
+        transaction = self.aptitude.map_transaction_output(output)
+        to_install = {
+            DebianPackage(name="gcc-12-base:i386",
+                          version="12.1.0-2distro~22.04",
+                          latest_version="12.1.0-2distro~22.04",
+                          transaction_size=272000.0
+                          ),
+            DebianPackage(name="glib-networking:i386", version="2.72.0-1",
+                          latest_version="2.72.0-1", transaction_size=242000.0)
+        }
+        self.assertEqual(to_install, {*transaction.to_install})
+
+        to_remove = {
+            DebianPackage(name="celluloid",
+                          version="0.21-linux+distro",
+                          latest_version="0.21-linux+distro",
+                          transaction_size=-1066000.0
+                          ),
+            DebianPackage(name="libpcre3:i386", version="2:8.39-13distro0.22.04.1",
+                          latest_version="2:8.39-13distro0.22.04.1", transaction_size=-714000.0)
+        }
+
+        self.assertEqual(to_remove, {*transaction.to_remove})
