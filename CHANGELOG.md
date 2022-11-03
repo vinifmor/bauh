@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - not detecting some package replacements when upgrading due to conflict information having logic operators (e.g: `at-spi2-core: 2.44.1 -> 2.46.0` should replace the installed `at-spi2-atk: 2.38`)
 - Debian
   - not properly handling packages with names ending with `:i386` [#298](https://github.com/vinifmor/bauh/issues/298)
+- Packaging
+  - AppImage: download certificate issue [#280](https://github.com/vinifmor/bauh/issues/280)
 - GUI
   - management panel not fully maximizing
 
