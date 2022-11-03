@@ -13,9 +13,10 @@ RUN apt-get update && \
     chmod +x appimage-tool && \
     chmod +x appimage-builder && \
     mv /build/appimage-builder /usr/local/bin/appimage-builder && \
-    mv /build/appimage-tool /usr/local/bin/appimage-tool && \
-    wget https://raw.githubusercontent.com/vinifmor/bauh/master/linux_dist/appimage/AppImageBuilder.yml
+    mv /build/appimage-tool /usr/local/bin/appimage-tool
 
 WORKDIR /build
+
+COPY AppImageBuilder.yml /build
 
 CMD [ "appimage-builder", "--skip-tests"]
