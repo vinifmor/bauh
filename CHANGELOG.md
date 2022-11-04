@@ -20,7 +20,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Packaging
   - AppImage: download certificate issue [#280](https://github.com/vinifmor/bauh/issues/280)
 - GUI
-  - management panel not fully maximizing
+    - initialization panel size not based on the current display device size
+    - management panel: 
+      - not fully maximizing
+      - not maximizing based on the current display device size (for multiple display setups)
+      - not respecting a minimal/maximum width based on the current display device size (for multiple display setup)
+      - dialogs not respecting the current display device width
+      - not readjusting size after maximizing/minimizing
 
 ### Localization (i18n)
 - Italian ([@albanobattistella](https://github.com/albanobattistella), [@luca-digrazia](https://github.com/luca-digrazia))

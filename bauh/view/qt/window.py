@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
+from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QMoveEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
@@ -33,6 +33,7 @@ from bauh.view.qt.components import new_spacer, IconButton, QtComponentsManager,
 from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.history import HistoryDialog
 from bauh.view.qt.info import InfoDialog
+from bauh.view.qt.qt_utils import get_current_screen_geometry
 from bauh.view.qt.root import RootDialog
 from bauh.view.qt.screenshots import ScreenshotsDialog
 from bauh.view.qt.settings import SettingsWindow
@@ -95,7 +96,7 @@ class ManageWindow(QWidget):
     signal_table_update = pyqtSignal()
     signal_stop_notifying = pyqtSignal()
 
-    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, screen_size: QSize, config: dict,
+    def __init__(self, i18n: I18n, icon_cache: MemoryCache, manager: SoftwareManager, config: dict,
                  context: ApplicationContext, http_client: HttpClient, logger: logging.Logger, icon: QIcon,
                  force_suggestions: bool = False):
         super(ManageWindow, self).__init__()
@@ -111,7 +112,6 @@ class ManageWindow(QWidget):
         self.pkgs_installed = []  # cached installed packages
         self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
-        self.screen_size = screen_size
         self.config = config
         self.context = context
         self.http_client = http_client
@@ -278,8 +278,7 @@ class ManageWindow(QWidget):
         self.table_container.layout().setContentsMargins(0, 0, 0, 0)
 
         self.table_apps = PackagesTable(self, self.icon_cache,
-                                        download_icons=bool(self.config['download']['icons']),
-                                        screen_width=int(screen_size.width()))
+                                        download_icons=bool(self.config['download']['icons']))
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
 
@@ -332,7 +331,7 @@ class ManageWindow(QWidget):
 
         self.thread_update = self._bind_async_action(UpgradeSelected(manager=self.manager, i18n=self.i18n,
                                                                      internet_checker=context.internet_checker,
-                                                                     screen_width=screen_size.width()),
+                                                                     parent_widget=self),
                                                      finished_call=self._finish_upgrade_selected)
         self.thread_refresh = self._bind_async_action(RefreshApps(i18n, self.manager), finished_call=self._finish_refresh_packages, only_finished=True)
         self.thread_uninstall = self._bind_async_action(UninstallPackage(self.manager, self.icon_cache, self.i18n), finished_call=self._finish_uninstall)
@@ -432,8 +431,6 @@ class ManageWindow(QWidget):
         self.container_progress.add_space()
         self.layout.addWidget(self.container_progress)
 
-        qt_utils.centralize(self)
-
         self.filter_only_apps = True
         self.type_filter = self.any_type_filter
         self.category_filter = self.any_category_filter
@@ -456,9 +453,8 @@ class ManageWindow(QWidget):
 
         self.thread_load_installed = NotifyInstalledLoaded()
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
-        self.setMinimumHeight(int(screen_size.height() * 0.5))
-        self.setMinimumWidth(int(screen_size.width() * 0.5))
         self._register_groups()
+        self._screen_geometry: Optional[QRect] = None
 
     def _register_groups(self):
         common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
@@ -594,6 +590,8 @@ class ManageWindow(QWidget):
             self.thread_warnings.start()
 
         qt_utils.centralize(self)
+        self._screen_geometry = get_current_screen_geometry()
+        self._update_size_limits()
 
     def verify_warnings(self):
         self.thread_warnings.start()
@@ -668,7 +666,8 @@ class ManageWindow(QWidget):
         if self.table_apps.isEnabled() and self.pkgs is not None and 0 <= idx < len(self.pkgs):
             pkg = self.pkgs[idx]
             pkg.status = PackageViewStatus.READY
-            self.table_apps.update_package(pkg)
+            screen_width = get_current_screen_geometry(self).width()
+            self.table_apps.update_package(pkg, screen_width=screen_width)
 
     def _reload_categories(self):
         categories = set()
@@ -684,10 +683,32 @@ class ManageWindow(QWidget):
         if categories:
             self._update_categories(categories, keep_selected=True)
 
+    def _update_size_limits(self):
+        self.setMinimumHeight(int(self._screen_geometry.height() * 0.5))
+        self.setMinimumWidth(int(self._screen_geometry.width() * 0.5))
+        self.setMaximumWidth(int(self._screen_geometry.width()))
+
     def changeEvent(self, e: QEvent):
         if isinstance(e, QWindowStateChangeEvent):
             self._maximized = self.isMaximized()
             self.table_apps.change_headers_policy(maximized=self._maximized)
+
+            if not self._maximized:
+                self._reorganize()
+                self.adjustSize()
+
+    def event(self, e: QEvent) -> bool:
+        res = super(ManageWindow, self).event(e)
+
+        if self.isVisible() and e.type() == 216:  # drop event
+            current_geometry = get_current_screen_geometry()
+            if current_geometry != self._screen_geometry:  # only if the display device has changed
+                self._screen_geometry = current_geometry
+                self._update_size_limits()
+                self._reorganize()
+                self.adjustSize()
+
+        return res
 
     def _handle_console(self, checked: bool):
         if checked:
@@ -777,6 +798,7 @@ class ManageWindow(QWidget):
                 util.notify_user('{} ({}) {}'.format(src_pkg.model.name, src_pkg.model.get_type(), self.i18n['uninstalled']))
 
             if res['removed']:
+                screen_width = get_current_screen_geometry(self).width()
                 for list_idx, pkg_list in enumerate((self.pkgs_available, self.pkgs, self.pkgs_installed)):
                     if pkg_list:
                         removed_idxs = []
@@ -793,7 +815,9 @@ class ManageWindow(QWidget):
                                         removed_idxs.append(pkgv_idx)
 
                                     if self.search_performed and list_idx == 1:  # only for displayed
-                                        self.table_apps.update_package(pkgv, change_update_col=True)
+                                        self.table_apps.update_package(pkgv,
+                                                                       screen_width=screen_width,
+                                                                       change_update_col=True)
 
                                     break  # as the model has been found, stops the loop
 
@@ -1283,8 +1307,7 @@ class ManageWindow(QWidget):
 
         if pkg_info:
             if len(pkg_info) > 1:
-                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache,
-                                         i18n=self.i18n, screen_size=self.screen_size)
+                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache, i18n=self.i18n)
                 dialog_info.exec_()
             else:
                 dialog.show_message(title=self.i18n['warning'].capitalize(),
@@ -1459,10 +1482,11 @@ class ManageWindow(QWidget):
                         self.pkgs_available.insert(new_idx, data[2])
 
                 # updating the respective table rows:
+                screen_width = get_current_screen_geometry(self).width()
                 for displayed in self.pkgs:
                     for model in models_updated:
                         if displayed.model == model:
-                            self.table_apps.update_package(displayed, change_update_col=True)
+                            self.table_apps.update_package(displayed, screen_width=screen_width, change_update_col=True)
 
                 self.update_bt_upgrade()
 
@@ -1562,7 +1586,8 @@ class ManageWindow(QWidget):
             self.settings_window.handle_display()
         else:
             self.settings_window = SettingsWindow(manager=self.manager, i18n=self.i18n, window=self)
-            self.settings_window.setMinimumWidth(int(self.screen_size.width() / 4))
+            screen_width = get_current_screen_geometry(self).width()
+            self.settings_window.setMinimumWidth(int(screen_width / 4))
             self.settings_window.resize(self.size())
             self.settings_window.adjustSize()
             qt_utils.centralize(self.settings_window)
@@ -1625,10 +1650,11 @@ class ManageWindow(QWidget):
                     self._update_table_indexes()
                     self.update_bt_upgrade()
             else:
+                screen_width = get_current_screen_geometry(self).width()
                 for pkg in self.pkgs:
                     if pkg == res['pkg']:
                         pkg.update_model(res['pkg'].model)
-                        self.table_apps.update_package(pkg, change_update_col=not any([self.search_performed, self.suggestions_requested]))
+                        self.table_apps.update_package(pkg, screen_width=screen_width, change_update_col=not any([self.search_performed, self.suggestions_requested]))
                         self.update_bt_upgrade()
                         break
 
