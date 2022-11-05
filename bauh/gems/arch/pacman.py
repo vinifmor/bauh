@@ -5,7 +5,7 @@ import shutil
 import traceback
 from io import StringIO
 from threading import Thread
-from typing import List, Set, Tuple, Dict, Iterable, Optional, Any, Pattern
+from typing import List, Set, Tuple, Dict, Iterable, Optional, Any, Pattern, Collection
 
 from colorama import Fore
 
@@ -1080,4 +1080,19 @@ def map_available_packages() -> Optional[Dict[str, Any]]:
                         res[pkgname] = {'v': package_data[2].strip(),
                                         'r': package_data[0].strip(),
                                         'i': len(package_data) == 4 and 'installed' in package_data[3]}
+        return res
+
+
+def map_installed(pkgs: Optional[Collection[str]] = None) -> Optional[Dict[str, str]]:
+    output = run_cmd(f"pacman -Q {' '.join({*pkgs} if pkgs else '')}".strip(), print_error=False)
+
+    if output:
+        res = dict()
+        for raw_line in output.split("\n"):
+            line = raw_line.strip()
+
+            if line:
+                pkg_version = line.split(" ")
+                if len(pkg_version) == 2:
+                    res[pkg_version[0]] = pkg_version[1]
         return res
