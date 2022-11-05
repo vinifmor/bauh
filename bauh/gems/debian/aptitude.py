@@ -241,7 +241,7 @@ class Aptitude:
     @property
     def re_transaction_pkg(self) -> Pattern:
         if self._re_transaction_pkg is None:
-            self._re_transaction_pkg = re.compile(r'([a-zA-Z0-9\-_@~.+]+)({\w+})?\s*\[([a-zA-Z0-9\-_@~.+:]+)'
+            self._re_transaction_pkg = re.compile(r'([a-zA-Z0-9\-_@~.+:]+)({\w+})?\s*\[([a-zA-Z0-9\-_@~.+:]+)'
                                                   r'(\s+->\s+([a-zA-Z0-9\-_@~.+:]+))?](\s*<([\-+]?[0-9.,]+\s+\w+)>)?')
 
         return self._re_transaction_pkg

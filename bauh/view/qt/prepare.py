@@ -15,7 +15,7 @@ from bauh.api.abstract.controller import SoftwareManager, SoftwareAction
 from bauh.api.abstract.handler import TaskManager
 from bauh.api import user
 from bauh.view.qt.components import new_spacer, QCustomToolbar
-from bauh.view.qt.qt_utils import centralize
+from bauh.view.qt.qt_utils import centralize, get_current_screen_geometry
 from bauh.view.qt.root import RootDialog
 from bauh.view.qt.thread import AnimateProgress
 from bauh.view.util.translation import I18n
@@ -145,7 +145,7 @@ class PreparePanel(QWidget, TaskManager):
     signal_status = pyqtSignal(int)
     signal_password_response = pyqtSignal(bool, str)
 
-    def __init__(self, context: ApplicationContext, manager: SoftwareManager, screen_size: QSize,
+    def __init__(self, context: ApplicationContext, manager: SoftwareManager,
                  i18n: I18n, manage_window: QWidget, app_config: dict, force_suggestions: bool = False):
         super(PreparePanel, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
         self.i18n = i18n
@@ -153,9 +153,7 @@ class PreparePanel(QWidget, TaskManager):
         self.app_config = app_config
         self.manage_window = manage_window
         self.setWindowTitle('{} ({})'.format(__app_name__, self.i18n['prepare_panel.title.start'].lower()))
-        self.setMinimumWidth(int(screen_size.width() * 0.5))
-        self.setMinimumHeight(int(screen_size.height() * 0.35))
-        self.setMaximumHeight(int(screen_size.height() * 0.95))
+
         self.setLayout(QVBoxLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.manager = manager
@@ -292,6 +290,10 @@ class PreparePanel(QWidget, TaskManager):
         super(PreparePanel, self).show()
         self.prepare_thread.start()
         centralize(self)
+        screen_size = get_current_screen_geometry()
+        self.setMinimumWidth(int(screen_size.width() * 0.5))
+        self.setMinimumHeight(int(screen_size.height() * 0.35))
+        self.setMaximumHeight(int(screen_size.height() * 0.95))
 
     def start(self, tasks: int):
         self.started_at = time.time()

@@ -528,13 +528,13 @@ class AppImageManager(SoftwareManager, SettingsController):
         finally:
             releases_con.close()
 
-    def _find_desktop_file(self, folder: str) -> str:
+    def _find_desktop_file(self, folder: str) -> Optional[str]:
         for r, d, files in os.walk(folder):
             for f in files:
                 if f.endswith('.desktop'):
                     return f
 
-    def _find_icon_file(self, folder: str) -> str:
+    def _find_icon_file(self, folder: str) -> Optional[str]:
         for f in glob.glob(folder + ('/**' if not folder.endswith('/') else '**'), recursive=True):
             if RE_ICON_ENDS_WITH.match(f):
                 return f

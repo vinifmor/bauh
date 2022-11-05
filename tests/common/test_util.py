@@ -1,4 +1,3 @@
-import time
 from unittest import TestCase
 
 from bauh.commons.util import size_to_byte, sanitize_command_input

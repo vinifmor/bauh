@@ -76,7 +76,6 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
         manage_window = ManageWindow(i18n=i18n,
                                      manager=manager,
                                      icon_cache=icon_cache,
-                                     screen_size=screen_size,
                                      config=app_config,
                                      context=context,
                                      http_client=http_client,
@@ -84,8 +83,7 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                      force_suggestions=force_suggestions,
                                      logger=logger)
 
-        prepare = PreparePanel(screen_size=screen_size,
-                               context=context,
+        prepare = PreparePanel(context=context,
                                manager=manager,
                                i18n=i18n,
                                manage_window=manage_window,

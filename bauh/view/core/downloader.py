@@ -86,7 +86,7 @@ class AdaptableFileDownloader(FileDownloader):
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
     def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str]) -> SimpleProcess:
-        cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '--no-config', '-nc']
+        cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '-nc']
 
         if not self.check_ssl:
             cmd.append('--no-check-certificate')

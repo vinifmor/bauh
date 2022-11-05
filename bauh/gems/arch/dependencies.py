@@ -2,7 +2,7 @@ import re
 import traceback
 from logging import Logger
 from threading import Thread
-from typing import Set, List, Tuple, Dict, Iterable, Optional, Generator
+from typing import Set, List, Tuple, Dict, Iterable, Optional, Generator, Pattern
 
 from bauh.api.abstract.handler import ProcessWatcher
 from bauh.gems.arch import pacman, message, sorting, confirmation
@@ -14,11 +14,19 @@ from bauh.view.util.translation import I18n
 
 class DependenciesAnalyser:
 
+    _re_dep_operator: Optional[Pattern] = None
+
     def __init__(self, aur_client: AURClient, i18n: I18n, logger: Logger):
         self.aur_client = aur_client
         self.i18n = i18n
-        self.re_dep_operator = re.compile(r'([<>=]+)')
         self._log = logger
+
+    @classmethod
+    def re_dep_operator(cls) -> Pattern:
+        if not cls._re_dep_operator:
+            cls._re_dep_operator = re.compile(r'([<>=]+)')
+
+        return cls._re_dep_operator
 
     def _fill_repository(self, name: str, output: List[Tuple[str, str]]):
 
@@ -225,7 +233,7 @@ class DependenciesAnalyser:
                             raise Exception(f"Could not retrieve information from providers: "
                                             f"{', '.join(data_not_found)}")
 
-                    split_informed_dep = self.re_dep_operator.split(dep_exp)
+                    split_informed_dep = self.re_dep_operator().split(dep_exp)
 
                     version_required = split_informed_dep[2]
                     exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
@@ -237,7 +245,7 @@ class DependenciesAnalyser:
                             info = missing_providers_data[p]
 
                         for provided_exp in info['p']:
-                            split_dep = self.re_dep_operator.split(provided_exp)
+                            split_dep = self.re_dep_operator().split(provided_exp)
 
                             if len(split_dep) == 3 and split_dep[0] == dep_name:
                                 version_provided = split_dep[2]
@@ -253,7 +261,7 @@ class DependenciesAnalyser:
                 return
             else:
                 for _, dep_data in self.aur_client.gen_updates_data((dep_name,)):
-                    split_informed_dep = self.re_dep_operator.split(dep_exp)
+                    split_informed_dep = self.re_dep_operator().split(dep_exp)
                     version_required = split_informed_dep[2]
                     exp_op = split_informed_dep[1].strip()
 
@@ -270,7 +278,7 @@ class DependenciesAnalyser:
                 if dep_name == dep_exp:
                     version_required, exp_op = None, None
                 else:
-                    split_informed_dep = self.re_dep_operator.split(dep_exp)
+                    split_informed_dep = self.re_dep_operator().split(dep_exp)
                     version_required = split_informed_dep[2]
                     exp_op = split_informed_dep[1] if split_informed_dep[1] != '=' else '=='
 
@@ -405,7 +413,7 @@ class DependenciesAnalyser:
                     if dep in pkgs_data:
                         continue
                     if dep not in provided_map:
-                        dep_split = self.re_dep_operator.split(dep)
+                        dep_split = self.re_dep_operator().split(dep)
                         dep_name = dep_split[0].strip()
 
                         if dep_name not in deps_checked:

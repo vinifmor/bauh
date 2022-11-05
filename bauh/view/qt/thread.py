@@ -29,6 +29,7 @@ from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.qt import commons
 from bauh.view.qt.commons import sort_packages
+from bauh.view.qt.qt_utils import get_current_screen_geometry
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
@@ -231,12 +232,12 @@ class UpgradeSelected(AsyncAction):
     SUMMARY_FILE = UPGRADE_LOGS_DIR + '/{}_summary.txt'
 
     def __init__(self, manager: SoftwareManager, internet_checker: InternetChecker, i18n: I18n,
-                 screen_width: int, pkgs: List[PackageView] = None):
+                 parent_widget: QWidget, pkgs: List[PackageView] = None):
         super(UpgradeSelected, self).__init__(i18n=i18n)
         self.pkgs = pkgs
         self.manager = manager
         self.internet_checker = internet_checker
-        self.screen_width = screen_width
+        self._parent_widget = parent_widget
 
     def _req_as_option(self, req: UpgradeRequirement, tooltip: bool = True, custom_tooltip: str = None, required_size: bool = True, display_sizes: bool = True,
                        positive_size_symbol: bool = False) -> InputOption:
@@ -495,9 +496,10 @@ class UpgradeSelected(AsyncAction):
         comps.insert(0, TextComponent(f'{disc_size_text} ({download_size_text})', size=14))
         comps.insert(1, TextComponent(''))
 
+        screen_width = get_current_screen_geometry(self._parent_widget).width()
         if not self.request_confirmation(title=self.i18n['action.update.summary'].capitalize(), body='', components=comps,
                                          confirmation_label=self.i18n['proceed'].capitalize(), deny_label=self.i18n['cancel'].capitalize(),
-                                         confirmation_button=can_upgrade, min_width=int(0.45 * self.screen_width)):
+                                         confirmation_button=can_upgrade, min_width=int(0.45 * screen_width)):
             self.notify_finished({'success': success, 'updated': updated, 'types': updated_types, 'id': None})
             self.pkgs = None
             return

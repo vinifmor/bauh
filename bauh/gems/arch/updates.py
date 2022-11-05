@@ -22,7 +22,7 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
-                 to_remove: Dict[str, UpgradeRequirement], installed_names: Set[str], provided_map: Dict[str, Set[str]],
+                 to_remove: Dict[str, UpgradeRequirement], installed_names: Dict[str, str], provided_map: Dict[str, Set[str]],
                  aur_index: Set[str], arch_config: dict, remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                  root_password: Optional[str], aur_supported: bool):
         self.to_update = to_update
@@ -33,7 +33,7 @@ class UpdateRequirementsContext:
         self.pkgs_data = pkgs_data
         self.cannot_upgrade = cannot_upgrade
         self.root_password = root_password
-        self.installed_names = installed_names
+        self.installed = installed_names
         self.provided_map = provided_map
         self.to_remove = to_remove
         self.to_install = to_install
@@ -149,12 +149,21 @@ class UpdatesSummarizer:
         for p, data in context.pkgs_data.items():
             if data['c']:
                 for c in data['c']:
-                    if c and c != p and c in context.installed_names:
-                        # source = provided_map[c]
-                        root_conflict[c] = p
+                    if c:
+                        name_op_exp = DependenciesAnalyser.re_dep_operator().split(c)
+                        conflict_name = name_op_exp[0]
 
-                        if (p, c) in root_conflict.items():
-                            mutual_conflicts[c] = p
+                        if conflict_name != p:
+                            conflict_version = context.installed.get(conflict_name)
+
+                            if conflict_version:
+                                if len(name_op_exp) == 1 or match_required_version(conflict_version,
+                                                                                   name_op_exp[1],
+                                                                                   name_op_exp[2]):
+                                    root_conflict[conflict_name] = p
+
+                                    if (p, conflict_name) in root_conflict.items():
+                                        mutual_conflicts[conflict_name] = p
 
         if mutual_conflicts:
             for pkg1, pkg2 in mutual_conflicts.items():
@@ -278,8 +287,8 @@ class UpdatesSummarizer:
             ti = time.time()
             self.logger.info("Filling provided names")
 
-            if not context.installed_names:
-                context.installed_names = pacman.list_installed_names()
+            if not context.installed:
+                context.installed = pacman.map_installed()
 
             installed_to_ignore = set()
 
@@ -305,8 +314,8 @@ class UpdatesSummarizer:
                         if len(split_provided) > 1 and split_provided[0] != p:
                             pacman.fill_provided_map(split_provided[0], pkgname, context.provided_map)
 
-            if installed_to_ignore:  # filling the provided names of the installed
-                installed_to_query = context.installed_names.difference(installed_to_ignore)
+            if context.installed and installed_to_ignore:  # filling the provided names of the installed
+                installed_to_query = {*context.installed}.difference(installed_to_ignore)
 
                 if installed_to_query:
                     context.provided_map.update(pacman.map_provided(remote=False, pkgs=installed_to_query))
@@ -374,7 +383,7 @@ class UpdatesSummarizer:
         remote_repo_map = pacman.map_repositories()
         context = UpdateRequirementsContext(to_update={}, repo_to_update={}, aur_to_update={}, repo_to_install={},
                                             aur_to_install={}, to_install={}, pkgs_data={}, cannot_upgrade={},
-                                            to_remove={}, installed_names=set(), provided_map={}, aur_index=set(),
+                                            to_remove={}, installed_names=dict(), provided_map={}, aur_index=set(),
                                             arch_config=arch_config, root_password=root_password,
                                             remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
                                             aur_supported=self.aur_supported)
@@ -604,7 +613,7 @@ class UpdatesSummarizer:
                 for r in reqs:
                     if r in transaction_pkgs:
                         reqs_in_transaction.add(r)
-                    elif r in context.installed_names:
+                    elif r in context.installed:
                         reqs_not_in_transaction.add(r)
 
             if not reqs_not_in_transaction and not reqs_in_transaction:

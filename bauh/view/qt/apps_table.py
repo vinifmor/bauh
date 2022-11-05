@@ -15,6 +15,7 @@ from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
 from bauh.commons.html import strip_html, bold
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
+from bauh.view.qt.qt_utils import get_current_screen_geometry
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
@@ -68,9 +69,8 @@ class PackagesTable(QTableWidget):
     COL_NUMBER = 9
     DEFAULT_ICON_SIZE = QSize(16, 16)
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool, screen_width: int):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
         super(PackagesTable, self).__init__()
-        self.screen_width = screen_width
         self.setObjectName('table_packages')
         self.setParent(parent)
         self.window = parent
@@ -180,15 +180,16 @@ class PackagesTable(QTableWidget):
                                  action=custom_action)
 
     def refresh(self, pkg: PackageView):
-        self._update_row(pkg, update_check_enabled=False, change_update_col=False)
+        screen_width = get_current_screen_geometry(self.parent()).width()
+        self._update_row(pkg, screen_width, update_check_enabled=False, change_update_col=False)
 
-    def update_package(self, pkg: PackageView, change_update_col: bool = False):
+    def update_package(self, pkg: PackageView, screen_width: int, change_update_col: bool = False):
         if self.download_icons and pkg.model.icon_url:
             icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
             icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
             self.network_man.get(icon_request)
 
-        self._update_row(pkg, change_update_col=change_update_col)
+        self._update_row(pkg, screen_width, change_update_col=change_update_col)
 
     def _uninstall(self, pkg: PackageView):
         if ConfirmationDialog(title=self.i18n['manage_window.apps_table.row.actions.uninstall.popup.title'],
@@ -255,6 +256,7 @@ class PackagesTable(QTableWidget):
         self.setEnabled(True)
 
         if pkgs:
+            screen_width = get_current_screen_geometry(self.parent()).width()
             self.setColumnCount(self.COL_NUMBER if update_check_enabled else self.COL_NUMBER - 1)
             self.setRowCount(len(pkgs))
 
@@ -266,16 +268,17 @@ class PackagesTable(QTableWidget):
                     icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
                     self.network_man.get(icon_request)
 
-                self._update_row(pkg, update_check_enabled)
+                self._update_row(pkg, screen_width, update_check_enabled)
 
             self.scrollToTop()
 
-    def _update_row(self, pkg: PackageView, update_check_enabled: bool = True, change_update_col: bool = True):
+    def _update_row(self, pkg: PackageView, screen_width: int,
+                    update_check_enabled: bool = True, change_update_col: bool = True):
         self._set_col_icon(0, pkg)
-        self._set_col_name(1, pkg)
-        self._set_col_version(2, pkg)
-        self._set_col_description(3, pkg)
-        self._set_col_publisher(4, pkg)
+        self._set_col_name(1, pkg, screen_width)
+        self._set_col_version(2, pkg, screen_width)
+        self._set_col_description(3, pkg, screen_width)
+        self._set_col_publisher(4, pkg, screen_width)
         self._set_col_type(5, pkg)
         self._set_col_installed(6, pkg)
         self._set_col_actions(7, pkg)
@@ -355,7 +358,7 @@ class PackagesTable(QTableWidget):
         col_type_icon.setToolTip(icon_data['tip'])
         self.setCellWidget(pkg.table_index, col, col_type_icon)
 
-    def _set_col_version(self, col: int, pkg: PackageView):
+    def _set_col_version(self, col: int, pkg: PackageView, screen_width: int):
         label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
         label_version.setObjectName('app_version')
         label_version.setAlignment(Qt.AlignCenter)
@@ -383,7 +386,7 @@ class PackagesTable(QTableWidget):
                       f"{self.i18n['version.latest']}: {pkg.model.latest_version})"
             label_version.setText(f"{label_version.text()} > {pkg.model.latest_version}")
 
-            if label_version.sizeHint().width() / self.screen_width > 0.22:
+            if label_version.sizeHint().width() / screen_width > 0.22:
                 label_version.setText(pkg.model.latest_version)
 
         item.setToolTip(tooltip)
@@ -426,7 +429,7 @@ class PackagesTable(QTableWidget):
         self._update_icon(col_icon, icon)
         self.setCellWidget(pkg.table_index, col, col_icon)
 
-    def _set_col_name(self, col: int, pkg: PackageView):
+    def _set_col_name(self, col: int, pkg: PackageView, screen_width: int):
         col_name = QLabel()
         col_name.setObjectName('app_name')
         col_name.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
@@ -439,7 +442,7 @@ class PackagesTable(QTableWidget):
             col_name.setToolTip(self.i18n['app.name'].lower())
 
         col_name.setText(name)
-        screen_perc = col_name.sizeHint().width() / self.screen_width
+        screen_perc = col_name.sizeHint().width() / screen_width
 
         if screen_perc > 0.15:
             max_chars = int(len(name) * 0.15 / screen_perc) - 3
@@ -454,7 +457,7 @@ class PackagesTable(QTableWidget):
         sizes = icon.availableSizes()
         return sizes[-1] if sizes else self.DEFAULT_ICON_SIZE
 
-    def _set_col_description(self, col: int, pkg: PackageView):
+    def _set_col_description(self, col: int, pkg: PackageView, screen_width: int):
         item = QLabel()
         item.setObjectName('app_description')
 
@@ -468,7 +471,7 @@ class PackagesTable(QTableWidget):
 
         item.setText(desc)
 
-        current_width_perc = item.sizeHint().width() / self.screen_width
+        current_width_perc = item.sizeHint().width() / screen_width
         if current_width_perc > 0.18:
             max_width = int(len(desc) * 0.18 / current_width_perc) - 3
             desc = desc[0:max_width] + '...'
@@ -479,7 +482,7 @@ class PackagesTable(QTableWidget):
 
         self.setCellWidget(pkg.table_index, col, item)
 
-    def _set_col_publisher(self, col: int, pkg: PackageView):
+    def _set_col_publisher(self, col: int, pkg: PackageView, screen_width: int):
         item = QToolBar()
 
         publisher = pkg.model.get_publisher()
@@ -494,7 +497,7 @@ class PackagesTable(QTableWidget):
 
             if publisher:
                 lb_name.setText(publisher)
-                screen_perc = lb_name.sizeHint().width() / self.screen_width
+                screen_perc = lb_name.sizeHint().width() / screen_width
 
                 if screen_perc > 0.12:
                     max_chars = int(len(publisher) * 0.12 / screen_perc) - 3

@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.4] 2022-11-05
+
+### Improvements
+- Arch
+  - replaced some system calls by Python calls
+
+### Fixes
+- AppImage
+  - some desktop entries not being displayed on the desktop environment menu (requires the AppImage to be reinstalled) [#287](https://github.com/vinifmor/bauh/issues/287)
+- Arch
+  - not detecting some package replacements when upgrading due to conflict information having logic operators (e.g: `at-spi2-core: 2.44.1 -> 2.46.0` should replace the installed `at-spi2-atk: 2.38`)
+  - not considering some conflict expressions when retrieving upgrade requirements (it could lead to a system breakage depending on the conflict)
+- Debian
+  - not properly handling packages with names ending with `:i386` [#298](https://github.com/vinifmor/bauh/issues/298)
+- Packaging
+  - AppImage: download certificate issue [#280](https://github.com/vinifmor/bauh/issues/280)
+- GUI
+    - initialization panel size not based on the current display device size
+    - management panel: 
+      - not fully maximizing
+      - not maximizing based on the current display device size (for multiple display setups)
+      - not respecting a minimal/maximum width based on the current display device size (for multiple display setup)
+      - dialogs not respecting the current display device width
+      - not readjusting size after maximizing/minimizing
+
+### Localization (i18n)
+- Italian ([@albanobattistella](https://github.com/albanobattistella), [@luca-digrazia](https://github.com/luca-digrazia))
+- Turkish ([@agahemir](https://github.com/agahemir))
+
+
 ## [0.10.3] 2022-05-30
 
 ### Features

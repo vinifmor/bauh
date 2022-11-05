@@ -79,6 +79,45 @@ class TestUtil(TestCase):
 
         self.assertEqual(expected, res)
 
+    def test_replace_desktop_entry_exec_command__exec_as_the_first_field(self):
+        desktop_entry = """
+        Exec=myapp %f
+        Name=MyApp
+        Icon=MyApp
+        """
+
+        res = replace_desktop_entry_exec_command(desktop_entry=desktop_entry,
+                                                 appname='myapp',
+                                                 file_path='/path/to/myapp.appimage')
+
+        expected = """
+        Exec="/path/to/myapp.appimage" %f
+        Name=MyApp
+        Icon=MyApp
+        """
+
+        self.assertEqual(expected, res)
+
+    def test_replace_desktop_entry_exec_command__try_exec_as_the_first_field(self):
+        desktop_entry = """
+        TryExec=MyApp
+        Exec=myapp %f
+        Name=MyApp
+        Icon=MyApp
+        """
+
+        res = replace_desktop_entry_exec_command(desktop_entry=desktop_entry,
+                                                 appname='myapp',
+                                                 file_path='/path/to/myapp.appimage')
+
+        expected = """
+        Exec="/path/to/myapp.appimage" %f
+        Name=MyApp
+        Icon=MyApp
+        """
+
+        self.assertEqual(expected, res)
+
     def test_replace_desktop_entry_exec_command__only_one_exec_field_with_spaces_and_params(self):
         desktop_entry = """
         Name=MyApp
@@ -136,7 +175,7 @@ class TestUtil(TestCase):
 
         self.assertEqual(expected, res)
 
-    def test_replace_desktop_entry_exec_command__only_one_tryexec_field_with_spaces_and_params(self):
+    def test_replace_desktop_entry_exec_command__must_remove_try_exec_field(self):
         desktop_entry = """
         Name=MyApp
         Icon=MyApp
@@ -150,12 +189,11 @@ class TestUtil(TestCase):
         expected = """
         Name=MyApp
         Icon=MyApp
-        TryExec ="/path/to/myapp.appimage" %f --a
         """
 
         self.assertEqual(expected, res)
 
-    def test_replace_desktop_entry_exec_command__exec_and_tryexec_fields(self):
+    def test_replace_desktop_entry_exec_command__must_replace_exec_and_remove_tryexec_fields(self):
         desktop_entry = """
         Name=MyApp
         Icon=MyApp
@@ -171,14 +209,13 @@ class TestUtil(TestCase):
         expected = """
         Name=MyApp
         Icon=MyApp
-        TryExec ="/path/to/myapp.appimage" %f
         Exec="/path/to/myapp.appimage" --a
         Terminal=false
         """
 
         self.assertEqual(expected, res)
 
-    def test_replace_desktop_entry_exec_command__exec_and_tryexec_fields_with_envvars_and_params(self):
+    def test_replace_desktop_entry_exec_command__exec_field_with_envvars_and_params(self):
         desktop_entry = """
         Name=MyApp
         Icon=MyApp
@@ -194,7 +231,6 @@ class TestUtil(TestCase):
         expected = """
         Name=MyApp
         Icon=MyApp
-        TryExec=__MY_VAR=1 "/path/to/myapp.appimage" %f
         Exec=NEW_VAR=abc "/path/to/myapp.appimage" --a
         Terminal=false
         """
@@ -228,7 +264,6 @@ Name=RPCS3
 GenericName=PlayStation 3 Emulator
 Comment=An open-source PlayStation 3 emulator/debugger written in C++.
 Icon=rpcs3
-TryExec="/path/to/rpcs3.appimage"
 Exec="/path/to/rpcs3.appimage" %f
 Terminal=false
 Categories=Game;Emulator;
