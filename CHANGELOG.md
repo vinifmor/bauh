@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [STAGING]
+## [0.10.4] 2022-11-05
 
 ### Improvements
 - Arch
@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Localization (i18n)
 - Italian ([@albanobattistella](https://github.com/albanobattistella), [@luca-digrazia](https://github.com/luca-digrazia))
 - Turkish ([@agahemir](https://github.com/agahemir))
+
 
 ## [0.10.3] 2022-05-30
 
