@@ -43,6 +43,17 @@ class UpdateRequirementsContext:
         self.remote_repo_map = remote_repo_map
         self.aur_supported = aur_supported
 
+    def update_provided_map(self, update: Dict[str, Set[str]]):
+        if self.provided_map is None:
+            self.provided_map = {**update}
+        else:
+            for key, val in update.items():
+                if key not in self.provided_map:
+                    self.provided_map[key] = val
+                elif val:
+                    current_val = self.provided_map[key]
+                    current_val.update(val)
+
 
 class UpdatesSummarizer:
 
@@ -318,7 +329,7 @@ class UpdatesSummarizer:
                 installed_to_query = {*context.installed}.difference(installed_to_ignore)
 
                 if installed_to_query:
-                    context.provided_map.update(pacman.map_provided(remote=False, pkgs=installed_to_query))
+                    context.update_provided_map(pacman.map_provided(remote=False, pkgs=installed_to_query))
 
             tf = time.time()
             self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))

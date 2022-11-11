@@ -539,7 +539,7 @@ def fill_provided_map(key: str, val: str, output: dict):
 
 
 def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[Dict[str, Set[str]]]:
-    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs) if pkgs else ''))
+    output = run_cmd(f"pacman -{'S' if remote else 'Q'}i {' '.join(pkgs) if pkgs else ''}")
 
     if output:
         provided_map = {}
@@ -559,7 +559,7 @@ def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[D
                         latest_version = val.split('=')[0]
                     elif field == 'Provides':
                         fill_provided_map(latest_name, latest_name, provided_map)
-                        fill_provided_map('{}={}'.format(latest_name, latest_version), latest_name, provided_map)
+                        fill_provided_map(f'{latest_name}={latest_version}', latest_name, provided_map)
 
                         if val != 'None':
                             for w in val.split(' '):
