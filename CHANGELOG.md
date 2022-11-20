@@ -8,7 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixes
 - Arch
-  - not properly mapping all provided packages by the system when checking for upgrade requirements
+  - not properly checking all provided packages by the system when checking for conflicts (upgrade requirements)
+
+### Improvements
+- Arch
+  - added several test cases to ensure conflicting scenarios are properly covered when checking for upgrade requirements
 
 ## [0.10.4] 2022-11-05
 

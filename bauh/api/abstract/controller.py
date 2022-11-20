@@ -58,7 +58,7 @@ class SearchResult:
 
 class UpgradeRequirement:
 
-    def __init__(self, pkg: SoftwarePackage, reason: str = None, required_size: float = None, extra_size: float = None, sorting_priority: int = 0):
+    def __init__(self, pkg: SoftwarePackage, reason: Optional[str] = None, required_size: Optional[float] = None, extra_size: Optional[float] = None, sorting_priority: int = 0):
         """
 
         :param pkg:
@@ -76,6 +76,15 @@ class UpgradeRequirement:
     @staticmethod
     def sort_by_priority(req: "UpgradeRequirement") -> Tuple[int, str]:
         return -req.sorting_priority, req.pkg.name
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, UpgradeRequirement):
+            return self.__dict__ == other.__dict__
+
+        return False
+
+    def __hash__(self) -> int:
+        return sum((hash(k) + hash(v) for k, v in self.__dict__.items()))
 
 
 class UpgradeRequirements:

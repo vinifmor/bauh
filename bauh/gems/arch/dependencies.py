@@ -464,9 +464,9 @@ class DependenciesAnalyser:
         if missing_deps:
             self._fill_single_providers_data(missing_deps, repo_missing, aur_missing, deps_data)
 
-            missing_subdeps = self.map_missing_deps(pkgs_data={**deps_data}, provided_map=provided_map, aur_index=aur_index,
-                                                    deps_checked=deps_checked, sort=False, deps_data=deps_data,
-                                                    watcher=watcher,
+            missing_subdeps = self.map_missing_deps(pkgs_data={**deps_data}, provided_map=provided_map,
+                                                    aur_index=aur_index, deps_checked=deps_checked, sort=False,
+                                                    deps_data=deps_data, watcher=watcher,
                                                     remote_provided_map=remote_provided_map,
                                                     remote_repo_map=remote_repo_map,
                                                     automatch_providers=automatch_providers,
@@ -650,7 +650,7 @@ class DependenciesAnalyser:
         if pkgnames:
             to_ignore.update(pkgnames)
 
-        all_requirements = {req for reqs in pacman.map_required_by(pkgnames).values() for req in reqs if req not in to_ignore}
+        all_requirements = {r for reqs in pacman.map_required_by(pkgnames).values() for r in reqs if r not in to_ignore}
 
         if all_requirements:
             sub_requirements = self.map_all_required_by(all_requirements, to_ignore)
