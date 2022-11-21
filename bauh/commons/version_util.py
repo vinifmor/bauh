@@ -1,21 +1,31 @@
 import re
+from typing import Tuple
 
-from packaging.version import LegacyVersion
-
-RE_VERSION_WITH_RELEASE = re.compile(r'^(.+)-\d+$')
-RE_VERSION_WITH_EPOCH = re.compile(r'^\d+:(.+)$')
+RE_VERSION_WITH_EPOCH = re.compile(r'^\d+:.+$')
+RE_VERSION_WITH_RELEASE = re.compile(r'^.+-\d+$')
 
 
-def normalize_version(version: str) -> LegacyVersion:
-    final_version = version.strip()
+def map_str_version(version: str) -> tuple:
+    return tuple(part.zfill(10) for part in version.split("."))
 
-    if not RE_VERSION_WITH_EPOCH.match(final_version):
-        final_version = f'0:{final_version}'
 
-    if not RE_VERSION_WITH_RELEASE.match(final_version):
-        final_version = f'{final_version}-1'
+def normalize_version(version: str) -> Tuple[int, Tuple[str], int]:
+    raw_version = version.strip()
 
-    return LegacyVersion(final_version)
+    epoch = 0
+
+    if RE_VERSION_WITH_EPOCH.match(raw_version):
+        epoch_version = raw_version.split(":", maxsplit=1)
+        epoch = int(epoch_version[0])
+        raw_version = epoch_version[1]
+
+    release = 1
+    if RE_VERSION_WITH_RELEASE.findall(raw_version):
+        version_release = raw_version.rsplit("-", maxsplit=1)
+        raw_version = version_release[0]
+        release = int(version_release[1])
+
+    return epoch, map_str_version(raw_version), release
 
 
 def match_required_version(current_version: str, operator: str, required_version: str) -> bool:
@@ -39,7 +49,7 @@ def match_required_version(current_version: str, operator: str, required_version
     elif current_has_release and not required_has_release:
         final_current = current_no_release[1]
 
-    final_required, final_current = LegacyVersion(final_required), LegacyVersion(final_current)
+    final_required, final_current = map_str_version(final_required), map_str_version(final_current)
 
     if operator == '==' or operator == '=':
         return final_current == final_required

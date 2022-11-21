@@ -5,7 +5,7 @@ from typing import Optional, List, Dict
 from bauh.api.abstract.model import PackageStatus
 from bauh.api.http import HttpClient
 from bauh.gems.arch.model import ArchPackage
-from bauh.gems.arch.version import normalize_version
+from bauh.commons.version_util import normalize_version
 from bauh.view.util.translation import I18n
 
 URL_PKG_DOWNLOAD = 'https://aur.archlinux.org/{}'
