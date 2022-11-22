@@ -11,8 +11,6 @@ from pathlib import Path
 from typing import Set, Type, List, Tuple, Optional, Iterable, Generator
 
 from colorama import Fore
-from packaging.version import LegacyVersion
-from packaging.version import parse as parse_version
 
 from bauh.api.abstract.context import ApplicationContext
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, UpgradeRequirements, UpgradeRequirement, \
@@ -28,6 +26,7 @@ from bauh.commons import resource
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
 from bauh.commons.system import SystemProcess, new_subprocess, ProcessHandler, SimpleProcess
+from bauh.commons.version_util import normalize_version
 from bauh.gems.appimage import query, INSTALLATION_DIR, APPIMAGE_SHARED_DIR, ROOT_DIR, \
     APPIMAGE_CONFIG_DIR, UPDATES_IGNORED_FILE, util, get_default_manual_installation_file_dir, DATABASE_APPS_FILE, \
     DATABASE_RELEASES_FILE, APPIMAGE_CACHE_DIR, get_icon_path, DOWNLOAD_DIR
@@ -286,11 +285,14 @@ class AppImageManager(SoftwareManager, SettingsController):
                                             elif continuous_update and not continuous_version:
                                                 app.update = False
                                             else:
-                                                try:
-                                                    app.update = parse_version(tup[2]) > parse_version(app.version) if tup[2] else False
-                                                except:
-                                                    app.update = False
-                                                    traceback.print_exc()
+                                                if tup[2]:
+                                                    try:
+                                                        latest_version = normalize_version(tup[2])
+                                                        installed_version = normalize_version(app.version)
+                                                        app.update = latest_version > installed_version
+                                                    except:
+                                                        app.update = False
+                                                        traceback.print_exc()
 
                                         if app.update:
                                             app.latest_version = tup[2]
@@ -509,11 +511,11 @@ class AppImageManager(SoftwareManager, SettingsController):
             releases = cursor.execute(query.FIND_RELEASES_BY_APP_ID.format(app_tuple[0]))
 
             if releases:
-                treated_releases = [(LegacyVersion(r[0]), *r[1:]) for r in releases]
+                treated_releases = [(normalize_version(r[0]), r[0], *r[1:]) for r in releases]
                 treated_releases.sort(key=self._sort_release, reverse=True)
 
                 for idx, tup in enumerate(treated_releases):
-                    ver = str(tup[0])
+                    ver = tup[0]
                     history.append({'0_version': ver,
                                     '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[
                                         2] else '', '2_url_download': tup[1]})

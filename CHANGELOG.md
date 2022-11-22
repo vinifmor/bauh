@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - Arch
   - added several test cases to ensure conflicting scenarios are properly covered when checking for upgrade requirements
+- General
+  - replaced the use of Python's `LegacyVersion` for version comparison since it will be deprecated for the next Python's major release (affects **Arch**, **AppImage** and **Flatpak** gems)
 
 ## [0.10.4] 2022-11-05
 
