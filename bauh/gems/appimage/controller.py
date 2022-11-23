@@ -515,10 +515,9 @@ class AppImageManager(SoftwareManager, SettingsController):
                 treated_releases.sort(key=self._sort_release, reverse=True)
 
                 for idx, tup in enumerate(treated_releases):
-                    ver = tup[0]
-                    history.append({'0_version': ver,
-                                    '1_published_at': datetime.strptime(tup[2], '%Y-%m-%dT%H:%M:%SZ') if tup[
-                                        2] else '', '2_url_download': tup[1]})
+                    ver = tup[1]
+                    date_ = datetime.strptime(tup[3], '%Y-%m-%dT%H:%M:%SZ') if tup[3] else ''
+                    history.append({'0_version': ver, '1_published_at': date_, '2_url_download': tup[2]})
 
                     if res.pkg_status_idx == -1 and pkg.version == ver:
                         res.pkg_status_idx = idx

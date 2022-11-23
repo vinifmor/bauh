@@ -36,7 +36,6 @@ AppDir:
       - python3-colorama
       - python3-dateutil
       - python3-yaml
-      - python3-packaging
       - python3-lxml
       - python3-bs4
       - sqlite3
