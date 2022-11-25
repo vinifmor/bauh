@@ -10,9 +10,10 @@ desktop: Optional[QDesktopWidget] = None
 
 
 def centralize(widget: QWidget):
+    widget_frame = widget.frameGeometry()
     screen_geometry = get_current_screen_geometry()
-    widget.frameGeometry().moveCenter(screen_geometry.center())
-    widget.move(widget.frameGeometry().topLeft())
+    widget_frame.moveCenter(screen_geometry.center())
+    widget.move(widget_frame.topLeft())
 
 
 def load_icon(path: str, width: int, height: int = None) -> QIcon:
