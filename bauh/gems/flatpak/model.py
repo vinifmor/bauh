@@ -1,4 +1,4 @@
-from packaging.version import Version
+from typing import Tuple
 
 from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.commons import resource
@@ -140,7 +140,7 @@ class FlatpakApplication(SoftwarePackage):
         if not self.runtime:
             return super(FlatpakApplication, self).get_disk_icon_path()
 
-    def get_update_id(self, flatpak_version: Version) -> str:
+    def get_update_id(self, flatpak_version: Tuple[str, ...]) -> str:
         if flatpak_version >= VERSION_1_2:
             return f'{self.id}/{self.branch}/{self.installation}/{self.origin}'
         else:

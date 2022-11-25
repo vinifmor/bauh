@@ -12,7 +12,7 @@ from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
-from bauh.gems.arch.version import match_required_version
+from bauh.commons.version_util import match_required_version
 from bauh.view.util.translation import I18n
 
 
@@ -22,8 +22,9 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
-                 to_remove: Dict[str, UpgradeRequirement], installed_names: Dict[str, str], provided_map: Dict[str, Set[str]],
-                 aur_index: Set[str], arch_config: dict, remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
+                 to_remove: Dict[str, UpgradeRequirement], installed_names: Dict[str, str],
+                 provided_map: Dict[str, Set[str]], aur_index: Set[str], arch_config: dict,
+                 remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                  root_password: Optional[str], aur_supported: bool):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
