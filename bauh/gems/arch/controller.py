@@ -3323,7 +3323,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if not cache_dir or not os.path.isdir(cache_dir):
             watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
-                                 body=self.i18n['arch.custom_action.clean_cache.no_dir {}'.format(bold(cache_dir))].capitalize(),
+                                 body=self.i18n['arch.custom_action.clean_cache.no_dir'].format(bold(cache_dir)).capitalize(),
                                  type_=MessageType.WARNING)
             return True
 
