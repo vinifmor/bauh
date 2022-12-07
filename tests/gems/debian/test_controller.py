@@ -14,14 +14,14 @@ class DebianPackageManagerTest(TestCase):
         self.controller._apps_index = {}
 
     @patch(f'{__app_name__}.gems.debian.controller.Aptitude.read_installed', return_value=iter((
-            DebianPackage(name='gir1.2-javascriptcoregtk-4.0', version='2.34.1-0distro0.20.04.1',
-                          latest_version='2.34.1-0distro0.20.04.1',
-                          maintainer='Distro Developers', update=False, installed=True,
-                          description='JavaScript engine library from WebKitGTK - GObject introspection data'),
-            DebianPackage(name='xwayland', version='2:1.20.13-1distro1~20.04.2',
-                          latest_version='2:1.20.13-1distro1~20.04.2',
-                          maintainer='Distro X-SWAT', update=False, installed=True,
-                          description='Xwayland X server')
+        DebianPackage(name='gir1.2-javascriptcoregtk-4.0', version='2.34.1-0distro0.20.04.1',
+                      latest_version='2.34.1-0distro0.20.04.1',
+                      maintainer='Distro Developers', update=False, installed=True,
+                      description='JavaScript engine library from WebKitGTK - GObject introspection data'),
+        DebianPackage(name='xwayland', version='2:1.20.13-1distro1~20.04.2',
+                      latest_version='2:1.20.13-1distro1~20.04.2',
+                      maintainer='Distro X-SWAT', update=False, installed=True,
+                      description='Xwayland X server')
     )))
     def test_read_installed__must_associated_packages_found_to_applications_if_appliable(self, read_installed: Mock):
         app = DebianApplication(name='xwayland', exe_path='xwayland', icon_path='xwayland', categories=('app',))
@@ -44,14 +44,14 @@ class DebianPackageManagerTest(TestCase):
         self.assertEqual(expected, result.installed)
 
     @patch(f'{__app_name__}.gems.debian.controller.Aptitude.read_installed', return_value=iter((
-            DebianPackage(name='gir1.2-javascriptcoregtk-4.0', version='2.34.1-0distro0.20.04.1',
-                          latest_version='2.34.1-0distro0.20.04.1',
-                          maintainer='Distro Developers', update=False, installed=True,
-                          description='JavaScript engine library from WebKitGTK - GObject introspection data'),
-            DebianPackage(name='xwayland', version='2:1.20.13-1distro1~20.04.2',
-                          latest_version='2:1.20.13-1distro1~20.04.2',
-                          maintainer='Distro X-SWAT', update=False, installed=True,
-                          description='Xwayland X server')
+        DebianPackage(name='gir1.2-javascriptcoregtk-4.0', version='2.34.1-0distro0.20.04.1',
+                      latest_version='2.34.1-0distro0.20.04.1',
+                      maintainer='Distro Developers', update=False, installed=True,
+                      description='JavaScript engine library from WebKitGTK - GObject introspection data'),
+        DebianPackage(name='xwayland', version='2:1.20.13-1distro1~20.04.2',
+                      latest_version='2:1.20.13-1distro1~20.04.2',
+                      maintainer='Distro X-SWAT', update=False, installed=True,
+                      description='Xwayland X server')
     )))
     def test_read_installed__internet_not_available(self, read_installed: Mock):
         result = self.controller.read_installed(disk_loader=None, pkg_types=None, internet_available=False)
@@ -83,7 +83,7 @@ class DebianPackageManagerTest(TestCase):
     )))
     def test_search__returned_packages_should_be_associated_with_apps_if_appliable(self, search: Mock):
         app = DebianApplication(name='myapp', exe_path='myapp', icon_path='myapp',
-                                                                  categories=('app',))
+                                categories=('app',))
         self.controller._apps_index = {'myapp': app}
 
         words = 'test'

@@ -216,7 +216,7 @@ class UpdatesSummarizer:
                         self.logger.warning("No version declared in SRCINFO of '{}'".format(pkg_data[0]))
                 else:
                     self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
-            except:
+            except Exception:
                 self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
         else:
             version = pacman.get_version_for_not_installed(pkg_data[0])
@@ -341,7 +341,7 @@ class UpdatesSummarizer:
             if pkgdata:
                 requirement.required_size = pkgdata['ds']
                 requirement.extra_size = pkgdata['s']
-    
+
                 current_size = installed_sizes.get(pkg.name) if installed_sizes else None
 
                 if current_size is not None and pkgdata['s'] is not None:
@@ -742,7 +742,7 @@ class UpdatesSummarizer:
                                     if match_required_version(current_version=v, operator=op, required_version=dep_split[1]):
                                         version_match = True
                                         break
-                                except:
+                                except Exception:
                                     self.logger.error("Error when comparing versions {} (provided) and {} (required)".format(v, dep_split[1]))
                                     traceback.print_exc()
 

@@ -9,7 +9,7 @@ class GetHumanSizeStrTest(TestCase):
     def setUp(self):
         try:
             locale.setlocale(locale.LC_NUMERIC, "C")
-        except:
+        except Exception:
             print("Error: could not set locale.LC_NUMERIC to None")
 
     def test__must_properly_display_B(self):
@@ -53,4 +53,3 @@ class GetHumanSizeStrTest(TestCase):
     def test__must_not_concatenate_the_plus_sign_if_positive_sign_is_true_and_value_is_negative(self):
         self.assertEqual('-999 B', get_human_size_str(-999, positive_sign=True))
         self.assertEqual('-1.00 kB', get_human_size_str(-1000, positive_sign=True))
-

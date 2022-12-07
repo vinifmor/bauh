@@ -193,7 +193,7 @@ class TextComponent(ViewComponent):
 
 class TwoStateButtonComponent(ViewComponent):
 
-    def __init__(self, label: str, tooltip: str = None, state: bool = False,  id_: str = None):
+    def __init__(self, label: str, tooltip: str = None, state: bool = False, id_: str = None):
         super(TwoStateButtonComponent, self).__init__(id_=id_)
         self.label = label
         self.tooltip = tooltip

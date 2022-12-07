@@ -89,7 +89,7 @@ class FlatpakAsyncDataLoader(Thread):
                         self.persist = self.app.supports_disk_cache()
                 else:
                     self.logger.warning("Could not retrieve app data for id '{}'. Server response: {}. Body: {}".format(self.app.id, res.status_code if res else '?', res.content.decode() if res else '?'))
-            except:
+            except Exception:
                 self.logger.error("Could not retrieve app data for id '{}'".format(self.app.id))
                 traceback.print_exc()
 

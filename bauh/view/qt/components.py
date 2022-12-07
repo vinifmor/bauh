@@ -216,7 +216,7 @@ class QtComponentsManager:
         if state['r'] != self._is_read_only(comp):
             self._set_read_only(comp, state['r'])
 
-    def restore_group_state(self, group_id: int,  state_id: int):
+    def restore_group_state(self, group_id: int, state_id: int):
         states = self._saved_states.get(state_id)
 
         if states:
@@ -808,7 +808,7 @@ class FormQt(QGroupBox):
                 label, field = self._new_file_chooser(c)
                 self.layout().addRow(label, field)
             elif isinstance(c, FormComponent):
-                label, field = None,  FormQt(c, self.i18n)
+                label, field = None, FormQt(c, self.i18n)
                 self.layout().addRow(field)
             elif isinstance(c, TwoStateButtonComponent):
                 label, field = self._new_label(c), TwoStateButtonQt(c)
@@ -1037,7 +1037,7 @@ class TabGroupQt(QTabWidget):
         for c in model.tabs:
             try:
                 icon = QIcon(c.icon_path) if c.icon_path else QIcon()
-            except:
+            except Exception:
                 traceback.print_exc()
                 icon = QIcon()
 

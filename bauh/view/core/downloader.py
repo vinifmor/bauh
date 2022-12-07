@@ -114,7 +114,7 @@ class AdaptableFileDownloader(FileDownloader):
             if size:
                 base_substatus.write(f' ( {size} )')
                 watcher.change_substatus(base_substatus.getvalue())
-        except:
+        except Exception:
             pass
 
     def _get_appropriate_threads_number(self, max_threads: int, known_size: int) -> int:
@@ -193,7 +193,7 @@ class AdaptableFileDownloader(FileDownloader):
                     watcher.change_substatus(msg.getvalue())
 
             success, _ = handler.handle_simple(process)
-        except:
+        except Exception:
             traceback.print_exc()
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 

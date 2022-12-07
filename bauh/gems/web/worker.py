@@ -59,7 +59,7 @@ class SuggestionsLoader(Thread):
                     if self.suggestions:
                         self.taskman.update_progress(self.task_id, 50, self.i18n['web.task.suggestions.saving'])
                         self.manager.save_to_disk(self.suggestions, timestamp)
-                except:
+                except Exception:
                     self.logger.error("Unexpected exception")
                     traceback.print_exc()
 
@@ -67,7 +67,7 @@ class SuggestionsLoader(Thread):
             self.taskman.update_progress(self.task_id, 75, None)
             try:
                 self.suggestions_callback(self.suggestions)
-            except:
+            except Exception:
                 self.logger.error("Unexpected exception")
                 traceback.print_exc()
 
@@ -125,7 +125,7 @@ class UpdateEnvironmentSettings(Thread):
 
     def run(self):
         self.taskman.register_task(self.task_id, self.i18n['web.task.download_settings'], get_icon_path())
-        self.taskman.update_progress(self.task_id, 1,  self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
+        self.taskman.update_progress(self.task_id, 1, self.i18n['task.waiting_task'].format(bold(self.create_config.task_name)))
         self.create_config.join()
 
         web_config = self.create_config.config

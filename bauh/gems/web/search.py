@@ -60,7 +60,7 @@ class SearchIndexManager:
                     f.write(yaml.safe_dump(index))
                 self.logger.info("Search index successfully written at {}".format(SEARCH_INDEX_FILE))
                 return True
-            except:
+            except Exception:
                 self.logger.error("Could not write the search index to {}".format(SEARCH_INDEX_FILE))
                 traceback.print_exc()
 

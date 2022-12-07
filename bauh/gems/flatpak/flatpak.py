@@ -81,7 +81,7 @@ def get_version() -> Optional[Version]:
 def get_app_info(app_id: str, branch: str, installation: str) -> Optional[str]:
     try:
         return run_cmd(f'flatpak info {app_id} {branch} --{installation}')
-    except:
+    except Exception:
         traceback.print_exc()
         return ''
 
@@ -235,7 +235,7 @@ def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
                 for line in output.split(f'Updating in {installation}:\n')[1].split('\n'):
                     if not line.startswith('Is this ok'):
                         res['full'].add('{}/{}'.format(installation, line.split('\t')[0].strip()))
-        except:
+        except Exception:
             traceback.print_exc()
     else:
         updates = new_subprocess(('flatpak', 'update', f'--{installation}', '--no-deps')).stdout
@@ -270,7 +270,7 @@ def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
                                     res['full'].add(update_id)
                         else:
                             res['full'].add(update_id)
-        except:
+        except Exception:
             traceback.print_exc()
 
 
@@ -293,7 +293,7 @@ def get_app_commits(app_ref: str, origin: str, installation: str, handler: Proce
             return
         else:
             return re.findall(r'Commit+:\s(.+)', output)
-    except:
+    except Exception:
         raise NoInternetException()
 
 
@@ -479,11 +479,11 @@ def map_update_download_size(app_ids: Iterable[str], installation: str, version:
                                     if size and len(size) > 1:
                                         try:
                                             res[related_id[0].strip()] = size_to_byte(size[0], size[1].strip())
-                                        except:
+                                        except Exception:
                                             traceback.print_exc()
                                 else:
                                     try:
                                         res[related_id[0].strip()] = size_to_byte(size_tuple[0], size_tuple[1].strip())
-                                    except:
+                                    except Exception:
                                         traceback.print_exc()
         return res

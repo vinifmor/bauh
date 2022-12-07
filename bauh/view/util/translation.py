@@ -54,7 +54,7 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
 
             if current_locale is None or current_locale[0] is None:
                 current_locale = ('en', 'UTF-8')
-        except:
+        except Exception:
             current_locale = ('en', 'UTF-8')
 
     else:
@@ -83,7 +83,7 @@ def get_locale_keys(key: str = None, locale_dir: str = resource.get_path('locale
             try:
                 keyval = line_strip.split('=')
                 locale_obj[keyval[0].strip()] = keyval[1].strip()
-            except:
+            except Exception:
                 print("Error decoding i18n line '{}'".format(line))
 
     return locale_path.split('/')[-1], locale_obj

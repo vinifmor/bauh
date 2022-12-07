@@ -96,7 +96,7 @@ class HttpClient:
             if size:
                 try:
                     return int(size)
-                except:
+                except Exception:
                     pass
 
     def get_content_length(self, url: str, session: bool = True) -> Optional[str]:
