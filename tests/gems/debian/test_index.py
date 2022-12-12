@@ -8,6 +8,7 @@ from bauh.gems.debian.index import ApplicationsMapper, ApplicationIndexer
 from bauh.gems.debian.model import DebianApplication
 from tests.gems.debian import DEBIAN_TESTS_DIR
 
+
 def mock_read_file(fpath: str):
     if fpath.endswith('firefox.desktop'):
         return """

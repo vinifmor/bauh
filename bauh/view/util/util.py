@@ -69,7 +69,7 @@ def clean_app_files(managers: List[SoftwareManager], logs: bool = True):
                 shutil.rmtree(path)
                 if logs:
                     print('{}[bauh] Directory {} deleted{}'.format(Fore.YELLOW, path, Fore.RESET))
-            except:
+            except Exception:
                 if logs:
                     print('{}[bauh] An exception has happened when deleting {}{}'.format(Fore.RED, path, Fore.RESET))
                     traceback.print_exc()

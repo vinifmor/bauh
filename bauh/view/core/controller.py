@@ -107,7 +107,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             try:
                 Popen(['timeshift-launcher'], stderr=STDOUT)
                 return True
-            except:
+            except Exception:
                 traceback.print_exc()
                 watcher.show_message(title=self.i18n["error"].capitalize(),
                                      body=self.i18n['action.backups.tool_error'].format(bold('Timeshift')),
@@ -266,7 +266,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         self.logger.info(f'Took {tf - ti:.2f} seconds')
         return res
 
-    def _add_category(self, pkg: SoftwarePackage,  category: str):
+    def _add_category(self, pkg: SoftwarePackage, category: str):
         if isinstance(pkg.categories, tuple):
             pkg.categories = tuple((*pkg.categories, category))
         elif isinstance(pkg.categories, list):
@@ -331,7 +331,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 disk_loader.join()
                 self._update_post_transaction_status(res)
                 return res
-            except:
+            except Exception:
                 traceback.print_exc()
                 return TransactionResult(success=False, installed=[], removed=[])
             finally:
@@ -352,7 +352,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 disk_loader.join()
                 self._update_post_transaction_status(res)
                 return res
-            except:
+            except Exception:
                 traceback.print_exc()
                 return TransactionResult(success=False, installed=[], removed=[])
             finally:
@@ -617,7 +617,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             try:
                 clean_app_files(managers=self.managers, logs=False)
                 restart_app()
-            except:
+            except Exception:
                 return False
 
         return True

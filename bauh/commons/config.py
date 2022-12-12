@@ -98,5 +98,5 @@ class YAMLConfigManager(ConfigManager, ABC):
             try:
                 with open(self.file_path, 'w+') as f:
                     f.write(yaml.dump(config_obj))
-            except:
+            except Exception:
                 traceback.print_exc()

@@ -288,7 +288,7 @@ class DependenciesAnalyser:
                             if not version_required or match_required_version(pkgdata['v'], exp_op,
                                                                               version_required):
                                 yield pkgname, pkgdata
-                        except:
+                        except Exception:
                             self._log.warning(f"Could not compare AUR package '{pkgname}' version '{pkgdata['v']}' "
                                               f"with the dependency expression '{dep_exp}'")
                             traceback.print_exc()
@@ -588,7 +588,7 @@ class DependenciesAnalyser:
                 if repo_selected:
                     providers_data.update(pacman.map_updates_data(repo_selected))
                     # adding the providers as "installed" packages
-                    provided_map.update(pacman.map_provided(remote=True,  pkgs=repo_selected))
+                    provided_map.update(pacman.map_provided(remote=True, pkgs=repo_selected))
 
                 if aur_selected:
                     for pkgname, pkgdata in self.aur_client.gen_updates_data(aur_selected):

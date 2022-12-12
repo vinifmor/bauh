@@ -13,6 +13,5 @@ class InternetChecker:
         try:
             socket.gethostbyname('google.com')
             return True
-        except:
+        except Exception:
             return False
-

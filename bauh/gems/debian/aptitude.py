@@ -201,7 +201,7 @@ class Aptitude:
         query = f"'({'|'.join(f'?exact-name({n})' for n in names)})'"
         yield from self.search(query=query, fill_size=fill_size)
 
-    def remove(self, packages: Iterable[str], root_password: Optional[str],  purge: bool = False) -> SimpleProcess:
+    def remove(self, packages: Iterable[str], root_password: Optional[str], purge: bool = False) -> SimpleProcess:
         return SimpleProcess(cmd=self.gen_remove_cmd(packages, purge).split(' '), shell=True,
                              root_password=root_password, extra_env=self.vars_fixes, preserve_env=self._preserve_env)
 

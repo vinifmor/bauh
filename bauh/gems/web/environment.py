@@ -68,14 +68,14 @@ class EnvironmentUpdater:
                     self.logger.info(f"Removing old NodeJS version installation dir -> {NODE_DIR_PATH}")
                     try:
                         shutil.rmtree(NODE_DIR_PATH)
-                    except:
+                    except Exception:
                         self.logger.error(f"Could not delete old NodeJS version dir -> {NODE_DIR_PATH}")
                         traceback.print_exc()
                         return False
 
                 try:
                     os.rename(extracted_file, NODE_DIR_PATH)
-                except:
+                except Exception:
                     self.logger.error(f"Could not rename the NodeJS version file {extracted_file} as {NODE_DIR_PATH}")
                     traceback.print_exc()
                     return False
@@ -84,12 +84,12 @@ class EnvironmentUpdater:
                     self.logger.info(f'Deleting {NODE_MODULES_PATH}')
                     try:
                         shutil.rmtree(NODE_MODULES_PATH)
-                    except:
+                    except Exception:
                         self.logger.error(f"Could not delete the directory {NODE_MODULES_PATH}")
                         return False
 
                 return True
-            except:
+            except Exception:
                 self.logger.error(f'Could not extract {tarf_path}')
                 traceback.print_exc()
                 return False
@@ -97,7 +97,7 @@ class EnvironmentUpdater:
                 if os.path.exists(tarf_path):
                     try:
                         os.remove(tarf_path)
-                    except:
+                    except Exception:
                         self.logger.error(f'Could not delete file {tarf_path}')
 
     def check_node_installed(self, version: str) -> bool:
@@ -152,7 +152,7 @@ class EnvironmentUpdater:
                 try:
                     shutil.rmtree(NODE_DIR_PATH)
                     return self._install_nodejs(version=version, version_url=version_url, watcher=watcher)
-                except:
+                except Exception:
                     self.logger.error(f'Could not delete the dir {NODE_DIR_PATH}')
                     return False
 
@@ -246,7 +246,7 @@ class EnvironmentUpdater:
 
         try:
             env_timestamp = datetime.fromtimestamp(float(env_ts_str))
-        except:
+        except Exception:
             self.logger.error(f"Could not parse environment settings file timestamp: {env_ts_str}")
             return True
 

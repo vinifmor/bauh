@@ -17,7 +17,7 @@ class CallAsUser:
         try:
             os.setuid(getpwnam(self._user).pw_uid)
             return self._target()
-        except:
+        except Exception:
             traceback.print_exc()
 
 
@@ -33,7 +33,7 @@ class WriteToFile:
                 f.write(self._content)
 
             return True
-        except:
+        except Exception:
             traceback.print_exc()
             return False
 

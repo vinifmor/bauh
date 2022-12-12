@@ -47,7 +47,7 @@ class SnapdClient:
             session = Session()
             session.mount("http://snapd/", SnapdAdapter())
             return session
-        except:
+        except Exception:
             self.logger.error("Could not establish a connection to 'snapd.socker'")
             traceback.print_exc()
 

@@ -61,4 +61,3 @@ class WebApplicationManagerTest(TestCase):
     def test_strip_url_protocol__https_with_www(self):
         res = self.manager.strip_url_protocol('https://www.test.com')
         self.assertEqual('test.com', res)
-

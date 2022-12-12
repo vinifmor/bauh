@@ -58,7 +58,7 @@ gimp-help^<none>^<none>^<none>^^
         self.assertEqual([p.__dict__ for p in exp], [p.__dict__ for p in res])
 
     @patch(f'{__app_name__}.gems.debian.aptitude.system.execute', return_value=(0, """
-Package: firefox                         
+Package: firefox
 Version: 97.0+distro1+una
 State: installed (95.0.1+distro1.1+una), upgrade available (97.0+distro1+una)
 Automatically installed: no
@@ -89,8 +89,8 @@ Suggests: gcc-multilib, make, manpages-dev, autoconf, automake, libtool, flex, b
 Conflicts: gcc-doc (< 1:2.95.3), gcc-doc:i386 (< 1:2.95.3), gcc:i386
 Provides: c-compiler, gcc-x86-64-linux-gnu (= 4:9.3.0-1distro2), gcc:amd64 (= 4:9.3.0-1distro2)
 Description: GNU C compiler
- This is the GNU C compiler, a fairly portable optimizing compiler for C. 
- 
+ This is the GNU C compiler, a fairly portable optimizing compiler for C.
+
  This is a dependency package providing the default GNU C compiler.
 
 """))
@@ -170,7 +170,7 @@ Description: GNU C compiler
     def test_map_transaction_output__it_should_map_i386_packages(self):
         output = "\nThe following NEW packages will be installed:\n" \
                  " gcc-12-base:i386{a} [12.1.0-2distro~22.04] <+272 kB>  glib-networking:i386{a} [2.72.0-1] <+242 kB>\n" \
-                "\nThe following packages will be REMOVED:\n" \
+                 "\nThe following packages will be REMOVED:\n" \
                  " celluloid{a} [0.21-linux+distro] <-1066 kB> libpcre3:i386{a} [2:8.39-13distro0.22.04.1] <-714 kB>"
 
         transaction = self.aptitude.map_transaction_output(output)

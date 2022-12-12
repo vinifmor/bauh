@@ -85,7 +85,7 @@ class CategoriesDownloader(Thread):
                 f.write(str(timestamp))
 
             self.logger.info(self._msg("Categories timestamp ({}) cached to file '{}'".format(timestamp, categories_ts_path)))
-        except:
+        except Exception:
             self.logger.error(self._msg("Could not cache categories to the disk as '{}'".format(self.categories_path)))
             traceback.print_exc()
 
@@ -106,7 +106,7 @@ class CategoriesDownloader(Thread):
         try:
             categories = self._map_categories(res.text)
             self.logger.info(self._msg('Loaded categories for {} applications'.format(len(categories))))
-        except:
+        except Exception:
             self.logger.error(self._msg("Could not parse categories definitions"))
             traceback.print_exc()
             return {}
@@ -140,7 +140,7 @@ class CategoriesDownloader(Thread):
 
         try:
             categories_timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             self.logger.error(self._msg("An exception occurred when trying to parse the categories file timestamp from '{}'. The categories file should be re-downloaded.".format(categories_ts_path)))
             traceback.print_exc()
             return True

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import glob
 import logging
 import os
@@ -21,6 +22,10 @@ from bauh.gems.arch import pacman, disk, CUSTOM_MAKEPKG_FILE, ARCH_CONFIG_DIR, A
     mirrors, ARCH_CACHE_DIR, AUR_INDEX_TS_FILE, aur
 from bauh.gems.arch.aur import URL_INDEX
 from bauh.view.util.translation import I18n
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from bauh.gems.arch.controller import ArchManager
 
 URL_INFO = 'https://aur.archlinux.org/rpc/?v=5&type=info&arg={}'
 
@@ -49,7 +54,7 @@ class AURIndexUpdater(Thread):
 
         try:
             exp_hours = int(self.config['aur_idx_exp'])
-        except:
+        except Exception:
             traceback.print_exc()
             return True
 
@@ -68,7 +73,7 @@ class AURIndexUpdater(Thread):
         try:
             index_timestamp = datetime.fromtimestamp(float(timestamp_str))
             return (index_timestamp + timedelta(hours=exp_hours)) <= datetime.utcnow()
-        except:
+        except Exception:
             traceback.print_exc()
             return True
 
@@ -143,7 +148,7 @@ class AURIndexUpdater(Thread):
 class ArchDiskCacheUpdater(Thread):
 
     def __init__(self, taskman: TaskManager, i18n: I18n, logger: logging.Logger,
-                 controller: "ArchManager", internet_available: bool, aur_indexer: Thread,
+                 controller: ArchManager, internet_available: bool, aur_indexer: Thread,
                  create_config: CreateConfigFile):
         super(ArchDiskCacheUpdater, self).__init__(daemon=True)
         self.logger = logger
@@ -265,7 +270,7 @@ class ArchCompilationOptimizer(Thread):
         ti = time.time()
         try:
             ncpus = os.cpu_count()
-        except:
+        except Exception:
             self.logger.error('Could not determine the number of processors. Aborting...')
             ncpus = None
 
@@ -385,7 +390,7 @@ class ArchCompilationOptimizer(Thread):
             if self.create_config.config['optimize'] and aur.is_supported(self.create_config.config):
                 try:
                     self.optimize()
-                except:
+                except Exception:
                     self.logger.error("Unexpected exception")
                     traceback.print_exc()
                     self.taskman.update_progress(self.task_id, 100, None)
@@ -396,7 +401,7 @@ class ArchCompilationOptimizer(Thread):
                     try:
                         self.logger.info("Removing custom 'makepkg.conf' -> '{}'".format(CUSTOM_MAKEPKG_FILE))
                         os.remove(CUSTOM_MAKEPKG_FILE)
-                    except:
+                    except Exception:
                         self.logger.error("Unexpected exception")
                         traceback.print_exc()
 
@@ -428,7 +433,7 @@ class RefreshMirrors(Thread):
     @staticmethod
     def is_enabled(arch_config: dict, aur_supported: bool) -> bool:
         return (arch_config['repositories'] or aur_supported) \
-               and arch_config['refresh_mirrors_startup'] and pacman.is_mirrors_available()
+            and arch_config['refresh_mirrors_startup'] and pacman.is_mirrors_available()
 
     @classmethod
     def should_synchronize(cls, arch_config: dict, aur_supported: bool, logger: logging.Logger) -> bool:
@@ -468,7 +473,7 @@ class RefreshMirrors(Thread):
                     self.taskman.update_progress(self.task_id, 50, self.i18n['arch.custom_action.refresh_mirrors.status.updating'])
                     try:
                         handler.handle_simple(pacman.sort_fastest_mirrors(self.root_password, sort_limit), output_handler=self._notify_output)
-                    except:
+                    except Exception:
                         self.logger.error("Could not sort mirrors by speed")
                         traceback.print_exc()
 
@@ -476,7 +481,7 @@ class RefreshMirrors(Thread):
                 self.refreshed = True
             else:
                 self.logger.error("It was not possible to refresh mirrors")
-        except:
+        except Exception:
             self.logger.error("It was not possible to refresh mirrors")
             traceback.print_exc()
 
@@ -518,7 +523,7 @@ class SyncDatabases(Thread):
         self.taskman.update_progress(self.task_id, 0, self.i18n['task.waiting_task'].format(bold(self.refresh_mirrors.task_name)))
         self.refresh_mirrors.join()
 
-        self.taskman.update_progress(self.task_id, 1,  self.i18n['arch.task.checking_settings'])
+        self.taskman.update_progress(self.task_id, 1, self.i18n['arch.task.checking_settings'])
 
         arch_config = self.create_config.config
         aur_supported = aur.is_supported(arch_config)
@@ -580,7 +585,7 @@ class SyncDatabases(Thread):
                 else:
                     self.logger.error("Could not synchronize database")
 
-            except:
+            except Exception:
                 self.logger.info("Error while synchronizing databases")
                 traceback.print_exc()
 

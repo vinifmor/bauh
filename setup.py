@@ -35,7 +35,7 @@ setup(
     python_requires=">=3.5",
     url=URL,
     packages=find_packages(exclude=["tests.*", "tests"]),
-    package_data={NAME: ["view/resources/locale/*", "view/resources/img/*",  "view/resources/style/*", 'view/resources/style/*/img/*', "gems/*/resources/img/*", "gems/*/resources/locale/*", "desktop/*"]},
+    package_data={NAME: ["view/resources/locale/*", "view/resources/img/*", "view/resources/style/*", 'view/resources/style/*/img/*', "gems/*/resources/img/*", "gems/*/resources/locale/*", "desktop/*"]},
     install_requires=requirements,
     test_suite="tests",
     entry_points={

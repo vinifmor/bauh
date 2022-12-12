@@ -42,7 +42,7 @@ def check_for_update(logger: logging.Logger, http_client: HttpClient, i18n: I18n
                         Path(notifications_dir).mkdir(parents=True, exist_ok=True)
                         with open(release_file, 'w+') as f:
                             f.write('')
-                    except:
+                    except Exception:
                         logger.error("An error occurred while trying to create the update notification file: {}".format(release_file))
 
                     if tray:
@@ -55,5 +55,5 @@ def check_for_update(logger: logging.Logger, http_client: HttpClient, i18n: I18n
                 logger.warning("No official release found")
         else:
             logger.warning("No releases returned from the GitHub API")
-    except:
+    except Exception:
         logger.error("An error occurred while trying to retrieve the current releases")

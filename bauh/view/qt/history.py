@@ -45,7 +45,7 @@ class HistoryDialog(QDialog):
 
                 if current_status:
                     item.setCursor(QCursor(Qt.WhatsThisCursor))
-                    item.setProperty('outdated',  str(row != 0).lower())
+                    item.setProperty('outdated', str(row != 0).lower())
 
                     tip = '{}. {}.'.format(i18n['popup.history.selected.tooltip'], i18n['version.{}'.format('updated'if row == 0 else 'outdated')].capitalize())
 

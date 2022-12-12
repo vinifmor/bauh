@@ -46,7 +46,7 @@ def get_cli_path() -> str:
             return cli_path
     else:
         return shutil.which(CLI_NAME)
-    
+
 
 def list_updates(logger: logging.Logger) -> List[PackageUpdate]:
     cli_path = get_cli_path()
@@ -94,7 +94,7 @@ class UpdateCheck(QThread):
                     self._notify_updates()
                     try:
                         os.remove(TRAY_CHECK_FILE)
-                    except:
+                    except Exception:
                         traceback.print_exc()
                 else:
                     self.sleep(self.check_interval)

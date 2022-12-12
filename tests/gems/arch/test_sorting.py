@@ -135,7 +135,7 @@ class SortingTest(TestCase):
             self.assertEqual(sorted_list[0][0], 'def')
             self.assertEqual(sorted_list[1][0], 'ghi')
 
-            self.assertNotEqual(sorted_list[2][0],  sorted_list[3][0])
+            self.assertNotEqual(sorted_list[2][0], sorted_list[3][0])
             self.assertIn(sorted_list[2][0], {'abc', 'jkl'})
             self.assertIn(sorted_list[3][0], {'abc', 'jkl'})
 
@@ -179,7 +179,7 @@ class SortingTest(TestCase):
             self.assertEqual(sorted_list[0][0], 'def')
             self.assertEqual(sorted_list[1][0], 'abc')
             self.assertEqual(sorted_list[2][0], 'ghi')
-            
+
     def test_sort__aur_pkgs_should_be_always_in_the_end(self):
         """
             dep order:

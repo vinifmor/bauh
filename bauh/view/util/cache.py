@@ -112,5 +112,5 @@ class DefaultMemoryCacheFactory(MemoryCacheFactory):
 
         if self.cleaner:
             self.cleaner.register(instance)
-            
+
         return instance

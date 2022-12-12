@@ -31,7 +31,7 @@ def should_sync(arch_config: dict, aur_supported: bool, handler: Optional[Proces
                     if handler:
                         handler.watcher.print(msg)
                     return False
-            except:
+            except Exception:
                 logger.warning("Could not convert the database synchronization time from '{}".format(SYNC_FILE))
                 traceback.print_exc()
         return True
@@ -48,6 +48,6 @@ def register_sync(logger: Logger):
         Path('/'.join(SYNC_FILE.split('/')[0:-1])).mkdir(parents=True, exist_ok=True)
         with open(SYNC_FILE, 'w+') as f:
             f.write(str(int(time.time())))
-    except:
+    except Exception:
         logger.error("Could not write to database sync file '{}'".format(SYNC_FILE))
         traceback.print_exc()

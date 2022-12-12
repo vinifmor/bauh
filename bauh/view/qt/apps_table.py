@@ -99,9 +99,9 @@ class PackagesTable(QTableWidget):
 
     def has_any_settings(self, pkg: PackageView):
         return pkg.model.has_history() or \
-               pkg.model.can_be_downgraded() or \
-               pkg.model.supports_ignored_updates() or \
-               bool(pkg.model.get_custom_actions())
+            pkg.model.can_be_downgraded() or \
+            pkg.model.supports_ignored_updates() or \
+            bool(pkg.model.get_custom_actions())
 
     def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
@@ -123,11 +123,10 @@ class PackagesTable(QTableWidget):
             if pkg.model.can_be_downgraded():
 
                 def downgrade():
-                    if ConfirmationDialog(title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
-                                          body=self._parag(self.i18n[
-                                                               'manage_window.apps_table.row.actions.downgrade.popup.body'].format(
-                                              self._bold(str(pkg)))),
-                                          i18n=self.i18n).ask():
+                    if ConfirmationDialog(
+                            title=self.i18n['manage_window.apps_table.row.actions.downgrade'],
+                            body=self._parag(self.i18n['manage_window.apps_table.row.actions.downgrade.popup.body'].format(self._bold(str(pkg)))),
+                            i18n=self.i18n).ask():
                         self.window.begin_downgrade(pkg)
 
                 menu_row.addAction(QCustomMenuAction(parent=menu_row,
@@ -414,7 +413,7 @@ class PackagesTable(QTableWidget):
                     elif pkg.model.icon_url:
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
-                except:
+                except Exception:
                     icon = QIcon(pkg.model.get_default_icon_path())
 
         elif not pkg.model.icon_url:

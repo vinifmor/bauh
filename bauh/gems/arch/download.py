@@ -56,7 +56,7 @@ class MultiThreadedDownloader:
                 msg = "Package '{}' signature successfully downloaded".format(pkg['n'])
                 self.logger.info(msg)
                 watcher.print(msg)
-        except:
+        except Exception:
             self.logger.warning("An error occurred while download package '{}' signature".format(pkg['n']))
             traceback.print_exc()
 
@@ -178,7 +178,7 @@ class MultithreadedDownloadService:
                                                substatus_prefix=status_prefix,
                                                size=sizes.get(pkg['n']) if sizes else None):
                     downloaded += 1
-            except:
+            except Exception:
                 traceback.print_exc()
                 watcher.show_message(title=self.i18n['error'].capitalize(),
                                      body=self.i18n['arch.mthread_downloaded.error.cancelled'],

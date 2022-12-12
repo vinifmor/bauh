@@ -414,7 +414,7 @@ class ArchManager(SoftwareManager, SettingsController):
         res.update_total()
         return res
 
-    def _fill_aur_pkgs_offline(self, aur_pkgs: dict,  arch_config: dict, output: List[ArchPackage], disk_loader: Optional[DiskCacheLoader]):
+    def _fill_aur_pkgs_offline(self, aur_pkgs: dict, arch_config: dict, output: List[ArchPackage], disk_loader: Optional[DiskCacheLoader]):
         self.logger.info("Reading cached data from installed AUR packages")
 
         editable_pkgbuilds = self._read_editable_pkgbuilds() if arch_config['edit_aur_pkgbuild'] is not False else None
@@ -850,7 +850,7 @@ class ArchManager(SoftwareManager, SettingsController):
                                                      body=self.i18n['arch.action.db_locked.error'],
                                                      type_=MessageType.ERROR)
                         return True
-                except:
+                except Exception:
                     self.logger.error("An error occurred while removing the pacman database lock")
                     traceback.print_exc()
                     handler.watcher.show_message(title=self.i18n['error'].capitalize(),
@@ -1065,7 +1065,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 output_handler.join()
                 self.logger.error("'pacman' returned an unexpected response or error phrase after upgrading the repository packages")
                 return False
-        except:
+        except Exception:
             handler.watcher.change_substatus('')
             handler.watcher.print("An error occurred while upgrading repository packages")
             self.logger.error("An error occurred while upgrading repository packages")
@@ -1092,7 +1092,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 return False
 
             return True
-        except:
+        except Exception:
             self.logger.error("An error occurred while removing packages: {}".format(', '.join(to_remove)))
             traceback.print_exc()
             output_handler.stop_working()
@@ -1180,7 +1180,7 @@ class ArchManager(SoftwareManager, SettingsController):
                     else:
                         any_upgraded = True
                         watcher.print(self.i18n['arch.upgrade.success'].format('"{}"'.format(pkg.name)))
-                except:
+                except Exception:
                     if any_upgraded:
                         self._update_aur_index(watcher)
 
@@ -1307,7 +1307,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         return True
 
-    def _fill_aur_providers(self, names: str,  output: Set[str]):
+    def _fill_aur_providers(self, names: str, output: Set[str]):
         for _, data in self.aur_client.gen_updates_data(names):
             providers = data.get('p')
 
@@ -1596,7 +1596,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
             if pkg.first_submitted:
                 info['08_first_submitted'] = self._parse_timestamp(ts=pkg.first_submitted,
-                                                                   error_msg="Could not parse AUR package '{}' 'first_submitted' field".format(pkg.name, pkg.first_submitted))
+                                                                   error_msg="Could not parse AUR package '{}' 'first_submitted' field ({})".format(pkg.name, pkg.first_submitted))
 
             if pkg.last_modified:
                 info['09_last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
@@ -1764,7 +1764,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         try:
             Path(extract_path).mkdir(parents=True, exist_ok=True)
-        except:
+        except Exception:
             self.logger.error("Could not create temp dir {} to extract previous versions data".format(extract_path))
             traceback.print_exc()
             return data
@@ -1814,7 +1814,7 @@ class ArchManager(SoftwareManager, SettingsController):
                 try:
                     self.logger.info("Removing temporary history dir {}".format(extract_path))
                     shutil.rmtree(extract_path)
-                except:
+                except Exception:
                     self.logger.error("Could not remove temp path '{}'".format(extract_path))
                     raise
 
@@ -2181,7 +2181,7 @@ class ArchManager(SoftwareManager, SettingsController):
         if not os.path.exists(cache_path):
             try:
                 os.mkdir(cache_path)
-            except:
+            except Exception:
                 print("Could not create cache directory '{}'".format(cache_path))
                 traceback.print_exc()
                 return
@@ -2190,11 +2190,11 @@ class ArchManager(SoftwareManager, SettingsController):
         dest_pkgbuild = '{}/PKGBUILD'.format(cache_path)
         try:
             shutil.copy(src_pkgbuild, dest_pkgbuild)
-        except:
+        except Exception:
             context.watcher.print("Could not copy '{}' to '{}'".format(src_pkgbuild, dest_pkgbuild))
             traceback.print_exc()
 
-    def _ask_and_install_missing_deps(self, context: TransactionContext,  missing_deps: List[Tuple[str, str]]) -> bool:
+    def _ask_and_install_missing_deps(self, context: TransactionContext, missing_deps: List[Tuple[str, str]]) -> bool:
         context.watcher.change_substatus(self.i18n['arch.missing_deps_found'].format(bold(context.name)))
 
         if not confirm_missing_deps(missing_deps, context.watcher, self.i18n):
@@ -2264,7 +2264,7 @@ class ArchManager(SoftwareManager, SettingsController):
             missing_deps = self._list_missing_deps(context)
         except PackageNotFoundException:
             return False
-        except:
+        except Exception:
             traceback.print_exc()
             return False
 
@@ -2406,8 +2406,8 @@ class ArchManager(SoftwareManager, SettingsController):
 
     def _multithreaded_download_enabled(self, arch_config: dict) -> bool:
         return bool(arch_config['repositories_mthread_download']) \
-               and self.context.file_downloader.is_multithreaded() \
-               and pacman.is_mirrors_available()
+            and self.context.file_downloader.is_multithreaded() \
+            and pacman.is_mirrors_available()
 
     def _download_packages(self, pkgnames: List[str], handler: ProcessHandler, root_password: Optional[str], sizes: Dict[str, int] = None, multithreaded: bool = True) -> int:
         if multithreaded:
@@ -2431,7 +2431,7 @@ class ArchManager(SoftwareManager, SettingsController):
                     return len(pkgnames)
                 else:
                     raise ArchDownloadException()
-            except:
+            except Exception:
                 traceback.print_exc()
                 raise ArchDownloadException()
 
@@ -2516,7 +2516,7 @@ class ArchManager(SoftwareManager, SettingsController):
             status_handler = None
 
         installed_with_same_name = self.read_installed(disk_loader=context.disk_loader, internet_available=True, names=context.get_package_names()).installed
-        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name))) #
+        context.watcher.change_substatus(self.i18n['arch.installing.package'].format(bold(context.name)))  #
 
         installed = self._handle_install_call(context=context, to_install=to_install, status_handler=status_handler)
 
@@ -3128,7 +3128,7 @@ class ArchManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(arch_config)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def get_upgrade_requirements(self, pkgs: List[ArchPackage], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:
@@ -3323,7 +3323,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if not cache_dir or not os.path.isdir(cache_dir):
             watcher.show_message(title=self.i18n['arch.custom_action.clean_cache'].capitalize(),
-                                 body=self.i18n['arch.custom_action.clean_cache.no_dir'.format(bold(cache_dir))].capitalize(),
+                                 body=self.i18n['arch.custom_action.clean_cache.no_dir'].format(bold(cache_dir)).capitalize(),
                                  type_=MessageType.WARNING)
             return True
 
@@ -3415,7 +3415,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
             self._write_editable_pkgbuilds(editable)
             return True
-        except:
+        except Exception:
             traceback.print_exc()
             return False
 
@@ -3436,7 +3436,7 @@ class ArchManager(SoftwareManager, SettingsController):
                     editable.remove(pkgname)
 
                 self._write_editable_pkgbuilds(editable)
-            except:
+            except Exception:
                 traceback.print_exc()
                 return False
 
@@ -3679,7 +3679,7 @@ class ArchManager(SoftwareManager, SettingsController):
             else:
                 rebuild_detector.remove_from_ignored(pkg.name)
                 pkg.allow_rebuild = True
-        except:
+        except Exception:
             self.logger.error("An unexpected exception happened")
             traceback.print_exc()
             return False

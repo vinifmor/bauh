@@ -53,7 +53,7 @@ class ApplicationIndexer:
 
         try:
             timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             self._log.error(f'Could not parse the Debian applications index timestamp: {timestamp_str} '
                             f'({self._file_timestamp_path})')
             traceback.print_exc()

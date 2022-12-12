@@ -44,14 +44,14 @@ try:
     from bs4 import BeautifulSoup, SoupStrainer
 
     BS4_AVAILABLE = True
-except:
+except Exception:
     BS4_AVAILABLE = False
 
 try:
     import lxml
 
     LXML_AVAILABLE = True
-except:
+except Exception:
     LXML_AVAILABLE = False
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
@@ -99,7 +99,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             else:
                 return DEFAULT_LANGUAGE_HEADER
 
-        except:
+        except Exception:
             return DEFAULT_LANGUAGE_HEADER
 
     def clean_environment(self, root_password: Optional[str], watcher: ProcessWatcher) -> bool:
@@ -115,7 +115,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
                     if not res:
                         success = False
-                except:
+                except Exception:
                     watcher.print(traceback.format_exc())
                     success = False
 
@@ -189,7 +189,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             try:
                 utf8_desc = description.encode('iso-8859-1').decode('utf-8')
                 description = utf8_desc
-            except:
+            except Exception:
                 pass
 
         return description
@@ -416,7 +416,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         self.logger.info("Removing {} installation directory {}".format(pkg.name, pkg.installation_dir))
         try:
             shutil.rmtree(pkg.installation_dir)
-        except:
+        except Exception:
             watcher.show_message(title=self.i18n['error'],
                                  body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.installation_dir)),
                                  type_=MessageType.ERROR)
@@ -427,7 +427,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         if os.path.exists(pkg.desktop_entry):
             try:
                 os.remove(pkg.desktop_entry)
-            except:
+            except Exception:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(pkg.desktop_entry)),
                                      type_=MessageType.ERROR)
@@ -437,7 +437,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         if os.path.exists(autostart_path):
             try:
                 os.remove(autostart_path)
-            except:
+            except Exception:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(autostart_path)),
                                      type_=MessageType.WARNING)
@@ -448,7 +448,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         if config_path and os.path.exists(config_path):
             try:
                 shutil.rmtree(config_path)
-            except:
+            except Exception:
                 watcher.show_message(title=self.i18n['error'],
                                      body=self.i18n['web.uninstall.error.remove'].format(bold(config_path)),
                                      type_=MessageType.WARNING)
@@ -461,7 +461,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             self.logger.info(f"Removing fix file '{fix_path}'")
             try:
                 os.remove(fix_path)
-            except:
+            except Exception:
                 self.logger.error(f"Could not remove fix file '{fix_path}'")
                 traceback.print_exc()
                 watcher.show_message(title=self.i18n['error'],
@@ -499,8 +499,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
     def get_history(self, pkg: SoftwarePackage) -> PackageHistory:
         pass
 
-    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[
-        bool, List[str]]:
+    def _ask_install_options(self, app: WebApplication, watcher: ProcessWatcher, pre_validated: bool) -> Tuple[bool, List[str]]:
         watcher.change_substatus(self.i18n['web.install.substatus.options'])
 
         max_width = 350
@@ -713,13 +712,13 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                         self.logger.info('Could not download the icon {}'.format(pkg.icon_url))
                     else:
                         return icon_path, res.content
-                except:
+                except Exception:
                     self.logger.error("An exception has happened when downloading {}".format(pkg.icon_url))
                     traceback.print_exc()
             else:
                 self.logger.warning(
                     'Could no retrieve the icon {} defined for the suggestion {}'.format(pkg.icon_url, pkg.name))
-        except:
+        except Exception:
             self.logger.warning(
                 'An exception happened when trying to retrieve the icon {} for the suggestion {}'.format(pkg.icon_url,
                                                                                                          pkg.name))
@@ -814,7 +813,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                         self.logger.info(
                             f"Using custom installation property '{prop}' ({val if val else '<null>'}) for '{url_domain}' "
                             f"(Electron: {electron_version})")
-                    except:
+                    except Exception:
                         self.logger.error(
                             f"Could not set the custom installation property '{prop}' ({val if val else '<null>'}) "
                             f"for '{url_domain}' (Electron: {electron_version})")
@@ -872,7 +871,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
             with open(package_info_path) as f:
                 package_info_path = json.loads(f.read())
                 pkg.package_name = package_info_path['name']
-        except:
+        except Exception:
             self.logger.info("Could not read the the package info from '{}'".format(package_info_path))
             traceback.print_exc()
 
@@ -1024,7 +1023,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
             try:
                 find_url = not app.icon_url or (
-                            app.icon_url and not self.http_client.exists(app.icon_url, session=False))
+                    app.icon_url and not self.http_client.exists(app.icon_url, session=False))
             except (requests.exceptions.ConnectionError, requests.exceptions.ConnectTimeout):
                 find_url = None
 
@@ -1156,7 +1155,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
                 shutil.rmtree(ENV_PATH)
                 if logs:
                     print('{}[bauh][web] Directory {} deleted{}'.format(Fore.YELLOW, ENV_PATH, Fore.RESET))
-            except:
+            except Exception:
                 if logs:
                     print('{}[bauh][web] An exception has happened when deleting {}{}'.format(Fore.RED, ENV_PATH,
                                                                                               Fore.RESET))
@@ -1231,7 +1230,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(config_)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:

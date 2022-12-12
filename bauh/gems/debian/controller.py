@@ -69,7 +69,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
             for pkg in self.aptitude.search(words):
                 if fill_config.is_alive():
                     fill_config.join()
-                    
+
                 pkg.global_purge = bool(config_.get('remove.purge', False))
                 if pkg.installed:
                     pkg.bind_app(self.apps_index.get(pkg.name))
@@ -688,7 +688,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(config_)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:

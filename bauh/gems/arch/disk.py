@@ -11,7 +11,7 @@ RE_DESKTOP_ENTRY = re.compile(r'[\n^](Exec|Icon|NoDisplay)\s*=\s*(.+)')
 RE_CLEAN_NAME = re.compile(r'[+*?%]')
 
 
-def write_several(pkgs: Dict[str, ArchPackage], overwrite: bool = True, maintainer: str = None, after_desktop_files:  Optional[Callable] = None, after_written: Optional[Callable[[str], None]] = None) -> int:
+def write_several(pkgs: Dict[str, ArchPackage], overwrite: bool = True, maintainer: str = None, after_desktop_files: Optional[Callable] = None, after_written: Optional[Callable[[str], None]] = None) -> int:
     if overwrite:
         to_cache = {p.name for p in pkgs.values()}
     else:
