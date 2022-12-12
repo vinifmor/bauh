@@ -29,7 +29,7 @@ class ValidatePassword(QThread):
         if isinstance(self.password, str):
             try:
                 valid = validate_password(self.password)
-            except:
+            except Exception:
                 traceback.print_exc()
                 valid = False
 

@@ -1601,7 +1601,7 @@ class ManageWindow(QWidget):
                     icon = QIcon(action.icon_path)
                 else:
                     icon = QIcon.fromTheme(action.icon_path)
-            except:
+            except Exception:
                 icon = None
         else:
             icon = None

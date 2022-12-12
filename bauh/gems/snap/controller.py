@@ -180,7 +180,7 @@ class SnapManager(SoftwareManager, SettingsController):
         try:
             channel = self._request_channel_installation(pkg=pkg, snap_config=snap_config, snapd_client=client, watcher=watcher)
             pkg.channel = channel
-        except:
+        except Exception:
             watcher.print('Aborted by user')
             return TransactionResult.fail()
 
@@ -220,7 +220,7 @@ class SnapManager(SoftwareManager, SettingsController):
             try:
                 net_available = self.context.internet_checker.is_available()
                 current_installed = self.read_installed(disk_loader=disk_loader, internet_available=net_available).installed
-            except:
+            except Exception:
                 new_installed = [pkg]
                 traceback.print_exc()
                 current_installed = None
@@ -268,7 +268,7 @@ class SnapManager(SoftwareManager, SettingsController):
             return ProcessHandler(watcher).handle_simple(snap.refresh_and_stream(app_name=pkg.name,
                                                                                  root_password=root_password,
                                                                                  channel=channel))[0]
-        except:
+        except Exception:
             return False
 
     def _start_category_task(self, taskman: TaskManager, create_config: CreateConfigFile, downloader: CategoriesDownloader):
@@ -501,14 +501,14 @@ class SnapManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(config_)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def _request_channel_installation(self, pkg: SnapApplication, snap_config: Optional[dict], snapd_client: SnapdClient, watcher: ProcessWatcher, exclude_current: bool = False) -> Optional[str]:
         if snap_config is None or snap_config['install_channel']:
             try:
                 data = [r for r in snapd_client.find_by_name(pkg.name) if r['name'] == pkg.name]
-            except:
+            except Exception:
                 self.logger.warning(f"snapd client could not retrieve channels for '{pkg.name}'")
                 return
 

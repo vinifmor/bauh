@@ -48,7 +48,7 @@ class AsyncAction(QThread, ProcessWatcher):
     signal_root_password = pyqtSignal()
     signal_progress_control = pyqtSignal(bool)
 
-    def __init__(self, i18n: I18n,  root_password: Optional[Tuple[bool, str]] = None):
+    def __init__(self, i18n: I18n, root_password: Optional[Tuple[bool, str]] = None):
         super(AsyncAction, self).__init__()
         self.i18n = i18n
         self.wait_confirmation = False
@@ -135,7 +135,7 @@ class AsyncAction(QThread, ProcessWatcher):
     def _generate_backup(self, app_config: dict, root_password: Optional[str]) -> bool:
         if app_config['backup']['mode'] not in ('only_one', 'incremental'):
             self.show_message(title=self.i18n['error'].capitalize(),
-                              body='{}: {}'.format(self.i18n['action.backup.invalid_mode'],bold(app_config['backup']['mode'])),
+                              body='{}: {}'.format(self.i18n['action.backup.invalid_mode'], bold(app_config['backup']['mode'])),
                               type_=MessageType.ERROR)
             self.change_substatus('')
             return False
@@ -414,7 +414,7 @@ class UpgradeSelected(AsyncAction):
             with open(self.SUMMARY_FILE.format(upgrade_id), 'w+') as f:
                 f.write(summary_text.read())
 
-        except:
+        except Exception:
             traceback.print_exc()
 
     def _handle_internet_off(self):
@@ -592,7 +592,7 @@ class RefreshApps(AsyncAction):
                 refreshed_types = self.pkg_types
 
             self.notify_finished({'installed': res.installed, 'total': res.total, 'types': refreshed_types})
-        except:
+        except Exception:
             traceback.print_exc()
             self.notify_finished({'installed': [], 'total': 0, 'types': set()})
         finally:
@@ -631,7 +631,7 @@ class UninstallPackage(AsyncAction):
                         self.manager.clean_cache_for(p)
 
                 self.notify_finished({'success': res.success, 'removed': res.removed, 'pkg': self.pkg})
-            except:
+            except Exception:
                 traceback.print_exc()
                 self.notify_finished({'success': False, 'removed': None, 'pkg': self.pkg})
             finally:
@@ -948,7 +948,7 @@ class LaunchPackage(AsyncAction):
                 super(LaunchPackage, self).msleep(250)
                 self.manager.launch(self.pkg.model)
                 self.notify_finished(True)
-            except:
+            except Exception:
                 traceback.print_exc()
             finally:
                 self.notify_finished(False)
@@ -1083,7 +1083,7 @@ class SaveTheme(QThread):
 
             try:
                 configman.save_config(core_config)
-            except:
+            except Exception:
                 traceback.print_exc()
 
 

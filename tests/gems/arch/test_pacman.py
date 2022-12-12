@@ -64,9 +64,9 @@ Optional Deps   : pipewire-alsa
 Required By     : None
             """)
     def test_map_optional_deps__no_remote_and_not_installed__only_one_not_installed_no_description(self, run_cmd: Mock):
-            res = pacman.map_optional_deps(('package-test',), remote=False, not_installed=True)
-            run_cmd.assert_called_once_with('pacman -Qi package-test')
-            self.assertEqual({'package-test': {'pipewire-alsa': ''}}, res)
+        res = pacman.map_optional_deps(('package-test',), remote=False, not_installed=True)
+        run_cmd.assert_called_once_with('pacman -Qi package-test')
+        self.assertEqual({'package-test': {'pipewire-alsa': ''}}, res)
 
     @patch(f'{__app_name__}.gems.arch.pacman.run_cmd', return_value="""
 Name            : package-test

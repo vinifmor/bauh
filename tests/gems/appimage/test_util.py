@@ -293,7 +293,7 @@ X-AppImage-Version=bionic-0.16.0-83-dev-0ca783e
                                                  appname='gamehub',
                                                  file_path='/path/to/gamehub.appimage')
 
-        expected =  """
+        expected = """
         [Desktop Entry]
 Name=GameHub
 GenericName=GameHub

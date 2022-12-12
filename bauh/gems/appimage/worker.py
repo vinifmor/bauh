@@ -74,7 +74,7 @@ class DatabaseUpdater(Thread):
 
         try:
             dbs_timestamp = datetime.fromtimestamp(float(dbs_ts_str))
-        except:
+        except Exception:
             self.logger.error('Could not parse the databases timestamp: {}'.format(dbs_ts_str))
             traceback.print_exc()
             return True
@@ -128,7 +128,7 @@ class DatabaseUpdater(Thread):
             tf = tarfile.open(self.COMPRESS_FILE_PATH)
             tf.extractall(APPIMAGE_CACHE_DIR)
             self.logger.info('Successfully uncompressed file {}'.format(self.COMPRESS_FILE_PATH))
-        except:
+        except Exception:
             self.logger.error('Could not extract file {}'.format(self.COMPRESS_FILE_PATH))
             traceback.print_exc()
             return False
@@ -209,7 +209,7 @@ class SymlinksVerifier(Thread):
         else:
             try:
                 Path(SYMLINKS_DIR).mkdir(parents=True, exist_ok=True)
-            except:
+            except Exception:
                 logger.error("Could not create symlink directory '{}'".format(SYMLINKS_DIR))
                 return
 
@@ -224,7 +224,7 @@ class SymlinksVerifier(Thread):
 
                 if watcher:
                     watcher.print(msg)
-            except:
+            except Exception:
                 msg = "Could not create the symlink '{}'".format(symlink_path)
                 logger.error(msg)
 
@@ -244,7 +244,7 @@ class SymlinksVerifier(Thread):
                     with open(json_file) as f:
                         try:
                             data = json.loads(f.read())
-                        except:
+                        except Exception:
                             self.logger.warning("Could not parse data from '{}'".format(json_file))
                             data = None
 
@@ -264,7 +264,7 @@ class SymlinksVerifier(Thread):
                             try:
                                 with open(json_file, 'w+') as f:
                                     f.write(json.dumps(data))
-                            except:
+                            except Exception:
                                 self.logger.warning("Could not update cached data on '{}'".format(json_file))
                                 traceback.print_exc()
 
@@ -335,7 +335,7 @@ class AppImageSuggestionsDownloader(Thread):
 
         try:
             exp_hours = int(appimage_config['suggestions']['expiration'])
-        except:
+        except Exception:
             self.logger.error("An exception happened while trying to parse the AppImage 'suggestions.expiration'")
             traceback.print_exc()
             return True
@@ -357,7 +357,7 @@ class AppImageSuggestionsDownloader(Thread):
 
         try:
             suggestions_timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             self.logger.error(f'Could not parse the cached AppImage suggestions timestamp: {timestamp_str}')
             traceback.print_exc()
             return True
@@ -405,14 +405,14 @@ class AppImageSuggestionsDownloader(Thread):
             try:
                 with open(self.cached_file_path, 'w+') as f:
                     f.write(text)
-            except:
+            except Exception:
                 self.logger.error(f"An exception happened while writing AppImage suggestions to {self.cached_file_path}")
                 traceback.print_exc()
 
             try:
                 with open(self.cached_ts_file_path, 'w+') as f:
                     f.write(str(timestamp))
-            except:
+            except Exception:
                 self.logger.error(f"An exception happened while writing the cached AppImage suggestions timestamp "
                                   f"to {self.cached_ts_file_path}")
                 traceback.print_exc()
@@ -451,7 +451,7 @@ class AppImageSuggestionsDownloader(Thread):
         ti = time.time()
 
         if not self.is_custom_local_file_mapped():
-            if  self.create_config:
+            if self.create_config:
                 wait_msg = self.i18n['task.waiting_task'].format(bold(self.create_config.task_name))
                 self.taskman.update_progress(self.task_id, 0, wait_msg)
                 self.create_config.join()
@@ -474,7 +474,7 @@ class AppImageSuggestionsDownloader(Thread):
                         self.cache_suggestions(suggestions_str, suggestions_timestamp)
                 else:
                     self.logger.info("Cached AppImage suggestions are up-to-date")
-            except:
+            except Exception:
                 self.logger.error("An unexpected exception happened while downloading AppImage suggestions")
                 traceback.print_exc()
 

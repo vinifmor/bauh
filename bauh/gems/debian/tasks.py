@@ -101,7 +101,7 @@ class UpdateApplicationIndex(Thread):
 
             try:
                 self._indexer.update_index(self._mapping_apps.apps)
-            except:
+            except Exception:
                 finish_msg = self._i18n['error']
 
         self._taskman.update_progress(self._id, 100, finish_msg)
@@ -150,7 +150,7 @@ class SynchronizePackages(Thread):
 
         try:
             last_timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             logger.error(f'Could not parse the packages synchronization timestamp: {timestamp_str} '
                          f'({PACKAGE_SYNC_TIMESTAMP_FILE})')
             traceback.print_exc()
@@ -169,7 +169,7 @@ class SynchronizePackages(Thread):
         ti = time.time()
         self._log.info("Begin: packages synchronization")
         self._taskman.update_progress(self._id, 1, None)
-        
+
         handler = ProcessHandler(self._watcher)
         updated, _ = handler.handle_simple(self._aptitude.update(self._root_password),
                                            output_handler=self._notify_output)

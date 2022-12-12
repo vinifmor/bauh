@@ -31,5 +31,3 @@ def is_available() -> bool:
 
 def get_version() -> str:
     return run_cmd('{} --version'.format(NATIVEFIER_BIN_PATH), print_error=False, extra_paths=NODE_PATHS)
-
-

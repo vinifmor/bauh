@@ -281,7 +281,7 @@ class AURClient:
                     return set()
             else:
                 return index.values()
-        except:
+        except Exception:
             return set()
 
     def clean_caches(self):
@@ -314,4 +314,3 @@ class AURClient:
 
 def is_supported(arch_config: dict) -> bool:
     return arch_config['aur'] and git.is_installed()
-

@@ -315,7 +315,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                 if not res:
                     self.logger.warning("Could not upgrade '{}'".format(req.pkg.id))
                     return False
-            except:
+            except Exception:
                 watcher.change_substatus('')
                 self.logger.error("An error occurred while upgrading '{}'".format(req.pkg.id))
                 traceback.print_exc()
@@ -392,7 +392,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                     if res.get(to_date):
                         try:
                             res[to_date] = datetime.strptime(res[to_date], DATE_FORMAT)
-                        except:
+                        except Exception:
                             self.context.logger.error('Could not convert date string {} as {}'.format(res[to_date], DATE_FORMAT))
                             pass
 
@@ -435,7 +435,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
             watcher.print('Creating dir {}'.format(EXPORTS_PATH))
             try:
                 Path(EXPORTS_PATH).mkdir(parents=True, exist_ok=True)
-            except:
+            except Exception:
                 watcher.print('Error while creating the directory {}'.format(EXPORTS_PATH))
                 return False
 
@@ -528,7 +528,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                 if fields:
                     pkg.ref = fields[0]
                     pkg.branch = fields[1]
-            except:
+            except Exception:
                 traceback.print_exc()
 
         if installed:
@@ -733,7 +733,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(flatpak_config)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def get_upgrade_requirements(self, pkgs: List[FlatpakApplication], root_password: Optional[str], watcher: ProcessWatcher) -> UpgradeRequirements:

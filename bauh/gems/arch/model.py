@@ -250,7 +250,7 @@ class ArchPackage(SoftwarePackage):
         if isinstance(other, ArchPackage):
             if self.view_name is not None and other.view_name is not None:
                 return self.view_name == other.view_name and self.repository == other.repository
-            
+
             return self.name == other.name and self.repository == other.repository
 
     def get_cached_pkgbuild_path(self) -> str:

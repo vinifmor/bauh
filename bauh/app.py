@@ -28,7 +28,7 @@ def main(tray: bool = False):
 
     try:
         locale.setlocale(locale.LC_NUMERIC, '')
-    except:
+    except Exception:
         logger.error("Could not set locale 'LC_NUMBERIC' to '' to display localized numbers")
         traceback.print_exc()
 
@@ -45,7 +45,7 @@ def main(tray: bool = False):
         scale_factor = float(app_config['ui']['scale_factor'])
         os.environ['QT_SCALE_FACTOR'] = str(scale_factor)
         logger.info("Scale factor set to {}".format(scale_factor))
-    except:
+    except Exception:
         traceback.print_exc()
 
     if bool(app_config['ui']['hdpi']):

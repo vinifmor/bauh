@@ -1,14 +1,19 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Optional, Iterable
 
 from bauh.api.paths import CACHE_DIR
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from bauh.api.abstract.controller import SoftwareManager
+
 
 class CustomSoftwareAction:
 
     def __init__(self, i18n_label_key: str, i18n_status_key: str, icon_path: str, manager_method: str,
-                 requires_root: bool, manager: "SoftwareManager" = None,
+                 requires_root: bool, manager: SoftwareManager = None,
                  backup: bool = False, refresh: bool = True,
                  i18n_confirm_key: str = None,
                  requires_internet: bool = False,

@@ -11,7 +11,7 @@ class FlatpakApplication(SoftwarePackage):
     def __init__(self, id: str = None, name: str = None, version: str = None, latest_version: str = None,
                  description: str = None, branch: str = None, arch: str = None, origin: str = None,
                  runtime: bool = False, ref: str = None, commit: str = None, installation: str = None,
-                 i18n: I18n = None, partial: bool = False, updates_ignored: bool = False,  installed: bool = False,
+                 i18n: I18n = None, partial: bool = False, updates_ignored: bool = False, installed: bool = False,
                  update: bool = False, update_component: bool = False):
         super(FlatpakApplication, self).__init__(id=id, name=name, version=version, latest_version=latest_version,
                                                  description=description, installed=installed, update=update)
@@ -126,8 +126,8 @@ class FlatpakApplication(SoftwarePackage):
     def __eq__(self, other):
         if isinstance(other, FlatpakApplication):
             return self.id == other.id and self.installation == other.installation and self.branch == other.branch \
-                   and self.runtime == other.runtime and self.partial == other.partial and \
-                   self.update_component == other.update_component
+                and self.runtime == other.runtime and self.partial == other.partial and \
+                self.update_component == other.update_component
 
     def __hash__(self) -> int:
         hash_sum = 0

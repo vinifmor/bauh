@@ -69,7 +69,7 @@ class SuggestionsManager:
 
         try:
             sugs_timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             self.logger.error(f"Could not parse the cached suggestions file timestamp: {timestamp_str}")
             return True
 
@@ -105,7 +105,7 @@ class SuggestionsManager:
 
         try:
             return yaml.safe_load(sugs_str)
-        except:
+        except Exception:
             self.logger.error("An unexpected exception happened")
             traceback.print_exc()
             return {}
@@ -147,7 +147,7 @@ class SuggestionsManager:
         try:
             with open(self._cached_file_path, 'w+') as f:
                 f.write(yaml.safe_dump(suggestions))
-        except:
+        except Exception:
             self.logger.error(f"Could write to {self._cached_file_path}")
             traceback.print_exc()
             return
@@ -157,7 +157,7 @@ class SuggestionsManager:
         try:
             with open(self._cached_file_ts_path, 'w+') as f:
                 f.write(str(timestamp))
-        except:
+        except Exception:
             self.logger.error(f"Could not write to {self._cached_file_ts_path}")
             traceback.print_exc()
             return

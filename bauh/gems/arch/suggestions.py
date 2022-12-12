@@ -91,7 +91,7 @@ class RepositorySuggestionsDownloader(Thread):
 
         try:
             suggestions_timestamp = datetime.fromtimestamp(float(timestamp_str))
-        except:
+        except Exception:
             self._log.error(f'Could not parse the Arch cached suggestions timestamp: {timestamp_str}')
             traceback.print_exc()
             return True
@@ -122,14 +122,14 @@ class RepositorySuggestionsDownloader(Thread):
             try:
                 with open(self.file_suggestions(), 'w+') as f:
                     f.write(text)
-            except:
+            except Exception:
                 self._log.error(f"An exception happened while writing the file '{self.file_suggestions()}'")
                 traceback.print_exc()
 
             try:
                 with open(self.file_suggestions_timestamp(), 'w+') as f:
                     f.write(str(timestamp))
-            except:
+            except Exception:
                 self._log.error(f"An exception happened while writing the file '{self.file_suggestions_timestamp()}'")
                 traceback.print_exc()
 

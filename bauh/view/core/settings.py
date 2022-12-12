@@ -587,16 +587,17 @@ class GenericSettingsManager(SettingsController):
                                         opts=ops_opts,
                                         id_='downgrade')
 
-            mode = new_select(label=self.i18n['core.config.backup.mode'],
-                              tip=None,
-                              value=core_config['backup']['mode'],
-                              opts=[
-                                  (self.i18n['core.config.backup.mode.incremental'], 'incremental',
-                                   self.i18n['core.config.backup.mode.incremental.tip']),
-                                  (self.i18n['core.config.backup.mode.only_one'], 'only_one',
-                                   self.i18n['core.config.backup.mode.only_one.tip'])
-                              ],
-                              id_='mode')
+            mode = new_select(
+                label=self.i18n['core.config.backup.mode'],
+                tip=None,
+                value=core_config['backup']['mode'],
+                opts=[
+                    (self.i18n['core.config.backup.mode.incremental'], 'incremental',
+                        self.i18n['core.config.backup.mode.incremental.tip']),
+                    (self.i18n['core.config.backup.mode.only_one'], 'only_one',
+                        self.i18n['core.config.backup.mode.only_one.tip'])
+                ],
+                id_='mode')
             type_ = new_select(label=self.i18n['type'].capitalize(),
                                tip=None,
                                value=core_config['backup']['type'],

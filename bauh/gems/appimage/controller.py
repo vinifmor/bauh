@@ -176,7 +176,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         if os.path.exists(db_path):
             try:
                 return sqlite3.connect(db_path)
-            except:
+            except Exception:
                 self.logger.error(f"Could not connect to database file '{db_path}'")
                 traceback.print_exc()
         else:
@@ -206,13 +206,13 @@ class AppImageManager(SoftwareManager, SettingsController):
                 not_installed.append(app)
                 found_map[self._gen_app_key(app)] = {'app': app, 'idx': idx}
                 idx += 1
-        except:
+        except Exception:
             self.logger.error("An exception happened while querying the 'apps' database")
             traceback.print_exc()
 
         try:
             installed = self.read_installed(connection=apps_conn, disk_loader=disk_loader, limit=limit, only_apps=False, pkg_types=None, internet_available=True).installed
-        except:
+        except Exception:
             installed = None
 
         installed_found = []
@@ -240,7 +240,7 @@ class AppImageManager(SoftwareManager, SettingsController):
                     installed_found.append(appim)
         try:
             apps_conn.close()
-        except:
+        except Exception:
             self.logger.error(f"An exception happened when trying to close the connection to database file '{DATABASE_APPS_FILE}'")
             traceback.print_exc()
 
@@ -290,7 +290,7 @@ class AppImageManager(SoftwareManager, SettingsController):
                                                         latest_version = normalize_version(tup[2])
                                                         installed_version = normalize_version(app.version)
                                                         app.update = latest_version > installed_version
-                                                    except:
+                                                    except Exception:
                                                         app.update = False
                                                         traceback.print_exc()
 
@@ -299,7 +299,7 @@ class AppImageManager(SoftwareManager, SettingsController):
                                             app.url_download_latest_version = tup[3]
 
                                         break
-                        except:
+                        except Exception:
                             self.logger.error(f"An exception happened while querying the database file '{DATABASE_APPS_FILE}'")
                             traceback.print_exc()
                         finally:
@@ -419,7 +419,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             try:
                 os.remove(pkg.symlink)
                 self.logger.info(f"symlink '{pkg.symlink}' successfully removed")
-            except:
+            except Exception:
                 msg = f"could not remove symlink '{pkg.symlink}'"
                 self.logger.error(msg)
 
@@ -492,7 +492,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             if not app_tuple:
                 self.logger.warning(f"Could not retrieve {pkg} from the database '{DATABASE_APPS_FILE}'")
                 return res
-        except:
+        except Exception:
             self.logger.error(f"An exception happened while querying the database file '{DATABASE_APPS_FILE}'")
             traceback.print_exc()
             app_con.close()
@@ -523,7 +523,7 @@ class AppImageManager(SoftwareManager, SettingsController):
                         res.pkg_status_idx = idx
 
                 return res
-        except:
+        except Exception:
             self.logger.error(f"An exception happened while querying the database file '{DATABASE_RELEASES_FILE}'")
             traceback.print_exc()
         finally:
@@ -601,7 +601,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
             try:
                 moved, output = handler.handle_simple(SimpleProcess(['mv', pkg.local_file_path, install_file_path]))
-            except:
+            except Exception:
                 output = ''
                 self.logger.error(f"Could not rename file '{pkg.local_file_path}' as '{install_file_path}'")
                 moved = False
@@ -650,7 +650,7 @@ class AppImageManager(SoftwareManager, SettingsController):
                                          type_=MessageType.ERROR)
                     handler.handle(SystemProcess(new_subprocess(['rm', '-rf', out_dir])))
                     return TransactionResult.fail()
-            except:
+            except Exception:
                 watcher.show_message(title=self.i18n['error'],
                                      body=traceback.format_exc(),
                                      type_=MessageType.ERROR)
@@ -692,7 +692,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                 try:
                     shutil.rmtree(extracted_folder)
-                except:
+                except Exception:
                     traceback.print_exc()
 
                 SymlinksVerifier.create_symlink(app=pkg, file_path=install_file_path, logger=self.logger,
@@ -815,7 +815,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                     self.logger.info(f"Mapped {len(res)} AppImage suggestions")
                     return res
-                except:
+                except Exception:
                     traceback.print_exc()
                 finally:
                     connection.close()
@@ -850,7 +850,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                 if logs:
                     print(f'{Fore.YELLOW}[bauh][appimage] {f} deleted{Fore.RESET}')
-            except:
+            except Exception:
                 if logs:
                     print(f'{Fore.RED}[bauh][appimage] An exception has happened when deleting {f}{Fore.RESET}')
                     traceback.print_exc()
@@ -885,7 +885,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         try:
             self.configman.save_config(config_)
             return True, None
-        except:
+        except Exception:
             return False, [traceback.format_exc()]
 
     def gen_custom_actions(self) -> Generator[CustomSoftwareAction, None, None]:

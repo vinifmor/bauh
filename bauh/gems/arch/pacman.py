@@ -697,7 +697,7 @@ def map_updates_data(pkgs: Iterable[str], files: bool = False, description: bool
                             latest_name = None
                             latest_field = None
                             data = {'ds': None, 's': None, 'c': None, 'p': None, 'd': None,
-                                    'r': None,  'v': None, 'des': None}
+                                    'r': None, 'v': None, 'des': None}
                         else:
                             latest_field = None
 
@@ -863,7 +863,7 @@ def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[s
     if output:
         latest_name, required = None, None
         res = {}
-        
+
         for l in output.split('\n'):
             if l:
                 if l[0] != ' ':
