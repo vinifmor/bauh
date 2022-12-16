@@ -293,7 +293,7 @@ class PreparePanel(QWidget, TaskManager):
         self.setMinimumWidth(int(screen_size.width() * 0.5))
         self.setMinimumHeight(int(screen_size.height() * 0.35))
         self.setMaximumHeight(int(screen_size.height() * 0.95))
-        centralize(self)
+        centralize(self, align_top_left=False)
 
     def start(self, tasks: int):
         self.started_at = time.time()

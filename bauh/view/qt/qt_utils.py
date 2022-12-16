@@ -9,11 +9,13 @@ from bauh.view.util import resource
 desktop: Optional[QDesktopWidget] = None
 
 
-def centralize(widget: QWidget):
+def centralize(widget: QWidget, align_top_left: bool = True):
     widget_frame = widget.frameGeometry()
     screen_geometry = get_current_screen_geometry()
     widget_frame.moveCenter(screen_geometry.center())
-    widget.move(widget_frame.topLeft())
+
+    if align_top_left:
+        widget.move(widget_frame.topLeft())
 
 
 def load_icon(path: str, width: int, height: int = None) -> QIcon:
