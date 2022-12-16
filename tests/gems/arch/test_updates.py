@@ -274,6 +274,199 @@ class UpdatesSummarizerGetUpgradeRequirementsTest(TestCase):
         self.assertEqual([UpgradeRequirement(pkg=pkg_a, required_size=1, extra_size=0)], res.to_upgrade)
 
     @patch(f"{__app_name__}.gems.arch.updates.pacman")
+    def test__not_return_to_remove_when_conflict_with_provided_virtual_package_with_version_fails(self, pacman: Mock):
+        """
+        Scenario:
+        - Package V (2.5.0)[update] -> conflicts: X<21.1.1, X-ABI-VIDEODRV_VERSION<25, X-ABI-VIDEODRV_VERSION>=26
+        - Package X (21.1.5)[installed] -> provides: X-ABI-VIDEODRV_VERSION=25.2, X
+
+        * X provides X-ABI-VIDEODRV_VERSION with a specific version (25.2)
+        """
+        pkg_a = ArchPackage(name="V", version="2.5.0-1", latest_version="2.6.0-1", repository="community")
+        pacman.map_provided.side_effect = [{"V": {"V"},  # remote provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=25.2": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X"}
+                                            },
+                                           {"V": {"V"},  # provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=25.2": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X"}
+                                            },
+                                           ]
+        pacman.map_repositories.return_value = {"V": pkg_a.repository, "X": "community"}
+        pacman.map_updates_data.return_value = {"V": {'ds': 1,
+                                                      's': 1,
+                                                      'v': pkg_a.latest_version,
+                                                      'c': {"X<21.1.1",
+                                                            "X-ABI-VIDEODRV_VERSION<25",
+                                                            "X-ABI-VIDEODRV_VERSION>=26"},
+                                                      'p': {"V": {"V"},
+                                                            "V=2.5.0": {"A"}},
+                                                      'd': set(),
+                                                      'r': "community",
+                                                      'des': pkg_a.name}}
+        pacman.map_installed.return_value = {"V": pkg_a.version, "X": "21.1.5-1"}
+        pacman.get_installed_size.return_value = {"V": 1, "X": 1}
+        pacman.map_required_by.return_value = {"V": set()}
+
+        self.deps_analyser.map_missing_deps.return_value = list()
+
+        res = self.summarizer.summarize(pkgs=[pkg_a], root_password=None, arch_config=self.config_)
+        for method in ('map_provided', 'map_repositories', 'map_updates_data', 'map_installed',
+                       'get_installed_size', 'map_required_by'):
+            getattr(pacman, method).assert_called()
+
+        self.assertFalse(res.to_remove)
+        self.assertFalse(res.to_install)
+        self.assertEqual([UpgradeRequirement(pkg=pkg_a, required_size=1, extra_size=0)], res.to_upgrade)
+
+    @patch(f"{__app_name__}.gems.arch.updates.pacman")
+    def test__return_installed_virtual_with_defined_version_to_remove_when_conflict_version_matches(self, pacman: Mock):
+        """
+        Scenario:
+        - Package V (2.5.0)[update] -> conflicts: X<21.1.1, X-ABI-VIDEODRV_VERSION<25, X-ABI-VIDEODRV_VERSION>=26
+        - Package X (21.1.5)[installed] -> provides: X-ABI-VIDEODRV_VERSION=26, X
+
+        * X provides X-ABI-VIDEODRV_VERSION with a specific version (26)
+        """
+        pkg_a = ArchPackage(name="V", version="2.5.0-1", latest_version="2.6.0-1", repository="community")
+
+        pacman.map_provided.side_effect = [{"V": {"V"},  # remote provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X"}
+                                            },
+                                           {"V": {"V"},  # provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X"}
+                                            },
+                                           {"X": {"X"},   # provided to remove
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X"}
+                                           }
+                                           ]
+        pacman.map_repositories.return_value = {"V": pkg_a.repository, "X": "community"}
+        pacman.map_updates_data.return_value = {"V": {'ds': 1,
+                                                      's': 1,
+                                                      'v': pkg_a.latest_version,
+                                                      'c': {"X<21.1.1",
+                                                            "X-ABI-VIDEODRV_VERSION<25",
+                                                            "X-ABI-VIDEODRV_VERSION>=26"},
+                                                      'p': {"V": {"V"},
+                                                            "V=2.5.0": {"A"}},
+                                                      'd': set(),
+                                                      'r': "community",
+                                                      'des': pkg_a.name}}
+        pacman.map_installed.return_value = {"V": pkg_a.version, "X": "21.1.5-1"}
+        pacman.get_installed_size.return_value = {"V": 1, "X": 1}
+        pacman.map_required_by.return_value = {"V": set()}
+
+        self.deps_analyser.map_missing_deps.return_value = list()
+        self.deps_analyser.map_all_required_by.return_value = set()
+
+        res = self.summarizer.summarize(pkgs=[pkg_a], root_password=None, arch_config=self.config_)
+
+        for method in ('map_provided', 'map_repositories', 'map_updates_data', 'map_installed',
+                       'get_installed_size', 'map_required_by'):
+            getattr(pacman, method).assert_called()
+
+        for method in ('map_missing_deps', 'map_all_required_by'):
+            getattr(self.deps_analyser, method).assert_called()
+
+        self.assertFalse(res.to_install)
+        self.assertEqual([UpgradeRequirement(pkg=pkg_a, required_size=1, extra_size=0)], res.to_upgrade)
+
+        pkg_b = ArchPackage(name="X", installed=True, i18n=self.i18n)
+        self.assertEqual([UpgradeRequirement(pkg=pkg_b, reason=" 'V'", extra_size=1)], res.to_remove)
+
+    @patch(f"{__app_name__}.gems.arch.updates.pacman")
+    def test__return_installed_virtual_with_defined_version_to_remove_when_conflict_matches__case_2(self, pacman: Mock):
+        """
+        This test case covers the same scenario as the above, but adds an additional provider for the same
+        virtual package with a non-conflicting version
+
+        Scenario:
+        - Package V (2.5.0)[update] -> conflicts: X<21.1.1, X-ABI-VIDEODRV_VERSION<25, X-ABI-VIDEODRV_VERSION>=26
+        - Package X (21.1.5)[installed] -> provides: X-ABI-VIDEODRV_VERSION=26, X
+        - Package Z (2.0.0)[installed] -> provides: X-ABI-VIDEODRV_VERSION=25.2, Z
+
+        * X provides X-ABI-VIDEODRV_VERSION with a specific version (26) [conflict]
+        * Z provides X-ABI-VIDEODRV_VERSION with a specific version (25.2) [no conflict]
+        """
+        pkg_a = ArchPackage(name="V", version="2.5.0-1", latest_version="2.6.0-1", repository="community")
+
+        pacman.map_provided.side_effect = [{"V": {"V"},  # remote provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "Z": {"Z"},
+                                            "Z=2.0.0": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=25.2": {"Z"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X", "Z"},
+                                            },
+                                           {"V": {"V"},  # provided
+                                            "V=2.5.0": {"V"},
+                                            "X": {"X"},
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "Z": {"Z"},
+                                            "Z=2.0.0": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=25.2": {"Z"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X", "Z"},
+                                            },
+                                           {"X": {"X"},  # provided to remove
+                                            "X=21.1.5": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION=26": {"X"},
+                                            "X-ABI-VIDEODRV_VERSION": {"X", "Z"}
+                                            }
+                                           ]
+        pacman.map_repositories.return_value = {"V": pkg_a.repository, "X": "community"}
+        pacman.map_updates_data.return_value = {"V": {'ds': 1,
+                                                      's': 1,
+                                                      'v': pkg_a.latest_version,
+                                                      'c': {"X<21.1.1",
+                                                            "X-ABI-VIDEODRV_VERSION<25",
+                                                            "X-ABI-VIDEODRV_VERSION>=26"},
+                                                      'p': {"V": {"V"},
+                                                            "V=2.5.0": {"A"}},
+                                                      'd': set(),
+                                                      'r': "community",
+                                                      'des': pkg_a.name}}
+        pacman.map_installed.return_value = {"V": pkg_a.version, "X": "21.1.5-1", "Z": "2.0.0-1"}
+        pacman.get_installed_size.return_value = {"V": 1, "X": 1, "Z": 1}
+        pacman.map_required_by.return_value = {"V": set()}
+
+        self.deps_analyser.map_missing_deps.return_value = list()
+        self.deps_analyser.map_all_required_by.return_value = set()
+
+        res = self.summarizer.summarize(pkgs=[pkg_a], root_password=None, arch_config=self.config_)
+
+        for method in ('map_provided', 'map_repositories', 'map_updates_data', 'map_installed',
+                       'get_installed_size', 'map_required_by'):
+            getattr(pacman, method).assert_called()
+
+        for method in ('map_missing_deps', 'map_all_required_by'):
+            getattr(self.deps_analyser, method).assert_called()
+
+        self.assertFalse(res.to_install)
+        self.assertEqual([UpgradeRequirement(pkg=pkg_a, required_size=1, extra_size=0)], res.to_upgrade)
+
+        pkg_b = ArchPackage(name="X", installed=True, i18n=self.i18n)
+        self.assertEqual([UpgradeRequirement(pkg=pkg_b, reason=" 'V'", extra_size=1)], res.to_remove)
+
+    @patch(f"{__app_name__}.gems.arch.updates.pacman")
     def test__should_return_installed_package_to_remove_when_conflict_with_provided_matches_version(self, pacman: Mock):
         """
         If the newest version o package A conflicts with a provided package C (by installed package B),

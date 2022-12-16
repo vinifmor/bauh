@@ -22,7 +22,7 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
-                 to_remove: Dict[str, UpgradeRequirement], installed_names: Dict[str, str],
+                 to_remove: Dict[str, UpgradeRequirement], installed: Dict[str, str],
                  provided_map: Dict[str, Set[str]], aur_index: Set[str], arch_config: dict,
                  remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                  root_password: Optional[str], aur_supported: bool):
@@ -34,7 +34,7 @@ class UpdateRequirementsContext:
         self.pkgs_data = pkgs_data
         self.cannot_upgrade = cannot_upgrade
         self.root_password = root_password
-        self.installed = installed_names
+        self.installed = installed
         self.provided_map = provided_map
         self.to_remove = to_remove
         self.to_install = to_install
@@ -167,6 +167,23 @@ class UpdatesSummarizer:
                 else:
                     del context.aur_to_update[p]
 
+    def _map_virtual_providers(self, providers: Dict[str, Set[str]], installed: Dict[str, str]) -> Dict[str, Set[str]]:
+        ti = time.time()
+        virtual_version = dict()
+        for provider in providers:
+            name_version = provider.split("=")
+            if len(name_version) == 2 and name_version[0] not in installed:
+                versions = virtual_version.get(name_version[0])
+
+                if not versions:
+                    versions = set()
+                    virtual_version[name_version[0]] = versions
+
+                versions.add(name_version[1])
+        tf = time.time()
+        self.logger.info(f"Took {tf - ti:.6f} seconds to map virtual providers of {len(providers)} packages")
+        return virtual_version
+
     def _map_conflicts(self, data: Dict[str, Dict[str, Any]], providers: Dict[str, Set[str]],
                        versions: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, str]]:
         """
@@ -180,6 +197,8 @@ class UpdatesSummarizer:
                 - first: containing all conflicts
                 - second: containing mutual conflicts
         """
+        virtual_providers = self._map_virtual_providers(providers, versions)
+
         root_conflict = {}
         mutual_conflicts = {}
 
@@ -192,20 +211,33 @@ class UpdatesSummarizer:
 
                         if conflict_name != pkg_name:
                             conflict_providers = providers.get(conflict_name)
+                            if conflict_providers:  # it means the conflict name matches a provided package
+                                checked_conflicts = set()
 
-                            if conflict_providers:
-                                checked_conflicts = []
-                                for provider in conflict_providers:
-                                    if provider != pkg_name:
-                                        if len(name_op_exp) == 1:
-                                            checked_conflicts.append(provider)
-                                        else:
-                                            provider_version = versions.get(provider)
+                                if len(name_op_exp) == 1:  # if no expression is provided, add all providers
+                                    checked_conflicts.update((p for p in conflict_providers if p != pkg_name))
+                                else:
+                                    virtual_versions = virtual_providers.get(conflict_name)
 
-                                            if match_required_version(provider_version,
-                                                                      name_op_exp[1],
-                                                                      name_op_exp[2]):
-                                                checked_conflicts.append(provider)
+                                    if virtual_versions:
+                                        # it means it's a virtual package
+                                        # (e.g: 'xorg-server' provides a virtual package called 'x-server')
+                                        for pversion in virtual_versions:
+                                            if match_required_version(pversion, name_op_exp[1], name_op_exp[2]):
+                                                # read the packages providing this specific virtual package version
+                                                real_providers = providers.get(f"{conflict_name}={pversion}")
+
+                                                if real_providers:
+                                                    checked_conflicts.update(p for p in real_providers if p != pkg_name)
+
+                                    else:
+                                        for provider in conflict_providers:
+                                            if provider != pkg_name:
+                                                provider_version = versions.get(provider)
+                                                if provider_version and match_required_version(provider_version,
+                                                                                               name_op_exp[1],
+                                                                                               name_op_exp[2]):
+                                                    checked_conflicts.add(provider)
 
                                 for provider in checked_conflicts:
                                     root_conflict[provider] = pkg_name
@@ -476,7 +508,7 @@ class UpdatesSummarizer:
         remote_repo_map = pacman.map_repositories()
         context = UpdateRequirementsContext(to_update={}, repo_to_update={}, aur_to_update={}, repo_to_install={},
                                             aur_to_install={}, to_install={}, pkgs_data={}, cannot_upgrade={},
-                                            to_remove={}, installed_names=dict(), provided_map={}, aur_index=set(),
+                                            to_remove={}, installed=dict(), provided_map={}, aur_index=set(),
                                             arch_config=arch_config, root_password=root_password,
                                             remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
                                             aur_supported=self.aur_supported)
