@@ -396,7 +396,7 @@ def get_version_for_not_installed(pkgname: str) -> str:
 
 
 def map_repositories(pkgnames: Iterable[str] = None) -> Dict[str, str]:
-    info = run_cmd('pacman -Si {}'.format(' '.join(pkgnames) if pkgnames else ''), print_error=False, ignore_return_code=True)
+    info = run_cmd(f"pacman -Si {' '.join(pkgnames) if pkgnames else ''}", print_error=False, ignore_return_code=True)
     if info:
         repos = re.findall(r'(Name|Repository)\s*:\s*(.+)', info)
 
@@ -529,7 +529,7 @@ def upgrade_system(root_password: Optional[str]) -> SimpleProcess:
     return SimpleProcess(cmd=['pacman', '-Syyu', '--noconfirm'], root_password=root_password)
 
 
-def fill_provided_map(key: str, val: str, output: dict):
+def _fill_provided_map(key: str, val: str, output: Dict[str, Set[str]]):
     current_val = output.get(key)
 
     if current_val is None:
@@ -539,7 +539,7 @@ def fill_provided_map(key: str, val: str, output: dict):
 
 
 def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[Dict[str, Set[str]]]:
-    output = run_cmd('pacman -{}i {}'.format('S' if remote else 'Q', ' '.join(pkgs) if pkgs else ''))
+    output = run_cmd(f"pacman -{'S' if remote else 'Q'}i {' '.join(pkgs) if pkgs else ''}")
 
     if output:
         provided_map = {}
@@ -558,19 +558,19 @@ def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[D
                     elif field == 'Version':
                         latest_version = val.split('=')[0]
                     elif field == 'Provides':
-                        fill_provided_map(latest_name, latest_name, provided_map)
-                        fill_provided_map('{}={}'.format(latest_name, latest_version), latest_name, provided_map)
+                        _fill_provided_map(latest_name, latest_name, provided_map)
+                        _fill_provided_map(f'{latest_name}={latest_version}', latest_name, provided_map)
 
                         if val != 'None':
                             for w in val.split(' '):
                                 if w:
                                     word = w.strip()
-                                    fill_provided_map(word, latest_name, provided_map)
+                                    _fill_provided_map(word, latest_name, provided_map)
 
                                     word_split = word.split('=')
 
                                     if word_split[0] != word:
-                                        fill_provided_map(word_split[0], latest_name, provided_map)
+                                        _fill_provided_map(word_split[0], latest_name, provided_map)
                         else:
                             provided = True
 
@@ -583,12 +583,12 @@ def map_provided(remote: bool = False, pkgs: Iterable[str] = None) -> Optional[D
                     for w in l.split(' '):
                         if w:
                             word = w.strip()
-                            fill_provided_map(word, latest_name, provided_map)
+                            _fill_provided_map(word, latest_name, provided_map)
 
                             word_split = word.split('=')
 
                             if word_split[0] != word:
-                                fill_provided_map(word_split[0], latest_name, provided_map)
+                                _fill_provided_map(word_split[0], latest_name, provided_map)
 
         return provided_map
 
@@ -857,7 +857,8 @@ def get_cache_dir() -> str:
 
 
 def map_required_by(names: Iterable[str] = None, remote: bool = False) -> Dict[str, Set[str]]:
-    output = run_cmd('pacman -{} {}'.format('Sii' if remote else 'Qi', ' '.join(names) if names else ''), print_error=False)
+    output = run_cmd(f"pacman -{'Sii' if remote else 'Qi'} {' '.join(names) if names else ''}".strip(),
+                     print_error=False)
 
     if output:
         latest_name, required = None, None

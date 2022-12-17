@@ -7,8 +7,6 @@ from pathlib import Path
 from threading import Thread
 from typing import List, Set, Type, Tuple, Optional, Generator, Dict
 
-from packaging.version import Version
-
 from bauh.api import user
 from bauh.api.abstract.controller import SearchResult, SoftwareManager, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
@@ -123,7 +121,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         res.total = len(res.installed) + len(res.new)
         return res
 
-    def _add_updates(self, version: Version, output: list):
+    def _add_updates(self, version: Tuple[str, ...], output: list):
         output.append(flatpak.list_updates_as_str(version))
 
     def _fill_required_runtimes(self, installation: str, output: List[Tuple[str, str]]):
@@ -603,7 +601,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         if file:
             return file.text
 
-    def _fill_suggestion(self, appid: str, priority: SuggestionPriority, flatpak_version: Version, remote: str,
+    def _fill_suggestion(self, appid: str, priority: SuggestionPriority, flatpak_version: Tuple[str, ...], remote: str,
                          output: List[PackageSuggestion]):
         app_json = flatpak.search(flatpak_version, appid, remote, app_id=True)
 

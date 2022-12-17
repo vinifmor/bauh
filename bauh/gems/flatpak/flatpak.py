@@ -6,13 +6,11 @@ from datetime import datetime
 from threading import Thread
 from typing import List, Dict, Set, Iterable, Optional, Tuple
 
-from packaging.version import Version
-from packaging.version import parse as parse_version
-
 from bauh.api.exception import NoInternetException
 from bauh.commons import system
 from bauh.commons.system import new_subprocess, run_cmd, SimpleProcess, ProcessHandler, DEFAULT_LANG
 from bauh.commons.util import size_to_byte
+from bauh.commons.version_util import map_str_version
 from bauh.gems.flatpak import EXPORTS_PATH, VERSION_1_3, VERSION_1_2, VERSION_1_5, VERSION_1_12
 from bauh.gems.flatpak.constants import FLATHUB_URL
 
@@ -73,9 +71,9 @@ def is_installed():
     return False if version is None else True
 
 
-def get_version() -> Optional[Version]:
+def get_version() -> Optional[Tuple[str, ...]]:
     res = run_cmd('flatpak --version', print_error=False)
-    return parse_version(res.split(' ')[1].strip()) if res else None
+    return map_str_version(res.split(' ')[1].strip()) if res else None
 
 
 def get_app_info(app_id: str, branch: str, installation: str) -> Optional[str]:
@@ -95,7 +93,7 @@ def get_commit(app_id: str, branch: str, installation: str) -> Optional[str]:
             return commits[0][1].strip()
 
 
-def list_installed(version: Version) -> List[dict]:
+def list_installed(version: Tuple[str, ...]) -> List[dict]:
     apps = []
 
     if version < VERSION_1_2:
@@ -162,7 +160,8 @@ def list_installed(version: Version) -> List[dict]:
     return apps
 
 
-def update(app_ref: str, installation: str, version: Version, related: bool = False, deps: bool = False) -> SimpleProcess:
+def update(app_ref: str, installation: str, version: Tuple[str, ...], related: bool = False, deps: bool = False) \
+        -> SimpleProcess:
     cmd = ['flatpak', 'update', '-y', app_ref, f'--{installation}']
 
     if not related:
@@ -180,7 +179,7 @@ def full_update(version: VERSION_1_12) -> SimpleProcess:
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None)
 
 
-def uninstall(app_ref: str, installation: str, version: Version) -> SimpleProcess:
+def uninstall(app_ref: str, installation: str, version: Tuple[str, ...]) -> SimpleProcess:
     return SimpleProcess(cmd=('flatpak', 'uninstall', app_ref, '-y', f'--{installation}'),
                          extra_paths={EXPORTS_PATH},
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None,
@@ -191,7 +190,7 @@ def _new_updates() -> Dict[str, Set[str]]:
     return {'full': set(), 'partial': set()}
 
 
-def list_updates_as_str(version: Version) -> Dict[str, Set[str]]:
+def list_updates_as_str(version: Tuple[str, ...]) -> Dict[str, Set[str]]:
     sys_updates, user_updates = _new_updates(), _new_updates()
 
     threads = []
@@ -226,7 +225,7 @@ def list_required_runtime_updates(installation: str) -> Optional[List[Tuple[str,
         return RE_REQUIRED_RUNTIME.findall(updates)
 
 
-def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
+def fill_updates(version: Tuple[str, ...], installation: str, res: Dict[str, Set[str]]):
     if version < VERSION_1_2:
         try:
             output = run_cmd(f'flatpak update --no-related --no-deps --{installation}', ignore_return_code=True)
@@ -274,7 +273,7 @@ def fill_updates(version: Version, installation: str, res: Dict[str, Set[str]]):
             traceback.print_exc()
 
 
-def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Version) -> SimpleProcess:
+def downgrade(app_ref: str, commit: str, installation: str, root_password: Optional[str], version: Tuple[str, ...]) -> SimpleProcess:
     cmd = ('flatpak', 'update', '--no-related', '--no-deps', f'--commit={commit}', app_ref, '-y', f'--{installation}')
 
     return SimpleProcess(cmd=cmd,
@@ -326,7 +325,7 @@ def get_app_commits_data(app_ref: str, origin: str, installation: str, full_str:
     return commits
 
 
-def search(version: Version, word: str, installation: str, app_id: bool = False) -> Optional[List[dict]]:
+def search(version: Tuple[str, ...], word: str, installation: str, app_id: bool = False) -> Optional[List[dict]]:
 
     res = run_cmd(f'flatpak search {word} --{installation}', lang=None)
 
@@ -408,7 +407,7 @@ def search(version: Version, word: str, installation: str, app_id: bool = False)
     return found
 
 
-def install(app_id: str, origin: str, installation: str, version: Version) -> SimpleProcess:
+def install(app_id: str, origin: str, installation: str, version: Tuple[str, ...]) -> SimpleProcess:
     return SimpleProcess(cmd=('flatpak', 'install', origin, app_id, '-y', f'--{installation}'),
                          extra_paths={EXPORTS_PATH},
                          lang=DEFAULT_LANG if version < VERSION_1_12 else None,
@@ -449,7 +448,7 @@ def run(app_id: str):
     subprocess.Popen((f'flatpak run {app_id}',), shell=True, env={**os.environ})
 
 
-def map_update_download_size(app_ids: Iterable[str], installation: str, version: Version) -> Dict[str, float]:
+def map_update_download_size(app_ids: Iterable[str], installation: str, version: Tuple[str, ...]) -> Dict[str, float]:
     success, output = ProcessHandler().handle_simple(SimpleProcess(('flatpak', 'update', f'--{installation}',
                                                                     '--no-deps')))
     if version >= VERSION_1_2:

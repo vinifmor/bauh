@@ -77,6 +77,15 @@ class UpgradeRequirement:
     def sort_by_priority(req: "UpgradeRequirement") -> Tuple[int, str]:
         return -req.sorting_priority, req.pkg.name
 
+    def __eq__(self, other) -> bool:
+        if isinstance(other, UpgradeRequirement):
+            return self.__dict__ == other.__dict__
+
+        return False
+
+    def __hash__(self) -> int:
+        return sum((hash(k) + hash(v) for k, v in self.__dict__.items()))
+
 
 class UpgradeRequirements:
 

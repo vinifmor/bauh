@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.5] 2022-12-17
+
+### Fixes
+- Arch
+  - not properly checking all provided packages by the system when checking for conflicts (upgrade requirements). it could lead to an unbootable system or package losses.
+- UI
+  - some windows not properly being centralized (regression introduced in **0.10.4**)
+  - some windows being displayed in the wrong place (regression introduced in **0.10.4**)
+
+### Improvements
+- Arch
+  - added several test cases to ensure conflicting scenarios are properly covered when checking for upgrade requirements
+- General
+  - replaced the use of Python's `LegacyVersion` for version comparison since it will be deprecated in the next Python's major release (affects **Arch**, **AppImage** and **Flatpak** gems)
+    - `python-packaging` dependency is no longer needed
+
+### Contributions
+- flake warnings refactoring ([brccabral](https://github.com/brccabral))
+
 ## [0.10.4] 2022-11-05
 
 ### Improvements

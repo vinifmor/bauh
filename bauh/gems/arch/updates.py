@@ -2,7 +2,7 @@ import logging
 import time
 import traceback
 from threading import Thread
-from typing import Dict, Set, List, Tuple, Iterable, Optional
+from typing import Dict, Set, List, Tuple, Iterable, Optional, Any
 
 from bauh.api.abstract.controller import UpgradeRequirements, UpgradeRequirement
 from bauh.api.abstract.handler import ProcessWatcher
@@ -12,7 +12,7 @@ from bauh.gems.arch.dependencies import DependenciesAnalyser
 from bauh.gems.arch.exceptions import PackageNotFoundException
 from bauh.gems.arch.model import ArchPackage
 from bauh.gems.arch.pacman import RE_DEP_OPERATORS
-from bauh.gems.arch.version import match_required_version
+from bauh.commons.version_util import match_required_version
 from bauh.view.util.translation import I18n
 
 
@@ -22,8 +22,9 @@ class UpdateRequirementsContext:
                  aur_to_update: Dict[str, ArchPackage], repo_to_install: Dict[str, ArchPackage],
                  aur_to_install: Dict[str, ArchPackage], to_install: Dict[str, ArchPackage],
                  pkgs_data: Dict[str, dict], cannot_upgrade: Dict[str, UpgradeRequirement],
-                 to_remove: Dict[str, UpgradeRequirement], installed_names: Dict[str, str], provided_map: Dict[str, Set[str]],
-                 aur_index: Set[str], arch_config: dict, remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
+                 to_remove: Dict[str, UpgradeRequirement], installed: Dict[str, str],
+                 provided_map: Dict[str, Set[str]], aur_index: Set[str], arch_config: dict,
+                 remote_provided_map: Dict[str, Set[str]], remote_repo_map: Dict[str, str],
                  root_password: Optional[str], aur_supported: bool):
         self.to_update = to_update
         self.repo_to_update = repo_to_update
@@ -33,7 +34,7 @@ class UpdateRequirementsContext:
         self.pkgs_data = pkgs_data
         self.cannot_upgrade = cannot_upgrade
         self.root_password = root_password
-        self.installed = installed_names
+        self.installed = installed
         self.provided_map = provided_map
         self.to_remove = to_remove
         self.to_install = to_install
@@ -42,6 +43,31 @@ class UpdateRequirementsContext:
         self.remote_provided_map = remote_provided_map
         self.remote_repo_map = remote_repo_map
         self.aur_supported = aur_supported
+
+    def update_provided_map(self, update: Dict[str, Set[str]]):
+        if self.provided_map is None:
+            self.provided_map = {**update}
+        else:
+            for provider, provided in update.items():
+                provided_set = self.provided_map.get(provider)
+
+                if provided_set is None:
+                    provided_set = set()
+                    self.provided_map[provider] = provided_set
+
+                provided_set.update(provided)
+
+    def add_to_provided_map(self, provider: str, provided: str):
+        if self.provided_map is None:
+            self.provided_map = dict()
+
+        provided_set = self.provided_map.get(provider)
+
+        if provided_set is None:
+            provided_set = set()
+            self.provided_map[provider] = provided_set
+
+        provided_set.add(provided)
 
 
 class UpdatesSummarizer:
@@ -61,8 +87,7 @@ class UpdatesSummarizer:
         for src_pkg in {p for p, data in context.pkgs_data.items() if
                         data['d'] and pkg1 in data['d'] or pkg2 in data['d']}:
             if src_pkg not in context.cannot_upgrade:
-                reason = self.i18n['arch.update_summary.to_install.dep_conflict'].format("'{}'".format(pkg1),
-                                                                                         "'{}'".format(pkg2))
+                reason = self.i18n['arch.update_summary.to_install.dep_conflict'].format(f"'{pkg1}'", f"'{pkg2}'")
                 context.cannot_upgrade[src_pkg] = UpgradeRequirement(context.to_update[src_pkg], reason)
 
             del context.to_update[src_pkg]
@@ -126,11 +151,11 @@ class UpdatesSummarizer:
 
     def _handle_conflict_both_to_update(self, pkg1: str, pkg2: str, context: UpdateRequirementsContext):
         if pkg1 not in context.cannot_upgrade:
-            reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg2)
+            reason = f"{self.i18n['arch.info.conflicts with'].capitalize()} '{pkg2}'"
             context.cannot_upgrade[pkg1] = UpgradeRequirement(pkg=context.to_update[pkg1], reason=reason)
 
         if pkg2 not in context.cannot_upgrade:
-            reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), pkg1)
+            reason = f"{self.i18n['arch.info.conflicts with'].capitalize()} '{pkg1}'"
             context.cannot_upgrade[pkg2] = UpgradeRequirement(pkg=context.to_update[pkg2], reason=reason)
 
         for p in (pkg1, pkg2):
@@ -142,65 +167,133 @@ class UpdatesSummarizer:
                 else:
                     del context.aur_to_update[p]
 
-    def _filter_and_map_conflicts(self, context: UpdateRequirementsContext) -> Dict[str, str]:
+    def _map_virtual_providers(self, providers: Dict[str, Set[str]], installed: Dict[str, str]) -> Dict[str, Set[str]]:
+        ti = time.time()
+        virtual_version = dict()
+        for provider in providers:
+            name_version = provider.split("=")
+            if len(name_version) == 2 and name_version[0] not in installed:
+                versions = virtual_version.get(name_version[0])
+
+                if not versions:
+                    versions = set()
+                    virtual_version[name_version[0]] = versions
+
+                versions.add(name_version[1])
+        tf = time.time()
+        self.logger.info(f"Took {tf - ti:.6f} seconds to map virtual providers of {len(providers)} packages")
+        return virtual_version
+
+    def _map_conflicts(self, data: Dict[str, Dict[str, Any]], providers: Dict[str, Set[str]],
+                       versions: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, str]]:
+        """
+        Parameters
+            pkgs_data: a dict mapping the packages whose conflicts need to be analyzed to their data
+            providers: a dict mapping the available providers on the context (installed and to be installed) to their
+            respective package
+            versions: a dict mapping the package name to it's version (the updated or to be installed version)
+        Return
+            a tuple with two dictionaries:
+                - first: containing all conflicts
+                - second: containing mutual conflicts
+        """
+        virtual_providers = self._map_virtual_providers(providers, versions)
+
         root_conflict = {}
         mutual_conflicts = {}
 
-        for p, data in context.pkgs_data.items():
+        for pkg_name, data in data.items():
             if data['c']:
                 for c in data['c']:
                     if c:
                         name_op_exp = DependenciesAnalyser.re_dep_operator().split(c)
                         conflict_name = name_op_exp[0]
 
-                        if conflict_name != p:
-                            conflict_version = context.installed.get(conflict_name)
+                        if conflict_name != pkg_name:
+                            conflict_providers = providers.get(conflict_name)
+                            if conflict_providers:  # it means the conflict name matches a provided package
+                                checked_conflicts = set()
 
-                            if conflict_version:
-                                if len(name_op_exp) == 1 or match_required_version(conflict_version,
-                                                                                   name_op_exp[1],
-                                                                                   name_op_exp[2]):
-                                    root_conflict[conflict_name] = p
+                                if len(name_op_exp) == 1:  # if no expression is provided, add all providers
+                                    checked_conflicts.update((p for p in conflict_providers if p != pkg_name))
+                                else:
+                                    virtual_versions = virtual_providers.get(conflict_name)
 
-                                    if (p, conflict_name) in root_conflict.items():
-                                        mutual_conflicts[conflict_name] = p
+                                    if virtual_versions:
+                                        # it means it's a virtual package
+                                        # (e.g: 'xorg-server' provides a virtual package called 'x-server')
+                                        for pversion in virtual_versions:
+                                            if match_required_version(pversion, name_op_exp[1], name_op_exp[2]):
+                                                # read the packages providing this specific virtual package version
+                                                real_providers = providers.get(f"{conflict_name}={pversion}")
 
-        if mutual_conflicts:
-            for pkg1, pkg2 in mutual_conflicts.items():
-                pkg1_to_install = pkg1 in context.to_install
-                pkg2_to_install = pkg2 in context.to_install
+                                                if real_providers:
+                                                    checked_conflicts.update(p for p in real_providers if p != pkg_name)
 
-                if pkg1_to_install and pkg2_to_install:  # remove both from to install and mark their source packages as 'cannot_update'
-                    self._handle_conflict_both_to_install(pkg1, pkg2, context)
-                elif (pkg1_to_install and not pkg2_to_install) or (not pkg1_to_install and pkg2_to_install):
-                    self._handle_conflict_to_update_and_to_install(pkg1, pkg2, pkg1_to_install, context)
-                else:
-                    self._handle_conflict_both_to_update(pkg1, pkg2, context)  # adding both to the 'cannot update' list
+                                    else:
+                                        for provider in conflict_providers:
+                                            if provider != pkg_name:
+                                                provider_version = versions.get(provider)
+                                                if provider_version and match_required_version(provider_version,
+                                                                                               name_op_exp[1],
+                                                                                               name_op_exp[2]):
+                                                    checked_conflicts.add(provider)
 
-            for pkg1, pkg2 in mutual_conflicts.items():  # removing conflicting packages from the packages selected to upgrade
-                for p in (pkg1, pkg2):
-                    if p in context.pkgs_data:
-                        if context.pkgs_data[p].get('c'):
-                            for c in context.pkgs_data[p]['c']:
-                                # source = provided_map[c]
-                                if c in root_conflict:
-                                    del root_conflict[c]
+                                for provider in checked_conflicts:
+                                    root_conflict[provider] = pkg_name
 
-                        del context.pkgs_data[p]
+                                    if (pkg_name, provider) in root_conflict.items():
+                                        mutual_conflicts[provider] = pkg_name
 
-        return root_conflict
+        return root_conflict, mutual_conflicts
 
-    def _fill_conflicts(self, context: UpdateRequirementsContext, blacklist: Iterable[str] = None):
+    def _handle_mutual_conflicts(self, mutual_conflicts: Dict[str, str], all_conflicts: Dict[str, str],
+                                 context: UpdateRequirementsContext):
+        for pkg1, pkg2 in mutual_conflicts.items():
+            pkg1_to_install = pkg1 in context.to_install
+            pkg2_to_install = pkg2 in context.to_install
+
+            if pkg1_to_install and pkg2_to_install:
+                # remove both from to install and mark their source packages as 'cannot_update'
+                self._handle_conflict_both_to_install(pkg1, pkg2, context)
+            elif (pkg1_to_install and not pkg2_to_install) or (not pkg1_to_install and pkg2_to_install):
+                self._handle_conflict_to_update_and_to_install(pkg1, pkg2, pkg1_to_install, context)
+            else:
+                # adding both to the 'cannot update' list
+                self._handle_conflict_both_to_update(pkg1, pkg2, context)
+
+        # removing conflicting packages from the packages selected to upgrade
+        for pkg1, pkg2 in mutual_conflicts.items():
+            for pkg_name in (pkg1, pkg2):
+                if pkg_name in context.pkgs_data:
+                    if context.pkgs_data[pkg_name].get('c'):
+                        for c in context.pkgs_data[pkg_name]['c']:
+                            # source = provided_map[c]
+                            if c in all_conflicts:
+                                del all_conflicts[c]
+
+                    del context.pkgs_data[pkg_name]
+
+    def _fill_conflicts(self, context: UpdateRequirementsContext, blacklist: Optional[Iterable[str]] = None):
         self.logger.info("Checking conflicts")
 
-        root_conflict = self._filter_and_map_conflicts(context)
+        conflicts, mutual_conflicts = self._map_conflicts(data=context.pkgs_data,
+                                                          providers=context.provided_map,
+                                                          versions=context.installed)
 
-        if root_conflict:
-            for dep, source in root_conflict.items():
-                if dep not in context.to_remove and (not blacklist or dep not in blacklist):
-                    req = ArchPackage(name=dep, installed=True, i18n=self.i18n)
-                    reason = "{} '{}'".format(self.i18n['arch.info.conflicts with'].capitalize(), source)
-                    context.to_remove[dep] = UpgradeRequirement(req, reason)
+        if mutual_conflicts:
+            self._handle_mutual_conflicts(mutual_conflicts, conflicts, context)
+
+        if conflicts:
+            for conflict_name, source_name in conflicts.items():
+                if conflict_name not in context.to_remove and (not blacklist or conflict_name not in blacklist):
+                    if conflict_name in context.to_update:
+                        conflict = context.to_update[conflict_name]
+                    else:
+                        conflict = ArchPackage(name=conflict_name, installed=True, i18n=self.i18n)
+
+                    reason = f"{self.i18n['arch.info.conflicts with'].capitalize()} '{source_name}'"
+                    context.to_remove[conflict_name] = UpgradeRequirement(conflict, reason)
 
     def _map_and_add_package(self, pkg_data: Tuple[str, str], idx: int, output: dict):
         version = None
@@ -216,12 +309,37 @@ class UpdatesSummarizer:
                         self.logger.warning("No version declared in SRCINFO of '{}'".format(pkg_data[0]))
                 else:
                     self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
-            except Exception:
+            except:
                 self.logger.warning("Could not retrieve the SRCINFO for '{}'".format(pkg_data[0]))
         else:
             version = pacman.get_version_for_not_installed(pkg_data[0])
 
         output[idx] = ArchPackage(name=pkg_data[0], version=version, latest_version=version, repository=pkg_data[1], i18n=self.i18n)
+
+    def _fill_conflicts_to_install(self, context: UpdateRequirementsContext, install_data: Dict[str, Dict[str, Any]]):
+        """
+        Parameters
+        context: update context
+        install_data: a dict mapping the packages to be installed names by their data
+        """
+        # to properly fill conflicts considering new packages to be installed:
+        # - the 'context.provided_map' should contain the providers of these new packages
+        # - the 'context.installed' should contain the versions of these new packages
+        provided_map_bkp = {**context.provided_map}
+        self.__fill_provided_map(context=context, pkgs=context.to_install, fill_installed=False)
+
+        # adding the new packages to install as 'installed'
+        for pkg, data in install_data.items():
+            context.installed[pkg] = data["v"]
+
+        self._fill_conflicts(context, context.to_remove.keys())
+
+        # restoring the original data structures
+        context.provided_map = provided_map_bkp
+
+        for pkg in install_data:
+            if pkg in context.installed:
+                del context.installed[pkg]
 
     def _fill_to_install(self, context: UpdateRequirementsContext) -> bool:
         ti = time.time()
@@ -255,7 +373,8 @@ class UpdatesSummarizer:
 
                 for idx, dep in enumerate(deps):
                     data = deps_data[dep[0]]
-                    pkg = ArchPackage(name=dep[0], version=data['v'], latest_version=data['v'], repository=dep[1], i18n=self.i18n, package_base=data.get('b', dep[0]))
+                    pkg = ArchPackage(name=dep[0], version=data['v'], latest_version=data['v'], repository=dep[1],
+                                      i18n=self.i18n, package_base=data.get('b', dep[0]))
                     sorted_pkgs[idx] = pkg
                     context.to_install[dep[0]] = pkg
 
@@ -273,16 +392,17 @@ class UpdatesSummarizer:
 
                 if all_to_install_data:
                     context.pkgs_data.update(all_to_install_data)
-                    self._fill_conflicts(context, context.to_remove.keys())
+                    self._fill_conflicts_to_install(context, all_to_install_data)
 
         if context.to_install:
             self.__fill_provided_map(context=context, pkgs=context.to_install, fill_installed=False)
 
         tf = time.time()
-        self.logger.info("It took {0:.2f} seconds to retrieve required upgrade packages".format(tf - ti))
+        self.logger.info(f"It took {tf - ti:.2f} seconds to retrieve required upgrade packages")
         return True
 
-    def __fill_provided_map(self, context: UpdateRequirementsContext, pkgs: Dict[str, ArchPackage], fill_installed: bool = True):
+    def __fill_provided_map(self, context: UpdateRequirementsContext, pkgs: Dict[str, ArchPackage],
+                            fill_installed: bool = True):
         if pkgs:
             ti = time.time()
             self.logger.info("Filling provided names")
@@ -293,32 +413,32 @@ class UpdatesSummarizer:
             installed_to_ignore = set()
 
             for pkgname in pkgs:
-                pacman.fill_provided_map(pkgname, pkgname, context.provided_map)
+                context.add_to_provided_map(pkgname, pkgname)
 
                 if fill_installed:
                     installed_to_ignore.add(pkgname)
 
                 pdata = context.pkgs_data.get(pkgname)
                 if pdata and pdata['p']:
-                    pacman.fill_provided_map('{}={}'.format(pkgname, pdata['v']), pkgname, context.provided_map)
+                    context.add_to_provided_map(f"{pkgname}={pdata['v']}", pkgname)
 
                     ver_split = pdata['v'].split('-')
 
                     if len(ver_split) > 1:
-                        pacman.fill_provided_map('{}={}'.format(pkgname, '-'.join(ver_split[0:-1])), pkgname, context.provided_map)
+                        context.add_to_provided_map(f"{pkgname}={'-'.join(ver_split[0:-1])}", pkgname)
 
                     for p in pdata['p']:
-                        pacman.fill_provided_map(p, pkgname, context.provided_map)
+                        context.add_to_provided_map(p, pkgname)
                         split_provided = p.split('=')
 
                         if len(split_provided) > 1 and split_provided[0] != p:
-                            pacman.fill_provided_map(split_provided[0], pkgname, context.provided_map)
+                            context.add_to_provided_map(split_provided[0], pkgname)
 
             if context.installed and installed_to_ignore:  # filling the provided names of the installed
                 installed_to_query = {*context.installed}.difference(installed_to_ignore)
 
                 if installed_to_query:
-                    context.provided_map.update(pacman.map_provided(remote=False, pkgs=installed_to_query))
+                    context.update_provided_map(pacman.map_provided(remote=False, pkgs=installed_to_query))
 
             tf = time.time()
             self.logger.info("Filling provided names took {0:.2f} seconds".format(tf - ti))
@@ -332,7 +452,10 @@ class UpdatesSummarizer:
                 context.aur_index.update(names)
                 self.logger.info("AUR index loaded on the context")
 
-    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext, installed_sizes: Dict[str, int] = None, to_install: bool = False, to_sync: Set[str] = None) -> UpgradeRequirement:
+    def _map_requirement(self, pkg: ArchPackage, context: UpdateRequirementsContext,
+                         installed_sizes: Optional[Dict[str, float]] = None, to_install: bool = False,
+                         to_sync: Set[str] = None) -> UpgradeRequirement:
+
         requirement = UpgradeRequirement(pkg)
 
         if pkg.repository != 'aur':
@@ -341,7 +464,7 @@ class UpdatesSummarizer:
             if pkgdata:
                 requirement.required_size = pkgdata['ds']
                 requirement.extra_size = pkgdata['s']
-
+    
                 current_size = installed_sizes.get(pkg.name) if installed_sizes else None
 
                 if current_size is not None and pkgdata['s'] is not None:
@@ -372,18 +495,20 @@ class UpdatesSummarizer:
                                     required_by.add(p)
                                     break
 
-                requirement.reason = '{}: {}'.format(self.i18n['arch.info.required by'].capitalize(), ','.join(required_by) if required_by else '?')
+                requirement.reason = f"{self.i18n['arch.info.required by'].capitalize()}: " \
+                                     f"{','.join(required_by) if required_by else '?'}"
 
         return requirement
 
-    def summarize(self, pkgs: List[ArchPackage], root_password: Optional[str], arch_config: dict) -> Optional[UpgradeRequirements]:
-        res = UpgradeRequirements([], [], [], [])
+    def summarize(self, pkgs: List[ArchPackage], root_password: Optional[str], arch_config: dict) \
+            -> Optional[UpgradeRequirements]:
 
+        res = UpgradeRequirements([], [], [], [])
         remote_provided_map = pacman.map_provided(remote=True)
         remote_repo_map = pacman.map_repositories()
         context = UpdateRequirementsContext(to_update={}, repo_to_update={}, aur_to_update={}, repo_to_install={},
                                             aur_to_install={}, to_install={}, pkgs_data={}, cannot_upgrade={},
-                                            to_remove={}, installed_names=dict(), provided_map={}, aur_index=set(),
+                                            to_remove={}, installed=dict(), provided_map={}, aur_index=set(),
                                             arch_config=arch_config, root_password=root_password,
                                             remote_provided_map=remote_provided_map, remote_repo_map=remote_repo_map,
                                             aur_supported=self.aur_supported)
@@ -423,20 +548,22 @@ class UpdatesSummarizer:
                 self.logger.info("The operation was cancelled by the user")
                 return
         except PackageNotFoundException as e:
-            self.logger.error("Package '{}' not found".format(e.name))
+            self.logger.error(f"Package '{e.name}' not found")
             return
 
         if context.pkgs_data:
             self._fill_dependency_breakage(context)
 
-        self.__update_context_based_on_to_remove(context)
+        if context.to_remove:
+            self.__update_context_based_on_to_remove(context)
 
         if context.to_update:
             installed_sizes = pacman.get_installed_size(list(context.to_update.keys()))
 
             sorted_pkgs = []
 
-            if context.repo_to_update:  # only sorting by name ( pacman already knows the best order to perform the upgrade )
+            if context.repo_to_update:
+                # only sorting by name (pacman already knows the best order to perform the upgrade)
                 sorted_pkgs.extend(context.repo_to_update.values())
                 sorted_pkgs.sort(key=lambda pkg: pkg.name)
 
@@ -457,101 +584,121 @@ class UpdatesSummarizer:
         if context.to_install:
             to_sync = {r.pkg.name for r in res.to_upgrade} if res.to_upgrade else {}
             to_sync.update(context.to_install.keys())
-            res.to_install = [self._map_requirement(p, context, to_install=True, to_sync=to_sync) for p in context.to_install.values()]
+            res.to_install = [self._map_requirement(p, context, to_install=True, to_sync=to_sync)
+                              for p in context.to_install.values()]
 
         res.context['data'] = context.pkgs_data
         return res
 
     def __update_context_based_on_to_remove(self, context: UpdateRequirementsContext):
-        if context.to_remove:
-            to_remove_provided = {}
-            # filtering all package to synchronization from the transaction context
-            to_sync = {*(context.to_update.keys() if context.to_update else set()), *(context.to_install.keys() if context.to_install else set())}
-            if to_sync:  # checking if any packages to sync on the context rely on the 'to remove' ones
-                to_remove_provided.update(pacman.map_provided(remote=False, pkgs=context.to_remove.keys()))
-                to_remove_from_sync = {}  # will store all packages that should be removed
+        # filtering all package to synchronization from the transaction context
+        to_sync = set()
 
-                for pname in to_sync:
-                    if pname in context.pkgs_data:
-                        deps = context.pkgs_data[pname].get('d')
+        if context.to_update:
+            to_sync.update(context.to_update.keys())
 
-                        if deps:
-                            required = set()
+        if context.to_install:
+            to_sync.update(context.to_install.keys())
 
-                            for pkg in context.to_remove:
-                                for provided in to_remove_provided[pkg]:
-                                    if provided in deps:
-                                        required.add(pkg)
-                                        break
+        to_remove_provided = {}
+        if to_sync:  # checking if any packages to sync on the context rely on the 'to remove' ones
+            to_remove_provided.update(pacman.map_provided(remote=False, pkgs=context.to_remove.keys()))
+            to_remove_from_sync = {}  # will store all packages that should be removed
 
-                            if required:
-                                to_remove_from_sync[pname] = required
+            for pname in to_sync:
+                if pname in context.pkgs_data:
+                    deps = context.pkgs_data[pname].get('d')
+
+                    if deps:
+                        required = set()
+
+                        for pkg in context.to_remove:
+                            for provided in to_remove_provided[pkg]:
+                                if provided in deps:
+                                    required.add(pkg)
+                                    break
+
+                        if required:
+                            to_remove_from_sync[pname] = required
+                else:
+                    self.logger.warning(f"Conflict resolution: package '{pname}' marked to synchronization "
+                                        f"has no data loaded")
+
+            if to_remove_from_sync:  # removing all these packages and their dependents from the context
+                self._add_to_remove(to_sync, to_remove_from_sync, context)
+
+        # checking if the installed packages that are not in the transaction context rely on the current
+        # packages to be removed:
+        current_to_remove = {*context.to_remove.keys()}
+        required_by_to_remove = self.deps_analyser.map_all_required_by(current_to_remove, {*to_sync})
+
+        if required_by_to_remove:
+            # updating provided context:
+            provided_not_mapped = set()
+            for pkg in current_to_remove.difference({*to_remove_provided.keys()}):
+                if pkg not in context.pkgs_data:
+                    provided_not_mapped.add(pkg)
+                else:
+                    provided = context.pkgs_data[pkg].get('p')
+                    if provided:
+                        to_remove_provided[pkg] = provided
                     else:
-                        self.logger.warning("Conflict resolution: package '{}' marked to synchronization has no data loaded")
-
-                if to_remove_from_sync:  # removing all these packages and their dependents from the context
-                    self._add_to_remove(to_sync, to_remove_from_sync, context)
-
-            # checking if the installed packages that are not in the transaction context rely on the current packages to be removed:
-            current_to_remove = {*context.to_remove.keys()}
-            required_by_installed = self.deps_analyser.map_all_required_by(current_to_remove, {*to_sync})
-
-            if required_by_installed:
-                # updating provided context:
-                provided_not_mapped = set()
-                for pkg in current_to_remove.difference({*to_remove_provided.keys()}):
-                    if pkg not in context.pkgs_data:
                         provided_not_mapped.add(pkg)
+
+            if provided_not_mapped:
+                to_remove_provided.update(pacman.map_provided(remote=False, pkgs=provided_not_mapped))
+
+            deps_no_data = {dep for dep in required_by_to_remove if dep not in context.pkgs_data}
+            deps_nodata_deps = pacman.map_required_dependencies(*deps_no_data) if deps_no_data else {}
+
+            reverse_to_remove_provided = {p: name for name, provided in to_remove_provided.items() for p in provided}
+
+            for pkg in required_by_to_remove:
+                if pkg not in context.to_remove:
+                    if pkg in context.pkgs_data:
+                        dep_deps = context.pkgs_data[pkg].get('d')
                     else:
-                        provided = context.pkgs_data[pkg].get('p')
-                        if provided:
-                            to_remove_provided[pkg] = provided
-                        else:
-                            provided_not_mapped.add(pkg)
+                        dep_deps = deps_nodata_deps.get(pkg)
 
-                if provided_not_mapped:
-                    to_remove_provided.update(pacman.map_provided(remote=False, pkgs=provided_not_mapped))
+                    if dep_deps:
+                        source = ', '.join(
+                            (reverse_to_remove_provided[d] for d in dep_deps if d in reverse_to_remove_provided))
+                        reason = f"{self.i18n['arch.info.depends on'].capitalize()} '{source if source else '?'}'"
+                    else:
+                        reason = '?'
 
-                deps_no_data = {dep for dep in required_by_installed if dep in context.pkgs_data}
-                deps_nodata_deps = pacman.map_required_dependencies(*deps_no_data) if deps_no_data else {}
+                    pkg_repo = context.remote_repo_map.get(pkg)
+                    pkg_version = context.installed.get(pkg)
+                    context.to_remove[pkg] = UpgradeRequirement(pkg=ArchPackage(name=pkg,
+                                                                                installed=True,
+                                                                                i18n=self.i18n,
+                                                                                version=pkg_version,
+                                                                                latest_version=pkg_version,
+                                                                                repository=pkg_repo),
+                                                                reason=reason)
 
-                reverse_to_remove_provided = {p: name for name, provided in to_remove_provided.items() for p in provided}
+        for name in context.to_remove:  # upgrading lists
+            if name in context.pkgs_data:
+                del context.pkgs_data[name]
 
-                for pkg in required_by_installed:
-                    if pkg not in context.to_remove:
-                        if pkg in context.pkgs_data:
-                            dep_deps = context.pkgs_data[pkg].get('d')
-                        else:
-                            dep_deps = deps_nodata_deps.get(pkg)
+            if name in context.aur_to_update:
+                del context.aur_to_update[name]
 
-                        if dep_deps:
-                            source = ', '.join((reverse_to_remove_provided[d] for d in dep_deps if d in reverse_to_remove_provided))
-                            reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), source if source else '?')
-                            context.to_remove[pkg] = UpgradeRequirement(pkg=ArchPackage(name=pkg,
-                                                                                        installed=True,
-                                                                                        i18n=self.i18n),
-                                                                        reason=reason)
+            if name in context.repo_to_update:
+                del context.repo_to_update[name]
 
-            for name in context.to_remove:  # upgrading lists
-                if name in context.pkgs_data:
-                    del context.pkgs_data[name]
+        removed_size = pacman.get_installed_size([*context.to_remove.keys()])
 
-                if name in context.aur_to_update:
-                    del context.aur_to_update[name]
+        if removed_size:
+            for name, size in removed_size.items():
+                if size is not None:
+                    req = context.to_remove.get(name)
+                    if req:
+                        req.extra_size = size
 
-                if name in context.repo_to_update:
-                    del context.repo_to_update[name]
+    def _add_to_remove(self, pkgs_to_sync: Set[str], names: Dict[str, Set[str]], context: UpdateRequirementsContext,
+                       to_ignore: Set[str] = None):
 
-            removed_size = pacman.get_installed_size([*context.to_remove.keys()])
-
-            if removed_size:
-                for name, size in removed_size.items():
-                    if size is not None:
-                        req = context.to_remove.get(name)
-                        if req:
-                            req.extra_size = size
-
-    def _add_to_remove(self, pkgs_to_sync: Set[str], names: Dict[str, Set[str]], context: UpdateRequirementsContext, to_ignore: Set[str] = None):
         blacklist = to_ignore if to_ignore else set()
         blacklist.update(names)
 
@@ -571,20 +718,19 @@ class UpdatesSummarizer:
                                 dependents[n] = all_deps
 
                 else:
-                    self.logger.warning("Package '{}' to sync could not be removed from the transaction context because its data was not loaded")
+                    self.logger.warning(f"Package '{pname}' to sync could not be removed from the transaction context "
+                                        f"because its data was not loaded")
 
         for n in names:
             if n in context.pkgs_data:
                 if n not in context.to_remove:
                     depends_on = names.get(n)
                     if depends_on:
-                        reason = "{} '{}'".format(self.i18n['arch.info.depends on'].capitalize(), ', '.join(depends_on))
+                        reason = f"{self.i18n['arch.info.depends on'].capitalize()} '{', '.join(depends_on)}'"
                     else:
                         reason = '?'
 
-                    context.to_remove[n] = UpgradeRequirement(pkg=ArchPackage(name=n,
-                                                                              installed=True,
-                                                                              i18n=self.i18n),
+                    context.to_remove[n] = UpgradeRequirement(pkg=ArchPackage(name=n, installed=True, i18n=self.i18n),
                                                               reason=reason)
 
                 all_deps = dependents.get(n)
@@ -592,7 +738,8 @@ class UpdatesSummarizer:
                 if all_deps:
                     self._add_to_remove(pkgs_to_sync, {dep: {n} for dep in all_deps}, context, blacklist)
             else:
-                self.logger.warning("Package '{}' could not be removed from the transaction context because its data was not loaded")
+                self.logger.warning(f"Package '{n}' could not be removed from the transaction context because its "
+                                    f"data was not loaded")
 
     def _fill_dependency_breakage(self, context: UpdateRequirementsContext):
         if bool(context.arch_config['check_dependency_breakage']) and (context.to_update or context.to_install):
@@ -656,9 +803,10 @@ class UpdatesSummarizer:
                                                   context=context)
 
             if cannot_upgrade:
+                pkgs_available = {*context.to_update.values(), *context.to_install.values()}
                 cannot_upgrade.update(self._add_dependents_as_cannot_upgrade(context=context,
                                                                              names=cannot_upgrade,
-                                                                             pkgs_available={*context.to_update.values(), *context.to_install.values()}))
+                                                                             pkgs_available=pkgs_available))
 
                 for p in cannot_upgrade:
                     if p in context.to_update:
@@ -685,7 +833,9 @@ class UpdatesSummarizer:
             tf = time.time()
             self.logger.info("End: checking dependency breakage. Time: {0:.2f} seconds".format(tf - ti))
 
-    def _add_dependents_as_cannot_upgrade(self, context: UpdateRequirementsContext, names: Iterable[str], pkgs_available: Set[ArchPackage], already_removed: Optional[Set[str]] = None, iteration_level: int = 0) -> Set[str]:
+    def _add_dependents_as_cannot_upgrade(self, context: UpdateRequirementsContext, names: Iterable[str],
+                                          pkgs_available: Set[ArchPackage], already_removed: Optional[Set[str]] = None,
+                                          iteration_level: int = 0) -> Set[str]:
         removed = set() if already_removed is None else already_removed
         removed.update(names)
 
@@ -707,11 +857,10 @@ class UpdatesSummarizer:
                                         to_remove.add(pkg.name)
 
                                         if pkg.name not in context.cannot_upgrade:
-                                            reason = "{} {}".format(self.i18n['arch.info.depends on'].capitalize(), p)
-                                            context.cannot_upgrade[pkg.name] = UpgradeRequirement(pkg=pkg,
-                                                                                                  reason=reason,
-                                                                                                  sorting_priority=iteration_level - 1)
-
+                                            reason = f"{self.i18n['arch.info.depends on'].capitalize()} {p}"
+                                            req = UpgradeRequirement(pkg=pkg, reason=reason,
+                                                                     sorting_priority=iteration_level - 1)
+                                            context.cannot_upgrade[pkg.name] = req
                                         break
 
             if to_remove:
@@ -721,7 +870,9 @@ class UpdatesSummarizer:
 
         return to_remove
 
-    def _add_dependency_breakage(self, pkgname: str, pkgdeps: Optional[Set[str]], provided_versions: Dict[str, Set[str]], cannot_upgrade: Set[str], context: UpdateRequirementsContext):
+    def _add_dependency_breakage(self, pkgname: str, pkgdeps: Optional[Set[str]],
+                                 provided_versions: Dict[str, Set[str]], cannot_upgrade: Set[str],
+                                 context: UpdateRequirementsContext):
         if pkgdeps:
             for dep in pkgdeps:
                 dep_split = RE_DEP_OPERATORS.split(dep)
@@ -739,11 +890,14 @@ class UpdatesSummarizer:
 
                             for v in versions:
                                 try:
-                                    if match_required_version(current_version=v, operator=op, required_version=dep_split[1]):
+                                    if match_required_version(current_version=v,
+                                                              operator=op,
+                                                              required_version=dep_split[1]):
                                         version_match = True
                                         break
-                                except Exception:
-                                    self.logger.error("Error when comparing versions {} (provided) and {} (required)".format(v, dep_split[1]))
+                                except:
+                                    self.logger.error(f"Error when comparing versions {v} (provided) and "
+                                                      f"{dep_split[1]} (required)")
                                     traceback.print_exc()
 
                             if not version_match:
