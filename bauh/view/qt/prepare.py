@@ -133,7 +133,7 @@ class EnableSkip(QThread):
         ti = datetime.datetime.now()
 
         while True:
-            if datetime.datetime.now() >= ti + datetime.timedelta(minutes=1.5):
+            if datetime.datetime.now() >= ti + datetime.timedelta(seconds=10):
                 self.signal_timeout.emit()
                 break
 
