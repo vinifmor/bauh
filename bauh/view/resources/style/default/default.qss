@@ -218,7 +218,7 @@ ConfirmationDialog QPushButton, QWidget[container = "true"] QPushButton, InfoDia
     min-width: 80px;
 }
 
-ConfirmationDialog UpgradeToggleButton {
+ConfirmationDialog PackageSelectButton {
     height: 10px;
 }
 
@@ -266,7 +266,7 @@ ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, Mana
     font-weight: 500;
 }
 
-PackagesTable QToolButton, PackagesTable UpgradeToggleButton {
+PackagesTable QToolButton, PackagesTable PackageSelectButton {
     min-width: 16px;
     max-width: 16px;
     min-height: 14px;

@@ -26,7 +26,7 @@ from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.tray_client import notify_tray
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
-from bauh.view.qt.apps_table import PackagesTable, UpgradeToggleButton
+from bauh.view.qt.apps_table import PackagesTable, PackageSelectButton
 from bauh.view.qt.commons import sum_updates_displayed
 from bauh.view.qt.components import new_spacer, IconButton, QtComponentsManager, to_widget, QSearchBar, \
     QCustomMenuAction, QCustomToolbar
@@ -69,18 +69,19 @@ SEARCH_BAR = 1
 BT_INSTALLED = 2
 BT_REFRESH = 3
 BT_SUGGESTIONS = 4
-BT_UPGRADE = 5
+BT_ACTION_MULTIPLE = 5
 CHECK_INSTALLED = 6
 CHECK_UPDATES = 7
 CHECK_APPS = 8
-COMBO_TYPES = 9
-COMBO_CATEGORIES = 10
-INP_NAME = 11
-CHECK_DETAILS = 12
-BT_SETTINGS = 13
-BT_CUSTOM_ACTIONS = 14
-BT_ABOUT = 15
-BT_THEMES = 16
+CHECK_TO_INSTALL = 9
+COMBO_TYPES = 10
+COMBO_CATEGORIES = 11
+INP_NAME = 12
+CHECK_DETAILS = 13
+BT_SETTINGS = 14
+BT_CUSTOM_ACTIONS = 15
+BT_ABOUT = 16
+BT_THEMES = 17
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -145,6 +146,15 @@ class ManageWindow(QWidget):
         self.toolbar_filters.setLayout(QHBoxLayout())
         self.toolbar_filters.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.toolbar_filters.setContentsMargins(0, 0, 0, 0)
+
+        self.check_to_install = QCheckBox()
+        self.check_to_install.setObjectName('check_to_install')
+        self.check_to_install.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_to_install.setText("To install")  # FIXME i18n
+        self.check_to_install.stateChanged.connect(self._handle_updates_filter)
+        self.check_to_install.sizePolicy().setRetainSizeWhenHidden(True)
+        self.toolbar_filters.layout().addWidget(self.check_to_install)
+        self.comp_manager.register_component(CHECK_TO_INSTALL, self.check_to_install)
 
         self.check_updates = QCheckBox()
         self.check_updates.setObjectName('check_updates')
@@ -245,17 +255,17 @@ class ManageWindow(QWidget):
         self.toolbar_filters.layout().addWidget(bt_ref)
         self.comp_manager.register_component(BT_REFRESH, bt_ref)
 
-        self.bt_upgrade = QPushButton()
-        self.bt_upgrade.setProperty('root', 'true')
-        self.bt_upgrade.setObjectName('bt_upgrade')
-        self.bt_upgrade.setCursor(QCursor(Qt.PointingHandCursor))
-        self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
-        self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_upgrade.clicked.connect(self.upgrade_selected)
-        self.bt_upgrade.sizePolicy().setRetainSizeWhenHidden(True)
-        toolbar_bts.append(self.bt_upgrade)
-        self.toolbar_filters.layout().addWidget(self.bt_upgrade)
-        self.comp_manager.register_component(BT_UPGRADE, self.bt_upgrade)
+        self.bt_action_multiple = QPushButton()  # applies the same action for multiple packages (INSTALL, UPGRADE)
+        self.bt_action_multiple.setProperty('root', 'true')
+        self.bt_action_multiple.setObjectName('bt_upgrade')
+        self.bt_action_multiple.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_action_multiple.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
+        self.bt_action_multiple.setText(i18n['manage_window.bt.upgrade.text'])
+        self.bt_action_multiple.clicked.connect(self.upgrade_selected)
+        self.bt_action_multiple.sizePolicy().setRetainSizeWhenHidden(True)
+        toolbar_bts.append(self.bt_action_multiple)
+        self.toolbar_filters.layout().addWidget(self.bt_action_multiple)
+        self.comp_manager.register_component(BT_ACTION_MULTIPLE, self.bt_action_multiple)
 
         # setting all buttons to the same size:
         bt_biggest_size = 0
@@ -457,7 +467,7 @@ class ManageWindow(QWidget):
         self._screen_geometry: Optional[QRect] = None
 
     def _register_groups(self):
-        common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
+        common_filters = (CHECK_APPS, CHECK_TO_INSTALL, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
         self.comp_manager.register_group(GROUP_FILTERS, False, CHECK_INSTALLED, *common_filters)
 
         self.comp_manager.register_group(GROUP_VIEW_SEARCH, False,
@@ -465,12 +475,12 @@ class ManageWindow(QWidget):
                                          BT_INSTALLED, BT_SUGGESTIONS, CHECK_INSTALLED)  # buttons
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
-                                         BT_REFRESH, BT_UPGRADE,  # buttons
+                                         BT_REFRESH, BT_ACTION_MULTIPLE,  # buttons
                                          *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
                                          CHECK_APPS, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
-                                         BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
+                                         BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_ACTION_MULTIPLE)
 
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
 
@@ -510,7 +520,7 @@ class ManageWindow(QWidget):
 
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
-        self.update_bt_upgrade()
+        self.update_bt_action_multiple()
         self._resize()
 
     def stop_notifying_package_states(self):
@@ -833,7 +843,7 @@ class ManageWindow(QWidget):
 
                                 self._update_table_indexes()
 
-                        self.update_bt_upgrade()
+                        self.update_bt_action_multiple()
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
@@ -909,7 +919,7 @@ class ManageWindow(QWidget):
         if signal:
             self.signal_table_update.emit()
 
-    def update_bt_upgrade(self, pkgs_info: dict = None):
+    def update_bt_action_multiple(self, pkgs_info: dict = None):
         show_bt_upgrade = False
 
         if not any([self.suggestions_requested, self.search_performed]) and (not pkgs_info or pkgs_info['not_installed'] == 0):
@@ -918,13 +928,13 @@ class ManageWindow(QWidget):
                     show_bt_upgrade = True
                     break
 
-        self.comp_manager.set_component_visible(BT_UPGRADE, show_bt_upgrade)
+        self.comp_manager.set_component_visible(BT_ACTION_MULTIPLE, show_bt_upgrade)
 
         if show_bt_upgrade:
             self._reorganize()
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True, keep_selected: bool = False):
-        self.update_bt_upgrade(pkgs_info)
+        self.update_bt_action_multiple(pkgs_info)
 
         if pkgs_info['updates'] > 0:
             if pkgs_info['not_installed'] == 0:
@@ -1175,7 +1185,7 @@ class ManageWindow(QWidget):
         body.setLayout(QHBoxLayout())
         body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
         body.layout().addWidget(QLabel(self.i18n['manage_window.upgrade_all.popup.body']))
-        body.layout().addWidget(UpgradeToggleButton(pkg=None, root=self, i18n=self.i18n, clickable=False))
+        body.layout().addWidget(PackageSelectButton(pkg=None, root=self, i18n=self.i18n, clickable=False))
         if ConfirmationDialog(title=self.i18n['manage_window.upgrade_all.popup.title'],
                               i18n=self.i18n, body=None,
                               widgets=[body]).ask():
@@ -1488,7 +1498,7 @@ class ManageWindow(QWidget):
                         if displayed.model == model:
                             self.table_apps.update_package(displayed, screen_width=screen_width, change_update_col=True)
 
-                self.update_bt_upgrade()
+                self.update_bt_action_multiple()
 
             # updating installed packages
             if res['removed'] and self.pkgs_installed:
@@ -1648,14 +1658,14 @@ class ManageWindow(QWidget):
                     del self.pkgs[idx_to_remove]
                     self.table_apps.removeRow(idx_to_remove)
                     self._update_table_indexes()
-                    self.update_bt_upgrade()
+                    self.update_bt_action_multiple()
             else:
                 screen_width = get_current_screen_geometry(self).width()
                 for pkg in self.pkgs:
                     if pkg == res['pkg']:
                         pkg.update_model(res['pkg'].model)
                         self.table_apps.update_package(pkg, screen_width=screen_width, change_update_col=not any([self.search_performed, self.suggestions_requested]))
-                        self.update_bt_upgrade()
+                        self.update_bt_action_multiple()
                         break
 
             for pkg_list in (self.pkgs_available, self.pkgs_installed):

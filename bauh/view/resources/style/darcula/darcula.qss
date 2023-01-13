@@ -262,7 +262,7 @@ QPushButton#bt_upgrade:disabled {
     border-color: @font.color;
 }
 
-PackagesTable UpgradeToggleButton:disabled {
+PackagesTable PackageSelectButton:disabled {
     color: @font.color;
     border-color: @font.color;
 }
@@ -284,20 +284,20 @@ PackagesTable QLabel#app_version:disabled[ignored = "true"] {
     color: @font.color;
 }
 
-PackagesTable UpgradeToggleButton, ConfirmationDialog UpgradeToggleButton {
+PackagesTable PackageSelectButton, ConfirmationDialog PackageSelectButton {
     qproperty-icon: url("@style_dir/img/update.svg");
     border: 0.5px solid @upgrade.color;
     border-radius: 2px;
     background-color: @outer_widget.background.color;
 }
 
-PackagesTable UpgradeToggleButton[toggled = "false"] {
+PackagesTable PackageSelectButton[toggled = "false"] {
     qproperty-icon: url("@style_dir/img/update_unchecked.svg");
     background-color: @inner_widget.background.color;
     border-color: @outer_widget.background.color;
 }
 
-PackagesTable UpgradeToggleButton[enabled = "false"] {
+PackagesTable PackageSelectButton[enabled = "false"] {
     background: @table.update_check.disabled.color;
 }
 

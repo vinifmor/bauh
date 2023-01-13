@@ -211,17 +211,17 @@ PreparePanel QLabel#task_status[status = "done"], PreparePanel QLabel#task_progr
     color: @task.done.color;
 }
 
-UpgradeToggleButton {
+PackageSelectButton {
     qproperty-icon: url("@style_dir/img/upgrade.svg");
     qproperty-iconSize: 14px 14px;
 }
 
-UpgradeToggleButton[toggled = "false"]  {
+PackageSelectButton[toggled = "false"]  {
     qproperty-icon: url("@style_dir/img/upgrade_unchecked.svg");
     qproperty-iconSize: 14px 14px;
 }
 
-UpgradeToggleButton[enabled = "false"] {
+PackageSelectButton[enabled = "false"] {
     qproperty-icon: url("@style_dir/img/exclamation.svg");
     background: @button_upgrade.disabled.background.color;
 }

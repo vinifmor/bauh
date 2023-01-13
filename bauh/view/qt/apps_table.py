@@ -1,5 +1,6 @@
 import operator
 import os
+from enum import Enum
 from functools import reduce
 from threading import Lock
 from typing import List, Optional
@@ -20,14 +21,20 @@ from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
 
-class UpgradeToggleButton(QToolButton):
+class PackageSelectAction(Enum):
+    INSTALL = 0
+    UPGRADE = 1
+
+
+class PackageSelectButton(QToolButton):
 
     def __init__(self, pkg: Optional[PackageView], root: QWidget, i18n: I18n, checked: bool = True,
-                 clickable: bool = True):
-        super(UpgradeToggleButton, self).__init__()
+                 clickable: bool = True,
+                 action: PackageSelectAction = PackageSelectAction.UPGRADE):
+        super(PackageSelectButton, self).__init__()
         self.app_view = pkg
         self.root = root
-
+        self.setProperty("action", action.name)
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.setCheckable(True)
 
@@ -286,7 +293,7 @@ class PackagesTable(QTableWidget):
             if pkg.model.installed and not pkg.model.is_update_ignored() and pkg.model.update:
                 col_update = QCustomToolbar()
                 col_update.add_space()
-                col_update.add_widget(UpgradeToggleButton(pkg=pkg,
+                col_update.add_widget(PackageSelectButton(pkg=pkg,
                                                           root=self.window,
                                                           i18n=self.i18n,
                                                           checked=pkg.update_checked if pkg.model.can_be_updated() else False,
