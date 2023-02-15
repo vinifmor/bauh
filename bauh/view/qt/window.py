@@ -2,11 +2,12 @@ import logging
 import operator
 import os.path
 import time
+from enum import Enum
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Union
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QMoveEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
@@ -43,7 +44,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
     IgnorePackageUpdates, SaveTheme, StartAsyncAction
-from bauh.view.qt.view_model import PackageView, PackageViewStatus
+from bauh.view.qt.view_model import PackageView, PackageViewStatus, PackageAction
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
 
@@ -69,7 +70,7 @@ SEARCH_BAR = 1
 BT_INSTALLED = 2
 BT_REFRESH = 3
 BT_SUGGESTIONS = 4
-BT_ACTION_MULTIPLE = 5
+BT_UPGRADE_SEVERAL = 5
 CHECK_INSTALLED = 6
 CHECK_UPDATES = 7
 CHECK_APPS = 8
@@ -82,6 +83,7 @@ BT_SETTINGS = 14
 BT_CUSTOM_ACTIONS = 15
 BT_ABOUT = 16
 BT_THEMES = 17
+BT_INSTALL_SEVERAL = 18
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -89,6 +91,14 @@ GROUP_VIEW_INSTALLED = 2
 GROUP_VIEW_SEARCH = 3
 GROUP_UPPER_BAR = 4
 GROUP_LOWER_BTS = 5
+GROUP_TO_INSTALL = 6
+
+class ManageWindowView(Enum):
+    INSTALLED = 0
+    SEARCH = 1
+    SUGGESTIONS = 2
+    TO_INSTALL = 3
+
 
 
 class ManageWindow(QWidget):
@@ -111,6 +121,13 @@ class ManageWindow(QWidget):
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
+        self.pkgs_to_install = []  # packages selected to install
+
+        # packages that were previously available before a view change (e.g: 'to_install')
+        self.previous_pkgs: Optional[List[PackageView]] = None
+        self.view: Optional[ManageWindowView] = None
+        self.previous_view: Optional[ManageWindowView] = None
+
         self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
         self.config = config
@@ -150,8 +167,8 @@ class ManageWindow(QWidget):
         self.check_to_install = QCheckBox()
         self.check_to_install.setObjectName('check_to_install')
         self.check_to_install.setCursor(QCursor(Qt.PointingHandCursor))
-        self.check_to_install.setText("To install")  # FIXME i18n
-        self.check_to_install.stateChanged.connect(self._handle_updates_filter)
+        self.check_to_install.setText(self.i18n["manage_window.checkbox.to_install"])
+        self.check_to_install.stateChanged.connect(self._filter_to_install)
         self.check_to_install.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_to_install)
         self.comp_manager.register_component(CHECK_TO_INSTALL, self.check_to_install)
@@ -255,17 +272,31 @@ class ManageWindow(QWidget):
         self.toolbar_filters.layout().addWidget(bt_ref)
         self.comp_manager.register_component(BT_REFRESH, bt_ref)
 
-        self.bt_action_multiple = QPushButton()  # applies the same action for multiple packages (INSTALL, UPGRADE)
-        self.bt_action_multiple.setProperty('root', 'true')
-        self.bt_action_multiple.setObjectName('bt_upgrade')
-        self.bt_action_multiple.setCursor(QCursor(Qt.PointingHandCursor))
-        self.bt_action_multiple.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
-        self.bt_action_multiple.setText(i18n['manage_window.bt.upgrade.text'])
-        self.bt_action_multiple.clicked.connect(self.upgrade_selected)
-        self.bt_action_multiple.sizePolicy().setRetainSizeWhenHidden(True)
-        toolbar_bts.append(self.bt_action_multiple)
-        self.toolbar_filters.layout().addWidget(self.bt_action_multiple)
-        self.comp_manager.register_component(BT_ACTION_MULTIPLE, self.bt_action_multiple)
+        self.bt_upgrade_several = QPushButton()  # applies the same action for multiple packages (INSTALL, UPGRADE)
+        self.bt_upgrade_several.setProperty('root', 'true')
+        self.bt_upgrade_several.setProperty('action_multiple', 'true')
+        self.bt_upgrade_several.setObjectName('bt_upgrade')
+        self.bt_upgrade_several.setToolTip(self.i18n["manage_window.bt.upgrade.tooltip"])
+        self.bt_upgrade_several.setText(self.i18n["manage_window.bt.upgrade.text"])
+        self.bt_upgrade_several.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_upgrade_several.clicked.connect(self.upgrade_selected)
+        self.bt_upgrade_several.sizePolicy().setRetainSizeWhenHidden(True)
+        toolbar_bts.append(self.bt_upgrade_several)
+        self.toolbar_filters.layout().addWidget(self.bt_upgrade_several)
+        self.comp_manager.register_component(BT_UPGRADE_SEVERAL, self.bt_upgrade_several)
+
+        self.bt_install_several = QPushButton()  # applies the same action for multiple packages (INSTALL, UPGRADE)
+        self.bt_install_several.setProperty('root', 'true')
+        self.bt_install_several.setProperty('action_multiple', 'true')
+        self.bt_install_several.setObjectName('bt_install_several')
+        self.bt_install_several.setText(self.i18n["install"].capitalize())
+        self.bt_install_several.setToolTip(self.i18n["manage_window.bt_install_several.tip"])
+        self.bt_install_several.setCursor(QCursor(Qt.PointingHandCursor))
+        # self.bt_install_several.clicked.connect(self.upgrade_selected)  TODO proper handler
+        self.bt_install_several.sizePolicy().setRetainSizeWhenHidden(True)
+        toolbar_bts.append(self.bt_install_several)
+        self.toolbar_filters.layout().addWidget(self.bt_install_several)
+        self.comp_manager.register_component(BT_INSTALL_SEVERAL, self.bt_install_several)
 
         # setting all buttons to the same size:
         bt_biggest_size = 0
@@ -289,6 +320,8 @@ class ManageWindow(QWidget):
 
         self.table_apps = PackagesTable(self, self.icon_cache,
                                         download_icons=bool(self.config['download']['icons']))
+        self.table_apps.signal_mark_to_install.connect(self.add_to_install)
+        self.table_apps.signal_package_marked.connect(self._handle_package_marked)
         self.table_apps.change_headers_policy()
         self.table_container.layout().addWidget(self.table_apps)
 
@@ -475,14 +508,15 @@ class ManageWindow(QWidget):
                                          BT_INSTALLED, BT_SUGGESTIONS, CHECK_INSTALLED)  # buttons
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
-                                         BT_REFRESH, BT_ACTION_MULTIPLE,  # buttons
+                                         BT_REFRESH, BT_UPGRADE_SEVERAL,  # buttons
                                          *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
                                          CHECK_APPS, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
-                                         BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_ACTION_MULTIPLE)
+                                         BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE_SEVERAL)
 
         self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
+        self.comp_manager.register_group(GROUP_TO_INSTALL, False, BT_INSTALL_SEVERAL, CHECK_TO_INSTALL)
 
     def update_custom_actions(self):
         self.custom_actions = [a for a in self.manager.gen_custom_actions()]
@@ -520,7 +554,7 @@ class ManageWindow(QWidget):
 
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
-        self.update_bt_action_multiple()
+        self.refresh_bt_upgrade_several()
         self._resize()
 
     def stop_notifying_package_states(self):
@@ -623,7 +657,7 @@ class ManageWindow(QWidget):
     def _finish_loading_installed(self):
         self._finish_action()
         self.comp_manager.set_group_visible(GROUP_VIEW_INSTALLED, True)
-        self.update_pkgs(new_pkgs=None, as_installed=True)
+        self.update_pkgs(new_pkgs=None)
         self._hide_filters_no_packages()
         self._update_bts_installed_and_suggestions()
         self._set_lower_buttons_visible(True)
@@ -741,26 +775,33 @@ class ManageWindow(QWidget):
         self.comp_manager.set_components_visible(False)
         self._handle_console_option(False)
 
-        self.suggestions_requested = False
-        self.search_performed = False
+        self.suggestions_requested = False  # FIXME
+        self.search_performed = False  # FIXME
 
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
-    def _finish_refresh_packages(self, res: dict, as_installed: bool = True):
+    def _finish_refresh_packages(self, res: dict):
         self._finish_action()
         self._set_lower_buttons_visible(True)
         self.comp_manager.set_component_visible(SEARCH_BAR, True)
 
-        if self.search_performed or self.suggestions_requested:
+        if self.search_performed:
+            self._change_view(ManageWindowView.SEARCH)
+            self.comp_manager.set_group_visible(GROUP_VIEW_SEARCH, True)
+        elif self.suggestions_requested:
+            self._change_view(ManageWindowView.SUGGESTIONS)
             self.comp_manager.set_group_visible(GROUP_VIEW_SEARCH, True)
         else:
+            self._change_view(ManageWindowView.INSTALLED)
             self.comp_manager.set_group_visible(GROUP_VIEW_INSTALLED, True)
 
-        if self.update_pkgs(res['installed'], as_installed=as_installed, types=res['types']):
+        if self.update_pkgs(res['installed'], types=res['types']):
             self._hide_filters_no_packages()
             self._update_bts_installed_and_suggestions()
             self._reorganize()
+
+        self.handle_to_install_visibility()
 
         self.load_suggestions = False
         self.types_changed = False
@@ -768,7 +809,7 @@ class ManageWindow(QWidget):
     def load_without_packages(self):
         self.load_suggestions = False
         self._handle_console_option(False)
-        self._finish_refresh_packages({'installed': None, 'types': None}, as_installed=False)
+        self._finish_refresh_packages({'installed': None, 'types': None})
 
     def begin_load_suggestions(self, filter_installed: bool):
         self.search_bar.clear()
@@ -780,6 +821,7 @@ class ManageWindow(QWidget):
         self.thread_suggestions.start()
 
     def _finish_load_suggestions(self, res: dict):
+        self._change_view(ManageWindowView.SUGGESTIONS)
         self._finish_search(res)
 
     def begin_uninstall(self, pkg: PackageView):
@@ -843,7 +885,7 @@ class ManageWindow(QWidget):
 
                                 self._update_table_indexes()
 
-                        self.update_bt_action_multiple()
+                        self.refresh_bt_upgrade_several()
 
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
@@ -899,9 +941,9 @@ class ManageWindow(QWidget):
         if pkgs_info['not_installed'] == 0:
             update_check = sum_updates_displayed(pkgs_info) > 0
         else:
-            update_check = False
+            update_check = next((p for p in self.pkgs if p.marked and p.marked_action == PackageAction.INSTALL), False)
 
-        self.table_apps.update_packages(self.pkgs, update_check_enabled=update_check)
+        self.table_apps.update_packages(self.pkgs, check_enabled=update_check)
 
         if not self._maximized:
             self.label_displayed.show()
@@ -919,22 +961,36 @@ class ManageWindow(QWidget):
         if signal:
             self.signal_table_update.emit()
 
-    def update_bt_action_multiple(self, pkgs_info: dict = None):
-        show_bt_upgrade = False
+    def refresh_bt_upgrade_several(self, pkgs_info: dict = None):
+        show_bt_action_multiple = False
 
         if not any([self.suggestions_requested, self.search_performed]) and (not pkgs_info or pkgs_info['not_installed'] == 0):
             for pkg in (pkgs_info['pkgs_displayed'] if pkgs_info else self.pkgs):
                 if not pkg.model.is_update_ignored() and pkg.update_checked:
-                    show_bt_upgrade = True
+                    show_bt_action_multiple = True
                     break
 
-        self.comp_manager.set_component_visible(BT_ACTION_MULTIPLE, show_bt_upgrade)
+        self.comp_manager.set_component_visible(BT_UPGRADE_SEVERAL, show_bt_action_multiple)
 
-        if show_bt_upgrade:
+        if show_bt_action_multiple:
             self._reorganize()
 
+    def handle_to_install_visibility(self):
+        show_to_install = bool(self.pkgs_to_install and next((p for p in self.pkgs_to_install if p.marked), None))
+
+        if show_to_install:
+            self.comp_manager.set_component_visible(CHECK_TO_INSTALL, True)
+
+            if self.check_to_install.isChecked():
+                self.comp_manager.set_component_visible(BT_INSTALL_SEVERAL, True)
+
+            self._reorganize()
+        else:
+            self.comp_manager.set_group_visible(GROUP_TO_INSTALL, False)
+            self.check_to_install.setChecked(False)
+
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True, keep_selected: bool = False):
-        self.update_bt_action_multiple(pkgs_info)
+        self.refresh_bt_upgrade_several(pkgs_info)
 
         if pkgs_info['updates'] > 0:
             if pkgs_info['not_installed'] == 0:
@@ -962,21 +1018,25 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def _gen_filters(self, ignore_updates: bool = False) -> dict:
+    def _gen_filters(self) -> dict:
         return {
             'only_apps': False if self.search_performed else self.filter_only_apps,
             'type': self.type_filter,
             'category': self.category_filter,
-            'updates': False if ignore_updates else self.filter_updates,
+            'updates': self.view == ManageWindowView.INSTALLED or self.filter_updates,
             'name': self.input_name.text().lower() if self.input_name.text() else None,
             'display_limit': None if self.filter_updates else self.display_limit,
             'only_installed': self.filter_installed
         }
 
-    def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
+    def update_pkgs(self, new_pkgs: Optional[List[Union[SoftwarePackage, PackageView]]],
+                    types: Optional[Set[type]] = None, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
-        filters = self._gen_filters(ignore_updates=ignore_updates)
+
+        as_installed = self.view == ManageWindowView.INSTALLED
+
+        filters = self._gen_filters()
 
         if new_pkgs is not None:
             old_installed = None
@@ -986,7 +1046,7 @@ class ManageWindow(QWidget):
                 self.pkgs_installed = []
 
             for pkg in new_pkgs:
-                app_model = PackageView(model=pkg, i18n=self.i18n)
+                app_model = PackageView(model=pkg, i18n=self.i18n) if isinstance(pkg, SoftwarePackage) else pkg
                 commons.update_info(app_model, pkgs_info)
                 commons.apply_filters(app_model, filters, pkgs_info)
 
@@ -1022,7 +1082,7 @@ class ManageWindow(QWidget):
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._update_type_filters(pkgs_info['available_types'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
-        self._apply_filters(pkgs_info, ignore_updates=ignore_updates)
+        self._apply_filters(pkgs_info)
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
 
         self.pkgs_available = pkgs_info['pkgs']
@@ -1074,9 +1134,9 @@ class ManageWindow(QWidget):
         else:
             self.comp_manager.set_component_visible(CHECK_INSTALLED, has_installed)
 
-    def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
+    def _apply_filters(self, pkgs_info: dict):
         pkgs_info['pkgs_displayed'] = []
-        filters = self._gen_filters(ignore_updates=ignore_updates)
+        filters = self._gen_filters()
         for pkgv in pkgs_info['pkgs']:
             commons.apply_filters(pkgv, filters, pkgs_info)
 
@@ -1378,6 +1438,7 @@ class ManageWindow(QWidget):
     def search(self):
         word = self.search_bar.text().strip()
         if word:
+            self._change_view(ManageWindowView.SEARCH)
             self._handle_console(False)
             self._begin_search(word, action_id=ACTION_SEARCH)
             self.comp_manager.set_components_visible(False)
@@ -1390,9 +1451,11 @@ class ManageWindow(QWidget):
 
         if not res['error']:
             self.comp_manager.set_group_visible(GROUP_VIEW_SEARCH, True)
-            self.update_pkgs(res['pkgs_found'], as_installed=False, ignore_updates=True)
+            self.update_pkgs(res['pkgs_found'])
             self._set_lower_buttons_visible(True)
             self._update_bts_installed_and_suggestions()
+            # TODO check if to_install should be displayed ?
+            self.handle_to_install_visibility()
             self._hide_filters_no_packages()
             self._reorganize()
         else:
@@ -1498,7 +1561,7 @@ class ManageWindow(QWidget):
                         if displayed.model == model:
                             self.table_apps.update_package(displayed, screen_width=screen_width, change_update_col=True)
 
-                self.update_bt_action_multiple()
+                self.refresh_bt_upgrade_several()
 
             # updating installed packages
             if res['removed'] and self.pkgs_installed:
@@ -1658,14 +1721,14 @@ class ManageWindow(QWidget):
                     del self.pkgs[idx_to_remove]
                     self.table_apps.removeRow(idx_to_remove)
                     self._update_table_indexes()
-                    self.update_bt_action_multiple()
+                    self.refresh_bt_upgrade_several()
             else:
                 screen_width = get_current_screen_geometry(self).width()
                 for pkg in self.pkgs:
                     if pkg == res['pkg']:
                         pkg.update_model(res['pkg'].model)
                         self.table_apps.update_package(pkg, screen_width=screen_width, change_update_col=not any([self.search_performed, self.suggestions_requested]))
-                        self.update_bt_action_multiple()
+                        self.refresh_bt_upgrade_several()
                         break
 
             for pkg_list in (self.pkgs_available, self.pkgs_installed):
@@ -1757,3 +1820,56 @@ class ManageWindow(QWidget):
         self.verify_warnings()
         self.types_changed = True
         self.begin_refresh_packages()
+
+    def _update_package_filters(self):
+        if self.pkgs_available:
+            pkgs_info = commons.new_pkgs_info()
+            for pkgv in self.pkgs_available:
+                commons.update_info(pkgv, pkgs_info)
+
+            self._update_type_filters(pkgs_info["available_types"])
+        else:
+            self._update_type_filters(None)
+
+    def add_to_install(self, pkgv: PackageView):
+        if pkgv and pkgv not in self.pkgs_to_install:
+            self.pkgs_to_install.append(pkgv)
+            self.pkgs.remove(pkgv)
+            self.pkgs_available.remove(pkgv)
+            self.table_apps.removeRow(pkgv.table_index)
+            self.handle_to_install_visibility()
+            self._update_package_filters()
+
+    def _filter_to_install(self, status: int):
+        show_to_install = status == 2
+
+        if show_to_install:
+            self._change_view(ManageWindowView.TO_INSTALL)
+            if self.pkgs_to_install:
+                self.update_pkgs(self.pkgs_to_install)
+                self.handle_to_install_visibility()
+        else:
+            # loads the other packages and applies the relevant filters
+            if self.previous_pkgs:
+                self._change_view(self.previous_view)
+                self.update_pkgs(self.previous_pkgs)
+            else:
+                self.begin_refresh_packages()
+
+    def _handle_package_marked(self, pkg: PackageView, action: PackageAction):
+        if action == PackageAction.UPGRADE:
+            self.refresh_bt_upgrade_several()
+        elif action == PackageAction.INSTALL:
+            if not pkg.marked:
+                self.pkgs_to_install.remove(pkg)
+                self.pkgs_available.remove(pkg)
+
+            self.table_apps.removeRow(pkg.table_index)
+            self.handle_to_install_visibility()
+
+    def _change_view(self, new_view: ManageWindowView):
+        self.previous_view = self.view if self.view != self.previous_view else None
+        self.view = new_view
+
+# TODO stopped testing searching for packages, adding one of them to install and unchecking to install to see if the previous search results would be returned
+# TODO refactor suggestions_requested and search_requested loading using the new ManageWindowView concept

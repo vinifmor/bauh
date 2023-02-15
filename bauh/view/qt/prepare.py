@@ -442,7 +442,7 @@ class PreparePanel(QWidget, TaskManager):
             self.manage_window.show()
 
             if self.force_suggestions:
-                self.manage_window.begin_load_suggestions(filter_installed=True)
+                self.manage_window.begin_load_suggestions()  # TODO check behavior
             elif self.app_config['boot']['load_apps']:
                 self.manage_window.begin_refresh_packages()
             else:

@@ -262,7 +262,7 @@ ManageWindow QSearchBar#name_filter {
     max-width: 170;
 }
 
-ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, ManageWindow QPushButton#suggestions, ManageWindow QPushButton#bt_upgrade {
+ManageWindow QPushButton#bt_installed, ManageWindow QPushButton#bt_refresh, ManageWindow QPushButton#suggestions, ManageWindow QPushButton[action_multiple = "true"] {
     font-weight: 500;
 }
 

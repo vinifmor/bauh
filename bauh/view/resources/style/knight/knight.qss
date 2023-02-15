@@ -247,14 +247,14 @@ ManageWindow QSearchBar#name_filter {
     color: @font.color;
 }
 
-QPushButton#bt_upgrade {
+QPushButton[action_multiple = "true"] {
     qproperty-icon: url("@style_dir/img/update.svg");
     border: 0.5px solid @upgrade.color;
     background: white;
     color: @font.color;
 }
 
-QPushButton#bt_upgrade:disabled {
+QPushButton[action_multiple = "true"]:disabled {
     color: @font.color;
     border-color: @font.color;
 }

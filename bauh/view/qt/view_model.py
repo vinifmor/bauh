@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 from bauh.api.abstract.model import SoftwarePackage, PackageStatus
 from bauh.view.util.translation import I18n
@@ -7,6 +8,11 @@ from bauh.view.util.translation import I18n
 class PackageViewStatus(Enum):
     LOADING = 0
     READY = 1
+
+
+class PackageAction(Enum):
+    INSTALL = 0
+    UPGRADE = 1
 
 
 def get_type_label(type_: str, gem: str, i18n: I18n) -> str:
@@ -19,6 +25,9 @@ class PackageView:
     def __init__(self, model: SoftwarePackage, i18n: I18n):
         self.model = None
         self.update_checked = None
+        self.install_checked: Optional[bool] = None
+        self.marked_action: Optional[PackageAction] = None
+        self.marked = False  # if the package is marked for a given action involving other packages (install, upgrade)
         self.status = None
         self.update_model(model)
         self.table_index = -1
