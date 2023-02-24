@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Dict, Any
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
@@ -958,7 +958,7 @@ class ApplyFilters(AsyncAction):
 
     signal_table = pyqtSignal(object)
 
-    def __init__(self, i18n: I18n, filters: dict = None, pkgs: List[PackageView] = None):
+    def __init__(self, i18n: I18n, filters: Optional[Dict[str, Any]] = None, pkgs: Optional[List[PackageView]] = None):
         super(ApplyFilters, self).__init__(i18n=i18n)
         self.pkgs = pkgs
         self.filters = filters
@@ -968,7 +968,7 @@ class ApplyFilters(AsyncAction):
         self.wait_table_update = False
 
     def run(self):
-        if self.pkgs:
+        if self.filters and self.pkgs:
             pkgs_info = commons.new_pkgs_info()
 
             name_filtering = bool(self.filters['name'])

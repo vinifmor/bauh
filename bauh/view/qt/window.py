@@ -4,7 +4,7 @@ import os.path
 import time
 from enum import Enum
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional, Union
+from typing import List, Type, Set, Tuple, Optional, Union, Any, Dict
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
@@ -124,6 +124,7 @@ class ManageWindow(QWidget):
         self.pkgs_to_install = []  # packages selected to install
 
         # packages that were previously available before a view change (e.g: 'to_install')
+        self.previous_filters: Optional[Dict[str, Any]] = None
         self.previous_pkgs: Optional[List[PackageView]] = None
         self.view: Optional[ManageWindowView] = None
         self.previous_view: Optional[ManageWindowView] = None
@@ -540,21 +541,67 @@ class ManageWindow(QWidget):
         else:
             self.table_container.setCursor(QCursor(Qt.WaitCursor))
 
-    def begin_apply_filters(self):
+    def begin_apply_filters(self, filters: Optional[Dict[str, Any]] = None):
+        # TODO, check if necessary
+        # if self.view != self.previous_view:
+        #     self.previous_filters = self.thread_apply_filters.filters  # saving previous filters state
+
         self.stop_notifying_package_states()
         self._begin_action(action_label=self.i18n['manage_window.status.filtering'],
                            action_id=ACTION_APPLY_FILTERS)
         self.comp_manager.disable_visible_from_groups(GROUP_UPPER_BAR, GROUP_LOWER_BTS)
         self.comp_manager.set_component_read_only(INP_NAME, True)
 
-        self.thread_apply_filters.filters = self._gen_filters()
+        self.thread_apply_filters.filters = filters if filters else self._gen_filters()
         self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
         self.setFocus(Qt.NoFocusReason)
 
+    def _change_combobox(self, component: QComboBox, selected: str, attr: Optional[str] = None,
+                         notify_change: bool = False):
+        num_items = component.count()
+        if selected and num_items > 0:
+            for idx in range(num_items):
+                if component.itemData(idx) == selected:
+                    if not notify_change:
+                        component.blockSignals(True)
+
+                    if attr:
+                        setattr(self, attr, selected)
+
+                    component.setCurrentIndex(idx)
+
+                    if not notify_change:
+                        component.blockSignals(False)
+
+                    break
+
+    def _change_checkbox(self, component: QCheckBox, checked: bool, attr: Optional[str] = None,
+                         notify_change: bool = False):
+        if not notify_change:
+            component.blockSignals(True)
+
+        if attr:
+            setattr(self, attr, checked)
+
+        component.setChecked(checked)
+
+        if not notify_change:
+            component.blockSignals(False)
+
+    def _set_filter_components(self, filters: Dict[str, Any], notify_changes: bool = True):
+        # TODO use save/restore component states from component manager instead ?
+        self._change_combobox(self.combo_filter_type, filters["type"], "type_filter", notify_changes)
+        self._change_combobox(self.combo_categories, filters["category"], "category_filter", notify_changes)
+        self._change_checkbox(self.check_apps, filters["only_apps"], "filter_only_apps", notify_changes)
+        self._change_checkbox(self.check_installed, filters["only_installed"], "filter_installed", notify_changes)
+        self._change_checkbox(self.check_updates, filters["updates"], "filter_updates", notify_changes)
+
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
+        self._set_filter_components(self.thread_apply_filters.filters, notify_changes=False)
         self.refresh_bt_upgrade_several()
+        self.handle_to_install_visibility()
         self._resize()
 
     def stop_notifying_package_states(self):
@@ -655,6 +702,7 @@ class ManageWindow(QWidget):
             self.begin_refresh_packages()
 
     def _finish_loading_installed(self):
+        self._change_view(ManageWindowView.INSTALLED)
         self._finish_action()
         self.comp_manager.set_group_visible(GROUP_VIEW_INSTALLED, True)
         self.update_pkgs(new_pkgs=None)
@@ -775,26 +823,28 @@ class ManageWindow(QWidget):
         self.comp_manager.set_components_visible(False)
         self._handle_console_option(False)
 
-        self.suggestions_requested = False  # FIXME
-        self.search_performed = False  # FIXME
+        self.suggestions_requested = False  # TODO refactor
+        self.search_performed = False  # TODO refactor
 
         self.thread_refresh.pkg_types = pkg_types
         self.thread_refresh.start()
 
     def _finish_refresh_packages(self, res: dict):
-        self._finish_action()
-        self._set_lower_buttons_visible(True)
-        self.comp_manager.set_component_visible(SEARCH_BAR, True)
-
         if self.search_performed:
             self._change_view(ManageWindowView.SEARCH)
+            visible_group = GROUP_VIEW_SEARCH
             self.comp_manager.set_group_visible(GROUP_VIEW_SEARCH, True)
         elif self.suggestions_requested:
             self._change_view(ManageWindowView.SUGGESTIONS)
-            self.comp_manager.set_group_visible(GROUP_VIEW_SEARCH, True)
+            visible_group = GROUP_VIEW_SEARCH
         else:
             self._change_view(ManageWindowView.INSTALLED)
-            self.comp_manager.set_group_visible(GROUP_VIEW_INSTALLED, True)
+            visible_group = GROUP_VIEW_INSTALLED
+
+        self._finish_action()
+        self._set_lower_buttons_visible(True)
+        self.comp_manager.set_component_visible(SEARCH_BAR, True)
+        self.comp_manager.set_group_visible(visible_group, True)
 
         if self.update_pkgs(res['installed'], types=res['types']):
             self._hide_filters_no_packages()
@@ -980,10 +1030,7 @@ class ManageWindow(QWidget):
 
         if show_to_install:
             self.comp_manager.set_component_visible(CHECK_TO_INSTALL, True)
-
-            if self.check_to_install.isChecked():
-                self.comp_manager.set_component_visible(BT_INSTALL_SEVERAL, True)
-
+            self.comp_manager.set_component_visible(BT_INSTALL_SEVERAL, self.check_to_install.isChecked())
             self._reorganize()
         else:
             self.comp_manager.set_group_visible(GROUP_TO_INSTALL, False)
@@ -1007,16 +1054,6 @@ class ManageWindow(QWidget):
                 self._change_checkbox(self.check_updates, False, 'filter_updates', trigger_filters)
 
             self.comp_manager.set_component_visible(CHECK_UPDATES, False)
-
-    def _change_checkbox(self, checkbox: QCheckBox, checked: bool, attr: str = None, trigger: bool = True):
-        if not trigger:
-            checkbox.blockSignals(True)
-
-        checkbox.setChecked(checked)
-
-        if not trigger:
-            setattr(self, attr, checked)
-            checkbox.blockSignals(False)
 
     def _gen_filters(self) -> dict:
         return {
@@ -1071,13 +1108,13 @@ class ManageWindow(QWidget):
                 return False
             else:
                 if not keep_filters:
-                    self._change_checkbox(self.check_apps, False, 'filter_only_apps', trigger=False)
+                    self._change_checkbox(self.check_apps, False, "filter_only_apps")
                     self.check_apps.setCheckable(False)
 
         else:
             if not keep_filters:
                 self.check_apps.setCheckable(True)
-                self._change_checkbox(self.check_apps, True, 'filter_only_apps', trigger=False)
+                self._change_checkbox(self.check_apps, True, "filter_only_apps")
 
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
@@ -1127,7 +1164,7 @@ class ManageWindow(QWidget):
                         break
 
         if not keep_state or not has_installed:
-            self._change_checkbox(self.check_installed, False, 'filter_installed', trigger=False)
+            self._change_checkbox(self.check_installed, False, 'filter_installed', notify_change=False)
 
         if hide:
             self.comp_manager.set_component_visible(CHECK_INSTALLED, False)
@@ -1324,6 +1361,12 @@ class ManageWindow(QWidget):
             self.comp_manager.restore_state(action_id)
 
         self.comp_manager.set_component_visible(SEARCH_BAR, True)
+
+        if self.view != ManageWindowView.TO_INSTALL:
+            # unchecking 'to_install' in case the current view has changed
+            self._change_checkbox(self.check_to_install, False)
+            self.handle_to_install_visibility()
+
         self._change_status()
         self._change_label_substatus('')
         self._set_table_enabled(True)
@@ -1454,7 +1497,6 @@ class ManageWindow(QWidget):
             self.update_pkgs(res['pkgs_found'])
             self._set_lower_buttons_visible(True)
             self._update_bts_installed_and_suggestions()
-            # TODO check if to_install should be displayed ?
             self.handle_to_install_visibility()
             self._hide_filters_no_packages()
             self._reorganize()
@@ -1841,20 +1883,21 @@ class ManageWindow(QWidget):
             self._update_package_filters()
 
     def _filter_to_install(self, status: int):
-        show_to_install = status == 2
+        if status == 2:  # show
+            self._change_checkbox(self.check_installed, False, "filter_installed")
+            self._change_checkbox(self.check_updates, False, "filter_updates")
+            self._change_checkbox(self.check_apps, False, "filter_only_apps")
+            previous_filters = self.previous_filters
 
-        if show_to_install:
             self._change_view(ManageWindowView.TO_INSTALL)
-            if self.pkgs_to_install:
-                self.update_pkgs(self.pkgs_to_install)
-                self.handle_to_install_visibility()
-        else:
-            # loads the other packages and applies the relevant filters
-            if self.previous_pkgs:
-                self._change_view(self.previous_view)
-                self.update_pkgs(self.previous_pkgs)
-            else:
-                self.begin_refresh_packages()
+            self.update_pkgs(self.pkgs_to_install)
+            self.handle_to_install_visibility()
+
+            if previous_filters:
+                self.begin_apply_filters(previous_filters)
+
+        elif not self._rollback_view():  # try reloading the previous view
+            self.begin_refresh_packages()
 
     def _handle_package_marked(self, pkg: PackageView, action: PackageAction):
         if action == PackageAction.UPGRADE:
@@ -1867,9 +1910,29 @@ class ManageWindow(QWidget):
             self.table_apps.removeRow(pkg.table_index)
             self.handle_to_install_visibility()
 
-    def _change_view(self, new_view: ManageWindowView):
-        self.previous_view = self.view if self.view != self.previous_view else None
-        self.view = new_view
+    def _rollback_view(self) -> bool:
+        if self.previous_pkgs and self.previous_view and self.view != self.previous_view:
+            previous_packages = self.previous_pkgs
+            previous_filters = self.previous_filters
 
-# TODO stopped testing searching for packages, adding one of them to install and unchecking to install to see if the previous search results would be returned
-# TODO refactor suggestions_requested and search_requested loading using the new ManageWindowView concept
+            self._change_view(self.previous_view)
+            self.update_pkgs(previous_packages)
+            self.begin_apply_filters(previous_filters)
+            return True
+
+        return False
+
+    def _change_view(self, new_view: ManageWindowView):
+        if self.view != new_view:
+            self.previous_filters = self.thread_apply_filters.filters
+            self.previous_view = self.view
+            self.previous_pkgs = self.pkgs_available
+            self.view = new_view
+
+# TODO
+# [ ] "to_install" checkbox enabled when you get back to the installed view without nothing to install
+# [ ] save previous filter states (check all sorts of filter states)
+# [X] not saving the filters for the installed view
+# [X] when you click the "bt installed", the installed checkbox comes pre-selected in case there are packages to install
+# [ ] check if other views are behaving well when switching between to_install and them
+# [ ]refactor suggestions_requested and search_requested loading using the new ManageWindowView concept
