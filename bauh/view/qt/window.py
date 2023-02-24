@@ -93,12 +93,12 @@ GROUP_UPPER_BAR = 4
 GROUP_LOWER_BTS = 5
 GROUP_TO_INSTALL = 6
 
+
 class ManageWindowView(Enum):
     INSTALLED = 0
     SEARCH = 1
     SUGGESTIONS = 2
     TO_INSTALL = 3
-
 
 
 class ManageWindow(QWidget):
@@ -591,6 +591,7 @@ class ManageWindow(QWidget):
 
     def _set_filter_components(self, filters: Dict[str, Any], notify_changes: bool = True):
         # TODO use save/restore component states from component manager instead ?
+        # TODO missing to_install ?
         self._change_combobox(self.combo_filter_type, filters["type"], "type_filter", notify_changes)
         self._change_combobox(self.combo_categories, filters["category"], "category_filter", notify_changes)
         self._change_checkbox(self.check_apps, filters["only_apps"], "filter_only_apps", notify_changes)
@@ -843,7 +844,6 @@ class ManageWindow(QWidget):
 
         self._finish_action()
         self._set_lower_buttons_visible(True)
-        self.comp_manager.set_component_visible(SEARCH_BAR, True)
         self.comp_manager.set_group_visible(visible_group, True)
 
         if self.update_pkgs(res['installed'], types=res['types']):
@@ -1034,7 +1034,7 @@ class ManageWindow(QWidget):
             self._reorganize()
         else:
             self.comp_manager.set_group_visible(GROUP_TO_INSTALL, False)
-            self.check_to_install.setChecked(False)
+            self._change_checkbox(self.check_to_install, False)
 
     def change_update_state(self, pkgs_info: dict, trigger_filters: bool = True, keep_selected: bool = False):
         self.refresh_bt_upgrade_several(pkgs_info)
@@ -1363,8 +1363,6 @@ class ManageWindow(QWidget):
         self.comp_manager.set_component_visible(SEARCH_BAR, True)
 
         if self.view != ManageWindowView.TO_INSTALL:
-            # unchecking 'to_install' in case the current view has changed
-            self._change_checkbox(self.check_to_install, False)
             self.handle_to_install_visibility()
 
         self._change_status()
@@ -1930,7 +1928,8 @@ class ManageWindow(QWidget):
             self.view = new_view
 
 # TODO
-# [ ] "to_install" checkbox enabled when you get back to the installed view without nothing to install
+# [ ] "to_install" checkbox enabled when you get back to the installed view without nothing to install (thank to self._finish_loading_installed calling self.comp_manager.set_group_visible after self.finish_action)
+# [ ] "to_install" does not display packages to install if you apply filters on the main view before adding packages to install
 # [ ] save previous filter states (check all sorts of filter states)
 # [X] not saving the filters for the installed view
 # [X] when you click the "bt installed", the installed checkbox comes pre-selected in case there are packages to install
