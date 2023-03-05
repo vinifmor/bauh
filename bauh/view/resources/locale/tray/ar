@@ -1,0 +1,8 @@
+tray.action.manage=البرامج
+tray.action.exit=مغادرة
+tray.action.about=عن الأداة
+tray.action.refreshing=تحديث
+tray.settings=إعدادات
+notification.update={} تحديث متوفر
+notification.updates={} تحديثات متوفرة
+tray.warning.update_available=النسخة {} الجديدة متاحة ({})
