@@ -100,6 +100,22 @@ class ManageWindowView(Enum):
     SUGGESTIONS = 2
     TO_INSTALL = 3
 
+class ManageWindowViewState:
+
+    def __init__(self, pkgs_available: Optional[List[PackageView]] = None,
+                 filters: Optional[Dict[str, Any]] = None):
+        self.filters = filters
+        self.pkgs_available = pkgs_available
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, ManageWindowViewState):
+            return self.__dict__ == other.__dict__
+
+        return False
+
+    def __hash__(self) -> int:
+        return hash(attr for attr in self.__dict__.values())
+
 
 class ManageWindow(QWidget):
     signal_user_res = pyqtSignal(bool)
@@ -128,6 +144,7 @@ class ManageWindow(QWidget):
         self.previous_pkgs: Optional[List[PackageView]] = None
         self.view: Optional[ManageWindowView] = None
         self.previous_view: Optional[ManageWindowView] = None
+        self.views: Dict[ManageWindowView, ManageWindowViewState] = dict()
 
         self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
@@ -181,7 +198,7 @@ class ManageWindow(QWidget):
         self.check_updates.stateChanged.connect(self._handle_updates_filter)
         self.check_updates.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_updates)
-        self.comp_manager.register_component(CHECK_UPDATES, self.check_updates)
+        self.comp_manager.register_component(CHECK_UPDATES, self.check_updates, attr="filter_updates")
 
         self.check_installed = QCheckBox()
         self.check_installed.setObjectName('check_installed')
@@ -191,7 +208,7 @@ class ManageWindow(QWidget):
         self.check_installed.stateChanged.connect(self._handle_filter_only_installed)
         self.check_installed.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_installed)
-        self.comp_manager.register_component(CHECK_INSTALLED, self.check_installed)
+        self.comp_manager.register_component(CHECK_INSTALLED, self.check_installed, attr="filter_installed")
 
         self.check_apps = QCheckBox()
         self.check_apps.setObjectName('check_apps')
@@ -201,7 +218,7 @@ class ManageWindow(QWidget):
         self.check_apps.stateChanged.connect(self._handle_filter_only_apps)
         self.check_apps.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_apps)
-        self.comp_manager.register_component(CHECK_APPS, self.check_apps)
+        self.comp_manager.register_component(CHECK_APPS, self.check_apps, attr="filter_only_apps")
 
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
@@ -218,7 +235,7 @@ class ManageWindow(QWidget):
         self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.combo_filter_type.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.combo_filter_type)
-        self.comp_manager.register_component(COMBO_TYPES, self.combo_filter_type)
+        self.comp_manager.register_component(COMBO_TYPES, self.combo_filter_type, attr="type_filter")
 
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
@@ -233,7 +250,7 @@ class ManageWindow(QWidget):
         self.combo_categories.sizePolicy().setRetainSizeWhenHidden(True)
         self.combo_categories.addItem('--- {} ---'.format(self.i18n['category'].capitalize()), self.any_category_filter)
         self.toolbar_filters.layout().addWidget(self.combo_categories)
-        self.comp_manager.register_component(COMBO_CATEGORIES, self.combo_categories)
+        self.comp_manager.register_component(COMBO_CATEGORIES, self.combo_categories, attr="category_filter")
 
         self.input_name = QSearchBar(search_callback=self.begin_apply_filters)
         self.input_name.palette().swap(self.combo_categories.palette())
@@ -249,29 +266,29 @@ class ManageWindow(QWidget):
 
         toolbar_bts = []
 
-        bt_inst = QPushButton()
-        bt_inst.setObjectName('bt_installed')
-        bt_inst.setProperty('root', 'true')
-        bt_inst.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_inst.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
-        bt_inst.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
-        bt_inst.clicked.connect(self._begin_loading_installed)
-        bt_inst.sizePolicy().setRetainSizeWhenHidden(True)
-        toolbar_bts.append(bt_inst)
-        self.toolbar_filters.layout().addWidget(bt_inst)
-        self.comp_manager.register_component(BT_INSTALLED, bt_inst)
+        bt_installed = QPushButton()
+        bt_installed.setObjectName('bt_installed')
+        bt_installed.setProperty('root', 'true')
+        bt_installed.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_installed.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
+        bt_installed.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
+        bt_installed.clicked.connect(self._begin_loading_installed)
+        bt_installed.sizePolicy().setRetainSizeWhenHidden(True)
+        toolbar_bts.append(bt_installed)
+        self.toolbar_filters.layout().addWidget(bt_installed)
+        self.comp_manager.register_component(BT_INSTALLED, bt_installed)
 
-        bt_ref = QPushButton()
-        bt_ref.setObjectName('bt_refresh')
-        bt_ref.setProperty('root', 'true')
-        bt_ref.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_ref.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
-        bt_ref.setText(self.i18n['manage_window.bt.refresh.text'])
-        bt_ref.clicked.connect(self.begin_refresh_packages)
-        bt_ref.sizePolicy().setRetainSizeWhenHidden(True)
-        toolbar_bts.append(bt_ref)
-        self.toolbar_filters.layout().addWidget(bt_ref)
-        self.comp_manager.register_component(BT_REFRESH, bt_ref)
+        bt_refresh = QPushButton()
+        bt_refresh.setObjectName('bt_refresh')
+        bt_refresh.setProperty('root', 'true')
+        bt_refresh.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_refresh.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
+        bt_refresh.setText(self.i18n['manage_window.bt.refresh.text'])
+        bt_refresh.clicked.connect(self.begin_refresh_packages)
+        bt_refresh.sizePolicy().setRetainSizeWhenHidden(True)
+        toolbar_bts.append(bt_refresh)
+        self.toolbar_filters.layout().addWidget(bt_refresh)
+        self.comp_manager.register_component(BT_REFRESH, bt_refresh)
 
         self.bt_upgrade_several = QPushButton()  # applies the same action for multiple packages (INSTALL, UPGRADE)
         self.bt_upgrade_several.setProperty('root', 'true')
@@ -557,24 +574,25 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.start()
         self.setFocus(Qt.NoFocusReason)
 
-    def _change_combobox(self, component: QComboBox, selected: str, attr: Optional[str] = None,
+    def _change_combobox(self, component: QComboBox, selected: Optional[str] = None, attr: Optional[str] = None,
                          notify_change: bool = False):
         num_items = component.count()
-        if selected and num_items > 0:
-            for idx in range(num_items):
-                if component.itemData(idx) == selected:
-                    if not notify_change:
-                        component.blockSignals(True)
+        if num_items > 0:
+            selected_idx = 0
 
-                    if attr:
-                        setattr(self, attr, selected)
+            if selected:
+                selected_idx = next((idx for idx in range(num_items) if component.itemData(idx) == selected), None)
 
-                    component.setCurrentIndex(idx)
+            if not notify_change:
+                component.blockSignals(True)
 
-                    if not notify_change:
-                        component.blockSignals(False)
+            if attr:
+                setattr(self, attr, selected)
 
-                    break
+            component.setCurrentIndex(selected_idx)
+
+            if not notify_change:
+                component.blockSignals(False)
 
     def _change_checkbox(self, component: QCheckBox, checked: bool, attr: Optional[str] = None,
                          notify_change: bool = False):
@@ -589,6 +607,19 @@ class ManageWindow(QWidget):
         if not notify_change:
             component.blockSignals(False)
 
+    def _chane_line_edit(self, component: QPlainTextEdit, text: str, attr: str = "", notify_change: bool = False):
+        if text is not None:
+            if not notify_change:
+                component.blockSignals(True)
+
+            if attr:
+                setattr(self, attr, text)
+
+            component.setPlainText(text)
+
+            if not notify_change:
+                component.blockSignals(False)
+
     def _set_filter_components(self, filters: Dict[str, Any], notify_changes: bool = True):
         # TODO use save/restore component states from component manager instead ?
         # TODO missing to_install ?
@@ -602,7 +633,7 @@ class ManageWindow(QWidget):
         self._finish_action(ACTION_APPLY_FILTERS)
         self._set_filter_components(self.thread_apply_filters.filters, notify_changes=False)
         self.refresh_bt_upgrade_several()
-        self.handle_to_install_visibility()
+        self.handle_to_install_state()
         self._resize()
 
     def stop_notifying_package_states(self):
@@ -704,8 +735,7 @@ class ManageWindow(QWidget):
 
     def _finish_loading_installed(self):
         self._change_view(ManageWindowView.INSTALLED)
-        self._finish_action()
-        self.comp_manager.set_group_visible(GROUP_VIEW_INSTALLED, True)
+        self._finish_action(visible_groups=(GROUP_VIEW_INSTALLED,))
         self.update_pkgs(new_pkgs=None)
         self._hide_filters_no_packages()
         self._update_bts_installed_and_suggestions()
@@ -842,16 +872,16 @@ class ManageWindow(QWidget):
             self._change_view(ManageWindowView.INSTALLED)
             visible_group = GROUP_VIEW_INSTALLED
 
-        self._finish_action()
+        self._finish_action(visible_groups=(visible_group,))
         self._set_lower_buttons_visible(True)
-        self.comp_manager.set_group_visible(visible_group, True)
+        # self.comp_manager.set_group_visible(visible_group, True)  FIXME remove
 
         if self.update_pkgs(res['installed'], types=res['types']):
             self._hide_filters_no_packages()
             self._update_bts_installed_and_suggestions()
             self._reorganize()
 
-        self.handle_to_install_visibility()
+        # self.handle_to_install_state() FIXME remove if not needed
 
         self.load_suggestions = False
         self.types_changed = False
@@ -1025,10 +1055,13 @@ class ManageWindow(QWidget):
         if show_bt_action_multiple:
             self._reorganize()
 
-    def handle_to_install_visibility(self):
+    def handle_to_install_state(self):
         show_to_install = bool(self.pkgs_to_install and next((p for p in self.pkgs_to_install if p.marked), None))
 
         if show_to_install:
+            if self.view != ManageWindowView.TO_INSTALL and self.check_to_install.isChecked():
+                self._change_checkbox(self.check_to_install, False, notify_change=False)
+
             self.comp_manager.set_component_visible(CHECK_TO_INSTALL, True)
             self.comp_manager.set_component_visible(BT_INSTALL_SEVERAL, self.check_to_install.isChecked())
             self._reorganize()
@@ -1349,7 +1382,7 @@ class ManageWindow(QWidget):
         if visible:
             self.comp_manager.set_component_visible(BT_CUSTOM_ACTIONS, bool(self.custom_actions))
 
-    def _finish_action(self, action_id: int = None):
+    def _finish_action(self, action_id: Optional[int] = None, visible_groups: Optional[Tuple[int,...]] = None):
         self.thread_animate_progress.stop = True
         self.thread_animate_progress.wait(msecs=1000)
 
@@ -1362,8 +1395,11 @@ class ManageWindow(QWidget):
 
         self.comp_manager.set_component_visible(SEARCH_BAR, True)
 
+        if visible_groups:
+            self.comp_manager.set_groups_visible(True, *visible_groups)
+
         if self.view != ManageWindowView.TO_INSTALL:
-            self.handle_to_install_visibility()
+            self.handle_to_install_state()
 
         self._change_status()
         self._change_label_substatus('')
@@ -1495,7 +1531,7 @@ class ManageWindow(QWidget):
             self.update_pkgs(res['pkgs_found'])
             self._set_lower_buttons_visible(True)
             self._update_bts_installed_and_suggestions()
-            self.handle_to_install_visibility()
+            self.handle_to_install_state()
             self._hide_filters_no_packages()
             self._reorganize()
         else:
@@ -1877,22 +1913,18 @@ class ManageWindow(QWidget):
             self.pkgs.remove(pkgv)
             self.pkgs_available.remove(pkgv)
             self.table_apps.removeRow(pkgv.table_index)
-            self.handle_to_install_visibility()
+            self.handle_to_install_state()
             self._update_package_filters()
 
     def _filter_to_install(self, status: int):
         if status == 2:  # show
-            self._change_checkbox(self.check_installed, False, "filter_installed")
-            self._change_checkbox(self.check_updates, False, "filter_updates")
-            self._change_checkbox(self.check_apps, False, "filter_only_apps")
-            previous_filters = self.previous_filters
-
-            self._change_view(ManageWindowView.TO_INSTALL)
-            self.update_pkgs(self.pkgs_to_install)
-            self.handle_to_install_visibility()
-
-            if previous_filters:
-                self.begin_apply_filters(previous_filters)
+            # tries to rollback to the previous "to install" state (if available)
+            if not self._rollback_view(target=ManageWindowView.TO_INSTALL):
+                # if the rollback did not happened, then loads a clean "to install" view
+                self._reset_filter_components(ignore=(self.check_to_install,))
+                self._change_view(ManageWindowView.TO_INSTALL)
+                self.update_pkgs(self.pkgs_to_install)
+                self.handle_to_install_state()
 
         elif not self._rollback_view():  # try reloading the previous view
             self.begin_refresh_packages()
@@ -1906,32 +1938,51 @@ class ManageWindow(QWidget):
                 self.pkgs_available.remove(pkg)
 
             self.table_apps.removeRow(pkg.table_index)
-            self.handle_to_install_visibility()
+            self.handle_to_install_state()
 
-    def _rollback_view(self) -> bool:
-        if self.previous_pkgs and self.previous_view and self.view != self.previous_view:
-            previous_packages = self.previous_pkgs
-            previous_filters = self.previous_filters
-
+    def _rollback_view(self, target: Optional[ManageWindowView] = None) -> bool:
+        if self.previous_view and self.view != self.previous_view and (not target or self.previous_view == target) \
+                and self.previous_view in self.views:
+            view_state = self.views[self.previous_view]
             self._change_view(self.previous_view)
-            self.update_pkgs(previous_packages)
-            self.begin_apply_filters(previous_filters)
+            self.update_pkgs(view_state.pkgs_available)
+            self.begin_apply_filters(view_state.filters)
             return True
 
         return False
 
     def _change_view(self, new_view: ManageWindowView):
         if self.view != new_view:
-            self.previous_filters = self.thread_apply_filters.filters
+            # saving the previous view state
+            previous_state = self.views.get(self.view)
+
+            if not previous_state:
+                previous_state = ManageWindowViewState()
+                self.views[self.view] = previous_state
+
             self.previous_view = self.view
-            self.previous_pkgs = self.pkgs_available
+            previous_state.filters = self.thread_apply_filters.filters
+            previous_state.pkgs_available = self.pkgs_available
+
             self.view = new_view
 
+    def _reset_filter_components(self, notify_changes: bool = False, ignore: Optional[Tuple[QWidget,...]] = None):
+        for widget, attr in self.comp_manager.gen_group_components(GROUP_FILTERS):
+            if not ignore or widget not in ignore:
+                if isinstance(widget, QComboBox):
+                    self._change_combobox(widget, None, attr=attr, notify_change=notify_changes)
+                elif isinstance(widget, QCheckBox):
+                    self._change_checkbox(widget, False, attr=attr, notify_change=notify_changes)
+                elif isinstance(widget, QPlainTextEdit):
+                    self._chane_line_edit(widget, "", attr=attr, notify_change=notify_changes)
+
 # TODO
-# [ ] "to_install" checkbox enabled when you get back to the installed view without nothing to install (thank to self._finish_loading_installed calling self.comp_manager.set_group_visible after self.finish_action)
+# [ ] "to_install" filters being kept when switching back/forth (scenario: search, mark to install, click "to install", filter by category,  click "installed", click "to_install", unclick "to_install"
+# [ ] "to_install" checkbox not checked when clicked
+# [ ] when returning to the previous view, if not "to_install", the filters are not being applied (happened with the "installed" view_
+# [ ] search, mark a package to install, click on "to_install", click on "installed" = the "to_install" checkbox will remain clicked
+# [ ] Check "Apps" filter on the 'to_install' view
 # [ ] "to_install" does not display packages to install if you apply filters on the main view before adding packages to install
 # [ ] save previous filter states (check all sorts of filter states)
-# [X] not saving the filters for the installed view
-# [X] when you click the "bt installed", the installed checkbox comes pre-selected in case there are packages to install
 # [ ] check if other views are behaving well when switching between to_install and them
 # [ ]refactor suggestions_requested and search_requested loading using the new ManageWindowView concept

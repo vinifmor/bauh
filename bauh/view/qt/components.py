@@ -1,7 +1,7 @@
 import os
 import traceback
 from pathlib import Path
-from typing import Tuple, Dict, Optional, Set
+from typing import Tuple, Dict, Optional, Set, Generator
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon, QIntValidator, QCursor, QFocusEvent
@@ -24,8 +24,9 @@ class QtComponentsManager:
         self.group_of_groups = {}
         self._saved_states = {}
 
-    def register_component(self, component_id: int, instance: QWidget, action: Optional[QAction] = None):
-        comp = (instance, action, {'v': True, 'e': True, 'r': False})
+    def register_component(self, component_id: int, instance: QWidget, action: Optional[QAction] = None,
+                           attr: Optional[str] = None):
+        comp = (instance, action, {'v': True, 'e': True, 'r': False}, attr)
         self.components[component_id] = comp
         self._save_state(comp)
 
@@ -37,6 +38,17 @@ class QtComponentsManager:
 
     def get_subgroups(self, root_group: int) -> Set[str]:
         return self.group_of_groups.get(root_group, set())
+
+    def gen_group_components(self, group_id: int) -> Generator[Tuple[QWidget, str], None, None]:
+        if group_id:
+            component_ids = self.groups.get(group_id)
+
+            if component_ids:
+                for id_ in component_ids:
+                    comp_tuple = self.components.get(id_)
+
+                    if comp_tuple:
+                        yield comp_tuple[0], comp_tuple[-1]
 
     def set_components_visible(self, visible: bool, *ids: int):
         if ids:
