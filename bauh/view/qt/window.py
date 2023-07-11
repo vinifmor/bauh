@@ -581,7 +581,7 @@ class ManageWindow(QWidget):
             selected_idx = 0
 
             if selected:
-                selected_idx = next((idx for idx in range(num_items) if component.itemData(idx) == selected), None)
+                selected_idx = next((idx for idx in range(num_items) if component.itemData(idx) == selected), 0)
 
             if not notify_change:
                 component.blockSignals(True)
@@ -1920,7 +1920,7 @@ class ManageWindow(QWidget):
         if status == 2:  # show
             # tries to rollback to the previous "to install" state (if available)
             if not self._rollback_view(target=ManageWindowView.TO_INSTALL):
-                # if the rollback did not happened, then loads a clean "to install" view
+                # if the rollback did not happen, then loads a clean "to install" view
                 self._reset_filter_components(ignore=(self.check_to_install,))
                 self._change_view(ManageWindowView.TO_INSTALL)
                 self.update_pkgs(self.pkgs_to_install)
