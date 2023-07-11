@@ -122,7 +122,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             else:
                 return False
 
-        appim = AppImage(i18n=self.i18n, imported=True)
+        appim = AppImage(i18n=self.i18n, imported=True, manual_update=True)
         appim.name = input_name.get_value().strip()
         appim.local_file_path = file_chooser.file_path
         appim.version = input_version.get_value()
@@ -168,6 +168,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
         pkg.local_file_path = file_chooser.file_path
         pkg.version = input_version.get_value()
+        pkg.manual_update = True
 
         reqs = UpgradeRequirements(to_install=None, to_remove=None, to_upgrade=[UpgradeRequirement(pkg=pkg)], cannot_upgrade=None)
         return self.upgrade(reqs, root_password=root_password, watcher=watcher)
@@ -368,6 +369,16 @@ class AppImageManager(SoftwareManager, SettingsController):
 
             download_data = None
 
+            # always changing the 'imported' field based on the 'manual_update' flag that means
+            # "the user is manually installing/updating the AppImage"
+            if not req.pkg.manual_update:
+                req.pkg.imported = False
+
+                if req.pkg.categories and "Imported" in req.pkg.categories:
+                    # removing the imported category in case the file is not considered imported anymore
+                    req.pkg.categories.remove("Imported")
+
+            # manual file updates do not required download it
             if not req.pkg.imported:
                 download_data = self._download(req.pkg, watcher)
 
@@ -593,8 +604,8 @@ class AppImageManager(SoftwareManager, SettingsController):
         Path(out_dir).mkdir(parents=True, exist_ok=True)
         pkg.install_dir = out_dir
 
-        if pkg.imported:
-
+        # when the package is being imported/upgraded there is no need to download it
+        if pkg.manual_update:
             downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
 
             install_file_path = out_dir + '/' + file_name

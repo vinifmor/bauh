@@ -48,7 +48,7 @@ class AppImage(SoftwarePackage):
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
                  i18n: I18n = None, install_dir: str = None, updates_ignored: bool = False,
-                 symlink: str = None, **kwargs):
+                 symlink: str = None, manual_update: bool = False, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
@@ -66,6 +66,7 @@ class AppImage(SoftwarePackage):
         self.install_dir = install_dir
         self.updates_ignored = updates_ignored
         self.symlink = symlink
+        self.manual_update = manual_update  # True when the user is manually installing/upgrading an AppImage file
 
     def __repr__(self):
         return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
