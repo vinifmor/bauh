@@ -11,7 +11,7 @@ class InternetChecker:
             return False
 
         try:
-            socket.gethostbyname('google.com')
+            socket.gethostbyname("w3.org")
             return True
         except Exception:
             return False
