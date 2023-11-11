@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Contributions
 - German translations by [Mape6](https://github.com/Mape6)
 - Russian translations by [KoromeloDev](https://github.com/KoromeloDev)
+- Fix [#329](https://github.com/vinifmor/bauh/issues/329) by [w568w](https://github.com/w568w)
 
 ## [0.10.5] 2022-12-17
 
