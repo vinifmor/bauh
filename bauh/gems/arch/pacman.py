@@ -145,9 +145,9 @@ def map_packages(names: Optional[Iterable[str]] = None, remote: bool = False, si
         thread_ignored.join()
 
         if ignored:
-            to_del = set()
-
             for key in ('signed', 'not_signed'):
+                to_del = set()
+                
                 if pkgs.get(key):
                     for pkg in pkgs[key].keys():
                         if pkg in ignored:
