@@ -144,14 +144,13 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         return available
 
     def _search(self, word: str, is_url: bool, man: SoftwareManager, disk_loader, res: SearchResult):
-        if self._can_work(man):
-            mti = time.time()
-            apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url, limit=-1)
-            mtf = time.time()
-            self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.8f} seconds')
+        mti = time.time()
+        apps_found = man.search(words=word, disk_loader=disk_loader, is_url=is_url, limit=-1)
+        mtf = time.time()
+        self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.8f} seconds')
 
-            res.installed.extend(apps_found.installed)
-            res.new.extend(apps_found.new)
+        res.installed.extend(apps_found.installed)
+        res.new.extend(apps_found.new)
 
     def search(self, words: str, disk_loader: DiskCacheLoader = None, limit: int = -1, is_url: bool = False) -> SearchResult:
         ti = time.time()
@@ -171,9 +170,10 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 threads = []
 
                 for man in self.managers:
-                    t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
-                    t.start()
-                    threads.append(t)
+                    if self._can_work(man):
+                        t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
+                        t.start()
+                        threads.append(t)
 
                 for t in threads:
                     t.join()
