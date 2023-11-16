@@ -1,11 +1,11 @@
-import os
+import re
 import re
 import shutil
 import time
 import traceback
 from subprocess import Popen, STDOUT
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable, Pattern
+from typing import List, Set, Type, Tuple, Dict, Optional, Generator, Callable
 
 from bauh.api.abstract.controller import SoftwareManager, SearchResult, ApplicationContext, UpgradeRequirements, \
     UpgradeRequirement, TransactionResult, SoftwareAction, SettingsView, SettingsController
@@ -13,7 +13,7 @@ from bauh.api.abstract.disk import DiskCacheLoader
 from bauh.api.abstract.handler import ProcessWatcher, TaskManager
 from bauh.api.abstract.model import SoftwarePackage, PackageUpdate, PackageHistory, PackageSuggestion, \
     CustomSoftwareAction
-from bauh.api.abstract.view import ViewComponent, TabGroupComponent, MessageType, PanelComponent
+from bauh.api.abstract.view import TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
@@ -206,6 +206,15 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
     def _get_package_lower_name(self, pkg: SoftwarePackage):
         return pkg.name.lower()
 
+    def _fill_read_installed(self, man: SoftwareManager, disk_loader: DiskCacheLoader, internet_available: bool,
+                             output: List[SearchResult]):
+        mti = time.time()
+        man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=internet_available,
+                                     limit=-1, only_apps=False)
+        mtf = time.time()
+        self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.4f} seconds')
+        output.append(man_res)
+
     def read_installed(self, disk_loader: DiskCacheLoader = None, limit: int = -1, only_apps: bool = False, pkg_types: Set[Type[SoftwarePackage]] = None, internet_available: bool = None) -> SearchResult:
         ti = time.time()
         self._wait_to_be_ready()
@@ -215,6 +224,9 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
         disk_loader = None
 
         net_available = self.context.is_internet_available()
+        read_threads = list()
+        results = list()
+
         if not pkg_types:  # any type
             for man in self.managers:
                 if self._can_work(man):
@@ -222,13 +234,9 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
-                    mtf = time.time()
-                    self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.2f} seconds')
-
-                    res.installed.extend(man_res.installed)
-                    res.total += man_res.total
+                    t = Thread(target=self._fill_read_installed, args=(man, disk_loader, net_available, results))
+                    t.start()
+                    read_threads.append(t)
         else:
             man_already_used = []
 
@@ -240,17 +248,21 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    mti = time.time()
-                    man_res = man.read_installed(disk_loader=disk_loader, pkg_types=None, internet_available=net_available)
-                    mtf = time.time()
-                    self.logger.info(f'{man.__class__.__name__} took {mtf - mti:.2f} seconds')
+                    t = Thread(target=self._fill_read_installed, args=(man, disk_loader, net_available, results))
+                    t.start()
+                    read_threads.append(t)
 
-                    res.installed.extend(man_res.installed)
-                    res.total += man_res.total
+        for t in read_threads:
+            t.join()
 
         if disk_loader:
             disk_loader.stop_working()
             disk_loader.join()
+
+        for result in results:
+            if result.installed:
+                res.installed.extend(result.installed)
+                res.total += result.total
 
         if res.installed:
             for p in res.installed:
