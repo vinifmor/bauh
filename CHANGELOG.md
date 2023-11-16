@@ -9,14 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - General
   - replaced the internet checking old host (`google.com`) by a more general one (`w3.org`) [#300](https://github.com/vinifmor/bauh/issues/300)
   - parallelized installed packages reading
+  - parallelized search
 - UI
   - the "Skip" button on the initialization panel is now enabled after 10 seconds [#310](https://github.com/vinifmor/bauh/issues/310)
 
 ### Fixes
 - AppImage
   - upgrade fails when the package was initially imported, but later added to bauh's database [#321](https://github.com/vinifmor/bauh/issues/321)
-- General
-  - search sometimes hanging when there is only one package type enabled
 
 ### Contributions
 - German translations by [Mape6](https://github.com/Mape6)
