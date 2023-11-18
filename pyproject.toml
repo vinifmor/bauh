@@ -50,8 +50,6 @@ license-files = ["LICENSE"]
 version = {attr = "bauh.__version__"}
 
 [tool.setuptools.packages.find]
-namespaces = false
-include = ["bauh"]
 exclude = ["tests"]
 
 [tool.setuptools.package-data]
