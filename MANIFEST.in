@@ -1,6 +1,8 @@
 include LICENSE CHANGELOG.md README.md
 include requirements.txt
 recursive-include bauh/desktop *
+recursive-exclude bauh/desktop *.orig
 recursive-include bauh/view/resources *
+recursive-exclude bauh/view/resources *.orig
 recursive-include bauh/gems/*/resources *
-recursive-include tests *
+recursive-exclude bauh/gems/*/resources *.orig
