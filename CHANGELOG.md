@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - replaced the internet checking old host (`google.com`) by a more general one (`w3.org`) [#300](https://github.com/vinifmor/bauh/issues/300)
   - parallelized installed packages reading
   - parallelized search
+  - adding a new project definition/setup (`pyproject.toml`) file to comply with the latest standards
 - UI
   - the "Skip" button on the initialization panel is now enabled after 10 seconds [#310](https://github.com/vinifmor/bauh/issues/310)
 
