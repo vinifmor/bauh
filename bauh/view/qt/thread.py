@@ -1109,7 +1109,7 @@ class URLFileDownloader(QThread):
 
     signal_downloaded = pyqtSignal(str, bytes, object)
 
-    def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 10,
+    def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 5,
                  max_downloads: int = -1, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._queue = Queue()

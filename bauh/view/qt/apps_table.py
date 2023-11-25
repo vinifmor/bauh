@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply
+from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
@@ -218,37 +218,6 @@ class PackagesTable(QTableWidget):
                               i18n=self.i18n).ask():
             self.window.install(pkgv)
 
-    def _load_icon_and_cache(self, http_response: QNetworkReply):
-        icon_url = http_response.request().url().toString()
-
-        icon_data = self.icon_cache.get(icon_url)
-        icon_was_cached = True
-
-        if not icon_data:
-            icon_bytes = http_response.readAll()
-
-            if not icon_bytes:
-                return
-
-            icon_was_cached = False
-            pixmap = QPixmap()
-            pixmap.loadFromData(icon_bytes)
-
-            if not pixmap.isNull():
-                icon = QIcon(pixmap)
-                icon_data = {'icon': icon, 'bytes': icon_bytes}
-                self.icon_cache.add(icon_url, icon_data)
-
-        if icon_data:
-            for idx, app in enumerate(self.window.pkgs):
-                if app.model.icon_url == icon_url:
-                    self._update_icon(self.cellWidget(idx, 0), icon_data['icon'])
-
-                    if app.model.supports_disk_cache() and app.model.get_disk_icon_path() and icon_data['bytes']:
-                        if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
-                            self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'],
-                                                              only_icon=True)
-
     def _update_pkg_icon(self, url_: str,  content: Optional[bytes], table_idx: int):
         if not content:
             return content
@@ -306,13 +275,6 @@ class PackagesTable(QTableWidget):
                 self._update_row(pkg, screen_width, update_check_enabled)
 
             self.scrollToTop()
-
-    def _setup_file_downloader(self, max_workers: int = 50, max_downloads: int = -1) -> None:
-        self.file_downloader = URLFileDownloader(parent=self,
-                                                 max_workers=max_workers,
-                                                 max_downloads=max_downloads)
-        self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
-        self.file_downloader.start()
 
     def _update_row(self, pkg: PackageView, screen_width: int,
                     update_check_enabled: bool = True, change_update_col: bool = True):
@@ -636,3 +598,14 @@ class PackagesTable(QTableWidget):
 
     def get_width(self):
         return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])
+
+    def _setup_file_downloader(self, max_workers: int = 50, max_downloads: int = -1) -> None:
+        self.file_downloader = URLFileDownloader(parent=self,
+                                                 max_workers=max_workers,
+                                                 max_downloads=max_downloads)
+        self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
+        self.file_downloader.start()
+
+    def stop_file_downloader(self) -> None:
+        if self.file_downloader:
+            self.file_downloader.stop()
