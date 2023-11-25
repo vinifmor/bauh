@@ -4,9 +4,9 @@ from functools import reduce
 from threading import Lock
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QUrl, QSize
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
@@ -16,6 +16,7 @@ from bauh.commons.html import strip_html, bold
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.qt_utils import get_current_screen_geometry
+from bauh.view.qt.thread import URLFileDownloader
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
@@ -88,8 +89,7 @@ class PackagesTable(QTableWidget):
         self.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.verticalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.network_man = QNetworkAccessManager()
-        self.network_man.finished.connect(self._load_icon_and_cache)
+        self.file_downloader: Optional[URLFileDownloader] = None
 
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
@@ -183,10 +183,9 @@ class PackagesTable(QTableWidget):
         self._update_row(pkg, screen_width, update_check_enabled=False, change_update_col=False)
 
     def update_package(self, pkg: PackageView, screen_width: int, change_update_col: bool = False):
-        if self.download_icons and pkg.model.icon_url:
-            icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
-            icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-            self.network_man.get(icon_request)
+        if self.download_icons and pkg.model.icon_url and pkg.model.icon_url.startswith("http"):
+            self._setup_file_downloader(max_workers=1, max_downloads=1)
+            self.file_downloader.get(pkg.model.icon_url, pkg.table_index)
 
         self._update_row(pkg, screen_width, change_update_col=change_update_col)
 
@@ -250,6 +249,38 @@ class PackagesTable(QTableWidget):
                             self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'],
                                                               only_icon=True)
 
+    def _update_pkg_icon(self, url_: str,  content: Optional[bytes], table_idx: int):
+        if not content:
+            return content
+
+        icon_data = self.icon_cache.get(url_)
+        icon_was_cached = True
+
+        if not icon_data:
+            icon_bytes = content
+
+            if not icon_bytes:
+                return
+
+            icon_was_cached = False
+            pixmap = QPixmap()
+            pixmap.loadFromData(icon_bytes)
+
+            if not pixmap.isNull():
+                icon = QIcon(pixmap)
+                icon_data = {'icon': icon, 'bytes': icon_bytes}
+                self.icon_cache.add(url_, icon_data)
+
+        if icon_data:
+            for pkg in self.window.pkgs:
+                if pkg.table_index == table_idx:
+                    self._update_icon(self.cellWidget(table_idx, 0), icon_data['icon'])
+
+                    if pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and icon_data['bytes']:
+                        if not icon_was_cached or not os.path.exists(pkg.model.get_disk_icon_path()):
+                            self.window.manager.cache_to_disk(pkg=pkg.model, icon_bytes=icon_data['bytes'],
+                                                              only_icon=True)
+
     def update_packages(self, pkgs: List[PackageView], update_check_enabled: bool = True):
         self.setRowCount(0)  # removes the overwrite effect when updates the table
         self.setEnabled(True)
@@ -259,17 +290,29 @@ class PackagesTable(QTableWidget):
             self.setColumnCount(self.COL_NUMBER if update_check_enabled else self.COL_NUMBER - 1)
             self.setRowCount(len(pkgs))
 
+            file_downloader_defined = False
+
             for idx, pkg in enumerate(pkgs):
                 pkg.table_index = idx
 
-                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url:
-                    icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
-                    icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-                    self.network_man.get(icon_request)
+                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url \
+                        and pkg.model.icon_url.startswith("http"):
+                    if not file_downloader_defined:
+                        self._setup_file_downloader()
+                        file_downloader_defined = True
+
+                    self.file_downloader.get(pkg.model.icon_url, idx)
 
                 self._update_row(pkg, screen_width, update_check_enabled)
 
             self.scrollToTop()
+
+    def _setup_file_downloader(self, max_workers: int = 50, max_downloads: int = -1) -> None:
+        self.file_downloader = URLFileDownloader(parent=self,
+                                                 max_workers=max_workers,
+                                                 max_downloads=max_downloads)
+        self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
+        self.file_downloader.start()
 
     def _update_row(self, pkg: PackageView, screen_width: int,
                     update_check_enabled: bool = True, change_update_col: bool = True):
