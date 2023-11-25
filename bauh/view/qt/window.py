@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QMoveEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
@@ -598,6 +598,7 @@ class ManageWindow(QWidget):
 
     def _begin_loading_installed(self):
         if self.installed_loaded:
+            self.table_apps.stop_file_downloader()
             self.search_bar.clear()
             self.input_name.set_text('')
             self._begin_action(self.i18n['manage_window.status.installed'])
@@ -725,6 +726,7 @@ class ManageWindow(QWidget):
         self.textarea_details.hide()
 
     def begin_refresh_packages(self, pkg_types: Optional[Set[Type[SoftwarePackage]]] = None):
+        self.table_apps.stop_file_downloader()
         self.search_bar.clear()
 
         self._begin_action(self.i18n['manage_window.status.refreshing'])
@@ -761,6 +763,7 @@ class ManageWindow(QWidget):
         self._finish_refresh_packages({'installed': None, 'types': None}, as_installed=False)
 
     def begin_load_suggestions(self, filter_installed: bool):
+        self.table_apps.stop_file_downloader()
         self.search_bar.clear()
         self._begin_action(self.i18n['manage_window.status.suggestions'])
         self._handle_console_option(False)
@@ -1265,8 +1268,9 @@ class ManageWindow(QWidget):
         if not proceed:
             return
 
-        self._begin_action(action_label='{} {}'.format(self.i18n['manage_window.status.downgrading'], pkg.model.name),
-                           action_id=ACTION_DOWNGRADE)
+        self.table_apps.stop_file_downloader()
+        label = f"{self.i18n['manage_window.status.downgrading']} {pkg.model.name}"
+        self._begin_action(action_label=label, action_id=ACTION_DOWNGRADE)
         self.comp_manager.set_components_visible(False)
         self._handle_console_option(True)
 
@@ -1360,16 +1364,15 @@ class ManageWindow(QWidget):
             dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
             dialog_history.exec_()
 
-    def _begin_search(self, word, action_id: int = None):
-        self.filter_updates = False
-        self.filter_installed = False
-        self._begin_action('{} {}'.format(self.i18n['manage_window.status.searching'], word if word else ''), action_id=action_id)
-
     def search(self):
         word = self.search_bar.text().strip()
         if word:
+            self.table_apps.stop_file_downloader()
             self._handle_console(False)
-            self._begin_search(word, action_id=ACTION_SEARCH)
+            self.filter_updates = False
+            self.filter_installed = False
+            label = f"{self.i18n['manage_window.status.searching']} {word if word else ''}"
+            self._begin_action(action_label=label, action_id=ACTION_SEARCH)
             self.comp_manager.set_components_visible(False)
             self.thread_search.word = word
             self.thread_search.start()
@@ -1544,6 +1547,9 @@ class ManageWindow(QWidget):
                 action_label = action_label.format(pkg.model.name)
             else:
                 action_label += f' {pkg.model.name}'
+
+        if action.refresh:
+            self.table_apps.stop_file_downloader()
 
         self._begin_action(action_label=action_label, action_id=ACTION_CUSTOM_ACTION)
         self.comp_manager.set_components_visible(False)

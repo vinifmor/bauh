@@ -1,10 +1,13 @@
 import os
 import re
+import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
+from queue import Queue
 from typing import List, Type, Set, Tuple, Optional
 
 import requests
@@ -1100,3 +1103,52 @@ class StartAsyncAction(QThread):
             self.msleep(self.delay)
 
         self.signal_start.emit()
+
+
+class URLFileDownloader(QThread):
+
+    signal_downloaded = pyqtSignal(str, bytes, object)
+
+    def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 5,
+                 max_downloads: int = -1, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self._queue = Queue()
+        self._max_workers = max_workers
+        self._request_timeout = request_timeout
+        self._inactivity_timeout = inactivity_timeout
+        self._max_downloads = max_downloads
+        self._stop = False
+
+    def _get(self, url_: str, id_: Optional[object]):
+        try:
+            res = requests.get(url=url_, timeout=self._request_timeout)
+            content = res.content if res.status_code == 200 else None
+            self.signal_downloaded.emit(url_, content, id_)
+        except Exception as e:
+            sys.stderr.write(f"[ERROR] could not download file from '{url_}': "
+                             f"{e.__class__.__name__}({str(e.args)})\n")
+
+    def run(self) -> None:
+        download_count = 0
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+            while not self._stop and (self._max_downloads <= 0 or download_count < self._max_downloads):
+                try:
+                    url_, id_ = self._queue.get(timeout=self._inactivity_timeout)
+                    executor.submit(self._get, url_, id_)
+                    download_count += 1
+                except Exception:
+                    self._stop = True
+
+            executor.shutdown(wait=False, cancel_futures=True)
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def get(self, url: str, id_: Optional[object]):
+        final_url = url.strip() if url else None
+
+        if final_url:
+            if final_url.startswith("http"):
+                self._queue.put((final_url, id_))
+            else:
+                self.signal_downloaded.emit(final_url, None, id_)
