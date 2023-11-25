@@ -142,6 +142,7 @@ arch.downgrade.version_found=Versão atual do pacote encontrada
 arch.aur.error.missing_root_dep={dep} não está instalado e é necessário para a instalação de pacotes do {aur} como o usuário {root}
 arch.aur.error.add_builder_user=Não foi possível criar o usuário {user} para a construção de pacotes do {aur}
 arch.info.00_pkg_build=pkgbuild
+arch.info.00_url=URL
 arch.info.01_id=id
 arch.info.02_name=nome
 arch.info.03_description=descrição

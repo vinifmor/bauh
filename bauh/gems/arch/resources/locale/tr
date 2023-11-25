@@ -143,6 +143,7 @@ arch.downgrade.version_found=Geçerli paket sürümü bulundu
 arch.aur.error.missing_root_dep={dep} is not installed and is required for installing {aur} packages as the {root} user
 arch.aur.error.add_builder_user=It was not possible to create the user {user} for building {aur} packages
 arch.info.00_pkg_build=pkgbuild
+arch.info.00_url=URL
 arch.info.01_id=kimlik
 arch.info.02_name=isim
 arch.info.03_description=açıklama

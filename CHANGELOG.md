@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## NEXT
 ### Improvements
+- Arch
+  - adding the AUR's URL on the package information dialog [#339](https://github.com/vinifmor/bauh/issues/339)
 - General
   - replaced the internet checking old host (`google.com`) by a more general one (`w3.org`) [#300](https://github.com/vinifmor/bauh/issues/300)
   - parallelized installed packages reading

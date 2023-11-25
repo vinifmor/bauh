@@ -143,6 +143,7 @@ arch.downgrade.version_found=Найдена текущая версия паке
 arch.aur.error.missing_root_dep={dep} не установлен и необходим для установки пакетов {aur} от имени пользователя {root}
 arch.aur.error.add_builder_user=Не удалось создать пользователя {user} для сборки пакетов {aur}.
 arch.info.00_pkg_build=PKGBUILD
+arch.info.00_url=URL
 arch.info.01_id=Идентификатор
 arch.info.02_name=Имя
 arch.info.03_description=Описание
