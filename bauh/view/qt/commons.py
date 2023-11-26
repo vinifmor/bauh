@@ -1,10 +1,10 @@
-from typing import Iterable, List
+from typing import Iterable, List, Dict, Any
 
 from bauh.api.abstract.model import SoftwarePackage
 from bauh.view.qt.view_model import PackageView
 
 
-def new_pkgs_info() -> dict:
+def new_pkgs_info() -> Dict[str, Any]:
     return {'apps_count': 0,  # number of application packages
             'napps_count': 0,  # number of not application packages (libraries, runtimes or something else)
             'available_types': {},  # available package types in 'new_pkgs'
@@ -18,7 +18,75 @@ def new_pkgs_info() -> dict:
             'pkgs': []}  # total packages
 
 
-def update_info(pkgv: PackageView, pkgs_info: dict):
+def new_package_index() -> Dict[str, Any]:
+    return {
+        'installed': {
+            'any': list(),
+            'updates': {
+                'type': {
+                    'any': {
+                        # category level
+                        'any': list()
+                    }
+                }
+            },
+            'no_updates': {
+                'type': {
+                    'any': {
+                        # category level
+                        'any': list()
+                    }
+                }
+            }
+        },
+        'uninstalled': {
+            'any': list(),
+            'type': {
+                'any': {
+                    # category level
+                    'any': list()
+                }
+            }
+        }
+    }
+
+def add_to_index(pkgv: PackageView, index: Dict[str, Dict[str, Any]]) -> None:
+    root_idx = index['installed' if pkgv.model.installed else 'uninstalled']
+    root_idx['any'].append(pkgv)
+
+    if pkgv.model.installed and not pkgv.model.is_update_ignored and pkgv.model.update:
+        update_lvl = index['installed']['updates']
+    else:
+        update_lvl = index['installed']['no_updates']
+
+    # any type and category
+    update_lvl['type']['any']['any'].append(pkgv)
+
+    # specific type
+    type_lvl = update_lvl['type'].get(pkgv.model.get_type())
+
+    if not type_lvl:
+        type_lvl = {'any': list()}
+        update_lvl[pkgv.model.get_type()] = type_lvl
+
+    # specific type + any category
+    type_lvl['any'].append(pkgv)
+
+    if pkgv.model.categories:
+        for category in pkgv.model.categories:
+            clean_category = category.lower().strip()
+            category_lvl = type_lvl.get(clean_category)
+
+            if not category_lvl:
+                category_lvl = list()
+                type_lvl[clean_category] = category_lvl
+
+            category_lvl.append(pkgv)
+
+
+
+
+def update_info(pkgv: PackageView, pkgs_info: Dict[str, Any]):
     pkgs_info['available_types'][pkgv.model.get_type()] = {'icon': pkgv.model.get_type_icon_path(), 'label': pkgv.get_type_label()}
 
     if pkgv.model.is_application():

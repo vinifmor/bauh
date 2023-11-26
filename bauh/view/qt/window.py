@@ -3,7 +3,7 @@ import operator
 import os.path
 import time
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Dict, Any
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
 from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
@@ -110,6 +110,7 @@ class ManageWindow(QWidget):
         self.pkgs = []  # packages current loaded in the table
         self.pkgs_available = []  # all packages loaded in memory
         self.pkgs_installed = []  # cached installed packages
+        self.pkg_idx: Optional[Dict[str, Any]] = None  # all packages available indexed by the available filters
         self.display_limit = config['ui']['table']['max_displayed']
         self.icon_cache = icon_cache
         self.config = config
@@ -969,6 +970,7 @@ class ManageWindow(QWidget):
     def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
+        pkg_idx = commons.new_package_index()
         filters = self._gen_filters(ignore_updates=ignore_updates)
 
         if new_pkgs is not None:
@@ -979,19 +981,22 @@ class ManageWindow(QWidget):
                 self.pkgs_installed = []
 
             for pkg in new_pkgs:
-                app_model = PackageView(model=pkg, i18n=self.i18n)
-                commons.update_info(app_model, pkgs_info)
-                commons.apply_filters(app_model, filters, pkgs_info)
+                pkgv = PackageView(model=pkg, i18n=self.i18n)
+                commons.update_info(pkgv, pkgs_info)
+                commons.add_to_index(pkgv, pkg_idx)
+                commons.apply_filters(pkgv, filters, pkgs_info)
 
             if old_installed and types:
                 for pkgv in old_installed:
                     if pkgv.model.__class__ not in types:
                         commons.update_info(pkgv, pkgs_info)
+                        commons.add_to_index(pkgv, pkg_idx)
                         commons.apply_filters(pkgv, filters, pkgs_info)
 
         else:  # use installed
             for pkgv in self.pkgs_installed:
                 commons.update_info(pkgv, pkgs_info)
+                commons.add_to_index(pkgv, pkg_idx)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
         if pkgs_info['apps_count'] == 0 and not self.suggestions_requested:
@@ -1019,6 +1024,7 @@ class ManageWindow(QWidget):
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
 
         self.pkgs_available = pkgs_info['pkgs']
+        self.pkg_idx = pkg_idx
 
         if as_installed:
             self.pkgs_installed = pkgs_info['pkgs']
