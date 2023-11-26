@@ -344,7 +344,7 @@ class ManageWindow(QWidget):
         self.thread_custom_action = self._bind_async_action(CustomAction(manager=self.manager, i18n=self.i18n), finished_call=self._finish_execute_custom_action)
         self.thread_screenshots = self._bind_async_action(ShowScreenshots(i18n, self.manager), finished_call=self._finish_show_screenshots)
 
-        self.thread_apply_filters = ApplyFilters(i18n)
+        self.thread_apply_filters = ApplyFilters(i18n=i18n, logger=logger)
         self.thread_apply_filters.signal_finished.connect(self._finish_apply_filters)
         self.thread_apply_filters.signal_table.connect(self._update_table_and_upgrades)
         self.signal_table_update.connect(self.thread_apply_filters.stop_waiting)

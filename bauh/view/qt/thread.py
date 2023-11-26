@@ -6,6 +6,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import StringIO
+from logging import Logger
 from pathlib import Path
 from queue import Queue
 from typing import List, Type, Set, Tuple, Optional
@@ -961,8 +962,9 @@ class ApplyFilters(AsyncAction):
 
     signal_table = pyqtSignal(object)
 
-    def __init__(self, i18n: I18n, filters: dict = None, pkgs: List[PackageView] = None):
+    def __init__(self, i18n: I18n, logger: Logger, filters: dict = None, pkgs: List[PackageView] = None):
         super(ApplyFilters, self).__init__(i18n=i18n)
+        self.logger = logger
         self.pkgs = pkgs
         self.filters = filters
         self.wait_table_update = False
@@ -972,6 +974,7 @@ class ApplyFilters(AsyncAction):
 
     def run(self):
         if self.pkgs:
+            ti = time.time()
             pkgs_info = commons.new_pkgs_info()
 
             name_filtering = bool(self.filters['name'])
@@ -987,6 +990,8 @@ class ApplyFilters(AsyncAction):
 
             self.wait_table_update = True
             self.signal_table.emit(pkgs_info)
+            tf = time.time()
+            self.logger.info(f"Took {tf - ti:.4f} seconds to filter packages")
 
             while self.wait_table_update:
                 super(ApplyFilters, self).msleep(5)
