@@ -187,7 +187,7 @@ class AdaptableFileDownloader(FileDownloader):
                         msg.write(f' ( {get_human_size_str(known_size)} )')
                         watcher.change_substatus(msg.getvalue())
                     else:
-                        Thread(target=self._concat_file_size, args=(file_url, msg, watcher)).start()
+                        Thread(target=self._concat_file_size, args=(file_url, msg, watcher), daemon=True).start()
                 else:
                     msg.write(' ( ? Mb )')
                     watcher.change_substatus(msg.getvalue())

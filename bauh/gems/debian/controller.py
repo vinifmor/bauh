@@ -60,7 +60,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
 
     def search(self, words: str, disk_loader: Optional[DiskCacheLoader], limit: int, is_url: bool) -> SearchResult:
         config_ = dict()
-        fill_config = Thread(target=self._fill_config, args=(config_,))
+        fill_config = Thread(target=self._fill_config, args=(config_,), daemon=True)
         fill_config.start()
 
         res = SearchResult.empty()
@@ -102,11 +102,11 @@ class DebianPackageManager(SoftwareManager, SettingsController):
                        names: Optional[Iterable[str]] = None) -> SearchResult:
 
         config_ = dict()
-        fill_config = Thread(target=self._fill_config, args=(config_,))
+        fill_config = Thread(target=self._fill_config, args=(config_,), daemon=True)
         fill_config.start()
 
         ignored_updates = set()
-        fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
+        fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,), daemon=True)
         fill_ignored_updates.start()
 
         threads = (fill_config, fill_ignored_updates)
@@ -170,7 +170,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
         if deps:
             # updates are required to be filled in case the dependencies are currently displayed on the view
             updates = dict()
-            fill_updates = Thread(target=self._fill_updates, args=(updates,))
+            fill_updates = Thread(target=self._fill_updates, args=(updates,), daemon=True)
             fill_updates.start()
 
             deps_data = self.aptitude.show((p.name for p in deps), attrs=('description', 'maintainer', 'section'))
@@ -517,7 +517,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
 
     def list_updates(self, internet_available: bool) -> List[PackageUpdate]:
         ignored_updates = set()
-        fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
+        fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,), daemon=True)
         fill_ignored_updates.start()
 
         updates = list()
@@ -551,7 +551,7 @@ class DebianPackageManager(SoftwareManager, SettingsController):
 
         if filter_installed:
             installed = set()
-            fill_installed = Thread(target=self._fill_installed_names, args=(installed, ))
+            fill_installed = Thread(target=self._fill_installed_names, args=(installed,), daemon=True)
             fill_installed.start()
         else:
             installed, fill_installed = None, None

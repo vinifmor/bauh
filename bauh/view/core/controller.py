@@ -171,7 +171,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
 
                 for man in self.managers:
                     if self._can_work(man):
-                        t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res))
+                        t = Thread(target=self._search, args=(norm_query, is_url, man, disk_loader, res), daemon=True)
                         t.start()
                         threads.append(t)
 
@@ -234,7 +234,9 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    t = Thread(target=self._fill_read_installed, args=(man, disk_loader, net_available, results))
+                    t = Thread(target=self._fill_read_installed,
+                               args=(man, disk_loader, net_available, results),
+                               daemon=True)
                     t.start()
                     read_threads.append(t)
         else:
@@ -248,7 +250,9 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                         disk_loader = self.disk_loader_factory.new()
                         disk_loader.start()
 
-                    t = Thread(target=self._fill_read_installed, args=(man, disk_loader, net_available, results))
+                    t = Thread(target=self._fill_read_installed,
+                               args=(man, disk_loader, net_available, results),
+                               daemon=True)
                     t.start()
                     read_threads.append(t)
 
@@ -510,7 +514,8 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 suggestions, threads = [], []
                 for man in self.managers:
                     t = Thread(target=self._fill_suggestions,
-                               args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed))
+                               args=(suggestions, man, int(self.config['suggestions']['by_type']), filter_installed),
+                               daemon=True)
                     t.start()
                     threads.append(t)
 

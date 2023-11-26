@@ -258,7 +258,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         web_config = {}
-        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,), daemon=True)
         thread_config.start()
 
         res = SearchResult([], [], 0)
@@ -1069,7 +1069,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
         web_config = {}
 
-        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,), daemon=True)
         thread_config.start()
 
         if self.suggestions:

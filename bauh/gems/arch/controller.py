@@ -1332,7 +1332,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         thread_fill_aur = None
         if aur_replacers:
-            thread_fill_aur = Thread(target=self._fill_aur_providers, args=(aur_replacers, actual_replacers))
+            thread_fill_aur = Thread(target=self._fill_aur_providers, args=(aur_replacers, actual_replacers), daemon=True)
             thread_fill_aur.start()
 
         if repo_replacers:
@@ -3774,15 +3774,15 @@ class ArchManager(SoftwareManager, SettingsController):
 
         name_priority = dict()
 
-        fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,))
+        fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,), daemon=True)
         fill_suggestions.start()
 
         available_packages = dict()
-        fill_available = Thread(target=self._fill_available_packages, args=(available_packages,))
+        fill_available = Thread(target=self._fill_available_packages, args=(available_packages,), daemon=True)
         fill_available.start()
 
         ignored_pkgs = set()
-        fill_ignored = Thread(target=pacman.fill_ignored_packages, args=(ignored_pkgs,))
+        fill_ignored = Thread(target=pacman.fill_ignored_packages, args=(ignored_pkgs,), daemon=True)
         fill_ignored.start()
 
         fill_suggestions.join()
@@ -3817,7 +3817,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if filter_installed:
             ignored_updates = set()
-            thread_fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
+            thread_fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,), daemon=True)
             thread_fill_ignored_updates.start()
         else:
             ignored_updates, thread_fill_ignored_updates = None, None
@@ -3865,7 +3865,7 @@ class ArchManager(SoftwareManager, SettingsController):
                               update_ignored=pkg_updates_ignored)
 
             if disk_loader:
-                t = Thread(target=self._fill_cached_if_unset, args=(pkg, disk_loader))
+                t = Thread(target=self._fill_cached_if_unset, args=(pkg, disk_loader), daemon=True)
                 t.start()
                 caching_threads.append(t)
 

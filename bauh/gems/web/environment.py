@@ -421,11 +421,13 @@ class EnvironmentUpdater:
         if system_env:
             self.logger.warning(f"Using system's nativefier to install {app.url}")
         else:
-            node_check = Thread(target=self._check_and_fill_node, args=(env, components))
+            node_check = Thread(target=self._check_and_fill_node, args=(env, components), daemon=True)
             node_check.start()
             check_threads.append(node_check)
 
-        elec_check = Thread(target=self._check_and_fill_electron, args=(app, env, local_config, is_x86_x64_arch, widevine, components))
+        elec_check = Thread(target=self._check_and_fill_electron,
+                            args=(app, env, local_config, is_x86_x64_arch, widevine, components),
+                            daemon=True)
         elec_check.start()
         check_threads.append(elec_check)
 
