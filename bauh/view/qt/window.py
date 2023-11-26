@@ -43,6 +43,7 @@ from bauh.view.qt.thread import UpgradeSelected, RefreshApps, UninstallPackage, 
     AsyncAction, LaunchPackage, ApplyFilters, CustomSoftwareAction, ShowScreenshots, CustomAction, \
     NotifyInstalledLoaded, \
     IgnorePackageUpdates, SaveTheme, StartAsyncAction
+from bauh.view.qt.view_index import add_to_index, new_package_index
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util import util, resource
 from bauh.view.util.translation import I18n
@@ -970,7 +971,7 @@ class ManageWindow(QWidget):
     def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
         pkgs_info = commons.new_pkgs_info()
-        pkg_idx = commons.new_package_index()
+        pkg_idx = new_package_index()
         filters = self._gen_filters(ignore_updates=ignore_updates)
 
         if new_pkgs is not None:
@@ -983,20 +984,20 @@ class ManageWindow(QWidget):
             for pkg in new_pkgs:
                 pkgv = PackageView(model=pkg, i18n=self.i18n)
                 commons.update_info(pkgv, pkgs_info)
-                commons.add_to_index(pkgv, pkg_idx)
+                add_to_index(pkgv, pkg_idx)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
             if old_installed and types:
                 for pkgv in old_installed:
                     if pkgv.model.__class__ not in types:
                         commons.update_info(pkgv, pkgs_info)
-                        commons.add_to_index(pkgv, pkg_idx)
+                        add_to_index(pkgv, pkg_idx)
                         commons.apply_filters(pkgv, filters, pkgs_info)
 
         else:  # use installed
             for pkgv in self.pkgs_installed:
                 commons.update_info(pkgv, pkgs_info)
-                commons.add_to_index(pkgv, pkg_idx)
+                add_to_index(pkgv, pkg_idx)
                 commons.apply_filters(pkgv, filters, pkgs_info)
 
         if pkgs_info['apps_count'] == 0 and not self.suggestions_requested:
