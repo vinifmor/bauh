@@ -32,8 +32,9 @@ from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.qt import commons
-from bauh.view.qt.commons import sort_packages
+from bauh.view.qt.commons import sort_packages, PackageFilters
 from bauh.view.qt.qt_utils import get_current_screen_geometry
+from bauh.view.qt.view_index import query_packages
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
@@ -960,41 +961,37 @@ class LaunchPackage(AsyncAction):
 
 class ApplyFilters(AsyncAction):
 
-    signal_table = pyqtSignal(object)
+    signal_table = pyqtSignal(list)
 
-    def __init__(self, i18n: I18n, logger: Logger, filters: dict = None, pkgs: List[PackageView] = None):
+    def __init__(self, i18n: I18n, logger: Logger, filters: Optional[PackageFilters] = None,
+                 index: Optional[dict] = None):
         super(ApplyFilters, self).__init__(i18n=i18n)
         self.logger = logger
-        self.pkgs = pkgs
+        self.index = index
         self.filters = filters
         self.wait_table_update = False
 
     def stop_waiting(self):
         self.wait_table_update = False
 
+    @staticmethod
+    def by_name(pkgv: PackageView) -> str:
+        return pkgv.model.name
+
     def run(self):
-        if self.pkgs:
+        if self.index and self.filters:
+            sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
             ti = time.time()
-            pkgs_info = commons.new_pkgs_info()
-
-            name_filtering = bool(self.filters['name'])
-
-            for pkgv in self.pkgs:
-                commons.update_info(pkgv, pkgs_info)
-                commons.apply_filters(pkgv, self.filters, pkgs_info, limit=not name_filtering)
-
-            if name_filtering and pkgs_info['pkgs_displayed']:
-                pkgs_info['pkgs_displayed'] = sort_packages(word=self.filters['name'],
-                                                            pkgs=pkgs_info['pkgs_displayed'],
-                                                            limit=self.filters['display_limit'])
+            matched_pkgs = query_packages(index=self.index, filters=self.filters)
+            sorted_pkgs = commons.sort_packages(pkgs=matched_pkgs, word=sort_term)
+            tf = time.time()
+            self.logger.info(f"Took {tf - ti:.9f} seconds to filter and sort packages")
 
             self.wait_table_update = True
-            self.signal_table.emit(pkgs_info)
-            tf = time.time()
-            self.logger.info(f"Took {tf - ti:.4f} seconds to filter packages")
+            self.signal_table.emit(sorted_pkgs)
 
             while self.wait_table_update:
-                super(ApplyFilters, self).msleep(5)
+                super(ApplyFilters, self).msleep(1)
 
         self.notify_finished()
 

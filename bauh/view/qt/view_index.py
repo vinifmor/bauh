@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Generator, Tuple, Optional, Union
 
+from bauh.view.qt.commons import PackageFilters
 from bauh.view.qt.view_model import PackageView
 
 
@@ -36,27 +37,94 @@ def add_to_index(pkgv: PackageView, index: dict) -> None:
     app_lvl = root_idx[1 if pkgv.model.is_application() else 0]
 
     # update keys: (1) update | (0) no update
-    if pkgv.model.installed and not pkgv.model.is_update_ignored and pkgv.model.update:
+    if pkgv.model.installed and pkgv.model.update and not pkgv.model.is_update_ignored():
         update_lvl = app_lvl[1]
     else:
         update_lvl = app_lvl[0]
 
-    first_char = pkgv.name[0].lower()
+    norm_name = pkgv.name.strip().lower()
+    starts_with_chars = tuple(norm_name[0:i] for i in range(1, len(norm_name) + 1))
 
-    if pkgv.model.categories:
-        for cat in ("any", *pkgv.model.categories):
-            category = cat.lower().strip()
+    for cat in ("any", *(pkgv.model.categories if pkgv.model.categories else tuple())):
+        category = cat.lower().strip()
 
-            # any type > specific category > any character
-            update_lvl["any"][category]["any"].append(pkgv)
+        # any type > specific category > any character (None)
+        update_lvl["any"][category][None].append(pkgv)
 
-            # any type > specific category > first character
-            update_lvl["any"][category][first_char].append(pkgv)
+        # any type > specific category > characters (start
+        for chars in starts_with_chars:
+            update_lvl["any"][category][chars].append(pkgv)
 
-            type_lvl = update_lvl[pkgv.model.get_type()]
+        type_lvl = update_lvl[pkgv.model.get_type()]
 
-            # specific type > specific category > any character
-            type_lvl[category]["any"].append(pkgv)
+        # specific type > specific category > any character (None)
+        type_lvl[category][None].append(pkgv)
 
-            # specific type > any category > first character
-            type_lvl[category][first_char].append(pkgv)
+        # specific type > any category > first character
+        for chars in starts_with_chars:
+            type_lvl[category][chars].append(pkgv)
+
+
+def generate_queries(filters: PackageFilters) -> Generator[Tuple[Optional[Union[int, str]]], None, None]:
+    chars_query = None
+
+    if filters.name:
+        chars_query = filters.name.lower()
+
+    installed_queries = (1,) if filters.only_installed else (1, 0)
+    apps_queries = (1,) if filters.only_apps else (1, 0)
+    updates_queries = (1,) if filters.only_updates else (1, 0)
+
+    for installed in installed_queries:
+        for app in apps_queries:
+            for update in updates_queries:
+                yield installed, app, update, filters.type, filters.category, chars_query
+
+
+def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageView, None, None]:
+    yield_count = 0
+    yield_limit = filters.display_limit if filters.display_limit and filters.display_limit > 0 else -1
+
+    queries = tuple(generate_queries(filters))
+
+    yielded_pkgs = defaultdict(set)
+
+    for query in queries:
+        packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][query[5]]
+
+        for pkgv in packages:
+            yield pkgv
+            yield_count += 1
+            yielded_pkgs[pkgv.model.get_type()].add(pkgv.model.id)
+
+            # checking if the package display limit has been reached
+            if 0 < yield_limit <= yield_count:
+                break
+
+    # if there is a limit and the number of yielded packages is not reached, performs also a "contains" query
+    # checking if the queries target "any character" (none), if so, there is no need to perform the "contains" query
+    any_char_query = next((True for q in queries if q[-1] is None), False)
+
+    if not any_char_query and 0 < yield_limit < yield_count:
+        for query in queries:
+            # checking if the package display limit has been reached
+            if 0 < yield_limit <= yield_count:
+                break
+
+            packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][None]
+
+            for pkgv in packages:
+                # checking if the package has already been yielded
+                yield_type_idx = yielded_pkgs.get(pkgv.model.get_type())
+                if yield_type_idx and pkgv.model.id in yield_type_idx:
+                    continue
+
+                # checking if the package name contains the chars query
+                if query[5] in pkgv.model.name:
+                    yield pkgv
+                    yield_count += 1
+                    yielded_pkgs[pkgv.model.get_type()].add(pkgv.model.id)
+
+                # checking if the package display limit has been reached
+                if 0 < yield_limit <= yield_count:
+                    break

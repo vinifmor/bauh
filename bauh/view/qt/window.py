@@ -27,7 +27,7 @@ from bauh.view.core.tray_client import notify_tray
 from bauh.view.qt import dialog, commons, qt_utils
 from bauh.view.qt.about import AboutDialog
 from bauh.view.qt.apps_table import PackagesTable, UpgradeToggleButton
-from bauh.view.qt.commons import sum_updates_displayed
+from bauh.view.qt.commons import sum_updates_displayed, PackageFilters
 from bauh.view.qt.components import new_spacer, IconButton, QtComponentsManager, to_widget, QSearchBar, \
     QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
@@ -457,6 +457,7 @@ class ManageWindow(QWidget):
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self._register_groups()
         self._screen_geometry: Optional[QRect] = None
+        self.searched_term: Optional[str] = None
 
     def _register_groups(self):
         common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
@@ -505,8 +506,8 @@ class ManageWindow(QWidget):
         self.comp_manager.disable_visible_from_groups(GROUP_UPPER_BAR, GROUP_LOWER_BTS)
         self.comp_manager.set_component_read_only(INP_NAME, True)
 
+        self.thread_apply_filters.index = self.pkg_idx
         self.thread_apply_filters.filters = self._gen_filters()
-        self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.start()
         self.setFocus(Qt.NoFocusReason)
 
@@ -520,8 +521,13 @@ class ManageWindow(QWidget):
             self.signal_stop_notifying.emit()
             self.thread_notify_pkgs_ready.wait(1000)
 
-    def _update_table_and_upgrades(self, pkgs_info: dict):
-        self._update_table(pkgs_info=pkgs_info, signal=True)
+    def _update_table_and_upgrades(self, packages_displayed: List[PackageView]):
+        # generating a mocked info to keep compatibility with '_update_table' inputs.
+        # 'not_installed' is only used for a quick check and does not require an exact number (only 0 or 1)
+        info = {"pkgs_displayed": packages_displayed,
+                "not_installed": 1 if len(self.pkgs_installed) != len(self.pkgs_available) else 0}
+
+        self._update_table(pkgs_info=info, signal=True)
 
         if self.pkgs:
             self._update_state_when_pkgs_ready()
@@ -889,9 +895,9 @@ class ManageWindow(QWidget):
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
     def _update_table(self, pkgs_info: dict, signal: bool = False):
-        self.pkgs = pkgs_info['pkgs_displayed']
+        self.pkgs = pkgs_info["pkgs_displayed"]
 
-        if pkgs_info['not_installed'] == 0:
+        if pkgs_info["not_installed"] == 0:
             update_check = sum_updates_displayed(pkgs_info) > 0
         else:
             update_check = False
@@ -905,9 +911,9 @@ class ManageWindow(QWidget):
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
             if len(self.pkgs) == 0 and len(self.pkgs_available) == 0:
-                self.label_displayed.setText('')
+                self.label_displayed.setText("")
             else:
-                self.label_displayed.setText('{} / {}'.format(len(self.pkgs), len(self.pkgs_available)))
+                self.label_displayed.setText(f"{len(self.pkgs)} / {len(self.pkgs_available)}")
         else:
             self.label_displayed.hide()
 
@@ -957,16 +963,15 @@ class ManageWindow(QWidget):
             setattr(self, attr, checked)
             checkbox.blockSignals(False)
 
-    def _gen_filters(self, ignore_updates: bool = False) -> dict:
-        return {
-            'only_apps': False if self.search_performed else self.filter_only_apps,
-            'type': self.type_filter,
-            'category': self.category_filter,
-            'updates': False if ignore_updates else self.filter_updates,
-            'name': self.input_name.text().lower() if self.input_name.text() else None,
-            'display_limit': None if self.filter_updates else self.display_limit,
-            'only_installed': self.filter_installed
-        }
+    def _gen_filters(self, ignore_updates: bool = False) -> PackageFilters:
+        return PackageFilters(category=self.category_filter,
+                              display_limit=0 if self.filter_updates else self.display_limit,
+                              name=self.input_name.text().strip(),
+                              only_apps=False if self.search_performed else self.filter_only_apps,
+                              only_updates=False if ignore_updates else self.filter_updates,
+                              only_installed=self.filter_installed,
+                              search=self.searched_term,
+                              type=self.type_filter)
 
     def update_pkgs(self, new_pkgs: Optional[List[SoftwarePackage]], as_installed: bool, types: Optional[Set[type]] = None, ignore_updates: bool = False, keep_filters: bool = False) -> bool:
         self.input_name.set_text('')
@@ -1381,6 +1386,7 @@ class ManageWindow(QWidget):
             label = f"{self.i18n['manage_window.status.searching']} {word if word else ''}"
             self._begin_action(action_label=label, action_id=ACTION_SEARCH)
             self.comp_manager.set_components_visible(False)
+            self.searched_term = word
             self.thread_search.word = word
             self.thread_search.start()
 
