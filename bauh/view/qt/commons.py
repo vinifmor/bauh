@@ -106,7 +106,7 @@ def is_package_hidden(pkg: PackageView, filters: PackageFilters) -> bool:
     return hidden
 
 
-def __by_name(pkg: Union[SoftwarePackage, PackageView]):
+def _by_name(pkg: Union[SoftwarePackage, PackageView]):
     return pkg.name.lower()
 
 
@@ -137,7 +137,7 @@ def sort_packages(pkgs: Iterable[Union[SoftwarePackage, PackageView]], word: Opt
                 break
 
             to_add = app_list[0:last]
-            to_add.sort(key=__by_name)
+            to_add.sort(key=_by_name)
             res.extend(to_add)
 
     return res

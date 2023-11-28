@@ -985,8 +985,8 @@ class ApplyFilters(AsyncAction):
                     sorted_pkgs = sorted_pkgs[0:self.filters.display_limit]
                 
             else:
-                sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
                 ti = time.time()
+                sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
                 matched_pkgs = query_packages(index=self.index, filters=self.filters)
                 sorted_pkgs = commons.sort_packages(pkgs=matched_pkgs, word=sort_term)
                 tf = time.time()

@@ -457,7 +457,7 @@ class ManageWindow(QWidget):
         self.thread_load_installed.signal_loaded.connect(self._finish_loading_installed)
         self._register_groups()
         self._screen_geometry: Optional[QRect] = None
-        self.searched_term: Optional[str] = None
+        self.searched_term: Optional[str] = None  # last searched term
 
     def _register_groups(self):
         common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
