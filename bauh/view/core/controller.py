@@ -181,9 +181,6 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
                 if disk_loader:
                     disk_loader.stop_working()
                     disk_loader.join()
-
-            # res.installed = self._sort(res.installed, norm_word)
-            # res.new = self._sort(res.new, norm_word)
         else:
             raise NoInternetException()
 
