@@ -964,28 +964,33 @@ class ApplyFilters(AsyncAction):
     signal_table = pyqtSignal(list)
 
     def __init__(self, i18n: I18n, logger: Logger, filters: Optional[PackageFilters] = None,
-                 index: Optional[dict] = None):
+                 pkgs: Optional[List[PackageView]] = None, index: Optional[dict] = None):
         super(ApplyFilters, self).__init__(i18n=i18n)
         self.logger = logger
         self.index = index
         self.filters = filters
+        self.pkgs = pkgs
         self.wait_table_update = False
 
     def stop_waiting(self):
         self.wait_table_update = False
 
-    @staticmethod
-    def by_name(pkgv: PackageView) -> str:
-        return pkgv.model.name
-
     def run(self):
-        if self.index and self.filters:
-            sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
-            ti = time.time()
-            matched_pkgs = query_packages(index=self.index, filters=self.filters)
-            sorted_pkgs = commons.sort_packages(pkgs=matched_pkgs, word=sort_term)
-            tf = time.time()
-            self.logger.info(f"Took {tf - ti:.9f} seconds to filter and sort packages")
+        if self.index and self.filters and self.pkgs:
+            if self.filters.anything:
+                # it means no filter should be applied, and when can rely on the firstly displayed packages
+                sorted_pkgs = self.pkgs
+
+                if self.filters.display_limit > 0:
+                    sorted_pkgs = sorted_pkgs[0:self.filters.display_limit]
+                
+            else:
+                sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
+                ti = time.time()
+                matched_pkgs = query_packages(index=self.index, filters=self.filters)
+                sorted_pkgs = commons.sort_packages(pkgs=matched_pkgs, word=sort_term)
+                tf = time.time()
+                self.logger.info(f"Took {tf - ti:.9f} seconds to filter and sort packages")
 
             self.wait_table_update = True
             self.signal_table.emit(sorted_pkgs)

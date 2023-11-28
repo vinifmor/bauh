@@ -105,7 +105,7 @@ def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageVie
     # checking if the queries target "any character" (none), if so, there is no need to perform the "contains" query
     any_char_query = next((True for q in queries if q[-1] is None), False)
 
-    if not any_char_query and 0 < yield_limit < yield_count:
+    if not any_char_query and 0 < yield_limit > yield_count:
         for query in queries:
             # checking if the package display limit has been reached
             if 0 < yield_limit <= yield_count:

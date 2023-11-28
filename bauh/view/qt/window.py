@@ -506,6 +506,7 @@ class ManageWindow(QWidget):
         self.comp_manager.disable_visible_from_groups(GROUP_UPPER_BAR, GROUP_LOWER_BTS)
         self.comp_manager.set_component_read_only(INP_NAME, True)
 
+        self.thread_apply_filters.pkgs = self.pkgs_available
         self.thread_apply_filters.index = self.pkg_idx
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.start()
