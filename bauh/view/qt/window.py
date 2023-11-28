@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional, Dict, Any
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QCloseEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
@@ -1767,3 +1767,7 @@ class ManageWindow(QWidget):
         self.verify_warnings()
         self.types_changed = True
         self.begin_refresh_packages()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        # needs to be stopped to avoid a Qt exception/crash
+        self.table_apps.stop_file_downloader(wait=True)

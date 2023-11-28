@@ -1127,6 +1127,9 @@ class URLFileDownloader(QThread):
         self._stop = False
 
     def _get(self, url_: str, id_: Optional[object]):
+        if self._stop:
+            return
+
         try:
             res = requests.get(url=url_, timeout=self._request_timeout)
             content = res.content if res.status_code == 200 else None

@@ -605,6 +605,9 @@ class PackagesTable(QTableWidget):
         self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
         self.file_downloader.start()
 
-    def stop_file_downloader(self) -> None:
+    def stop_file_downloader(self, wait: bool = False) -> None:
         if self.file_downloader:
             self.file_downloader.stop()
+
+            if wait:
+                self.file_downloader.wait()
