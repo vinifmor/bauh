@@ -595,14 +595,13 @@ class ManageWindow(QWidget):
             dialog.show_message(title=self.i18n['warning'].capitalize(), body='<p>{}</p>'.format('<br/><br/>'.join(warnings)), type_=MessageType.WARNING)
 
     def show(self):
-        super(ManageWindow, self).show()
-
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
-        qt_utils.centralize(self)
         self._screen_geometry = get_current_screen_geometry()
         self._update_size_limits()
+        qt_utils.centralize(self)
+        super(ManageWindow, self).show()
 
     def verify_warnings(self):
         self.thread_warnings.start()
@@ -764,6 +763,10 @@ class ManageWindow(QWidget):
             self._hide_filters_no_packages()
             self._update_bts_installed_and_suggestions()
             self._reorganize()
+
+        if self.first_refresh:
+            self.first_refresh = False
+            qt_utils.centralize(self)
 
         self.load_suggestions = False
         self.types_changed = False
@@ -1051,10 +1054,6 @@ class ManageWindow(QWidget):
             self.thread_notify_pkgs_ready.start()
 
         self._resize(accept_lower_width=bool(self.pkgs_installed))
-
-        if self.first_refresh:
-            qt_utils.centralize(self)
-            self.first_refresh = False
 
         if not self.installed_loaded and as_installed:
             self.installed_loaded = True
@@ -1612,7 +1611,6 @@ class ManageWindow(QWidget):
             self.settings_window.setMinimumWidth(int(screen_width / 4))
             self.settings_window.resize(self.size())
             self.settings_window.adjustSize()
-            qt_utils.centralize(self.settings_window)
             self.settings_window.show()
 
     def _map_custom_action(self, action: CustomSoftwareAction, parent: QWidget) -> QCustomMenuAction:
