@@ -9,7 +9,7 @@ from io import StringIO
 from logging import Logger
 from pathlib import Path
 from queue import Queue
-from typing import List, Type, Set, Tuple, Optional
+from typing import List, Type, Set, Tuple, Optional, Pattern
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
@@ -1115,6 +1115,7 @@ class StartAsyncAction(QThread):
 class URLFileDownloader(QThread):
 
     signal_downloaded = pyqtSignal(str, bytes, object)
+    pattern_is_url: Pattern = re.compile(r"^https?://.+$")
 
     def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 5,
                  max_downloads: int = -1, parent: Optional[QWidget] = None):
@@ -1158,7 +1159,7 @@ class URLFileDownloader(QThread):
         final_url = url.strip() if url else None
 
         if final_url:
-            if final_url.startswith("http"):
+            if self.pattern_is_url.match(final_url):
                 self._queue.put((final_url, id_))
             else:
                 self.signal_downloaded.emit(final_url, None, id_)
