@@ -79,6 +79,7 @@ class SettingsWindow(QWidget):
 
         self.thread_reload_panel = ReloadManagePanel(manager=manager)
         self.thread_reload_panel.signal_finished.connect(self._reload_manage_panel)
+        centralize(self)
 
     def show(self):
         super(SettingsWindow, self).show()

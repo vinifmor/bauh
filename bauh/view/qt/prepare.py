@@ -253,6 +253,7 @@ class PreparePanel(QWidget, TaskManager):
         self.bt_bar.add_widget(self.bt_skip)
 
         self.layout().addWidget(self.bt_bar)
+        centralize(self)
 
     def hide_output(self):
         self.current_output_task = None
@@ -293,7 +294,7 @@ class PreparePanel(QWidget, TaskManager):
         self.setMinimumWidth(int(screen_size.width() * 0.5))
         self.setMinimumHeight(int(screen_size.height() * 0.35))
         self.setMaximumHeight(int(screen_size.height() * 0.95))
-        centralize(self, align_top_left=False)
+        centralize(self)
 
     def start(self, tasks: int):
         self.started_at = time.time()

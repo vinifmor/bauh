@@ -459,6 +459,8 @@ class ManageWindow(QWidget):
         self._screen_geometry: Optional[QRect] = None
         self.searched_term: Optional[str] = None  # last searched term
 
+        qt_utils.centralize(self)
+
     def _register_groups(self):
         common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
         self.comp_manager.register_group(GROUP_FILTERS, False, CHECK_INSTALLED, *common_filters)

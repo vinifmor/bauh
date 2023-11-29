@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AppImage
   - upgrade fails when the package was initially imported, but later added to bauh's database [#321](https://github.com/vinifmor/bauh/issues/321)
+- UI
+  - trying to fix the wrong widgets centralisation issue (random)
 
 ### Contributions
 - German translations by [Mape6](https://github.com/Mape6)
