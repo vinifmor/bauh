@@ -314,4 +314,3 @@ gem.arch.info=Verfügbare Softwarepakete für Distributionen, die auf Arch Linux
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Repository
 gem.arch.type.aur.label=Arch - AUR
-gem.aur.install.warning=AUR-Pakete werden von einer unabhängigen Benutzergemeinschaft gepflegt. Es gibt keine Garantie, dass sie funktionieren oder Ihr System nicht beschädigen.

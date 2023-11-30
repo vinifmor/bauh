@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidge
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
+from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
@@ -206,15 +207,17 @@ class PackagesTable(QTableWidget):
 
         body = self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))
 
-        warning = self.i18n.get('gem.{}.install.warning'.format(pkgv.model.get_type().lower()))
-
-        if warning:
+        confirm_icon = MessageType.INFO
+        if not pkgv.model.is_trustable():
+            warning = self.i18n["action.install.unverified.warning"]
+            confirm_icon = MessageType.WARNING
             body += '<br/><br/> {}'.format(
                 '<br/>'.join(('{}.'.format(phrase) for phrase in warning.split('.') if phrase)))
 
         if ConfirmationDialog(title=self.i18n['manage_window.apps_table.row.actions.install.popup.title'],
                               body=self._parag(body),
-                              i18n=self.i18n).ask():
+                              i18n=self.i18n,
+                              confirmation_icon_type=confirm_icon).ask():
             self.window.install(pkgv)
 
     def _update_pkg_icon(self, url_: str,  content: Optional[bytes], table_idx: int):

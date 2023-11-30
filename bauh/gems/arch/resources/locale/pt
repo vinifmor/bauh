@@ -313,4 +313,3 @@ gem.arch.info=Pacotes de software disponíveis para distribuições baseadas em 
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Repositório
 gem.arch.type.aur.label=Arch - AUR
-gem.aur.install.warning=Pacotes do AUR são mantidos por uma comunidade de usuários independente. Não há garantia que funcionarão ou que não prejudicarão o seus sistema.

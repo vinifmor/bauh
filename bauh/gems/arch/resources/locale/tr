@@ -314,4 +314,3 @@ gem.arch.info=Arch Linux tabanlı dağıtımlar için mevcut yazılım paketleri
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Depoları
 gem.arch.type.aur.label=Arch - AUR
-gem.aur.install.warning=AUR paketleri bağımsız bir Arch Kullanıcı Topluluğu tarafından sağlanır. Çalışacaklarının veya sisteminize zarar vermeyeceklerinin garantisi yoktur.

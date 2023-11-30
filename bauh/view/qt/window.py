@@ -75,13 +75,14 @@ CHECK_INSTALLED = 6
 CHECK_UPDATES = 7
 CHECK_APPS = 8
 COMBO_TYPES = 9
-COMBO_CATEGORIES = 10
-INP_NAME = 11
-CHECK_DETAILS = 12
-BT_SETTINGS = 13
-BT_CUSTOM_ACTIONS = 14
-BT_ABOUT = 15
-BT_THEMES = 16
+CHECK_VERIFIED = 10
+COMBO_CATEGORIES = 11
+INP_NAME = 12
+CHECK_DETAILS = 13
+BT_SETTINGS = 14
+BT_CUSTOM_ACTIONS = 15
+BT_ABOUT = 16
+BT_THEMES = 17
 
 # component groups ids
 GROUP_FILTERS = 1
@@ -176,6 +177,16 @@ class ManageWindow(QWidget):
         self.check_apps.sizePolicy().setRetainSizeWhenHidden(True)
         self.toolbar_filters.layout().addWidget(self.check_apps)
         self.comp_manager.register_component(CHECK_APPS, self.check_apps)
+
+        self.check_verified = QCheckBox()
+        self.check_verified.setObjectName('check_verified')
+        self.check_verified.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_verified.setText(self.i18n['manage_window.checkbox.only_verified'])
+        self.check_verified.setChecked(False)
+        self.check_verified.stateChanged.connect(self._handle_filter_only_verified)
+        self.check_verified.sizePolicy().setRetainSizeWhenHidden(True)
+        self.toolbar_filters.layout().addWidget(self.check_verified)
+        self.comp_manager.register_component(CHECK_VERIFIED, self.check_verified)
 
         self.any_type_filter = 'any'
         self.cache_type_filter_icons = {}
@@ -434,6 +445,7 @@ class ManageWindow(QWidget):
         self.layout.addWidget(self.container_progress)
 
         self.filter_only_apps = True
+        self.filter_only_verified = False
         self.type_filter = self.any_type_filter
         self.category_filter = self.any_category_filter
         self.filter_updates = False
@@ -462,22 +474,23 @@ class ManageWindow(QWidget):
         qt_utils.centralize(self)
 
     def _register_groups(self):
-        common_filters = (CHECK_APPS, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
+        common_filters = (CHECK_APPS, CHECK_VERIFIED, CHECK_UPDATES, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME)
         self.comp_manager.register_group(GROUP_FILTERS, False, CHECK_INSTALLED, *common_filters)
 
         self.comp_manager.register_group(GROUP_VIEW_SEARCH, False,
-                                         COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,  # filters
-                                         BT_INSTALLED, BT_SUGGESTIONS, CHECK_INSTALLED)  # buttons
+                                         CHECK_INSTALLED, CHECK_VERIFIED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
+                                         BT_INSTALLED, BT_SUGGESTIONS)
 
         self.comp_manager.register_group(GROUP_VIEW_INSTALLED, False,
                                          BT_REFRESH, BT_UPGRADE,  # buttons
                                          *common_filters)
 
         self.comp_manager.register_group(GROUP_UPPER_BAR, False,
-                                         CHECK_APPS, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES, COMBO_TYPES, INP_NAME,
-                                         BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
+                                         CHECK_APPS, CHECK_VERIFIED, CHECK_UPDATES, CHECK_INSTALLED, COMBO_CATEGORIES,
+                                         COMBO_TYPES, INP_NAME, BT_INSTALLED, BT_SUGGESTIONS, BT_REFRESH, BT_UPGRADE)
 
-        self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS, BT_SETTINGS, BT_ABOUT)
+        self.comp_manager.register_group(GROUP_LOWER_BTS, False, BT_SUGGESTIONS, BT_THEMES, BT_CUSTOM_ACTIONS,
+                                         BT_SETTINGS, BT_ABOUT)
 
     def update_custom_actions(self):
         self.custom_actions = [a for a in self.manager.gen_custom_actions()]
@@ -651,6 +664,10 @@ class ManageWindow(QWidget):
 
     def _handle_filter_only_apps(self, status: int):
         self.filter_only_apps = status == 2
+        self.begin_apply_filters()
+
+    def _handle_filter_only_verified(self, status: int):
+        self.filter_only_verified = status == 2
         self.begin_apply_filters()
 
     def _handle_filter_only_installed(self, status: int):
@@ -974,6 +991,7 @@ class ManageWindow(QWidget):
                               display_limit=0 if self.filter_updates else self.display_limit,
                               name=self.input_name.text().strip(),
                               only_apps=False if self.search_performed else self.filter_only_apps,
+                              only_verified=self.filter_only_verified,
                               only_updates=False if ignore_updates else self.filter_updates,
                               only_installed=self.filter_installed,
                               search=self.searched_term,
@@ -1029,6 +1047,7 @@ class ManageWindow(QWidget):
                 self.check_apps.setCheckable(True)
                 self._change_checkbox(self.check_apps, True, 'filter_only_apps', trigger=False)
 
+        self._update_verified_filter(verified_available=pkgs_info['verified'] > 0, keep_state=keep_filters)
         self.change_update_state(pkgs_info=pkgs_info, trigger_filters=False, keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._update_categories(pkgs_info['categories'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
         self._update_type_filters(pkgs_info['available_types'], keep_selected=keep_filters and bool(pkgs_info['pkgs_displayed']))
@@ -1080,6 +1099,19 @@ class ManageWindow(QWidget):
             self.comp_manager.set_component_visible(CHECK_INSTALLED, False)
         else:
             self.comp_manager.set_component_visible(CHECK_INSTALLED, has_installed)
+
+    def _update_verified_filter(self, keep_state: bool = True, verified_available: Optional[bool] = None):
+        if verified_available is not None:
+            has_verified = verified_available
+        else:
+            has_verified = False
+            if self.pkgs_available:
+                has_verified = next((True for p in self.pkgs_available if p.model.is_trustable()), False)
+
+        if not keep_state or not has_verified:
+            self._change_checkbox(self.check_verified, False, 'filter_only_verified', trigger=False)
+
+        self.comp_manager.set_component_visible(CHECK_VERIFIED, has_verified)
 
     def _apply_filters(self, pkgs_info: dict, ignore_updates: bool):
         pkgs_info['pkgs_displayed'] = []

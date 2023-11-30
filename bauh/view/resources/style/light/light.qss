@@ -83,6 +83,10 @@ QLabel#confirm_dialog_icon {
      qproperty-pixmap: url("@style_dir/img/question.svg");
 }
 
+QLabel#confirm_dialog_icon[type = "warning"] {
+     qproperty-pixmap: url("@style_dir/img/warning.svg");
+}
+
 QPlainTextEdit[console = 'true'] {
     background: @console.background.color;
     color: @console.font.color;

@@ -15,13 +15,14 @@ class PackageFilters(NamedTuple):
     only_apps: bool
     only_installed: bool
     only_updates: bool
+    only_verified: bool
     search: Optional[str]  # initial search term
     type: str
 
     @property
     def anything(self) -> bool:
         return not self.only_installed and not self.only_updates and not self.only_apps \
-            and not self.name and self.type == "any" and self.category == "any"
+            and not self.only_verified and not self.name and self.type == "any" and self.category == "any"
 
 
 def new_pkgs_info() -> Dict[str, Any]:
@@ -35,6 +36,7 @@ def new_pkgs_info() -> Dict[str, Any]:
             'not_installed': 0,
             'installed': 0,
             'categories': set(),
+            'verified': 0,
             'pkgs': []}  # total packages
 
 
@@ -45,6 +47,9 @@ def update_info(pkgv: PackageView, pkgs_info: Dict[str, Any]):
         pkgs_info['apps_count'] += 1
     else:
         pkgs_info['napps_count'] += 1
+
+    if pkgv.model.is_trustable():
+        pkgs_info['verified'] += 1
 
     if pkgv.model.update and not pkgv.model.is_update_ignored():
         if pkgv.model.is_application():
@@ -93,6 +98,9 @@ def is_package_hidden(pkg: PackageView, filters: PackageFilters) -> bool:
 
     if not hidden and filters.only_updates:
         hidden = not pkg.model.update or pkg.model.is_update_ignored()
+
+    if not hidden and filters.only_verified:
+        hidden = not pkg.model.is_trustable()
 
     if not hidden and filters.type is not None and filters.type != "any":
         hidden = pkg.model.get_type() != filters.type

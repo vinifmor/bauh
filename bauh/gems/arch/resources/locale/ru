@@ -314,4 +314,3 @@ gem.arch.info=Пакеты программного обеспечения, до
 gem.arch.label=Arch
 gem.arch.type.arch_repo.label=Arch - Репозиторий
 gem.arch.type.aur.label=Arch - AUR
-gem.aur.install.warning=AUR-пакеты поддерживаются независимым сообществом пользователей. Нет никакой гарантии, что они будут работать или не навредят вашей системе.

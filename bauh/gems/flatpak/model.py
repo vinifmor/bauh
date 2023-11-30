@@ -159,6 +159,9 @@ class FlatpakApplication(SoftwarePackage):
         if self.id and self.arch and self.branch:
             self.ref = f'{self.id}/{self.arch}/{self.branch}'
 
+    def is_trustable(self) -> bool:
+        return True
+
     def __repr__(self) -> str:
         return f'Flatpak (id={self.id}, branch={self.branch}, origin={self.origin}, installation={self.installation},' \
                f' partial={self.partial}, update_component={self.update_component})'

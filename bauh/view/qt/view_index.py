@@ -17,15 +17,19 @@ def new_type_index() -> Dict[str, Dict[str, Dict[str, List[PackageView]]]]:
     return defaultdict(new_category_idx)
 
 
-def new_update_index() -> Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]:
+def new_verified_index() -> Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]:
     return defaultdict(new_type_index)
 
 
-def new_app_index() -> Dict[int, Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]]:
+def new_update_index() -> Dict[int, Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]]:
+    return defaultdict(new_verified_index)
+
+
+def new_app_index() -> Dict[int, Dict[int, Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]]]:
     return defaultdict(new_update_index)
 
 
-def new_package_index() -> Dict[int, Dict[int, Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]]]:
+def new_package_index() -> Dict[int, Dict[int, Dict[int, Dict[int, Dict[str, Dict[str, Dict[str, List[PackageView]]]]]]]]:
     return defaultdict(new_app_index)
 
 
@@ -42,6 +46,9 @@ def add_to_index(pkgv: PackageView, index: dict) -> None:
     else:
         update_lvl = app_lvl[0]
 
+    # verified keys: (1) verified | (0) unverified
+    verified_lvl = update_lvl[1 if pkgv.model.is_trustable() else 0]
+
     norm_name = pkgv.name.strip().lower()
     starts_with_chars = tuple(norm_name[0:i] for i in range(1, len(norm_name) + 1))
 
@@ -49,13 +56,13 @@ def add_to_index(pkgv: PackageView, index: dict) -> None:
         category = cat.lower().strip()
 
         # any type > specific category > any character (None)
-        update_lvl["any"][category][None].append(pkgv)
+        verified_lvl["any"][category][None].append(pkgv)
 
         # any type > specific category > characters (start
         for chars in starts_with_chars:
-            update_lvl["any"][category][chars].append(pkgv)
+            verified_lvl["any"][category][chars].append(pkgv)
 
-        type_lvl = update_lvl[pkgv.model.get_type()]
+        type_lvl = verified_lvl[pkgv.model.get_type()]
 
         # specific type > specific category > any character (None)
         type_lvl[category][None].append(pkgv)
@@ -65,7 +72,7 @@ def add_to_index(pkgv: PackageView, index: dict) -> None:
             type_lvl[category][chars].append(pkgv)
 
 
-def generate_queries(filters: PackageFilters) -> Generator[Tuple[Optional[Union[int, str]]], None, None]:
+def generate_queries(filters: PackageFilters) -> Generator[Tuple[Optional[Union[int, str]], ...], None, None]:
     chars_query = None
 
     if filters.name:
@@ -74,11 +81,13 @@ def generate_queries(filters: PackageFilters) -> Generator[Tuple[Optional[Union[
     installed_queries = (1,) if filters.only_installed else (1, 0)
     apps_queries = (1,) if filters.only_apps else (1, 0)
     updates_queries = (1,) if filters.only_updates else (1, 0)
+    verified_queries = (1,) if filters.only_verified else (1, 0)
 
     for installed in installed_queries:
         for app in apps_queries:
             for update in updates_queries:
-                yield installed, app, update, filters.type, filters.category, chars_query
+                for verified in verified_queries:
+                    yield installed, app, update, verified, filters.type, filters.category, chars_query
 
 
 def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageView, None, None]:
@@ -90,7 +99,7 @@ def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageVie
     yielded_pkgs = defaultdict(set)
 
     for query in queries:
-        packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][query[5]]
+        packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][query[5]][query[6]]
 
         for pkgv in packages:
             yield pkgv
@@ -111,7 +120,7 @@ def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageVie
             if 0 < yield_limit <= yield_count:
                 break
 
-            packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][None]
+            packages = index[query[0]][query[1]][query[2]][query[3]][query[4]][query[5]][None]
 
             for pkgv in packages:
                 # checking if the package has already been yielded
