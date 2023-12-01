@@ -480,6 +480,9 @@ class AppImageManager(SoftwareManager, SettingsController):
         if data.get('symlink') and not os.path.islink(data['symlink']):
             del data['symlink']
 
+        if not data.get("license"):
+            data["license"] = self.i18n["unknown"].lower()
+
         return data
 
     def _sort_release(self, rel: tuple):
