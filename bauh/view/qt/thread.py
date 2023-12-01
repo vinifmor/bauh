@@ -27,6 +27,7 @@ from bauh.api.exception import NoInternetException
 from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
+from bauh.commons.regex import RE_URL
 from bauh.commons.system import ProcessHandler, SimpleProcess
 from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
@@ -1115,7 +1116,6 @@ class StartAsyncAction(QThread):
 class URLFileDownloader(QThread):
 
     signal_downloaded = pyqtSignal(str, bytes, object)
-    pattern_is_url: Pattern = re.compile(r"^https?://.+$")
 
     def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 3,
                  max_downloads: int = -1, parent: Optional[QWidget] = None):
@@ -1159,7 +1159,7 @@ class URLFileDownloader(QThread):
         final_url = url.strip() if url else None
 
         if final_url:
-            if self.pattern_is_url.match(final_url):
+            if RE_URL.match(final_url):
                 self._queue.put((final_url, id_))
             else:
                 self.signal_downloaded.emit(final_url, None, id_)

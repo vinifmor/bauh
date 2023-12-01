@@ -1,5 +1,3 @@
-import re
-import re
 import shutil
 import time
 import traceback
@@ -17,6 +15,7 @@ from bauh.api.abstract.view import TabGroupComponent, MessageType
 from bauh.api.exception import NoInternetException
 from bauh.commons.boot import CreateConfigFile
 from bauh.commons.html import bold
+from bauh.commons.regex import RE_URL
 from bauh.commons.util import sanitize_command_input
 from bauh.view.core.config import CoreConfigManager
 from bauh.view.core.settings import GenericSettingsManager
@@ -24,8 +23,6 @@ from bauh.view.core.update import check_for_update
 from bauh.view.util import resource
 from bauh.view.util.resource import get_path
 from bauh.view.util.util import clean_app_files, restart_app
-
-RE_IS_URL = re.compile(r'^https?://.+')
 
 
 class GenericUpgradeRequirements(UpgradeRequirements):
@@ -163,7 +160,7 @@ class GenericSoftwareManager(SoftwareManager, SettingsController):
             self.logger.info(f"Search query: {norm_query}")
 
             if norm_query:
-                is_url = bool(RE_IS_URL.match(norm_query))
+                is_url = bool(RE_URL.match(norm_query))
                 disk_loader = self.disk_loader_factory.new()
                 disk_loader.start()
 
