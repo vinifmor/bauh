@@ -353,6 +353,7 @@ manage_window.columns.installed=Installiert
 manage_window.columns.latest_version=Neueste Version
 manage_window.columns.update=Upgraden?
 manage_window.info.no_info=Es sind keine Informationen verfügbar für {}
+manage_window.info.open_url=Öffnen
 manage_window.label.apps_displayed.tip=Anwendungen angezeigt / verfügbar
 manage_window.label.updates=Aktualisierungen
 manage_window.name_filter.button_tooltip=Klicken Sie hier, um Anwendungen nach Namen zu filtern

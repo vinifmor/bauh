@@ -350,6 +350,7 @@ manage_window.columns.installed=Yüklü
 manage_window.columns.latest_version=Son sürüm
 manage_window.columns.update=Yükselt ?
 manage_window.info.no_info={} için bilgi yok
+manage_window.info.open_url=Açmak
 manage_window.label.apps_displayed.tip=Görüntülenen uygulamalar / mevcut olanlar
 manage_window.label.updates=Güncellemeler
 manage_window.name_filter.button_tooltip=Click here to filter apps by name

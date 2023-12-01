@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - the "Skip" button on the initialization panel is now enabled after 10 seconds [#310](https://github.com/vinifmor/bauh/issues/310)
   - faster package icons download
   - faster packages filtering (`type`, `category`, `name`, etc... up to **95% less time**)
+  - on the package information dialog is now possible to open fields associated with URLs in the browser [#340](https://github.com/vinifmor/bauh/issues/340)
   - displaying a text warning before installing an unverified package (unverified = not verified by the system maintainers or a trustable source)
       - at the moment the following packaging formats are considered completely **unverified**: AppImage, AUR, native Web application
       - Snap supports both verified and unverified software

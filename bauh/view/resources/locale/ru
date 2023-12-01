@@ -353,6 +353,7 @@ manage_window.columns.installed=Установленно
 manage_window.columns.latest_version=Последняя версия
 manage_window.columns.update=Обновить?
 manage_window.info.no_info=Информация не доступна для {}
+manage_window.info.open_url=Открыть
 manage_window.label.apps_displayed.tip=Отображаемые / доступные приложения
 manage_window.label.updates=Обновления
 manage_window.name_filter.button_tooltip=Нажмите здесь, чтобы отфильтровать приложения по названию
