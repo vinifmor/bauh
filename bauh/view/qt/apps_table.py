@@ -13,6 +13,7 @@ from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
 from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
+from bauh.commons.regex import RE_URL
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.qt_utils import get_current_screen_geometry
@@ -267,7 +268,7 @@ class PackagesTable(QTableWidget):
                 pkg.table_index = idx
 
                 if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url \
-                        and pkg.model.icon_url.startswith("http"):
+                        and RE_URL.match(pkg.model.icon_url):
                     if not file_downloader_defined:
                         self._setup_file_downloader()
                         file_downloader_defined = True
