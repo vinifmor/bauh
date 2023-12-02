@@ -5,7 +5,7 @@ from functools import reduce
 from typing import Tuple, Optional
 
 from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication, QMutex
-from PyQt5.QtGui import QIcon, QCursor, QCloseEvent
+from PyQt5.QtGui import QIcon, QCursor, QCloseEvent, QShowEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, \
     QProgressBar, QPlainTextEdit, QToolButton, QHBoxLayout
 
@@ -287,14 +287,14 @@ class PreparePanel(QWidget, TaskManager):
 
         self.resize(int(self.get_table_width() * 1.05), self.sizeHint().height())
 
-    def show(self):
+    def showEvent(self, event: Optional[QShowEvent]) -> None:
+        super().showEvent(event)
         self.prepare_thread.start()
         screen_size = get_current_screen_geometry()
         self.setMinimumWidth(int(screen_size.width() * 0.5))
         self.setMinimumHeight(int(screen_size.height() * 0.35))
         self.setMaximumHeight(int(screen_size.height() * 0.95))
         centralize(self)
-        super(PreparePanel, self).show()
 
     def start(self, tasks: int):
         self.started_at = time.time()

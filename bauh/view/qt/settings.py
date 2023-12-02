@@ -3,7 +3,7 @@ from io import StringIO
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QShowEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout, QApplication
 
 from bauh import __app_name__
@@ -81,10 +81,10 @@ class SettingsWindow(QWidget):
         self.thread_reload_panel.signal_finished.connect(self._reload_manage_panel)
         centralize(self)
 
-    def show(self):
-        super(SettingsWindow, self).show()
-        centralize(self)
+    def showEvent(self, event: Optional[QShowEvent]):
+        super(SettingsWindow, self).showEvent(event)
         self.setMinimumWidth(int(self.sizeHint().width()))
+        centralize(self)
 
     def closeEvent(self, event):
         if self.window and self.window.settings_window == self:

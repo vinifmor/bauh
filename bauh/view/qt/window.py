@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional, Dict, Any
 
 from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QCloseEvent
+from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QCloseEvent, QShowEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
@@ -607,14 +607,14 @@ class ManageWindow(QWidget):
         if warnings:
             dialog.show_message(title=self.i18n['warning'].capitalize(), body='<p>{}</p>'.format('<br/><br/>'.join(warnings)), type_=MessageType.WARNING)
 
-    def show(self):
+    def showEvent(self, event: Optional[QShowEvent]) -> None:
+        super().showEvent(event)
         if not self.thread_warnings.isFinished():
             self.thread_warnings.start()
 
         self._screen_geometry = get_current_screen_geometry()
         self._update_size_limits()
         qt_utils.centralize(self)
-        super(ManageWindow, self).show()
 
     def verify_warnings(self):
         self.thread_warnings.start()
