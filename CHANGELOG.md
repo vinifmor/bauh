@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - displaying a text warning before installing an unverified package (unverified = not verified by the system maintainers or a trustable source)
       - at the moment the following packaging formats are considered completely **unverified**: AppImage, AUR, native Web application
       - Snap supports both verified and unverified software
+  - minor reduction in the table loading time
 
 ### Fixes
 - AppImage

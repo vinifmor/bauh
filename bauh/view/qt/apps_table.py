@@ -2,7 +2,7 @@ import operator
 import os
 from functools import reduce
 from threading import Lock
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
@@ -96,6 +96,7 @@ class PackagesTable(QTableWidget):
         self.lock_async_data = Lock()
         self.setRowHeight(80, 80)
         self.cache_type_icon = {}
+        self.cache_default_icon: Dict[str, QIcon] = dict()
         self.i18n = self.window.i18n
 
     def has_any_settings(self, pkg: PackageView):
@@ -399,6 +400,16 @@ class PackagesTable(QTableWidget):
         item.setToolTip(tooltip)
         self.setCellWidget(pkg.table_index, col, item)
 
+    def _read_default_icon(self, pkgv: PackageView):
+        icon_path = pkgv.model.get_default_icon_path()
+        icon = self.cache_default_icon.get(icon_path)
+
+        if not icon:
+            icon = QIcon(icon_path)
+            self.cache_default_icon[icon_path] = icon
+
+        return icon
+
     def _set_col_icon(self, col: int, pkg: PackageView):
         icon_path = pkg.model.get_disk_icon_path()
         if pkg.model.installed and pkg.model.supports_disk_cache() and icon_path:
@@ -411,24 +422,24 @@ class PackagesTable(QTableWidget):
                         icon = QIcon(pixmap)
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
                 else:
-                    icon = QIcon(pkg.model.get_default_icon_path())
+                    icon = self._read_default_icon(pkg)
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
 
                     if icon.isNull():
-                        icon = QIcon(pkg.model.get_default_icon_path())
+                        icon = self._read_default_icon(pkg)
                     elif pkg.model.icon_url:
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
                 except Exception:
-                    icon = QIcon(pkg.model.get_default_icon_path())
+                    icon = self._read_default_icon(pkg)
 
         elif not pkg.model.icon_url:
-            icon = QIcon(pkg.model.get_default_icon_path())
+            icon = self._read_default_icon(pkg)
         else:
             icon_data = self.icon_cache.get(pkg.model.icon_url)
-            icon = icon_data['icon'] if icon_data else QIcon(pkg.model.get_default_icon_path())
+            icon = icon_data['icon'] if icon_data else self._read_default_icon(pkg)
 
         col_icon = QLabel()
         col_icon.setProperty('icon', 'true')
