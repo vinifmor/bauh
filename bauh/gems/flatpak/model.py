@@ -160,7 +160,7 @@ class FlatpakApplication(SoftwarePackage):
             self.ref = f'{self.id}/{self.arch}/{self.branch}'
 
     def is_trustable(self) -> bool:
-        return True
+        return False
 
     def __repr__(self) -> str:
         return f'Flatpak (id={self.id}, branch={self.branch}, origin={self.origin}, installation={self.installation},' \
