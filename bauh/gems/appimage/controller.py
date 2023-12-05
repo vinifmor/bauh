@@ -79,7 +79,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
         self._action_self_install: Optional[CustomSoftwareAction] = None
-        self._app_github: Optional[str] = None
+        self._app_repository: Optional[str] = None
         self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
         self._suggestions_downloader: Optional[AppImageSuggestionsDownloader] = None
 
@@ -441,7 +441,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def _add_self_latest_version(self, app: AppImage):
-        if app.name == self.context.app_name and app.repository == self.app_github and not app.url_download_latest_version:
+        if app.name == self.context.app_name and app.repository == self.app_repository and not app.url_download_latest_version:
             history = self.get_history(app)
 
             if not history or not history.history:
@@ -998,7 +998,7 @@ class AppImageManager(SoftwareManager, SettingsController):
     @property
     def search_unfilled_attrs(self) -> Tuple[str, ...]:
         if self._search_unfilled_attrs is None:
-            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'github',
+            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'repository',
                                            'source', 'url_screenshot')
 
         return self._search_unfilled_attrs
@@ -1013,7 +1013,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             return False
 
         app = AppImage(name=self.context.app_name, version=self.context.app_version,
-                       categories=['system'], author=self.context.app_name, github=self.app_github,
+                       categories=['system'], author=self.context.app_name, repository=self.app_repository,
                        license='zlib/libpng')
 
         res = self._install(pkg=app, watcher=watcher,
@@ -1094,11 +1094,11 @@ class AppImageManager(SoftwareManager, SettingsController):
         return self._action_self_install
 
     @property
-    def app_github(self) -> str:
-        if self._app_github is None:
-            self._app_github = f'vinifmor/{self.context.app_name}'
+    def app_repository(self) -> str:
+        if self._app_repository is None:
+            self._app_repository = f"https://github.com/vinifmor/{self.context.app_name}"
 
-        return self._app_github
+        return self._app_repository
 
     @property
     def suggestions_downloader(self) -> AppImageSuggestionsDownloader:
