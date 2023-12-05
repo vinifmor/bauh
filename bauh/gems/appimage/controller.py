@@ -184,7 +184,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             self.logger.warning(f"Could not get a connection for database '{db_path}'")
 
     def _gen_app_key(self, app: AppImage):
-        return f"{app.name.lower()}{app.github.lower() if app.github else ''}"
+        return f"{app.name.lower()}{app.repository.lower() if app.repository else ''}"
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
@@ -276,7 +276,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                             for tup in cursor.fetchall():
                                 for app in installed_apps:
-                                    if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
+                                    if app.name.lower() == tup[0].lower() and (not app.repository or app.repository.lower() == tup[1].lower()):
                                         continuous_version = app.version == 'continuous'
                                         continuous_update = tup[2] == 'continuous'
 
@@ -441,7 +441,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def _add_self_latest_version(self, app: AppImage):
-        if app.name == self.context.app_name and app.github == self.app_github and not app.url_download_latest_version:
+        if app.name == self.context.app_name and app.repository == self.app_github and not app.url_download_latest_version:
             history = self.get_history(app)
 
             if not history or not history.history:
@@ -500,7 +500,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         try:
             cursor = app_con.cursor()
 
-            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
+            cursor.execute(query.FIND_APP_ID_BY_REPO_AND_NAME.format(pkg.repository.lower() if pkg.repository else '', pkg.name.lower()))
             app_tuple = cursor.fetchone()
 
             if not app_tuple:

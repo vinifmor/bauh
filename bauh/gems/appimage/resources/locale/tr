@@ -33,6 +33,7 @@ appimage.info.icon_path=simge
 appimage.info.imported.false=Hayır
 appimage.info.imported.true=Evet
 appimage.info.install_dir=Kurulum dizini
+appimage.info.repository=Depo
 appimage.info.symlink=Symlink
 appimage.info.url_download=Dosya Bağlantısı
 appimage.install.appimagelauncher.error={appimgl}, {app} uygulamasının yüklenmesine izin vermiyor. {appimgl} yazılımını kaldırın, sisteminizi yeniden başlatın ve {app} yazılımını tekrar yüklemeyi deneyin.

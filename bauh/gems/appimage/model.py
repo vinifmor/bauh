@@ -32,7 +32,8 @@ class AppImage(SoftwarePackage):
     def cached_attrs(cls) -> Tuple[str, ...]:
         if cls.__cached_attrs is None:
             cls.__cached_attrs = ('name', 'description', 'version', 'url_download', 'author', 'license', 'source',
-                                  'icon_path', 'github', 'categories', 'imported', 'install_dir', 'symlink')
+                                  'icon_path', 'repository', 'categories', 'imported', 'install_dir',
+                                  'symlink')
 
         return cls.__cached_attrs
 
@@ -43,17 +44,17 @@ class AppImage(SoftwarePackage):
 
         return cls.__re_many_spaces
 
-    def __init__(self, name: str = None, description: str = None, github: str = None, source: str = None, version: str = None,
+    def __init__(self, name: str = None, description: str = None, repository: str = None, source: str = None, version: str = None,
                  url_download: str = None, url_icon: str = None, url_screenshot: str = None, license: str = None, author: str = None,
                  categories=None, icon_path: str = None, installed: bool = False,
                  url_download_latest_version: str = None, local_file_path: str = None, imported: bool = False,
                  i18n: I18n = None, install_dir: str = None, updates_ignored: bool = False,
-                 symlink: str = None, manual_update: bool = False, **kwargs):
+                 symlink: str = None, manual_update: bool = False, github: str = None, **kwargs):
         super(AppImage, self).__init__(id=name, name=name, version=version, latest_version=version,
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
         self.source = source
-        self.github = github
+        self.repository = repository if repository else (github if github else repository)
         self.categories = (categories.split(',') if isinstance(categories, str) else categories) if categories else None
         self.url_download = url_download
         self.icon_path = icon_path
@@ -69,7 +70,7 @@ class AppImage(SoftwarePackage):
         self.manual_update = manual_update  # True when the user is manually installing/upgrading an AppImage file
 
     def __repr__(self):
-        return "{} (name={}, github={})".format(self.__class__.__name__, self.name, self.github)
+        return f"{self.__class__.__name__} (name={self.name}, repository={self.repository})"
 
     def can_be_installed(self):
         return not self.installed and self.url_download

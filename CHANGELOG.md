@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Improvements
 - AppImage
   - info window: displaying "unknown" when there is no mapped license
+  - supporting AppImages from GitLab repositories
 - Arch
   - adding the AUR's URL on the package information dialog [#339](https://github.com/vinifmor/bauh/issues/339)
 - General

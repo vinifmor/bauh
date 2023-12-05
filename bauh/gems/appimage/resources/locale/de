@@ -33,6 +33,7 @@ appimage.info.icon_path=Symbol
 appimage.info.imported.false=Nein
 appimage.info.imported.true=Ja
 appimage.info.install_dir=Installationsverzeichnis
+appimage.info.repository=Repository
 appimage.info.symlink=Symlink
 appimage.info.url_download=Datei-URL
 appimage.install.appimagelauncher.error={appimgl} lässt nicht zu, dass {app} installiert wird. Deinstallieren Sie {appimgl}, starten Sie Ihr System neu und versuchen Sie erneut, {app} zu installieren.
