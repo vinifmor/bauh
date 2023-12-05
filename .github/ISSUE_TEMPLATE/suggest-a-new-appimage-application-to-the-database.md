@@ -1,6 +1,6 @@
 ---
 name: Suggest a new AppImage application to the database
-about: Only applications with AppImage releases published to GitHub can be accepted
+about: At the moment bauh's backend is only able to work with GitHub/GitLab projects. The project also needs to attach the AppImage file to its releases.
 title: "[New AppImage] application_name"
 labels: appimage
 assignees: ''
@@ -8,5 +8,5 @@ assignees: ''
 ---
 
 - Application name:
-- Github page:
+- Github/GitLab page:
 - Official website (if available):
