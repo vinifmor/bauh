@@ -1728,6 +1728,7 @@ class ManageWindow(QWidget):
                             break
 
             self._add_pkg_categories(res['pkg'])
+            self._update_index()
 
             dialog.show_message(title=self.i18n['success'].capitalize(),
                                 body=self.i18n['action.{}.success'.format(res['action'])].format(bold(res['pkg'].model.name)),
