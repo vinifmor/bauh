@@ -516,6 +516,7 @@ class ManageWindow(QWidget):
 
     def begin_apply_filters(self):
         self.stop_notifying_package_states()
+
         self._begin_action(action_label=self.i18n['manage_window.status.filtering'],
                            action_id=ACTION_APPLY_FILTERS)
         self.comp_manager.disable_visible_from_groups(GROUP_UPPER_BAR, GROUP_LOWER_BTS)
@@ -872,6 +873,7 @@ class ManageWindow(QWidget):
             self.update_custom_actions()
             self._show_console_checkbox_if_output()
             self._update_installed_filter()
+            self._update_index()
             self.begin_apply_filters()
             self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
             self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
@@ -887,6 +889,13 @@ class ManageWindow(QWidget):
         if self.pkgs:
             for new_idx, pkgv in enumerate(self.pkgs):  # updating the package indexes
                 pkgv.table_index = new_idx
+
+    def _update_index(self):
+        if self.pkgs_available:
+            idx = new_package_index()
+            for pkgv in self.pkgs_available:
+                add_to_index(pkgv, idx)
+            self.pkg_idx = idx
 
     def begin_launch_package(self, pkg: PackageView):
         self._begin_action(action_label=self.i18n['manage_window.status.running_app'].format(pkg.model.name),
@@ -1560,6 +1569,7 @@ class ManageWindow(QWidget):
 
             self.update_custom_actions()
             self._update_installed_filter(installed_available=True, keep_state=True)
+            self._update_index()
             self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
             self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=False)
