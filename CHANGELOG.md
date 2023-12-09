@@ -29,14 +29,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       - at the moment the following packaging formats are considered completely **unverified**: AppImage, AUR, native Web application
       - Snap supports both verified and unverified software
   - minor reduction in the table loading time
+  - improvements to help with random widget centralisation issues
 
 ### Fixes
 - AppImage
   - upgrade fails when the package was initially imported, but later added to bauh's database [#321](https://github.com/vinifmor/bauh/issues/321)
 - Web
   - search not working for some typed addresses (e.g: those returning 403)
-- UI
-  - trying to fix the wrong widgets centralisation issue (random)
 
 ### Contributions
 - German translations by [Mape6](https://github.com/Mape6)
