@@ -1,13 +1,14 @@
 version: 1
 script:
   - rm -rf AppDir appimage-builder-cache *.AppImage *.zsync |true
-  - mkdir -p AppDir/usr
   - mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
   - mkdir -p AppDir/usr/share/applications
   - wget https://github.com/vinifmor/bauh/archive/${BAUH_VERSION}.tar.gz || exit 1
-  - BAUH_SETUP_NO_REQS=1 pip3 install ${BAUH_VERSION}.tar.gz --prefix=/usr --root=AppDir || exit 1
   - tar -xf ${BAUH_VERSION}.tar.gz || exit 1
   - cd bauh-${BAUH_VERSION} || exit 1
+  - rm pyproject.toml || exit 1  # not using the new project file definition for now
+  - BAUH_SETUP_NO_REQS=1 pip3 install . --prefix=/usr --root=../AppDir || exit 1
+  - test -e ../AppDir/usr/bin/bauh || exit 1
   - cp bauh/view/resources/img/logo.svg ../AppDir/usr/share/icons/hicolor/scalable/apps/bauh.svg || exit 1
   - cp bauh/desktop/bauh.desktop ../AppDir/usr/share/applications || exit 1
 
@@ -51,7 +52,7 @@ AppDir:
         - python3-distutils
 
   after_bundle:
-      - pip3 install pyqt5 --prefix=/usr --root=AppDir || exit 1
+      - pip3 install pyqt5==5.15.7 --prefix=/usr --root=AppDir || exit 1
       - cd AppDir/usr/lib/python3.8/site-packages/PyQt5/Qt5/plugins || exit 1
       - rm -rf audio gamepad gamepads geoservices printsupport sceneparsers sensorgestures sensors sqldrivers texttospeech webview || exit 1
       - cd ../lib/ || exit 1
