@@ -1,6 +1,7 @@
 import operator
 import os
 from functools import reduce
+from logging import Logger
 from threading import Lock
 from typing import List, Optional, Dict
 
@@ -71,12 +72,13 @@ class PackagesTable(QTableWidget):
     COL_NUMBER = 9
     DEFAULT_ICON_SIZE = QSize(16, 16)
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool, logger: Logger):
         super(PackagesTable, self).__init__()
         self.setObjectName('table_packages')
         self.setParent(parent)
         self.window = parent
         self.download_icons = download_icons
+        self.logger = logger
         self.setColumnCount(self.COL_NUMBER)
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
@@ -614,9 +616,10 @@ class PackagesTable(QTableWidget):
         return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])
 
     def _setup_file_downloader(self, max_workers: int = 50, max_downloads: int = -1) -> None:
-        self.file_downloader = URLFileDownloader(parent=self,
+        self.file_downloader = URLFileDownloader(logger=self.logger,
                                                  max_workers=max_workers,
-                                                 max_downloads=max_downloads)
+                                                 max_downloads=max_downloads,
+                                                 parent=self)
         self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
         self.file_downloader.start()
 

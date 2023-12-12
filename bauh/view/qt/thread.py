@@ -1117,9 +1117,10 @@ class URLFileDownloader(QThread):
 
     signal_downloaded = pyqtSignal(str, bytes, object)
 
-    def __init__(self, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 3,
+    def __init__(self, logger: Logger, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 3,
                  max_downloads: int = -1, parent: Optional[QWidget] = None):
         super().__init__(parent)
+        self._logger = logger
         self._queue = Queue()
         self._max_workers = max_workers
         self._request_timeout = request_timeout
@@ -1129,6 +1130,7 @@ class URLFileDownloader(QThread):
 
     def _get(self, url_: str, id_: Optional[object]):
         if self._stop:
+            self._logger.info(f"File '{url_}' download cancelled")
             return
 
         try:
@@ -1136,21 +1138,31 @@ class URLFileDownloader(QThread):
             content = res.content if res.status_code == 200 else None
             self.signal_downloaded.emit(url_, content, id_)
         except Exception as e:
-            sys.stderr.write(f"[ERROR] could not download file from '{url_}': "
-                             f"{e.__class__.__name__}({str(e.args)})\n")
+            self._logger.error(f"[ERROR] could not download file from '{url_}': "
+                               f"{e.__class__.__name__}({str(e.args)})\n")
 
     def run(self) -> None:
         download_count = 0
+        futures = []
         with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
             while not self._stop and (self._max_downloads <= 0 or download_count < self._max_downloads):
                 try:
                     url_, id_ = self._queue.get(timeout=self._inactivity_timeout)
-                    executor.submit(self._get, url_, id_)
+                    futures.append(executor.submit(self._get, url_, id_))
                     download_count += 1
                 except Exception:
                     self._stop = True
 
-            executor.shutdown(wait=False, cancel_futures=True)
+            cancelled_count = 0
+            for f in futures:
+                if not f.done():
+                    f.cancel()
+                    cancelled_count += 1
+
+            if cancelled_count > 0:
+                self._logger.info(f"{cancelled_count} file downloads cancelled")
+
+        self._logger.info(f"Finished to download files (count={download_count})")
 
     def stop(self) -> None:
         self._stop = True
