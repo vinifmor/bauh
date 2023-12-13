@@ -1,7 +1,5 @@
 FROM ubuntu:20.04
 
-ARG bauh_commit
-ENV BAUH_VERSION=$bauh_commit
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y && \
