@@ -1,6 +1,7 @@
 import logging
+from io import BytesIO
 from threading import Thread
-from typing import List
+from typing import List, Dict
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QCursor
@@ -95,6 +96,7 @@ class ScreenshotsDialog(QDialog):
         self.bt_next.setCursor(QCursor(Qt.PointingHandCursor))
         self.bt_next.clicked.connect(self.next)
         self.container_buttons.layout().addWidget(self.bt_next)
+        self.download_progress: Dict[int, float] = dict()
 
         self.layout().addWidget(self.container_buttons)
 
@@ -107,13 +109,16 @@ class ScreenshotsDialog(QDialog):
             t.start()
 
         self.resize(self.max_img_width + 5, self.max_img_height + 5)
-        self._load_img()
+        self._load_img(self.img_idx)
         qt_utils.centralize(self)
 
     def _update_progress(self, val: int):
         self.progress_bar.setValue(val)
 
-    def _load_img(self):
+    def _load_img(self, img_idx: int):
+        if img_idx != self.img_idx:
+            return
+
         if len(self.loaded_imgs) > self.img_idx:
             img = self.loaded_imgs[self.img_idx]
 
@@ -131,7 +136,10 @@ class ScreenshotsDialog(QDialog):
         else:
             self.img.setPixmap(QPixmap())
             self.img.setCursor(QCursor(Qt.WaitCursor))
-            self.img.setText('{} {}/{}...'.format(self.i18n['screenshots.image.loading'], self.img_idx + 1, len(self.screenshots)))
+
+            progress = self.download_progress.get(self.img_idx, 0)
+            self.img.setText(f"{self.i18n['screenshots.image.loading']} "
+                             f"{self.img_idx + 1}/{len(self.screenshots)} ({progress:.2f}%)")
             self.progress_bar.setVisible(True)
             self.thread_progress.start()
 
@@ -143,35 +151,50 @@ class ScreenshotsDialog(QDialog):
             self.bt_next.setEnabled(self.img_idx != len(self.screenshots) - 1)
 
     def _download_img(self, idx: int, url: str):
-        self.logger.info('Downloading image [{}] from {}'.format(idx, url))
-        res = self.http_client.get(url)
+        self.logger.info(f"Downloading image [{idx}] from {url}")
+        res = self.http_client.get(url=url, stream=True)
 
-        if res:
-            if not res.content:
-                self.logger.warning('Image [{}] from {} has no content'.format(idx, url))
-                self.loaded_imgs.append(self.i18n['screenshots.download.no_content'])
-                self._load_img()
-            else:
-                self.logger.info('Image [{}] successfully downloaded'.format(idx))
-                pixmap = QPixmap()
-                pixmap.loadFromData(res.content)
+        if not res:
+            self.logger.info(f"Could not retrieve image [{idx}] from '{url}'")
+            self.loaded_imgs.append(self.i18n["screenshots.download.no_response"])
+            self._load_img(idx)
+            return
 
-                if pixmap.size().height() > self.max_img_height or pixmap.size().width() > self.max_img_width:
-                    pixmap = pixmap.scaled(self.max_img_width, self.max_img_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        try:
+            content_length = int(res.headers.get("content-length", 0))
+        except Exception:
+            content_length = 0
+            self.logger.warning(f"Could not retrieve the content-length for file '{url}'")
 
-                self.loaded_imgs.append(pixmap)
-
-                if self.img_idx == idx:
-                    self._load_img()
+        if content_length <= 0:
+            self.logger.warning(f"Image [{idx}] has no content ({url})")
+            self.loaded_imgs.append(self.i18n['screenshots.download.no_content'])
+            self._load_img(idx)
         else:
-            self.logger.info("Could not retrieve image [{}] from {}".format(idx, url))
-            self.loaded_imgs.append(self.i18n['screenshots.download.no_response'])
-            self._load_img()
+            byte_stream = BytesIO()
+
+            total_downloaded = 0
+            for data in res.iter_content(chunk_size=1024):
+                byte_stream.write(data)
+                total_downloaded += len(data)
+                self.download_progress[idx] = (total_downloaded / content_length) * 100
+                self._load_img(idx)
+
+            self.logger.info(f"Image [{idx}] successfully downloaded ({url})")
+            pixmap = QPixmap()
+            pixmap.loadFromData(byte_stream.getvalue())
+
+            if pixmap.size().height() > self.max_img_height or pixmap.size().width() > self.max_img_width:
+                pixmap = pixmap.scaled(self.max_img_width, self.max_img_height, Qt.KeepAspectRatio,
+                                       Qt.SmoothTransformation)
+
+            self.loaded_imgs.append(pixmap)
+            self._load_img(idx)
 
     def back(self):
         self.img_idx -= 1
-        self._load_img()
+        self._load_img(self.img_idx)
 
     def next(self):
         self.img_idx += 1
-        self._load_img()
+        self._load_img(self.img_idx)

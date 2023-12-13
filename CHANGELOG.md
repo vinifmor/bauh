@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
       - Snap supports both verified and unverified software
   - minor reduction in the table loading time
   - improvements to help with random widget centralisation issues
+  - displaying the download progress for screenshots
 
 ### Fixes
 - AppImage
