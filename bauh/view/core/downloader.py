@@ -77,7 +77,7 @@ class SelfFileDownloader(FileDownloader):
             byte_stream.write(data)
             total_downloaded += len(data)
             perc = f"({(total_downloaded / content_length) * 100:.2f}%) " if known_size > 0 else ""
-            watcher.change_substatus(base_msg + f" {perc}({get_human_size_str(total_downloaded)} / {total_size_str})")
+            watcher.change_substatus(f"{perc}{base_msg} ({get_human_size_str(total_downloaded)} / {total_size_str})")
 
         self._logger.info(f"Writing downloaded file content to disk: {output_path}")
 
