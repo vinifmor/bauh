@@ -73,11 +73,16 @@ class SelfFileDownloader(FileDownloader):
         known_size = content_length and content_length > 0
         total_size_str = get_human_size_str(content_length) if known_size > 0 else "?"
 
-        for data in res.iter_content(chunk_size=1024):
-            byte_stream.write(data)
-            total_downloaded += len(data)
-            perc = f"({(total_downloaded / content_length) * 100:.2f}%) " if known_size > 0 else ""
-            watcher.change_substatus(f"{perc}{base_msg} ({get_human_size_str(total_downloaded)} / {total_size_str})")
+        try:
+            for data in res.iter_content(chunk_size=1024):
+                byte_stream.write(data)
+                total_downloaded += len(data)
+                perc = f"({(total_downloaded / content_length) * 100:.2f}%) " if known_size > 0 else ""
+                watcher.change_substatus(f"{perc}{base_msg} ({get_human_size_str(total_downloaded)} / {total_size_str})")
+        except Exception:
+            self._logger.error(f"Unexpected exception while downloading file from '{file_url}'")
+            traceback.print_exc()
+            return False
 
         self._logger.info(f"Writing downloaded file content to disk: {output_path}")
 
