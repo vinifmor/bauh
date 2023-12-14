@@ -40,7 +40,6 @@ AppDir:
       - python3-lxml
       - python3-bs4
       - sqlite3
-      - wget
       # - libfreetype6
       # - libfontconfig1
     exclude:

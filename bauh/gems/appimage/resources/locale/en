@@ -41,7 +41,6 @@ appimage.install.desktop_entry=Generating a menu shortcut
 appimage.install.extract=Extracting the content from {}
 appimage.install.imported.rename_error=It was not possible to move the file {} to {}
 appimage.install.permission=Giving execution permission to {}
-appimage.missing_downloader=No download client installed ({clients})
 appimage.update_database.deleting_old=Removing old files
 appimage.update_database.downloading=Downloading database files
 appimage.update_database.uncompressing=Uncompressing files
