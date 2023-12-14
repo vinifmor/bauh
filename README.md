@@ -77,7 +77,7 @@ Key features
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator3-1`: tray-mode
-- `wget`, `sqlite3`, `fuse`: AppImage support
+- `sqlite3`, `fuse`: AppImage support
 - `flatpak`: Flatpaks support
 - `snapd`: Snaps support
 - `python3-lxml`, `python3-bs4`: Web apps support

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - parallelized search
   - adding a new project definition/setup (`pyproject.toml`) file to comply with the latest standards
   - faster exit (threaded calls won't be waited)
+  - new download implementation replaces `wget` (implemented in Python using the `requests` library)
 - UI
   - the "Skip" button on the initialization panel is now enabled after 10 seconds [#310](https://github.com/vinifmor/bauh/issues/310)
   - faster package icons download
