@@ -1,4 +1,5 @@
 import logging
+import traceback
 from io import BytesIO
 from threading import Thread
 from typing import List, Dict
@@ -150,9 +151,20 @@ class ScreenshotsDialog(QDialog):
             self.bt_back.setEnabled(self.img_idx != 0)
             self.bt_next.setEnabled(self.img_idx != len(self.screenshots) - 1)
 
+    def _handle_download_exception(self, idx: int, url: str):
+        self.logger.error(f"Unexpected exception while downloading screenshot from '{url}'")
+        traceback.print_exc()
+        self.loaded_imgs.append(self.i18n["screenshots.download.no_response"])
+        self._load_img(idx)
+
     def _download_img(self, idx: int, url: str):
         self.logger.info(f"Downloading image [{idx}] from {url}")
-        res = self.http_client.get(url=url, stream=True)
+
+        try:
+            res = self.http_client.get(url=url, stream=True)
+        except Exception:
+            self._handle_download_exception(idx, url)
+            return
 
         if not res:
             self.logger.info(f"Could not retrieve image [{idx}] from '{url}'")
@@ -174,11 +186,15 @@ class ScreenshotsDialog(QDialog):
             byte_stream = BytesIO()
 
             total_downloaded = 0
-            for data in res.iter_content(chunk_size=1024):
-                byte_stream.write(data)
-                total_downloaded += len(data)
-                self.download_progress[idx] = (total_downloaded / content_length) * 100
-                self._load_img(idx)
+            try:
+                for data in res.iter_content(chunk_size=1024):
+                    byte_stream.write(data)
+                    total_downloaded += len(data)
+                    self.download_progress[idx] = (total_downloaded / content_length) * 100
+                    self._load_img(idx)
+            except Exception:
+                self._handle_download_exception(idx, url)
+                return
 
             self.logger.info(f"Image [{idx}] successfully downloaded ({url})")
             pixmap = QPixmap()
