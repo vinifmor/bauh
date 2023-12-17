@@ -43,7 +43,7 @@ class HttpClient:
                 else:
                     res = requests.get(url, **args)
 
-                if res.status_code == 200:
+                if 200 <= res.status_code < 300:
                     return res
 
                 if single_call:

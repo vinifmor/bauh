@@ -3,12 +3,15 @@ import re
 import shutil
 import time
 import traceback
+from collections import defaultdict
 from io import StringIO, BytesIO
 from logging import Logger
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
+
+from requests import Response
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -21,17 +24,118 @@ from bauh.view.util.translation import I18n
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
 
+class MultithreadedFileDownload:
+
+    def __init__(self, file_url: str, file_length: int, output_path: str,
+                 threads: int, download_msg: str, http_client: HttpClient, logger: Logger):
+        self._file_url = file_url
+        self._file_length = file_length
+        self._output_path = output_path
+        self._download_msg = download_msg
+        self._threads = threads
+        self._logger = logger
+        self._client = http_client
+        self._failed = False
+        self._parts: Dict[int, BytesIO] = dict()
+        self._total_downloaded: Dict[int, int] = defaultdict(lambda: 0)
+        self._chunk_size = 1024
+
+    def _download_part(self, id_: int, file_url: str, start_byte: int, end_byte: int):
+        headers = {"Range": f"bytes={start_byte}-{end_byte}"}
+        try:
+            self._logger.info(f"Starting to download part {id_} of {file_url} "
+                              f"(start_byte={start_byte}, end_byte={end_byte}")
+            res = self._client.get(url=file_url, headers=headers, stream=True)
+
+            if res.status_code != 206:
+                self._logger.warning(f"The server did not accept partial download of file ({file_url}) [thread={id_})")
+                self._failed = True
+                return
+
+            byte_stream = BytesIO()
+            for chunk in res.iter_content(chunk_size=self._chunk_size):
+                if self._failed:
+                    # if another thread failed, stops immediately
+                    self._logger.warning(f"Interrupting file part {id_} download ({file_url})")
+                    return
+
+                if chunk:
+                    byte_stream.write(chunk)
+                    self._total_downloaded[id_] += len(chunk)
+
+            self._logger.info(f"Download succeeded for file part {id_} ({file_url})")
+            self._parts[id_] = byte_stream
+        except Exception:
+            self._logger.error(f"Unexpected exception when downloading file part '{id_}' from '{file_url}'")
+            traceback.print_exc()
+            self._failed = True
+
+    def start(self, watcher: Optional[ProcessWatcher] = None) -> bool:
+        # TODO calculate the number of threads based on the chunk size and content length
+        part_size = int(self._file_length / self._threads)
+        ranges = [(i * part_size, (i + 1) * part_size - 1) for i in range(self._threads - 1)]
+        ranges.append(((self._threads - 1) * part_size, self._file_length - 1))
+
+        threads = []
+        self._logger.info(f'Downloading {self._file_url} with {self._threads} threads')
+        for idx, (start_byte, end_byte) in enumerate(ranges):
+            t = Thread(target=self._download_part, daemon=True, kwargs={"id_": idx, "file_url": self._file_url,
+                                                                        "start_byte": start_byte, "end_byte": end_byte})
+            t.start()
+            threads.append(t)
+
+        total_size_str = get_human_size_str(self._file_length)
+        total_downloaded = 0  # stores the latest download sum (only required in case the watcher is defined)
+        while not self._failed:
+            threads_finished = 0
+            for t in threads:
+                if not t.is_alive():
+                    threads_finished += 1
+
+            if watcher:
+                current_total = sum(tuple(self._total_downloaded.values()))
+
+                if current_total != total_downloaded:
+                    total_downloaded = current_total
+
+                    perc = f"({(total_downloaded / self._file_length) * 100:.2f}%) "
+                    watcher.change_substatus(f"{perc}{self._download_msg} "
+                                             f"({get_human_size_str(total_downloaded)} / {total_size_str})")
+
+            if threads_finished == len(threads):
+                break
+
+        if self._failed:
+            # wait for all threads to finish in case one failed
+            for t in threads:
+                t.join()
+
+            return False
+
+        try:
+            with open(self._output_path, "wb+") as f:
+                for _, part in sorted(self._parts.items()):
+                    f.write(part.getvalue())
+        except Exception:
+            self._logger.error(f"Unexpected exception when saving downloaded content to disk: {self._output_path}")
+            traceback.print_exc()
+            return False
+
+        return True
+
+
 class SelfFileDownloader(FileDownloader):
 
     def __init__(self, logger: Logger, i18n: I18n, http_client: HttpClient,
-                 check_ssl: bool):
+                 check_ssl: bool, multithread: bool = False):
         self._logger = logger
         self._i18n = i18n
         self._client = http_client
         self._ssl = check_ssl
+        self._multithread = multithread
 
     def is_multithreaded(self) -> bool:
-        return False
+        return True
 
     def can_work(self) -> bool:
         return True
@@ -40,7 +144,7 @@ class SelfFileDownloader(FileDownloader):
         return tuple()
 
     def is_multithreaded_client_available(self, name: str) -> bool:
-        return False
+        return True
 
     def list_available_multithreaded_clients(self) -> Tuple[str, ...]:
         return tuple()
@@ -62,23 +166,49 @@ class SelfFileDownloader(FileDownloader):
             content_length = 0
             self._logger.warning(f"Could not retrieve the content-length for file '{file_url}'")
 
+            if self._multithread:
+                self._logger.warning(f"Multi-threaded download will not be possible for file '{file_url}'")
+
         file_name = file_url.split("/")[-1]
         msg = StringIO()
         msg.write(f"{substatus_prefix} " if substatus_prefix else "")
         msg.write(f"{self._i18n['downloading']} {bold(file_name)}")
-        base_msg = msg.getvalue()
+        download_msg = msg.getvalue()
 
+        server_supports_multithread = res.headers.get("accept-ranges") == "bytes"
+        multithread = self._multithread and server_supports_multithread
+
+        if self._multithread and not server_supports_multithread:
+            self._logger.warning(f"It will not be possible to download file {file_url} using threads: "
+                                 f"the server does not support it")
+
+        if not content_length or not multithread:
+            return self._download_single_thread(file_url=file_url, output_path=output_path, res=res,
+                                                base_msg=download_msg, watcher=watcher, content_length=content_length)
+
+        num_threads = max_threads if isinstance(max_threads, int) and max_threads > 0 else 10
+        multithread_download = MultithreadedFileDownload(file_url=file_url, file_length=content_length,
+                                                         output_path=output_path, download_msg=download_msg,
+                                                         http_client=self._client, logger=self._logger,
+                                                         threads=num_threads)
+        return multithread_download.start(watcher=watcher)
+
+    def _download_single_thread(self, file_url: str, output_path: str,
+                                res: Response, base_msg: str,  watcher: ProcessWatcher,
+                                content_length: Optional[int] = None) -> bool:
         byte_stream = BytesIO()
         total_downloaded = 0
         known_size = content_length and content_length > 0
         total_size_str = get_human_size_str(content_length) if known_size > 0 else "?"
 
+        self._logger.info(f'Downloading {file_url}')
         try:
             for data in res.iter_content(chunk_size=1024):
                 byte_stream.write(data)
                 total_downloaded += len(data)
                 perc = f"({(total_downloaded / content_length) * 100:.2f}%) " if known_size > 0 else ""
-                watcher.change_substatus(f"{perc}{base_msg} ({get_human_size_str(total_downloaded)} / {total_size_str})")
+                watcher.change_substatus(f"{perc}{base_msg} "
+                                         f"({get_human_size_str(total_downloaded)} / {total_size_str})")
         except Exception:
             self._logger.error(f"Unexpected exception while downloading file from '{file_url}'")
             traceback.print_exc()
@@ -111,7 +241,8 @@ class AdaptableFileDownloader(FileDownloader):
         self._self_downloader = SelfFileDownloader(logger=logger,
                                                    i18n=i18n,
                                                    http_client=http_client,
-                                                   check_ssl=check_ssl)
+                                                   check_ssl=check_ssl,
+                                                   multithread=multithread_enabled)
 
     @staticmethod
     def is_aria2c_available() -> bool:
@@ -234,7 +365,6 @@ class AdaptableFileDownloader(FileDownloader):
         return start_time, success
 
     def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: Optional[str] = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
-        self.logger.info(f'Downloading {file_url}')
         handler = ProcessHandler(watcher)
         file_name = file_url.split('/')[-1]
 
@@ -254,31 +384,22 @@ class AdaptableFileDownloader(FileDownloader):
                     try:
                         Path(output_dir).mkdir(exist_ok=True, parents=True)
                     except OSError:
-                        self.logger.error(f"Could not make download directory '{output_dir}'")
+                        self.logger.error(f"Could not make download directory '{output_dir}' ({file_url})")
                         watcher.print(self.i18n['error.mkdir'].format(dir=output_dir))
                         return False
 
-            threaded_client = self.get_available_multithreaded_tool()
-            if threaded_client:
-                start_time, success = self._download_with_threads(client=threaded_client, file_url=file_url,
-                                                                  output_path=output_path,
-                                                                  cwd=final_cwd, max_threads=max_threads,
-                                                                  known_size=known_size, handler=handler,
-                                                                  display_file_size=display_file_size,
-                                                                  root_password=root_password)
-            else:
-                start_time = time.time()
-                success = self._self_downloader.download(file_url=file_url, watcher=watcher, output_path=output_path,
-                                                         cwd=cwd, root_password=root_password,
-                                                         substatus_prefix=substatus_prefix,
-                                                         display_file_size=display_file_size, max_threads=max_threads,
-                                                         known_size=known_size)
+            start_time = time.time()
+            success = self._self_downloader.download(file_url=file_url, watcher=watcher, output_path=output_path,
+                                                     cwd=cwd, root_password=root_password,
+                                                     substatus_prefix=substatus_prefix,
+                                                     display_file_size=display_file_size, max_threads=max_threads,
+                                                     known_size=known_size)
         except Exception:
             traceback.print_exc()
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         final_time = time.time()
-        self.logger.info(f'{file_name} download took {(final_time - start_time) / 60:.2f} minutes')
+        self.logger.info(f'{file_name} download took {(final_time - start_time) / 60:.4f} minutes')
 
         if not success:
             self.logger.error(f"Could not download '{file_name}'")
