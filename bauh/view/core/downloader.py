@@ -278,7 +278,7 @@ class AdaptableFileDownloader(FileDownloader):
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
         final_time = time.time()
-        self.logger.info(f'{file_name} download took {(final_time - start_time) / 60:.2f} minutes')
+        self.logger.info(f'{file_name} download took {(final_time - start_time) / 60:.4f} minutes')
 
         if not success:
             self.logger.error(f"Could not download '{file_name}'")
