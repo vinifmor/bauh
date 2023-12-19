@@ -88,12 +88,14 @@ class CacheCleaner(Thread):
             self.caches.append(cache)
 
     def run(self):
-        if self.caches:
-            while True:
-                for cache in self.caches:
-                    cache.clean_expired()
-
-                time.sleep(self.check_interval)
+        # FIXME disabling to check if the segmentation fault errors are associated with this
+        pass
+        # if self.caches:
+        #     while True:
+        #         for cache in self.caches:
+        #             cache.clean_expired()
+        #
+        #         time.sleep(self.check_interval)
 
 
 class DefaultMemoryCacheFactory(MemoryCacheFactory):
