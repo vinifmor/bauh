@@ -82,6 +82,7 @@ Key features
 - `snapd`: Snaps support
 - `python3-lxml`, `python3-bs4`: Web apps support
 - `python3-venv`: [isolated installation](#inst_iso)
+- `xdg-utils`: to open URLs in the browsers (`xdg-open`)
 
 ##### Updating bauh
 
@@ -125,8 +126,9 @@ makepkg -si
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator-gtk2`: tray-mode (GTK2 desktop environments)
-- `libappindicator-gtk3`: tray-mode (GTK3 desktop environments) 
-- `wget`, `sqlite`, `fuse2`, `fuse3`: AppImage support
+- `libappindicator-gtk3`: tray-mode (GTK3 desktop environments)
+- `xdg-utils`: to open URLs in the browser (`xdg-open`)
+- `sqlite`, `fuse2`, `fuse3`: AppImage support
 - `flatpak`: Flatpak support
 - `snapd`: Snap support
 - `pacman`: ArchLinux package management support

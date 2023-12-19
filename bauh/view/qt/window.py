@@ -1,6 +1,7 @@
 import logging
 import operator
 import os.path
+import shutil
 import time
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional, Dict, Any
@@ -472,6 +473,7 @@ class ManageWindow(QWidget):
         self._register_groups()
         self._screen_geometry: Optional[QRect] = None
         self.searched_term: Optional[str] = None  # last searched term
+        self._can_open_urls: Optional[bool] = None  # whether URLs can be opened in the browser
 
         qt_utils.centralize(self)
 
@@ -1368,7 +1370,8 @@ class ManageWindow(QWidget):
 
         if pkg_info:
             if len(pkg_info) > 1:
-                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache, i18n=self.i18n)
+                dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache, i18n=self.i18n,
+                                         can_open_url=self.can_open_urls)
                 dialog_info.exec_()
             else:
                 dialog.show_message(title=self.i18n['warning'].capitalize(),
@@ -1816,3 +1819,10 @@ class ManageWindow(QWidget):
     def closeEvent(self, event: QCloseEvent) -> None:
         # needs to be stopped to avoid a Qt exception/crash
         self.table_apps.stop_file_downloader(wait=True)
+
+    @property
+    def can_open_urls(self) -> bool:
+        if self._can_open_urls is None:
+            self._can_open_urls = shutil.which("xdg-open")
+
+        return self._can_open_urls

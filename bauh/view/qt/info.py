@@ -1,6 +1,8 @@
+import shutil
 import subprocess
 from collections.abc import Iterable
 from subprocess import Popen
+from typing import Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCursor
@@ -19,10 +21,11 @@ IGNORED_ATTRS = {'name', '__app__'}
 
 class InfoDialog(QDialog):
 
-    def __init__(self, pkg_info: dict, icon_cache: MemoryCache, i18n: I18n):
+    def __init__(self, pkg_info: dict, icon_cache: MemoryCache, i18n: I18n, can_open_url: bool):
         super(InfoDialog, self).__init__()
         self.setWindowTitle(str(pkg_info['__app__']))
         self.i18n = i18n
+        self._can_open_url = can_open_url
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -129,7 +132,7 @@ class InfoDialog(QDialog):
 
     def _gen_show_button(self, idx: int, val: str):
 
-        is_url = bool(RE_URL.match(val)) if val else False
+        is_url = self._can_open_url and bool(RE_URL.match(val)) if val else False
 
         if is_url:
             bt_label = self.i18n["manage_window.info.open_url"]
