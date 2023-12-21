@@ -42,10 +42,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Web
   - search not working for some typed addresses (e.g: those returning 403)
 
+
 ### Contributions
 - German translations by [Mape6](https://github.com/Mape6)
 - Russian translations by [KoromeloDev](https://github.com/KoromeloDev)
 - Fix [#329](https://github.com/vinifmor/bauh/issues/329) by [w568w](https://github.com/w568w)
+
+
+### Distribution
+- bauh's AppImage is now based on Debian bullseye and had a small size reduction
 
 ## [0.10.5] 2022-12-17
 
