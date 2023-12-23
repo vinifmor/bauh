@@ -61,7 +61,9 @@ Key features
     - `./bauh-${version}-x86_64.AppImage`
 - If you want to integrate bauh to your desktop: click on bauh's settings menu ("sandwich") and then `Install bauh`
 
-[appim_self.png](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png">
+</p>
 
 
 #### <a name="inst_ubuntu">Ubuntu 20.04 based distros (Linux Mint, PopOS, ...)</a>
