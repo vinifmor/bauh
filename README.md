@@ -56,7 +56,7 @@ Key features
 
 ##### Steps
 - Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases
-- Generally the desktop environment allow you to double-click the downloaded file to execute it. If that's not your case, follow the steps below from a console:
+- Generally the desktop environment allows you to double-click the downloaded file to execute it. If that's not your case, follow the steps below from a console:
     - `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
     - `./bauh-${version}-x86_64.AppImage`
 - If you want to integrate bauh to your desktop: click on bauh's settings menu ("sandwich") and then `Install bauh`
