@@ -55,9 +55,14 @@ Key features
 - `qt5dxcb-plugin` (or equivalent): the package name may vary from distribution
 
 ##### Steps
-- Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases.
-- Run the following command through a terminal: `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
-- Launch it: `./bauh-${version}-x86_64.AppImage`
+- Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases
+- Generally desktop environment allow you to double-click the downloaded file to execute it. If that's not your case, follow the steps below from a console:
+    - `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
+    - `./bauh-${version}-x86_64.AppImage`
+- If you want to integrate bauh to your desktop: click on bauh's settings menu ("sandwich") and then `Install bauh`
+
+[appim_self.png](https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png)
+
 
 #### <a name="inst_ubuntu">Ubuntu 20.04 based distros (Linux Mint, PopOS, ...)</a>
 
