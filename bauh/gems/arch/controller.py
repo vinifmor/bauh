@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from pwd import getpwnam
 from threading import Thread
-from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator
+from typing import List, Set, Type, Tuple, Dict, Iterable, Optional, Collection, Generator, Any
 
 from dateutil.parser import parse as parse_date
 
@@ -1332,7 +1332,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         thread_fill_aur = None
         if aur_replacers:
-            thread_fill_aur = Thread(target=self._fill_aur_providers, args=(aur_replacers, actual_replacers))
+            thread_fill_aur = Thread(target=self._fill_aur_providers, args=(aur_replacers, actual_replacers), daemon=True)
             thread_fill_aur.start()
 
         if repo_replacers:
@@ -1551,84 +1551,95 @@ class ArchManager(SoftwareManager, SettingsController):
     def get_managed_types(self) -> Set["type"]:
         return {ArchPackage}
 
+    def _map_info_aur_installed(self, pkg: ArchPackage, pkgbuild_thread: Thread) -> Dict[str, Any]:
+        info = pacman.get_info_dict(pkg.name)
+
+        if info is not None:
+            self._parse_dates_string_from_info(pkg.name, info)
+
+            info['04_orphan'] = pkg.orphan
+            info['04_out_of_date'] = pkg.out_of_date
+
+            if pkg.commit:
+                info['commit'] = pkg.commit
+
+            if pkg.last_modified:
+                err_msg = f"Could not parse AUR package '{pkg.name}' 'last_modified' field ({pkg.last_modified})"
+                info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified, error_msg=err_msg)
+
+            info['14_installed_files'] = pacman.list_installed_files(pkg.name)
+
+            pkgbuild_thread.join()
+
+            if pkg.pkgbuild:
+                info['13_pkg_build'] = pkg.pkgbuild
+
+        return info
+
+    def _map_info_aur_uninstalled(self, pkg: ArchPackage, pkgbuild_thread: Thread) -> Dict[str, Any]:
+        info = {
+            '01_id': pkg.id,
+            '02_name': pkg.name,
+            '03_description': pkg.description,
+            '03_version': pkg.version,
+            '04_orphan': pkg.orphan,
+            '04_out_of_date': pkg.out_of_date,
+            '04_popularity': pkg.popularity,
+            '05_votes': pkg.votes,
+            '06_package_base': pkg.package_base,
+            '07_maintainer': pkg.maintainer,
+            '10_url': pkg.url_download
+        }
+
+        if pkg.first_submitted:
+            info['08_first_submitted'] = self._parse_timestamp(ts=pkg.first_submitted,
+                                                               error_msg="Could not parse AUR package '{}' 'first_submitted' field ({})".format(
+                                                                   pkg.name, pkg.first_submitted))
+
+        if pkg.last_modified:
+            info['09_last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
+                                                             error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(
+                                                                 pkg.name, pkg.last_modified))
+
+        srcinfo = self.aur_client.get_src_info(pkg.name)
+
+        if srcinfo:
+            arch_str = 'x86_64' if self.context.is_system_x86_64() else 'i686'
+            for info_attr, src_attr in {'12_makedepends': 'makedepends',
+                                        '13_dependson': 'depends',
+                                        '14_optdepends': 'optdepends',
+                                        'checkdepends': '15_checkdepends'}.items():
+                if srcinfo.get(src_attr):
+                    info[info_attr] = [*srcinfo[src_attr]]
+
+                arch_attr = f"{src_attr}_{arch_str}"
+
+                if srcinfo.get(arch_attr):
+                    if not info.get(info_attr):
+                        info[info_attr] = [*srcinfo[arch_attr]]
+                    else:
+                        info[info_attr].extend(srcinfo[arch_attr])
+
+        pkgbuild_thread.join()
+
+        if pkg.pkgbuild:
+            info['00_pkg_build'] = pkg.pkgbuild
+        else:
+            info['11_pkg_build_url'] = pkg.get_pkg_build_url()
+
+        return info
+
     def _get_info_aur_pkg(self, pkg: ArchPackage) -> dict:
         fill_pkgbuild = Thread(target=self.aur_mapper.fill_package_build, args=(pkg,), daemon=True)
         fill_pkgbuild.start()
 
         if pkg.installed:
-            info = pacman.get_info_dict(pkg.name)
-
-            if info is not None:
-                self._parse_dates_string_from_info(pkg.name, info)
-
-                info['04_orphan'] = pkg.orphan
-                info['04_out_of_date'] = pkg.out_of_date
-
-                if pkg.commit:
-                    info['commit'] = pkg.commit
-
-                if pkg.last_modified:
-                    info['last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
-                                                                  error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
-
-                info['14_installed_files'] = pacman.list_installed_files(pkg.name)
-
-                fill_pkgbuild.join()
-
-                if pkg.pkgbuild:
-                    info['13_pkg_build'] = pkg.pkgbuild
-
-            return info
+            info = self._map_info_aur_installed(pkg, fill_pkgbuild)
         else:
-            info = {
-                '01_id': pkg.id,
-                '02_name': pkg.name,
-                '03_description': pkg.description,
-                '03_version': pkg.version,
-                '04_orphan': pkg.orphan,
-                '04_out_of_date': pkg.out_of_date,
-                '04_popularity': pkg.popularity,
-                '05_votes': pkg.votes,
-                '06_package_base': pkg.package_base,
-                '07_maintainer': pkg.maintainer,
-                '10_url': pkg.url_download
-            }
+            info = self._map_info_aur_uninstalled(pkg, fill_pkgbuild)
 
-            if pkg.first_submitted:
-                info['08_first_submitted'] = self._parse_timestamp(ts=pkg.first_submitted,
-                                                                   error_msg="Could not parse AUR package '{}' 'first_submitted' field ({})".format(pkg.name, pkg.first_submitted))
-
-            if pkg.last_modified:
-                info['09_last_modified'] = self._parse_timestamp(ts=pkg.last_modified,
-                                                                 error_msg="Could not parse AUR package '{}' 'last_modified' field ({})".format(pkg.name, pkg.last_modified))
-
-            srcinfo = self.aur_client.get_src_info(pkg.name)
-
-            if srcinfo:
-                arch_str = 'x86_64' if self.context.is_system_x86_64() else 'i686'
-                for info_attr, src_attr in {'12_makedepends': 'makedepends',
-                                            '13_dependson': 'depends',
-                                            '14_optdepends': 'optdepends',
-                                            'checkdepends': '15_checkdepends'}.items():
-                    if srcinfo.get(src_attr):
-                        info[info_attr] = [*srcinfo[src_attr]]
-
-                    arch_attr = '{}_{}'.format(src_attr, arch_str)
-
-                    if srcinfo.get(arch_attr):
-                        if not info.get(info_attr):
-                            info[info_attr] = [*srcinfo[arch_attr]]
-                        else:
-                            info[info_attr].extend(srcinfo[arch_attr])
-
-            fill_pkgbuild.join()
-
-            if pkg.pkgbuild:
-                info['00_pkg_build'] = pkg.pkgbuild
-            else:
-                info['11_pkg_build_url'] = pkg.get_pkg_build_url()
-
-            return info
+        info["00_url"] = f"https://aur.archlinux.org/packages/{pkg.get_base_name()}"
+        return info
 
     def _parse_dates_string_from_info(self, pkgname: str, info: dict):
         for date_attr in ('install date', 'build date'):
@@ -3763,15 +3774,15 @@ class ArchManager(SoftwareManager, SettingsController):
 
         name_priority = dict()
 
-        fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,))
+        fill_suggestions = Thread(target=self._fill_suggestions, args=(name_priority,), daemon=True)
         fill_suggestions.start()
 
         available_packages = dict()
-        fill_available = Thread(target=self._fill_available_packages, args=(available_packages,))
+        fill_available = Thread(target=self._fill_available_packages, args=(available_packages,), daemon=True)
         fill_available.start()
 
         ignored_pkgs = set()
-        fill_ignored = Thread(target=pacman.fill_ignored_packages, args=(ignored_pkgs,))
+        fill_ignored = Thread(target=pacman.fill_ignored_packages, args=(ignored_pkgs,), daemon=True)
         fill_ignored.start()
 
         fill_suggestions.join()
@@ -3806,7 +3817,7 @@ class ArchManager(SoftwareManager, SettingsController):
 
         if filter_installed:
             ignored_updates = set()
-            thread_fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,))
+            thread_fill_ignored_updates = Thread(target=self._fill_ignored_updates, args=(ignored_updates,), daemon=True)
             thread_fill_ignored_updates.start()
         else:
             ignored_updates, thread_fill_ignored_updates = None, None
@@ -3854,7 +3865,7 @@ class ArchManager(SoftwareManager, SettingsController):
                               update_ignored=pkg_updates_ignored)
 
             if disk_loader:
-                t = Thread(target=self._fill_cached_if_unset, args=(pkg, disk_loader))
+                t = Thread(target=self._fill_cached_if_unset, args=(pkg, disk_loader), daemon=True)
                 t.start()
                 caching_threads.append(t)
 

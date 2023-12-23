@@ -79,7 +79,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         self.configman = AppImageConfigManager()
         self._custom_actions: Optional[Iterable[CustomSoftwareAction]] = None
         self._action_self_install: Optional[CustomSoftwareAction] = None
-        self._app_github: Optional[str] = None
+        self._app_repository: Optional[str] = None
         self._search_unfilled_attrs: Optional[Tuple[str, ...]] = None
         self._suggestions_downloader: Optional[AppImageSuggestionsDownloader] = None
 
@@ -122,7 +122,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             else:
                 return False
 
-        appim = AppImage(i18n=self.i18n, imported=True)
+        appim = AppImage(i18n=self.i18n, imported=True, manual_update=True)
         appim.name = input_name.get_value().strip()
         appim.local_file_path = file_chooser.file_path
         appim.version = input_version.get_value()
@@ -168,6 +168,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
         pkg.local_file_path = file_chooser.file_path
         pkg.version = input_version.get_value()
+        pkg.manual_update = True
 
         reqs = UpgradeRequirements(to_install=None, to_remove=None, to_upgrade=[UpgradeRequirement(pkg=pkg)], cannot_upgrade=None)
         return self.upgrade(reqs, root_password=root_password, watcher=watcher)
@@ -183,7 +184,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             self.logger.warning(f"Could not get a connection for database '{db_path}'")
 
     def _gen_app_key(self, app: AppImage):
-        return f"{app.name.lower()}{app.github.lower() if app.github else ''}"
+        return f"{app.name.lower()}{app.repository.lower() if app.repository else ''}"
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         if is_url:
@@ -275,7 +276,7 @@ class AppImageManager(SoftwareManager, SettingsController):
 
                             for tup in cursor.fetchall():
                                 for app in installed_apps:
-                                    if app.name.lower() == tup[0].lower() and (not app.github or app.github.lower() == tup[1].lower()):
+                                    if app.name.lower() == tup[0].lower() and (not app.repository or app.repository.lower() == tup[1].lower()):
                                         continuous_version = app.version == 'continuous'
                                         continuous_update = tup[2] == 'continuous'
 
@@ -368,6 +369,16 @@ class AppImageManager(SoftwareManager, SettingsController):
 
             download_data = None
 
+            # always changing the 'imported' field based on the 'manual_update' flag that means
+            # "the user is manually installing/updating the AppImage"
+            if not req.pkg.manual_update:
+                req.pkg.imported = False
+
+                if req.pkg.categories and "Imported" in req.pkg.categories:
+                    # removing the imported category in case the file is not considered imported anymore
+                    req.pkg.categories.remove("Imported")
+
+            # manual file updates do not required download it
             if not req.pkg.imported:
                 download_data = self._download(req.pkg, watcher)
 
@@ -430,7 +441,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         return TransactionResult(success=True, installed=None, removed=[pkg])
 
     def _add_self_latest_version(self, app: AppImage):
-        if app.name == self.context.app_name and app.github == self.app_github and not app.url_download_latest_version:
+        if app.name == self.context.app_name and app.repository == self.app_repository and not app.url_download_latest_version:
             history = self.get_history(app)
 
             if not history or not history.history:
@@ -469,6 +480,9 @@ class AppImageManager(SoftwareManager, SettingsController):
         if data.get('symlink') and not os.path.islink(data['symlink']):
             del data['symlink']
 
+        if not data.get("license"):
+            data["license"] = self.i18n["unknown"].lower()
+
         return data
 
     def _sort_release(self, rel: tuple):
@@ -486,7 +500,7 @@ class AppImageManager(SoftwareManager, SettingsController):
         try:
             cursor = app_con.cursor()
 
-            cursor.execute(query.FIND_APP_ID_BY_NAME_AND_GITHUB.format(pkg.name.lower(), pkg.github.lower() if pkg.github else ''))
+            cursor.execute(query.FIND_APP_ID_BY_REPO_AND_NAME.format(pkg.repository.lower() if pkg.repository else '', pkg.name.lower()))
             app_tuple = cursor.fetchone()
 
             if not app_tuple:
@@ -593,8 +607,8 @@ class AppImageManager(SoftwareManager, SettingsController):
         Path(out_dir).mkdir(parents=True, exist_ok=True)
         pkg.install_dir = out_dir
 
-        if pkg.imported:
-
+        # when the package is being imported/upgraded there is no need to download it
+        if pkg.manual_update:
             downloaded, file_name = True, pkg.local_file_path.split('/')[-1]
 
             install_file_path = out_dir + '/' + file_name
@@ -724,10 +738,6 @@ class AppImageManager(SoftwareManager, SettingsController):
 
         if not self._is_sqlite3_available():
             return False, self.i18n['missing_dep'].format(dep=bold('sqlite3'))
-
-        if not self.file_downloader.can_work():
-            download_clients = ', '.join(self.file_downloader.get_supported_clients())
-            return False, self.i18n['appimage.missing_downloader'].format(clients=download_clients)
 
         return True, None
 
@@ -984,7 +994,7 @@ class AppImageManager(SoftwareManager, SettingsController):
     @property
     def search_unfilled_attrs(self) -> Tuple[str, ...]:
         if self._search_unfilled_attrs is None:
-            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'github',
+            self._search_unfilled_attrs = ('icon_url', 'url_download_latest_version', 'author', 'license', 'repository',
                                            'source', 'url_screenshot')
 
         return self._search_unfilled_attrs
@@ -999,7 +1009,7 @@ class AppImageManager(SoftwareManager, SettingsController):
             return False
 
         app = AppImage(name=self.context.app_name, version=self.context.app_version,
-                       categories=['system'], author=self.context.app_name, github=self.app_github,
+                       categories=['system'], author=self.context.app_name, repository=self.app_repository,
                        license='zlib/libpng')
 
         res = self._install(pkg=app, watcher=watcher,
@@ -1080,11 +1090,11 @@ class AppImageManager(SoftwareManager, SettingsController):
         return self._action_self_install
 
     @property
-    def app_github(self) -> str:
-        if self._app_github is None:
-            self._app_github = f'vinifmor/{self.context.app_name}'
+    def app_repository(self) -> str:
+        if self._app_repository is None:
+            self._app_repository = f"https://github.com/vinifmor/{self.context.app_name}"
 
-        return self._app_github
+        return self._app_repository
 
     @property
     def suggestions_downloader(self) -> AppImageSuggestionsDownloader:

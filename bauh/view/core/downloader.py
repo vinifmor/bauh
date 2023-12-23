@@ -1,14 +1,14 @@
-import logging
 import os
 import re
 import shutil
 import time
 import traceback
-from io import StringIO
+from io import StringIO, BytesIO
+from logging import Logger
 from math import floor
 from pathlib import Path
 from threading import Thread
-from typing import Iterable, List, Optional
+from typing import Optional, Tuple
 
 from bauh.api.abstract.download import FileDownloader
 from bauh.api.abstract.handler import ProcessWatcher
@@ -21,17 +21,97 @@ from bauh.view.util.translation import I18n
 RE_HAS_EXTENSION = re.compile(r'.+\.\w+$')
 
 
+class SelfFileDownloader(FileDownloader):
+
+    def __init__(self, logger: Logger, i18n: I18n, http_client: HttpClient,
+                 check_ssl: bool):
+        self._logger = logger
+        self._i18n = i18n
+        self._client = http_client
+        self._ssl = check_ssl
+
+    def is_multithreaded(self) -> bool:
+        return False
+
+    def can_work(self) -> bool:
+        return True
+
+    def get_supported_multithreaded_clients(self) -> Tuple[str, ...]:
+        return tuple()
+
+    def is_multithreaded_client_available(self, name: str) -> bool:
+        return False
+
+    def list_available_multithreaded_clients(self) -> Tuple[str, ...]:
+        return tuple()
+
+    def get_supported_clients(self) -> Tuple[str, ...]:
+        return tuple()
+
+    def download(self, file_url: str, watcher: Optional[ProcessWatcher], output_path: str, cwd: str,
+                 root_password: Optional[str] = None, substatus_prefix: str = None, display_file_size: bool = True,
+                 max_threads: int = None, known_size: int = None) -> bool:
+        try:
+            res = self._client.get(url=file_url, ignore_ssl=not self._ssl, stream=True)
+        except Exception:
+            return False
+
+        try:
+            content_length = int(res.headers.get("content-length", 0))
+        except Exception:
+            content_length = 0
+            self._logger.warning(f"Could not retrieve the content-length for file '{file_url}'")
+
+        file_name = file_url.split("/")[-1]
+        msg = StringIO()
+        msg.write(f"{substatus_prefix} " if substatus_prefix else "")
+        msg.write(f"{self._i18n['downloading']} {bold(file_name)}")
+        base_msg = msg.getvalue()
+
+        byte_stream = BytesIO()
+        total_downloaded = 0
+        known_size = content_length and content_length > 0
+        total_size_str = get_human_size_str(content_length) if known_size > 0 else "?"
+
+        try:
+            for data in res.iter_content(chunk_size=1024):
+                byte_stream.write(data)
+                total_downloaded += len(data)
+                perc = f"({(total_downloaded / content_length) * 100:.2f}%) " if known_size > 0 else ""
+                watcher.change_substatus(f"{perc}{base_msg} ({get_human_size_str(total_downloaded)} / {total_size_str})")
+        except Exception:
+            self._logger.error(f"Unexpected exception while downloading file from '{file_url}'")
+            traceback.print_exc()
+            return False
+
+        self._logger.info(f"Writing downloaded file content to disk: {output_path}")
+
+        try:
+            with open(output_path, "wb+") as f:
+                f.write(byte_stream.getvalue())
+        except Exception:
+            self._logger.error(f"Unexpected exception when saving downloaded content to disk: {output_path}")
+            traceback.print_exc()
+            return False
+
+        return True
+
+
 class AdaptableFileDownloader(FileDownloader):
 
-    def __init__(self, logger: logging.Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient,
+    def __init__(self, logger: Logger, multithread_enabled: bool, i18n: I18n, http_client: HttpClient,
                  multithread_client: str, check_ssl: bool):
         self.logger = logger
         self.multithread_enabled = multithread_enabled
         self.i18n = i18n
         self.http_client = http_client
-        self.supported_multithread_clients = ['aria2', 'axel']
+        self.supported_multithread_clients = ("aria2", "axel")
         self.multithread_client = multithread_client
         self.check_ssl = check_ssl
+        self._self_downloader = SelfFileDownloader(logger=logger,
+                                                   i18n=i18n,
+                                                   http_client=http_client,
+                                                   check_ssl=check_ssl)
 
     @staticmethod
     def is_aria2c_available() -> bool:
@@ -40,10 +120,6 @@ class AdaptableFileDownloader(FileDownloader):
     @staticmethod
     def is_axel_available() -> bool:
         return bool(shutil.which('axel'))
-
-    @staticmethod
-    def is_wget_available() -> bool:
-        return bool(shutil.which('wget'))
 
     def _get_aria2c_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str], threads: int) -> SimpleProcess:
         cmd = ['aria2c', url,
@@ -85,18 +161,6 @@ class AdaptableFileDownloader(FileDownloader):
 
         return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
 
-    def _get_wget_process(self, url: str, output_path: str, cwd: str, root_password: Optional[str]) -> SimpleProcess:
-        cmd = ['wget', url, '-c', '--retry-connrefused', '-t', '10', '-nc']
-
-        if not self.check_ssl:
-            cmd.append('--no-check-certificate')
-
-        if output_path:
-            cmd.append('-O')
-            cmd.append(output_path)
-
-        return SimpleProcess(cmd=cmd, cwd=cwd, root_password=root_password)
-
     def _rm_bad_file(self, file_name: str, output_path: str, cwd, handler: ProcessHandler, root_password: Optional[str]):
         to_delete = output_path if output_path else f'{cwd}/{file_name}'
 
@@ -130,6 +194,45 @@ class AdaptableFileDownloader(FileDownloader):
 
         return threads
 
+    def _download_with_threads(self, client: str, file_url: str, output_path: str, cwd: str,
+                               max_threads: int, known_size: int, display_file_size: bool, handler: ProcessHandler,
+                               root_password: Optional[str] = None, substatus_prefix: Optional[str] = None) \
+            -> Tuple[float, bool]:
+
+        threads = self._get_appropriate_threads_number(max_threads, known_size)
+
+        if client == 'aria2':
+            start_time = time.time()
+            process = self._get_aria2c_process(file_url, output_path, cwd, root_password, threads)
+            downloader = 'aria2'
+        else:
+            start_time = time.time()
+            process = self._get_axel_process(file_url, output_path, cwd, root_password, threads)
+            downloader = 'axel'
+
+        name = file_url.split('/')[-1]
+
+        if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
+            name = output_path.split('/')[-1]
+
+        if handler.watcher:
+            msg = StringIO()
+            msg.write(f'{substatus_prefix} ' if substatus_prefix else '')
+            msg.write(f"{bold('[{}]'.format(downloader))} {self.i18n['downloading']} {bold(name)}")
+
+            if display_file_size:
+                if known_size:
+                    msg.write(f' ( {get_human_size_str(known_size)} )')
+                    handler.watcher.change_substatus(msg.getvalue())
+                else:
+                    Thread(target=self._concat_file_size, args=(file_url, msg, handler.watcher), daemon=True).start()
+            else:
+                msg.write(' ( ? Mb )')
+                handler.watcher.change_substatus(msg.getvalue())
+
+        success, _ = handler.handle_simple(process)
+        return start_time, success
+
     def download(self, file_url: str, watcher: ProcessWatcher, output_path: str = None, cwd: str = None, root_password: Optional[str] = None, substatus_prefix: str = None, display_file_size: bool = True, max_threads: int = None, known_size: int = None) -> bool:
         self.logger.info(f'Downloading {file_url}')
         handler = ProcessHandler(watcher)
@@ -138,7 +241,7 @@ class AdaptableFileDownloader(FileDownloader):
         final_cwd = cwd if cwd else '.'
 
         success = False
-        ti = time.time()
+        start_time = time.time()
         try:
             if output_path:
                 if os.path.exists(output_path):
@@ -155,50 +258,27 @@ class AdaptableFileDownloader(FileDownloader):
                         watcher.print(self.i18n['error.mkdir'].format(dir=output_dir))
                         return False
 
-            client = self.get_available_multithreaded_tool()
-            if client:
-                threads = self._get_appropriate_threads_number(max_threads, known_size)
-
-                if client == 'aria2':
-                    ti = time.time()
-                    process = self._get_aria2c_process(file_url, output_path, final_cwd, root_password, threads)
-                    downloader = 'aria2'
-                else:
-                    ti = time.time()
-                    process = self._get_axel_process(file_url, output_path, final_cwd, root_password, threads)
-                    downloader = 'axel'
+            threaded_client = self.get_available_multithreaded_tool()
+            if threaded_client:
+                start_time, success = self._download_with_threads(client=threaded_client, file_url=file_url,
+                                                                  output_path=output_path,
+                                                                  cwd=final_cwd, max_threads=max_threads,
+                                                                  known_size=known_size, handler=handler,
+                                                                  display_file_size=display_file_size,
+                                                                  root_password=root_password)
             else:
-                ti = time.time()
-                process = self._get_wget_process(file_url, output_path, final_cwd, root_password)
-                downloader = 'wget'
-
-            name = file_url.split('/')[-1]
-
-            if output_path and not RE_HAS_EXTENSION.match(name) and RE_HAS_EXTENSION.match(output_path):
-                name = output_path.split('/')[-1]
-
-            if watcher:
-                msg = StringIO()
-                msg.write(f'{substatus_prefix} ' if substatus_prefix else '')
-                msg.write(f"{bold('[{}]'.format(downloader))} {self.i18n['downloading']} {bold(name)}")
-
-                if display_file_size:
-                    if known_size:
-                        msg.write(f' ( {get_human_size_str(known_size)} )')
-                        watcher.change_substatus(msg.getvalue())
-                    else:
-                        Thread(target=self._concat_file_size, args=(file_url, msg, watcher)).start()
-                else:
-                    msg.write(' ( ? Mb )')
-                    watcher.change_substatus(msg.getvalue())
-
-            success, _ = handler.handle_simple(process)
+                start_time = time.time()
+                success = self._self_downloader.download(file_url=file_url, watcher=watcher, output_path=output_path,
+                                                         cwd=cwd, root_password=root_password,
+                                                         substatus_prefix=substatus_prefix,
+                                                         display_file_size=display_file_size, max_threads=max_threads,
+                                                         known_size=known_size)
         except Exception:
             traceback.print_exc()
             self._rm_bad_file(file_name, output_path, final_cwd, handler, root_password)
 
-        tf = time.time()
-        self.logger.info(f'{file_name} download took {(tf - ti) / 60:.2f} minutes')
+        final_time = time.time()
+        self.logger.info(f'{file_name} download took {(final_time - start_time) / 60:.4f} minutes')
 
         if not success:
             self.logger.error(f"Could not download '{file_name}'")
@@ -228,9 +308,9 @@ class AdaptableFileDownloader(FileDownloader):
                             return client
 
     def can_work(self) -> bool:
-        return self.is_wget_available() or self.is_multithreaded()
+        return True
 
-    def get_supported_multithreaded_clients(self) -> Iterable[str]:
+    def get_supported_multithreaded_clients(self) -> Tuple[str, ...]:
         return self.supported_multithread_clients
 
     def is_multithreaded_client_available(self, name: str) -> bool:
@@ -241,8 +321,8 @@ class AdaptableFileDownloader(FileDownloader):
         else:
             return False
 
-    def list_available_multithreaded_clients(self) -> List[str]:
-        return [c for c in self.supported_multithread_clients if self.is_multithreaded_client_available(c)]
+    def list_available_multithreaded_clients(self) -> Tuple[str, ...]:
+        return tuple(c for c in self.supported_multithread_clients if self.is_multithreaded_client_available(c))
 
-    def get_supported_clients(self) -> tuple:
-        return 'wget', 'aria2', 'axel'
+    def get_supported_clients(self) -> Tuple[str, ...]:
+        return "self", "aria2", "axel"

@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.10.6] 2023-12-23
+### Features
+  - new **verified** filter for the management table
+
+### Improvements
+- AppImage
+  - supporting AppImages from GitLab repositories
+  - info window: displaying "unknown" when there is no mapped license
+- Arch
+  - parallelized installed packages reading
+  - parallelized search
+  - adding the AUR's URL on the package information dialog [#339](https://github.com/vinifmor/bauh/issues/339)
+- General
+  - new download implementation replaces `wget` (implemented in Python using the `requests` library)
+  - replaced the internet checking old host (`google.com`) by a more general one (`w3.org`) [#300](https://github.com/vinifmor/bauh/issues/300)
+  - faster exit (threaded calls won't be waited)
+  - adding a new project definition/setup (`pyproject.toml`) file to comply with the latest standards
+- UI
+  - faster package icons download
+  - faster packages filtering (`type`, `category`, `name`, etc... up to **95% less time**)
+  - the "Skip" button on the initialization panel is now enabled after 10 seconds [#310](https://github.com/vinifmor/bauh/issues/310)
+  - displaying the download progress for screenshots
+  - on the package information dialog is now possible to open fields associated with URLs in the browser [#340](https://github.com/vinifmor/bauh/issues/340)
+  - displaying a text warning before installing an unverified package (unverified = not verified by the system maintainers or a trustable source)
+      - at the moment the following packaging formats are considered completely **unverified**: AppImage, AUR, Web
+      - Snap supports both verified and unverified software
+  - minor reduction in the table loading time
+  - improvements to help with random widget centralisation issues
+  - more translations
+
+### Fixes
+- AppImage
+  - upgrade fails when the package was initially imported, but later available on bauh's database [#321](https://github.com/vinifmor/bauh/issues/321)
+- General
+  - random segmentation fault errors associated with threads and caching
+- Web
+  - search not working for some typed addresses (e.g: those returning 403)
+
+### Contributions
+- German translations by [Mape6](https://github.com/Mape6)
+- Russian translations by [KoromeloDev](https://github.com/KoromeloDev)
+- Fix [#329](https://github.com/vinifmor/bauh/issues/329) by [w568w](https://github.com/w568w)
+
+### Distribution
+- bauh's AppImage is now based on Debian bullseye and had a small size reduction
+
+
 ## [0.10.5] 2022-12-17
 
 ### Fixes

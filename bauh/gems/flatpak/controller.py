@@ -135,7 +135,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
         for installation in ('system', 'user'):
             runtimes = list()
             output[installation] = runtimes
-            t = Thread(target=self._fill_required_runtimes, args=(installation, runtimes))
+            t = Thread(target=self._fill_required_runtimes, args=(installation, runtimes), daemon=True)
             t.start()
             threads.append(t)
 
@@ -150,11 +150,13 @@ class FlatpakManager(SoftwareManager, SettingsController):
 
         thread_updates, thread_runtimes = None, None
         if internet_available:
-            thread_updates = Thread(target=self._add_updates, args=(version, updates))
+            thread_updates = Thread(target=self._add_updates, args=(version, updates), daemon=True)
             thread_updates.start()
 
             if version >= VERSION_1_12:
-                thread_runtimes = Thread(target=self._fill_required_runtime_updates, args=(required_runtimes,))
+                thread_runtimes = Thread(target=self._fill_required_runtime_updates,
+                                         args=(required_runtimes,),
+                                         daemon=True)
                 thread_runtimes.start()
 
         installed = flatpak.list_installed(version)
@@ -665,7 +667,7 @@ class FlatpakManager(SoftwareManager, SettingsController):
                 cached_count += 1
             else:
                 fill = Thread(target=self._fill_suggestion, args=(appid, ids_prios[appid], flatpak_version,
-                                                                  remote, res))
+                                                                  remote, res), daemon=True)
                 fill.start()
                 fill_suggestions.append(fill)
 

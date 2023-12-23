@@ -253,12 +253,12 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
     def _map_url(self, url: str) -> Tuple["BeautifulSoup", requests.Response]:
         url_res = self._request_url(url)
-        if url_res:
+        if url_res is not None and url_res.status_code != 404:
             return BeautifulSoup(url_res.text, 'lxml', parse_only=SoupStrainer('head')), url_res
 
     def search(self, words: str, disk_loader: DiskCacheLoader, limit: int = -1, is_url: bool = False) -> SearchResult:
         web_config = {}
-        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,), daemon=True)
         thread_config.start()
 
         res = SearchResult([], [], 0)
@@ -1069,7 +1069,7 @@ class WebApplicationManager(SoftwareManager, SettingsController):
 
         web_config = {}
 
-        thread_config = Thread(target=self._fill_config_async, args=(web_config,))
+        thread_config = Thread(target=self._fill_config_async, args=(web_config,), daemon=True)
         thread_config.start()
 
         if self.suggestions:

@@ -1,11 +1,15 @@
 import os
 import re
+import sys
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from io import StringIO
+from logging import Logger
 from pathlib import Path
-from typing import List, Type, Set, Tuple, Optional
+from queue import Queue
+from typing import List, Type, Set, Tuple, Optional, Pattern
 
 import requests
 from PyQt5.QtCore import QThread, pyqtSignal, QObject
@@ -23,13 +27,15 @@ from bauh.api.exception import NoInternetException
 from bauh.api.paths import LOGS_DIR
 from bauh.commons.html import bold
 from bauh.commons.internet import InternetChecker
+from bauh.commons.regex import RE_URL
 from bauh.commons.system import ProcessHandler, SimpleProcess
 from bauh.commons.view_utils import get_human_size_str
 from bauh.view.core import timeshift
 from bauh.view.core.config import CoreConfigManager, BACKUP_REMOVE_METHODS, BACKUP_DEFAULT_REMOVE_METHOD
 from bauh.view.qt import commons
-from bauh.view.qt.commons import sort_packages
+from bauh.view.qt.commons import sort_packages, PackageFilters
 from bauh.view.qt.qt_utils import get_current_screen_geometry
+from bauh.view.qt.view_index import query_packages
 from bauh.view.qt.view_model import PackageView, PackageViewStatus
 from bauh.view.util.translation import I18n
 
@@ -956,37 +962,42 @@ class LaunchPackage(AsyncAction):
 
 class ApplyFilters(AsyncAction):
 
-    signal_table = pyqtSignal(object)
+    signal_table = pyqtSignal(list)
 
-    def __init__(self, i18n: I18n, filters: dict = None, pkgs: List[PackageView] = None):
+    def __init__(self, i18n: I18n, logger: Logger, filters: Optional[PackageFilters] = None,
+                 pkgs: Optional[List[PackageView]] = None, index: Optional[dict] = None):
         super(ApplyFilters, self).__init__(i18n=i18n)
-        self.pkgs = pkgs
+        self.logger = logger
+        self.index = index
         self.filters = filters
+        self.pkgs = pkgs
         self.wait_table_update = False
 
     def stop_waiting(self):
         self.wait_table_update = False
 
     def run(self):
-        if self.pkgs:
-            pkgs_info = commons.new_pkgs_info()
+        if self.index and self.filters and self.pkgs:
+            if self.filters.anything:
+                # it means no filter should be applied, and when can rely on the firstly displayed packages
+                sorted_pkgs = self.pkgs
 
-            name_filtering = bool(self.filters['name'])
-
-            for pkgv in self.pkgs:
-                commons.update_info(pkgv, pkgs_info)
-                commons.apply_filters(pkgv, self.filters, pkgs_info, limit=not name_filtering)
-
-            if name_filtering and pkgs_info['pkgs_displayed']:
-                pkgs_info['pkgs_displayed'] = sort_packages(word=self.filters['name'],
-                                                            pkgs=pkgs_info['pkgs_displayed'],
-                                                            limit=self.filters['display_limit'])
+                if self.filters.display_limit > 0:
+                    sorted_pkgs = sorted_pkgs[0:self.filters.display_limit]
+                
+            else:
+                ti = time.time()
+                sort_term = self.filters.name or self.filters.search  # improves displayed matches when no name typed
+                matched_pkgs = query_packages(index=self.index, filters=self.filters)
+                sorted_pkgs = commons.sort_packages(pkgs=matched_pkgs, word=sort_term)
+                tf = time.time()
+                self.logger.info(f"Took {tf - ti:.9f} seconds to filter and sort packages")
 
             self.wait_table_update = True
-            self.signal_table.emit(pkgs_info)
+            self.signal_table.emit(sorted_pkgs)
 
             while self.wait_table_update:
-                super(ApplyFilters, self).msleep(5)
+                super(ApplyFilters, self).msleep(1)
 
         self.notify_finished()
 
@@ -1100,3 +1111,67 @@ class StartAsyncAction(QThread):
             self.msleep(self.delay)
 
         self.signal_start.emit()
+
+
+class URLFileDownloader(QThread):
+
+    signal_downloaded = pyqtSignal(str, bytes, object)
+
+    def __init__(self, logger: Logger, max_workers: int = 50, request_timeout: int = 30, inactivity_timeout: int = 3,
+                 max_downloads: int = -1, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self._logger = logger
+        self._queue = Queue()
+        self._max_workers = max_workers
+        self._request_timeout = request_timeout
+        self._inactivity_timeout = inactivity_timeout
+        self._max_downloads = max_downloads
+        self._stop = False
+
+    def _get(self, url_: str, id_: Optional[object]):
+        if self._stop:
+            self._logger.info(f"File '{url_}' download cancelled")
+            return
+
+        try:
+            res = requests.get(url=url_, timeout=self._request_timeout)
+            content = res.content if res.status_code == 200 else None
+            self.signal_downloaded.emit(url_, content, id_)
+        except Exception as e:
+            self._logger.error(f"[ERROR] could not download file from '{url_}': "
+                               f"{e.__class__.__name__}({str(e.args)})\n")
+
+    def run(self) -> None:
+        download_count = 0
+        futures = []
+        with ThreadPoolExecutor(max_workers=self._max_workers) as executor:
+            while not self._stop and (self._max_downloads <= 0 or download_count < self._max_downloads):
+                try:
+                    url_, id_ = self._queue.get(timeout=self._inactivity_timeout)
+                    futures.append(executor.submit(self._get, url_, id_))
+                    download_count += 1
+                except Exception:
+                    self._stop = True
+
+            cancelled_count = 0
+            for f in futures:
+                if not f.done():
+                    f.cancel()
+                    cancelled_count += 1
+
+            if cancelled_count > 0:
+                self._logger.info(f"{cancelled_count} file downloads cancelled")
+
+        self._logger.info(f"Finished to download files (count={download_count})")
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def get(self, url: str, id_: Optional[object]):
+        final_url = url.strip() if url else None
+
+        if final_url:
+            if RE_URL.match(final_url):
+                self._queue.put((final_url, id_))
+            else:
+                self.signal_downloaded.emit(final_url, None, id_)

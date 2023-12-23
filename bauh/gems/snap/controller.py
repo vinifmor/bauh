@@ -434,7 +434,7 @@ class SnapManager(SoftwareManager, SettingsController):
                 res.append(cached_sug)
                 cached_count += 1
             else:
-                t = Thread(target=self._fill_suggestion, args=(name, ids_prios[name], snapd_client, res))
+                t = Thread(target=self._fill_suggestion, args=(name, ids_prios[name], snapd_client, res), daemon=True)
                 t.start()
                 threads.append(t)
                 time.sleep(0.001)  # to avoid being blocked

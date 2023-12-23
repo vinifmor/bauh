@@ -132,6 +132,9 @@ class DebianPackage(SoftwarePackage):
     def supports_ignored_updates(self) -> bool:
         return True
 
+    def is_trustable(self) -> bool:
+        return True
+
     def __eq__(self, other):
         if isinstance(other, DebianPackage):
             return self.name == other.name

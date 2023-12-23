@@ -88,7 +88,9 @@ class MultiThreadedDownloader:
                         watcher.print("Could not download '{}' from mirror '{}'".format(pkgname, mirror))
                     else:
                         self.logger.info("Package '{}' successfully downloaded".format(pkg['n']))
-                        t = Thread(target=self.download_package_signature, args=(pkg, url, output_path, root_password, watcher), daemon=True)
+                        t = Thread(target=self.download_package_signature,
+                                   args=(pkg, url, output_path, root_password, watcher),
+                                   daemon=True)
                         t.start()
                         self.async_downloads_lock.acquire()
                         self.async_downloads.append(t)

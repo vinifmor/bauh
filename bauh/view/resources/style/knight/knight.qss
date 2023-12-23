@@ -417,6 +417,10 @@ QLabel#confirm_dialog_icon {
     qproperty-pixmap: url("@style_dir/img/help.svg");
 }
 
+QLabel#confirm_dialog_icon[type = "warning"] {
+     qproperty-pixmap: url("@style_dir/img/warning.svg");
+}
+
 FormQt IconButton#clean_field {
     qproperty-icon: url("@style_dir/img/clean.svg");
 }

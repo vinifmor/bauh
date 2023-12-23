@@ -35,7 +35,8 @@ class ConfirmationDialog(QDialog):
                  widgets: Optional[List[QWidget]] = None, confirmation_button: bool = True, deny_button: bool = True,
                  window_cancel: bool = False, confirmation_label: Optional[str] = None, deny_label: Optional[str] = None,
                  confirmation_icon: bool = True, min_width: Optional[int] = None,
-                 min_height: Optional[int] = None, max_width: Optional[int] = None):
+                 min_height: Optional[int] = None, max_width: Optional[int] = None,
+                 confirmation_icon_type: MessageType = MessageType.INFO):
         super(ConfirmationDialog, self).__init__()
 
         if not window_cancel:
@@ -79,6 +80,7 @@ class ConfirmationDialog(QDialog):
             if confirmation_icon:
                 lb_icon = QLabel()
                 lb_icon.setObjectName("confirm_dialog_icon")
+                lb_icon.setProperty("type", confirmation_icon_type.name.lower())
                 container_body.layout().addWidget(lb_icon)
 
         if body:

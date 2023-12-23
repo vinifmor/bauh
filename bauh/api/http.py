@@ -19,14 +19,15 @@ class HttpClient:
         self.sleep = sleep
         self.logger = logger
 
-    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False, session: bool = True) -> Optional[requests.Response]:
+    def get(self, url: str, params: dict = None, headers: dict = None, allow_redirects: bool = True, ignore_ssl: bool = False, single_call: bool = False,
+            session: bool = True, stream: bool = False) -> Optional[requests.Response]:
         cur_attempts = 1
 
         while cur_attempts <= self.max_attempts:
             cur_attempts += 1
 
             try:
-                args = {'timeout': self.timeout, 'allow_redirects': allow_redirects}
+                args = {'timeout': self.timeout, 'allow_redirects': allow_redirects, 'stream': stream}
 
                 if params:
                     args['params'] = params
@@ -42,7 +43,7 @@ class HttpClient:
                 else:
                     res = requests.get(url, **args)
 
-                if res.status_code == 200:
+                if 200 <= res.status_code < 300:
                     return res
 
                 if single_call:

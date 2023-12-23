@@ -55,9 +55,16 @@ Key features
 - `qt5dxcb-plugin` (or equivalent): the package name may vary from distribution
 
 ##### Steps
-- Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases.
-- Run the following command through a terminal: `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
-- Launch it: `./bauh-${version}-x86_64.AppImage`
+- Download the .AppImage file attached with the latest release from https://github.com/vinifmor/bauh/releases
+- Generally desktop environment allow you to double-click the downloaded file to execute it. If that's not your case, follow the steps below from a console:
+    - `chmod a+x bauh-${version}-x86_64.AppImage` (replace `${version}` by the respective downloaded version)
+    - `./bauh-${version}-x86_64.AppImage`
+- If you want to integrate bauh to your desktop: click on bauh's settings menu ("sandwich") and then `Install bauh`
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/vinifmor/bauh-files/master/pictures/releases/0.10.0/appim_self.png">
+</p>
+
 
 #### <a name="inst_ubuntu">Ubuntu 20.04 based distros (Linux Mint, PopOS, ...)</a>
 
@@ -77,11 +84,12 @@ Key features
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator3-1`: tray-mode
-- `wget`, `sqlite3`, `fuse`: AppImage support
+- `sqlite3`, `fuse`: AppImage support
 - `flatpak`: Flatpaks support
 - `snapd`: Snaps support
 - `python3-lxml`, `python3-bs4`: Web apps support
 - `python3-venv`: [isolated installation](#inst_iso)
+- `xdg-utils`: to open URLs in the browsers (`xdg-open`)
 
 ##### Updating bauh
 
@@ -125,8 +133,9 @@ makepkg -si
 - `aria2`: multi-threaded downloads
 - `axel`: multi-threaded downloads alternative
 - `libappindicator-gtk2`: tray-mode (GTK2 desktop environments)
-- `libappindicator-gtk3`: tray-mode (GTK3 desktop environments) 
-- `wget`, `sqlite`, `fuse2`, `fuse3`: AppImage support
+- `libappindicator-gtk3`: tray-mode (GTK3 desktop environments)
+- `xdg-utils`: to open URLs in the browser (`xdg-open`)
+- `sqlite`, `fuse2`, `fuse3`: AppImage support
 - `flatpak`: Flatpak support
 - `snapd`: Snap support
 - `pacman`: ArchLinux package management support

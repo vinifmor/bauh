@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bauh"
+description = "Graphical interface to manage Linux applications (AppImage, Arch / AUR, Flatpak, Snap and Web)"
+license = {file = "LICENSE"}
+requires-python = ">=3.6"
+dynamic = ["version"]
+readme = "README.md"
+authors = [{name = "Vinicius Moreira", email = "vinicius_fmoreira@hotmail.com"}]
+classifiers = [
+        'Topic :: Utilities',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11'
+]
+
+dependencies = [
+    "pyqt5 >= 5.12",
+    "requests >= 2.18",
+    "colorama >= 0.3.8",
+    "pyyaml >= 3.13",
+    "python-dateutil >= 2.7"
+]
+
+[project.optional-dependencies]
+web = [
+    "lxml >= 4.2.0",
+    "beautifulsoup4 >= 4.7.0"
+]
+
+[project.scripts]
+bauh = "bauh.app:main"
+bauh-tray = "bauh.app:tray"
+bauh-cli = "bauh.cli.app:main"
+
+[project.urls]
+Repository = "https://github.com/vinifmor/bauh"
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.dynamic]
+version = {attr = "bauh.__version__"}
+
+[tool.setuptools.packages.find]
+exclude = ["tests.*", "tests"]

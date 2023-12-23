@@ -1,21 +1,24 @@
 import operator
 import os
 from functools import reduce
+from logging import Logger
 from threading import Lock
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from PyQt5.QtCore import Qt, QUrl, QSize
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageStatus, CustomSoftwareAction
+from bauh.api.abstract.view import MessageType
 from bauh.commons.html import strip_html, bold
+from bauh.commons.regex import RE_URL
 from bauh.view.qt.components import IconButton, QCustomMenuAction, QCustomToolbar
 from bauh.view.qt.dialog import ConfirmationDialog
 from bauh.view.qt.qt_utils import get_current_screen_geometry
+from bauh.view.qt.thread import URLFileDownloader
 from bauh.view.qt.view_model import PackageView
 from bauh.view.util.translation import I18n
 
@@ -69,12 +72,13 @@ class PackagesTable(QTableWidget):
     COL_NUMBER = 9
     DEFAULT_ICON_SIZE = QSize(16, 16)
 
-    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool):
+    def __init__(self, parent: QWidget, icon_cache: MemoryCache, download_icons: bool, logger: Logger):
         super(PackagesTable, self).__init__()
         self.setObjectName('table_packages')
         self.setParent(parent)
         self.window = parent
         self.download_icons = download_icons
+        self.logger = logger
         self.setColumnCount(self.COL_NUMBER)
         self.setFocusPolicy(Qt.NoFocus)
         self.setShowGrid(False)
@@ -88,13 +92,13 @@ class PackagesTable(QTableWidget):
         self.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.verticalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
 
-        self.network_man = QNetworkAccessManager()
-        self.network_man.finished.connect(self._load_icon_and_cache)
+        self.file_downloader: Optional[URLFileDownloader] = None
 
         self.icon_cache = icon_cache
         self.lock_async_data = Lock()
         self.setRowHeight(80, 80)
         self.cache_type_icon = {}
+        self.cache_default_icon: Dict[str, QIcon] = dict()
         self.i18n = self.window.i18n
 
     def has_any_settings(self, pkg: PackageView):
@@ -183,10 +187,9 @@ class PackagesTable(QTableWidget):
         self._update_row(pkg, screen_width, update_check_enabled=False, change_update_col=False)
 
     def update_package(self, pkg: PackageView, screen_width: int, change_update_col: bool = False):
-        if self.download_icons and pkg.model.icon_url:
-            icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
-            icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-            self.network_man.get(icon_request)
+        if self.download_icons and pkg.model.icon_url and pkg.model.icon_url.startswith("http"):
+            self._setup_file_downloader(max_workers=1, max_downloads=1)
+            self.file_downloader.get(pkg.model.icon_url, pkg.table_index)
 
         self._update_row(pkg, screen_width, change_update_col=change_update_col)
 
@@ -208,25 +211,28 @@ class PackagesTable(QTableWidget):
 
         body = self.i18n['manage_window.apps_table.row.actions.install.popup.body'].format(self._bold(str(pkgv)))
 
-        warning = self.i18n.get('gem.{}.install.warning'.format(pkgv.model.get_type().lower()))
-
-        if warning:
+        confirm_icon = MessageType.INFO
+        if not pkgv.model.is_trustable():
+            warning = self.i18n["action.install.unverified.warning"]
+            confirm_icon = MessageType.WARNING
             body += '<br/><br/> {}'.format(
                 '<br/>'.join(('{}.'.format(phrase) for phrase in warning.split('.') if phrase)))
 
         if ConfirmationDialog(title=self.i18n['manage_window.apps_table.row.actions.install.popup.title'],
                               body=self._parag(body),
-                              i18n=self.i18n).ask():
+                              i18n=self.i18n,
+                              confirmation_icon_type=confirm_icon).ask():
             self.window.install(pkgv)
 
-    def _load_icon_and_cache(self, http_response: QNetworkReply):
-        icon_url = http_response.request().url().toString()
+    def _update_pkg_icon(self, url_: str,  content: Optional[bytes], table_idx: int):
+        if not content:
+            return content
 
-        icon_data = self.icon_cache.get(icon_url)
+        icon_data = self.icon_cache.get(url_)
         icon_was_cached = True
 
         if not icon_data:
-            icon_bytes = http_response.readAll()
+            icon_bytes = content
 
             if not icon_bytes:
                 return
@@ -238,16 +244,16 @@ class PackagesTable(QTableWidget):
             if not pixmap.isNull():
                 icon = QIcon(pixmap)
                 icon_data = {'icon': icon, 'bytes': icon_bytes}
-                self.icon_cache.add(icon_url, icon_data)
+                self.icon_cache.add(url_, icon_data)
 
         if icon_data:
-            for idx, app in enumerate(self.window.pkgs):
-                if app.model.icon_url == icon_url:
-                    self._update_icon(self.cellWidget(idx, 0), icon_data['icon'])
+            for pkg in self.window.pkgs:
+                if pkg.table_index == table_idx:
+                    self._update_icon(self.cellWidget(table_idx, 0), icon_data['icon'])
 
-                    if app.model.supports_disk_cache() and app.model.get_disk_icon_path() and icon_data['bytes']:
-                        if not icon_was_cached or not os.path.exists(app.model.get_disk_icon_path()):
-                            self.window.manager.cache_to_disk(pkg=app.model, icon_bytes=icon_data['bytes'],
+                    if pkg.model.supports_disk_cache() and pkg.model.get_disk_icon_path() and icon_data['bytes']:
+                        if not icon_was_cached or not os.path.exists(pkg.model.get_disk_icon_path()):
+                            self.window.manager.cache_to_disk(pkg=pkg.model, icon_bytes=icon_data['bytes'],
                                                               only_icon=True)
 
     def update_packages(self, pkgs: List[PackageView], update_check_enabled: bool = True):
@@ -259,13 +265,18 @@ class PackagesTable(QTableWidget):
             self.setColumnCount(self.COL_NUMBER if update_check_enabled else self.COL_NUMBER - 1)
             self.setRowCount(len(pkgs))
 
+            file_downloader_defined = False
+
             for idx, pkg in enumerate(pkgs):
                 pkg.table_index = idx
 
-                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url:
-                    icon_request = QNetworkRequest(QUrl(pkg.model.icon_url))
-                    icon_request.setAttribute(QNetworkRequest.FollowRedirectsAttribute, True)
-                    self.network_man.get(icon_request)
+                if self.download_icons and pkg.model.status == PackageStatus.READY and pkg.model.icon_url \
+                        and RE_URL.match(pkg.model.icon_url):
+                    if not file_downloader_defined:
+                        self._setup_file_downloader()
+                        file_downloader_defined = True
+
+                    self.file_downloader.get(pkg.model.icon_url, idx)
 
                 self._update_row(pkg, screen_width, update_check_enabled)
 
@@ -391,6 +402,16 @@ class PackagesTable(QTableWidget):
         item.setToolTip(tooltip)
         self.setCellWidget(pkg.table_index, col, item)
 
+    def _read_default_icon(self, pkgv: PackageView):
+        icon_path = pkgv.model.get_default_icon_path()
+        icon = self.cache_default_icon.get(icon_path)
+
+        if not icon:
+            icon = QIcon(icon_path)
+            self.cache_default_icon[icon_path] = icon
+
+        return icon
+
     def _set_col_icon(self, col: int, pkg: PackageView):
         icon_path = pkg.model.get_disk_icon_path()
         if pkg.model.installed and pkg.model.supports_disk_cache() and icon_path:
@@ -403,24 +424,24 @@ class PackagesTable(QTableWidget):
                         icon = QIcon(pixmap)
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': icon_bytes})
                 else:
-                    icon = QIcon(pkg.model.get_default_icon_path())
+                    icon = self._read_default_icon(pkg)
             else:
                 try:
                     icon = QIcon.fromTheme(icon_path)
 
                     if icon.isNull():
-                        icon = QIcon(pkg.model.get_default_icon_path())
+                        icon = self._read_default_icon(pkg)
                     elif pkg.model.icon_url:
                         self.icon_cache.add_non_existing(pkg.model.icon_url, {'icon': icon, 'bytes': None})
 
                 except Exception:
-                    icon = QIcon(pkg.model.get_default_icon_path())
+                    icon = self._read_default_icon(pkg)
 
         elif not pkg.model.icon_url:
-            icon = QIcon(pkg.model.get_default_icon_path())
+            icon = self._read_default_icon(pkg)
         else:
             icon_data = self.icon_cache.get(pkg.model.icon_url)
-            icon = icon_data['icon'] if icon_data else QIcon(pkg.model.get_default_icon_path())
+            icon = icon_data['icon'] if icon_data else self._read_default_icon(pkg)
 
         col_icon = QLabel()
         col_icon.setProperty('icon', 'true')
@@ -593,3 +614,18 @@ class PackagesTable(QTableWidget):
 
     def get_width(self):
         return reduce(operator.add, [self.columnWidth(i) for i in range(self.columnCount())])
+
+    def _setup_file_downloader(self, max_workers: int = 50, max_downloads: int = -1) -> None:
+        self.file_downloader = URLFileDownloader(logger=self.logger,
+                                                 max_workers=max_workers,
+                                                 max_downloads=max_downloads,
+                                                 parent=self)
+        self.file_downloader.signal_downloaded.connect(self._update_pkg_icon)
+        self.file_downloader.start()
+
+    def stop_file_downloader(self, wait: bool = False) -> None:
+        if self.file_downloader:
+            self.file_downloader.stop()
+
+            if wait:
+                self.file_downloader.wait()

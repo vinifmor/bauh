@@ -1,13 +1,14 @@
 version: 1
 script:
   - rm -rf AppDir appimage-builder-cache *.AppImage *.zsync |true
-  - mkdir -p AppDir/usr
   - mkdir -p AppDir/usr/share/icons/hicolor/scalable/apps
   - mkdir -p AppDir/usr/share/applications
   - wget https://github.com/vinifmor/bauh/archive/${BAUH_VERSION}.tar.gz || exit 1
-  - BAUH_SETUP_NO_REQS=1 pip3 install ${BAUH_VERSION}.tar.gz --prefix=/usr --root=AppDir || exit 1
   - tar -xf ${BAUH_VERSION}.tar.gz || exit 1
   - cd bauh-${BAUH_VERSION} || exit 1
+  - rm pyproject.toml || exit 1  # not using the new project file definition for now
+  - BAUH_SETUP_NO_REQS=1 pip3 install . --prefix=/usr --root=../AppDir || exit 1
+  - test -e ../AppDir/usr/bin/bauh || exit 1
   - cp bauh/view/resources/img/logo.svg ../AppDir/usr/share/icons/hicolor/scalable/apps/bauh.svg || exit 1
   - cp bauh/desktop/bauh.desktop ../AppDir/usr/share/applications || exit 1
 
@@ -27,8 +28,8 @@ AppDir:
   apt:
     arch: amd64
     sources:
-      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse'
-        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32'
+      - sourceline: 'deb http://deb.debian.org/debian/ bullseye main contrib non-free'
+        key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xa4285295fc7b1a81600062a9605c66f00d6c9793'
 
     include:
       - python3
@@ -39,9 +40,7 @@ AppDir:
       - python3-lxml
       - python3-bs4
       - sqlite3
-      - wget
-      # - libfreetype6
-      # - libfontconfig1
+      - xdg-utils
     exclude:
         - dpkg
         - apt
@@ -51,20 +50,27 @@ AppDir:
         - python3-distutils
 
   after_bundle:
-      - pip3 install pyqt5 --prefix=/usr --root=AppDir || exit 1
-      - cd AppDir/usr/lib/python3.8/site-packages/PyQt5/Qt5/plugins || exit 1
-      - rm -rf audio gamepad gamepads geoservices printsupport sceneparsers sensorgestures sensors sqldrivers texttospeech webview || exit 1
+      - pip3 install pyqt5==5.15.10 --prefix=/usr --root=AppDir || exit 1
+      - rm -rf AppDir/usr/share/doc || exit 1
+      - cd AppDir/usr/lib/python3.9/site-packages/PyQt5/Qt5/plugins || exit 1
+      - rm -rf audio gamepad gamepads geoservices printsupport sceneparsers sensorgestures sensors sqldrivers texttospeech webview mediaservice playlistformats || exit 1
       - cd ../lib/ || exit 1
       - rm libQt5Bluetooth.so.5 libQt5Designer.so.5 libQt5Multimedia.so.5 libQt5MultimediaGstTools.so.5 libQt5MultimediaWidgets.so.5 || exit 1
       - rm libQt5Quick3D.so.5 libQt5Quick3DAssetImport.so.5 libQt5Quick3DRender.so.5 libQt5Quick3DRuntimeRender.so.5 libQt5QuickTest.so.5 || exit 1
       - rm libQt5Quick3DUtils.so.5 libQt5PrintSupport.so.5 libQt5SerialPort.so.5 libQt5Sql.so.5 libQt5Sensors.so.5 libQt5Test.so.5 libQt5WebView.so.5 || exit 1
       - rm libQt5Quick.so.5 libQt5Location.so.5 libQt5QuickTemplates2.so.5 || exit 1
-
+      - cd ../qml || exit 1
+      - rm -rf QtBluetooth QtMultimedia QtQuick QtQuick.2 QtQuick3D QtRemoteObjects QtSensors QtTest
+      - cd ../../ || exit 1
+      - rm QtBluetooth.abi3.so QtMultimedia.abi3.so QtMultimediaWidgets.abi3.so QtPrintSupport.abi3.so QtQuick.abi3.so QtQuick3D.abi3.so QtQuickWidgets.abi3.so QtRemoteObjects.abi3.so QtSensors.abi3.so QtSerialPort.abi3.so QtSql.abi3.so QtTest.abi3.so QtTextToSpeech.abi3.so QtWebSockets.abi3.so|| exit 1
+      - rm QtBluetooth.pyi QtMultimedia.pyi QtMultimediaWidgets.pyi QtPrintSupport.pyi QtQuick3D.pyi QtQuickWidgets.pyi QtSensors.pyi QtSerialPort.pyi QtSql.pyi
+      - cd bindings || exit 1
+      - rm -rf QtBluetooth QtMultimedia QtMultimediaWidgets QtPrintSupport QtSensors QtSerialPort QtTextToSpeech QtQuick QtQuick3D QtQuickWidgets QtSql QtTest || exit 1
   runtime:
     version: "v1.2.5"
     env:
       PYTHONHOME: '${APPDIR}/usr'
-      PYTHONPATH: '${APPDIR}/usr/lib/python3.8/site-packages'
+      PYTHONPATH: '${APPDIR}/usr/lib/python3.9/site-packages'
 
   test:
     fedora:

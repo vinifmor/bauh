@@ -1,4 +1,8 @@
+import shutil
+import subprocess
 from collections.abc import Iterable
+from subprocess import Popen
+from typing import Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QCursor
@@ -7,6 +11,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QHBoxLayout
 
 from bauh.api.abstract.cache import MemoryCache
+from bauh.commons.regex import RE_URL
 from bauh.view.qt.components import new_spacer
 from bauh.view.qt.qt_utils import get_current_screen_geometry
 from bauh.view.util.translation import I18n
@@ -16,10 +21,11 @@ IGNORED_ATTRS = {'name', '__app__'}
 
 class InfoDialog(QDialog):
 
-    def __init__(self, pkg_info: dict, icon_cache: MemoryCache, i18n: I18n):
+    def __init__(self, pkg_info: dict, icon_cache: MemoryCache, i18n: I18n, can_open_url: bool):
         super(InfoDialog, self).__init__()
         self.setWindowTitle(str(pkg_info['__app__']))
         self.i18n = i18n
+        self._can_open_url = can_open_url
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -64,7 +70,7 @@ class InfoDialog(QDialog):
                     val = str(pkg_info[attr]).strip()
                     show_val = val
 
-                i18n_val = i18n.get('{}.{}'.format(i18n_key, val.lower()))
+                i18n_val = i18n.get(f"{i18n_key}.{val.lower()}")
 
                 if i18n_val:
                     val = i18n_val
@@ -82,7 +88,8 @@ class InfoDialog(QDialog):
 
                 self.gbox_info.layout().addWidget(label, idx, 0)
                 self.gbox_info.layout().addWidget(text, idx, 1)
-                self._gen_show_button(idx, show_val)
+
+                self._gen_show_button(idx=idx, val=show_val)
 
         layout.addWidget(scroll)
 
@@ -113,18 +120,35 @@ class InfoDialog(QDialog):
         self.setMaximumHeight(int(screen_height * 0.8))
         self.adjustSize()
 
-    def _gen_show_button(self, idx: int, val):
+    @staticmethod
+    def open_url(url: str):
+        Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
 
-        def show_full_field():
-            self.gbox_info.hide()
-            self.bt_back.setVisible(True)
-            self.text_field.show()
-            self.text_field.setPlainText(val)
+    def _show_full_field_val(self, val: str):
+        self.gbox_info.hide()
+        self.bt_back.setVisible(True)
+        self.text_field.show()
+        self.text_field.setPlainText(val)
 
-        bt_full_field = QPushButton(self.i18n['show'].capitalize())
-        bt_full_field.setObjectName('show')
+    def _gen_show_button(self, idx: int, val: str):
+
+        is_url = self._can_open_url and bool(RE_URL.match(val)) if val else False
+
+        if is_url:
+            bt_label = self.i18n["manage_window.info.open_url"]
+
+            def _show_field():
+                self.open_url(val)
+        else:
+            bt_label = self.i18n["show"].capitalize()
+
+            def _show_field():
+                self._show_full_field_val(val)
+
+        bt_full_field = QPushButton(bt_label)
+        bt_full_field.setObjectName("show")
         bt_full_field.setCursor(QCursor(Qt.PointingHandCursor))
-        bt_full_field.clicked.connect(show_full_field)
+        bt_full_field.clicked.connect(_show_field)
         self.gbox_info.layout().addWidget(bt_full_field, idx, 2)
 
     def back_to_info(self):

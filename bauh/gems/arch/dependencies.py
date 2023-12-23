@@ -68,7 +68,7 @@ class DependenciesAnalyser:
 
             if not repository:
                 for name in missing_names:
-                    t = Thread(target=self._fill_repository, args=(name, missing_root))
+                    t = Thread(target=self._fill_repository, args=(name, missing_root), daemon=True)
                     t.start()
                     threads.append(t)
 
@@ -518,7 +518,8 @@ class DependenciesAnalyser:
         if aur_providers_no_data:
             aur_providers_data = dict()
             aur_data_filler = Thread(target=self._fill_aur_updates_data,
-                                     args=(aur_providers_no_data, aur_providers_data))
+                                     args=(aur_providers_no_data, aur_providers_data),
+                                     daemon=True)
             aur_data_filler.start()
 
         if repo_providers_no_data:

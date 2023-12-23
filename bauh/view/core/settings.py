@@ -146,7 +146,7 @@ class GenericSettingsManager(SettingsController):
         return TabComponent(self.i18n['core.config.tab.advanced'].capitalize(), panel, None, 'core.adv')
 
     def _gen_multithread_client_select(self, core_config: dict) -> SingleSelectComponent:
-        available_mthread_clients = self.file_downloader.list_available_multithreaded_clients()
+        available_mthread_clients = [*self.file_downloader.list_available_multithreaded_clients()]
         available_mthread_clients.sort()
 
         default_i18n_key = 'default' if available_mthread_clients else 'core.config.download.multithreaded_client.none'
@@ -533,14 +533,14 @@ class GenericSettingsManager(SettingsController):
         ti = time.time()
         save_threads, warnings, success_list = [], [], []
 
-        save_core = Thread(target=self._save_core_settings, args=(component, success_list, warnings))
+        save_core = Thread(target=self._save_core_settings, args=(component, success_list, warnings), daemon=True)
         save_core.start()
         save_threads.append(save_core)
 
         if self._settings_views:
 
             for views in self._settings_views.values():
-                save_view = Thread(target=self._save_views, args=(views, success_list, warnings))
+                save_view = Thread(target=self._save_views, args=(views, success_list, warnings), daemon=True)
                 save_view.start()
                 save_threads.append(save_view)
 

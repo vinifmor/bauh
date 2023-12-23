@@ -198,7 +198,7 @@ class TrayIcon(QSystemTrayIcon):
             self.show_manage_window()
 
     def verify_updates(self, notify_user: bool = True):
-        Thread(target=self._verify_updates, args=(notify_user,)).start()
+        Thread(target=self._verify_updates, args=(notify_user,), daemon=True).start()
 
     def _verify_updates(self, notify_user: bool):
         self.notify_updates(self.manager.list_updates(), notify_user=notify_user)

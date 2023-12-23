@@ -7,8 +7,8 @@ DESCRIPTION = (
     "Graphical interface to manage Linux applications (AppImage, Arch / AUR, Flatpak, Snap and Web)"
 )
 
-AUTHOR = "bauh developers"
-AUTHOR_EMAIL = "bauh4linux@gmail.com"
+AUTHOR = "Vinicius Moreira"
+AUTHOR_EMAIL = "vinicius_fmoreira@hotmail.com"
 NAME = 'bauh'
 URL = "https://github.com/vinifmor/" + NAME
 

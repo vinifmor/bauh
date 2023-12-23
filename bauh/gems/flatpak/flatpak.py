@@ -195,7 +195,7 @@ def list_updates_as_str(version: Tuple[str, ...]) -> Dict[str, Set[str]]:
 
     threads = []
     for type_, output in (('system', sys_updates), ('user', user_updates)):
-        fill = Thread(target=fill_updates, args=(version, type_, output))
+        fill = Thread(target=fill_updates, args=(version, type_, output), daemon=True)
         fill.start()
         threads.append(fill)
 

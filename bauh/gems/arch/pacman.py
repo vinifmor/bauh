@@ -146,15 +146,14 @@ def map_packages(names: Optional[Iterable[str]] = None, remote: bool = False, si
 
         if ignored:
             for key in ('signed', 'not_signed'):
-                to_del = set()
-                
                 if pkgs.get(key):
+                    to_del = set()
                     for pkg in pkgs[key].keys():
                         if pkg in ignored:
                             to_del.add(pkg)
 
-                for pkg in to_del:
-                    del pkgs[key][pkg]
+                    for pkg in to_del:
+                        del pkgs[key][pkg]
     return pkgs
 
 

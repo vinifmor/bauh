@@ -18,16 +18,14 @@ from bauh.view.qt.prepare import PreparePanel
 from bauh.view.qt.settings import SettingsWindow
 from bauh.view.qt.window import ManageWindow
 from bauh.view.util import resource, util
-from bauh.view.util.cache import CacheCleaner, DefaultMemoryCacheFactory
+from bauh.view.util.cache import DefaultMemoryCacheFactory
 from bauh.view.util.disk import DefaultDiskCacheLoaderFactory
 
 
 def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logger) -> Tuple[QApplication, QWidget]:
     i18n = generate_i18n(app_config, resource.get_path('locale'))
 
-    cache_cleaner = CacheCleaner()
-
-    cache_factory = DefaultMemoryCacheFactory(expiration_time=int(app_config['memory_cache']['data_expiration']), cleaner=cache_cleaner)
+    cache_factory = DefaultMemoryCacheFactory(expiration_time=int(app_config['memory_cache']['data_expiration']))
     icon_cache = cache_factory.new(int(app_config['memory_cache']['icon_expiration']))
 
     http_client = HttpClient(logger)
@@ -83,12 +81,9 @@ def new_manage_panel(app_args: Namespace, app_config: dict, logger: logging.Logg
                                      force_suggestions=force_suggestions,
                                      logger=logger)
 
-        prepare = PreparePanel(context=context,
-                               manager=manager,
-                               i18n=i18n,
-                               manage_window=manage_window,
-                               app_config=app_config,
-                               force_suggestions=force_suggestions)
-        cache_cleaner.start()
-
-        return app, prepare
+        return app, PreparePanel(context=context,
+                                 manager=manager,
+                                 i18n=i18n,
+                                 manage_window=manage_window,
+                                 app_config=app_config,
+                                 force_suggestions=force_suggestions)

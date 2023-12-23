@@ -288,3 +288,6 @@ class ArchPackage(SoftwarePackage):
     @property
     def orphan(self) -> bool:
         return self.maintainer is None
+
+    def is_trustable(self) -> bool:
+        return self.repository and self.repository != "aur"
