@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [NEXT]
+### Fixes
+- AppImage
+  - regression on the database backend preventing long time installed AppImages to receive updates
+
 ## [0.10.6] 2023-12-23
 ### Features
   - new **verified** filter for the management table

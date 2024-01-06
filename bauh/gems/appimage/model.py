@@ -54,7 +54,9 @@ class AppImage(SoftwarePackage):
                                        icon_url=url_icon, license=license, description=description,
                                        installed=installed)
         self.source = source
-        self.repository = repository if repository else (github if github else repository)
+
+        github_url = f"https://github.com/{github}" if github and not github.startswith("http://") else None
+        self.repository = repository if repository else (github_url if github_url else repository)
         self.categories = (categories.split(',') if isinstance(categories, str) else categories) if categories else None
         self.url_download = url_download
         self.icon_path = icon_path
