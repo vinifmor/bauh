@@ -129,7 +129,7 @@ def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageVie
                     continue
 
                 # checking if the package name contains the chars query
-                if query[5] in pkgv.model.name:
+                if query[6] in pkgv.model.name:
                     yield pkgv
                     yield_count += 1
                     yielded_pkgs[pkgv.model.get_type()].add(pkgv.model.id)

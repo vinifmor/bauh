@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixes
 - AppImage
   - regression on the database backend preventing long time installed AppImages to receive updates
+- UI
+  - regression from `0.10.6`:  "name" filter not working for packages whose names contain the typed words 
 
 ## [0.10.6] 2023-12-23
 ### Features
