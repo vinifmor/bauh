@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - UI
   - regression from `0.10.6`:  "name" filter not working for packages whose names contain the typed words 
 
+### Distribution
+- AppImage: using the latest Python standards to build and install bauh (using `build` and `installer` packages)
+
 ## [0.10.6] 2023-12-23
 ### Features
   - new **verified** filter for the management table
