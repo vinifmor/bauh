@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [NEXT]
+## [0.10.7] 2024-01-10
 ### Fixes
 - AppImage
   - regression on the database backend preventing long time installed AppImages to receive updates
