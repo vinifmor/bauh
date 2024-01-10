@@ -76,7 +76,7 @@ def generate_queries(filters: PackageFilters) -> Generator[Tuple[Optional[Union[
     chars_query = None
 
     if filters.name:
-        chars_query = filters.name.lower()
+        chars_query = filters.name.strip().lower()
 
     installed_queries = (1,) if filters.only_installed else (1, 0)
     apps_queries = (1,) if filters.only_apps else (1, 0)
@@ -129,7 +129,7 @@ def query_packages(index: dict, filters: PackageFilters) -> Generator[PackageVie
                     continue
 
                 # checking if the package name contains the chars query
-                if query[5] in pkgv.model.name:
+                if query[6] in pkgv.model.name.lower():
                     yield pkgv
                     yield_count += 1
                     yielded_pkgs[pkgv.model.get_type()].add(pkgv.model.id)

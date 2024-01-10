@@ -6,12 +6,12 @@ script:
   - wget https://github.com/vinifmor/bauh/archive/${BAUH_VERSION}.tar.gz || exit 1
   - tar -xf ${BAUH_VERSION}.tar.gz || exit 1
   - cd bauh-${BAUH_VERSION} || exit 1
-  - rm pyproject.toml || exit 1  # not using the new project file definition for now
-  - BAUH_SETUP_NO_REQS=1 pip3 install . --prefix=/usr --root=../AppDir || exit 1
+  - rm setup.cfg setup.py requirements.txt || exit 1  # removing the outdated installation files
+  - python3 -m build --wheel --no-isolation || exit 1
+  - python3 -m installer --destdir=../AppDir --prefix=/usr dist/*.whl || exit 1
   - test -e ../AppDir/usr/bin/bauh || exit 1
   - cp bauh/view/resources/img/logo.svg ../AppDir/usr/share/icons/hicolor/scalable/apps/bauh.svg || exit 1
   - cp bauh/desktop/bauh.desktop ../AppDir/usr/share/applications || exit 1
-
 
 AppDir:
   path: ./AppDir
@@ -23,7 +23,6 @@ AppDir:
     version: !ENV ${BAUH_VERSION}
     exec: /usr/bin/python3
     exec_args: "$APPDIR/usr/bin/bauh $@"
-
 
   apt:
     arch: amd64
@@ -42,12 +41,12 @@ AppDir:
       - sqlite3
       - xdg-utils
     exclude:
-        - dpkg
-        - apt
-        - aptitude
-        - python3-pip
-        - python3-setuptools
-        - python3-distutils
+      - dpkg
+      - apt
+      - aptitude
+      - python3-pip
+      - python3-setuptools
+      - python3-distutils
 
   after_bundle:
       - pip3 install pyqt5==5.15.10 --prefix=/usr --root=AppDir || exit 1
