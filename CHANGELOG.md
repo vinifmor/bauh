@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Distribution
 - AppImage: using the latest Python standards to build and install bauh (using `build` and `installer` packages)
+- PyPI: adding more exclusions to unneeded files
 
 ## [0.10.6] 2023-12-23
 ### Features

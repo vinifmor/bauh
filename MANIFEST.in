@@ -5,3 +5,6 @@ recursive-include bauh/view/resources *
 recursive-exclude bauh/view/resources *.orig
 recursive-include bauh/gems/*/resources *
 recursive-exclude bauh/gems/*/resources *.orig
+recursive-exclude linux_dist *
+recursive-exclude venv *
+recursive-exclude .venv *
