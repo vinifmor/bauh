@@ -397,6 +397,7 @@ locale.it=italian
 locale.pt=portuguese
 locale.ru=russian
 locale.tr=turkish
+locale.zh=chinese
 manage_window.apps_table.row.actions.downgrade.popup.body=Do you really want to downgrade {} ?
 manage_window.apps_table.row.actions.downgrade=Downgrade
 manage_window.apps_table.row.actions.history=History

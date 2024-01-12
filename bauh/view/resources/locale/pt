@@ -396,6 +396,7 @@ locale.it=italiano
 locale.pt=português
 locale.ru=russo
 locale.tr=turco
+locale.zh=chinês
 manage_window.apps_table.row.actions.downgrade.popup.body=Você realmente quer reverter a versão atual de {} ?
 manage_window.apps_table.row.actions.downgrade=Reverter versão
 manage_window.apps_table.row.actions.history=Histórico

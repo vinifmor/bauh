@@ -397,6 +397,7 @@ locale.it=Italienisch
 locale.pt=Portugiesisch
 locale.ru=Russisch
 locale.tr=Türkisch
+locate.zh=Chinesisch
 manage_window.apps_table.row.actions.downgrade.popup.body=Möchten Sie wirklich {} downgraden?
 manage_window.apps_table.row.actions.downgrade=Downgrade
 manage_window.apps_table.row.actions.history=Verlauf

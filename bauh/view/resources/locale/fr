@@ -392,6 +392,7 @@ locale.it=italien
 locale.pt=portuguais
 locale.ru=russe
 locale.tr=turc
+locale.zh=chinois
 manage_window.apps_table.row.actions.downgrade.popup.body=Vraiment downgrader {} ?
 manage_window.apps_table.row.actions.downgrade=Downgrader
 manage_window.apps_table.row.actions.history=Historique

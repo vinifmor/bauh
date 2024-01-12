@@ -394,6 +394,7 @@ locale.it=Итальянский
 locale.pt=Поргтугальский
 locale.ru=Русский
 locale.tr=Турецкий
+locale.zh=китайский
 manage_window.apps_table.row.actions.downgrade=Откат версии
 manage_window.apps_table.row.actions.downgrade.popup.body=Вы действительно хотите откатить версию {}?
 manage_window.apps_table.row.actions.history=История версий

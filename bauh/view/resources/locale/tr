@@ -394,6 +394,7 @@ locale.it=italyanca
 locale.pt=portekizce
 locale.ru=rusça
 locale.tr=türkçe
+locale.zh=Çince
 manage_window.apps_table.row.actions.downgrade.popup.body=Gerçekten sürüm düşürmek istiyor musunuz {} ?
 manage_window.apps_table.row.actions.downgrade=Sürüm düşür
 manage_window.apps_table.row.actions.history=Tarihçe
