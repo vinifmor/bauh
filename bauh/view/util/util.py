@@ -48,6 +48,12 @@ def get_distro():
     if os.path.exists('/etc/arch-release'):
         return 'arch'
 
+    if os.path.exists('/etc/os-release'):
+        with open('/etc/os-release', 'r') as os_release_file:
+            for line in os_release_file:
+                if 'ID_LIKE=arch' in line:
+                    return 'arch'
+
     if os.path.exists('/proc/version'):
         if 'ubuntu' in run_cmd('cat /proc/version').lower():
             return 'ubuntu'
