@@ -2343,7 +2343,7 @@ class ArchManager(SoftwareManager, SettingsController):
         if repo_mapping:
             final_optdeps = {dep: {'desc': odeps.get(dep), 'repository': repo_mapping.get(dep)} for dep, repository in repo_mapping.items() if repo_mapping.get(dep)}
 
-            deps_to_install = confirmation.request_optional_deps(context.name, final_optdeps, context.watcher, self.i18n)
+            deps_to_install = confirmation.request_optional_deps(context.name, final_optdeps, context.watcher, self.i18n, context.config['suggest_optdep_download'])
 
             if not deps_to_install:
                 return True
@@ -2967,6 +2967,10 @@ class ArchManager(SoftwareManager, SettingsController):
                                     label_key='arch.config.suggest_optdep_uninstall',
                                     tooltip_key='arch.config.suggest_optdep_uninstall.tip',
                                     value=bool(arch_config['suggest_optdep_uninstall'])),
+            self._gen_bool_selector(id_='suggest_optdep_download',
+                                    label_key='arch.config.suggest_optdep_download',
+                                    tooltip_key='arch.config.suggest_optdep_download.tip',
+                                    value=bool(arch_config['suggest_optdep_download'])),
             self._gen_bool_selector(id_='ref_mirs',
                                     label_key='arch.config.refresh_mirrors',
                                     tooltip_key='arch.config.refresh_mirrors.tip',
@@ -3075,7 +3079,7 @@ class ArchManager(SoftwareManager, SettingsController):
         arch_config['refresh_mirrors_startup'] = form.get_component('ref_mirs', SingleSelectComponent).get_selected()
         arch_config['mirrors_sort_limit'] = form.get_component('mirrors_sort_limit', TextInputComponent).get_int_value()
         arch_config['automatch_providers'] = form.get_component('autoprovs', SingleSelectComponent).get_selected()
-
+        
         sync_dbs_startup = form.get_component('sync_dbs_start', SingleSelectComponent).get_selected()
         arch_config['sync_databases_startup'] = sync_dbs_startup
 
@@ -3093,6 +3097,9 @@ class ArchManager(SoftwareManager, SettingsController):
 
         sug_unneeded_uni = form.get_component('suggest_unneeded_uninstall', SingleSelectComponent).get_selected()
         arch_config['suggest_unneeded_uninstall'] = sug_unneeded_uni
+        
+        sug_optdep_download = form.get_component('suggest_optdep_download', SingleSelectComponent).get_selected()
+        arch_config['suggest_optdep_download'] = sug_optdep_download
 
         arch_config['categories_exp'] = form.get_component('arch_cats_exp', TextInputComponent).get_int_value()
         arch_config['suggestions_exp'] = form.get_component('arch_sugs_exp', TextInputComponent).get_int_value()
