@@ -10,12 +10,11 @@ from bauh.commons.view_utils import get_human_size_str
 from bauh.gems.arch import ROOT_DIR, get_repo_icon_path, get_icon_path, pacman
 from bauh.view.util.translation import I18n
 
-
 def _get_repo_icon(repository: str):
     return resource.get_path('img/{}.svg'.format('arch' if repository == 'aur' else 'repo'), ROOT_DIR)
 
 
-def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher, i18n: I18n) -> Set[str]:
+def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher, i18n: I18n, is_optdep_download: bool) -> Set[str]:
     opts = []
 
     repo_deps = [p for p, data in pkg_repos.items() if data['repository'] != 'aur']
@@ -31,8 +30,8 @@ def request_optional_deps(pkgname: str, pkg_repos: dict, watcher: ProcessWatcher
 
     view_opts = MultipleSelectComponent(label='',
                                         options=opts,
-                                        default_options=set(opts))
-
+                                        default_options=set(opts) if is_optdep_download else None)
+    
     msg = f"<p>{i18n['arch.install.optdeps.request.success'].format(pkg=bold(pkgname))}</p>" \
           f"<p>{i18n['arch.install.optdeps.request.body']}:</p>"
 
