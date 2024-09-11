@@ -5,8 +5,8 @@ import sys
 import traceback
 from typing import List, Tuple
 
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtGui import QIcon
+from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtGui import QIcon
 from colorama import Fore
 
 from bauh import __app_name__

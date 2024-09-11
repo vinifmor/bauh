@@ -1,8 +1,8 @@
 from logging import Logger
 from typing import Tuple
 
-from PyQt5.QtCore import QObject
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QApplication
 
 from bauh.context import new_qt_application
 from bauh.view.qt.systray import TrayIcon

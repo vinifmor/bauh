@@ -5,7 +5,7 @@ from math import floor
 from threading import Thread
 from typing import List, Tuple, Optional, Dict, Type, Iterable
 
-from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt6.QtWidgets import QApplication, QStyleFactory
 
 from bauh import ROOT_DIR, __app_name__
 from bauh.api.abstract.context import ApplicationContext

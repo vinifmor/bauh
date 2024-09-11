@@ -3,11 +3,11 @@ import traceback
 from pathlib import Path
 from typing import Tuple, Dict, Optional, Set
 
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QIcon, QIntValidator, QCursor, QFocusEvent
-from PyQt5.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon, QIntValidator, QCursor, QFocusEvent, QAction
+from PyQt6.QtWidgets import QRadioButton, QGroupBox, QCheckBox, QComboBox, QGridLayout, QWidget, \
     QLabel, QSizePolicy, QLineEdit, QToolButton, QHBoxLayout, QFormLayout, QFileDialog, QTabWidget, QVBoxLayout, \
-    QSlider, QScrollArea, QFrame, QAction, QSpinBox, QPlainTextEdit, QWidgetAction, QPushButton, QMenu
+    QSlider, QScrollArea, QFrame, QSpinBox, QPlainTextEdit, QWidgetAction, QPushButton, QMenu
 
 from bauh.api.abstract.view import SingleSelectComponent, InputOption, MultipleSelectComponent, SelectViewType, \
     TextInputComponent, FormComponent, FileChooserComponent, ViewComponent, TabGroupComponent, PanelComponent, \
@@ -259,7 +259,7 @@ class QtComponentsManager:
 
 def map_alignment(alignment: ViewComponentAlignment) -> Optional[int]:
     if alignment == ViewComponentAlignment.CENTER:
-        return Qt.AlignCenter
+        return Qt.AlignmentFlag.AlignCenter
     elif alignment == ViewComponentAlignment.LEFT:
         return Qt.AlignLeft
     elif alignment == ViewComponentAlignment.RIGHT:
@@ -283,7 +283,7 @@ class RadioButtonQt(QRadioButton):
         self.model = model
         self.model_parent = model_parent
         self.toggled.connect(self._set_checked)
-        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         if model_parent.id:
             self.setProperty('parent', model_parent.id)
@@ -328,7 +328,7 @@ class CheckboxQt(QCheckBox):
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.NoFocus)
         else:
-            self.setCursor(QCursor(Qt.PointingHandCursor))
+            self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         if model.extra_properties:
             for name, val in model.extra_properties.items():
@@ -367,9 +367,9 @@ class FormComboBoxQt(QComboBox):
     def __init__(self, model: SingleSelectComponent):
         super(FormComboBoxQt, self).__init__()
         self.model = model
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-        self.view().setCursor(QCursor(Qt.PointingHandCursor))
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.view().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.setEditable(True)
         self.lineEdit().setReadOnly(True)
 
@@ -408,7 +408,7 @@ class FormRadioSelectQt(QWidget):
     def __init__(self, model: SingleSelectComponent, parent: QWidget = None):
         super(FormRadioSelectQt, self).__init__(parent=parent)
         self.model = model
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Minimum)
         self.setProperty('opts', str(len(self.model.options) if self.model.options else 0))
 
         if model.id:
@@ -423,7 +423,7 @@ class FormRadioSelectQt(QWidget):
         line, col = 0, 0
         for op in model.options:
             comp = RadioButtonQt(op, model)
-            comp.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            comp.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
             comp.setText(op.label)
             comp.setToolTip(op.tooltip)
 
@@ -598,7 +598,7 @@ class MultipleSelectQt(QGroupBox):
                 comp.setChecked(True)
 
             widget = QWidget()
-            widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+            widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
             widget.setLayout(QHBoxLayout())
             widget.layout().addWidget(comp)
 
@@ -638,7 +638,7 @@ class FormMultipleSelectQt(QWidget):
     def __init__(self, model: MultipleSelectComponent, parent: QWidget = None):
         super(FormMultipleSelectQt, self).__init__(parent=parent)
         self.model = model
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
 
         if model.min_width and model.min_width > 0:
             self.setMinimumWidth(int(model.min_width))
@@ -668,7 +668,7 @@ class FormMultipleSelectQt(QWidget):
                 comp.setChecked(True)
 
             widget = QWidget()
-            widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+            widget.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
             widget.setLayout(QHBoxLayout())
             widget.layout().addWidget(comp)
 
@@ -736,13 +736,13 @@ class InputFilter(QLineEdit):
 
 class IconButton(QToolButton):
 
-    def __init__(self, action, i18n: I18n, align: int = Qt.AlignCenter, tooltip: str = None, expanding: bool = False):
+    def __init__(self, action, i18n: I18n, align: int = Qt.AlignmentFlag.AlignCenter, tooltip: str = None, expanding: bool = False):
         super(IconButton, self).__init__()
-        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.clicked.connect(action)
         self.i18n = i18n
         self.default_tootip = tooltip
-        self.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         if tooltip:
             self.setToolTip(tooltip)
@@ -767,7 +767,7 @@ class PanelQt(QWidget):
             self.setObjectName(model.id)
 
         self.setLayout(QVBoxLayout())
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         if model.components:
             for c in model.components:
@@ -836,7 +836,7 @@ class FormQt(QGroupBox):
 
     def _new_label(self, comp) -> QWidget:
         label = QWidget()
-        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         label.setLayout(QHBoxLayout())
         label_comp = QLabel()
         label.layout().addWidget(label_comp)
@@ -873,7 +873,7 @@ class FormQt(QGroupBox):
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:
         view = QLineEditObserver() if c.type == TextInputType.SINGLE_LINE else QPlainTextEditObserver()
-        view.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+        view.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
 
         if c.id:
             view.setObjectName(c.id)
@@ -907,7 +907,7 @@ class FormQt(QGroupBox):
         c.observers.append(view)
 
         label = QWidget()
-        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         label.setLayout(QHBoxLayout())
 
         label_component = QLabel()
@@ -923,8 +923,8 @@ class FormQt(QGroupBox):
 
     def _new_range_input(self, model: RangeInputComponent) -> QSpinBox:
         spinner = QSpinBox()
-        spinner.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
-        spinner.setCursor(QCursor(Qt.PointingHandCursor))
+        spinner.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
+        spinner.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         spinner.setMinimum(model.min)
         spinner.setMaximum(model.max)
         spinner.setSingleStep(model.step)
@@ -944,7 +944,7 @@ class FormQt(QGroupBox):
 
     def _wrap(self, comp: QWidget, model: ViewComponent) -> QWidget:
         field_container = QWidget()
-        field_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        field_container.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         field_container.setLayout(QHBoxLayout())
         field_container.layout().setContentsMargins(0, 0, 0, 0)
         field_container.layout().setSpacing(0)
@@ -964,7 +964,7 @@ class FormQt(QGroupBox):
     def _new_file_chooser(self, c: FileChooserComponent) -> Tuple[QLabel, QLineEdit]:
         chooser = QLineEditObserver()
         chooser.setProperty('file_chooser', 'true')
-        chooser.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Fixed)
+        chooser.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Fixed)
         chooser.setReadOnly(True)
 
         if c.id:
@@ -1031,7 +1031,7 @@ class TabGroupQt(QTabWidget):
     def __init__(self, model: TabGroupComponent, i18n: I18n, parent: QWidget = None):
         super(TabGroupQt, self).__init__(parent=parent)
         self.model = model
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self.setTabPosition(QTabWidget.North)
 
         for c in model.tabs:
@@ -1048,7 +1048,7 @@ class TabGroupQt(QTabWidget):
             scroll.setWidget(to_widget(c.get_content(), i18n))
             self.addTab(scroll, icon, c.label)
 
-        self.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
+        self.tabBar().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
 
 def new_single_select(model: SingleSelectComponent) -> QWidget:
@@ -1073,7 +1073,7 @@ def new_spacer(min_width: Optional[int] = None, min_height: Optional[int] = None
     if min_height is not None and min_height >= 0:
         spacer.setMaximumHeight(int(min_height))
 
-    spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     return spacer
 
 
@@ -1106,7 +1106,7 @@ def to_widget(comp: ViewComponent, i18n: I18n, parent: QWidget = None) -> QWidge
         if comp.size is not None:
             label.setStyleSheet("QLabel { font-size: " + str(comp.size) + "px }")
 
-        label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         return label
     elif isinstance(comp, SpacerComponent):
         return new_spacer()
@@ -1126,7 +1126,7 @@ class RangeInputQt(QGroupBox):
             self.setMaximumWidth(int(self.model.max_width))
 
         self.spinner = QSpinBox()
-        self.spinner.setCursor(QCursor(Qt.PointingHandCursor))
+        self.spinner.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.spinner.setMinimum(model.min)
         self.spinner.setMaximum(model.max)
         self.spinner.setSingleStep(model.step)
@@ -1188,7 +1188,7 @@ class QSearchBar(QWidget):
 
         self.search_button = QPushButton()
         self.search_button.setObjectName('search_button')
-        self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.search_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.search_button.clicked.connect(search_callback)
 
         self.layout().addWidget(self.search_button)
@@ -1275,9 +1275,9 @@ class QCustomMenuAction(QWidgetAction):
 
 class QCustomToolbar(QWidget):
 
-    def __init__(self, spacing: int = 2, parent: Optional[QWidget] = None, alignment: Qt.Alignment = Qt.AlignRight,
-                 policy_width: QSizePolicy.Policy = QSizePolicy.Minimum,
-                 policy_height: QSizePolicy.Policy = QSizePolicy.Preferred):
+    def __init__(self, spacing: int = 2, parent: Optional[QWidget] = None, alignment: Qt.AlignmentFlag = Qt.AlignmentFlag.AlignRight,
+                 policy_width: QSizePolicy.Policy = QSizePolicy.Policy.Minimum,
+                 policy_height: QSizePolicy.Policy = QSizePolicy.Policy.Preferred):
         super(QCustomToolbar, self).__init__(parent=parent)
         self.setProperty('container', 'true')
         self.setSizePolicy(policy_width, policy_height)

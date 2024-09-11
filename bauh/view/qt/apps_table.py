@@ -5,9 +5,9 @@ from logging import Logger
 from threading import Lock
 from typing import List, Optional, Dict
 
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidget, \
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QPixmap, QIcon, QCursor
+from PyQt6.QtWidgets import QTableWidget, QTableView, QMenu, QToolButton, QWidget, \
     QHeaderView, QLabel, QHBoxLayout, QToolBar, QSizePolicy
 
 from bauh.api.abstract.cache import MemoryCache
@@ -31,7 +31,7 @@ class UpgradeToggleButton(QToolButton):
         self.app_view = pkg
         self.root = root
 
-        self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.setCheckable(True)
 
         if clickable:
@@ -80,17 +80,17 @@ class PackagesTable(QTableWidget):
         self.download_icons = download_icons
         self.logger = logger
         self.setColumnCount(self.COL_NUMBER)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setShowGrid(False)
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
-        self.horizontalHeader().setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.setSelectionBehavior(QTableView.SelectRows)
+        self.horizontalHeader().setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        self.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.setHorizontalHeaderLabels(('' for _ in range(self.columnCount())))
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
-        self.verticalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        self.horizontalScrollBar().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.verticalScrollBar().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         self.file_downloader: Optional[URLFileDownloader] = None
 
@@ -109,9 +109,9 @@ class PackagesTable(QTableWidget):
 
     def show_pkg_actions(self, pkg: PackageView):
         menu_row = QMenu()
-        menu_row.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        menu_row.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         menu_row.setObjectName('app_actions')
-        menu_row.setCursor(QCursor(Qt.PointingHandCursor))
+        menu_row.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         if pkg.model.installed:
 
@@ -312,7 +312,7 @@ class PackagesTable(QTableWidget):
         col_bt = QToolButton()
         col_bt.setProperty('text_only', 'true')
         col_bt.setObjectName(name)
-        col_bt.setCursor(QCursor(Qt.PointingHandCursor))
+        col_bt.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         col_bt.setText(text)
         col_bt.clicked.connect(callback)
 
@@ -363,7 +363,7 @@ class PackagesTable(QTableWidget):
 
         col_type_icon = QLabel()
         col_type_icon.setProperty('icon', 'true')
-        col_type_icon.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        col_type_icon.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         col_type_icon.setPixmap(icon_data['px'])
         col_type_icon.setToolTip(icon_data['tip'])
         self.setCellWidget(pkg.table_index, col, col_type_icon)
@@ -371,7 +371,7 @@ class PackagesTable(QTableWidget):
     def _set_col_version(self, col: int, pkg: PackageView, screen_width: int):
         label_version = QLabel(str(pkg.model.version if pkg.model.version else '?'))
         label_version.setObjectName('app_version')
-        label_version.setAlignment(Qt.AlignCenter)
+        label_version.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         item = QWidget()
         item.setProperty('container', 'true')
@@ -445,14 +445,14 @@ class PackagesTable(QTableWidget):
 
         col_icon = QLabel()
         col_icon.setProperty('icon', 'true')
-        col_icon.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        col_icon.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         self._update_icon(col_icon, icon)
         self.setCellWidget(pkg.table_index, col, col_icon)
 
     def _set_col_name(self, col: int, pkg: PackageView, screen_width: int):
         col_name = QLabel()
         col_name.setObjectName('app_name')
-        col_name.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        col_name.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
 
         name = pkg.model.get_display_name().strip()
         if name:
@@ -601,14 +601,14 @@ class PackagesTable(QTableWidget):
 
         self.setCellWidget(pkg.table_index, col, toolbar)
 
-    def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeToContents, maximized: bool = False):
+    def change_headers_policy(self, policy: QHeaderView = QHeaderView.ResizeMode.ResizeToContents, maximized: bool = False):
         header_horizontal = self.horizontalHeader()
         for i in range(self.columnCount()):
             if maximized:
                 if i in (2, 3):
-                    header_horizontal.setSectionResizeMode(i, QHeaderView.Stretch)
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
                 else:
-                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+                    header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
             else:
                 header_horizontal.setSectionResizeMode(i, policy)
 

@@ -4,9 +4,9 @@ from io import BytesIO
 from threading import Thread
 from typing import List, Dict
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QCursor
-from PyQt5.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout, QProgressBar, QApplication, QWidget, \
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap, QCursor
+from PyQt6.QtWidgets import QDialog, QLabel, QPushButton, QVBoxLayout, QProgressBar, QApplication, QWidget, \
     QSizePolicy, QHBoxLayout
 
 from bauh.api.abstract.cache import MemoryCache
@@ -31,7 +31,7 @@ class ScreenshotsDialog(QDialog):
         self.http_client = http_client
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName('progress_screenshots')
-        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
+        self.progress_bar.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.progress_bar.setMaximumHeight(10 if QApplication.instance().style().objectName().lower() == 'windows' else 6)
         self.progress_bar.setTextVisible(False)
         self.thread_progress = AnimateProgress()
@@ -52,11 +52,11 @@ class ScreenshotsDialog(QDialog):
         self.bt_close = QPushButton(self.i18n['screenshots.bt_close'])
         self.bt_close.setObjectName('close')
         self.bt_close.clicked.connect(self.close)
-        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         self.upper_buttons = QWidget()
         self.upper_buttons.setObjectName('upper_buttons')
-        self.upper_buttons.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.upper_buttons.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.upper_buttons.setContentsMargins(0, 0, 0, 0)
         self.upper_buttons.setLayout(QHBoxLayout())
         self.upper_buttons.layout().setAlignment(Qt.AlignRight)
@@ -72,14 +72,14 @@ class ScreenshotsDialog(QDialog):
 
         self.container_buttons = QWidget()
         self.container_buttons.setObjectName('buttons_container')
-        self.container_buttons.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.container_buttons.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.container_buttons.setContentsMargins(0, 0, 0, 0)
         self.container_buttons.setLayout(QHBoxLayout())
 
         self.bt_back = QPushButton(' < ' + self.i18n['screenshots.bt_back.label'].capitalize())
         self.bt_back.setObjectName('back')
         self.bt_back.setProperty('control', 'true')
-        self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_back.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_back.clicked.connect(self.back)
         self.container_buttons.layout().addWidget(self.bt_back)
         self.container_buttons.layout().addWidget(new_spacer())
@@ -94,7 +94,7 @@ class ScreenshotsDialog(QDialog):
         self.bt_next = QPushButton(self.i18n['screenshots.bt_next.label'].capitalize() + ' > ')
         self.bt_next.setObjectName('next')
         self.bt_next.setProperty('control', 'true')
-        self.bt_next.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_next.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_next.clicked.connect(self.next)
         self.container_buttons.layout().addWidget(self.bt_next)
         self.download_progress: Dict[int, float] = dict()
@@ -136,7 +136,7 @@ class ScreenshotsDialog(QDialog):
             self.progress_bar.setVisible(False)
         else:
             self.img.setPixmap(QPixmap())
-            self.img.setCursor(QCursor(Qt.WaitCursor))
+            self.img.setCursor(QCursor(Qt.CursorShape.WaitCursor))
 
             progress = self.download_progress.get(self.img_idx, 0)
             self.img.setText(f"{self.i18n['screenshots.image.loading']} "

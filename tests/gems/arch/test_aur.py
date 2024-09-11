@@ -19,7 +19,7 @@ class AURModuleTest(TestCase):
             'license': 'zlib/libpng',
             'makedepends': ['git', 'python', 'python-pip', 'python-setuptools'],
             'depends': [
-                'python', 'python-colorama', 'python-pyaml', 'python-pyqt5', 'python-pyqt5-sip', 'python-requests', 'qt5-svg'
+                'python', 'python-colorama', 'python-pyaml', 'python-PyQt6', 'python-PyQt6-sip', 'python-requests', 'qt5-svg'
             ],
             'optdepends': [
                 'flatpak: required for Flatpak support',

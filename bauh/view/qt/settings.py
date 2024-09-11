@@ -2,9 +2,9 @@ import gc
 from io import StringIO
 from typing import Optional
 
-from PyQt5.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
-from PyQt5.QtGui import QCursor, QShowEvent
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout, QApplication
+from PyQt6.QtCore import Qt, QCoreApplication, QThread, pyqtSignal
+from PyQt6.QtGui import QCursor, QShowEvent
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QPushButton, QHBoxLayout, QApplication
 
 from bauh import __app_name__
 from bauh.api.abstract.controller import SoftwareManager
@@ -42,7 +42,7 @@ class SettingsWindow(QWidget):
         self.setLayout(QVBoxLayout())
         self.manager = manager
         self.i18n = i18n
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self.window = window
 
         self.settings_model = tuple(v for v in self.manager.get_settings())[0].component
@@ -55,12 +55,12 @@ class SettingsWindow(QWidget):
         lower_container.setObjectName('lower_container')
         lower_container.setProperty('container', 'true')
         lower_container.setLayout(QHBoxLayout())
-        lower_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        lower_container.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self.bt_close = QPushButton()
         self.bt_close.setObjectName('cancel')
         self.bt_close.setAutoDefault(True)
-        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_close.setText(self.i18n['close'].capitalize())
         self.bt_close.clicked.connect(lambda: self.close())
         lower_container.layout().addWidget(self.bt_close)
@@ -70,7 +70,7 @@ class SettingsWindow(QWidget):
         self.bt_change = QPushButton()
         self.bt_change.setAutoDefault(True)
         self.bt_change.setObjectName('ok')
-        self.bt_change.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_change.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_change.setText(self.i18n['change'].capitalize())
         self.bt_change.clicked.connect(self._save_settings)
         lower_container.layout().addWidget(self.bt_change)
@@ -127,7 +127,7 @@ class SettingsWindow(QWidget):
                 util.restart_app()
             else:
                 self.thread_reload_panel.start()
-                QApplication.setOverrideCursor(Qt.WaitCursor)
+                QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         else:
             msg = StringIO()
             msg.write(f"<p>{self.i18n['settings.error']}</p>")

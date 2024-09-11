@@ -1,9 +1,9 @@
 import operator
 from functools import reduce
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QHeaderView, QLabel
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QCursor
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QTableWidget, QHeaderView, QLabel
 
 from bauh.api.abstract.cache import MemoryCache
 from bauh.api.abstract.model import PackageHistory

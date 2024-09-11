@@ -1,8 +1,8 @@
 from typing import Optional, Union
 
-from PyQt5.QtCore import Qt, QRect, QPoint
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget
+from PyQt6.QtCore import Qt, QRect, QPoint
+from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import QWidget, QApplication, QDesktopWidget
 
 from bauh.view.util import resource
 
@@ -19,7 +19,7 @@ def centralize(widget: QWidget, align_top_left: bool = True):
 
 
 def load_icon(path: str, width: int, height: int = None) -> QIcon:
-    return QIcon(QPixmap(path).scaled(width, height if height else width, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+    return QIcon(QPixmap(path).scaled(width, height if height else width, Qt.AspectRatioMode.KeepAspectRatio, Qt.SmoothTransformation))
 
 
 def load_resource_icon(path: str, width: int, height: int = None) -> QIcon:

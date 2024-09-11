@@ -49,9 +49,9 @@ AppDir:
       - python3-distutils
 
   after_bundle:
-      - pip3 install pyqt5==5.15.10 --prefix=/usr --root=AppDir || exit 1
+      - pip3 install PyQt6==6.6.2 --prefix=/usr --root=AppDir || exit 1
       - rm -rf AppDir/usr/share/doc || exit 1
-      - cd AppDir/usr/lib/python3.9/site-packages/PyQt5/Qt5/plugins || exit 1
+      - cd AppDir/usr/lib/python3.9/site-packages/PyQt6/Qt5/plugins || exit 1
       - rm -rf audio gamepad gamepads geoservices printsupport sceneparsers sensorgestures sensors sqldrivers texttospeech webview mediaservice playlistformats || exit 1
       - cd ../lib/ || exit 1
       - rm libQt5Bluetooth.so.5 libQt5Designer.so.5 libQt5Multimedia.so.5 libQt5MultimediaGstTools.so.5 libQt5MultimediaWidgets.so.5 || exit 1

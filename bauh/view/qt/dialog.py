@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout, QDialog, QVBoxLayout, QSizePolicy, QPushButton, \
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QCursor
+from PyQt6.QtWidgets import QMessageBox, QLabel, QWidget, QHBoxLayout, QDialog, QVBoxLayout, QSizePolicy, QPushButton, \
     QScrollArea, QFrame
 
 from bauh.api.abstract.view import MessageType
@@ -11,9 +11,9 @@ from bauh.view.util import resource
 from bauh.view.util.translation import I18n
 
 MSG_TYPE_MAP = {
-    MessageType.ERROR: QMessageBox.Critical,
-    MessageType.INFO: QMessageBox.Information,
-    MessageType.WARNING: QMessageBox.Warning
+    MessageType.ERROR: QMessageBox.Icon.Critical,
+    MessageType.INFO: QMessageBox.Icon.Information,
+    MessageType.WARNING: QMessageBox.Icon.Warning
 }
 
 
@@ -44,7 +44,7 @@ class ConfirmationDialog(QDialog):
 
         self.setLayout(QVBoxLayout())
         self.setWindowTitle(title)
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         self.setMinimumWidth(min_width if min_width and min_width > 0 else 250)
 
         if max_width is not None and max_width > 0:
@@ -60,7 +60,7 @@ class ConfirmationDialog(QDialog):
 
         container_body = QWidget()
         container_body.setObjectName('confirm_container_body')
-        container_body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        container_body.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
 
         if isinstance(min_height, int) and min_height > 0:
             container_body.setMinimumWidth(min_height)
@@ -68,7 +68,7 @@ class ConfirmationDialog(QDialog):
         if widgets:
             container_body.setLayout(QVBoxLayout())
             scroll = QScrollArea(self)
-            scroll.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+            scroll.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
             scroll.setFrameShape(QFrame.NoFrame)
             scroll.setWidgetResizable(True)
             scroll.setWidget(container_body)
@@ -96,7 +96,7 @@ class ConfirmationDialog(QDialog):
 
         container_bottom = QWidget()
         container_bottom.setObjectName('confirm_container_bottom')
-        container_bottom.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        container_bottom.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         container_bottom.setLayout(QHBoxLayout())
         self.layout().addWidget(container_bottom)
 
@@ -105,7 +105,7 @@ class ConfirmationDialog(QDialog):
         if confirmation_button:
             bt_confirm = QPushButton(confirmation_label.capitalize() if confirmation_label else i18n['popup.button.yes'])
             bt_confirm.setObjectName('ok')
-            bt_confirm.setCursor(QCursor(Qt.PointingHandCursor))
+            bt_confirm.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             bt_confirm.setDefault(True)
             bt_confirm.setAutoDefault(True)
             bt_confirm.clicked.connect(self.confirm)
@@ -114,7 +114,7 @@ class ConfirmationDialog(QDialog):
         if deny_button:
             bt_cancel = QPushButton(deny_label.capitalize() if deny_label else i18n['popup.button.no'])
             bt_cancel.setObjectName('bt_cancel')
-            bt_cancel.setCursor(QCursor(Qt.PointingHandCursor))
+            bt_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             bt_cancel.clicked.connect(self.close)
             container_bottom.layout().addWidget(bt_cancel)
 

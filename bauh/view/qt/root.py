@@ -2,9 +2,9 @@ import os
 import traceback
 from typing import Tuple, Optional
 
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QLineEdit, QApplication, QDialog, QPushButton, QVBoxLayout, \
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QCursor
+from PyQt6.QtWidgets import QLineEdit, QApplication, QDialog, QPushButton, QVBoxLayout, \
     QSizePolicy, QToolBar, QLabel
 
 from bauh.api.abstract.context import ApplicationContext
@@ -43,7 +43,7 @@ class RootDialog(QDialog):
         self.i18n = i18n
         self.max_tries = max_tries
         self.tries = 0
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self.setWindowIcon(util.get_default_icon()[1])
         self.setWindowTitle(i18n['popup.root.title'])
         self.setLayout(QVBoxLayout())
@@ -69,8 +69,8 @@ class RootDialog(QDialog):
         self.bt_ok = QPushButton(i18n['popup.root.continue'])
         self.bt_ok.setDefault(True)
         self.bt_ok.setAutoDefault(True)
-        self.bt_ok.setCursor(QCursor(Qt.PointingHandCursor))
-        self.bt_ok.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.bt_ok.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.bt_ok.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.bt_ok.setObjectName('ok')
         self.bt_ok.clicked.connect(self._validate_password)
         self.lower_bar.addWidget(self.bt_ok)
@@ -78,8 +78,8 @@ class RootDialog(QDialog):
         self.bt_cancel = QPushButton()
         self.bt_cancel.setText(i18n['popup.button.cancel'])
 
-        self.bt_cancel.setCursor(QCursor(Qt.PointingHandCursor))
-        self.bt_cancel.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.bt_cancel.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.bt_cancel.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         self.bt_cancel.setObjectName('bt_cancel')
         self.bt_cancel.clicked.connect(self.close)
         self.lower_bar.addWidget(self.bt_cancel)
@@ -101,7 +101,7 @@ class RootDialog(QDialog):
             self.input_password.setEnabled(False)
             self.label_error.setText('')
 
-            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+            QApplication.setOverrideCursor(QCursor(Qt.CursorShape.WaitCursor))
             self.validate_password.password = password
             self.validate_password.start()
 

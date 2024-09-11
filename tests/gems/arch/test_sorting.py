@@ -7,7 +7,7 @@ class SortingTest(TestCase):
 
     def test_sort__aur_not_related(self):
         pkgs = {'google-chrome': {'d': {'alsa-lib', 'gtk3', 'libcups'}, 'p': {'google-chrome': 'google-chrome'}, 'r': 'extra'},
-                'git-cola': {'d': {'git', 'python-pyqt5', 'icu qt5-svg'}, 'p': {'git-cola': 'git-cola'}, 'r': 'extra'},
+                'git-cola': {'d': {'git', 'python-PyQt6', 'icu qt5-svg'}, 'p': {'git-cola': 'git-cola'}, 'r': 'extra'},
                 'kazam': {'d': {'python', 'python-cairo'}, 'p': {'kazam': 'kazam'}, 'r': 'extra'}}
 
         sorted_list = sorting.sort(pkgs.keys(), pkgs)
