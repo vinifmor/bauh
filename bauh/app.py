@@ -5,7 +5,7 @@ import sys
 import traceback
 
 import urllib3
-from PyQt5.QtCore import QCoreApplication, Qt
+from PyQt6.QtCore import QCoreApplication, Qt
 
 from bauh import __app_name__, app_args
 from bauh.view.core.config import CoreConfigManager
@@ -47,11 +47,6 @@ def main(tray: bool = False):
         logger.info("Scale factor set to {}".format(scale_factor))
     except Exception:
         traceback.print_exc()
-
-    if bool(app_config['ui']['hdpi']):
-        logger.info("HDPI settings activated")
-        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
     if bool(args.suggestions):
         logger.info("Forcing loading software suggestions after the initialization process")
