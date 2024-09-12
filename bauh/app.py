@@ -59,7 +59,7 @@ def main(tray: bool = False):
         app, widget = new_manage_panel(args, app_config, logger)
 
     widget.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 def tray():
