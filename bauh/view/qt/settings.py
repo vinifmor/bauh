@@ -97,11 +97,11 @@ class SettingsWindow(QWidget):
 
     def handle_display(self):
         if self.isMinimized():
-            self.setWindowState(Qt.WindowNoState)
+            self.setWindowState(Qt.WindowState.WindowNoState)
         elif self.isHidden():
             self.show()
         else:
-            self.setWindowState(self.windowState() and Qt.WindowMinimized or Qt.WindowActive)
+            self.setWindowState(self.windowState() and Qt.WindowState.WindowMinimized or Qt.WindowState.WindowActive)
 
     def _save_settings(self):
         self.tab_group.setEnabled(False)

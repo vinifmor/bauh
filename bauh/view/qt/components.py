@@ -261,17 +261,17 @@ def map_alignment(alignment: ViewComponentAlignment) -> Optional[int]:
     if alignment == ViewComponentAlignment.CENTER:
         return Qt.AlignmentFlag.AlignCenter
     elif alignment == ViewComponentAlignment.LEFT:
-        return Qt.AlignLeft
+        return Qt.AlignmentFlag.AlignLeft
     elif alignment == ViewComponentAlignment.RIGHT:
-        return Qt.AlignRight
+        return Qt.AlignmentFlag.AlignRight
     elif alignment == ViewComponentAlignment.HORIZONTAL_CENTER:
         return Qt.AlignmentFlag.AlignHCenter
     elif alignment == ViewComponentAlignment.VERTICAL_CENTER:
-        return Qt.AlignVCenter
+        return Qt.AlignmentFlag.AlignVCenter
     elif alignment == ViewComponentAlignment.BOTTOM:
-        return Qt.AlignBottom
+        return Qt.AlignmentFlag.AlignBottom
     elif alignment == ViewComponentAlignment.TOP:
-        return Qt.AlignTop
+        return Qt.AlignmentFlag.AlignTop
     else:
         return
 
@@ -295,7 +295,7 @@ class RadioButtonQt(QRadioButton):
                 self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if self.model.read_only:
-            self.setAttribute(Qt.WA_TransparentForMouseEvents)
+            self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         if model.extra_properties:
@@ -325,7 +325,7 @@ class CheckboxQt(QCheckBox):
                 self.setIcon(QIcon.fromTheme(model.icon_path))
 
         if model.read_only:
-            self.setAttribute(Qt.WA_TransparentForMouseEvents)
+            self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
             self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         else:
             self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -350,7 +350,7 @@ class CheckboxQt(QCheckBox):
 class TwoStateButtonQt(QSlider):
 
     def __init__(self, model: TwoStateButtonComponent):
-        super(TwoStateButtonQt, self).__init__(Qt.Horizontal)
+        super(TwoStateButtonQt, self).__init__(Qt.Orientation.Horizontal)
         self.model = model
         self.setMaximum(1)
         self.valueChanged.connect(self._change_state)
@@ -387,7 +387,7 @@ class FormComboBoxQt(QComboBox):
             self.addItem(icon, op.label, op.value)
 
             if op.tooltip:
-                self.setItemData(idx, op.tooltip, Qt.ToolTipRole)
+                self.setItemData(idx, op.tooltip, Qt.ItemDataRole.ToolTipRole)
 
             if model.value and model.value == op:  # default
                 self.setCurrentIndex(idx)
@@ -742,7 +742,7 @@ class IconButton(QToolButton):
         self.clicked.connect(action)
         self.i18n = i18n
         self.default_tootip = tooltip
-        self.setSizePolicy(QSizePolicy.Expanding if expanding else QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding if expanding else QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
 
         if tooltip:
             self.setToolTip(tooltip)
@@ -948,7 +948,7 @@ class FormQt(QGroupBox):
         field_container.setLayout(QHBoxLayout())
         field_container.layout().setContentsMargins(0, 0, 0, 0)
         field_container.layout().setSpacing(0)
-        field_container.layout().setAlignment(Qt.AlignLeft)
+        field_container.layout().setAlignment(Qt.AlignmentFlag.AlignLeft)
         field_container.setProperty('wrapper', 'true')
         field_container.setProperty('wrapped_type', comp.__class__.__name__)
 
@@ -1000,11 +1000,11 @@ class FormQt(QGroupBox):
                 cur_path = str(Path.home())
 
             if c.directory:
-                opts = QFileDialog.DontUseNativeDialog
-                opts |= QFileDialog.ShowDirsOnly
+                opts = QFileDialog.Option.DontUseNativeDialog
+                opts |= QFileDialog.Option.ShowDirsOnly
                 file_path = QFileDialog.getExistingDirectory(self, self.i18n['file_chooser.title'], cur_path, options=opts)
             else:
-                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.DontUseNativeDialog)
+                file_path, _ = QFileDialog.getOpenFileName(self, self.i18n['file_chooser.title'], cur_path, exts, options=QFileDialog.Option.DontUseNativeDialog)
 
             if file_path:
                 c.set_file_path(file_path)
@@ -1032,7 +1032,7 @@ class TabGroupQt(QTabWidget):
         super(TabGroupQt, self).__init__(parent=parent)
         self.model = model
         self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        self.setTabPosition(QTabWidget.North)
+        self.setTabPosition(QTabWidget.TabPosition.North)
 
         for c in model.tabs:
             try:
@@ -1042,8 +1042,8 @@ class TabGroupQt(QTabWidget):
                 icon = QIcon()
 
             scroll = QScrollArea()
-            scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
             scroll.setWidgetResizable(True)
             scroll.setWidget(to_widget(c.get_content(), i18n))
             self.addTab(scroll, icon, c.label)

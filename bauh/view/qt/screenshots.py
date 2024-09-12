@@ -59,7 +59,7 @@ class ScreenshotsDialog(QDialog):
         self.upper_buttons.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.upper_buttons.setContentsMargins(0, 0, 0, 0)
         self.upper_buttons.setLayout(QHBoxLayout())
-        self.upper_buttons.layout().setAlignment(Qt.AlignRight)
+        self.upper_buttons.layout().setAlignment(Qt.AlignmentFlag.AlignRight)
         self.upper_buttons.layout().addWidget(self.bt_close)
         self.layout().addWidget(self.upper_buttons)
 
@@ -201,8 +201,8 @@ class ScreenshotsDialog(QDialog):
             pixmap.loadFromData(byte_stream.getvalue())
 
             if pixmap.size().height() > self.max_img_height or pixmap.size().width() > self.max_img_width:
-                pixmap = pixmap.scaled(self.max_img_width, self.max_img_height, Qt.KeepAspectRatio,
-                                       Qt.SmoothTransformation)
+                pixmap = pixmap.scaled(self.max_img_width, self.max_img_height, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
 
             self.loaded_imgs.append(pixmap)
             self._load_img(idx)

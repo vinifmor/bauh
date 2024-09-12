@@ -15,7 +15,7 @@ class HistoryDialog(QDialog):
 
     def __init__(self, history: PackageHistory, icon_cache: MemoryCache, i18n: I18n):
         super(HistoryDialog, self).__init__()
-        self.setWindowFlags(Qt.WindowType.CustomizeWindowHint | Qt.WindowMinMaxButtonsHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowMinMaxButtonsHint | Qt.WindowType.WindowCloseButtonHint)
 
         view = PackageView(model=history.pkg, i18n=i18n)
 

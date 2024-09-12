@@ -1372,7 +1372,7 @@ class ManageWindow(QWidget):
             if len(pkg_info) > 1:
                 dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache, i18n=self.i18n,
                                          can_open_url=self.can_open_urls)
-                dialog_info.exec_()
+                dialog_info.exec()
             else:
                 dialog.show_message(title=self.i18n['warning'].capitalize(),
                                     body=self.i18n['manage_window.info.no_info'].format(bold(pkg_info['__app__'].model.name)),
@@ -1396,7 +1396,7 @@ class ManageWindow(QWidget):
                                      logger=self.logger,
                                      i18n=self.i18n,
                                      screenshots=res['screenshots'])
-            diag.exec_()
+            diag.exec()
         else:
             dialog.show_message(title=self.i18n['error'],
                                 body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
@@ -1422,7 +1422,7 @@ class ManageWindow(QWidget):
                                 type_=MessageType.WARNING)
         else:
             dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
-            dialog_history.exec_()
+            dialog_history.exec()
 
     def search(self):
         word = self.search_bar.text().strip()
@@ -1688,7 +1688,7 @@ class ManageWindow(QWidget):
             menu_row.addActions(actions)
             menu_row.adjustSize()
             menu_row.popup(QCursor.pos())
-            menu_row.exec_()
+            menu_row.exec()
 
     def begin_ignore_updates(self, pkg: PackageView):
         status_key = 'ignore_updates' if not pkg.model.is_update_ignored() else 'ignore_updates_reverse'
@@ -1779,7 +1779,7 @@ class ManageWindow(QWidget):
         menu_row.addActions(self._map_theme_actions(menu_row))
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
-        menu_row.exec_()
+        menu_row.exec()
 
     def _map_theme_actions(self, menu: QMenu) -> List[QCustomMenuAction]:
         core_config = CoreConfigManager().get_config()

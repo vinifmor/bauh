@@ -261,7 +261,7 @@ class PreparePanel(QWidget, TaskManager):
         self.textarea_details.clear()
         self.bottom_widget.setVisible(False)
         self._resize_columns()
-        self.setFocus(Qt.FocusPolicy.NoFocusReason)
+        self.setFocus(Qt.FocusReason.NoFocusReason)
 
         if not self.bt_bar.isVisible():
             self.bt_bar.setVisible(True)
@@ -343,7 +343,7 @@ class PreparePanel(QWidget, TaskManager):
 
                 self.bottom_widget.setVisible(True)
 
-            self.setFocus(Qt.FocusPolicy.NoFocusReason)
+            self.setFocus(Qt.FocusReason.NoFocusReason)
 
             if self.bt_bar.isVisible():
                 self.bt_bar.setVisible(False)

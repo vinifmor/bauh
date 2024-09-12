@@ -26,7 +26,7 @@ def show_message(title: str, body: str, type_: MessageType, icon: QIcon = QIcon(
     if icon:
         popup.setWindowIcon(icon)
 
-    popup.exec_()
+    popup.exec()
 
 
 class ConfirmationDialog(QDialog):
@@ -69,7 +69,7 @@ class ConfirmationDialog(QDialog):
             container_body.setLayout(QVBoxLayout())
             scroll = QScrollArea(self)
             scroll.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
-            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
             scroll.setWidgetResizable(True)
             scroll.setWidget(container_body)
             self.layout().addWidget(scroll)
@@ -127,12 +127,12 @@ class ConfirmationDialog(QDialog):
         self.close()
 
     def ask(self) -> bool:
-        self.exec_()
+        self.exec()
         return self.confirmed
 
 
 def ask_confirmation(title: str, body: str, i18n: I18n, icon: QIcon = QIcon(resource.get_path('img/logo.svg')),
                      widgets: List[QWidget] = None) -> bool:
     popup = ConfirmationDialog(title=title, body=body, i18n=i18n, icon=icon, widgets=widgets)
-    popup.exec_()
+    popup.exec()
     return popup.confirmed

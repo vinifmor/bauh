@@ -160,7 +160,7 @@ class PackagesTable(QTableWidget):
 
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
-        menu_row.exec_()
+        menu_row.exec()
 
     def _map_custom_action(self, pkg: PackageView, action: CustomSoftwareAction, parent: QWidget) -> QCustomMenuAction:
         def custom_action():

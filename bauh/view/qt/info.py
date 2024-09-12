@@ -30,7 +30,7 @@ class InfoDialog(QDialog):
         self.setLayout(layout)
 
         scroll = QScrollArea(self)
-        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidgetResizable(True)
         comps_container = QWidget()
         comps_container.setObjectName('root_container')
