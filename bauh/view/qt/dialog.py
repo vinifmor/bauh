@@ -40,7 +40,7 @@ class ConfirmationDialog(QDialog):
         super(ConfirmationDialog, self).__init__()
 
         if not window_cancel:
-            self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+            self.setWindowFlags(Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
 
         self.setLayout(QVBoxLayout())
         self.setWindowTitle(title)

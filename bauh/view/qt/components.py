@@ -265,7 +265,7 @@ def map_alignment(alignment: ViewComponentAlignment) -> Optional[int]:
     elif alignment == ViewComponentAlignment.RIGHT:
         return Qt.AlignRight
     elif alignment == ViewComponentAlignment.HORIZONTAL_CENTER:
-        return Qt.AlignHCenter
+        return Qt.AlignmentFlag.AlignHCenter
     elif alignment == ViewComponentAlignment.VERTICAL_CENTER:
         return Qt.AlignVCenter
     elif alignment == ViewComponentAlignment.BOTTOM:
@@ -296,7 +296,7 @@ class RadioButtonQt(QRadioButton):
 
         if self.model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
-            self.setFocusPolicy(Qt.NoFocus)
+            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         if model.extra_properties:
             for name, val in model.extra_properties.items():
@@ -326,7 +326,7 @@ class CheckboxQt(QCheckBox):
 
         if model.read_only:
             self.setAttribute(Qt.WA_TransparentForMouseEvents)
-            self.setFocusPolicy(Qt.NoFocus)
+            self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         else:
             self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
@@ -613,7 +613,7 @@ class MultipleSelectQt(QGroupBox):
                 else:
                     help_icon.setProperty('help_icon', 'true')
 
-                help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
+                help_icon.setCursor(QCursor(Qt.CursorShape.WhatsThisCursor))
                 help_icon.setToolTip(op.tooltip)
                 widget.layout().addWidget(help_icon)
 
@@ -684,7 +684,7 @@ class FormMultipleSelectQt(QWidget):
                     help_icon.setProperty('help_icon', 'true')
 
                 help_icon.setToolTip(op.tooltip)
-                help_icon.setCursor(QCursor(Qt.WhatsThisCursor))
+                help_icon.setCursor(QCursor(Qt.CursorShape.WhatsThisCursor))
                 widget.layout().addWidget(help_icon)
 
             self._layout.addWidget(widget, line, col)
@@ -868,7 +868,7 @@ class FormQt(QGroupBox):
         tip_icon = QLabel()
         tip_icon.setProperty('tip_icon', 'true')
         tip_icon.setToolTip(tip.strip())
-        tip_icon.setCursor(QCursor(Qt.WhatsThisCursor))
+        tip_icon.setCursor(QCursor(Qt.CursorShape.WhatsThisCursor))
         return tip_icon
 
     def _new_text_input(self, c: TextInputComponent) -> Tuple[QLabel, QLineEdit]:

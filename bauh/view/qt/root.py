@@ -39,7 +39,7 @@ class ValidatePassword(QThread):
 class RootDialog(QDialog):
 
     def __init__(self, i18n: I18n, max_tries: int = 3):
-        super(RootDialog, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        super(RootDialog, self).__init__(flags=Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.i18n = i18n
         self.max_tries = max_tries
         self.tries = 0

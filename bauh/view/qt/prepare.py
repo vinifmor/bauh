@@ -147,7 +147,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager,
                  i18n: I18n, manage_window: QWidget, app_config: dict, force_suggestions: bool = False):
-        super(PreparePanel, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        super(PreparePanel, self).__init__(flags=Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.i18n = i18n
         self.context = context
         self.app_config = app_config
@@ -188,14 +188,14 @@ class PreparePanel(QWidget, TaskManager):
         self.label_top.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.label_top.setText("{}...".format(self.i18n['prepare_panel.title.start'].capitalize()))
         self.label_top.setObjectName('prepare_status')
-        self.label_top.setAlignment(Qt.AlignHCenter)
+        self.label_top.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.layout().addWidget(self.label_top)
         self.layout().addWidget(QLabel())
 
         self.table = QTableWidget()
         self.table.setObjectName('tasks')
         self.table.setCursor(QCursor(Qt.CursorShape.WaitCursor))
-        self.table.setFocusPolicy(Qt.NoFocus)
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.setShowGrid(False)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setVisible(False)
@@ -261,7 +261,7 @@ class PreparePanel(QWidget, TaskManager):
         self.textarea_details.clear()
         self.bottom_widget.setVisible(False)
         self._resize_columns()
-        self.setFocus(Qt.NoFocusReason)
+        self.setFocus(Qt.FocusPolicy.NoFocusReason)
 
         if not self.bt_bar.isVisible():
             self.bt_bar.setVisible(True)
@@ -283,7 +283,7 @@ class PreparePanel(QWidget, TaskManager):
     def _resize_columns(self):
         header_horizontal = self.table.horizontalHeader()
         for i in range(self.table.columnCount()):
-            header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
 
         self.resize(int(self.get_table_width() * 1.05), self.sizeHint().height())
 
@@ -343,7 +343,7 @@ class PreparePanel(QWidget, TaskManager):
 
                 self.bottom_widget.setVisible(True)
 
-            self.setFocus(Qt.NoFocusReason)
+            self.setFocus(Qt.FocusPolicy.NoFocusReason)
 
             if self.bt_bar.isVisible():
                 self.bt_bar.setVisible(False)

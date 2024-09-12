@@ -540,7 +540,7 @@ class PackagesTable(QTableWidget):
             if pkg.model.is_trustable():
                 lb_verified = QLabel()
                 lb_verified.setObjectName('icon_publisher_verified')
-                lb_verified.setCursor(QCursor(Qt.WhatsThisCursor))
+                lb_verified.setCursor(QCursor(Qt.CursorShape.WhatsThisCursor))
                 lb_verified.setToolTip(self.i18n['publisher.verified'].capitalize())
                 item.addWidget(lb_verified)
             else:

@@ -530,7 +530,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.index = self.pkg_idx
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.start()
-        self.setFocus(Qt.NoFocusReason)
+        self.setFocus(Qt.FocusPolicy.NoFocusReason)
 
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
@@ -879,8 +879,8 @@ class ManageWindow(QWidget):
             self._update_installed_filter()
             self._update_index()
             self.begin_apply_filters()
-            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
-            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=True)
             notify_tray()
         else:
@@ -926,7 +926,7 @@ class ManageWindow(QWidget):
 
     def _reorganize(self):
         if not self._maximized:
-            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy(QHeaderView.ResizeMode.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
@@ -942,7 +942,7 @@ class ManageWindow(QWidget):
 
         if not self._maximized:
             self.label_displayed.show()
-            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy(QHeaderView.ResizeMode.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
@@ -1306,7 +1306,7 @@ class ManageWindow(QWidget):
 
     def _finish_action(self, action_id: int = None):
         self.thread_animate_progress.stop = True
-        self.thread_animate_progress.wait(msecs=1000)
+        self.thread_animate_progress.wait(1000)
 
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
@@ -1575,8 +1575,8 @@ class ManageWindow(QWidget):
             self.update_custom_actions()
             self._update_installed_filter(installed_available=True, keep_state=True)
             self._update_index()
-            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
-            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=False)
         else:
             self._show_console_errors()

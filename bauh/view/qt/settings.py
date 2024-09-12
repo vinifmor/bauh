@@ -37,7 +37,7 @@ class ReloadManagePanel(QThread):
 class SettingsWindow(QWidget):
 
     def __init__(self, manager: SoftwareManager, i18n: I18n, window: QWidget, parent: Optional[QWidget] = None):
-        super(SettingsWindow, self).__init__(parent=parent, flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        super(SettingsWindow, self).__init__(parent=parent, flags=Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.setWindowTitle(f"{i18n['settings'].capitalize()} ({__app_name__})")
         self.setLayout(QVBoxLayout())
         self.manager = manager
