@@ -530,7 +530,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.index = self.pkg_idx
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.start()
-        self.setFocus(Qt.FocusPolicy.NoFocusReason)
+        self.setFocus(Qt.FocusReason.NoFocusReason)
 
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
