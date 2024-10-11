@@ -35,6 +35,10 @@ def main(tray: bool = False):
     if args.offline:
         logger.warning("offline mode activated")
 
+    if os.getenv('XDG_SESSION_TYPE', '').lower() == 'wayland':
+        logger.info("Wayland session detected: forcing 'QT_QPA_PLATFORM' to 'wayland'")
+        os.environ['QT_QPA_PLATFORM'] = 'wayland'
+
     app_config = CoreConfigManager().get_config()
 
     if bool(app_config['ui']['auto_scale']):

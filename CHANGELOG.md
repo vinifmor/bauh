@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## NEXT
 
+### Fixes
+- crash in wayland sessions that don't have the proper QT configuration (forcing `QT_QA_PLATFORM=wayland`)
+
+
 ### Contributions
 - More Italian translations ([albanobattistella](https://github.com/albanobattistella))
 - Simplified Chinese translations ([antipeth](https://github.com/antipeth))
