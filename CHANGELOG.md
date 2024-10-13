@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Contributions
 - More Italian translations ([albanobattistella](https://github.com/albanobattistella))
+- More Russian translations ([KoromeloDev ](https://github.com/KoromeloDev))
 - Simplified Chinese translations ([antipeth](https://github.com/antipeth))
 - Detecting an Arch-based system based on `/etc/os-release` ([Boria138](https://github.com/Boria138))
 - Removing unnatural spaces from english translations ([EGYT5453](https://github.com/EGYT5453))
