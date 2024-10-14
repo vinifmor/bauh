@@ -1,12 +1,12 @@
 from typing import Optional, Union
 
-from PyQt5.QtCore import Qt, QRect, QPoint
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QWidget, QApplication, QDesktopWidget
+from PyQt6.QtCore import Qt, QRect, QPoint
+from PyQt6.QtGui import QIcon, QPixmap, QScreen, QGuiApplication
+from PyQt6.QtWidgets import QWidget, QApplication
 
 from bauh.view.util import resource
 
-desktop: Optional[QDesktopWidget] = None
+desktop: Optional[QScreen] = None
 
 
 def centralize(widget: QWidget, align_top_left: bool = True):
@@ -19,7 +19,7 @@ def centralize(widget: QWidget, align_top_left: bool = True):
 
 
 def load_icon(path: str, width: int, height: int = None) -> QIcon:
-    return QIcon(QPixmap(path).scaled(width, height if height else width, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+    return QIcon(QPixmap(path).scaled(width, height if height else width, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
 
 
 def load_resource_icon(path: str, width: int, height: int = None) -> QIcon:
@@ -35,10 +35,4 @@ def measure_based_on_height(percent: float) -> int:
 
 
 def get_current_screen_geometry(source_widget: Optional[Union[QWidget, QPoint]] = None) -> QRect:
-    global desktop
-
-    if not desktop:
-        desktop = QDesktopWidget()
-
-    current_screen_idx = desktop.screenNumber(source_widget if source_widget else desktop.cursor().pos())
-    return desktop.screen(current_screen_idx).geometry()
+    return QGuiApplication.primaryScreen().geometry()

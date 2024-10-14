@@ -4,9 +4,9 @@ from collections.abc import Iterable
 from subprocess import Popen
 from typing import Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QCursor
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QGroupBox, \
     QLineEdit, QLabel, QGridLayout, QPushButton, QPlainTextEdit, QScrollArea, QFrame, QWidget, QSizePolicy, \
     QHBoxLayout
 
@@ -30,7 +30,7 @@ class InfoDialog(QDialog):
         self.setLayout(layout)
 
         scroll = QScrollArea(self)
-        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidgetResizable(True)
         comps_container = QWidget()
         comps_container.setObjectName('root_container')
@@ -95,13 +95,13 @@ class InfoDialog(QDialog):
 
         lower_container = QWidget()
         lower_container.setObjectName('lower_container')
-        lower_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        lower_container.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         lower_container.setLayout(QHBoxLayout())
 
         self.bt_back = QPushButton('< {}'.format(self.i18n['back'].capitalize()))
         self.bt_back.setObjectName('back')
         self.bt_back.setVisible(False)
-        self.bt_back.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_back.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_back.clicked.connect(self.back_to_info)
 
         lower_container.layout().addWidget(self.bt_back)
@@ -109,7 +109,7 @@ class InfoDialog(QDialog):
 
         self.bt_close = QPushButton(self.i18n['close'].capitalize())
         self.bt_close.setObjectName('close')
-        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_close.clicked.connect(self.close)
 
         lower_container.layout().addWidget(self.bt_close)
@@ -147,7 +147,7 @@ class InfoDialog(QDialog):
 
         bt_full_field = QPushButton(bt_label)
         bt_full_field.setObjectName("show")
-        bt_full_field.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_full_field.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         bt_full_field.clicked.connect(_show_field)
         self.gbox_info.layout().addWidget(bt_full_field, idx, 2)
 

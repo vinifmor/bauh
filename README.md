@@ -70,7 +70,7 @@ Key features
 
 ##### Required dependencies
 
-`sudo apt-get install python3 python3-pip python3-yaml python3-dateutil python3-pyqt5 python3-packaging python3-requests`
+`sudo apt-get install python3 python3-pip python3-yaml python3-dateutil python3-pyqt6 python3-packaging python3-requests`
 
 ##### Installing bauh
 

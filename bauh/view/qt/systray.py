@@ -9,9 +9,9 @@ from subprocess import Popen
 from threading import Lock, Thread
 from typing import List
 
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication, QSize
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QSystemTrayIcon, QMenu
+from PyQt6.QtCore import QThread, pyqtSignal, QCoreApplication, QSize
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
 
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.model import PackageUpdate

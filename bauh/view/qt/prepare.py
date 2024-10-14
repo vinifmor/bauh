@@ -4,9 +4,9 @@ import time
 from functools import reduce
 from typing import Tuple, Optional
 
-from PyQt5.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication, QMutex
-from PyQt5.QtGui import QIcon, QCursor, QCloseEvent, QShowEvent
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, \
+from PyQt6.QtCore import QSize, Qt, QThread, pyqtSignal, QCoreApplication, QMutex
+from PyQt6.QtGui import QIcon, QCursor, QCloseEvent, QShowEvent
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QTableWidget, QHeaderView, QPushButton, \
     QProgressBar, QPlainTextEdit, QToolButton, QHBoxLayout
 
 from bauh import __app_name__
@@ -147,7 +147,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def __init__(self, context: ApplicationContext, manager: SoftwareManager,
                  i18n: I18n, manage_window: QWidget, app_config: dict, force_suggestions: bool = False):
-        super(PreparePanel, self).__init__(flags=Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        super(PreparePanel, self).__init__(flags=Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.i18n = i18n
         self.context = context
         self.app_config = app_config
@@ -155,7 +155,7 @@ class PreparePanel(QWidget, TaskManager):
         self.setWindowTitle('{} ({})'.format(__app_name__, self.i18n['prepare_panel.title.start'].lower()))
 
         self.setLayout(QVBoxLayout())
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self.manager = manager
         self.tasks = {}
         self.output = {}
@@ -185,25 +185,25 @@ class PreparePanel(QWidget, TaskManager):
         self.progress_thread.signal_change.connect(self._change_progress)
 
         self.label_top = QLabel()
-        self.label_top.setCursor(QCursor(Qt.WaitCursor))
+        self.label_top.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.label_top.setText("{}...".format(self.i18n['prepare_panel.title.start'].capitalize()))
         self.label_top.setObjectName('prepare_status')
-        self.label_top.setAlignment(Qt.AlignHCenter)
+        self.label_top.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.layout().addWidget(self.label_top)
         self.layout().addWidget(QLabel())
 
         self.table = QTableWidget()
         self.table.setObjectName('tasks')
-        self.table.setCursor(QCursor(Qt.WaitCursor))
-        self.table.setFocusPolicy(Qt.NoFocus)
+        self.table.setCursor(QCursor(Qt.CursorShape.WaitCursor))
+        self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.setShowGrid(False)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setVisible(False)
-        self.table.horizontalHeader().setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        self.table.horizontalHeader().setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(['' for _ in range(4)])
-        self.table.horizontalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
-        self.table.verticalScrollBar().setCursor(QCursor(Qt.PointingHandCursor))
+        self.table.horizontalScrollBar().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.table.verticalScrollBar().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.layout().addWidget(self.table)
 
         self.textarea_details = QPlainTextEdit(self)
@@ -223,16 +223,16 @@ class PreparePanel(QWidget, TaskManager):
         bt_hide_details = QPushButton(self.i18n['prepare.bt_hide_details'])
         bt_hide_details.setObjectName('bt_hide_details')
         bt_hide_details.clicked.connect(self.hide_output)
-        bt_hide_details.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_hide_details.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bottom_widget.layout().addWidget(bt_hide_details)
         self.bottom_widget.layout().addStretch()
         self.layout().addWidget(self.bottom_widget)
         self.bottom_widget.setVisible(False)
 
-        self.bt_bar = QCustomToolbar(policy_height=QSizePolicy.Fixed)
+        self.bt_bar = QCustomToolbar(policy_height=QSizePolicy.Policy.Fixed)
         self.bt_close = QPushButton(self.i18n['close'].capitalize())
         self.bt_close.setObjectName('bt_cancel')
-        self.bt_close.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_close.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_close.clicked.connect(self.close)
         self.bt_close.setVisible(False)
         self.bt_bar.add_widget(self.bt_close)
@@ -242,14 +242,14 @@ class PreparePanel(QWidget, TaskManager):
         self.progress_bar.setObjectName('prepare_progress')
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
-        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
+        self.progress_bar.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.bt_bar.add_widget(self.progress_bar)
         self.bt_bar.add_widget(new_spacer())
 
         self.bt_skip = QPushButton(self.i18n['prepare_panel.bt_skip.label'].capitalize())
         self.bt_skip.clicked.connect(self.finish)
         self.bt_skip.setEnabled(False)
-        self.bt_skip.setCursor(QCursor(Qt.WaitCursor))
+        self.bt_skip.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.bt_bar.add_widget(self.bt_skip)
 
         self.layout().addWidget(self.bt_bar)
@@ -261,7 +261,7 @@ class PreparePanel(QWidget, TaskManager):
         self.textarea_details.clear()
         self.bottom_widget.setVisible(False)
         self._resize_columns()
-        self.setFocus(Qt.NoFocusReason)
+        self.setFocus(Qt.FocusReason.NoFocusReason)
 
         if not self.bt_bar.isVisible():
             self.bt_bar.setVisible(True)
@@ -272,7 +272,7 @@ class PreparePanel(QWidget, TaskManager):
 
     def _enable_skip_button(self):
         self.bt_skip.setEnabled(True)
-        self.bt_skip.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_skip.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
     def _change_progress(self, value: int):
         self.progress_bar.setValue(value)
@@ -283,7 +283,7 @@ class PreparePanel(QWidget, TaskManager):
     def _resize_columns(self):
         header_horizontal = self.table.horizontalHeader()
         for i in range(self.table.columnCount()):
-            header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            header_horizontal.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
 
         self.resize(int(self.get_table_width() * 1.05), self.sizeHint().height())
 
@@ -323,7 +323,7 @@ class PreparePanel(QWidget, TaskManager):
 
         bt_icon = QToolButton()
         bt_icon.setObjectName('bt_task')
-        bt_icon.setCursor(QCursor(Qt.WaitCursor))
+        bt_icon.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         bt_icon.setEnabled(False)
         bt_icon.setToolTip(self.i18n['prepare.bt_icon.no_output'])
 
@@ -343,7 +343,7 @@ class PreparePanel(QWidget, TaskManager):
 
                 self.bottom_widget.setVisible(True)
 
-            self.setFocus(Qt.NoFocusReason)
+            self.setFocus(Qt.FocusReason.NoFocusReason)
 
             if self.bt_bar.isVisible():
                 self.bt_bar.setVisible(False)
@@ -356,27 +356,27 @@ class PreparePanel(QWidget, TaskManager):
         lb_status = QLabel(label)
         lb_status.setObjectName('task_status')
         lb_status.setProperty('status', 'running')
-        lb_status.setCursor(Qt.WaitCursor)
+        lb_status.setCursor(Qt.CursorShape.WaitCursor)
         lb_status.setMinimumWidth(50)
-        lb_status.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        lb_status.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         lb_status_col = 1
         self.table.setCellWidget(task_row, lb_status_col, lb_status)
 
         lb_progress = QLabel('{0:.2f}'.format(0) + '%')
         lb_progress.setObjectName('task_progress')
         lb_progress.setProperty('status', 'running')
-        lb_progress.setCursor(Qt.WaitCursor)
+        lb_progress.setCursor(Qt.CursorShape.WaitCursor)
         lb_progress.setContentsMargins(10, 0, 10, 0)
-        lb_progress.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        lb_progress.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         lb_progress_col = 2
 
         self.table.setCellWidget(task_row, lb_progress_col, lb_progress)
 
         lb_sub = QLabel()
         lb_sub.setObjectName('task_substatus')
-        lb_sub.setCursor(Qt.WaitCursor)
+        lb_sub.setCursor(Qt.CursorShape.WaitCursor)
         lb_sub.setContentsMargins(10, 0, 10, 0)
-        lb_sub.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        lb_sub.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         lb_sub.setMinimumWidth(50)
         self.table.setCellWidget(task_row, 3, lb_sub)
 
@@ -412,7 +412,7 @@ class PreparePanel(QWidget, TaskManager):
             self.output[task_id] = full_output
             task = self.tasks[task_id]
             task['bt_icon'].setEnabled(True)
-            task['bt_icon'].setCursor(QCursor(Qt.PointingHandCursor))
+            task['bt_icon'].setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             task['bt_icon'].setToolTip(self.i18n['prepare.bt_icon.output'])
 
         full_output.append(output)

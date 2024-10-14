@@ -6,9 +6,9 @@ import time
 from pathlib import Path
 from typing import List, Type, Set, Tuple, Optional, Dict, Any
 
-from PyQt5.QtCore import QEvent, Qt, pyqtSignal, QRect
-from PyQt5.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QCloseEvent, QShowEvent
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
+from PyQt6.QtCore import QEvent, Qt, pyqtSignal, QRect
+from PyQt6.QtGui import QIcon, QWindowStateChangeEvent, QCursor, QCloseEvent, QShowEvent
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QCheckBox, QHeaderView, QToolBar, \
     QLabel, QPlainTextEdit, QProgressBar, QPushButton, QComboBox, QApplication, QListView, QSizePolicy, \
     QMenu, QHBoxLayout
 
@@ -147,12 +147,12 @@ class ManageWindow(QWidget):
         self.toolbar_filters = QWidget()
         self.toolbar_filters.setObjectName('table_filters')
         self.toolbar_filters.setLayout(QHBoxLayout())
-        self.toolbar_filters.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar_filters.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.toolbar_filters.setContentsMargins(0, 0, 0, 0)
 
         self.check_updates = QCheckBox()
         self.check_updates.setObjectName('check_updates')
-        self.check_updates.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_updates.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.check_updates.setText(self.i18n['updates'].capitalize())
         self.check_updates.stateChanged.connect(self._handle_updates_filter)
         self.check_updates.sizePolicy().setRetainSizeWhenHidden(True)
@@ -161,7 +161,7 @@ class ManageWindow(QWidget):
 
         self.check_installed = QCheckBox()
         self.check_installed.setObjectName('check_installed')
-        self.check_installed.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_installed.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.check_installed.setText(self.i18n['manage_window.checkbox.only_installed'])
         self.check_installed.setChecked(False)
         self.check_installed.stateChanged.connect(self._handle_filter_only_installed)
@@ -171,7 +171,7 @@ class ManageWindow(QWidget):
 
         self.check_apps = QCheckBox()
         self.check_apps.setObjectName('check_apps')
-        self.check_apps.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_apps.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.check_apps.setText(self.i18n['manage_window.checkbox.only_apps'])
         self.check_apps.setChecked(True)
         self.check_apps.stateChanged.connect(self._handle_filter_only_apps)
@@ -181,7 +181,7 @@ class ManageWindow(QWidget):
 
         self.check_verified = QCheckBox()
         self.check_verified.setObjectName('check_verified')
-        self.check_verified.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_verified.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.check_verified.setText(self.i18n['manage_window.checkbox.only_verified'])
         self.check_verified.setChecked(False)
         self.check_verified.stateChanged.connect(self._handle_filter_only_verified)
@@ -193,13 +193,13 @@ class ManageWindow(QWidget):
         self.cache_type_filter_icons = {}
         self.combo_filter_type = QComboBox()
         self.combo_filter_type.setObjectName('combo_types')
-        self.combo_filter_type.setCursor(QCursor(Qt.PointingHandCursor))
+        self.combo_filter_type.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.combo_filter_type.setView(QListView())
-        self.combo_filter_type.view().setCursor(QCursor(Qt.PointingHandCursor))
-        self.combo_filter_type.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.combo_filter_type.view().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.combo_filter_type.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.combo_filter_type.setEditable(True)
         self.combo_filter_type.lineEdit().setReadOnly(True)
-        self.combo_filter_type.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_filter_type.lineEdit().setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.combo_filter_type.activated.connect(self._handle_type_filter)
         self.combo_filter_type.addItem('--- {} ---'.format(self.i18n['type'].capitalize()), self.any_type_filter)
         self.combo_filter_type.sizePolicy().setRetainSizeWhenHidden(True)
@@ -209,12 +209,12 @@ class ManageWindow(QWidget):
         self.any_category_filter = 'any'
         self.combo_categories = QComboBox()
         self.combo_categories.setObjectName('combo_categories')
-        self.combo_categories.setCursor(QCursor(Qt.PointingHandCursor))
-        self.combo_categories.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.combo_categories.view().setCursor(QCursor(Qt.PointingHandCursor))
+        self.combo_categories.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.combo_categories.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.combo_categories.view().setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.combo_categories.setEditable(True)
         self.combo_categories.lineEdit().setReadOnly(True)
-        self.combo_categories.lineEdit().setAlignment(Qt.AlignCenter)
+        self.combo_categories.lineEdit().setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.combo_categories.activated.connect(self._handle_category_filter)
         self.combo_categories.sizePolicy().setRetainSizeWhenHidden(True)
         self.combo_categories.addItem('--- {} ---'.format(self.i18n['category'].capitalize()), self.any_category_filter)
@@ -238,7 +238,7 @@ class ManageWindow(QWidget):
         bt_inst = QPushButton()
         bt_inst.setObjectName('bt_installed')
         bt_inst.setProperty('root', 'true')
-        bt_inst.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_inst.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         bt_inst.setToolTip(self.i18n['manage_window.bt.installed.tooltip'])
         bt_inst.setText(self.i18n['manage_window.bt.installed.text'].capitalize())
         bt_inst.clicked.connect(self._begin_loading_installed)
@@ -250,7 +250,7 @@ class ManageWindow(QWidget):
         bt_ref = QPushButton()
         bt_ref.setObjectName('bt_refresh')
         bt_ref.setProperty('root', 'true')
-        bt_ref.setCursor(QCursor(Qt.PointingHandCursor))
+        bt_ref.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         bt_ref.setToolTip(i18n['manage_window.bt.refresh.tooltip'])
         bt_ref.setText(self.i18n['manage_window.bt.refresh.text'])
         bt_ref.clicked.connect(self.begin_refresh_packages)
@@ -262,7 +262,7 @@ class ManageWindow(QWidget):
         self.bt_upgrade = QPushButton()
         self.bt_upgrade.setProperty('root', 'true')
         self.bt_upgrade.setObjectName('bt_upgrade')
-        self.bt_upgrade.setCursor(QCursor(Qt.PointingHandCursor))
+        self.bt_upgrade.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.bt_upgrade.setToolTip(i18n['manage_window.bt.upgrade.tooltip'])
         self.bt_upgrade.setText(i18n['manage_window.bt.upgrade.text'])
         self.bt_upgrade.clicked.connect(self.upgrade_selected)
@@ -302,13 +302,13 @@ class ManageWindow(QWidget):
 
         self.toolbar_console = QWidget()
         self.toolbar_console.setObjectName('console_toolbar')
-        self.toolbar_console.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.toolbar_console.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.toolbar_console.setLayout(QHBoxLayout())
         self.toolbar_console.setContentsMargins(0, 0, 0, 0)
 
         self.check_details = QCheckBox()
         self.check_details.setObjectName('check_details')
-        self.check_details.setCursor(QCursor(Qt.PointingHandCursor))
+        self.check_details.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.check_details.setText(self.i18n['manage_window.checkbox.show_details'])
         self.check_details.stateChanged.connect(self._handle_console)
         self.toolbar_console.layout().addWidget(self.check_details)
@@ -318,7 +318,7 @@ class ManageWindow(QWidget):
 
         self.label_displayed = QLabel()
         self.label_displayed.setObjectName('apps_displayed')
-        self.label_displayed.setCursor(QCursor(Qt.WhatsThisCursor))
+        self.label_displayed.setCursor(QCursor(Qt.CursorShape.WhatsThisCursor))
         self.label_displayed.setToolTip(self.i18n['manage_window.label.apps_displayed.tip'])
         self.toolbar_console.layout().addWidget(self.label_displayed)
         self.label_displayed.hide()
@@ -339,7 +339,7 @@ class ManageWindow(QWidget):
 
         self.label_substatus = QLabel()
         self.label_substatus.setObjectName('label_substatus')
-        self.label_substatus.setCursor(QCursor(Qt.WaitCursor))
+        self.label_substatus.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         self.toolbar_substatus.addWidget(self.label_substatus)
         self.toolbar_substatus.addWidget(new_spacer())
         self.layout.addWidget(self.toolbar_substatus)
@@ -384,7 +384,7 @@ class ManageWindow(QWidget):
 
         self.container_bottom = QWidget()
         self.container_bottom.setObjectName('container_bottom')
-        self.container_bottom.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.container_bottom.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.container_bottom.setLayout(QHBoxLayout())
         self.container_bottom.layout().setContentsMargins(0, 0, 0, 0)
 
@@ -434,13 +434,13 @@ class ManageWindow(QWidget):
 
         self.layout.addWidget(self.container_bottom)
 
-        self.container_progress = QCustomToolbar(spacing=0, policy_height=QSizePolicy.Fixed)
+        self.container_progress = QCustomToolbar(spacing=0, policy_height=QSizePolicy.Policy.Fixed)
         self.container_progress.setObjectName('container_progress')
         self.container_progress.add_space()
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName('progress_manage')
-        self.progress_bar.setCursor(QCursor(Qt.WaitCursor))
+        self.progress_bar.setCursor(QCursor(Qt.CursorShape.WaitCursor))
 
         self.progress_bar.setTextVisible(False)
         self.container_progress.add_widget(self.progress_bar)
@@ -506,7 +506,7 @@ class ManageWindow(QWidget):
     def _change_status(self, status: str = None):
         if status:
             self.label_status.setText(status + '...')
-            self.label_status.setCursor(QCursor(Qt.WaitCursor))
+            self.label_status.setCursor(QCursor(Qt.CursorShape.WaitCursor))
         else:
             self.label_status.setText('')
             self.label_status.unsetCursor()
@@ -516,7 +516,7 @@ class ManageWindow(QWidget):
         if enabled:
             self.table_container.unsetCursor()
         else:
-            self.table_container.setCursor(QCursor(Qt.WaitCursor))
+            self.table_container.setCursor(QCursor(Qt.CursorShape.WaitCursor))
 
     def begin_apply_filters(self):
         self.stop_notifying_package_states()
@@ -530,7 +530,7 @@ class ManageWindow(QWidget):
         self.thread_apply_filters.index = self.pkg_idx
         self.thread_apply_filters.filters = self._gen_filters()
         self.thread_apply_filters.start()
-        self.setFocus(Qt.NoFocusReason)
+        self.setFocus(Qt.FocusReason.NoFocusReason)
 
     def _finish_apply_filters(self):
         self._finish_action(ACTION_APPLY_FILTERS)
@@ -879,8 +879,8 @@ class ManageWindow(QWidget):
             self._update_installed_filter()
             self._update_index()
             self.begin_apply_filters()
-            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
-            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=True)
             notify_tray()
         else:
@@ -926,7 +926,7 @@ class ManageWindow(QWidget):
 
     def _reorganize(self):
         if not self._maximized:
-            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy(QHeaderView.ResizeMode.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
@@ -942,7 +942,7 @@ class ManageWindow(QWidget):
 
         if not self._maximized:
             self.label_displayed.show()
-            self.table_apps.change_headers_policy(QHeaderView.Stretch)
+            self.table_apps.change_headers_policy(QHeaderView.ResizeMode.Stretch)
             self.table_apps.change_headers_policy()
             self._resize(accept_lower_width=len(self.pkgs) > 0)
 
@@ -1235,7 +1235,7 @@ class ManageWindow(QWidget):
     def upgrade_selected(self):
         body = QWidget()
         body.setLayout(QHBoxLayout())
-        body.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        body.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
         body.layout().addWidget(QLabel(self.i18n['manage_window.upgrade_all.popup.body']))
         body.layout().addWidget(UpgradeToggleButton(pkg=None, root=self, i18n=self.i18n, clickable=False))
         if ConfirmationDialog(title=self.i18n['manage_window.upgrade_all.popup.title'],
@@ -1306,7 +1306,7 @@ class ManageWindow(QWidget):
 
     def _finish_action(self, action_id: int = None):
         self.thread_animate_progress.stop = True
-        self.thread_animate_progress.wait(msecs=1000)
+        self.thread_animate_progress.wait(1000)
 
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
@@ -1372,7 +1372,7 @@ class ManageWindow(QWidget):
             if len(pkg_info) > 1:
                 dialog_info = InfoDialog(pkg_info=pkg_info, icon_cache=self.icon_cache, i18n=self.i18n,
                                          can_open_url=self.can_open_urls)
-                dialog_info.exec_()
+                dialog_info.exec()
             else:
                 dialog.show_message(title=self.i18n['warning'].capitalize(),
                                     body=self.i18n['manage_window.info.no_info'].format(bold(pkg_info['__app__'].model.name)),
@@ -1396,7 +1396,7 @@ class ManageWindow(QWidget):
                                      logger=self.logger,
                                      i18n=self.i18n,
                                      screenshots=res['screenshots'])
-            diag.exec_()
+            diag.exec()
         else:
             dialog.show_message(title=self.i18n['error'],
                                 body=self.i18n['popup.screenshots.no_screenshot.body'].format(bold(res['pkg'].model.name)),
@@ -1422,7 +1422,7 @@ class ManageWindow(QWidget):
                                 type_=MessageType.WARNING)
         else:
             dialog_history = HistoryDialog(res['history'], self.icon_cache, self.i18n)
-            dialog_history.exec_()
+            dialog_history.exec()
 
     def search(self):
         word = self.search_bar.text().strip()
@@ -1575,8 +1575,8 @@ class ManageWindow(QWidget):
             self.update_custom_actions()
             self._update_installed_filter(installed_available=True, keep_state=True)
             self._update_index()
-            self.table_apps.change_headers_policy(policy=QHeaderView.Stretch, maximized=self._maximized)
-            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeToContents, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.Stretch, maximized=self._maximized)
+            self.table_apps.change_headers_policy(policy=QHeaderView.ResizeMode.ResizeToContents, maximized=self._maximized)
             self._resize(accept_lower_width=False)
         else:
             self._show_console_errors()
@@ -1683,12 +1683,12 @@ class ManageWindow(QWidget):
     def show_custom_actions(self):
         if self.custom_actions:
             menu_row = QMenu()
-            menu_row.setCursor(QCursor(Qt.PointingHandCursor))
+            menu_row.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
             actions = [self._map_custom_action(a, menu_row) for a in self.custom_actions]
             menu_row.addActions(actions)
             menu_row.adjustSize()
             menu_row.popup(QCursor.pos())
-            menu_row.exec_()
+            menu_row.exec()
 
     def begin_ignore_updates(self, pkg: PackageView):
         status_key = 'ignore_updates' if not pkg.model.is_update_ignored() else 'ignore_updates_reverse'
@@ -1775,11 +1775,11 @@ class ManageWindow(QWidget):
 
     def show_themes(self):
         menu_row = QMenu()
-        menu_row.setCursor(QCursor(Qt.PointingHandCursor))
+        menu_row.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         menu_row.addActions(self._map_theme_actions(menu_row))
         menu_row.adjustSize()
         menu_row.popup(QCursor.pos())
-        menu_row.exec_()
+        menu_row.exec()
 
     def _map_theme_actions(self, menu: QMenu) -> List[QCustomMenuAction]:
         core_config = CoreConfigManager().get_config()

@@ -3,8 +3,8 @@ import sys
 from logging import Logger
 from typing import Tuple
 
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QApplication
+from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtWidgets import QApplication
 
 from bauh import __app_name__, __version__
 from bauh.stylesheet import process_theme, read_default_themes, read_user_themes, read_theme_metada

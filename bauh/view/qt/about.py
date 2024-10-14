@@ -1,7 +1,7 @@
 from glob import glob
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout, QSizePolicy, QApplication
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QVBoxLayout, QDialog, QLabel, QWidget, QHBoxLayout, QSizePolicy, QApplication
 
 from bauh import __version__, __app_name__, ROOT_DIR
 from bauh.context import generate_i18n
@@ -22,7 +22,7 @@ class AboutDialog(QDialog):
 
         logo_container = QWidget()
         logo_container.setObjectName('logo_container')
-        logo_container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        logo_container.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         logo_container.setLayout(QHBoxLayout())
 
         label_logo = QLabel()

@@ -12,9 +12,9 @@ from queue import Queue
 from typing import List, Type, Set, Tuple, Optional, Pattern
 
 import requests
-from PyQt5.QtCore import QThread, pyqtSignal, QObject
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtCore import QThread, pyqtSignal, QObject
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QWidget
 
 from bauh.api import user
 from bauh.api.abstract.cache import MemoryCache
