@@ -21,6 +21,7 @@ def new_qt_application(app_config: dict, logger: Logger, quit_on_last_closed: bo
     app.setApplicationName(name if name else __app_name__)
     app.setApplicationVersion(__version__)
     app.setWindowIcon(util.get_default_icon()[1])
+    app.setDesktopFileName(__app_name__)
 
     if app_config['ui']['qt_style']:
         app.setStyle(str(app_config['ui']['qt_style']))
