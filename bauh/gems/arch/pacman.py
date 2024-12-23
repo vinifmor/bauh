@@ -290,7 +290,7 @@ def read_repository_from_info(name: str) -> Optional[str]:
 
     repository = None
 
-    for o in new_subprocess(['grep', '-Po', "Repository\s+:\s+\K.+"], stdin=info.stdout).stdout:
+    for o in new_subprocess(['grep', '-Po', r"Repository\s+:\s+\K.+"], stdin=info.stdout).stdout:
         if o:
             line = o.decode().strip()
 
@@ -343,7 +343,7 @@ def read_provides(name: str) -> Set[str]:
 
     provides = None
 
-    for out in new_subprocess(['grep', '-Po', 'Provides\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
+    for out in new_subprocess(['grep', '-Po', r'Provides\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
         if out:
             provided_names = [p.strip() for p in out.decode().strip().split(' ') if p]
 
@@ -372,7 +372,7 @@ def read_dependencies(name: str) -> Set[str]:
         raise PackageNotFoundException(name)
 
     depends_on = set()
-    for out in new_subprocess(['grep', '-Po', 'Depends\s+On\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
+    for out in new_subprocess(['grep', '-Po', r'Depends\s+On\s+:\s\K(.+)'], stdin=dep_info.stdout).stdout:
         if out:
             line = out.decode().strip()
 
