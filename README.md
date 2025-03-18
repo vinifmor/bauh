@@ -140,7 +140,7 @@ makepkg -si
 - `snapd`: Snap support
 - `pacman`: ArchLinux package management support
 - `python-lxml`, `python-beautifulsoup4`: Web apps support
-- `python-venv`: [isolated installation](#inst_iso)
+- `python-virtualenv`: [isolated installation](#inst_iso)
 
 
 ##### Uninstalling bauh
