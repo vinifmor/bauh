@@ -1,0 +1,9 @@
+about.title=névjegy
+about.info.desc=Grafikus felület a Linux alkalmazások kezeléséhez
+about.info.link=További információ
+about.info.license=Ingyenes licenc
+about.info.rate.question=Tetszik ez az eszköz ?
+about.info.rate.answer=Adjon neki csillagot a GitHubon, hogy megerősítse a projektet
+about.info.trouble.question=Valami baj van ?
+about.info.trouble.answer=Nyisson meg egy GitHub-problémát, hogy a fejlesztők segíthessenek Önnek
+about.version=verzió

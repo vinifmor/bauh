@@ -1,0 +1,8 @@
+tray.action.manage=Alkalmazások
+tray.action.exit=Kilépés
+tray.action.about=Névjegy
+tray.action.refreshing=Frissítő
+tray.settings=Beállítások
+notification.update={} elérhető frissítés
+notification.updates={} elérhető frissítések
+tray.warning.update_available=Új {} verzió elérhető ({})
