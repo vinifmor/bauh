@@ -16,7 +16,7 @@ from bauh.gems.flatpak.constants import FLATHUB_URL
 
 RE_SEVERAL_SPACES = re.compile(r'\s+')
 RE_COMMIT = re.compile(r'(Latest commit|Commit)\s*:\s*(.+)')
-RE_REQUIRED_RUNTIME = re.compile(f'Required\s+runtime\s+.+\(([\w./]+)\)\s*.+\s+remote\s+([\w+./]+)')
+RE_REQUIRED_RUNTIME = re.compile(r'Required\s+runtime\s+.+\(([\w./]+)\)\s*.+\s+remote\s+([\w+./]+)')
 OPERATION_UPDATE_SYMBOLS = {'i', 'u'}
 
 

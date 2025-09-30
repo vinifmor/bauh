@@ -140,7 +140,7 @@ class ApplicationsMapper:
     def __init__(self, logger: Logger, workers: int = 10):
         self._log = logger
         self._re_desktop_file = re.compile(r'(.+):\s+(/usr/share/applications/.+\.desktop)')
-        self._re_desktop_file_fields = re.compile('(Exec|TryExec|Icon|Categories|NoDisplay|Terminal)\s*=\s*(.+)')
+        self._re_desktop_file_fields = re.compile(r'(Exec|TryExec|Icon|Categories|NoDisplay|Terminal)\s*=\s*(.+)')
         self._workers = workers
 
     def _read_file(self, file_path: str) -> Optional[str]:
