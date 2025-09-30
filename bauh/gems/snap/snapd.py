@@ -3,14 +3,14 @@ import traceback
 from logging import Logger
 from typing import Optional, List
 
-from requests import Session
+from requests_unixsocket import Session
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection
 from urllib3.connectionpool import HTTPConnectionPool
 
 from bauh.commons.system import run_cmd
 
-URL_BASE = 'http://snapd/v2'
+URL_BASE = 'http+unix://%2Frun%2Fsnapd.socket/v2'
 
 
 class SnapdConnection(HTTPConnection):
@@ -45,7 +45,6 @@ class SnapdClient:
     def _new_session(self) -> Optional[Session]:
         try:
             session = Session()
-            session.mount("http://snapd/", SnapdAdapter())
             return session
         except Exception:
             self.logger.error("Could not establish a connection to 'snapd.socker'")
