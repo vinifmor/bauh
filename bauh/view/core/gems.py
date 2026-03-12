@@ -3,6 +3,7 @@ import os
 import pkgutil
 from logging import Logger
 from typing import List, Generator
+import importlib.util
 
 from bauh import __app_name__, ROOT_DIR
 from bauh.api.abstract.controller import SoftwareManager, ApplicationContext
@@ -49,10 +50,11 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
                 logger.warning(f"gem '{f.name}' could not be loaded because it was marked as forbidden in '{FORBIDDEN_GEMS_FILE}'")
                 continue
 
-            loader = pkgutil.find_loader(f'bauh.gems.{f.name}.controller')
-
+            # This line must be aligned with the 'if f.name in forbidden_gems' block
+            loader = importlib.util.find_spec(f'bauh.gems.{f.name}.controller')
+            
             if loader:
-                module = loader.load_module()
+                module = loader.loader.load_module() # Note: spec.loader is needed in 3.14
 
                 manager_class = find_manager(module)
 
