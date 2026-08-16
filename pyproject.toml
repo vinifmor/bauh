@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "bauh"
 description = "Graphical interface to manage Linux applications (AppImage, Arch / AUR, Flatpak, Snap and Web)"
 license = {file = "LICENSE"}
-requires-python = ">=3.6"
+requires-python = ">=3.9"
 dynamic = ["version"]
 readme = "README.md"
 authors = [{name = "Vinicius Moreira", email = "vinicius_fmoreira@hotmail.com"}]
@@ -26,7 +26,8 @@ dependencies = [
     "requests >= 2.18",
     "colorama >= 0.3.8",
     "pyyaml >= 3.13",
-    "python-dateutil >= 2.7"
+    "python-dateutil >= 2.7",
+    "requests-unixsocket >= 0.4.1"
 ]
 
 [project.optional-dependencies]
