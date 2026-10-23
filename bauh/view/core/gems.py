@@ -1,6 +1,7 @@
 import inspect
 import os
-import pkgutil
+from importlib import import_module
+from importlib.util import find_spec
 from logging import Logger
 from typing import List, Generator
 
@@ -49,10 +50,10 @@ def load_managers(locale: str, context: ApplicationContext, config: dict, defaul
                 logger.warning(f"gem '{f.name}' could not be loaded because it was marked as forbidden in '{FORBIDDEN_GEMS_FILE}'")
                 continue
 
-            loader = pkgutil.find_loader(f'bauh.gems.{f.name}.controller')
+            module_name = f'bauh.gems.{f.name}.controller'
 
-            if loader:
-                module = loader.load_module()
+            if find_spec(module_name) is not None:
+                module = import_module(module_name)
 
                 manager_class = find_manager(module)
 
